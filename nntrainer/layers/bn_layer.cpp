@@ -97,52 +97,48 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     }
   }
 
-  wt_idx[BNParams::mu] =
-    context.requestWeight(dim, bnparams_mu, WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":moving_mean", false);
-  wt_idx[BNParams::var] =
-    context.requestWeight(dim, bnparams_var, WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":moving_variance", false);
-  wt_idx[BNParams::gamma] =
-    context.requestWeight(dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":gamma", true);
-  wt_idx[BNParams::beta] =
-    context.requestWeight(dim, bnparams_beta, WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":beta", true);
+  wt_idx[BNParams::mu] = context.requestWeight(
+    dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, "moving_mean", false);
+  wt_idx[BNParams::var] = context.requestWeight(
+    dim, bnparams_var, WeightRegularizer::NONE, 1.0f, "moving_variance", false);
+  wt_idx[BNParams::gamma] = context.requestWeight(
+    dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f, "gamma", true);
+  wt_idx[BNParams::beta] = context.requestWeight(
+    dim, bnparams_beta, WeightRegularizer::NONE, 1.0f, "beta", true);
 
   /**
    * caches the deviation -> input - avg(input)
    * @todo check if avoiding this storage and adding dependency on input (no
    * more in-place calculation) can save memory during memory optimization.
    */
-  wt_idx[BNParams::deviation] = context.requestTensor(
-    in_dim, context.getName() + ":deviation", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[BNParams::deviation] =
+    context.requestTensor(in_dim, "deviation", Tensor::Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /** caches the inverse standard deviation */
-  wt_idx[BNParams::invstd] = context.requestTensor(
-    dim, context.getName() + ":invstd", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[BNParams::invstd] =
+    context.requestTensor(dim, "invstd", Tensor::Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /**
    * Temporary tensor to store the full sized tensors in order to allow batch
    * norm to execute in-place. Running in-place leads to same memory footprint
    * for this layer in its backwarding, but reduces the peak memory requirement
    * as the output of this layer need not be stored all the time.
    */
-  wt_idx[BNParams::t_full] = context.requestTensor(
-    in_dim, context.getName() + ":tesnor_full", Tensor::Initializer::NONE,
-    false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  wt_idx[BNParams::t_full] =
+    context.requestTensor(in_dim, "tesnor_full", Tensor::Initializer::NONE,
+                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */
-  wt_idx[BNParams::cvar] = context.requestTensor(
-    dim, context.getName() + ":cvar", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[BNParams::cvar] =
+    context.requestTensor(dim, "cvar", Tensor::Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /**
    * Temporary tensor to store the reduced tensors along the axes_to_reduce.
    */
-  wt_idx[BNParams::t_reduced] = context.requestTensor(
-    dim, context.getName() + ":tensor_reduced", Tensor::Initializer::NONE,
-    false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  wt_idx[BNParams::t_reduced] =
+    context.requestTensor(dim, "tensor_reduced", Tensor::Initializer::NONE,
+                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(

@@ -276,12 +276,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, dim, {stride[0], stride[1]});
 
-  wt_idx[ConvParams::weight] = context.requestWeight(
-    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    context.getName() + ":filter", true);
-  wt_idx[ConvParams::bias] =
-    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, context.getName() + ":bias", true);
+  wt_idx[ConvParams::weight] =
+    context.requestWeight(dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "filter", true);
+  wt_idx[ConvParams::bias] = context.requestWeight(
+    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
 
   // this output_dim must be the same with dimension of hidden
   unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
@@ -319,7 +318,7 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
    * which will be expensive.
    */
   wt_idx[ConvParams::inter_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, dim), context.getName() + ":inter_result",
+    calcCol2ImOutputDim(out_dim, dim), "inter_result",
     Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
 }
 

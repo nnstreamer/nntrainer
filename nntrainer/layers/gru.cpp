@@ -126,34 +126,33 @@ void GRULayer::finalize(InitLayerContext &context) {
   // weight_initializer can be set sepeartely. weight_xh initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
-  wt_idx[GRUParams::weight_xh] = context.requestWeight(
-    dim_xh, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    context.getName() + ":weight_xh", true);
-  wt_idx[GRUParams::weight_hh] = context.requestWeight(
-    dim_hh, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    context.getName() + ":weight_hh", true);
-  wt_idx[GRUParams::bias_h] =
-    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, context.getName() + ":bias_h", true);
+  wt_idx[GRUParams::weight_xh] =
+    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_xh", true);
+  wt_idx[GRUParams::weight_hh] =
+    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_hh", true);
+  wt_idx[GRUParams::bias_h] = context.requestWeight(
+    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias_h", true);
 
   TensorDim d = input_dim;
   d.width(unit);
 
-  wt_idx[GRUParams::hidden_state] = context.requestTensor(
-    d, context.getName() + ":hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[GRUParams::hidden_state] =
+    context.requestTensor(d, "hidden_state", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   d.width(unit * NUM_GATE);
-  wt_idx[GRUParams::zrg] = context.requestTensor(
-    d, context.getName() + ":zrg", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[GRUParams::zrg] =
+    context.requestTensor(d, "zrg", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim h_dim = TensorDim();
   h_dim.setTensorDim(3, unit);
   h_dim.batch(input_dim.batch());
-  wt_idx[GRUParams::h_prev] = context.requestTensor(
-    h_dim, context.getName() + ":h_prev", Tensor::Initializer::NONE, false,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  wt_idx[GRUParams::h_prev] =
+    context.requestTensor(h_dim, "h_prev", Tensor::Initializer::NONE, false,
+                          TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);
