@@ -300,7 +300,7 @@ int NetworkGraph::checkCompiledGraph() {
   return ML_ERROR_NONE;
 }
 
-int NetworkGraph::checkInitializedGraph() {
+void NetworkGraph::markNodesForBackwarding() {
   /** accumulate all the nodes which must support backwarding */
   std::unordered_set<std::string> must_support_backwarding;
 
@@ -313,24 +313,21 @@ int NetworkGraph::checkInitializedGraph() {
     if (lnode->getTrainable() ||
         must_support_backwarding.find(lnode->getName()) !=
           must_support_backwarding.end()) {
+      lnode->needsCalcGradient(true);
+#ifdef ENABLE_TEST
+      if (lnode->supportBackwarding() && !optimize_memory) {
+        lnode->needsCalcDerivative(true);
+      }
+#endif
       for (auto const &out_layer : lnode->getOutputLayers()) {
         must_support_backwarding.insert(out_layer);
       }
     }
   }
 
-  /** verify all the required nodes support backwarding */
-  try {
-    for (auto const &node_name : must_support_backwarding)
-      LNODE(graph.getNode(node_name))->needsBackwarding(true);
-  } catch (std::exception &e) {
-    ml_loge(
-      "Backwaring required from layer which doesn't support backwarding: %s",
-      e.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  return ML_ERROR_NONE;
+  /** mark all the required nodes support backwarding */
+  for (auto const &node_name : must_support_backwarding)
+    LNODE(graph.getNode(node_name))->needsCalcDerivative(true);
 }
 
 int NetworkGraph::realizeGraph() {
@@ -496,6 +493,49 @@ void NetworkGraph::backwarding(
     START_PROFILE(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);
     END_PROFILE(profile_keys.at(ln->getType()));
+  }
+}
+
+/**
+ * @brief Allocate memory for all the managed tensors
+ */
+void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
+  exec_mode = exec_mode_;
+  if (exec_mode == ExecutionMode::INFERENCE)
+    /**
+     * get the order of execution/usage order for the forwarding of the last
+     * layer and pass that as the max_exec_order ensuring that all tensors
+     * with usage less than the max_exec_order are allocated.
+     */
+    tensor_manager->allocateTensors(
+      std::get<0>((*(cend() - 1))->getExecutionOrder()));
+  else {
+    /**
+     * get the order of execution/usage order for the backwarding of the first
+     * layer (as that will be the last layer to executed in the backwarding)
+     * and pass that as the max_exec_order ensuring that all tensors with
+     * usage less than the max_exec_order are allocated.
+     */
+    unsigned int max_exec_order = 0;
+    if (!optimize_memory)
+      max_exec_order = std::get<2>((*(cbegin()))->getExecutionOrder());
+    for (auto iter = getBackwardingBeginIter(); iter != getBackwardingEndIter();
+         iter++) {
+      auto &ln = *iter;
+      if (ln->needsCalcDerivative() || ln->needsCalcGradient()) {
+#ifdef ENABLE_TEST
+        max_exec_order =
+          std::max(max_exec_order, std::get<2>(ln->getExecutionOrder()));
+#else
+        max_exec_order =
+          std::max(max_exec_order, std::get<1>(ln->getExecutionOrder()));
+#endif
+      } else {
+        max_exec_order =
+          std::max(max_exec_order, std::get<0>(ln->getExecutionOrder()));
+      }
+    }
+    tensor_manager->allocateTensors(max_exec_order);
   }
 }
 
@@ -922,7 +962,17 @@ int NetworkGraph::initialize(
   identify_external_tensors(model_label_names, is_label_node,
                             identify_as_model_label);
 
-  return checkInitializedGraph();
+  /** mark the nodes which will be backwarded during the graph operation */
+  try {
+    markNodesForBackwarding();
+  } catch (std::exception &e) {
+    ml_loge(
+      "Backwarding required from layer which doesn't support backwarding: %s",
+      e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
 }
 
 void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,

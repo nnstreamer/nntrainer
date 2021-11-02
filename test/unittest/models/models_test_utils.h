@@ -131,7 +131,7 @@ public:
    *
    * @return true if needs backwarding else false
    */
-  bool needsBackwarding() { return node->needsBackwarding(); }
+  bool needsCalcDerivative() { return node->needsCalcDerivative(); }
 
 private:
   NodeType node;

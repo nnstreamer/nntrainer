@@ -662,30 +662,46 @@ public:
   std::unique_ptr<LayerNode> cloneConfiguration();
 
   /**
-   * @brief Set if the layer needs to do backwarding
+   * @brief Set if the layer needs to do derivative calculation
    *
    * @param nb true if the layer needs to do backwarding, else false
    */
-  void needsBackwarding(bool nb) {
+  void needsCalcDerivative(bool nb) {
     NNTR_THROW_IF(nb && !supportBackwarding(), std::invalid_argument)
       << "[Layer] " << getName()
       << " does not support backwarding but is needed";
-    needs_backwarding = nb;
+    needs_calc_derivative = nb;
   }
 
   /**
-   * @brief Get the layer needs to do backwarding
+   * @brief Set if the layer needs to do calculation of gradients
+   *
+   * @param nb true if the layer needs to do backwarding, else false
+   */
+  void needsCalcGradient(bool nb) { needs_calc_gradient = nb; }
+
+  /**
+   * @brief Get the layer needs to do calculation of derivatives
    *
    * @return true if the layer needs to do backwarding, else false
    */
-  bool needsBackwarding() { return needs_backwarding; }
+  bool needsCalcDerivative() { return needs_calc_derivative; }
+
+  /**
+   * @brief Set if the layer needs to do calculation of gradient
+   *
+   * @param nb true if the layer needs to do backwarding, else false
+   */
+  bool needsCalcGradient() { return needs_calc_gradient; }
 
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
   bool inplace; /**< store if the current layer is going to operate in-place */
-  bool needs_backwarding; /**< cache if this layer needs to do backwarding */
+  bool needs_calc_derivative; /**< cache if this layer needs to do
+                                 calcDerivative */
+  bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
