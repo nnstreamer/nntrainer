@@ -14,9 +14,12 @@ NNtrainer is a Software Framework for training Neural Network models on devices.
 
 ## Overview
 
-NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a Software Framework to train neural network models on embedded devices which have relatively limited resources. Rather than training whole layers of a network, NNtrainer trains only one or a few layers of the layers added after a feature extractor.
+NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a Software Framework to train neural network models on embedded devices which have relatively limited resources. Rather than training whole layers of a network from the scratch, NNtrainer finetunes the neural network model on device with user data for the personalization.
 
-Even though NNTrainer can be used to train sub-models, it requires implementation of additional functionalities to train models obtained from other machine learning and deep learning libraries. In the current version, various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression and Reinforcement Learning algorithms are implemented. We also provide examples for various tasks such as transfer learning of models. In some of these examples, deep learning models such as Mobilenet V2 trained with Tensorflow-lite, are used as feature extractors. All of these were tested on Galaxy S8 with Android and PC (Ubuntu 16.04).
+Even if NNtariner runs on device, it provides full functionalities to train models and also utilizes limited device resources efficiently. NNTrainer is able to train various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression, Reinforcement Learning algorithms, Recurrent network and more. We also provide examples for various tasks such as Few-shot learning, ResNet, VGG, Product Rating and more will be added. All of these were tested on Samsung Galaxy smart phone with Android and PC (Ubuntu 18.04/20.04).
+
+[ NNTrainer: Personalize neural networks on devices! ](https://www.youtube.com/watch?v=HKKowY78P1A), Samsung Developer Conference 2021 <br />
+[ NNTrainer: "On-device learning" ](https://www.youtube.com/embed/Jy_auavraKg?start=4035&end=4080), Samsung AI Forum 2021
 
 ## Official Releases
 
@@ -74,7 +77,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | centroid_knn | CentroidKNN | Centroid K-nearest neighbor layer |
  | concat | ConcatLayer | Concatenate input layers |
  | multiout | MultiOutLayer | Multi-Output Layer |
- | backobne_nnstreamer | NNStreamerLayer | Encapsulate NNStreamer layer |
+ | backbone_nnstreamer | NNStreamerLayer | Encapsulate NNStreamer layer |
  | backbone_tflite | TfLiteLayer | Encapsulate tflite as an layer |
  | permute | PermuteLayer | Permute layer for transpose |
  | preprocess_flip | PreprocessFlipLayer | Preprocess random flip layer |
@@ -149,7 +152,7 @@ NNTrainer provides
  | learnig_rate_decay | learning rate decay | need to set step |
 
 ### APIs
-Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. C++ API will be also provided soon.
+Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. [C++ APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/ccapi/include) are also provided for other platform. Java & C# APIs will be provided soon.
 
 
 ### Examples for NNTrainer
@@ -191,10 +194,10 @@ An example to demonstrate few-shot learning : SimpleShot
 
 An example to demonstrate how to create custom layers, optimizers or other supported objects.
 
-#### ~Tizen CAPI Example~
+<!-- #### Tizen CAPI Example -->
 
-An example to demonstrate c api for Tizen. It is same transfer learing but written with tizen c api.~
-Deleted instead moved to a [test](https://github.com/nnstreamer/nntrainer/blob/master/test/tizen_capi/unittest_tizen_capi.cpp)
+<!-- An example to demonstrate c api for Tizen. It is same transfer learing but written with tizen c api.~ -->
+<!-- Deleted instead moved to a [test](https://github.com/nnstreamer/nntrainer/blob/master/test/tizen_capi/unittest_tizen_capi.cpp) -->
 
 #### [KNN Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/KNN)
 
