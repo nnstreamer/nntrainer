@@ -150,7 +150,8 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
   inplace(false),
-  needs_backwarding(false),
+  needs_calc_derivative(false),
+  needs_calc_gradient(false),
   run_context(nullptr),
   layer_node_props(new PropsType(props::Name(), props::Distribute(),
                                  props::Trainable(), {}, {},
@@ -506,7 +507,7 @@ void LayerNode::calcDerivative() {
  */
 void LayerNode::calcGradient() {
   START_PROFILE(calc_grad_event_key);
-  if (getTrainable())
+  if (needs_calc_gradient)
     layer->calcGradient(*run_context);
   END_PROFILE(calc_grad_event_key);
 

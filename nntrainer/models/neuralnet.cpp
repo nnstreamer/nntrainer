@@ -269,11 +269,7 @@ void NeuralNetwork::backwarding(int iteration) {
     if (!dynamic_training_opt.isGradientMode() && apply_gradient)
       node->calcGradient();
 
-#ifdef ENABLE_TEST
-    if (node->supportBackwarding())
-#else
-    if (node->needsBackwarding())
-#endif
+    if (node->needsCalcDerivative())
       node->calcDerivative();
 
     if (apply_gradient) {

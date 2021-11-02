@@ -384,7 +384,7 @@ void GraphWatcher::compareFor(const std::string &reference,
       nn->backwarding(iteration);
 
       for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
-        if (it->needsBackwarding())
+        if (it->needsCalcDerivative())
           it->backward(iteration, !optimize, !optimize);
       }
     } else {
