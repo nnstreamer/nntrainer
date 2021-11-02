@@ -59,16 +59,36 @@ Even though NNTrainer can be used to train sub-models, it requires implementatio
 
 This component defines layers which consist of a neural network model. Layers have their own properties to be set.
 
- | Keyword | Layer Name | Description |
+ | Keyword | Layer Class Name | Description |
  |:-------:|:---:|:---|
- |  conv2d | Convolution 2D |Convolution 2-Dimentional Layer |
- |  pooling2d | Pooling 2D |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooling |
- | flatten | Flatten | Flatten Layer |
- | fully_connected | Fully Connected | Fully Connected Layer |
- | input | Input | Input Layer.  This is not always required. |
- | batch_normalization | Batch Normalization Layer | Batch Normalization Layer. |
- | loss layer | loss layer | hidden from users |
- | activation | activaiton layer | set by layer property |
+ | conv1d | Conv1DLayer | Convolution 1-Dimentional Layer |
+ | conv2d | Conv2DLayer |Convolution 2-Dimentional Layer |
+ | pooling2d | Pooling2DLayer |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooling |
+ | flatten | FlattenLayer | Flatten layer |
+ | fully_connected | FullyConnectedLayer | Fully connected layer |
+ | input | InputLayer | Input Layer.  This is not always required. |
+ | batch_normalization | BatchNormalizationLayer | Batch normalization layer |
+ | activation | ActivaitonLayer | Set by layer property |
+ | addition | AdditionLayer | Add input input layers |
+ | attention | AttentionLayer | Attenstion layer |
+ | centroid_knn | CentroidKNN | Centroid K-nearest neighbor layer |
+ | concat | ConcatLayer | Concatenate input layers |
+ | multiout | MultiOutLayer | Multi-Output Layer |
+ | backobne_nnstreamer | NNStreamerLayer | Encapsulate NNStreamer layer |
+ | backbone_tflite | TfLiteLayer | Encapsulate tflite as an layer |
+ | permute | PermuteLayer | Permute layer for transpose |
+ | preprocess_flip | PreprocessFlipLayer | Preprocess random flip layer |
+ | preprocess_l2norm | PreprocessL2NormLayer | Preprocess simple l2norm layer to normalize |
+ | preprocess_translate | PreprocessTranslateLayer | Preprocess translate layer |
+ | reshape | ReshapeLayer | Reshape tensor dimension layer |
+ | split | SplitLayer | Split layer |
+ | dropout | DropOutLayer | Dropout Layer |
+ | embedding | EmbeddingLayer | Embedding Layer |
+ | rnn | RNNLayer | Recurrent Layer |
+ | gru | GRULayer | Gated Recurrent Unit Layer |
+ | lstm | LSTMLayer | Long Short-Term Memory Layer |
+ | lstmcell | LSTMCellLayer | Long Short-Term Memory Cell Layer |
+ | time_dist | TimeDistLayer | Time distributed Layer |
 
 ### Supported Optimizers
 
@@ -83,11 +103,12 @@ NNTrainer Provides
 
 NNTrainer provides
 
- | Keyword | Loss Name | Description |
+ | Keyword | Class Name | Description |
  |:-------:|:---:|:---:|
- | mse | Mean squared Error | - |
- | cross | Cross Entropy - sigmoid | if activation last layer is sigmoid |
- | cross | Cross Entropy - softmax | if activation last layer is softmax |
+ | cross_sigmoid | CrossEntropySigmoidLossLayer | Cross entropy sigmoid loss layer |
+ | cross_softmax | CrossEntropySoftmaxLossLayer | Cross entropy softmax loss layer |
+ | constant_derivative | ConstantDerivativeLossLayer | Constant derivative loss layer |
+ | mse | MSELossLayer | Mean square error loss layer |
 
 ### Supported Activation Functions
 
@@ -149,6 +170,26 @@ A reinforcement learning example with cartpole game. It is using DeepQ algorithm
 #### [Transfer Learning Examples](https://github.com/nnstreamer/nntrainer/tree/main/Applications/TransferLearning)
 
 Transfer learning examples with for image classification using the Cifar 10 dataset and for OCR. TFlite is used for feature extractor and modify last layer (fully connected layer) of network.
+
+#### [ResNet Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/Resnet)
+
+An example to train resnet18 network.
+
+#### [VGG Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/VGG)
+
+An example to train vgg16 network.
+
+#### [ProductRating Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/ProductRatings)
+
+This application contains a simple embedding-based model that predicts ratings given a user and a product.
+
+#### [SimpleShot Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/SimpleShot)
+
+An example to demonstrate few-shot learning : SimpleShot
+
+#### [Custom Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/Custom)
+
+An example to demonstrate how to create custom layers, optimizers or other supported objects.
 
 #### ~Tizen CAPI Example~
 
