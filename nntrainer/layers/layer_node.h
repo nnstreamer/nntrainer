@@ -53,6 +53,18 @@ class SharedFrom;
 } // namespace props
 
 /**
+ * @brief Enum class for the various types of inplace modes supported by layer
+ *
+ */
+enum class InPlace {
+  NONE,           /**< layer is not inplace */
+  RESTRICTING,    /**< layer is in-place and does place restriction on layers
+                    ahead of it to be in-place */
+  NON_RESTRICTING /**< layer is in-place and does NOT place restriction on the
+                    layers ahead of it to be in-place */
+};
+
+/**
  * @class   LayerNode class
  * @brief   layer node class for the graph
  */
@@ -221,10 +233,10 @@ public:
   /**
    * @brief   Notify that this layer will execute in-place
    *
-   * @param va; True if execute in-place, else false
+   * @param val in place state for the layer
    */
-  void executeInPlace(bool val) {
-    if (val && !supportInPlace())
+  void executeInPlace(InPlace val) {
+    if (val != InPlace::NONE && !supportInPlace())
       throw std::runtime_error("Error setting layer to work in-place");
 
     inplace = val;
@@ -233,9 +245,9 @@ public:
   /**
    * @brief   Get if the layer is going to execute in-place
    *
-   * @return if layer will execute in-place, return true, else false
+   * @return InPlace type for the layer
    */
-  bool executeInPlace() const { return inplace; }
+  InPlace executeInPlace() const { return inplace; }
 
   /**
    * @brief  check if this layer requires label to be passed
@@ -698,7 +710,8 @@ private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
-  bool inplace; /**< store if the current layer is going to operate in-place */
+  InPlace
+    inplace; /**< store if the current layer is going to operate in-place */
   bool needs_calc_derivative; /**< cache if this layer needs to do
                                  calcDerivative */
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */

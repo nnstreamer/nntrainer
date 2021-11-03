@@ -512,9 +512,9 @@ private:
    *
    * @param lnode node to check for in-place execution
    *
-   * @return true if can operate in-place, else false
+   * @return the mode of inplace for the layer
    */
-  bool canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
+  InPlace canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
 };
 
 } // namespace nntrainer

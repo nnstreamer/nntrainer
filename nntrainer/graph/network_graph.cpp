@@ -662,9 +662,10 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   graph.addNode(layer);
 }
 
-bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
+InPlace
+NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
   if (!lnode->supportInPlace())
-    return false;
+    return InPlace::NONE;
 
   /** layers which behave as a no-op - flatten */
   auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {
@@ -687,27 +688,59 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     };
 
   /**
+   * @note Conditions to decide if this layer node can be in-place:
    * 1. if the layer is a no-op, then it can operate in-place as it is not
    * modifying its input/output tensors and does not need to check its
    * neighboring nodes for dependency.
    * 2. if the layer is not supporting backwarding, there is no dependency
    * requirement with other nodes for backwarding.
+   *
+   * @note Conditions to decide the type of inplace for this layer:
+   * 1. if the previous layers were restricting, then this layer will also be
+   * restricting.
+   * 2. if the previous layer were non_restricting or not inplace, then this
+   * layer will be non-restricting.
    */
-  if (no_op(lnode) || no_op_shared(lnode) || !lnode->supportBackwarding())
-    return true;
+  if (no_op(lnode) || !lnode->supportBackwarding()) {
+    auto const &input_layers = lnode->getInputLayers();
+    for (unsigned int i = 0; i < input_layers.size(); ++i) {
+      if (getLayerNode(input_layers[i])->executeInPlace() ==
+          InPlace::RESTRICTING)
+        return InPlace::RESTRICTING;
+    }
+    return InPlace::NON_RESTRICTING;
+  }
 
   /**
+   * @note Conditions to decide if this layer node can be in-place:
+   * if the layer is a no-op-shared, then it can operate in-place as it is not
+   * modifying its input/output tensors and does not need to check its
+   * neighboring nodes for dependency.
+   *
+   * @note Conditions to decide the type of inplace for this layer:
+   * As all the output nodes are sharing memory, the output nodes cant execute
+   * inplace, and then its restricting mode.
+   */
+  if (no_op_shared(lnode))
+    return InPlace::RESTRICTING;
+
+  /**
+   * @note Conditions to decide if this layer node can be in-place:
    * This is a generic case where the layer can support in-place but will modify
    * its input in-place. This includes layers like activation, etc. Apply checks
    * below to ensure that the layers can work in-place:
-   * - if all the input layers are no-op or dont support backwarding, then this
-   * layer work in-place without any restriction
-   * - if any of the input layer is already operating in-place (where it
-   *   modifies its input in-place), then this layer cannot operate in-place.
+   * - if any of the input layer are restriction, then this layer cannot work
+   *   as layers behind this layer have added restrictions.
+   * - if all of the input layers are either not inplace or have no
+   * restrictions, then this layer can operate in-place.
+   *
+   * @note Conditions to decide the type of inplace for this layer:
+   * This is a generic case, and always restrictions on the next nodes to be not
+   * inplace.
    *
    * @note This logic is prone to change as more layers are allowed to
-   * work in-place such as multi-out layer, concat layer, split layer, addition
-   * layer, dropout layer, etc.
+   * work in-place such as concat layer, split layer, addition layer, dropout
+   * layer, etc.
    *
    * @todo This logic sets layers to in-place one-by-one as they arrive. However
    * setting some layers to in-place can save more memory than others (like
@@ -718,23 +751,31 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       lnode->getType() == BatchNormalizationLayer::type) {
     auto const &input_layers = lnode->getInputLayers();
     for (unsigned int i = 0; i < input_layers.size(); ++i) {
-      auto const &in_layer_node = getLayerNode(input_layers[i]);
-      if (no_op(in_layer_node) || !in_layer_node->supportBackwarding() ||
-          io_independent_backwarding(in_layer_node))
-        continue;
-      if (in_layer_node->executeInPlace())
-        return false;
+      if (getLayerNode(input_layers[i])->executeInPlace() ==
+          InPlace::RESTRICTING)
+        return InPlace::NONE;
     }
-    return true;
+
+    /**
+     * if the layer does io_independent_backwarding where the input and output
+     * is not requried during backwarding, then it is a non-restricting in-place
+     * layer.
+     */
+    if (io_independent_backwarding(lnode))
+      return InPlace::NON_RESTRICTING;
+
+    return InPlace::RESTRICTING;
   }
 
-  return false;
+  return InPlace::NONE;
 }
 
 void NetworkGraph::inPlaceOptimize() {
-  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
-    auto const &lnode = getSortedLayerNode(idx);
-    lnode->executeInPlace(optimize_memory & canExecuteInPlace(lnode));
+  if (optimize_memory) {
+    for (unsigned int idx = 0; idx < graph.size(); ++idx) {
+      auto const &lnode = getSortedLayerNode(idx);
+      lnode->executeInPlace(canExecuteInPlace(lnode));
+    }
   }
 }
 
@@ -748,6 +789,7 @@ void NetworkGraph::inPlaceOptimize() {
 static void
 setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
                                     bool &shared_var, bool &shared_grad) {
+  /** for multiout layer, variables are shared but gradients are not */
   if (lnode->getType() == MultiOutLayer::type) {
     shared_var = true;
     shared_grad = false;
@@ -755,6 +797,14 @@ setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
     shared_var = true;
     shared_grad = true;
   }
+  /** @todo for addition layer, variables are not shared but gradients are */
+  /**
+   * @todo for layers which support in-place, both variables and gradients will
+   * be be shared.
+   *
+   * @todo add a check here is the layer being checked here can support in-place
+   * or not
+   */
 }
 
 std::vector<Var_Grad *>
@@ -786,7 +836,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** In-Place optimizations */
   std::vector<std::string> inputs_name;
   bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace()) {
+  if (lnode->executeInPlace() != InPlace::NONE) {
     std::transform(inputs.begin(), inputs.end(),
                    std::back_inserter(inputs_name),
                    [](const Var_Grad *val) { return val->getName(); });
