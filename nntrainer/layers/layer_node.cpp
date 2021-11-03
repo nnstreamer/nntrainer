@@ -149,7 +149,7 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
-  inplace(false),
+  inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
   run_context(nullptr),
@@ -449,8 +449,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     num_outputs = 1;
   }
 
-  auto init_context = InitLayerContext(actual_input_dims, num_outputs,
-                                       executeInPlace(), getName());
+  auto init_context =
+    InitLayerContext(actual_input_dims, num_outputs,
+                     executeInPlace() != InPlace::NONE, getName());
 
   layer->finalize(init_context);
 
@@ -567,8 +568,8 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &outputs,
                                     const std::vector<Var_Grad *> &tensors) {
   run_context = std::make_unique<RunLayerContext>(
-    getName(), getTrainable(), 0.0f, executeInPlace(), weights, inputs, outputs,
-    tensors);
+    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
+    inputs, outputs, tensors);
 }
 
 /**
