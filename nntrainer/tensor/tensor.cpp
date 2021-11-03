@@ -214,6 +214,12 @@ bool Tensor::operator==(const Tensor &rhs) const {
   const float *data = getData();
   const float *rdata = rhs.getData();
 
+  if (contiguous != rhs.contiguous)
+    return false;
+
+  if (strides != rhs.strides)
+    return false;
+
   for (size_t i = 0; i < len; ++i) {
     /** not checking sign change is intentional to avoid float calculation
      * errors around 0 */
@@ -226,6 +232,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
 }
 
 template <typename T> void Tensor::setDist(T dist) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " Tensor is not contiguous, cannot set distribution";
+
   float *data = getData();
   unsigned int len = size();
   for (unsigned int i = 0; i < len; ++i) {
@@ -380,6 +389,9 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
 }
 
 int Tensor::multiply_i(float const &value) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
   /// @note this is not depending on multiply_i as there is an optimized
   /// version for multiply_i
   float *data = getData();
@@ -438,11 +450,9 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
     }
   };
 
-  if (output.size() > 0 &&
-      ((size() == m.size() && strides != m.strides) ||
-       (size() == output.size() && strides != output.strides)))
-    throw std::invalid_argument(
-      "Use multiply_strided for multiplying strided tensors");
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
 
   apply_broadcast(m, f, output);
   return output;
@@ -504,6 +514,10 @@ Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
     }
   };
 
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot divide";
+
   apply_broadcast(m, f, output);
   return output;
 }
@@ -531,6 +545,9 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
                float *out_buf) {
     saxpy(e.buffer_size, alpha, m_buf, e.strides[3], out_buf, strides[3]);
   };
+
+  NNTR_THROW_IF(!contiguous || !m.contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot add";
 
   try {
     apply_broadcast(m, f, *this);
@@ -562,6 +579,10 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
       }
     }
   };
+
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot add";
 
   apply_broadcast(m, f, output);
 
@@ -737,6 +758,9 @@ void Tensor::apply_broadcast_util(
  * Therefore the result has M(dim.batch(), 1, 1, 1) dimension.
  */
 Tensor Tensor::sum_by_batch() const {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot sum";
+
   Tensor ret(dim.batch(), 1, 1, 1);
   unsigned int feat_len = dim.getFeatureLen();
   unsigned int batch = dim.batch();
@@ -762,6 +786,9 @@ Tensor Tensor::sum(unsigned int axis, float alpha, float beta) const {
 Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
                     float beta) const {
   const float *data = getData();
+
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot sum";
 
   if (axis >= 4)
     throw std::out_of_range("Error: axis is invalid");
@@ -833,6 +860,9 @@ Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
 }
 
 void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot merge axis";
+
   if (axis2 != axis1 + 1)
     throw std::invalid_argument("axis2 must be axis1 + 1 for merging.");
 
@@ -884,8 +914,10 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
  */
 Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
                     float beta) const {
-  if (m.dim.rank() > 2) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous. Cannot dot product.";
 
+  if (m.dim.rank() > 2) {
     throw exception::not_supported("Error: support only for rank of dot "
                                    "matrix <= 2");
   }
@@ -987,6 +1019,9 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
 }
 
 Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous. Cannot transpose.";
+
   if (out.getData() == getData()) {
     Tensor tmp = clone();
     return tmp.transpose(direction, out);
@@ -1173,6 +1208,9 @@ const float *Tensor::getAddress(unsigned int i) const {
 }
 
 void Tensor::copy(const float *buf) noexcept {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << "Tensor is not contiguous, cannot copy.";
+
   if (buf == getData()) {
     return;
   }
@@ -1254,6 +1292,10 @@ Tensor Tensor::clone() const {
 }
 
 void Tensor::reshape(const TensorDim &d) {
+
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot reshape.";
+
   NNTR_THROW_IF(d.getDataLen() != dim.getDataLen(), std::invalid_argument)
     << "[Tensor]: reshape cannot change the buffer size, trying reshaping "
        "\nfrom "
@@ -1289,11 +1331,17 @@ void Tensor::fill(const Tensor &from, bool alloc) {
 }
 
 void Tensor::save(std::ofstream &file) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot save.";
+
   checkedWrite(file, (char *)getData(), bytes(),
                "[Tensor::save] operation failed");
 }
 
 void Tensor::read(std::ifstream &file) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot read.";
+
   checkedRead(file, (char *)getData(), bytes(),
               "[Tensor::read] operation failed");
 }
@@ -1363,6 +1411,9 @@ Tensor &Tensor::average(Tensor &output) const {
 }
 
 void Tensor::setValue(float val) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot set value.";
+
   float *data = getData();
   std::fill(data, data + size(), val);
 }
@@ -1375,6 +1426,9 @@ void Tensor::setZero() {
 }
 
 std::vector<unsigned int> Tensor::argmax() const {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot get argmax.";
+
   const float *data = getData();
   std::vector<unsigned int> result;
   unsigned int batch_size = batch();
@@ -1392,6 +1446,9 @@ std::vector<unsigned int> Tensor::argmax() const {
 }
 
 float Tensor::l2norm() const {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot get l2norm.";
+
   unsigned int len = size();
   const float *data = getData();
 
@@ -1399,6 +1456,9 @@ float Tensor::l2norm() const {
 }
 
 float Tensor::max_abs() const {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot get max_abs.";
+
   unsigned int len = size();
   const float *data = getData();
 
@@ -1417,6 +1477,9 @@ Tensor &Tensor::normalization(Tensor &output) const {
 }
 
 void Tensor::normalization_i() {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot do normalization.";
+
   const float *data = getData();
 
   auto bounds = std::minmax_element(data, data + size());
