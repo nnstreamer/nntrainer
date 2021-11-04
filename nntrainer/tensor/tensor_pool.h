@@ -225,6 +225,120 @@ public:
         spec.tensor->setData(pool[spec.token].tensor->getData());
   }
 
+  /**
+   * @brief request placeholder which will be not managed by this tensor pool
+   * but will be managed externally
+   *
+   * @param name Name of the tensor
+   * @param dim Tensor dimension
+   * @return Tensor* ptr to the tensor
+   *
+   * @note returns empty tensor which must be filled by the caller before use.
+   */
+  Tensor *placeholder(const std::string &name, const TensorDim &dim) {
+    return nullptr;
+  }
+
+  /**
+   * @brief     create a new tensor with the given spec.
+   *
+   * @param name Name of this tensor.
+   * @param dim Tensor dimension.
+   * @param exec_order The execution orders for this tensor.
+   * @param lifespan Lifespan of this tensor.
+   * @param init Initializer of the tensor.
+   *
+   * @return ptr to the created tensor
+   *
+   * @note returns empty tensor which will be filled when allocate is called.
+   * @note we assume that the caller checks if the exec_order and lifespan are
+   * compatible.
+   */
+  Tensor *create(const std::string &name, const TensorDim &dim,
+                 const std::vector<unsigned int> &exec_order,
+                 TensorLifespan lifespan,
+                 const Tensor::Initializer &init = Tensor::Initializer::NONE) {
+    return nullptr;
+  }
+
+  /**
+   * @brief     Request tensor which is a view of already requested with the
+   * given spec
+   *
+   * @param name Name of this tensor
+   * @param reference Name of the reference tensor
+   * @param dim Tensor dimensions
+   * @param exec_order The execution orders for this tensors
+   * @param lifespan Lifespan of this tensor
+   * @param offset offset from the reference
+   *
+   * @return ptr to a tensor which is sharing the same data with
+   * reference.
+   *
+   * @note returns a view tensor which will be filled when the source tensor is
+   * allocated.
+   * @note we assume that the caller checks if the exec_order and lifespan are
+   * compatible.
+   *
+   */
+  Tensor *view(const std::string &name, const std::string &reference,
+               const TensorDim &dim,
+               const std::vector<unsigned int> &exec_order,
+               TensorLifespan lifespan, const unsigned int offset = 0) {
+    return nullptr;
+  }
+
+  /**
+   * @brief extend a tensor life as tensor is being shared.
+   *
+   * @param name name of the tensor to extend
+   * @param exec_order exec_order to extend
+   * @param lifespan extended life span
+   * @return Tensor* Tensor* the exact tensor which is being extended.
+   * @note we assume that the caller checks if the exec_order and lifespan are
+   * compatible.
+   */
+  Tensor *extend(const std::string &name,
+                 const std::vector<unsigned int> &exec_order,
+                 TensorLifespan lifespan) {
+    return nullptr;
+  }
+
+  /**
+   * @brief create a new tensor if tensor does not exist else return the tensor
+   * while extending the tensor's life according to the given arguments.
+   *
+   * @param name Name of the tensor
+   * @param dim dimension
+   * @param exec_order exec order
+   * @param lifespan tensor life span
+   * @param init tensor initializer
+   * @return Tensor* ptr to either to the existing tensor or newly created
+   * tensor
+   */
+  Tensor *
+  createOrExtend(const std::string &name, const TensorDim &dim,
+                 const std::vector<unsigned int> &exec_order,
+                 TensorLifespan lifespan,
+                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
+
+  /**
+   * @brief reidentify the source of already created tensor (or view).
+   * @note if @a dest tensor is a view of another tensor, the old source tensor
+   * of the view will become a view of @a new_src.
+   *
+   * @throws std::invalid_argument 1. if the data size required from the
+   * original source tensor is bigger than the new_src + offset. 2. if new_src
+   * is a view. Second restriction can be removed, if this is considered as a
+   * safe behavior.
+   *
+   * @param dest identifier for the dest tensor
+   * @param new_src identifier for the new source tensor
+   * @param offset offset
+   */
+  void reidentifySource(const std::string &dest, const std::string &new_src,
+                        unsigned int offset);
+
 private:
   /**
    * @brief Spec for storing each request of tensor from tensor pool
