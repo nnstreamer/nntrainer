@@ -23,6 +23,7 @@ layer_sources = [
   'rnn.cpp',
   'acti_func.cpp',
   'lstm.cpp',
+  'lstmcell.cpp',
   'time_dist.cpp',
   'common_properties.cpp',
   'split_layer.cpp',
@@ -33,7 +34,6 @@ layer_sources = [
   'centroid_knn.cpp',
   'layer_context.cpp',
   'reshape_layer.cpp',
-  'lstmcell.cpp'
 ]
 
 layer_headers = [

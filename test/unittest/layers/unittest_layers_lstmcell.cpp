@@ -2,9 +2,9 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_lstm.cpp
+ * @file unittest_layers_lstmcell.cpp
  * @date 22 October 2021
- * @brief LSTM Layer Test
+ * @brief LSTMCell Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items

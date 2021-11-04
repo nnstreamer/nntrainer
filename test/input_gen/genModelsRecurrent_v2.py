@@ -28,7 +28,6 @@ class FCUnroll(torch.nn.Module):
         # loss = self.loss(output, labels[0])
         return output, loss
 
-
 class LSTMStacked(torch.nn.Module):
     def __init__(self, unroll_for=2, num_lstm=1):
         super().__init__()
@@ -42,12 +41,15 @@ class LSTMStacked(torch.nn.Module):
         # self.lstm.weight_hh.data.fill_(1.0)
         # self.lstm.weight_ih.data.fill_(1.0)
         # self.lstm.bias_hh.data.fill_(1.0)
+        for lstm in self.lstms:
+            lstm.bias_ih.data.fill_(0.0)
+            lstm.bias_ih.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
         # second bias is always set to make it always zero grad.
-        # this is because that we are only keepting one bias
+        # this is because that we are only keeping one bias
         for lstm in self.lstms:
             lstm.bias_ih.data.fill_(0.0)
 
@@ -64,7 +66,6 @@ class LSTMStacked(torch.nn.Module):
         ret = torch.stack(ret, dim=1)
         loss = self.loss(ret, labels[0])
         return ret, loss
-
 
 if __name__ == "__main__":
     record_v2(
