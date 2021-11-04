@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
+ * Copyright (C) 2021 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   rnn.cpp
  * @date   17 March 2021
@@ -89,7 +89,7 @@ void RNNLayer::finalize(InitLayerContext &context) {
   dim_hh.height(unit);
   dim_hh.batch(1);
 
-  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_initializer can be set seperately. weight_xh initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
 
@@ -103,7 +103,7 @@ void RNNLayer::finalize(InitLayerContext &context) {
     bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias_h", true);
 
   // We do not need this if we reuse net_hidden[0]. But if we do, then the unit
-  // test will fail. Becuase it modifies the date during gradient calculation
+  // test will fail. Becuase it modifies the data during gradient calculation
   // TODO : We could control with something like #define test to save memory
   TensorDim d = input_dim;
   d.width(unit);

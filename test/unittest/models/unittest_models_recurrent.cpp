@@ -81,7 +81,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
-    /// here lstm_cells is being inserted
+    /// here lstm is being inserted
     {"mse", {"name=loss", "input_layers=lstm_scope/a1"}},
   });
   for (auto &node : outer_graph) {
@@ -111,7 +111,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
-    /// here lstm_cells is being inserted
+    /// here lstm is being inserted
     {"mse", {"name=loss", "input_layers=lstm_scope/a2"}},
   });
   for (auto &node : outer_graph) {

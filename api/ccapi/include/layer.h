@@ -255,14 +255,6 @@ Reshape(const std::vector<std::string> &properties = {}) {
 }
 
 /**
- * @brief Helper function to create LSTMCell layer
- */
-inline std::unique_ptr<Layer>
-LSTMCell(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_LSTMCELL, properties);
-}
-
-/**
  * @brief Helper function to create addition layer
  */
 inline std::unique_ptr<Layer>
@@ -324,6 +316,14 @@ RNN(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 LSTM(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_LSTM, properties);
+}
+
+/**
+ * @brief Helper function to create LSTMCell layer
+ */
+inline std::unique_ptr<Layer>
+LSTMCell(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LSTMCELL, properties);
 }
 
 /**
