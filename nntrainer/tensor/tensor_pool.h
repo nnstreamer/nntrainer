@@ -90,6 +90,7 @@ public:
    * @param name Name of this tensor
    * @param shared_name Name of the preallocated tensor
    * @param init Initializer of the tensor
+   * @param offset byte based offset from shared_name
    *
    * @return ptr to the tensor
    *
@@ -104,7 +105,8 @@ public:
     const TensorDim &dim, const std::vector<unsigned int> &exec_order,
     TensorLifespan lifespan, const std::string &name,
     const std::string &shared_name,
-    const Tensor::Initializer &init = Tensor::Initializer::NONE);
+    const Tensor::Initializer &init = Tensor::Initializer::NONE,
+    const unsigned int offset = 0);
 
   /**
    * @brief finalize the requested tensors
@@ -199,7 +201,8 @@ public:
    * @note Update externally dependent tensors data ptrs from their parents
    */
   void setExternalTensor(const std::string &name, const Tensor &t) {
-    auto &spec = pool[name_map.at(name)];
+    auto &spec = getSourceSpec(name);
+
     if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN)
       throw std::invalid_argument(
         "Cannot set external tensor for non-zero lifespan");
@@ -207,6 +210,7 @@ public:
     if (t.size() == 0 && t.getData())
       throw std::invalid_argument(
         "Error: setting invalid external tensor size 0 for " + name);
+
     if (t.size() != 0 && t.size() < spec.tensor->size())
       throw std::invalid_argument(
         "Error: setting external tensor of smaller size for " + name);
@@ -221,8 +225,10 @@ public:
    */
   void updateExternalTensors() {
     for (auto &spec : pool)
-      if (spec.dependent)
-        spec.tensor->setData(pool[spec.token].tensor->getData());
+      if (spec.dependent) {
+        auto &mother_spec = getSourceSpec(spec.tensor->getName());
+        spec.tensor->setData(mother_spec.tensor->getData() + spec.offset);
+      }
   }
 
   /**
@@ -280,9 +286,7 @@ public:
   Tensor *view(const std::string &name, const std::string &reference,
                const TensorDim &dim,
                const std::vector<unsigned int> &exec_order,
-               TensorLifespan lifespan, const unsigned int offset = 0) {
-    return nullptr;
-  }
+               TensorLifespan lifespan, const unsigned int offset = 0);
 
   /**
    * @brief extend a tensor life as tensor is being shared.
@@ -338,15 +342,16 @@ public:
 private:
   /**
    * @brief Spec for storing each request of tensor from tensor pool
-   * @todo move tensor initialization from tensor class to requestSpec
-   * @todo s/RequestSpec/requestSpec/
+   * @todo move tensor initialization from tensor class to RequestSpec
    */
-  struct requestSpec {
+  struct RequestSpec {
     std::unique_ptr<Tensor> tensor;       /**< tensor object itself */
     std::vector<unsigned int> exec_order; /**< tensor exec order list */
     TensorLifespan lifespan;              /**< tensor lifespan */
     unsigned int token; /**< tensor memory token or index to source spec */
-    bool dependent;     /**< if dependent on another tensor for memory */
+    unsigned int offset =
+      0; /**< offset in element from the primary source spec */
+    bool dependent = false; /**< if dependent on another tensor for memory */
   };
 
   /**
@@ -362,15 +367,15 @@ private:
    * @brief Get the view of source Spec from the name
    *
    * @param name name to get source spec
-   * @return requestSpec spec
+   * @return RequestSpec spec
    */
-  requestSpec &getSourceSpec(const std::string &name);
+  RequestSpec &getSourceSpec(const std::string &name);
 
   /**
    * note: unordered_map is not directly used for pool to ensure initialization
    * of weights
    */
-  std::vector<requestSpec> pool; /**< list of requested tensors */
+  std::vector<RequestSpec> pool; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
     name_map;          /**< indexing of requested tensors */
   MemoryPool mem_pool; /**< memory pool for the tensors */
