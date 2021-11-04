@@ -404,6 +404,83 @@ TEST(TensorPool, validate_memory) {
 }
 
 /**
+ * @brief check if data span of two tensor testOverlap
+ *
+ * @param t1 tensor1
+ * @param t2 tensor2
+ */
+static void testNotOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
+  char *t1_start = t1->getData<char>();
+  char *t1_end = t1_start + t1->bytes();
+
+  char *t2_start = t2->getData<char>();
+  char *t2_end = t2_start + t2->bytes();
+
+  EXPECT_NE(t1_start, nullptr);
+  EXPECT_NE(t2_start, nullptr);
+  EXPECT_TRUE(!(t1_start < t2_end && t2_start < t1_end))
+    << "t1 and t2 overlaps";
+}
+
+/**
+ * @brief test if t1 is including t2
+ *
+ * @param t1 t1 tensor 1
+ * @param t2 t2 tensor 2
+ */
+[[maybe_unused]] static void testSubset(nntrainer::Tensor *t1,
+                                        nntrainer::Tensor *t2) {
+  char *t1_start = t1->getData<char>();
+  char *t1_end = t1_start + t1->bytes();
+
+  char *t2_start = t2->getData<char>();
+  char *t2_end = t2_start + t2->bytes();
+
+  EXPECT_NE(t1_start, nullptr);
+  EXPECT_NE(t2_start, nullptr);
+  EXPECT_TRUE(t1_start <= t2_start && t2_end < t1_end)
+    << "t2 is not subset of t1";
+}
+
+TEST(TensorPool, create_allocate_has_data_p) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
+
+  t1 = pool.create("a", {10}, {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  t2 = pool.create("b", {10}, {1}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+
+  testNotOverlap(t1, t2);
+  pool.deallocate();
+}
+
+TEST(TensorPool, create_clashing_name_n) {
+  nntrainer::TensorPool pool;
+  auto t1 =
+    pool.create("a", {10}, {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  EXPECT_NE(t1, nullptr);
+  EXPECT_ANY_THROW(
+    pool.create("a", {10}, {1}, nntrainer::TensorLifespan::MAX_LIFESPAN));
+}
+
+TEST(TensorPool, placeholder_p) {
+  nntrainer::TensorPool pool;
+  pool.placeholder("a", {10});
+  pool.placeholder("b", {10});
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  EXPECT_ANY_THROW(pool.allocate()); // allocating size of 0
+}
+
+TEST(TensorPool, placeholder_clashing_name_n) {
+  nntrainer::TensorPool pool;
+  auto t1 = pool.placeholder("a", {10});
+  EXPECT_NE(t1, nullptr);
+  EXPECT_ANY_THROW(pool.placeholder("a", {10}));
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
