@@ -235,9 +235,7 @@ public:
    *
    * @note returns empty tensor which must be filled by the caller before use.
    */
-  Tensor *placeholder(const std::string &name, const TensorDim &dim) {
-    return nullptr;
-  }
+  Tensor *placeholder(const std::string &name, const TensorDim &dim);
 
   /**
    * @brief     create a new tensor with the given spec.
@@ -257,9 +255,7 @@ public:
   Tensor *create(const std::string &name, const TensorDim &dim,
                  const std::vector<unsigned int> &exec_order,
                  TensorLifespan lifespan,
-                 const Tensor::Initializer &init = Tensor::Initializer::NONE) {
-    return nullptr;
-  }
+                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
    * @brief     Request tensor which is a view of already requested with the
@@ -352,6 +348,15 @@ private:
     unsigned int token; /**< tensor memory token or index to source spec */
     bool dependent;     /**< if dependent on another tensor for memory */
   };
+
+  /**
+   * @brief check if a tensor exist with the given identifier
+   *
+   * @param name name name to check
+   * @retval true if exist
+   * @retval false if do not exist
+   */
+  bool tensorExist(const std::string &name);
 
   /**
    * @brief Get the view of source Spec from the name

@@ -259,6 +259,23 @@ TensorPool::requestSpec &TensorPool::getSourceSpec(const std::string &name) {
   return pool.at(parent_spec_idx);
 }
 
+Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
+  /// @todo rename requestExternallyAllocateTensor -> placeholder
+  return requestExternallyAllocateTensor(dim, name);
+}
+
+Tensor *TensorPool::create(const std::string &name, const TensorDim &dim,
+                           const std::vector<unsigned int> &exec_order,
+                           TensorLifespan lifespan,
+                           const Tensor::Initializer &init) {
+  /// @todo rename requestTensor -> create
+  return requestTensor(dim, exec_order, lifespan, name, init);
+}
+
+bool TensorPool::tensorExist(const std::string &name) {
+  return name_map.count(name);
+}
+
 /**
  * @brief     Check if the lifespan leads to long term valitidy
  *
