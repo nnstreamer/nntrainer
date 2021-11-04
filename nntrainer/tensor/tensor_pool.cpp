@@ -44,7 +44,7 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
     throw std::invalid_argument("Cannot request tensor with empty name");
 
   pool.push_back({std::make_unique<Tensor>(dim, false, init, name), exec_order,
-                  lifespan, 0, false});
+                  lifespan, 0, 0, false});
   name_map[name] = pool.size() - 1;
 
   return pool.back().tensor.get();
@@ -75,11 +75,18 @@ TensorPool::requestExternallyAllocateTensor(const TensorDim &dim,
 Tensor *TensorPool::requestPrerequestedTensor(
   const TensorDim &dim, const std::vector<unsigned int> &exec_order,
   TensorLifespan lifespan, const std::string &name,
-  const std::string &shared_name, const Tensor::Initializer &init) {
+  const std::string &shared_name, const Tensor::Initializer &init,
+  const unsigned int offset) {
 
   auto &spec = getSourceSpec(shared_name);
-  if (spec.tensor->getDim().getDataLen() != dim.getDataLen())
-    throw std::invalid_argument("Request tensor dimension mismatch");
+  unsigned adjusted_offset = pool[name_map.at(shared_name)].offset + offset;
+  NNTR_THROW_IF(spec.tensor->getDim().getDataLen() <
+                  adjusted_offset + dim.getDataLen(),
+                std::invalid_argument)
+    << "view tensor size + offset > source tensor size, view tensor size: "
+    << dim.getDataLen() << " offset: " << adjusted_offset
+    << " source tensor: " << spec.tensor->getDim().getDataLen()
+    << " name: " << spec.tensor->getName();
 
   if (init != Tensor::Initializer::NONE &&
       spec.tensor->getInitializer() != init)
@@ -101,7 +108,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
   Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
   pool.back().token = name_map[shared_name];
   pool.back().dependent = true;
-
+  pool.back().offset = adjusted_offset;
   return ret;
 }
 
@@ -186,10 +193,13 @@ void TensorPool::allocate() {
   for (auto &spec : pool) {
     /** get data for the tensors which were requested */
     if (!spec.dependent && spec.token > 0) {
-      spec.tensor->setData(mem_pool.getMemory(spec.token));
-      spec.tensor->initialize();
+      NNTR_THROW_IF(spec.offset != 0, std::invalid_argument)
+        << "source spec has to have always offset of zero, but given "
+        << spec.offset << " for tensor: " << spec.tensor->getName();
+      spec.tensor->setData(mem_pool.getMemory(spec.token), true);
     } else if (spec.dependent) {
-      spec.tensor->setData(pool[spec.token].tensor->getData());
+      const auto &name = spec.tensor->getName();
+      spec.tensor->setData(getSourceSpec(name).tensor->getData() + spec.offset);
       /** initialize is intentionally skipped here */
     }
   }
@@ -246,7 +256,7 @@ void TensorPool::expand_lifespan(const std::string &name,
                          exec_order.end());
 }
 
-TensorPool::requestSpec &TensorPool::getSourceSpec(const std::string &name) {
+TensorPool::RequestSpec &TensorPool::getSourceSpec(const std::string &name) {
   unsigned parent_spec_idx;
   try {
     parent_spec_idx = name_map.at(name);
@@ -270,6 +280,15 @@ Tensor *TensorPool::create(const std::string &name, const TensorDim &dim,
                            const Tensor::Initializer &init) {
   /// @todo rename requestTensor -> create
   return requestTensor(dim, exec_order, lifespan, name, init);
+}
+
+Tensor *TensorPool::view(const std::string &name, const std::string &reference,
+                         const TensorDim &dim,
+                         const std::vector<unsigned int> &exec_order,
+                         TensorLifespan lifespan, const unsigned int offset) {
+  /// @todo rename requestPrerequestedTensor -> view
+  return requestPrerequestedTensor(dim, exec_order, lifespan, name, reference,
+                                   Tensor::Initializer::NONE, offset);
 }
 
 bool TensorPool::tensorExist(const std::string &name) {

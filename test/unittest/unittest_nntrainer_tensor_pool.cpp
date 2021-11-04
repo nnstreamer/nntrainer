@@ -409,7 +409,7 @@ TEST(TensorPool, validate_memory) {
  * @param t1 tensor1
  * @param t2 tensor2
  */
-static void testNotOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
+static void testNoOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
   char *t1_start = t1->getData<char>();
   char *t1_end = t1_start + t1->bytes();
 
@@ -428,8 +428,7 @@ static void testNotOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
  * @param t1 t1 tensor 1
  * @param t2 t2 tensor 2
  */
-[[maybe_unused]] static void testSubset(nntrainer::Tensor *t1,
-                                        nntrainer::Tensor *t2) {
+static void testSubset(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
   char *t1_start = t1->getData<char>();
   char *t1_end = t1_start + t1->bytes();
 
@@ -438,31 +437,31 @@ static void testNotOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
 
   EXPECT_NE(t1_start, nullptr);
   EXPECT_NE(t2_start, nullptr);
-  EXPECT_TRUE(t1_start <= t2_start && t2_end < t1_end)
+  EXPECT_TRUE(t1_start <= t2_start && t2_end <= t1_end)
     << "t2 is not subset of t1";
 }
+
+static auto max_ls = nntrainer::TensorLifespan::MAX_LIFESPAN;
 
 TEST(TensorPool, create_allocate_has_data_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
-  t1 = pool.create("a", {10}, {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
-  t2 = pool.create("b", {10}, {1}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  t1 = pool.create("a", {10}, {0}, max_ls);
+  t2 = pool.create("b", {10}, {1}, max_ls);
 
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
   pool.allocate();
 
-  testNotOverlap(t1, t2);
+  testNoOverlap(t1, t2);
   pool.deallocate();
 }
 
 TEST(TensorPool, create_clashing_name_n) {
   nntrainer::TensorPool pool;
-  auto t1 =
-    pool.create("a", {10}, {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto t1 = pool.create("a", {10}, {0}, max_ls);
   EXPECT_NE(t1, nullptr);
-  EXPECT_ANY_THROW(
-    pool.create("a", {10}, {1}, nntrainer::TensorLifespan::MAX_LIFESPAN));
+  EXPECT_ANY_THROW(pool.create("a", {10}, {1}, max_ls));
 }
 
 TEST(TensorPool, placeholder_p) {
@@ -478,6 +477,121 @@ TEST(TensorPool, placeholder_clashing_name_n) {
   auto t1 = pool.placeholder("a", {10});
   EXPECT_NE(t1, nullptr);
   EXPECT_ANY_THROW(pool.placeholder("a", {10}));
+}
+
+TEST(TensorPool, view_is_same_p) {
+  nntrainer::TensorPool pool;
+  // |-------- t1 -------|
+  // |-------- t2 -------|
+  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t2 = pool.view("t2", "t1", {10}, {1}, max_ls);
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+
+  EXPECT_NE(t1, t2);
+  EXPECT_EQ(t1->getDim(), t2->getDim());
+  EXPECT_EQ(t1->getData(), t2->getData());
+  pool.deallocate();
+}
+
+TEST(TensorPool, view_is_subset_p) {
+  nntrainer::TensorPool pool;
+  // |-------- t1 -------|
+  // |-t2-|
+  //       |-t3-|
+  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t2 = pool.view("t2", "t1", {3}, {1}, max_ls);
+  auto t3 = pool.view("t3", "t1", {3}, {1}, max_ls, 3);
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+
+  EXPECT_NE(t1, t2);
+  EXPECT_NE(t1, t3);
+  testSubset(t1, t2);
+  testSubset(t1, t3);
+  testNoOverlap(t2, t3);
+  pool.deallocate();
+}
+
+TEST(TensorPool, view_is_view_of_view_and_subset_p) {
+  // |-------- t1-------|
+  // |-t2-|(offset)
+  //               |-t3-|
+  nntrainer::TensorPool pool;
+  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t2 = pool.view("t2", "t1", {3}, {1}, max_ls);
+  auto t3 = pool.view("t3", "t2", {3}, {1}, max_ls, 3);
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+
+  EXPECT_NE(t1, t2);
+  EXPECT_NE(t1, t3);
+  testSubset(t1, t2);
+  testSubset(t1, t3);
+  testNoOverlap(t2, t3);
+  pool.deallocate();
+}
+
+TEST(TensorPool, view_of_placeholder_p) {
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0}, max_ls);
+  auto t1 = pool.placeholder("t1", {10});
+  auto t2 = pool.view("t2", "t1", {10}, {0}, max_ls);
+  auto t3 = pool.view("t3", "t1", {2}, {0}, max_ls, 2);
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+
+  EXPECT_NE(t1, t2);
+  EXPECT_EQ(t1->getData(), nullptr);
+  EXPECT_EQ(t2->getData(), nullptr);
+
+  /// t_original: 0 1 2 3 4 5 6 7 8 9
+  /// t1        : 0 1 2 3 4 5 6 7 8 9
+  /// t2        : 0 1 2 3 4 5 6 7 8 9
+  /// t3        :     2 3
+  nntrainer::Tensor t_original(t1->getDim());
+  t_original.apply_i([i = 0u](float _) mutable { return ++i; });
+  pool.setExternalTensor("t1", t_original);
+  pool.updateExternalTensors();
+
+  testSubset(t1, &t_original);
+  testSubset(t1, t2);
+  testSubset(t1, t3);
+
+  EXPECT_EQ(*t1, t_original);
+  EXPECT_FLOAT_EQ(*t2->getData(), 1.0f);
+  EXPECT_FLOAT_EQ(*t3->getData(), 3.0f);
+
+  pool.deallocate();
+}
+
+TEST(TensorPool, view_clashing_name_n) {
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0}, max_ls);
+  EXPECT_ANY_THROW(pool.view("t0", "t0", {10}, {0}, max_ls));
+}
+
+TEST(TensorPool, view_out_of_range_n) {
+  // |-------- t0 -------|
+  //                     |-t1-|
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0}, max_ls);
+  EXPECT_ANY_THROW(pool.view("t1", "t0", {1}, {0}, max_ls, 10));
+}
+TEST(TensorPool, view_of_view_out_of_range_n) {
+  nntrainer::TensorPool pool;
+  // |-------- t0 -------|
+  //                |-t1-|
+  //                     |-t2-|
+  pool.create("t0", {10}, {0}, max_ls);
+  pool.view("t1", "t0", {1}, {0}, max_ls, 9);
+  EXPECT_ANY_THROW(pool.view("t2", "t1", {1}, {0}, max_ls, 1));
+}
+
+TEST(TensorPool, view_of_placeholder_out_of_range_n) {
+  nntrainer::TensorPool pool;
+  pool.placeholder("t0", {10});
+  EXPECT_ANY_THROW(pool.view("t1", "t0", {1}, {0}, max_ls, 11));
 }
 
 /**
