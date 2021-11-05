@@ -659,6 +659,42 @@ TEST(TensorPool, extend_unmanged_n) {
   EXPECT_ANY_THROW(pool.extend("t1", {2}, max_ls));
 }
 
+TEST(TensorPool, createOrExtend_p) {
+  nntrainer::TensorPool pool;
+  auto t1 = pool.createOrExtend("t", {10}, {0}, max_ls);
+  auto t2 = pool.createOrExtend("t", {10}, {1}, max_ls);
+
+  auto &exec_order = pool.getExecutionOrder("t");
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 0),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 1),
+            exec_order.end());
+  EXPECT_EQ(t1, t2);
+  pool.finalize(nntrainer::BasicPlanner(), 0, 2);
+  pool.allocate();
+  EXPECT_EQ(*t1, *t2);
+  pool.deallocate();
+}
+
+TEST(TensorPool, createOrExtend_different_dim_n) {
+  nntrainer::TensorPool pool;
+  pool.createOrExtend("t", {10, 1}, {0}, max_ls);
+  EXPECT_ANY_THROW(pool.createOrExtend("t", {1, 10}, {1}, max_ls));
+}
+
+TEST(TensorPool, createOrExtend_init_n) {
+  nntrainer::TensorPool pool;
+  pool.createOrExtend("t", {10}, {0}, max_ls,
+                      nntrainer::Tensor::Initializer::ONES);
+  EXPECT_ANY_THROW(pool.createOrExtend("t", {10}, {1}, max_ls,
+                                       nntrainer::Tensor::Initializer::ZEROS));
+}
+TEST(TensorPool, createOrExtend_unmanaged_n) {
+  nntrainer::TensorPool pool;
+  EXPECT_ANY_THROW(
+    pool.createOrExtend("t", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED));
+}
+
 /**
  * @brief Main gtest
  */
