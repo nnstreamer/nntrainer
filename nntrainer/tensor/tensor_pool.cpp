@@ -23,7 +23,10 @@
 
 namespace nntrainer {
 
-/// lambda overload helper
+/**
+ * @brief lambda overload helper
+ *
+ */
 template <class... Ts> struct overloaded_ : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded_(Ts...)->overloaded_<Ts...>;
 
@@ -324,6 +327,26 @@ Tensor *TensorPool::extend(const std::string &name,
   auto &spec = getSourceSpec(name);
   expandLifespan(spec, exec_order, lifespan);
   return getTensor(name);
+}
+
+Tensor *TensorPool::createOrExtend(const std::string &name,
+                                   const TensorDim &dim,
+                                   const std::vector<unsigned int> &exec_order,
+                                   TensorLifespan lifespan,
+                                   const Tensor::Initializer &init) {
+  NNTR_THROW_IF(lifespan == TensorLifespan::UNMANAGED, std::invalid_argument)
+    << "unmanaged life span is not supported";
+
+  if (tensorExist(name)) {
+    Tensor *t = getTensor(name);
+    NNTR_THROW_IF(t->getDim() != dim, std::invalid_argument)
+      << "tensor dimension mismatch for createOrExtend name: " << name;
+    NNTR_THROW_IF(t->getInitializer() != init, std::invalid_argument)
+      << "tensor initializer mismatch for createOrExtend name: " << name;
+    return extend(name, exec_order, lifespan);
+  } else {
+    return create(name, dim, exec_order, lifespan, init);
+  }
 }
 
 bool TensorPool::tensorExist(const std::string &name) {

@@ -259,6 +259,9 @@ public:
   /**
    * @brief create a new tensor if tensor does not exist else return the tensor
    * while extending the tensor's life according to the given arguments.
+   * @note Created (or extended) tensor is considered identical and managed. It
+   * is invalid to create a tensor with lifespan::UNMANAGED or dimension and
+   * initializer is different unon extension.
    *
    * @param name Name of the tensor
    * @param dim dimension
