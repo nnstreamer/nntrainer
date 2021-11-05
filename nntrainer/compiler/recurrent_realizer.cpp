@@ -20,6 +20,8 @@
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <remap_realizer.h>
+#include <rnn.h>
+#include <rnncell.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -127,7 +129,8 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
 
   /** @todo add an interface to check if a layer supports a property */
   auto is_recurrent_type = [](LayerNode *node) {
-    return node->getType() == LSTMLayer::type ||
+    return node->getType() == RNNCellLayer::type ||
+           node->getType() == LSTMLayer::type ||
            node->getType() == LSTMCellLayer::type;
   };
 
