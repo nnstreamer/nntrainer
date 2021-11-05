@@ -548,8 +548,7 @@ TEST(TensorPool, view_of_placeholder_p) {
   /// t3        :     2 3
   nntrainer::Tensor t_original(t1->getDim());
   t_original.apply_i([i = 0u](float _) mutable { return ++i; });
-  pool.setExternalTensor("t1", t_original);
-  pool.updateExternalTensors();
+  pool.fillPlaceholder("t1", t_original);
 
   testSubset(t1, &t_original);
   testSubset(t1, t2);

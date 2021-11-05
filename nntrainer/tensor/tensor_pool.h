@@ -183,14 +183,7 @@ public:
    *
    * @note Update externally dependent tensors data ptrs from their parents
    */
-  void setExternalTensor(const std::string &name, const Tensor &t);
-
-  /**
-   * @brief Update externally dependent tensors
-   *
-   * @note Update externally dependent tensors data ptrs from their parents
-   */
-  void updateExternalTensors();
+  void fillPlaceholder(const std::string &name, const Tensor &t);
 
   /**
    * @brief request placeholder which will be not managed by this tensor pool
