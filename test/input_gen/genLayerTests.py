@@ -90,6 +90,12 @@ if __name__ == "__main__":
     record_single(attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
                  "attention_batched", {}, input_type='float')
 
+    rnn = K.layers.SimpleRNN(units=5,
+                         activation="tanh",
+                         return_sequences=False,
+                         return_state=False)
+    record_single(rnn, (3, 1, 7), "rnn_single_step")
+
     lstm = K.layers.LSTM(units=5,
                          recurrent_activation="sigmoid",
                          activation="tanh",

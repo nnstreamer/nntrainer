@@ -28,6 +28,40 @@ class FCUnroll(torch.nn.Module):
         # loss = self.loss(output, labels[0])
         return output, loss
 
+class RNNCellStacked(torch.nn.Module):
+    def __init__(self, unroll_for=1, num_rnn=1, input_size=1, hidden_size=1):
+        super().__init__()
+        self.rnns = torch.nn.ModuleList(
+            [
+                torch.nn.RNNCell(input_size, hidden_size)
+                for _ in range(num_rnn)
+            ]
+        )
+        for rnn in self.rnns:
+            rnn.bias_ih.data.fill_(0.0)
+            rnn.bias_ih.requires_grad=False
+        self.unroll_for = unroll_for
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        # second bias is always set to make it always zero grad.
+        # this is because that we are only keeping one bias
+        for rnn in self.rnns:
+            rnn.bias_ih.data.fill_(0.0)
+
+        hs = [torch.zeros_like(inputs[0]) for _ in self.rnns]
+        out = inputs[0]
+        ret = []
+        for _ in range(self.unroll_for):
+            for i, rnn in enumerate(self.rnns):
+                hs[i] = rnn(out, hs[i])
+                out = hs[i]
+            ret.append(out)
+
+        ret = torch.stack(ret, dim=1)
+        loss = self.loss(ret, labels[0])
+        return ret, loss
+
 class LSTMStacked(torch.nn.Module):
     def __init__(self, unroll_for=2, num_lstm=1):
         super().__init__()
@@ -82,6 +116,22 @@ if __name__ == "__main__":
         input_dims=[(1,)],
         label_dims=[(1,)],
         name="fc_unroll_stacked",
+    )
+
+    record_v2(
+        RNNCellStacked(unroll_for=2, num_rnn=1, input_size=2, hidden_size=2),
+        iteration=2,
+        input_dims=[(3, 2)],
+        label_dims=[(3, 2, 2)],
+        name="rnncell_single",
+    )
+
+    record_v2(
+        RNNCellStacked(unroll_for=2, num_rnn=2, input_size=2, hidden_size=2),
+        iteration=2,
+        input_dims=[(3, 2)],
+        label_dims=[(3, 2, 2)],
+        name="rnncell_stacked",
     )
 
     record_v2(

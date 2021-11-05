@@ -53,7 +53,7 @@ def bn1d_translate(model):
     yield from [mu, var, gamma, beta]
 
 
-@register_for_(torch.nn.LSTMCell)
+@register_for_((torch.nn.RNNCell, torch.nn.LSTMCell))
 def lstm_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
     bias = ("bias", params[2][1] + params[3][1])
