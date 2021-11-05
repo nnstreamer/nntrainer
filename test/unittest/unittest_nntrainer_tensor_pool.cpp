@@ -127,10 +127,9 @@ TEST(TensorPool, request_mem_07_n) {
                                      nntrainer::TensorLifespan::UNMANAGED,
                                      "abc"));
 
-  EXPECT_THROW(pool.requestPrerequestedTensor(
-                 nntrainer::TensorDim({1}), {},
-                 nntrainer::TensorLifespan::UNMANAGED, "abc1", "not_exist"),
-               std::invalid_argument);
+  EXPECT_ANY_THROW(pool.requestPrerequestedTensor(
+    nntrainer::TensorDim({1}), {}, nntrainer::TensorLifespan::UNMANAGED, "abc1",
+    "not_exist"));
 }
 
 /**
