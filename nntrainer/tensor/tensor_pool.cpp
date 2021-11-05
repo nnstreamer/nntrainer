@@ -61,7 +61,7 @@ Tensor *
 TensorPool::requestExternallyAllocateTensor(const TensorDim &dim,
                                             const std::string &name,
                                             const Tensor::Initializer &init) {
-  return requestTensor(dim, {}, TensorLifespan::ZERO_LIFESPAN, name, init);
+  return requestTensor(dim, {}, TensorLifespan::UNMANAGED, name, init);
 }
 
 /**
@@ -96,7 +96,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
    * cannot expand lifespan of zero lifespan tensor
    * it works for externally allocated tensors as well
    */
-  if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN) {
+  if (spec.lifespan != TensorLifespan::UNMANAGED) {
     spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
                            exec_order.end());
     spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
@@ -125,7 +125,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   for (auto &spec : pool) {
     /** do not include dependent tensors in planning layout */
     if (spec.dependent || spec.exec_order.empty() ||
-        spec.lifespan == TensorLifespan::ZERO_LIFESPAN)
+        spec.lifespan == TensorLifespan::UNMANAGED)
       continue;
 
     spec.token = 0;
@@ -232,7 +232,7 @@ void TensorPool::expand_lifespan(const std::string &name,
 
   auto &spec = pool[parent_spec_idx];
 
-  if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN)
+  if (spec.lifespan != TensorLifespan::UNMANAGED)
     throw std::invalid_argument("Cannot extend tensor lifespan from ZERO");
 
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
@@ -311,7 +311,7 @@ bool TensorPool::isTensorLongTerm(const TensorLifespan &lifespan) {
     [[fallthrough]];
   case TensorLifespan::ITERATION_LIFESPAN:
     [[fallthrough]];
-  case TensorLifespan::ZERO_LIFESPAN:
+  case TensorLifespan::UNMANAGED:
     [[fallthrough]];
   default:
     return false;
