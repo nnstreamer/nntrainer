@@ -981,11 +981,11 @@ void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
   /// feed or clear label
   for (unsigned int idx = 0; idx < names.size(); idx++) {
     if (data.empty())
-      tensor_manager->setExternalTensor(names[idx], Tensor());
+      tensor_manager->fillPlaceholder(names[idx], Tensor());
     else if (data.size() == 1)
-      tensor_manager->setExternalTensor(names[idx], data[0]);
+      tensor_manager->fillPlaceholder(names[idx], data[0]);
     else
-      tensor_manager->setExternalTensor(names[idx], data[idx]);
+      tensor_manager->fillPlaceholder(names[idx], data[idx]);
   }
 }
 
@@ -1006,7 +1006,6 @@ void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
 
   setExternalTensors(inputs, input_list);
   setExternalTensors(labels, label_list);
-  tensor_manager->updateExternalTensors();
 }
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,

@@ -240,6 +240,7 @@ void TensorPool::expandLifespan(RequestSpec &spec,
 }
 
 void TensorPool::syncDependents(const RequestSpec &spec) {
+  /// @note syncing dependents of dependents is invalid and will throw.
   auto &dependents = std::get<SourceDetails>(spec.details).dependents;
   for (auto &dep : dependents) {
     auto &dep_spec = pool.at(dep);
@@ -274,7 +275,7 @@ TensorPool::RequestSpec &TensorPool::getSourceSpec(const std::string &name) {
   return *rs;
 }
 
-void TensorPool::setExternalTensor(const std::string &name, const Tensor &t) {
+void TensorPool::fillPlaceholder(const std::string &name, const Tensor &t) {
   auto &spec = getSourceSpec(name);
   auto &details = std::get<SourceDetails>(spec.details);
   NNTR_THROW_IF(details.lifespan != TensorLifespan::UNMANAGED,
@@ -286,17 +287,11 @@ void TensorPool::setExternalTensor(const std::string &name, const Tensor &t) {
 
   NNTR_THROW_IF(t.size() != 0 && t.size() < spec.tensor->size(),
                 std::invalid_argument)
-    << "Error: setting external tensor of smaller size for " << name;
+    << "Error: setting external tensor of smaller size for "
+    << spec.tensor->getName() << "(maybe view of " << name << ")";
 
   spec.tensor->setData(t.getData());
-}
-
-void TensorPool::updateExternalTensors() {
-  for (auto &spec : pool) {
-    if (std::holds_alternative<SourceDetails>(spec.details)) {
-      syncDependents(spec);
-    }
-  }
+  syncDependents(spec);
 }
 
 Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
