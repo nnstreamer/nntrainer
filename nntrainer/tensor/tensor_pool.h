@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
  * @file   tensor_pool.h
  * @date   18 Aug 2021
  * @brief  This is TensorPool for all requested tensors
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug	   No known bugs except for NYI items
  *
  */
@@ -18,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <memory_pool.h>
@@ -136,30 +138,11 @@ public:
   void deallocate();
 
   /**
-   * @brief     Expand the lifespan of the tensor with the given name
-   *
-   * @param name The name of the tensor
-   * @param lifespan The lifespan to be expanded to
-   */
-  void expand_lifespan(const std::string &name, TensorLifespan lifespan);
-
-  /**
-   * @brief     Expand the execution order of the tensor with the given name
-   *
-   * @param name The name of the tensor
-   * @param exec_order The execution orders
-   */
-  void expand_lifespan(const std::string &name,
-                       const std::vector<unsigned int> &exec_order);
-
-  /**
    * @brief     Get execution order for the given tensor
    *
    * @return The execution order of the tensor
    */
-  const std::vector<unsigned int> &getExecutionOrder(const std::string &name) {
-    return getSourceSpec(name).exec_order;
-  }
+  const std::vector<unsigned int> &getExecutionOrder(const std::string &name);
 
   /**
    * @brief Get the maximum real memory requirement
@@ -200,36 +183,14 @@ public:
    *
    * @note Update externally dependent tensors data ptrs from their parents
    */
-  void setExternalTensor(const std::string &name, const Tensor &t) {
-    auto &spec = getSourceSpec(name);
-
-    if (spec.lifespan != TensorLifespan::UNMANAGED)
-      throw std::invalid_argument(
-        "Cannot set external tensor for non-zero lifespan");
-
-    if (t.size() == 0 && t.getData())
-      throw std::invalid_argument(
-        "Error: setting invalid external tensor size 0 for " + name);
-
-    if (t.size() != 0 && t.size() < spec.tensor->size())
-      throw std::invalid_argument(
-        "Error: setting external tensor of smaller size for " + name);
-
-    spec.tensor->setData(t.getData());
-  }
+  void setExternalTensor(const std::string &name, const Tensor &t);
 
   /**
    * @brief Update externally dependent tensors
    *
    * @note Update externally dependent tensors data ptrs from their parents
    */
-  void updateExternalTensors() {
-    for (auto &spec : pool)
-      if (spec.dependent) {
-        auto &mother_spec = getSourceSpec(spec.tensor->getName());
-        spec.tensor->setData(mother_spec.tensor->getData() + spec.offset);
-      }
-  }
+  void updateExternalTensors();
 
   /**
    * @brief request placeholder which will be not managed by this tensor pool
@@ -300,9 +261,7 @@ public:
    */
   Tensor *extend(const std::string &name,
                  const std::vector<unsigned int> &exec_order,
-                 TensorLifespan lifespan) {
-    return nullptr;
-  }
+                 TensorLifespan lifespan);
 
   /**
    * @brief create a new tensor if tensor does not exist else return the tensor
@@ -341,17 +300,34 @@ public:
 
 private:
   /**
+   * @brief Source tensor detailed specification
+   *
+   */
+  struct SourceDetails {
+    unsigned int token;                   /**< memory token */
+    TensorLifespan lifespan;              /**< life span of the tensor */
+    std::vector<unsigned int> exec_order; /**< exec order */
+    std::vector<unsigned int>
+      dependents; /**< list of dependents to the source */
+  };
+
+  /**
+   * @brief Dependent tensor detaild specification
+   *
+   */
+  struct DependentDetails {
+    unsigned int parent_idx; /**< index to the parent */
+    unsigned int offset;     /**< elementwise offset */
+  };
+
+  /**
    * @brief Spec for storing each request of tensor from tensor pool
    * @todo move tensor initialization from tensor class to RequestSpec
    */
   struct RequestSpec {
-    std::unique_ptr<Tensor> tensor;       /**< tensor object itself */
-    std::vector<unsigned int> exec_order; /**< tensor exec order list */
-    TensorLifespan lifespan;              /**< tensor lifespan */
-    unsigned int token; /**< tensor memory token or index to source spec */
-    unsigned int offset =
-      0; /**< offset in element from the primary source spec */
-    bool dependent = false; /**< if dependent on another tensor for memory */
+    std::unique_ptr<Tensor> tensor; /**< tensor object itself */
+    std::variant<SourceDetails, DependentDetails>
+      details; /**< additional information by its kind */
   };
 
   /**
@@ -370,6 +346,45 @@ private:
    * @return RequestSpec spec
    */
   RequestSpec &getSourceSpec(const std::string &name);
+
+  /**
+   * @brief     Expand the lifespan of the tensor with the given name
+   *
+   * @param name The name of the tensor
+   * @param exec_order The execution orders
+   * @param lifespan The lifespan to be expanded to
+   * @return source spec for the name
+   */
+  RequestSpec &expandLifespan(const std::string &name,
+                              const std::vector<unsigned int> &exec_order,
+                              TensorLifespan lifespan);
+
+  /**
+   * @brief expand life span with execution time
+   *
+   * @param spec specification
+   * @param exec_order exec order
+   * @param lifespan life span
+   */
+  void expandLifespan(RequestSpec &spec,
+                      const std::vector<unsigned int> &exec_order,
+                      TensorLifespan lifespan);
+
+  /**
+   * @brief sync dependent tensors from updated source tensor
+   * @note syncing starting from dependents of dependents is invalid and will
+   * throw.
+   *
+   * @param spec spec with source details to refer to.
+   */
+  void syncDependents(const RequestSpec &spec);
+
+  /**
+   * @brief register a spec after creation
+   *
+   * @param spec spec to register
+   */
+  Tensor *registerRequestSpec(RequestSpec &&spec);
 
   /**
    * note: unordered_map is not directly used for pool to ensure initialization

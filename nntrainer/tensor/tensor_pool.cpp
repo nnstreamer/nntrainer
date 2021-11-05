@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
  * @file   tensor_pool.cpp
- * @date   19 Aug 2020
+ * @date   19 Aug 2021
  * @brief  This is TensorPool for all requested tensors
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug	   No known bugs except for NYI items
  *
  * @todo   add checks for request/updates that finalize is not done
@@ -22,6 +23,10 @@
 
 namespace nntrainer {
 
+/// lambda overload helper
+template <class... Ts> struct overloaded_ : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded_(Ts...)->overloaded_<Ts...>;
+
 /**
  * @brief     Request tensor with the given spec
  *
@@ -34,20 +39,9 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
                                   TensorLifespan lifespan,
                                   const std::string &name,
                                   const Tensor::Initializer &init) {
-  if (name_map.find(name) != name_map.end())
-    throw std::invalid_argument("Cannot request tensor with same name");
-
-  if (dim.getDataLen() == 0)
-    throw std::invalid_argument("Cannot request tensor with size 0");
-
-  if (name.empty())
-    throw std::invalid_argument("Cannot request tensor with empty name");
-
-  pool.push_back({std::make_unique<Tensor>(dim, false, init, name), exec_order,
-                  lifespan, 0, 0, false});
-  name_map[name] = pool.size() - 1;
-
-  return pool.back().tensor.get();
+  return registerRequestSpec(
+    {std::make_unique<Tensor>(dim, false, init, name),
+     TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
 }
 
 /**
@@ -77,9 +71,13 @@ Tensor *TensorPool::requestPrerequestedTensor(
   TensorLifespan lifespan, const std::string &name,
   const std::string &shared_name, const Tensor::Initializer &init,
   const unsigned int offset) {
-
   auto &spec = getSourceSpec(shared_name);
-  unsigned adjusted_offset = pool[name_map.at(shared_name)].offset + offset;
+  unsigned adjusted_offset =
+    std::visit(overloaded_{[](const SourceDetails &s) { return 0u; },
+                           [](const DependentDetails &s) { return s.offset; }},
+               pool[name_map.at(shared_name)].details);
+  adjusted_offset += offset;
+
   NNTR_THROW_IF(spec.tensor->getDim().getDataLen() <
                   adjusted_offset + dim.getDataLen(),
                 std::invalid_argument)
@@ -92,24 +90,16 @@ Tensor *TensorPool::requestPrerequestedTensor(
       spec.tensor->getInitializer() != init)
     throw std::invalid_argument("Request tensor initialization mismatch");
 
-  /**
-   * cannot expand lifespan of zero lifespan tensor
-   * it works for externally allocated tensors as well
-   */
-  if (spec.lifespan != TensorLifespan::UNMANAGED) {
-    spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
-                           exec_order.end());
-    spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
-  }
+  expandLifespan(spec, exec_order, lifespan);
+  std::get<SourceDetails>(spec.details).dependents.push_back(pool.size());
 
-  /** @note requestTensor invalidates spec reference */
-  /// @note: for the dependent tensor, it only contains its own exec order, and
-  /// thus not contain the whole exec_order
-  Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
-  pool.back().token = name_map[shared_name];
-  pool.back().dependent = true;
-  pool.back().offset = adjusted_offset;
-  return ret;
+  /** @note below invalidates spec reference */
+  /** @note in case of view of view, internal datastructure saves the src to
+   * view index, not view to view reference in order to flatten depth */
+  auto parent_name = name_map.at(spec.tensor->getName());
+  return registerRequestSpec(
+    {std::make_unique<Tensor>(dim, false, init, name),
+     TensorPool::DependentDetails{parent_name, adjusted_offset}});
 }
 
 /**
@@ -123,25 +113,25 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   mem_pool.clear();
   unsigned int bytes_requested = 0;
   for (auto &spec : pool) {
-    /** do not include dependent tensors in planning layout */
-    if (spec.dependent || spec.exec_order.empty() ||
-        spec.lifespan == TensorLifespan::UNMANAGED)
+    auto details = std::get_if<SourceDetails>(&spec.details);
+    if (!details || details->lifespan == TensorLifespan::UNMANAGED ||
+        details->exec_order.empty()) {
       continue;
-
-    spec.token = 0;
+    }
+    details->token = 0;
 
     /** 1. create the validity ranges for the all the requested tensors */
     unsigned int validity_start =
-      *std::min_element(spec.exec_order.begin(), spec.exec_order.end());
+      *std::min_element(details->exec_order.begin(), details->exec_order.end());
     unsigned int validity_end =
-      *std::max_element(spec.exec_order.begin(), spec.exec_order.end());
+      *std::max_element(details->exec_order.begin(), details->exec_order.end());
 
     /**
      * use lifespan to update the validity.
      * if the validity is long term, the tensor must stay valid for the
      * complete duration.
      */
-    if (isTensorLongTerm(spec.lifespan)) {
+    if (isTensorLongTerm(details->lifespan)) {
       validity_start = start_order;
       validity_end = end_order;
     }
@@ -156,10 +146,10 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    spec.token = mem_pool.requestMemory(spec.tensor->bytes(), validity_start,
-                                        validity_end + 1);
+    details->token = mem_pool.requestMemory(spec.tensor->bytes(),
+                                            validity_start, validity_end + 1);
 #ifdef DEBUG
-    if (spec.token == 0)
+    if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
 #endif
 
@@ -191,17 +181,12 @@ void TensorPool::allocate() {
 
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
-    /** get data for the tensors which were requested */
-    if (!spec.dependent && spec.token > 0) {
-      NNTR_THROW_IF(spec.offset != 0, std::invalid_argument)
-        << "source spec has to have always offset of zero, but given "
-        << spec.offset << " for tensor: " << spec.tensor->getName();
-      spec.tensor->setData(mem_pool.getMemory(spec.token), true);
-    } else if (spec.dependent) {
-      const auto &name = spec.tensor->getName();
-      spec.tensor->setData(getSourceSpec(name).tensor->getData() + spec.offset);
-      /** initialize is intentionally skipped here */
+    auto details = std::get_if<SourceDetails>(&spec.details);
+    if (!details || details->token == 0) {
+      continue;
     }
+    spec.tensor->setData(mem_pool.getMemory(details->token), true);
+    syncDependents(spec);
   }
 }
 
@@ -217,56 +202,101 @@ void TensorPool::deallocate() {
   }
 }
 
+const std::vector<unsigned int> &
+TensorPool::getExecutionOrder(const std::string &name) {
+  return std::get<SourceDetails>(getSourceSpec(name).details).exec_order;
+}
+
 /**
  * @brief     Expand the lifespan of the tensor with the given name
  *
  */
-void TensorPool::expand_lifespan(const std::string &name,
-                                 TensorLifespan lifespan) {
-  if (name_map.find(name) == name_map.end())
-    throw std::invalid_argument("Requested tensor not found");
-
-  int parent_spec_idx = name_map[name];
-  while (pool[parent_spec_idx].dependent == true)
-    parent_spec_idx = pool[parent_spec_idx].token;
-
-  auto &spec = pool[parent_spec_idx];
-
-  if (spec.lifespan != TensorLifespan::UNMANAGED)
-    throw std::invalid_argument("Cannot extend tensor lifespan from ZERO");
-
-  spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
+TensorPool::RequestSpec &
+TensorPool::expandLifespan(const std::string &name,
+                           const std::vector<unsigned> &exec_order,
+                           TensorLifespan lifespan) {
+  auto &spec = getSourceSpec(name);
+  expandLifespan(spec, exec_order, lifespan);
+  return spec;
 }
 
-/**
- * @brief     Expand the execution order of the tensor with the given name
- *
- */
-void TensorPool::expand_lifespan(const std::string &name,
-                                 const std::vector<unsigned int> &exec_order) {
-  if (name_map.find(name) == name_map.end())
-    throw std::invalid_argument("Requested tensor not found");
+void TensorPool::expandLifespan(RequestSpec &spec,
+                                const std::vector<unsigned int> &exec_order,
+                                TensorLifespan lifespan) {
+  auto &details = std::get<SourceDetails>(spec.details);
+  NNTR_THROW_IF((details.lifespan != TensorLifespan::UNMANAGED &&
+                 lifespan == TensorLifespan::UNMANAGED),
+                std::invalid_argument)
+    << "Extending to lifespan to unmanaged is not possible for name: "
+    << spec.tensor->getName();
 
-  int parent_spec_idx = name_map[name];
-  while (pool[parent_spec_idx].dependent == true)
-    parent_spec_idx = pool[parent_spec_idx].token;
+  if (details.lifespan != TensorLifespan::UNMANAGED) {
+    /// update only if lifespan is unmanaged
+    details.lifespan =
+      enum_class_or<TensorLifespan>(details.lifespan, lifespan);
+  }
+  details.exec_order.insert(details.exec_order.end(), exec_order.begin(),
+                            exec_order.end());
+}
 
-  auto &spec = pool[parent_spec_idx];
-  spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
-                         exec_order.end());
+void TensorPool::syncDependents(const RequestSpec &spec) {
+  auto &dependents = std::get<SourceDetails>(spec.details).dependents;
+  for (auto &dep : dependents) {
+    auto &dep_spec = pool.at(dep);
+    auto offset = std::get<DependentDetails>(dep_spec.details).offset;
+    dep_spec.tensor->setData(spec.tensor->getData() + offset);
+  }
+}
+
+Tensor *TensorPool::registerRequestSpec(RequestSpec &&spec) {
+  auto &name = spec.tensor->getName();
+  if (name_map.find(name) != name_map.end())
+    throw std::invalid_argument("Cannot request tensor with same name");
+
+  if (spec.tensor->empty())
+    throw std::invalid_argument("Cannot request tensor with size 0");
+
+  if (name.empty())
+    throw std::invalid_argument("Cannot request tensor with empty name");
+
+  pool.push_back(std::move(spec));
+  name_map[name] = pool.size() - 1;
+
+  return pool.back().tensor.get();
 }
 
 TensorPool::RequestSpec &TensorPool::getSourceSpec(const std::string &name) {
-  unsigned parent_spec_idx;
-  try {
-    parent_spec_idx = name_map.at(name);
-  } catch (...) {
-    throw std::invalid_argument("finding spec idx failed, name: " + name);
+  RequestSpec *rs = &pool.at(name_map.at(name));
+  while (auto dep_details = std::get_if<DependentDetails>(&rs->details)) {
+    rs = &pool.at(dep_details->parent_idx);
   }
-  while (pool[parent_spec_idx].dependent == true)
-    parent_spec_idx = pool[parent_spec_idx].token;
 
-  return pool.at(parent_spec_idx);
+  return *rs;
+}
+
+void TensorPool::setExternalTensor(const std::string &name, const Tensor &t) {
+  auto &spec = getSourceSpec(name);
+  auto &details = std::get<SourceDetails>(spec.details);
+  NNTR_THROW_IF(details.lifespan != TensorLifespan::UNMANAGED,
+                std::invalid_argument)
+    << "Cannot set external tensor for non-zero lifespan for " << name;
+
+  NNTR_THROW_IF(t.size() == 0 && t.getData(), std::invalid_argument)
+    << "Error: setting invalid external tensor size 0 for " << name;
+
+  NNTR_THROW_IF(t.size() != 0 && t.size() < spec.tensor->size(),
+                std::invalid_argument)
+    << "Error: setting external tensor of smaller size for " << name;
+
+  spec.tensor->setData(t.getData());
+}
+
+void TensorPool::updateExternalTensors() {
+  for (auto &spec : pool) {
+    if (std::holds_alternative<SourceDetails>(spec.details)) {
+      syncDependents(spec);
+    }
+  }
 }
 
 Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
