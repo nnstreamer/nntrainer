@@ -35,7 +35,7 @@ enum class WeightRegularizer {
  *
  */
 enum class TensorLifespan {
-  ZERO_LIFESPAN = 0b0, /**< tensor with no lifespan, will not be allocated */
+  UNMANAGED = 0b0, /**< tensor with no lifespan, will not be allocated */
   FORWARD_FUNC_LIFESPAN = 0b01,  /**< tensor must not be reset before during the
                             forward function call, eg. temporary tensors
                             needed during forward operations */

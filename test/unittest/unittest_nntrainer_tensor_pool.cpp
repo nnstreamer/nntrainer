@@ -35,8 +35,7 @@ TEST(TensorPool, request_mem_01_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_THROW(pool.requestTensor(nntrainer::TensorDim(), {},
-                                  nntrainer::TensorLifespan::ZERO_LIFESPAN,
-                                  "abc"),
+                                  nntrainer::TensorLifespan::UNMANAGED, "abc"),
                std::invalid_argument);
 }
 
@@ -47,7 +46,7 @@ TEST(TensorPool, request_mem_02_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_THROW(pool.requestTensor(nntrainer::TensorDim({1}), {},
-                                  nntrainer::TensorLifespan::ZERO_LIFESPAN, ""),
+                                  nntrainer::TensorLifespan::UNMANAGED, ""),
                std::invalid_argument);
 }
 
@@ -58,9 +57,9 @@ TEST(TensorPool, request_mem_03_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t;
 
-  EXPECT_NO_THROW(
-    t = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                           nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+  EXPECT_NO_THROW(t = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                         nntrainer::TensorLifespan::UNMANAGED,
+                                         "abc"));
   EXPECT_NE(t, nullptr);
   EXPECT_FALSE(t->isAllocated());
 }
@@ -72,12 +71,11 @@ TEST(TensorPool, request_mem_04_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.requestTensor(nntrainer::TensorDim({1}), {},
-                                     nntrainer::TensorLifespan::ZERO_LIFESPAN,
+                                     nntrainer::TensorLifespan::UNMANAGED,
                                      "abc"));
 
   EXPECT_THROW(pool.requestTensor(nntrainer::TensorDim({2}), {},
-                                  nntrainer::TensorLifespan::ZERO_LIFESPAN,
-                                  "abc"),
+                                  nntrainer::TensorLifespan::UNMANAGED, "abc"),
                std::invalid_argument);
 }
 
@@ -88,15 +86,15 @@ TEST(TensorPool, request_mem_05_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1, *t2;
 
-  EXPECT_NO_THROW(
-    t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+  EXPECT_NO_THROW(t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                          nntrainer::TensorLifespan::UNMANAGED,
+                                          "abc"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 
   EXPECT_NO_THROW(t2 = pool.requestPrerequestedTensor(
                     nntrainer::TensorDim({1}), {},
-                    nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc1", "abc"));
+                    nntrainer::TensorLifespan::UNMANAGED, "abc1", "abc"));
   EXPECT_NE(t2, nullptr);
   EXPECT_FALSE(t2->isAllocated());
 
@@ -110,12 +108,12 @@ TEST(TensorPool, request_mem_06_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.requestTensor(nntrainer::TensorDim({1}), {},
-                                     nntrainer::TensorLifespan::ZERO_LIFESPAN,
+                                     nntrainer::TensorLifespan::UNMANAGED,
                                      "abc"));
 
   EXPECT_THROW(pool.requestPrerequestedTensor(
                  nntrainer::TensorDim({2}), {},
-                 nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc1", "abc"),
+                 nntrainer::TensorLifespan::UNMANAGED, "abc1", "abc"),
                std::invalid_argument);
 }
 
@@ -126,12 +124,12 @@ TEST(TensorPool, request_mem_07_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.requestTensor(nntrainer::TensorDim({1}), {},
-                                     nntrainer::TensorLifespan::ZERO_LIFESPAN,
+                                     nntrainer::TensorLifespan::UNMANAGED,
                                      "abc"));
 
   EXPECT_THROW(pool.requestPrerequestedTensor(
                  nntrainer::TensorDim({1}), {},
-                 nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc1", "not_exist"),
+                 nntrainer::TensorLifespan::UNMANAGED, "abc1", "not_exist"),
                std::invalid_argument);
 }
 
@@ -142,9 +140,9 @@ TEST(TensorPool, request_mem_08_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1, *t2;
 
-  EXPECT_NO_THROW(
-    t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+  EXPECT_NO_THROW(t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                          nntrainer::TensorLifespan::UNMANAGED,
+                                          "abc"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 
@@ -172,12 +170,12 @@ TEST(TensorPool, request_mem_09_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.requestTensor(nntrainer::TensorDim({1}), {},
-                                     nntrainer::TensorLifespan::ZERO_LIFESPAN,
+                                     nntrainer::TensorLifespan::UNMANAGED,
                                      "abc"));
 
   EXPECT_THROW(pool.requestPrerequestedTensor(
                  nntrainer::TensorDim({1}), {},
-                 nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc", "abc"),
+                 nntrainer::TensorLifespan::UNMANAGED, "abc", "abc"),
                std::invalid_argument);
 }
 
@@ -188,9 +186,9 @@ TEST(TensorPool, set_batch_01_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1;
 
-  EXPECT_NO_THROW(
-    t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+  EXPECT_NO_THROW(t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                          nntrainer::TensorLifespan::UNMANAGED,
+                                          "abc"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 
@@ -206,9 +204,9 @@ TEST(TensorPool, set_batch_02_n) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1;
 
-  EXPECT_NO_THROW(
-    t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+  EXPECT_NO_THROW(t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                          nntrainer::TensorLifespan::UNMANAGED,
+                                          "abc"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 
@@ -223,9 +221,9 @@ TEST(TensorPool, finalize_01_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1, *t2;
 
-  EXPECT_NO_THROW(
-    t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc1"));
+  EXPECT_NO_THROW(t1 = pool.requestTensor(nntrainer::TensorDim({1}), {},
+                                          nntrainer::TensorLifespan::UNMANAGED,
+                                          "abc1"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 

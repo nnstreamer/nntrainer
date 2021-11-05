@@ -203,7 +203,7 @@ public:
   void setExternalTensor(const std::string &name, const Tensor &t) {
     auto &spec = getSourceSpec(name);
 
-    if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN)
+    if (spec.lifespan != TensorLifespan::UNMANAGED)
       throw std::invalid_argument(
         "Cannot set external tensor for non-zero lifespan");
 
