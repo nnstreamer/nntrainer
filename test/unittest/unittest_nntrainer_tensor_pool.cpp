@@ -590,6 +590,75 @@ TEST(TensorPool, view_of_placeholder_out_of_range_n) {
   EXPECT_ANY_THROW(pool.view("t1", "t0", {1}, {0}, max_ls, 11));
 }
 
+TEST(TensorPool, extend_source_p) {
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0},
+              nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  pool.extend("t0", {1}, nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+
+  auto &exec_order = pool.getExecutionOrder("t0");
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 0),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 1),
+            exec_order.end());
+}
+
+TEST(TensorPool, extend_view_p) {
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0},
+              nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  pool.view("t1", "t0", {10}, {1},
+            nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  pool.extend("t1", {2}, max_ls);
+
+  auto &exec_order = pool.getExecutionOrder("t0");
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 0),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 1),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 2),
+            exec_order.end());
+}
+
+TEST(TensorPool, extend_placeholder_p) {
+  nntrainer::TensorPool pool;
+  pool.placeholder("t0", {10});
+  pool.extend("t0", {2}, max_ls);
+
+  auto &exec_order = pool.getExecutionOrder("t0");
+  EXPECT_EQ(std::find(exec_order.begin(), exec_order.end(), 0),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 2),
+            exec_order.end());
+}
+
+TEST(TensorPool, extend_view_of_placeholder_p) {
+  nntrainer::TensorPool pool;
+  pool.placeholder("t0", {10});
+  pool.view("t1", "t0", {10}, {1},
+            nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  pool.extend("t1", {2}, max_ls);
+
+  auto &exec_order = pool.getExecutionOrder("t0");
+  EXPECT_EQ(std::find(exec_order.begin(), exec_order.end(), 0),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 1),
+            exec_order.end());
+  EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 2),
+            exec_order.end());
+}
+
+TEST(TensorPool, extend_out_of_range_n) {
+  nntrainer::TensorPool pool;
+  EXPECT_ANY_THROW(pool.extend("t1", {2}, max_ls));
+}
+
+TEST(TensorPool, extend_unmanged_n) {
+  nntrainer::TensorPool pool;
+  pool.create("t0", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED);
+  EXPECT_ANY_THROW(pool.extend("t1", {2}, max_ls));
+}
+
 /**
  * @brief Main gtest
  */
