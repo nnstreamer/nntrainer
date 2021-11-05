@@ -24,13 +24,6 @@
 namespace nntrainer {
 
 /**
- * @brief lambda overload helper
- *
- */
-template <class... Ts> struct overloaded_ : Ts... { using Ts::operator()...; };
-template <class... Ts> overloaded_(Ts...)->overloaded_<Ts...>;
-
-/**
  * @brief     Request tensor with the given spec
  *
  * @note returns empty tensor which will be filled when allocate is called.
@@ -75,10 +68,17 @@ Tensor *TensorPool::requestPrerequestedTensor(
   const std::string &shared_name, const Tensor::Initializer &init,
   const unsigned int offset) {
   auto &spec = getSourceSpec(shared_name);
-  unsigned adjusted_offset =
-    std::visit(overloaded_{[](const SourceDetails &s) { return 0u; },
-                           [](const DependentDetails &s) { return s.offset; }},
-               pool[name_map.at(shared_name)].details);
+  unsigned adjusted_offset = std::visit(
+    [](const auto &s) {
+      using T = std::decay_t<decltype(s)>;
+      if constexpr (std::is_same_v<T, SourceDetails>) {
+        return 0u;
+      } else if constexpr (std::is_same_v<T, DependentDetails>) {
+        return s.offset;
+      }
+      return 0u;
+    },
+    pool[name_map.at(shared_name)].details);
   adjusted_offset += offset;
 
   NNTR_THROW_IF(spec.tensor->getDim().getDataLen() <
