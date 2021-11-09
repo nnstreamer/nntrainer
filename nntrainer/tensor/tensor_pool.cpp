@@ -319,12 +319,14 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
                                    Tensor::Initializer::NONE, offset);
 }
 
-Tensor *TensorPool::extend(const std::string &name,
+Tensor *TensorPool::extend(const std::string &name, const TensorDim &dim,
                            const std::vector<unsigned int> &exec_order,
                            TensorLifespan lifespan) {
   NNTR_THROW_IF(!tensorExist(name), std::invalid_argument)
     << " cannot extend tensor which does not exist, name: " << name;
   auto &spec = getSourceSpec(name);
+  NNTR_THROW_IF(dim != spec.tensor->getDim(), std::invalid_argument)
+    << "Cannot extend tensor with different dimension";
   expandLifespan(spec, exec_order, lifespan);
   return getTensor(name);
 }
@@ -343,13 +345,15 @@ Tensor *TensorPool::requestOrExtend(const std::string &name,
       << "tensor dimension mismatch for requestOrExtend name: " << name;
     NNTR_THROW_IF(t->getInitializer() != init, std::invalid_argument)
       << "tensor initializer mismatch for requestOrExtend name: " << name;
-    return extend(name, exec_order, lifespan);
+    return extend(name, dim, exec_order, lifespan);
   } else {
     return request(name, dim, exec_order, lifespan, init);
   }
 }
 
 bool TensorPool::tensorExist(const std::string &name) {
+  /// @todo consider use a helper function to check, eg) something like
+  /// getTensor()
   return name_map.count(name);
 }
 

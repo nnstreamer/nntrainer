@@ -246,13 +246,14 @@ public:
    * @brief extend a tensor life as tensor is being shared.
    *
    * @param name name of the tensor to extend
+   * @param dim dimension of the tensor
    * @param exec_order exec_order to extend
    * @param lifespan extended life span
    * @return Tensor* Tensor* the exact tensor which is being extended.
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *extend(const std::string &name,
+  Tensor *extend(const std::string &name, const TensorDim &dim,
                  const std::vector<unsigned int> &exec_order,
                  TensorLifespan lifespan);
 
