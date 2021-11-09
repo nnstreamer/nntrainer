@@ -44,14 +44,9 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
  * @brief     Request tensor with the given spec
  *
  * @note returns empty tensor which will be filled when allocate is called.
- * @note we assume that the caller checks if the exec_order and lifespan are
- * compatible.
  */
-Tensor *
-TensorPool::requestExternallyAllocateTensor(const TensorDim &dim,
-                                            const std::string &name,
-                                            const Tensor::Initializer &init) {
-  return requestTensor(dim, {}, TensorLifespan::UNMANAGED, name, init);
+Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
+  return requestTensor(dim, {}, TensorLifespan::UNMANAGED, name);
 }
 
 /**
@@ -295,11 +290,6 @@ void TensorPool::fillPlaceholder(const std::string &name, const Tensor &t) {
 
   spec.tensor->setData(t.getData());
   syncDependents(spec);
-}
-
-Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
-  /// @todo rename requestExternallyAllocateTensor -> placeholder
-  return requestExternallyAllocateTensor(dim, name);
 }
 
 Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,

@@ -67,22 +67,6 @@ public:
                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
-   * @brief     Request tensor with the given name which will be allocated
-   * externally
-   *
-   * @param dim Tensor dimensions
-   * @param name Name of this tensor
-   * @param init Initializer of the tensor
-   *
-   * @return ptr to the created tensor
-   *
-   * @note returns empty tensor which must be filled by the caller before use.
-   */
-  Tensor *requestExternallyAllocateTensor(
-    const TensorDim &dim, const std::string &name,
-    const Tensor::Initializer &init = Tensor::Initializer::NONE);
-
-  /**
    * @brief     Request tensor which has been already requested with the given
    * spec
    *
