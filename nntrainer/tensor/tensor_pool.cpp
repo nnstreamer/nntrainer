@@ -302,10 +302,10 @@ Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
   return requestExternallyAllocateTensor(dim, name);
 }
 
-Tensor *TensorPool::create(const std::string &name, const TensorDim &dim,
-                           const std::vector<unsigned int> &exec_order,
-                           TensorLifespan lifespan,
-                           const Tensor::Initializer &init) {
+Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
+                            const std::vector<unsigned int> &exec_order,
+                            TensorLifespan lifespan,
+                            const Tensor::Initializer &init) {
   /// @todo rename requestTensor -> create
   return requestTensor(dim, exec_order, lifespan, name, init);
 }
@@ -329,23 +329,23 @@ Tensor *TensorPool::extend(const std::string &name,
   return getTensor(name);
 }
 
-Tensor *TensorPool::createOrExtend(const std::string &name,
-                                   const TensorDim &dim,
-                                   const std::vector<unsigned int> &exec_order,
-                                   TensorLifespan lifespan,
-                                   const Tensor::Initializer &init) {
+Tensor *TensorPool::requestOrExtend(const std::string &name,
+                                    const TensorDim &dim,
+                                    const std::vector<unsigned int> &exec_order,
+                                    TensorLifespan lifespan,
+                                    const Tensor::Initializer &init) {
   NNTR_THROW_IF(lifespan == TensorLifespan::UNMANAGED, std::invalid_argument)
     << "unmanaged life span is not supported";
 
   if (tensorExist(name)) {
     Tensor *t = getTensor(name);
     NNTR_THROW_IF(t->getDim() != dim, std::invalid_argument)
-      << "tensor dimension mismatch for createOrExtend name: " << name;
+      << "tensor dimension mismatch for requestOrExtend name: " << name;
     NNTR_THROW_IF(t->getInitializer() != init, std::invalid_argument)
-      << "tensor initializer mismatch for createOrExtend name: " << name;
+      << "tensor initializer mismatch for requestOrExtend name: " << name;
     return extend(name, exec_order, lifespan);
   } else {
-    return create(name, dim, exec_order, lifespan, init);
+    return request(name, dim, exec_order, lifespan, init);
   }
 }
 

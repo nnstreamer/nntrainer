@@ -444,8 +444,8 @@ TEST(TensorPool, create_allocate_has_data_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
-  t1 = pool.create("a", {10}, {0}, max_ls);
-  t2 = pool.create("b", {10}, {1}, max_ls);
+  t1 = pool.request("a", {10}, {0}, max_ls);
+  t2 = pool.request("b", {10}, {1}, max_ls);
 
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
   pool.allocate();
@@ -456,9 +456,9 @@ TEST(TensorPool, create_allocate_has_data_p) {
 
 TEST(TensorPool, create_clashing_name_n) {
   nntrainer::TensorPool pool;
-  auto t1 = pool.create("a", {10}, {0}, max_ls);
+  auto t1 = pool.request("a", {10}, {0}, max_ls);
   EXPECT_NE(t1, nullptr);
-  EXPECT_ANY_THROW(pool.create("a", {10}, {1}, max_ls));
+  EXPECT_ANY_THROW(pool.request("a", {10}, {1}, max_ls));
 }
 
 TEST(TensorPool, placeholder_p) {
@@ -480,7 +480,7 @@ TEST(TensorPool, view_is_same_p) {
   nntrainer::TensorPool pool;
   // |-------- t1 -------|
   // |-------- t2 -------|
-  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t1 = pool.request("t1", {10}, {0}, max_ls);
   auto t2 = pool.view("t2", "t1", {10}, {1}, max_ls);
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
   pool.allocate();
@@ -496,7 +496,7 @@ TEST(TensorPool, view_is_subset_p) {
   // |-------- t1 -------|
   // |-t2-|
   //       |-t3-|
-  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t1 = pool.request("t1", {10}, {0}, max_ls);
   auto t2 = pool.view("t2", "t1", {3}, {1}, max_ls);
   auto t3 = pool.view("t3", "t1", {3}, {1}, max_ls, 3);
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
@@ -515,7 +515,7 @@ TEST(TensorPool, view_is_view_of_view_and_subset_p) {
   // |-t2-|(offset)
   //               |-t3-|
   nntrainer::TensorPool pool;
-  auto t1 = pool.create("t1", {10}, {0}, max_ls);
+  auto t1 = pool.request("t1", {10}, {0}, max_ls);
   auto t2 = pool.view("t2", "t1", {3}, {1}, max_ls);
   auto t3 = pool.view("t3", "t2", {3}, {1}, max_ls, 3);
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
@@ -531,7 +531,7 @@ TEST(TensorPool, view_is_view_of_view_and_subset_p) {
 
 TEST(TensorPool, view_of_placeholder_p) {
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0}, max_ls);
+  pool.request("t0", {10}, {0}, max_ls);
   auto t1 = pool.placeholder("t1", {10});
   auto t2 = pool.view("t2", "t1", {10}, {0}, max_ls);
   auto t3 = pool.view("t3", "t1", {2}, {0}, max_ls, 2);
@@ -563,7 +563,7 @@ TEST(TensorPool, view_of_placeholder_p) {
 
 TEST(TensorPool, view_clashing_name_n) {
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0}, max_ls);
+  pool.request("t0", {10}, {0}, max_ls);
   EXPECT_ANY_THROW(pool.view("t0", "t0", {10}, {0}, max_ls));
 }
 
@@ -571,7 +571,7 @@ TEST(TensorPool, view_out_of_range_n) {
   // |-------- t0 -------|
   //                     |-t1-|
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0}, max_ls);
+  pool.request("t0", {10}, {0}, max_ls);
   EXPECT_ANY_THROW(pool.view("t1", "t0", {1}, {0}, max_ls, 10));
 }
 TEST(TensorPool, view_of_view_out_of_range_n) {
@@ -579,7 +579,7 @@ TEST(TensorPool, view_of_view_out_of_range_n) {
   // |-------- t0 -------|
   //                |-t1-|
   //                     |-t2-|
-  pool.create("t0", {10}, {0}, max_ls);
+  pool.request("t0", {10}, {0}, max_ls);
   pool.view("t1", "t0", {1}, {0}, max_ls, 9);
   EXPECT_ANY_THROW(pool.view("t2", "t1", {1}, {0}, max_ls, 1));
 }
@@ -592,8 +592,8 @@ TEST(TensorPool, view_of_placeholder_out_of_range_n) {
 
 TEST(TensorPool, extend_source_p) {
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0},
-              nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  pool.request("t0", {10}, {0},
+               nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
   pool.extend("t0", {1}, nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   auto &exec_order = pool.getExecutionOrder("t0");
@@ -605,8 +605,8 @@ TEST(TensorPool, extend_source_p) {
 
 TEST(TensorPool, extend_view_p) {
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0},
-              nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  pool.request("t0", {10}, {0},
+               nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
   pool.view("t1", "t0", {10}, {1},
             nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN);
   pool.extend("t1", {2}, max_ls);
@@ -655,14 +655,14 @@ TEST(TensorPool, extend_out_of_range_n) {
 
 TEST(TensorPool, extend_unmanged_n) {
   nntrainer::TensorPool pool;
-  pool.create("t0", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED);
+  pool.request("t0", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED);
   EXPECT_ANY_THROW(pool.extend("t1", {2}, max_ls));
 }
 
 TEST(TensorPool, createOrExtend_p) {
   nntrainer::TensorPool pool;
-  auto t1 = pool.createOrExtend("t", {10}, {0}, max_ls);
-  auto t2 = pool.createOrExtend("t", {10}, {1}, max_ls);
+  auto t1 = pool.requestOrExtend("t", {10}, {0}, max_ls);
+  auto t2 = pool.requestOrExtend("t", {10}, {1}, max_ls);
 
   auto &exec_order = pool.getExecutionOrder("t");
   EXPECT_NE(std::find(exec_order.begin(), exec_order.end(), 0),
@@ -678,21 +678,21 @@ TEST(TensorPool, createOrExtend_p) {
 
 TEST(TensorPool, createOrExtend_different_dim_n) {
   nntrainer::TensorPool pool;
-  pool.createOrExtend("t", {10, 1}, {0}, max_ls);
-  EXPECT_ANY_THROW(pool.createOrExtend("t", {1, 10}, {1}, max_ls));
+  pool.requestOrExtend("t", {10, 1}, {0}, max_ls);
+  EXPECT_ANY_THROW(pool.requestOrExtend("t", {1, 10}, {1}, max_ls));
 }
 
 TEST(TensorPool, createOrExtend_init_n) {
   nntrainer::TensorPool pool;
-  pool.createOrExtend("t", {10}, {0}, max_ls,
-                      nntrainer::Tensor::Initializer::ONES);
-  EXPECT_ANY_THROW(pool.createOrExtend("t", {10}, {1}, max_ls,
-                                       nntrainer::Tensor::Initializer::ZEROS));
+  pool.requestOrExtend("t", {10}, {0}, max_ls,
+                       nntrainer::Tensor::Initializer::ONES);
+  EXPECT_ANY_THROW(pool.requestOrExtend("t", {10}, {1}, max_ls,
+                                        nntrainer::Tensor::Initializer::ZEROS));
 }
 TEST(TensorPool, createOrExtend_unmanaged_n) {
   nntrainer::TensorPool pool;
   EXPECT_ANY_THROW(
-    pool.createOrExtend("t", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED));
+    pool.requestOrExtend("t", {10}, {0}, nntrainer::TensorLifespan::UNMANAGED));
 }
 
 /**

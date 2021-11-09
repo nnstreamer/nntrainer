@@ -212,10 +212,10 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *create(const std::string &name, const TensorDim &dim,
-                 const std::vector<unsigned int> &exec_order,
-                 TensorLifespan lifespan,
-                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
+  Tensor *request(const std::string &name, const TensorDim &dim,
+                  const std::vector<unsigned int> &exec_order,
+                  TensorLifespan lifespan,
+                  const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
    * @brief     Request tensor which is a view of already requested with the
@@ -272,10 +272,10 @@ public:
    * tensor
    */
   Tensor *
-  createOrExtend(const std::string &name, const TensorDim &dim,
-                 const std::vector<unsigned int> &exec_order,
-                 TensorLifespan lifespan,
-                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
+  requestOrExtend(const std::string &name, const TensorDim &dim,
+                  const std::vector<unsigned int> &exec_order,
+                  TensorLifespan lifespan,
+                  const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
    * @brief reidentify the source of already created tensor (or view).
