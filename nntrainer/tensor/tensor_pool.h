@@ -67,34 +67,6 @@ public:
                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
-   * @brief     Request tensor which has been already requested with the given
-   * spec
-   *
-   * @param dim Tensor dimensions
-   * @param exec_order The execution orders for this tensors
-   * @param lifespan Lifespan of this tensor
-   * @param name Name of this tensor
-   * @param shared_name Name of the preallocated tensor
-   * @param init Initializer of the tensor
-   * @param offset byte based offset from shared_name
-   *
-   * @return ptr to the tensor
-   *
-   * @note returns empty tensor which will be filled when allocate is called.
-   * @note we assume that the caller checks if the exec_order and lifespan are
-   * compatible.
-   *
-   * @note This interface is separated from requestTensor to reduce bugs related
-   * to unintentional tensor sharing.
-   */
-  Tensor *requestPrerequestedTensor(
-    const TensorDim &dim, const std::vector<unsigned int> &exec_order,
-    TensorLifespan lifespan, const std::string &name,
-    const std::string &shared_name,
-    const Tensor::Initializer &init = Tensor::Initializer::NONE,
-    const unsigned int offset = 0);
-
-  /**
    * @brief finalize the requested tensors
    * @param planner planner to layout the tensor memories
    * @param start_order start value for the order_exec (inclusive)

@@ -41,10 +41,7 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -279,20 +276,12 @@ std::vector<Weight *> Manager::requestWeights(
     if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
-      var = weight_pool.requestPrerequestedTensor(
-        dim, var_exec_order, var_ls,
-        name,         /// name
-        shared_name,  /// shared name
-        t_initializer /// tensor initializer
-      );
+      var = weight_pool.view(name, shared_name, dim, var_exec_order, var_ls);
 
       if (trainable && need_gradient) {
-        grad = tensor_pool.requestPrerequestedTensor(
-          dim, grad_exec_order, grad_ls,
-          name + Var_Grad::grad_suffix,        /// name
-          shared_name + Var_Grad::grad_suffix, /// shared name
-          Tensor::Initializer::ZEROS           /// tensor initializer
-        );
+        grad = tensor_pool.view(name + Var_Grad::grad_suffix,
+                                shared_name + Var_Grad::grad_suffix, dim,
+                                grad_exec_order, grad_ls);
       }
 
     } else {
@@ -356,16 +345,12 @@ Manager::requestTensors(const GraphNode &node,
     Tensor *var = nullptr, *grad = nullptr;
 
     if (is_dependent) {
-      [[maybe_unused]] const auto &shared_name = shared_names.at(i);
-      var = tensor_pool.requestPrerequestedTensor(dim, var_exec_order, tspan,
-                                                  name, shared_name, t_init);
+      const auto &shared_name = shared_names.at(i);
+      var = tensor_pool.view(name, shared_name, dim, var_exec_order, tspan);
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
-        grad = tensor_pool.requestPrerequestedTensor(
-          dim, grad_exec_order, tspan,
-          name + Var_Grad::grad_suffix, /// name
-          shared_name + Var_Grad::grad_suffix,
-          Tensor::Initializer::ZEROS /// tensor initializer
-        );
+        grad = tensor_pool.view(name + Var_Grad::grad_suffix,
+                                shared_name + Var_Grad::grad_suffix, dim,
+                                grad_exec_order, tspan);
       }
 
     } else {
@@ -423,21 +408,14 @@ Manager::requestInputs(const GraphNode &node,
     const std::string &var_name =
       node.getName() + std::string(":input") + std::to_string(idx);
     if (!outputs_name.empty()) {
-      var = tensor_pool.requestPrerequestedTensor(
-        dim, /// tensor dim
-        var_exec_order, var_ls,
-        var_name,                 /// name
-        outputs_name[idx],        /// shared name
-        Tensor::Initializer::NONE /// tensor initializer
-      );
+      var = tensor_pool.view(var_name,          /// name
+                             outputs_name[idx], /// shared name
+                             dim, var_exec_order, var_ls);
 
-      grad = tensor_pool.requestPrerequestedTensor(
-        dim, /// tensor dim
-        grad_exec_order, grad_ls,
-        var_name + Var_Grad::grad_suffix,          /// name
-        outputs_name[idx] + Var_Grad::grad_suffix, /// shared name
-        Tensor::Initializer::ZEROS                 /// tensor initializer
-      );
+      grad = tensor_pool.view(var_name + Var_Grad::grad_suffix,
+                              outputs_name[idx] + Var_Grad::grad_suffix,
+                              dim, /// tensor dim
+                              grad_exec_order, grad_ls);
     } else if (!node.getInputConnections().empty()) {
       var = tensor_pool.requestTensor(
         dim, /// tensor dim
@@ -517,12 +495,8 @@ Manager::requestOutputs(const GraphNode &node,
 
     if (shared_var) {
       /** request shared tensor for variable */
-      var = tensor_pool.requestPrerequestedTensor(
-        dim, /// tensor dim
-        var_exec_order, var_ls, var_name,
-        shared_name,              /// name
-        Tensor::Initializer::NONE /// tensor initializer
-      );
+      var =
+        tensor_pool.view(var_name, shared_name, dim, var_exec_order, var_ls);
     } else {
       /** request new tensor for variable */
       var = tensor_pool.requestTensor(
@@ -535,13 +509,9 @@ Manager::requestOutputs(const GraphNode &node,
 
     if (shared_grad) {
       /** request share tensor for gradient */
-      grad = tensor_pool.requestPrerequestedTensor(
-        dim, /// tensor dim
-        grad_exec_order, grad_ls,
-        var_name + Var_Grad::grad_suffix,    /// name
-        shared_name + Var_Grad::grad_suffix, /// shared name
-        Tensor::Initializer::ZEROS           /// tensor initializer
-      );
+      grad = tensor_pool.view(var_name + Var_Grad::grad_suffix,
+                              shared_name + Var_Grad::grad_suffix, dim,
+                              grad_exec_order, grad_ls);
     } else {
       /** request new tensor for gradient */
       if (!node.getOutputConnections().empty()) {

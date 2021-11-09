@@ -57,12 +57,11 @@ Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
  * @note we assume that the caller checks if the exec_order and lifespan are
  * compatible.
  */
-Tensor *TensorPool::requestPrerequestedTensor(
-  const TensorDim &dim, const std::vector<unsigned int> &exec_order,
-  TensorLifespan lifespan, const std::string &name,
-  const std::string &shared_name, const Tensor::Initializer &init,
-  const unsigned int offset) {
-  auto &spec = getSourceSpec(shared_name);
+Tensor *TensorPool::view(const std::string &name, const std::string &reference,
+                         const TensorDim &dim,
+                         const std::vector<unsigned int> &exec_order,
+                         TensorLifespan lifespan, const unsigned int offset) {
+  auto &spec = getSourceSpec(reference);
   unsigned adjusted_offset = std::visit(
     [](const auto &s) {
       using T = std::decay_t<decltype(s)>;
@@ -73,7 +72,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
       }
       return 0u;
     },
-    pool[name_map.at(shared_name)].details);
+    pool[name_map.at(reference)].details);
   adjusted_offset += offset;
 
   NNTR_THROW_IF(spec.tensor->getDim().getDataLen() <
@@ -84,10 +83,6 @@ Tensor *TensorPool::requestPrerequestedTensor(
     << " source tensor: " << spec.tensor->getDim().getDataLen()
     << " name: " << spec.tensor->getName();
 
-  if (init != Tensor::Initializer::NONE &&
-      spec.tensor->getInitializer() != init)
-    throw std::invalid_argument("Request tensor initialization mismatch");
-
   expandLifespan(spec, exec_order, lifespan);
   std::get<SourceDetails>(spec.details).dependents.push_back(pool.size());
 
@@ -96,7 +91,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
    * view index, not view to view reference in order to flatten depth */
   auto parent_idx = name_map.at(spec.tensor->getName());
   return registerRequestSpec(
-    {std::make_unique<Tensor>(dim, false, init, name),
+    {std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
      TensorPool::DependentDetails{parent_idx, adjusted_offset}});
 }
 
@@ -298,15 +293,6 @@ Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
                             const Tensor::Initializer &init) {
   /// @todo rename requestTensor -> create
   return requestTensor(dim, exec_order, lifespan, name, init);
-}
-
-Tensor *TensorPool::view(const std::string &name, const std::string &reference,
-                         const TensorDim &dim,
-                         const std::vector<unsigned int> &exec_order,
-                         TensorLifespan lifespan, const unsigned int offset) {
-  /// @todo rename requestPrerequestedTensor -> view
-  return requestPrerequestedTensor(dim, exec_order, lifespan, name, reference,
-                                   Tensor::Initializer::NONE, offset);
 }
 
 Tensor *TensorPool::extend(const std::string &name, const TensorDim &dim,
