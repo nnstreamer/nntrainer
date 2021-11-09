@@ -46,27 +46,6 @@ public:
   ~TensorPool() = default;
 
   /**
-   * @brief     Request tensor with the given spec
-   *
-   * @param dim Tensor dimensions
-   * @param exec_order The execution orders for this tensors
-   * @param lifespan Lifespan of this tensor
-   * @param name Name of this tensor
-   * @param init Initializer of the tensor
-   *
-   * @return ptr to the created tensor
-   *
-   * @note returns empty tensor which will be filled when allocate is called.
-   * @note we assume that the caller checks if the exec_order and lifespan are
-   * compatible.
-   */
-  Tensor *
-  requestTensor(const TensorDim &dim,
-                const std::vector<unsigned int> &exec_order,
-                TensorLifespan lifespan, const std::string &name,
-                const Tensor::Initializer &init = Tensor::Initializer::NONE);
-
-  /**
    * @brief finalize the requested tensors
    * @param planner planner to layout the tensor memories
    * @param start_order start value for the order_exec (inclusive)
