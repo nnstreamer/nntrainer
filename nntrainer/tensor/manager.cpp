@@ -453,12 +453,8 @@ Manager::requestInputs(const GraphNode &node,
         Tensor::Initializer::ZEROS        /// tensor initializer
       );
     } else {
-      /** requesting externally allocated tensor for input */
-      var = tensor_pool.requestExternallyAllocateTensor(
-        dim,                      /// tensor dim
-        var_name,                 /// name
-        Tensor::Initializer::NONE /// tensor initializer
-      );
+      /** requesting placeholder for input */
+      var = tensor_pool.placeholder(var_name, dim);
 
 #ifdef ENABLE_TEST
       grad = tensor_pool.requestTensor(
@@ -468,11 +464,7 @@ Manager::requestInputs(const GraphNode &node,
         Tensor::Initializer::ZEROS        /// tensor initializer
       );
 #else
-      grad = tensor_pool.requestExternallyAllocateTensor(
-        dim,                              /// tensor dim
-        var_name + Var_Grad::grad_suffix, /// name
-        Tensor::Initializer::ZEROS        /// tensor initializer
-      );
+      grad = tensor_pool.placeholder(var_name + Var_Grad::grad_suffix, dim);
 #endif
     }
 
@@ -562,11 +554,7 @@ Manager::requestOutputs(const GraphNode &node,
         );
       } else {
         /** requesting externally allocated tensor for label */
-        grad = tensor_pool.requestExternallyAllocateTensor(
-          dim,                              /// tensor dim
-          var_name + Var_Grad::grad_suffix, /// name
-          Tensor::Initializer::ZEROS        /// tensor initializer
-        );
+        grad = tensor_pool.placeholder(var_name + Var_Grad::grad_suffix, dim);
       }
     }
 
