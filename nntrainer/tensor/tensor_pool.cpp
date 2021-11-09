@@ -30,11 +30,10 @@ namespace nntrainer {
  * @note we assume that the caller checks if the exec_order and lifespan are
  * compatible.
  */
-Tensor *TensorPool::requestTensor(const TensorDim &dim,
-                                  const std::vector<unsigned int> &exec_order,
-                                  TensorLifespan lifespan,
-                                  const std::string &name,
-                                  const Tensor::Initializer &init) {
+Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
+                            const std::vector<unsigned int> &exec_order,
+                            TensorLifespan lifespan,
+                            const Tensor::Initializer &init) {
   return registerRequestSpec(
     {std::make_unique<Tensor>(dim, false, init, name),
      TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
@@ -46,7 +45,7 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
  * @note returns empty tensor which will be filled when allocate is called.
  */
 Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
-  return requestTensor(dim, {}, TensorLifespan::UNMANAGED, name);
+  return request(name, dim, {}, TensorLifespan::UNMANAGED);
 }
 
 /**
@@ -285,14 +284,6 @@ void TensorPool::fillPlaceholder(const std::string &name, const Tensor &t) {
 
   spec.tensor->setData(t.getData());
   syncDependents(spec);
-}
-
-Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
-                            const std::vector<unsigned int> &exec_order,
-                            TensorLifespan lifespan,
-                            const Tensor::Initializer &init) {
-  /// @todo rename requestTensor -> create
-  return requestTensor(dim, exec_order, lifespan, name, init);
 }
 
 Tensor *TensorPool::extend(const std::string &name, const TensorDim &dim,
