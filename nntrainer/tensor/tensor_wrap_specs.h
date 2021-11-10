@@ -14,6 +14,7 @@
 #ifndef __TENSOR_WRAP_SPECS_H__
 #define __TENSOR_WRAP_SPECS_H__
 
+#include <memory>
 #include <tuple>
 
 #include <tensor.h>
@@ -35,19 +36,23 @@ enum class WeightRegularizer {
  *
  */
 enum class TensorLifespan {
-  UNMANAGED = 0b0, /**< tensor with no lifespan, will not be allocated */
-  FORWARD_FUNC_LIFESPAN = 0b01,  /**< tensor must not be reset before during the
-                            forward function call, eg. temporary tensors
-                            needed during forward operations */
-  BACKWARD_FUNC_LIFESPAN = 0b10, /**< tensor must not be reset before during the
-                            backward function call, eg. temporary tensors
-                            needed during backward operations */
-  ITERATION_LIFESPAN = 0b11,     /**< tensor must not be reset until the owning
-                            layer     finishes its execution in the current
-                            iteration,     eg. hidden memory/cells of RNN */
-  EPOCH_LIFESPAN = 0b111, /**< tensor must not be reset before the epoch ends */
-  MAX_LIFESPAN = 0b1111,  /**< tensor must not be reset until the end of the
-                   model  execution, eg. layer weights */
+  UNMANAGED = 0b000, /**< tensor with no lifespan, will not be allocated */
+  FORWARD_FUNC_LIFESPAN = 0b001, /**< tensor must not be reset before during the
+                           forward function call, eg. temporary tensors
+                           needed during forward operations */
+  CALC_DERIV_LIFESPAN = 0b010,   /**< must be valid during calcDerivative() */
+  CALC_GRAD_LIFESPAN = 0b100, /**< tensor must be valid during calcGradient() */
+  CALC_GRAD_DERIV_LIFESPAN = 0b110, /**< tensor must not be reset before during
+                             the calc_grad and clac_deriv call, eg. temporary
+                             tensors needed during backward operations */
+  BACKWARD_FUNC_LIFESPAN =
+    CALC_GRAD_DERIV_LIFESPAN, /**< Alias of CALC_GRAD_DERIV_LIFESPAN */
+  ITERATION_LIFESPAN = 0b111, /**< tensor must not be reset until the owning
+                        layer finishes its execution in the current
+                        iteration, eg. hidden memory/cells of RNN */
+  EPOCH_LIFESPAN = 0b1111,    /**< tensor must be valid before the epoch ends */
+  MAX_LIFESPAN = 0b11111,     /**< tensor must not be reset until the end of the
+                      model  execution, eg. layer weights */
 };
 
 /**
@@ -69,6 +74,75 @@ typedef std::tuple<TensorDim, Tensor::Initializer, WeightRegularizer, float,
 typedef std::tuple<TensorDim, Tensor::Initializer, bool, const std::string,
                    TensorLifespan>
   VarGradSpec;
+
+/**
+ * @brief Tensor Specification which describes how this tensor should be
+ * allocated and managed
+ *
+ */
+struct TensorSpecV2 {
+
+  /**
+   * @brief Tensor is being managed by nntrainer, this enum defines how the
+   * value should be recognized inside nntrainer tensor managing scheme.
+   *
+   */
+  enum class RequestType {
+    PLACEHOLDER, /**< Placeholder defines that nntrainer should never care about
+                    the memory inside the particualar tensor */
+    UNIQUE, /**< Unique means a simple tensor that will be owned explicitly the
+               current request */
+    READ_ONLY_VIEW, /**< Readonly view defines a view of which ownership of @a
+                       underlying memory is at another tensor, also hinting
+                       nntrainer that the operation upon this particular tensor
+                       will never change value of the underlying memory */
+    MAYBE_MODIFYING_VIEW, /**< Maybe modifying view defines a (possible) view of
+                       which ownership of @a underlying memory is at another
+                       tensor, while hinting the nntrainer this tensor will do
+                       some modification of the underlying memory. nntrainer
+                       will try to make this particular tensor a view of the
+                       stated reference. If making a view of reference is likely
+                       to break the data integrity, nntrainer will request an
+                       independent memory slot, in this case, it is user's
+                       responsibility to copy the data. */
+    SHARED, /**< Shared defines a shared tensor ownership for the given
+               identifier, it is user's responsibility to guarantee that
+               dimension and initializer of shared tensor if exactly same as the
+               user will be agnostic about when and who will actually request
+               the certain tensor. */
+  };
+
+  RequestType request_type = RequestType::UNIQUE; /**< Type of request */
+  std::string name;                               /**< Identifier */
+  TensorDim dim;                                  /**< dimension */
+  TensorLifespan ls;                              /**< lifespan */
+  Tensor::Initializer initializer =
+    Tensor::Initializer::NONE; /**< initializer */
+
+  /** ONLY USED FOR READ_ONLY_VIEW, MAYBE_MODIFYING_VIEW */
+  unsigned int offset;        /**< tensor offset */
+  std::string reference_name; /**< reference name */
+};
+
+/**
+ * @brief variable + gradient specification
+ *
+ */
+struct VarGradSpecV2 {
+  TensorSpecV2 variable_spec; /**< variable spec */
+  std::unique_ptr<TensorSpecV2> gradient_spec =
+    nullptr; /**< gradient spec, if null it cannot be trained*/
+};
+
+/**
+ * @brief weight specification
+ *
+ */
+struct WeightSpecV2 {
+  VarGradSpecV2 vg_spec; /**< variable + graident specification */
+  WeightRegularizer regularizer = WeightRegularizer::NONE; /**< regularizer */
+  float regularizer_constant = 0.0f; /**< regularizer constant */
+};
 
 } // namespace nntrainer
 
