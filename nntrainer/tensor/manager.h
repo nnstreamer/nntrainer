@@ -19,11 +19,14 @@
 
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
+#include "tensor.h"
+#include "tensor_wrap_specs.h"
 #ifdef __cplusplus
 
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <basic_planner.h>
@@ -108,6 +111,22 @@ private:
 class Manager {
 
 public:
+  /**
+   * @brief Tensor Group Type
+   * @note this is not mutually exclusive list, a tensor might be identified as
+   * input as well as output
+   *
+   */
+  enum TensorGroupType {
+    INPUT = 0,   /**< Input of an operation */
+    OUTPUT = 1,  /**< Output of an operation */
+    WEIGHT = 2,  /**< Weight of an operation */
+    TENSORS = 3, /**< Extra states of an operation */
+  };
+
+  constexpr inline static unsigned NUM_TENSOR_GROUP_TYPE =
+    4; /**< number of tensor group type */
+
   /**
    * @brief     Constructor of Manager
    */
@@ -361,6 +380,28 @@ public:
     }
   }
 
+  /**
+   * @brief request Tensor with weight specification
+   *
+   * @param spec specification
+   * @param identify_as identify as tensor as a group
+   * @return Tensor* tensor
+   */
+  Tensor *requestTensor(const WeightSpecV2 &spec, TensorGroupType identify_as);
+
+  /**
+   * @brief request Tensor with variable + gradient specification
+   *
+   * @param spec specification
+   * @param identify_as identify as tensor as a group
+   * @param exec_order execution order to refer to
+   * @param scope common scope to attach in front of current specification name
+   * @return Tensor* tensor
+   */
+  Tensor *requestTensor(const VarGradSpecV2 &spec, TensorGroupType identify_as,
+                        const GraphNode::ExecutionOrder &exec_order,
+                        const std::string &scope = "");
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>>
@@ -371,6 +412,9 @@ private:
     outputs_v2; /**< outputs for the layers */
   std::vector<std::unique_ptr<Var_Grad>>
     tensors_v2; /**< extra tensors required by the layers */
+
+  std::array<std::vector<std::unique_ptr<Var_Grad>>, NUM_TENSOR_GROUP_TYPE>
+    tensor_book; /**< reference to tensor book kept */
 
   TensorPool weight_pool; /**< tensor pool to request tensors */
   TensorPool tensor_pool; /**< tensor pool to request tensors */
