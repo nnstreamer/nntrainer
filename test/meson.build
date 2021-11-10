@@ -39,8 +39,10 @@ if get_option('enable-ccapi')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
+  subdir('nnstreamer')
   run_command('cp', '-lr',
     meson.current_source_dir() / 'test_models/',
     nntrainer_test_resdir
   )
+
 endif
