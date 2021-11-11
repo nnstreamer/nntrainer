@@ -80,7 +80,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(nntrainer::Exporter &exporter,
-                const nntrainer::ExportMethods &method) const override {}
+                const nntrainer::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
