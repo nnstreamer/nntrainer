@@ -134,4 +134,9 @@ void CentroidKNN::calcDerivative(nntrainer::RunLayerContext &context) {
   throw std::invalid_argument("[CentroidKNN::calcDerivative] This Layer "
                               "does not support backward propagation");
 }
+
+void CentroidKNN::exportTo(nntrainer::Exporter &exporter,
+                           const nntrainer::ExportMethods &method) const {
+  exporter.saveResult(centroid_knn_props, method, this);
+}
 } // namespace nntrainer
