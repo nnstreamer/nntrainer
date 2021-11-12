@@ -22,7 +22,8 @@ Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
                    bool need_gradient, bool alloc_now,
                    const std::string &name) :
   is_dependent(false),
-  is_first_access_gradient(false) {
+  is_first_access_gradient(false),
+  is_last_access_gradient(false) {
   var = std::make_shared<Tensor>(dim, alloc_now, init, name);
 
   std::string grad_name = name + grad_suffix;

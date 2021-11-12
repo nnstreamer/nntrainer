@@ -88,6 +88,7 @@ public:
                     bool is_dependent = false) :
     is_dependent(is_dependent),
     is_first_access_gradient(false),
+    is_last_access_gradient(false),
     var(
       std::make_shared<Tensor>(v.getSharedDataTensor(v.getDim(), 0, false, n))),
     grad(std::make_shared<Tensor>(n + grad_suffix)) {
@@ -106,6 +107,7 @@ public:
   explicit Var_Grad(Tensor *v, Tensor *g, bool is_dependent = false) :
     is_dependent(is_dependent),
     is_first_access_gradient(false),
+    is_last_access_gradient(false),
     var(std::shared_ptr<Tensor>(v, [](void *) {})),
     grad(std::shared_ptr<Tensor>(g, [](void *) {})) {
     if (!v)
@@ -268,6 +270,12 @@ public:
   void setAsGradientFirstAccess() { is_first_access_gradient = true; }
 
   /**
+   * @brief Set the As Gradient Last Access object
+   *
+   */
+  void setAsGradientLastAccess() { is_last_access_gradient = true; }
+
+  /**
    * @brief check if given weight at the last execution order
    * (first access of gradient)
    *
@@ -275,13 +283,23 @@ public:
    */
   bool isGradientFirstAccess() const { return is_first_access_gradient; }
 
+  /**
+   * @brief check if given weight at the first execution order (last access of
+   * gradient)
+   *
+   * @return bool true if last access
+   */
+  bool isGradientLastAccess() const { return is_last_access_gradient; }
+
   inline static const std::string grad_suffix = ":grad";
 
 protected:
   bool is_dependent; /**< check if the weight tensor is burrowed from somewhere
                         thus it is dependent */
-  bool is_first_access_gradient; /**< check if current weight tensor is last
+  bool is_first_access_gradient; /**< check if current weight tensor is first
                                     access */
+  bool is_last_access_gradient;  /**< check if current weight tensor is last
+   access */
 
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */

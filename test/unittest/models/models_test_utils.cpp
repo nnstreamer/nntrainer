@@ -113,9 +113,10 @@ public:
       auto const &lnode = *it;
       auto &rc = lnode->getRunContext();
       for (unsigned int i = 0; i < rc.getNumWeights(); ++i) {
-        if (rc.isWeightDependent(i)) {
+        if (!rc.isGradientLastAccess(i)) {
           continue;
         }
+
         Tensor &t = rc.getWeight(i);
         weights.push_back(t);
         expected_weights.push_back(t.clone());
@@ -187,7 +188,7 @@ NodeWatcher::NodeWatcher(const NodeType &node) : node(node) {
   for (unsigned int i = 0; i < num_weights; ++i) {
     // const nntrainer::Weight &w = node->getWeightObject(i);
     // expected_weights.push_back(w.clone());
-    if (!rc.isWeightDependent(i)) {
+    if (!rc.isGradientLastAccess(i)) {
       expected_weights.push_back(node->getWeightWrapper(i).clone());
     }
   }
@@ -206,7 +207,7 @@ NodeWatcher::NodeWatcher() : node(nullptr) {}
 void NodeWatcher::readLayerWeight(std::ifstream &f) {
   auto &rc = node->getRunContext();
   for (unsigned int i = 0; i < node->getNumWeights(); ++i) {
-    if (rc.isWeightDependent(i)) {
+    if (rc.isGradientLastAccess(i)) {
       continue;
     }
     node->getWeight(i).read(f);
