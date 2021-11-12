@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file   attention_layer.h
+ * @file   attention_layer.cpp
  * @date   1 October 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
@@ -25,14 +25,11 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum AttentionParams { query = 0, value = 1, key = 2, score, weights };
 
-void AttentionLayer::finalize(InitLayerContext &context) {
+void AttentionLayer::finalizeCommon(InitLayerContext &context) {
   if (context.getNumInputs() < 2 || context.getNumInputs() > 3)
     throw std::runtime_error("Attention layer needs 2-3 inputs.");
 
-  sm.setActiFunc(ActivationType::ACT_SOFTMAX);
-
   auto const &all_dims = context.getInputDimensions();
-  auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
 
   wt_idx[AttentionParams::query] = AttentionParams::query;
@@ -46,6 +43,16 @@ void AttentionLayer::finalize(InitLayerContext &context) {
 
     wt_idx[AttentionParams::key] = AttentionParams::key;
   }
+}
+
+void AttentionLayer::finalize(InitLayerContext &context) {
+  finalizeCommon(context);
+
+  sm.setActiFunc(ActivationType::ACT_SOFTMAX);
+
+  auto const &all_dims = context.getInputDimensions();
+  auto const &query_dim = all_dims[AttentionParams::query];
+  auto const &value_dim = all_dims[AttentionParams::value];
 
   auto weights_dim = query_dim;
   weights_dim.width(value_dim.height());
