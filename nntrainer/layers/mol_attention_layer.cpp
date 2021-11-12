@@ -14,6 +14,7 @@
 #include <mol_attention_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 
 namespace nntrainer {
 
@@ -37,7 +38,8 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 void MoLAttentionLayer::calcDerivative(RunLayerContext &context) { /** NYI */ }
 
 void MoLAttentionLayer::setProperty(const std::vector<std::string> &values) {
-  /** NYI */
+  auto remain_props = loadProperties(values, mol_props);
+  AttentionLayer::setProperty(remain_props);
 }
 
 void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {

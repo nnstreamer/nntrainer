@@ -1019,6 +1019,16 @@ public:
   using prop_tag = dimension_prop_tag; /**< property type */
 };
 
+/**
+ * @brief K property, K is the size of the three projections in MoL attention
+ *
+ */
+class MoL_K : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "K"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;            /**< property type */
+};
+
 } // namespace props
 } // namespace nntrainer
 
