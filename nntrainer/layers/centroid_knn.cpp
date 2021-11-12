@@ -74,13 +74,7 @@ void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
                              bool training) {
   auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   auto &input_ = context.getInput(SINGLE_INOUT_IDX);
-  auto &label = context.getLabel(SINGLE_INOUT_IDX);
   const auto &input_dim = input_.getDim();
-
-  if (training && label.empty()) {
-    throw std::invalid_argument(
-      "[CentroidKNN] forwarding requires label feeded");
-  }
 
   auto &map = context.getWeight(weight_idx[KNNParams::map]);
   auto &num_samples = context.getWeight(weight_idx[KNNParams::num_samples]);
@@ -92,6 +86,7 @@ void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
   };
 
   if (training) {
+    auto &label = context.getLabel(SINGLE_INOUT_IDX);
     auto ans = label.argmax();
 
     for (unsigned int b = 0; b < input_.batch(); ++b) {
