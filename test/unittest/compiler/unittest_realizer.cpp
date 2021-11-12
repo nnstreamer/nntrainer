@@ -163,10 +163,10 @@ TEST(SliceRealizer, slice_p) {
   std::vector<LayerRepresentation> after = {
     {"fully_connected", {"name=a1"}},
     {"fully_connected", {"name=b1", "input_layers=a1"}},
+    {"fully_connected", {"name=b2", "input_layers=a2"}},
     {"fully_connected", {"name=c1", "input_layers=b1,b2"}},
     {"fully_connected", {"name=d1", "input_layers=c1"}},
     {"fully_connected", {"name=d2", "input_layers=c1"}},
-    {"fully_connected", {"name=b2", "input_layers=a2"}},
   };
 
   SliceRealizer r({"a1", "b1", "b2"}, {"a1", "d1", "d2"});

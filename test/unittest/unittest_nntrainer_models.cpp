@@ -942,6 +942,7 @@ TEST(nntrainerModels, loadFromLayersBackbone_p) {
   nn.addWithReferenceLayers(reference, "backbone", {}, {"fc1"}, {"fc2"},
                             ml::train::ReferenceLayersType::BACKBONE, {});
 
+  nn.compile();
   auto graph = nn.getFlatGraph();
   for (unsigned int i = 0; i < graph.size(); ++i) {
     EXPECT_EQ(graph.at(i)->getName(), "backbone/" + reference.at(i)->getName());
