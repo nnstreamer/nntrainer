@@ -2,51 +2,50 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file   attention_layer.h
- * @date   1 October 2021
+ * @file   mol_attention_layer.h
+ * @date   11 November 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Attention Layer Class for Neural Network
+ * @brief  This is MoL Attention Layer Class for Neural Network
  *
  */
 
-#ifndef __ATTENTION_LAYER_H__
-#define __ATTENTION_LAYER_H__
+#ifndef __MOL_ATTENTION_LAYER_H__
+#define __MOL_ATTENTION_LAYER_H__
 #ifdef __cplusplus
 
-#include <acti_func.h>
-#include <layer_devel.h>
+#include <attention_layer.h>
 
 namespace nntrainer {
 
 /**
- * @class   Attention Layer
- * @brief   Attention Layer
+ * @class   MoL Attention Layer
+ * @brief   Mixture of Logistics Attention Layer
  */
-class AttentionLayer : public Layer {
+class MoLAttentionLayer : public AttentionLayer {
 public:
   /**
-   * @brief     Constructor of Attention Layer
+   * @brief     Constructor of MoL Attention Layer
    */
-  AttentionLayer();
+  MoLAttentionLayer();
 
   /**
-   * @brief     Destructor of Attention Layer
+   * @brief     Destructor of MoL Attention Layer
    */
-  ~AttentionLayer();
+  ~MoLAttentionLayer();
 
   /**
-   *  @brief  Move constructor of AttentionLayer.
-   *  @param[in] AttentionLayer &&
+   *  @brief  Move constructor of MoLAttentionLayer.
+   *  @param[in] MoLAttentionLayer &&
    */
-  AttentionLayer(AttentionLayer &&rhs) noexcept = default;
+  MoLAttentionLayer(MoLAttentionLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
-   * @parma[in] rhs AttentionLayer to be moved.
+   * @parma[in] rhs MoLAttentionLayer to be moved.
    */
-  AttentionLayer &operator=(AttentionLayer &&rhs) = default;
+  MoLAttentionLayer &operator=(MoLAttentionLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
@@ -82,24 +81,16 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return AttentionLayer::type; };
+  const std::string getType() const override {
+    return MoLAttentionLayer::type;
+  };
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "attention";
-
-protected:
-  /**
-   * @brief     Finalize the attention layer with the given context
-   * @param[in] context InitLayerContext
-   *
-   * @note This function provides the basic finalize details which can be shared
-   * with derived classes as well
-   */
-  void finalizeCommon(InitLayerContext &context);
+  inline static const std::string type = "mol_attention";
 
 private:
   ActiFunc sm;                        /** softmax activation operation */
@@ -109,4 +100,4 @@ private:
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __ATTENTION_LAYER_H__ */
+#endif /* __MOL_ATTENTION_LAYER_H__ */
