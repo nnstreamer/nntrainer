@@ -277,14 +277,16 @@ std::vector<Weight *> Manager::requestWeights(
     Tensor *var = nullptr, *grad = nullptr;
     bool is_dependent = !shared_names.empty();
     if (is_dependent) {
+      /// shared_name is used and the orignal name is discarded
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
-      var = weight_pool.view(name, shared_name, dim, var_exec_order, var_ls);
+      var = weight_pool.requestOrExtend(shared_name, dim, var_exec_order,
+                                        var_ls, t_initializer);
 
       if (trainable && need_gradient) {
-        grad = tensor_pool.view(name + Var_Grad::grad_suffix,
-                                shared_name + Var_Grad::grad_suffix, dim,
-                                grad_exec_order, grad_ls);
+        grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
+                                           dim, grad_exec_order, grad_ls,
+                                           Tensor::Initializer::ZEROS);
       }
 
     } else {
@@ -349,11 +351,12 @@ Manager::requestTensors(const GraphNode &node,
 
     if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
-      var = tensor_pool.view(name, shared_name, dim, var_exec_order, tspan);
+      var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
+                                        t_init);
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
-        grad = tensor_pool.view(name + Var_Grad::grad_suffix,
-                                shared_name + Var_Grad::grad_suffix, dim,
-                                grad_exec_order, tspan);
+        grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
+                                           dim, grad_exec_order, tspan,
+                                           Tensor::Initializer::ZEROS);
       }
 
     } else {

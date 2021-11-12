@@ -43,12 +43,13 @@ public:
    * @param dim Input dimensions for the layer
    */
   InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out,
-                   bool in_place_, const std::string &n = "") :
+                   bool in_place_, const std::string &n = "",
+                   const std::string &prefix_ = "") :
     input_dim(dim),
     in_place(in_place_),
     num_outputs(num_out),
     name(n),
-    prefix("") {
+    prefix(prefix_) {
     NNTR_THROW_IF(!validate(), std::invalid_argument)
       << "Invalid init context name: " << name
       << " num inputs: " << getNumInputs();

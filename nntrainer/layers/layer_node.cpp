@@ -449,9 +449,10 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     num_outputs = 1;
   }
 
+  auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   auto init_context =
     InitLayerContext(actual_input_dims, num_outputs,
-                     executeInPlace() != InPlace::NONE, getName());
+                     executeInPlace() != InPlace::NONE, getName(), scope);
 
   layer->finalize(init_context);
 
