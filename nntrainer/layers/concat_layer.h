@@ -68,6 +68,11 @@ public:
   const std::string getType() const override { return ConcatLayer::type; };
 
   /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+
+  /**
    * @copydoc Layer::supportBackwarding()
    */
   bool supportBackwarding() const override { return true; }
