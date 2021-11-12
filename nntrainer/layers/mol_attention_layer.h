@@ -93,6 +93,9 @@ public:
   inline static const std::string type = "mol_attention";
 
 private:
+  std::tuple<props::Unit, props::MoL_K>
+    mol_props; /**< mol attention layer properties : unit - number of output neurons */
+
   ActiFunc sm;                        /** softmax activation operation */
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
 };
