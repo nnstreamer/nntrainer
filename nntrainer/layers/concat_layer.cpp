@@ -194,4 +194,10 @@ void ConcatLayer::setProperty(const std::vector<std::string> &values) {
          std::to_string(values.size());
 }
 
+void ConcatLayer::exportTo(Exporter &exporter,
+                           const ExportMethods &method) const {
+  Layer::exportTo(exporter, method);
+  exporter.saveResult(concat_props, method, this);
+}
+
 } /* namespace nntrainer */
