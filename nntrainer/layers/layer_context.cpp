@@ -10,6 +10,7 @@
  * @brief  This is the layer context for each layer
  */
 
+#include "nntrainer_error.h"
 #include <functional>
 
 #include <layer_context.h>
@@ -323,8 +324,12 @@ bool RunLayerContext::isLabelAvailable(unsigned int idx) const {
 Tensor &RunLayerContext::getLabel(unsigned int idx) {
   if (isLabelAvailable(idx))
     return outputs[idx]->getGradientRef();
-  else
-    throw std::invalid_argument("Request tensor which does not exist");
+  else {
+    std::stringstream ss;
+    ss << "Requesing label of index: " << idx << "for " << getName()
+       << " does not exist";
+    throw std::invalid_argument(ss.str().c_str());
+  }
 }
 
 /**
