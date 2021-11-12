@@ -514,9 +514,17 @@ public:
    * @brief check current graident is first access
    *
    * @param idx index
-   * @return bool true if last access
+   * @return bool true if first access
    */
   bool isGradientFirstAccess(unsigned int idx) const;
+
+  /**
+   * @brief check current graident is last access
+   *
+   * @param idx index
+   * @return bool true if last access
+   */
+  bool isGradientLastAccess(unsigned int idx) const;
 
   /**
    * @brief Get the tensor name

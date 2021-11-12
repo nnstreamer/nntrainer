@@ -362,7 +362,7 @@ void LayerNode::read(std::ifstream &file) {
     << __func__ << " layer needs to be finalized first!";
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
     /// @note dependent weights are only be read at the source
-    if (run_context->isWeightDependent(i)) {
+    if (!run_context->isGradientLastAccess(i)) {
       continue;
     }
     run_context->getWeight(i).read(file);
@@ -374,7 +374,7 @@ void LayerNode::save(std::ofstream &file) const {
     << __func__ << " layer needs to be finalized first!";
   /// @note dependent weights are only be saved at the source
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-    if (run_context->isWeightDependent(i)) {
+    if (!run_context->isGradientLastAccess(i)) {
       continue;
     }
     run_context->getWeight(i).save(file);

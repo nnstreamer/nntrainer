@@ -44,6 +44,20 @@ IniWrapper fc_unroll_single(
     constant_loss,
   });
 
+IniWrapper fc_unroll_single__1(
+  "fc_unroll_single__1",
+  {
+    nn_base,
+    sgd_base + "learning_rate=0.1",
+    IniSection("fc_1") + fc_base +
+      "unit=1 | shared_from = fc_2 |input_shape=1:1:1",
+    IniSection("fc_2") + fc_base + "unit=1 | shared_from = fc_2",
+    IniSection("fc_3") + fc_base + "unit=1 | shared_from = fc_2",
+    IniSection("fc_4") + fc_base + "unit=1 | shared_from = fc_2",
+    IniSection("fc_5") + fc_base + "unit=1 | shared_from = fc_2",
+    constant_loss,
+  });
+
 std::unique_ptr<NeuralNetwork> makeFC() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=1"});
@@ -262,6 +276,8 @@ INSTANTIATE_TEST_CASE_P(
   recurrentModels, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelIniTc(fc_unroll_single, DIM_UNUSED, NOT_USED_,
+                 ModelTestOption::COMPARE_V2),
+    mkModelIniTc(fc_unroll_single__1, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeFC, "fc_unroll_stacked", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::COMPARE_V2),

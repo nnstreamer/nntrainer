@@ -263,6 +263,10 @@ bool RunLayerContext::isGradientFirstAccess(unsigned int idx) const {
   return weights[idx]->isGradientFirstAccess();
 }
 
+bool RunLayerContext::isGradientLastAccess(unsigned int idx) const {
+  return weights[idx]->isGradientLastAccess();
+}
+
 /**
  * @brief Get the tensor name
  *

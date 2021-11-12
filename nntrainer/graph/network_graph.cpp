@@ -437,7 +437,7 @@ void NetworkGraph::applyGradientsOnLastAccess(
       continue;
     }
 
-    if (rc.isWeightDependent(i)) {
+    if (!rc.isGradientLastAccess(i)) {
       /// @note instead of checking the last access of the weight, checking
       /// if weights are dependent to others to minimize overhead.
       /// this logic assums that the source of the dependent weight must be
@@ -974,6 +974,7 @@ int NetworkGraph::initialize(
     auto const &lnode = getSortedLayerNode(idx);
     auto &rc = lnode->getRunContext();
     auto first_grad_access = std::get<1>(lnode->getExecutionOrder());
+    auto last_grad_access = std::get<2>(lnode->getExecutionOrder());
     for (unsigned i = 0; i < rc.getNumWeights(); ++i) {
       if (!rc.weightHasGradient(i)) {
         continue;
@@ -981,6 +982,10 @@ int NetworkGraph::initialize(
       if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
                                         first_grad_access)) {
         rc.getWeightObject(i).setAsGradientFirstAccess();
+      }
+      if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
+                                       last_grad_access)) {
+        rc.getWeightObject(i).setAsGradientLastAccess();
       }
     }
   }
