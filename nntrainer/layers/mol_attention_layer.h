@@ -94,9 +94,12 @@ public:
 
 private:
   std::tuple<props::Unit, props::MoL_K>
-    mol_props; /**< mol attention layer properties : unit - number of output neurons */
+    mol_props; /**< mol attention layer properties : unit - number of output
+                  neurons */
 
-  ActiFunc sm;                        /** softmax activation operation */
+  ActiFunc softmax;                   /** softmax activation operation */
+  ActiFunc tanh;                      /** softmax activation operation */
+  ActiFunc sigmoid;                   /** softmax activation operation */
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
 };
 
