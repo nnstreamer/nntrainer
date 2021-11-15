@@ -527,22 +527,27 @@ Manager::requestOutputs(const GraphNode &node,
 }
 
 std::pair<unsigned int, unsigned int>
-Manager::getMinMaxTensorExecutionOrder(const std::string &name) {
-  auto orders = tensor_pool.getExecutionOrder(name);
+Manager::getMinMaxTensorExecutionOrder(const std::string &name,
+                                       bool is_weight) {
+
+  auto orders = is_weight ? weight_pool.getExecutionOrder(name)
+                          : tensor_pool.getExecutionOrder(name);
   auto [min_, max_] = std::minmax_element(orders.begin(), orders.end());
   return {*min_, *max_};
 }
 
-bool Manager::isFirstAccess(const std::string &name,
-                            unsigned current_execution) {
+bool Manager::isFirstAccess(const std::string &name, unsigned current_execution,
+                            bool is_weight) {
   /// @todo add cache machanism, eg) sort at finalizing requesting
-  return getMinMaxTensorExecutionOrder(name).first == current_execution;
+  return getMinMaxTensorExecutionOrder(name, is_weight).first ==
+         current_execution;
 }
 
-bool Manager::isLastAccess(const std::string &name,
-                           unsigned current_execution) {
+bool Manager::isLastAccess(const std::string &name, unsigned current_execution,
+                           bool is_weight) {
   /// @todo add cache machanism, eg) sort at finalizing requesting
-  return getMinMaxTensorExecutionOrder(name).second == current_execution;
+  return getMinMaxTensorExecutionOrder(name, is_weight).second ==
+         current_execution;
 }
 
 /**
