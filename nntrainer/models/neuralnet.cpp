@@ -339,7 +339,6 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
-    std::cerr << file_path << '\n';
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->read(model_file);
     }

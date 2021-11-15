@@ -23,13 +23,21 @@
 
 #include <nntrainer_error.h>
 
+#include "ml-api-common.h"
+#include "nnstreamer.h"
+#include "nnstreamer_plugin_api.h"
 #include "tensor_filter_nntrainer.hh"
 
 #ifdef ml_loge
 #undef ml_loge
 #endif
 
+#ifdef ml_logi
+#undef ml_logi
+#endif
+
 #define ml_loge g_critical
+#define ml_logi g_message
 
 /**
  * @brief Macro for debug mode.
@@ -210,8 +218,22 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
     static_cast<NNTrainerInference *>(*private_data);
   g_return_val_if_fail(prop && nntrainer && in_info && out_info, -EINVAL);
 
-  auto num_input = in_info->num_tensors;
-  g_return_val_if_fail(num_input != 0, -EINVAL);
+  auto model_inputs = nntrainer->getInputDimension();
+
+  /// if num_input is zero, we set a default input shape with batch of 1.
+  if (in_info->num_tensors == 0) {
+    ml_logi(
+      "num input is zero, regard it as a default dimension with batch of 1");
+    auto mutable_in_info = const_cast<GstTensorsInfo *>(in_info);
+    mutable_in_info->num_tensors = model_inputs.size();
+    for (unsigned int i = 0u; i < model_inputs.size(); ++i) {
+      auto default_dim = model_inputs[i];
+      default_dim.batch(1);
+      mutable_in_info->info[i].type = _NNS_FLOAT32;
+      gst_tensor_info_copy(mutable_in_info->info + i,
+                           to_nnst_tensor_dim(default_dim).get());
+    }
+  }
 
   auto batch_size = in_info->info[0].dimension[3];
 
@@ -222,12 +244,11 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
   /// However, it might not be a good choice in therms of migrating to api.
   nntrainer->setBatchSize(batch_size);
 
-  auto model_inputs = nntrainer->getInputDimension();
   /// check number of in
-  g_return_val_if_fail(num_input == model_inputs.size(), -EINVAL);
+  g_return_val_if_fail(in_info->num_tensors == model_inputs.size(), -EINVAL);
 
   /// check each in dimension matches
-  for (unsigned int i = 0; i < num_input; ++i) {
+  for (unsigned int i = 0; i < in_info->num_tensors; ++i) {
     model_inputs[i].batch(batch_size);
     g_return_val_if_fail(in_info->info[i].type == _NNS_FLOAT32, -EINVAL);
     g_return_val_if_fail(
@@ -240,6 +261,7 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
   out_info->num_tensors = model_outputs.size();
   for (unsigned int i = 0; i < out_info->num_tensors; ++i) {
     model_outputs[i].batch(batch_size);
+    out_info->info[i].type = _NNS_FLOAT32;
     gst_tensor_info_copy(out_info->info + i,
                          to_nnst_tensor_dim(model_outputs[i]).get());
   }
@@ -271,11 +293,25 @@ void init_filter_nntrainer(void) {
   NNS_support_nntrainer.run_without_model = FALSE;
   NNS_support_nntrainer.verify_model_path = FALSE;
   NNS_support_nntrainer.invoke_NN = nntrainer_run;
-  NNS_support_nntrainer.setInputDimension = nntrainer_setInputDim;
   NNS_support_nntrainer.destroyNotify = nntrainer_destroyNotify;
   NNS_support_nntrainer.checkAvailability = nntrainer_checkAvailability;
   NNS_support_nntrainer.getInputDimension = NULL;
   NNS_support_nntrainer.getOutputDimension = NULL;
+  /// @note Dimension setup flow for nnstramer (pipeline) side is
+  /// 1. try klass->getInputDimension() -> we don't provide, skip
+  /// 2. try klass->getOutputdimension() -> we don't provide, skip
+  /// 3. try klass->setInputDimension(input_meta) as long as input_meta is
+  /// provided (from user side or pipeline) it will work
+
+  /// @note Tensor info setup flow for ml singleshot api is (path 1 is nntrainer
+  /// only)
+  /// 1. if in_info & out_info is nullptr
+  /// 1-1. create in_info, out_info with num_tensors 0
+  /// 1-2. call klass->setInputDimension(in_info, out_info) with num_tensors 0,
+  /// in this case, we regard batch is one and fill both in_info & out_info
+  /// 2. if in_info & out_info is given, we regard it and verify if it is
+  /// correct
+  NNS_support_nntrainer.setInputDimension = nntrainer_setInputDim;
 
   nnstreamer_filter_probe(&NNS_support_nntrainer);
 }
