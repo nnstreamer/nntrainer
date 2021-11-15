@@ -40,13 +40,91 @@ protected:
   void TearDown() override { set_feature_state(NOT_CHECKED_YET); }
 };
 
-TEST_F(mlInference, singleshot_p) {
+static int singleshot_case(ml_tensors_info_h in_info,
+                           ml_tensors_info_h out_info) {
   ml_single_h single;
-  ml_tensors_info_h in_info, out_info;
-  ml_tensors_info_h in_data, out_data;
+  ml_tensors_data_h in_data, out_data;
+  ml_tensors_info_h queried_in_info, queried_out_info;
   int status = 0;
 
-  // 1. input preparation, in this example, we are not filling actual data
+  // 1. open singleshot handle
+  status = ml_single_open(&single, mnist_model_path.c_str(), in_info, out_info,
+                          ML_NNFW_TYPE_NNTR_INF, ML_NNFW_HW_ANY);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    return status;
+  }
+
+  status = ml_single_get_input_info(single, &queried_in_info);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    ml_single_close(single);
+    return status;
+  }
+
+  status = ml_single_get_output_info(single, &queried_out_info);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    ml_tensors_info_destroy(queried_in_info);
+    ml_single_close(single);
+    return status;
+  }
+
+  // 2. allocate data
+  status = ml_tensors_data_create(queried_in_info, &in_data);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    ml_tensors_info_destroy(queried_in_info);
+    ml_tensors_info_destroy(queried_out_info);
+    ml_single_close(single);
+    return status;
+  }
+  status = ml_tensors_data_create(queried_out_info, &out_data);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    ml_tensors_info_destroy(queried_in_info);
+    ml_tensors_info_destroy(queried_out_info);
+    ml_tensors_data_destroy(in_data);
+    ml_single_close(single);
+    return status;
+  }
+
+  // 3. invoke
+  status = ml_single_invoke_fast(single, in_data, out_data);
+  EXPECT_EQ(status, 0);
+  if (status != 0) {
+    ml_tensors_info_destroy(queried_in_info);
+    ml_tensors_info_destroy(queried_out_info);
+    ml_tensors_data_destroy(in_data);
+    ml_tensors_data_destroy(out_data);
+    ml_single_close(single);
+    return status;
+  }
+
+  // 4. release handles
+  status = ml_single_close(single);
+  EXPECT_EQ(status, 0);
+
+  status = ml_tensors_info_destroy(queried_in_info);
+  EXPECT_EQ(status, 0);
+
+  status = ml_tensors_info_destroy(queried_out_info);
+  EXPECT_EQ(status, 0);
+
+  status = ml_tensors_data_destroy(in_data);
+  EXPECT_EQ(status, 0);
+
+  status = ml_tensors_data_destroy(out_data);
+  EXPECT_EQ(status, 0);
+
+  return status;
+}
+
+TEST_F(mlInference, singleshot_p) {
+  ml_tensors_info_h in_info, out_info; /**< actual true value */
+
+  int status = 0;
+  // 1. actual input/output preparation
   status = ml_tensors_info_create(&in_info);
   EXPECT_EQ(status, 0);
   status = ml_tensors_info_set_count(in_info, 1);
@@ -59,7 +137,6 @@ TEST_F(mlInference, singleshot_p) {
   status = ml_tensors_info_set_tensor_dimension(in_info, 0, indim);
   EXPECT_EQ(status, 0);
 
-  // 2. output preparation
   status = ml_tensors_info_create(&out_info);
   EXPECT_EQ(status, 0);
   status = ml_tensors_info_set_count(out_info, 1);
@@ -70,29 +147,17 @@ TEST_F(mlInference, singleshot_p) {
   status = ml_tensors_info_set_tensor_dimension(out_info, 0, outdim);
   EXPECT_EQ(status, 0);
 
-  // 3. open singleshot handle
-  status = ml_single_open(&single, mnist_model_path.c_str(), in_info, out_info,
-                          ML_NNFW_TYPE_NNTR_INF, ML_NNFW_HW_ANY);
-  EXPECT_EQ(status, 0);
+  status = singleshot_case(in_info, out_info);
+  EXPECT_EQ(status, 0) << "case: in_info, out_info given";
 
-  // 4. allocate data
-  status = ml_tensors_data_create(in_info, &in_data);
-  EXPECT_EQ(status, 0);
-  status = ml_tensors_data_create(out_info, &out_data);
-  EXPECT_EQ(status, 0);
+  status = singleshot_case(nullptr, out_info);
+  EXPECT_EQ(status, 0) << "case: in_info null, out_info given";
 
-  // 5. invoke
-  status = ml_single_invoke_fast(single, in_data, out_data);
-  EXPECT_EQ(status, 0);
+  status = singleshot_case(in_info, nullptr);
+  EXPECT_EQ(status, 0) << "case: in_info given, out_info null";
 
-  // 6. release handles
-  status = ml_single_close(single);
-  EXPECT_EQ(status, 0);
-
-  status = ml_tensors_data_destroy(in_data);
-  EXPECT_EQ(status, 0);
-  status = ml_tensors_data_destroy(out_data);
-  EXPECT_EQ(status, 0);
+  status = singleshot_case(nullptr, nullptr);
+  EXPECT_EQ(status, 0) << "case: in_info null, out_info null";
 
   status = ml_tensors_info_destroy(in_info);
   EXPECT_EQ(status, 0);
