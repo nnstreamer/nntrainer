@@ -361,23 +361,21 @@ void LayerNode::read(std::ifstream &file) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-    /// @note dependent weights are only be read at the source
-    if (!run_context->isGradientLastAccess(i)) {
-      continue;
+    /// @note shared weights are only be read at the first acecss
+    if (run_context->isGradientLastAccess(i)) {
+      run_context->getWeight(i).read(file);
     }
-    run_context->getWeight(i).read(file);
   }
 }
 
 void LayerNode::save(std::ofstream &file) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
-  /// @note dependent weights are only be saved at the source
+  /// @note shared weights are only be saved at the first access
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-    if (!run_context->isGradientLastAccess(i)) {
-      continue;
+    if (run_context->isGradientLastAccess(i)) {
+      run_context->getWeight(i).save(file);
     }
-    run_context->getWeight(i).save(file);
   }
 }
 

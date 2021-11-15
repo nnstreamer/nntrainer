@@ -511,7 +511,10 @@ public:
   bool isWeightDependent(unsigned int idx) const;
 
   /**
-   * @brief check current graident is first access
+   * @brief check current gradient is first access
+   * @note for now, it equivalent to weight last access, so this value is
+   * accessible for non-trainable weights as well. This is in terms of execution
+   * order.
    *
    * @param idx index
    * @return bool true if first access
@@ -519,7 +522,10 @@ public:
   bool isGradientFirstAccess(unsigned int idx) const;
 
   /**
-   * @brief check current graident is last access
+   * @brief check current gradient is last access
+   * @note for now, it equivalent to weight last access, so this value is
+   * accessible for non-trainable weights as well. This is in terms of execution
+   * order.
    *
    * @param idx index
    * @return bool true if last access

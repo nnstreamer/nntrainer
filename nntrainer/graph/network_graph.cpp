@@ -856,6 +856,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   std::vector<std::string> shared_weight_names;
   std::vector<std::string> shared_tensor_names;
   if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
+    /// @note below is commented but kept from quick fix to be referenced for
+    /// later(#1707)
     // auto shared_node = getLayerNode(shared_node_str).get();
     // NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
     //   << "shared_node requested but it is not registered in the graph, name:
@@ -884,13 +886,11 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     const auto &t_specs = init_context.getTensorsSpec();
     for (auto i = 0u; i < t_specs.size(); ++i) {
       shared_tensor_names.emplace_back(std::get<3>(t_specs.at(i)));
-      // std::cout << shared_tensor_names.back() << '\n';
     }
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
       shared_weight_names.emplace_back(std::get<5>(w_specs.at(i)));
-      // std::cout << shared_weight_names.back() << '\n';
     }
   }
 
@@ -977,15 +977,26 @@ int NetworkGraph::initialize(
     auto last_grad_access = std::get<2>(lnode->getExecutionOrder());
     for (unsigned i = 0; i < rc.getNumWeights(); ++i) {
       if (!rc.weightHasGradient(i)) {
-        continue;
-      }
-      if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
-                                        first_grad_access)) {
-        rc.getWeightObject(i).setAsGradientFirstAccess();
-      }
-      if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
-                                       last_grad_access)) {
-        rc.getWeightObject(i).setAsGradientLastAccess();
+        /// @todo this is duck taping that MUST BE REMOVED. We will need to
+        /// have, is weight first access kind of concept.
+        if (tensor_manager->isFirstAccess(
+              rc.getWeight(i).getName(),
+              std::get<0>(lnode->getExecutionOrder()), true)) {
+          rc.getWeightObject(i).setAsGradientFirstAccess();
+        }
+        if (tensor_manager->isLastAccess(rc.getWeight(i).getName(),
+                                         last_grad_access, true)) {
+          rc.getWeightObject(i).setAsGradientLastAccess();
+        }
+      } else {
+        if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
+                                          first_grad_access)) {
+          rc.getWeightObject(i).setAsGradientFirstAccess();
+        }
+        if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
+                                         last_grad_access)) {
+          rc.getWeightObject(i).setAsGradientLastAccess();
+        }
       }
     }
   }
