@@ -123,7 +123,7 @@ TEST(RemapRealizer, remap_p) {
   realizeAndEqual(r, {input1}, {expected1});
 }
 
-TEST(SliceRealizer, slice_p) {
+TEST(SliceRealizer, slice_01_p) {
   /**
    * graph architecture
    *
@@ -170,6 +170,40 @@ TEST(SliceRealizer, slice_p) {
   };
 
   SliceRealizer r({"a1", "b1", "b2"}, {"a1", "d1", "d2"});
+
+  realizeAndEqual(r, before, after);
+}
+
+TEST(SliceRealizer, slice_02_p) {
+  /**
+   * graph architecture
+   *
+   * a1----
+   *  |   |
+   * b1   |
+   *  \  /
+   *   c1
+   */
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a1"}},
+    {"fully_connected", {"name=b1", "input_layers=a1"}},
+    {"concat", {"name=c1", "input_layers=a1, b1"}},
+  };
+
+  /**
+   * a1----
+   *  |   |
+   * b1   |
+   *  \  /
+   *   c1
+   */
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected", {"name=a1"}},
+    {"fully_connected", {"name=b1", "input_layers=a1"}},
+    {"concat", {"name=c1", "input_layers=a1, b1"}},
+  };
+
+  SliceRealizer r({"a1"}, {"c1"});
 
   realizeAndEqual(r, before, after);
 }
