@@ -17,6 +17,7 @@
 #include <flatten_realizer.h>
 #include <input_realizer.h>
 #include <previous_input_realizer.h>
+#include <multiout_realizer.h>
 #include <realizer.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
@@ -297,4 +298,11 @@ TEST(PreviousInputRealizer, user_not_identifying_first_input_n) {
   };
   PreviousInputRealizer r({});
   EXPECT_ANY_THROW(realizeAndEqual(r, before, {}));
+}
+TEST(MultioutRealizer, multiout_p) {
+  std::vector<LayerRepresentation> before = {};
+  std::vector<LayerRepresentation> after = {};
+
+  MultioutRealizer r;
+  realizeAndEqual(r, before, after);
 }
