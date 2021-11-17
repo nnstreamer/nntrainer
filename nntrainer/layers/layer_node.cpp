@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <stdexcept>
 #include <utility>
 
 #include <activation_layer.h>
@@ -674,7 +675,6 @@ void LayerNode::printPreset(std::ostream &out, PrintPreset preset) {
 void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
   NNTR_THROW_IF(isFinalized(), std::invalid_argument)
     << "cannot remap identifiers after finalized";
-
   auto &name = std::get<props::Name>(*layer_node_props);
   if (!name.empty()) {
     remap_fn(name.get());
@@ -685,17 +685,29 @@ void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
     remap_fn(shared_from.get());
   }
 
+  /** remap connections without touching index */
+  remapConnections(
+    [&remap_fn](std::string &name, unsigned &_) { remap_fn(name); });
+}
+
+void LayerNode::remapConnections(
+  std::function<void(std::string &, unsigned &)> remap_fn) {
+  NNTR_THROW_IF(isFinalized(), std::invalid_argument)
+    << "cannot remap identifiers after finalized";
+
   auto &input_layers =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
 
   for (auto &input_layer : input_layers) {
     auto &name = input_layer.get().getName();
-    remap_fn(name);
+    auto &idx = input_layer.get().getIndex();
+    remap_fn(name, idx);
   }
 
   for (auto &output_layer : *output_layers) {
     auto &name = output_layer.getName();
-    remap_fn(name);
+    auto &idx = output_layer.getIndex();
+    remap_fn(name, idx);
   }
 }
 
