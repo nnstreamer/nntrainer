@@ -12,6 +12,7 @@ else
     test_target,
     dependencies: [
       nntrainer_test_main_deps,
+      nntrainer_capi_dep,
       nnstreamer_capi_dep
     ],
     install: get_option('enable-test'),
@@ -21,13 +22,10 @@ else
   nntrainer_filter_env = environment()
   nntrainer_filter_env.set('NNSTREAMER_FILTERS', meson.build_root() / 'nnstreamer' / 'tensor_filter')
 
-  # inside gbs build, ml api feature is not enabled,
-  # we can't run this test inside gbs until we have a workaround.
-  if get_option('platform') != 'tizen'
-    test(test_name, exe,
+  test(test_name, exe,
       args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
       env: nntrainer_filter_env
-    )
-  endif
+  )
+
 
 endif

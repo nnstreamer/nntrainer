@@ -15,12 +15,32 @@
 #include <nnstreamer-single.h>
 #include <nnstreamer.h>
 
+#include <nntrainer_internal.h>
 #include <nntrainer_test_util.h>
 
 static std::string mnist_model_path =
   getResPath("mnist.ini", {"test", "test_models", "models"});
 
-TEST(mlInference, singleshot_p) {
+/**
+ * @brief mlInference test
+ *
+ */
+class mlInference : public testing::Test {
+protected:
+  /**
+   * @brief SetUp the test case
+   *
+   */
+  void SetUp() override { set_feature_state(SUPPORTED); }
+
+  /**
+   * @brief TearDown the test case
+   *
+   */
+  void TearDown() override { set_feature_state(NOT_CHECKED_YET); }
+};
+
+TEST_F(mlInference, singleshot_p) {
   ml_single_h single;
   ml_tensors_info_h in_info, out_info;
   ml_tensors_info_h in_data, out_data;
@@ -80,7 +100,7 @@ TEST(mlInference, singleshot_p) {
   EXPECT_EQ(status, 0);
 }
 
-TEST(mlInference, singleshotModelDoesNotExist_n) {
+TEST_F(mlInference, singleshotModelDoesNotExist_n) {
   ml_single_h single;
   ml_tensors_info_h in_info, out_info;
   int status = 0;
@@ -121,7 +141,7 @@ TEST(mlInference, singleshotModelDoesNotExist_n) {
   EXPECT_EQ(status, 0);
 }
 
-TEST(mlInference, singleshotNoOutData_n) {
+TEST_F(mlInference, singleshotNoOutData_n) {
   ml_single_h single;
   ml_tensors_info_h in_info, out_info;
   ml_tensors_info_h in_data;
