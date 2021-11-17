@@ -198,6 +198,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/flatten_realizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/recurrent_realizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/previous_input_realizer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/multiout_realizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/remap_realizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/slice_realizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/input_realizer.cpp \
