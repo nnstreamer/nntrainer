@@ -28,7 +28,28 @@ namespace nntrainer {
  */
 class RemapRealizer final : public GraphRealizer {
 public:
-  RemapRealizer(std::function<void(std::string &)> remap_function);
+  /**
+   * @brief Construct a new Remap Realizer object (connection mode)
+   *
+   * @param remap_connection_function remap connection function, with this
+   * constructor, only connections will be remapped eg) if you are inserting a
+   * new layer node in between, only connections need remapping
+   */
+  RemapRealizer(
+    std::function<void(std::string & /**< identifier */,
+                       unsigned & /**< index of a connection, remapping
+                                     identifier should not modify this */)>
+      remap_connection_function);
+
+  /**
+   * @brief Construct a new Remap Realizer object (identifier mode)
+   *
+   * @param remap_function remap function, with this constructor, all
+   * identifiers whereever it is used will be remapped
+   */
+  RemapRealizer(
+    std::function<void(std::string & /**< identifier */)> remap_function);
+
   /**
    * @brief Destroy the Graph Realizer object
    *
@@ -43,6 +64,7 @@ public:
 
 private:
   std::function<void(std::string &)> remap_fn;
+  std::function<void(std::string &, unsigned &)> remap_connection_fn;
 };
 
 } // namespace nntrainer

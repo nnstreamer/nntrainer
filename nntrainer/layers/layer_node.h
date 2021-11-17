@@ -699,6 +699,14 @@ public:
   void remapIdentifiers(std::function<void(std::string &)> remap_fn);
 
   /**
+   * @brief remap connections(input, output layers ) inside layer node
+   *
+   * @param remap_fn function to remap
+   */
+  void
+  remapConnections(std::function<void(std::string &, unsigned &)> remap_fn);
+
+  /**
    * @brief create the same node with same properties and types
    *
    * @note this must be done before finalize() as finalize has some potential to
