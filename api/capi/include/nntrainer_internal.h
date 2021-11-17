@@ -59,7 +59,7 @@ typedef enum {
       return feature_ret;                             \
   } while (0);
 
-#define set_feature_state(...) ml_tizen_set_feature_state(__VA_ARGS__)
+#define set_feature_state(...) ml_train_tizen_set_feature_state(__VA_ARGS__)
 #else /* __FEATURE_CHECK_SUPPORT__ */
 #define check_feature_state()
 #define set_feature_state(...)
@@ -328,7 +328,7 @@ int ml_tizen_get_feature_enabled(void);
  * @brief Set the feature status of machine_learning.training.
  * This is only used for Unit test.
  */
-void ml_tizen_set_feature_state(feature_state_t state);
+void ml_train_tizen_set_feature_state(feature_state_t state);
 #endif /* __TIZEN__ */
 
 #ifdef __cplusplus
