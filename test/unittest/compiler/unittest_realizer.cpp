@@ -210,7 +210,6 @@ TEST(SliceRealizer, slice_02_p) {
 }
 
 TEST(InputRealizer, remap_p) {
-
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc1"}}, // no input_layers specified
     {"fully_connected",
@@ -232,12 +231,51 @@ TEST(InputRealizer, remap_p) {
   realizeAndEqual(r, before, after);
 }
 
-TEST(PreviousInputRealizer, previous_p) {
-  {
-    std::vector<LayerRepresentation> before = {};
+TEST(PreviousInputRealizer, DISABLED_previous_p) {
+  { /// realization without identifying custom input
+    std::vector<LayerRepresentation> before = {
+      {"fully_connected", {"name=fc1", "input_shape=1"}}, // model input
+      {"fully_connected", {"name=fc2"}}, // auto connected to fc 1
+      {"fully_connected", {"name=fc3", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc4"}}, // auto connected to fc 3
+    };
 
-    std::vector<LayerRepresentation> after = {};
+    std::vector<LayerRepresentation> after = {
+      {"fully_connected", {"name=fc1", "input_shape=1"}},
+      {"fully_connected", {"name=fc2", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc3", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc4", "input_layers=fc3"}},
+    };
     PreviousInputRealizer r({});
     realizeAndEqual(r, before, after);
   }
+  { /// realization identifying fc1, fc4 is input layer
+    std::vector<LayerRepresentation> before = {
+      {"fully_connected", {"name=fc1"}}, // will be identified as model input
+      {"fully_connected", {"name=fc2"}}, // auto connected to fc 1
+      {"fully_connected", {"name=fc3", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc4"}}, // will be identified as model input
+    };
+    std::vector<LayerRepresentation> after = {
+      {"fully_connected", {"name=fc1"}},
+      {"fully_connected", {"name=fc2", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc3", "input_layers=fc1"}},
+      {"fully_connected", {"name=fc4"}},
+    };
+    PreviousInputRealizer r({"fc1", "fc4"});
+    realizeAndEqual(r, before, after);
+  }
+}
+
+TEST(PreviousInputRealizer, DISABLED_user_not_identifying_first_input_n) {
+  /// realization without identifying custom input
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=fc1"}}, // this should be model input but
+                                       // nothing has been connected
+    {"fully_connected", {"name=fc2"}}, // auto connected to fc 1
+    {"fully_connected", {"name=fc3", "input_layers=fc1"}},
+    {"fully_connected", {"name=fc4"}}, // auto connected to fc 3
+  };
+  PreviousInputRealizer r({});
+  EXPECT_ANY_THROW(realizeAndEqual(r, before, {}));
 }
