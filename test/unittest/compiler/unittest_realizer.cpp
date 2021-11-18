@@ -231,7 +231,7 @@ TEST(InputRealizer, remap_p) {
   realizeAndEqual(r, before, after);
 }
 
-TEST(PreviousInputRealizer, DISABLED_previous_p) {
+TEST(PreviousInputRealizer, previous_p) {
   { /// realization without identifying custom input
     std::vector<LayerRepresentation> before = {
       {"fully_connected", {"name=fc1", "input_shape=1"}}, // model input
@@ -267,7 +267,7 @@ TEST(PreviousInputRealizer, DISABLED_previous_p) {
   }
 }
 
-TEST(PreviousInputRealizer, DISABLED_user_not_identifying_first_input_n) {
+TEST(PreviousInputRealizer, user_not_identifying_first_input_n) {
   /// realization without identifying custom input
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc1"}}, // this should be model input but
