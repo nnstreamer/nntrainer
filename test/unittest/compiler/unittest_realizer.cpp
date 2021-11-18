@@ -16,6 +16,7 @@
 
 #include <flatten_realizer.h>
 #include <input_realizer.h>
+#include <previous_input_realizer.h>
 #include <realizer.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
@@ -229,4 +230,14 @@ TEST(InputRealizer, remap_p) {
 
   InputRealizer r({"fc1", "fc2", "fc3"}, {"in1", "in2", "in3", "in4"});
   realizeAndEqual(r, before, after);
+}
+
+TEST(PreviousInputRealizer, previous_p) {
+  {
+    std::vector<LayerRepresentation> before = {};
+
+    std::vector<LayerRepresentation> after = {};
+    PreviousInputRealizer r({});
+    realizeAndEqual(r, before, after);
+  }
 }
