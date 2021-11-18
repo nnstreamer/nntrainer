@@ -33,6 +33,7 @@ FlattenRealizer::realize(const GraphRepresentation &reference) {
         createLayerNode(FlattenLayer::type, {"name=" + layer_name});
       node->setProperty({"flatten=false"});
       node->setProperty({"name=" + layer_name + "/flatten_realized"});
+      flatten_node->setProperty({"input_layers=" + node->getName()});
       processed.push_back(std::move(flatten_node));
     }
   }
