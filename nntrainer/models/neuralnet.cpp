@@ -37,6 +37,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <optimizer_context.h>
+#include <previous_input_realizer.h>
 #include <profiler.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
@@ -103,6 +104,16 @@ int NeuralNetwork::compile() {
                             ? std::string()
                             : std::get<props::LossType>(model_props);
 
+  auto &input_layer_prop =
+    std::get<std::vector<props::InputLayer>>(model_props);
+  /// @note label layer might need to be treated in the similar way as well
+
+  std::vector<std::string> input_layers = {};
+  if (!input_layer_prop.empty()) {
+    input_layers = std::vector<std::string>(input_layer_prop.begin(),
+                                            input_layer_prop.end());
+  }
+
   /// @todo make NetworkGraph compiled at the construction instead of having
   /// graph.compile(), neuralnetwork have ownership of list of layer nodes,
   /// which will be passed at compile time.
@@ -112,8 +123,14 @@ int NeuralNetwork::compile() {
     rep.push_back(*iter);
   }
 
-  FlattenRealizer fr;
-  rep = fr.realize(rep);
+  std::vector<std::unique_ptr<GraphRealizer>> realizers;
+
+  realizers.emplace_back(new PreviousInputRealizer(input_layers));
+  realizers.emplace_back(new FlattenRealizer());
+
+  for (auto &realizer : realizers) {
+    rep = realizer->realize(rep);
+  }
 
   model_graph = NetworkGraph();
   model_graph.setMemoryOptimizations(
@@ -704,7 +721,7 @@ int NeuralNetwork::train_run() {
     forwarding(false);
   };
 
-  auto update_eval_stat = [this, batch_size, &update_train_stat](
+  auto update_eval_stat = [batch_size, &update_train_stat](
                             RunStats &stat, const std::vector<Tensor> &outputs,
                             const std::vector<Tensor> &labels) {
     auto model_out = outputs[0].argmax();
@@ -934,6 +951,8 @@ void NeuralNetwork::addWithReferenceLayers(
   auto end_layers_ = normalize(end_layers);
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
+
+  realizers.emplace_back(new PreviousInputRealizer(start_layers));
   realizers.emplace_back(new SliceRealizer(start_layers_, end_layers_));
 
   if (!input_layers_.empty()) {

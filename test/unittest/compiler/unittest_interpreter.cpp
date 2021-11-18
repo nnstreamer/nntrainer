@@ -134,8 +134,8 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
                         "bias_initializer=ones", "weight_initializer=ones"});
 
   auto fc1_zeroed = LayerRepresentation(
-    "fully_connected",
-    {"name=fc1", "unit=2", "bias_initializer=ones", "weight_initializer=ones"});
+    "fully_connected", {"name=fc1", "unit=2", "bias_initializer=ones",
+                        "weight_initializer=ones", "input_layers=fc0"});
 
   auto g = makeGraph({fc0_zeroed, fc1_zeroed});
 

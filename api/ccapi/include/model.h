@@ -167,6 +167,13 @@ public:
    * @note This method does add the provided layers itself but adds a deep copy
    * of the passed layers to the model. The layers passed to this function can
    * be reused later.
+   * @note @a reference is a set of layers connected each other to form a part
+   * or whole graph which can be loaded to a model and can be run.
+   * More specifically, the graph with a non cyclic, directed graph with all
+   * node has either incoming or outgoing connection defined when considering
+   * non-input layer is directly connected to the previous layer. 'input
+   * layer' is defined as a layer that has no incoming connection and
+   * (identified as @a start_layers or input shape is specified explicitly).
    *
    * @param reference a group of layers being referred to.
    * @param type type of reference layers

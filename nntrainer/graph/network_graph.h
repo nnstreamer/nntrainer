@@ -445,11 +445,6 @@ private:
   void setOutputLayers();
 
   /**
-   * @brief     set default input layer connections
-   */
-  void addDefaultInputLayers();
-
-  /**
    * @brief     Ensure that layer has a name.
    * @param[in] layer Layer whose name is to be ensured to be valid
    * @param[in] prefix Prefix to be attached to the layer name
