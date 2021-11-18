@@ -30,10 +30,10 @@ public:
   /**
    * @brief Construct a new Previous Input Realizer object
    *
-   * @param identified_input node that is identified as an input, this must not
+   * @param identified_inputs node that is identified as an input, this must not
    * connect to other nodes automatically
    */
-  PreviousInputRealizer(const std::vector<std::string> &identified_input);
+  PreviousInputRealizer(const std::vector<std::string> &identified_inputs);
 
   /**
    * @brief Destroy the Graph Realizer object
@@ -46,6 +46,9 @@ public:
    *
    */
   GraphRepresentation realize(const GraphRepresentation &reference) override;
+
+private:
+  std::vector<std::string> identified_inputs; /**< inputs are identified */
 };
 
 } // namespace nntrainer
