@@ -96,19 +96,6 @@ void NetworkGraph::updateConnectionName(const std::string &from,
   }
 }
 
-void NetworkGraph::addDefaultInputLayers() {
-  for (auto iter = cbegin() + 1; iter != cend(); iter++) {
-    auto layer = *iter;
-    auto prev_layer = *(iter - 1);
-    if (layer->getNumInputConnections() == 0 &&
-        !layer->hasInputShapeProperty()) {
-      ml_logd("default input added %s->%s", prev_layer->getName().c_str(),
-              layer->getName().c_str());
-      layer->addInputLayers(prev_layer->getName());
-    }
-  }
-}
-
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
   graph.addNode(std::make_unique<LayerNode>(std::move(layer)));
 }
@@ -332,8 +319,6 @@ void NetworkGraph::markNodesForBackwarding() {
 
 int NetworkGraph::realizeGraph() {
   int status = ML_ERROR_NONE;
-
-  addDefaultInputLayers();
 
   /**
    * invariant: the new realized nodes are added to the end,

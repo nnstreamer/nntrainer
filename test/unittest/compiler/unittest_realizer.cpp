@@ -232,6 +232,24 @@ TEST(PreviousInputRealizer, previous_p) {
     PreviousInputRealizer r({"fc1", "fc4"});
     realizeAndEqual(r, before, after);
   }
+  { /// intermediate node is auto input
+    std::vector<LayerRepresentation> before = {
+      {"fully_connected",
+       {"name=fc1", "input_layers=fc2"}},                 // intermediate node
+      {"fully_connected", {"name=fc2", "input_shape=1"}}, // model input
+      {"fully_connected", {"name=fc3"}}, // auto connected to fc3
+      {"fully_connected", {"name=fc4"}}, // auto connected to fc 3
+    };
+
+    std::vector<LayerRepresentation> after = {
+      {"fully_connected", {"name=fc1", "input_layers=fc2"}},
+      {"fully_connected", {"name=fc2", "input_shape=1"}},
+      {"fully_connected", {"name=fc3", "input_layers=fc2"}},
+      {"fully_connected", {"name=fc4", "input_layers=fc3"}},
+    };
+    PreviousInputRealizer r({});
+    realizeAndEqual(r, before, after);
+  }
 }
 
 TEST(PreviousInputRealizer, user_not_identifying_first_input_n) {
