@@ -178,6 +178,7 @@ public:
    * @note      No memory allocation must be performed in the initialization
    * step. Any tensor memory required must be requested to the context which
    * will be made available during execution of the layer with the context.
+   * @note configureRunContext() is expected to called right after this.
    */
   InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {});
 
