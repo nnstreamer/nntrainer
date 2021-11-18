@@ -4,7 +4,8 @@ compiler_sources = [
   'recurrent_realizer.cpp',
   'remap_realizer.cpp',
   'slice_realizer.cpp',
-  'input_realizer.cpp'
+  'input_realizer.cpp',
+  'previous_input_realizer.cpp'
 ]
 
 compiler_headers = []
