@@ -21,6 +21,8 @@ namespace nntrainer {
 
 /**
  * @brief Add multiout layer when a certain input is referenced multiple times
+ * @note after multiout realizer, it is guaranteed that input_layer only refers
+ * to a single connection
  *
  */
 class MultioutRealizer final : public GraphRealizer {
