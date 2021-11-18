@@ -20,9 +20,10 @@ if get_option('enable-tflite-interpreter')
   flat_header = custom_target('tflite-schema',
                                input: 'tf_schema.fbs',
                                output: 'tf_schema_generated.h',
-                               command: [flatc_prog, '-o', '@CURRENT_SOURCE_DIR@', '-c', '@INPUT@'])
+                               command: [flatc_prog, '-o', '@OUTDIR@', '-c', '@INPUT@'])
 
   nntrainer_inc_abs += meson.current_build_dir()
+  nntrainer_inc += include_directories('.')
 
   flat_header_dep = declare_dependency(sources : flat_header)
 
