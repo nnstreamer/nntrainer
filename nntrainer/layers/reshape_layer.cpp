@@ -40,6 +40,9 @@ void ReshapeLayer::finalize(InitLayerContext &context) {
     out_dim.height(1);
     out_dim.channel(1);
     out_dim.width(in_dim.getFeatureLen());
+  } else if (out_dim.getFeatureLen() != in_dim.getFeatureLen()) {
+    throw std::invalid_argument(
+      "Target and input size mismatch for reshape layer");
   }
 
   out_dim.batch(in_dim.batch());
