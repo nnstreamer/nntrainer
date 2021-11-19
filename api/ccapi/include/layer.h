@@ -376,6 +376,14 @@ Attention(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create Permute Layer
+ */
+inline std::unique_ptr<Layer>
+Permute(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_PERMUTE, properties);
+}
+
+/**
  * @brief Helper function to create activation layer
  */
 inline std::unique_ptr<Layer>
