@@ -59,7 +59,7 @@ void PermuteLayer::finalize(InitLayerContext &context) {
 
     /*** @todo deprecate this */
     direction_str = buildTrasposeString(direction);
-    rdirection_str = buildTrasposeString(direction);
+    rdirection_str = buildTrasposeString(reverse_direction);
   };
 
   initiate_direction();
