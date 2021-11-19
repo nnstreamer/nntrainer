@@ -16,7 +16,6 @@
 #define __GRAPH_CORE_H__
 #ifdef __cplusplus
 
-#include <iostream>
 #include <list>
 #include <map>
 #include <memory>

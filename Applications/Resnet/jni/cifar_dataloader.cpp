@@ -13,6 +13,7 @@
 #include "cifar_dataloader.h"
 
 #include <cstring>
+#include <iostream>
 #include <nntrainer_error.h>
 #include <random>
 

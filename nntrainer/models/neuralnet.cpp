@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 #include <databuffer.h>

@@ -14,6 +14,7 @@
 
 #include <cmath>
 
+#include <iostream>
 #include <tensor.h>
 
 constexpr const float EPSILON_ = 1e-7;

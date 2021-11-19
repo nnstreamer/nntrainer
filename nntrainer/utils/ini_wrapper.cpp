@@ -14,6 +14,7 @@
 
 #include <regex>
 
+#include <iostream>
 #include <nntrainer_error.h>
 #include <util_func.h>
 
@@ -122,6 +123,13 @@ void IniWrapper::save_ini(const std::string &ini_name) const {
   for (auto &it : sections) {
     it.print(out);
     out << std::endl;
+  }
+}
+
+void IniWrapper::erase_ini() const noexcept {
+  if (remove(getIniName().c_str())) {
+    std::cerr << "remove ini " << getIniName()
+              << "failed, reason: " << strerror(errno);
   }
 }
 

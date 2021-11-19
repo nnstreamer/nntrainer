@@ -15,7 +15,6 @@
 #define __NETWORK_GRAPH_H__
 #ifdef __cplusplus
 
-#include <iostream>
 #include <list>
 #include <map>
 #include <memory>

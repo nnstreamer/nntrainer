@@ -45,6 +45,14 @@ static constexpr const char *OPTIMIZER_STR = "optimizer";
 
 namespace nntrainer {
 
+IniGraphInterpreter::IniGraphInterpreter(
+  const AppContext &app_context_,
+  std::function<const std::string(const std::string &)> pathResolver_) :
+  app_context(app_context_),
+  pathResolver(pathResolver_) {}
+
+IniGraphInterpreter::~IniGraphInterpreter() {}
+
 namespace {
 
 /** @todo:
