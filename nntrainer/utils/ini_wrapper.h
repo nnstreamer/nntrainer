@@ -15,7 +15,7 @@
 
 #include <cstring>
 #include <fstream>
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <string>
 #include <vector>
@@ -369,12 +369,7 @@ public:
    * @brief erase ini
    *
    */
-  void erase_ini() const noexcept {
-    if (remove(getIniName().c_str())) {
-      std::cerr << "remove ini " << getIniName()
-                << "failed, reason: " << strerror(errno);
-    }
-  }
+  void erase_ini() const noexcept;
 
   /**
    * @brief operator<< to print information to outstream

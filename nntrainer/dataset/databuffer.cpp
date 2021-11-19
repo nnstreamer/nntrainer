@@ -29,6 +29,7 @@
 #include <func_data_producer.h>
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>

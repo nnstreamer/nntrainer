@@ -13,7 +13,6 @@
 #ifndef __INI_INTERPRETER_H__
 #define __INI_INTERPRETER_H__
 
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -38,15 +37,13 @@ public:
   IniGraphInterpreter(
     const AppContext &app_context_ = AppContext::Global(),
     std::function<const std::string(const std::string &)> pathResolver_ =
-      [](const std::string &path) { return path; }) :
-    app_context(app_context_),
-    pathResolver(pathResolver_) {}
+      [](const std::string &path) { return path; });
 
   /**
    * @brief Destroy the Ini Graph Interpreter object
    *
    */
-  virtual ~IniGraphInterpreter(){};
+  virtual ~IniGraphInterpreter();
 
   /**
    * @copydoc GraphInterpreter::serialize(const GraphRepresentation

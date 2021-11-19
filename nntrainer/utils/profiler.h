@@ -42,7 +42,7 @@
 
 #include <chrono>
 #include <future>
-#include <iostream>
+#include <iosfwd>
 #include <mutex>
 #include <string>
 #include <unordered_map>

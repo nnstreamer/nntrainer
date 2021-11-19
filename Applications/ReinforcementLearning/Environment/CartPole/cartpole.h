@@ -24,7 +24,7 @@
 #define __CARTPOLE_H__
 
 #include <cmath>
-#include <iostream>
+#include <string>
 #include <vector>
 
 /**

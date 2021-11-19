@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 
 #include <array>
-#include <iostream>
+#include <iosfwd>
 
 #include <bitset>
 #include <vector>
