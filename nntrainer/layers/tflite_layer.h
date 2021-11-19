@@ -16,10 +16,15 @@
 #ifdef __cplusplus
 
 #include <layer_devel.h>
+#include <vector>
 
 #include <tensorflow/contrib/lite/interpreter.h>
 #include <tensorflow/contrib/lite/kernels/register.h>
 #include <tensorflow/contrib/lite/model.h>
+
+namespace ml::train {
+class TensorDim;
+}
 
 namespace nntrainer {
 
@@ -88,7 +93,7 @@ private:
    * @param is_output check if output
    */
   void setDimensions(const std::vector<int> &tensor_idx_list,
-                     std::vector<TensorDim> &dim, bool is_output);
+                     std::vector<ml::train::TensorDim> &dim, bool is_output);
 };
 
 } // namespace nntrainer

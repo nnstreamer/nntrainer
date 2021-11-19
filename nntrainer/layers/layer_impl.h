@@ -31,6 +31,13 @@ class InitLayerContext;
 class RunLayerContext;
 class Exporter;
 
+namespace props {
+class WeightRegularizer;
+class WeightRegularizerConstant;
+class WeightInitializer;
+class BiasInitializer;
+} // namespace props
+
 enum class ExportMethods;
 
 /**

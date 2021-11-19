@@ -17,7 +17,9 @@
 #define __SPLIT_LAYER_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
 #include <layer_devel.h>
+#include <tensor_dim.h>
 
 namespace nntrainer {
 

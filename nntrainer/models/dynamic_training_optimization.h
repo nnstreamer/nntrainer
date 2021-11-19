@@ -45,6 +45,9 @@
 
 namespace nntrainer {
 
+class Weight;
+class Var_Grad;
+
 /**
  * @class   DynamicTraining Optimization
  * @brief   Dynamic Training Optimization

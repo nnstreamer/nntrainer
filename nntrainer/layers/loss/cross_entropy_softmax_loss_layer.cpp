@@ -16,6 +16,7 @@
 #include <cross_entropy_softmax_loss_layer.h>
 
 #include <acti_func.h>
+#include <layer_context.h>
 #include <lazy_tensor.h>
 #include <util_func.h>
 

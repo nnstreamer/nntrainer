@@ -12,8 +12,10 @@
  */
 
 #include <dropout.h>
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <util_func.h>
 
 namespace nntrainer {

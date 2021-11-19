@@ -16,6 +16,8 @@
 #include <nntrainer_log.h>
 #include <util_func.h>
 
+#include <layer_context.h>
+
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;

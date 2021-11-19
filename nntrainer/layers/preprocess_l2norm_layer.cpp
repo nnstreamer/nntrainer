@@ -16,9 +16,10 @@
 #include <regex>
 #include <sstream>
 
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-
+#include <node_exporter.h>
 #include <preprocess_l2norm_layer.h>
 
 namespace nntrainer {

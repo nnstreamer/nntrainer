@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <loss_layer.h>
+#include <nntrainer_error.h>
 
 namespace nntrainer {
 

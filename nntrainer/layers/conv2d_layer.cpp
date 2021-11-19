@@ -18,11 +18,13 @@
 
 #include <blas_interface.h>
 #include <conv2d_layer.h>
+#include <layer_context.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <profiler.h>
+#include <tensor_dim.h>
 #include <util_func.h>
 
 namespace nntrainer {

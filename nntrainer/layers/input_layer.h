@@ -25,9 +25,7 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <layer_context.h>
 #include <layer_devel.h>
-#include <tensor.h>
 
 namespace nntrainer {
 

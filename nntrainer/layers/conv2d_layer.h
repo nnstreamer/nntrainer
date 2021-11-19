@@ -17,6 +17,7 @@
 
 #include <memory.h>
 
+#include <common_properties.h>
 #include <layer_impl.h>
 
 namespace nntrainer {

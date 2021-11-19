@@ -17,7 +17,6 @@
 
 #include <common_properties.h>
 #include <layer_devel.h>
-#include <node_exporter.h>
 
 namespace nntrainer {
 

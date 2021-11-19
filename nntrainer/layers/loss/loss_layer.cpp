@@ -11,9 +11,13 @@
  *
  */
 
+#include <layer_context.h>
 #include <loss_layer.h>
 
 namespace nntrainer {
+void LossLayer::finalize(InitLayerContext &context) {
+  context.setOutputDimensions(context.getInputDimensions());
+}
 
 void LossLayer::updateLoss(RunLayerContext &context, const Tensor &l) {
   float loss_sum = 0.0f;

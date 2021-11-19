@@ -21,6 +21,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #endif
 
+#include <common_properties.h>
 #include <layer_devel.h>
 
 namespace nntrainer {

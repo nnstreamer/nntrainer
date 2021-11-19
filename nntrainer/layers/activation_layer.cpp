@@ -21,7 +21,7 @@
 #include <activation_layer.h>
 #include <blas_interface.h>
 #include <common_properties.h>
-#include <lazy_tensor.h>
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>

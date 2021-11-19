@@ -17,9 +17,7 @@
 #define __PREPROCESS_L2NORM_LAYER_H__
 #include <string>
 
-#include <layer_context.h>
 #include <layer_devel.h>
-#include <node_exporter.h>
 
 namespace nntrainer {
 

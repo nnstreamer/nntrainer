@@ -17,6 +17,7 @@
 
 #include <random>
 
+#include <common_properties.h>
 #include <layer_devel.h>
 
 namespace nntrainer {

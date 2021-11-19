@@ -17,6 +17,8 @@
 #include <string>
 
 #include <conv1d_layer.h>
+#include <conv2d_layer.h>
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -34,6 +36,8 @@ Conv1DLayer::Conv1DLayer(const std::array<unsigned int, 2> &padding_) :
   wt_idx({0}) {
   conv2d_layer = std::make_unique<Conv2DLayer>();
 }
+
+Conv1DLayer::~Conv1DLayer() {}
 
 void Conv1DLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {

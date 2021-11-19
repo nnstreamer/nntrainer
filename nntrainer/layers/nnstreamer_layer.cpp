@@ -16,6 +16,7 @@
 #include <fstream>
 
 #include <common_properties.h>
+#include <layer_context.h>
 #include <nnstreamer_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -60,8 +61,7 @@ NNStreamerLayer::NNStreamerLayer() :
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
-                                             TensorDim &dim) {
+static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res, TensorDim &dim) {
   int status = ML_ERROR_NONE;
   unsigned int count;
   ml_tensor_type_e type;

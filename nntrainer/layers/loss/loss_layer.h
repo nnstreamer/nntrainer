@@ -17,6 +17,8 @@
 
 #include <layer_devel.h>
 
+#include <tensor.h>
+
 namespace nntrainer {
 
 /**
@@ -33,9 +35,7 @@ public:
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  virtual void finalize(InitLayerContext &context) override {
-    context.setOutputDimensions(context.getInputDimensions());
-  }
+  virtual void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)

@@ -13,8 +13,10 @@
 #include <string>
 #include <tuple>
 
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <permute_layer.h>
 #include <tensor.h>
 #include <tensor_dim.h>

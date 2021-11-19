@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <base_properties.h>
+#include <common_properties.h>
 #include <layer_devel.h>
 
 namespace nntrainer {
@@ -105,13 +106,7 @@ public:
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override {
-    context.updateTensor(pool_helper_idx, batch);
-    props::PoolingTypeInfo::Enum pooling_type =
-      std::get<props::PoolingType>(pooling2d_props).get();
-    if (pooling_type == props::PoolingTypeInfo::Enum::global_max)
-      pool_helper_size.resize(batch * context.getInput(0).channel());
-  }
+  void setBatch(RunLayerContext &context, unsigned int batch) override;
 
 private:
   std::array<unsigned int, POOLING2D_DIM * 2> padding;

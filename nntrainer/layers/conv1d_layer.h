@@ -15,11 +15,13 @@
 #define __CONV1D_LAYER_H_
 #ifdef __cplusplus
 
-#include <conv2d_layer.h>
+#include <common_properties.h>
 #include <layer_impl.h>
 #include <memory.h>
 
 namespace nntrainer {
+
+class Conv2DLayer;
 
 /**
  * @class   Convolution 1D Layer
@@ -35,7 +37,7 @@ public:
   /**
    * @brief     Destructor of Conv 1D Layer
    */
-  ~Conv1DLayer() = default;
+  ~Conv1DLayer();
 
   /**
    *  @brief  Move constructor of Conv 1D Layer.
