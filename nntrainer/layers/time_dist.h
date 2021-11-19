@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <layer_devel.h>
+#include <weight.h>
 
 namespace nntrainer {
 

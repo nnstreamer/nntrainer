@@ -29,6 +29,7 @@
 #define APP_VALIDATE
 #endif
 
+#include <iostream>
 #include <limits.h>
 #include <stdlib.h>
 #include <time.h>

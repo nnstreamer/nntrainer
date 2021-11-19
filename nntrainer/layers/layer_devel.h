@@ -27,15 +27,14 @@
 #include <string>
 #include <vector>
 
-#include <layer_context.h>
-#include <tensor.h>
-
 namespace ml::train {
 class Layer;
 }
 
 namespace nntrainer {
 
+class InitLayerContext;
+class RunLayerContext;
 class Exporter;
 
 enum class ExportMethods;

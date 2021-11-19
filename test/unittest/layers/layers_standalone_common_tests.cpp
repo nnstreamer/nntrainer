@@ -12,7 +12,10 @@
 
 #include <layers_common_tests.h>
 
+#include <layer_context.h>
 #include <layer_devel.h>
+#include <nntrainer_error.h>
+#include <tensor_dim.h>
 
 constexpr unsigned SAMPLE_TRIES = 10;
 
@@ -36,8 +39,8 @@ TEST_P(LayerSemantics, DISABLED_setPropertiesValidInvalidOnly_n) {
 }
 
 TEST_P(LayerSemantics, finalizeValidate_p) {
-  nntrainer::TensorDim in_dim({1, 1, 1, 1});
-  std::vector<nntrainer::TensorDim> input_dims(num_inputs, in_dim);
+  ml::train::TensorDim in_dim({1, 1, 1, 1});
+  std::vector<ml::train::TensorDim> input_dims(num_inputs, in_dim);
   nntrainer::InitLayerContext init_context =
     nntrainer::InitLayerContext(input_dims, 1, false, "layer");
   EXPECT_EQ(init_context.validate(), true);
@@ -77,8 +80,8 @@ TEST_P(LayerSemantics, gettersValidate_p) {
 }
 
 TEST_P(LayerSemantics, setBatchValidate_p) {
-  nntrainer::TensorDim in_dim({1, 1, 1, 1});
-  std::vector<nntrainer::TensorDim> input_dims(num_inputs, in_dim);
+  ml::train::TensorDim in_dim({1, 1, 1, 1});
+  std::vector<ml::train::TensorDim> input_dims(num_inputs, in_dim);
   nntrainer::InitLayerContext init_context =
     nntrainer::InitLayerContext(input_dims, 1, false, "layer");
   EXPECT_EQ(init_context.validate(), true);

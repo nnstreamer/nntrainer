@@ -15,6 +15,7 @@
 #define __EMBEDDING_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
 #include <layer_impl.h>
 
 namespace nntrainer {

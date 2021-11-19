@@ -14,13 +14,13 @@
 #include <cstring>
 #include <limits>
 
-#include <lazy_tensor.h>
+#include <common_properties.h>
+#include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <pooling2d_layer.h>
 #include <util_func.h>
-
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -403,6 +403,14 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
       }
     }
   }
+}
+
+void Pooling2DLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  context.updateTensor(pool_helper_idx, batch);
+  props::PoolingTypeInfo::Enum pooling_type =
+    std::get<props::PoolingType>(pooling2d_props).get();
+  if (pooling_type == props::PoolingTypeInfo::Enum::global_max)
+    pool_helper_size.resize(batch * context.getInput(0).channel());
 }
 
 } /* namespace nntrainer */

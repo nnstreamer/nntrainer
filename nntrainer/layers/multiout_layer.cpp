@@ -12,6 +12,7 @@
  */
 
 #include <cstring>
+#include <layer_context.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

@@ -11,6 +11,7 @@
  *
  */
 
+#include <layer_context.h>
 #include <lazy_tensor.h>
 #include <mse_loss_layer.h>
 

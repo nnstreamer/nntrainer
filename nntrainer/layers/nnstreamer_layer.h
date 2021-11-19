@@ -98,15 +98,6 @@ private:
    * @brief     release the layer resources
    */
   void release() noexcept;
-
-  /**
-   * @brief    convert nnstreamer's tensor_info to nntrainer's tensor_dim
-   * @param[in] out_res nnstreamer's tensor_info
-   * @param[out] dim nntrainer's tensor_dim
-   * @retval 0 on success, -errno on failure
-   */
-  static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
-                                     TensorDim &dim);
 };
 } // namespace nntrainer
 
