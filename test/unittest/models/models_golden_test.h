@@ -31,13 +31,16 @@ class NeuralNetwork;
  *
  */
 typedef enum {
-  COMPARE = 1 << 0,           /**< Set this to compare the numbers */
+  NO_THROW_RUN = 0, /**< no comparison, only validate execution without throw */
+  COMPARE = 1 << 0, /**< Set this to compare the numbers */
   SAVE_AND_LOAD_INI = 1 << 1, /**< Set this to check if saving and constructing
                                  a new model works okay (without weights) */
-  COMPARE_V2 = 1 << 2,        /**< compare with v2 model format */
+  USE_V2 = 1 << 2,            /**< use v2 model format */
 
-  NO_THROW_RUN = 0, /**< no comparison, only validate execution without throw */
-  ALL = COMPARE | SAVE_AND_LOAD_INI /**< Set every option */
+  COMPARE_V2 = COMPARE | USE_V2,                 /**< compare v2 */
+  NO_THROW_RUN_V2 = NO_THROW_RUN | USE_V2,       /**< no throw run with v2 */
+  SAVE_AND_LOAD_V2 = SAVE_AND_LOAD_INI | USE_V2, /**< save and load with v2 */
+  ALL = COMPARE | SAVE_AND_LOAD_INI              /**< Set every option */
 } ModelTestOption;
 
 using ModelGoldenTestParamType =
@@ -130,9 +133,7 @@ protected:
    *
    * @return bool true if test should be done
    */
-  bool shouldCompare() {
-    return options & (ModelTestOption::COMPARE | ModelTestOption::COMPARE_V2);
-  }
+  bool shouldCompare() { return options & (ModelTestOption::COMPARE); }
 
   /**
    * @brief query if saveload ini test should be done
@@ -147,15 +148,21 @@ protected:
    * @brief compare for the value
    *
    * @param opt set if compare while optimized
+   * @param creator creator to use instead of default creator
    */
-  void compare(bool opt);
+  void compare(bool opt,
+               std::function<std::unique_ptr<nntrainer::NeuralNetwork>()>
+                 creator = nullptr);
 
   /**
    * @brief validate for the value
    *
    * @param opt set if validate while optimized
+   * @param creator creator to use instead of default creator
    */
-  void validate(bool opt);
+  void validate(bool opt,
+                std::function<std::unique_ptr<nntrainer::NeuralNetwork>()>
+                  creator = nullptr);
 
 private:
   /**
