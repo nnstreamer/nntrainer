@@ -28,9 +28,8 @@ GraphRepresentation
 MultioutRealizer::realize(const GraphRepresentation &reference) {
   GraphRepresentation processed(reference.begin(), reference.end());
 
-  std::unordered_multiset<std::string> freq_map;
   std::unordered_set<std::string> node_names;
-  std::unordered_set<std::string> connection_names;
+  std::unordered_map<std::string, unsigned> freq_map;
 
   /// 1. build frequency map and connection names
   for (auto &node : reference) {
@@ -43,8 +42,8 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
       props::InputConnection c(props::Connection(
         node->getInputConnectionName(i), node->getInputConnectionIndex(i)));
       auto uniq_name = to_string(c);
-      connection_names.emplace(uniq_name);
-      freq_map.emplace(uniq_name);
+      [[maybe_unused]] auto [iter, result] = freq_map.try_emplace(uniq_name, 0);
+      iter->second++;
     }
   }
 
@@ -54,10 +53,10 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
                           std::shared_ptr<LayerNode> /**< created node */>
     multiout_nodes;
 
-  for (auto &con_name : connection_names) {
+  for (auto &[con_name, freq] : freq_map) {
     props::InputConnection con;
     from_string(con_name, con);
-    if (freq_map.count(con_name) <= 1) {
+    if (freq <= 1) {
       continue;
     }
 

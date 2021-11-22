@@ -143,34 +143,6 @@ int NetworkGraph::realizeActivationType(
   return status;
 }
 
-int NetworkGraph::realizeMultiOutputType(
-  const std::shared_ptr<LayerNode> &in_node) {
-  int status = ML_ERROR_NONE;
-  /**
-   * Multi-input works with time distribution layer by itself
-   *
-   */
-
-  if (in_node->getNumOutputConnections() <= 1)
-    return ML_ERROR_NONE;
-
-  std::shared_ptr<LayerNode> lnode = createLayerNode(MultiOutLayer::type);
-  graph.ensureName(*lnode, in_node->getName());
-
-  lnode->setInputLayers({in_node->getName()});
-  lnode->setOutputLayers(in_node->getOutputLayers());
-
-  in_node->setOutputLayers({lnode->getName()});
-
-  for (unsigned int i = 0; i < in_node->getNumOutputConnections(); ++i) {
-    updateConnectionName(in_node->getName(), lnode->getName());
-  }
-
-  graph.addNode(lnode, false);
-
-  return status;
-}
-
 int NetworkGraph::addLossLayer(const std::string &loss_type_) {
   for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
     auto output_layer_node = LNODE(graph.getOutputNode(i));
@@ -352,19 +324,6 @@ int NetworkGraph::realizeGraph() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  /**
-   * invariant: the new realized nodes are added to the end,
-   * otherwise this iteration becomes invalid. So, every iteration must be
-   * fresh iterator as vector resize invalidates all the iterators.
-   */
-  for (unsigned int i = 0; i < graph.size(); ++i) {
-    auto const &lnode = LNODE(*(cbegin() + i));
-    if (lnode->getType() != MultiOutLayer::type &&
-        lnode->getType() != SplitLayer::type) {
-      status = realizeMultiOutputType(lnode);
-      NN_RETURN_STATUS();
-    }
-  }
   /// @todo add check that input_layers <-> output_layers does match.
   /// @todo check whether graph has a cycle or graph is seperated to subgraph
 
