@@ -44,6 +44,7 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <gru.h>
+#include <grucell.h>
 #include <input_layer.h>
 #include <lstm.h>
 #include <lstmcell.h>
@@ -250,6 +251,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_SPLIT);
   ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
                      LayerType::LAYER_GRU);
+  ac.registerFactory(nntrainer::createLayer<GRUCellLayer>, GRUCellLayer::type,
+                     LayerType::LAYER_GRUCELL);
   ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
                      LayerType::LAYER_PERMUTE);
   ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,

@@ -70,6 +70,7 @@ enum LayerType {
   LAYER_RESHAPE,                           /**< Reshape Layer type */
   LAYER_RNNCELL,                           /**< RNN Cell Layer type */
   LAYER_LSTMCELL,                          /**< LSTM Cell Layer type */
+  LAYER_GRUCELL,                           /**< GRU Cell Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
@@ -341,6 +342,14 @@ LSTMCell(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 GRU(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_GRU, properties);
+}
+
+/**
+ * @brief Helper function to create GRUCell layer
+ */
+inline std::unique_ptr<Layer>
+GRUCell(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_GRUCELL, properties);
 }
 
 /**
