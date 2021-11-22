@@ -138,65 +138,75 @@ public:
 };
 
 /**
- * @brief RAII class to define the connection spec
+ * @brief RAII class to define the connection
  *
  */
-class ConnectionSpec {
+class Connection {
 public:
-  static std::string NoneType;
-
   /**
-   * @brief Construct a new Connection Spec object
+   * @brief Construct a new Connection object
    *
-   * @param layer_ids_ layer ids that will be an operand
-   * @param op_type_ operator type
+   * @param layer_name layer identifier
    */
-  ConnectionSpec(const std::vector<Name> &layer_ids_,
-                 const std::string &op_type_ = ConnectionSpec::NoneType);
+  Connection(const std::string &layer_name, unsigned int idx);
 
   /**
-   * @brief Construct a new Connection Spec object
+   * @brief Construct a new Connection object
    *
    * @param rhs rhs to copy
    */
-  ConnectionSpec(const ConnectionSpec &rhs);
+  Connection(const Connection &rhs);
 
   /**
    * @brief Copy assignment operator
    *
    * @param rhs rhs to copy
-   * @return ConnectionSpec&
+   * @return Connection&
    */
-  ConnectionSpec &operator=(const ConnectionSpec &rhs);
+  Connection &operator=(const Connection &rhs);
 
   /**
-   * @brief Move Construct Connection Spec object
+   * @brief Move Construct Connection object
    *
    * @param rhs rhs to move
    */
-  ConnectionSpec(ConnectionSpec &&rhs) noexcept;
+  Connection(Connection &&rhs) noexcept;
 
   /**
-   * @brief Move assign a connection spec operator
+   * @brief Move assign a connection operator
    *
    * @param rhs rhs to move
-   * @return ConnectionSpec&
+   * @return Connection&
    */
-  ConnectionSpec &operator=(ConnectionSpec &&rhs) noexcept;
+  Connection &operator=(Connection &&rhs) noexcept;
 
   /**
-   * @brief Get the Op Type object
+   * @brief Get the index
    *
-   * @return const std::string& op_type (read-only)
+   * @return unsigned index
    */
-  const std::string &getOpType() const { return op_type; }
+  const unsigned getIndex() const { return index; }
 
   /**
-   * @brief Get the Layer Ids object
+   * @brief Get the index
    *
-   * @return const std::vector<Name>& vector of layer ids (read-only)
+   * @return unsigned index
    */
-  const std::vector<Name> &getLayerIds() const { return layer_ids; }
+  unsigned &getIndex() { return index; }
+
+  /**
+   * @brief Get the Layer name object
+   *
+   * @return const Name& name of layer
+   */
+  const Name &getName() const { return name; }
+
+  /**
+   * @brief Get the Layer name object
+   *
+   * @return Name& name of layer
+   */
+  Name &getName() { return name; }
 
   /**
    *
@@ -206,11 +216,11 @@ public:
    * @return true if equal
    * @return false if not equal
    */
-  bool operator==(const ConnectionSpec &rhs) const;
+  bool operator==(const Connection &rhs) const noexcept;
 
 private:
-  std::string op_type;
-  std::vector<Name> layer_ids;
+  unsigned index;
+  Name name;
 };
 
 /**
@@ -223,25 +233,23 @@ struct connection_prop_tag {};
  * @brief InputSpec property, this defines connection specification of an input
  *
  */
-class InputSpec : public nntrainer::Property<ConnectionSpec> {
+class InputConnection : public nntrainer::Property<Connection> {
 public:
   /**
    * @brief Construct a new Input Spec object
    *
    */
-  InputSpec() : nntrainer::Property<ConnectionSpec>() {}
+  InputConnection();
 
   /**
    * @brief Construct a new Input Spec object
    *
    * @param value default value of a input spec
    */
-  InputSpec(const ConnectionSpec &value) :
-    nntrainer::Property<ConnectionSpec>(value) {} /**< default value if any */
+  InputConnection(const Connection &value);
   static constexpr const char *key =
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
-  bool isValid(const ConnectionSpec &v) const override;
 };
 
 /**

@@ -101,92 +101,49 @@ TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
   EXPECT_THROW(n.set("+layer"), std::invalid_argument);
 }
 
-TEST(InputSpecProperty, setPropertyValid_p) {
+TEST(InputConnection, setPropertyValid_p) {
   using namespace nntrainer::props;
   {
-    InputSpec expected(
-      ConnectionSpec({Name("A"), Name("B"), Name("C")}, "concat"));
+    InputConnection expected(Connection("a", 0));
 
-    InputSpec actual;
-    nntrainer::from_string("A, B, C", actual);
+    InputConnection actual;
+    nntrainer::from_string("A", actual);
     EXPECT_EQ(actual, expected);
-    EXPECT_EQ("a,b,c", nntrainer::to_string(actual));
+    EXPECT_EQ("a(0)", nntrainer::to_string(actual));
   }
 
   {
-    InputSpec expected(
-      ConnectionSpec({Name("A"), Name("B"), Name("C")}, "addition"));
+    InputConnection expected(Connection("a", 2));
 
-    InputSpec actual;
-    nntrainer::from_string("A+ B +C", actual);
-    EXPECT_EQ("a+b+c", nntrainer::to_string(actual));
-
+    InputConnection actual;
+    nntrainer::from_string("a(2)", actual);
     EXPECT_EQ(actual, expected);
-  }
-
-  {
-    InputSpec expected(ConnectionSpec({Name("a")}, ConnectionSpec::NoneType));
-
-    InputSpec actual;
-    nntrainer::from_string("a", actual);
-    EXPECT_EQ("a", nntrainer::to_string(actual));
-
-    EXPECT_EQ(actual, expected);
+    EXPECT_EQ("a(2)", nntrainer::to_string(actual));
   }
 }
 
-TEST(InputSpecProperty, emptyString_n_01) {
+TEST(InputConnection, emptyString_n_01) {
   using namespace nntrainer::props;
-  InputSpec actual;
+  InputConnection actual;
   EXPECT_THROW(nntrainer::from_string("", actual), std::invalid_argument);
 }
 
-TEST(InputSpecProperty, combinedOperator_n_01) {
+TEST(InputConnection, onlyIndex_n_01) {
   using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A,B+C", actual), std::invalid_argument);
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("[0]", actual), std::invalid_argument);
 }
 
-TEST(InputSpecProperty, combinedOperator_n_02) {
+TEST(InputConnection, invalidFormat_n_01) {
   using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A+B,C", actual), std::invalid_argument);
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("a[0", actual), std::invalid_argument);
 }
 
-TEST(InputSpecProperty, noOperator_n_01) {
+TEST(InputConnection, invalidFormat_n_02) {
   using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A B", actual), std::invalid_argument);
-}
-
-TEST(InputSpecProperty, noOperator_n_02) {
-  using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A B", actual), std::invalid_argument);
-}
-
-TEST(InputSpecProperty, leadingOperator_n_01) {
-  using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string(",A,B", actual), std::invalid_argument);
-}
-
-TEST(InputSpecProperty, leadingOperator_n_02) {
-  using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("+A+B", actual), std::invalid_argument);
-}
-
-TEST(InputSpecProperty, trailingOperator_n_01) {
-  using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A,B,,", actual), std::invalid_argument);
-}
-
-TEST(InputSpecProperty, trailingOperator_n_02) {
-  using namespace nntrainer::props;
-  InputSpec actual;
-  EXPECT_THROW(nntrainer::from_string("A+B++", actual), std::invalid_argument);
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("[0", actual), std::invalid_argument);
 }
 
 TEST(Padding2D, setPropertyValid_p) {
@@ -259,14 +216,14 @@ int main(int argc, char **argv) {
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing IniGoogleTest" << std::endl;
+    std::cerr << "Error during IniGoogleTest" << std::endl;
     return 0;
   }
 
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TESTS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 
   return result;

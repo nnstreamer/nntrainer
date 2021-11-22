@@ -10,10 +10,12 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include <base_properties.h>
 #include <common_properties.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <stdexcept>
 #include <tensor_dim.h>
 
 #include <regex>
@@ -75,36 +77,22 @@ ReturnSequences::ReturnSequences(bool value) { set(value); }
 
 bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
 
-ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
-                               const std::string &op_type_) :
-  op_type(op_type_),
-  layer_ids(layer_ids_) {
-  NNTR_THROW_IF((op_type != ConnectionSpec::NoneType && layer_ids.size() < 2),
-                std::invalid_argument)
-    << "connection type is not none but has only a single or empty layer id, "
-       "type: "
-    << op_type << " number of names: " << layer_ids.size();
+InputConnection::InputConnection() : nntrainer::Property<Connection>() {}
+InputConnection::InputConnection(const Connection &value) :
+  nntrainer::Property<Connection>(value) {} /**< default value if any */
 
-  NNTR_THROW_IF((op_type == ConnectionSpec::NoneType && layer_ids.size() >= 2),
-                std::invalid_argument)
-    << "connection type is none but has only a single or empty layer id, "
-       "number of names: "
-    << layer_ids.size();
-}
+Connection::Connection(const std::string &layer_name, unsigned int idx) :
+  index(idx),
+  name(layer_name) {}
 
-ConnectionSpec::ConnectionSpec(const ConnectionSpec &rhs) = default;
-ConnectionSpec &ConnectionSpec::operator=(const ConnectionSpec &rhs) = default;
-ConnectionSpec::ConnectionSpec(ConnectionSpec &&rhs) noexcept = default;
-ConnectionSpec &ConnectionSpec::
-operator=(ConnectionSpec &&rhs) noexcept = default;
+Connection::Connection(const Connection &rhs) = default;
+Connection &Connection::operator=(const Connection &rhs) = default;
+Connection::Connection(Connection &&rhs) noexcept = default;
+Connection &Connection::operator=(Connection &&rhs) noexcept = default;
 
-bool ConnectionSpec::operator==(const ConnectionSpec &rhs) const {
-  return op_type == rhs.op_type && layer_ids == rhs.layer_ids;
-}
-
-bool InputSpec::isValid(const ConnectionSpec &v) const {
-  return v.getLayerIds().size() > 0;
-}
+bool Connection::operator==(const Connection &rhs) const noexcept {
+  return index == rhs.index and name == rhs.name;
+};
 
 Epsilon::Epsilon(float value) { set(value); }
 
@@ -255,8 +243,6 @@ std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input,
   return {0, 0};
 }
 
-std::string ConnectionSpec::NoneType = "";
-
 WeightRegularizerConstant::WeightRegularizerConstant(float value) {
   set(value);
 }
@@ -323,83 +309,32 @@ void GenericShape::set(const TensorDim &value) {
 
 } // namespace props
 
-static const std::vector<std::pair<char, std::string>>
-  connection_supported_tokens = {{',', "concat"}, {'+', "addition"}};
-
 template <>
 std::string
-str_converter<props::connection_prop_tag, props::ConnectionSpec>::to_string(
-  const props::ConnectionSpec &value) {
-
-  auto &type = value.getOpType();
-
-  if (type == props::ConnectionSpec::NoneType) {
-    return value.getLayerIds().front();
-  }
-
-  auto &cst = connection_supported_tokens;
-
-  auto find_token = [&type](const std::pair<char, std::string> &token) {
-    return token.second == type;
-  };
-
-  auto token = std::find_if(cst.begin(), cst.end(), find_token);
-
-  NNTR_THROW_IF(token == cst.end(), std::invalid_argument)
-    << "Unsupported type given: " << type;
-
+str_converter<props::connection_prop_tag, props::Connection>::to_string(
+  const props::Connection &value) {
   std::stringstream ss;
-  auto last_iter = value.getLayerIds().end() - 1;
-  for (auto iter = value.getLayerIds().begin(); iter != last_iter; ++iter) {
-    ss << static_cast<std::string>(*iter) << token->first;
-  }
-  ss << static_cast<std::string>(*last_iter);
-
+  ss << value.getName().get() << '(' << value.getIndex() << ')';
   return ss.str();
 }
 
 template <>
-props::ConnectionSpec
-str_converter<props::connection_prop_tag, props::ConnectionSpec>::from_string(
+props::Connection
+str_converter<props::connection_prop_tag, props::Connection>::from_string(
   const std::string &value) {
-  auto generate_regex = [](char token) {
-    std::stringstream ss;
-    ss << "\\s*\\" << token << "\\s*";
+  auto pos = value.find_first_of('(');
+  auto idx = 0u;
+  auto name_part = value.substr(0, pos);
 
-    return std::regex(ss.str());
-  };
+  if (pos != std::string::npos) {
+    NNTR_THROW_IF(value.back() != ')', std::invalid_argument)
+      << "failed to parse connection invalid format: " << value;
 
-  auto generate_name_vector = [](const std::vector<std::string> &values) {
-    props::Name n;
-    std::vector<props::Name> names_;
-    names_.reserve(values.size());
-
-    for (auto &item : values) {
-      if (!n.isValid(item)) {
-        break;
-      }
-      names_.emplace_back(item);
-    }
-
-    return names_;
-  };
-
-  for (auto &token : connection_supported_tokens) {
-    auto reg_ = generate_regex(token.first);
-    auto values = split(value, reg_);
-    if (values.size() == 1) {
-      continue;
-    }
-
-    auto names = generate_name_vector(values);
-    if (names.size() == values.size()) {
-      return props::ConnectionSpec(names, token.second);
-    }
+    auto idx_part = value.substr(pos + 1, value.length() - 1);
+    idx = str_converter<uint_prop_tag, unsigned>::from_string(idx_part);
   }
 
-  props::Name n;
-  n.set(value); // explicitly trigger validation using set method
-  return props::ConnectionSpec({n});
+  return props::Connection(name_part, idx);
 }
 
 } // namespace nntrainer
