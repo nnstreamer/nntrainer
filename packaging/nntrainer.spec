@@ -268,7 +268,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 
 ## Define build options
 %define platform -Dplatform=tizen
-%define enable_tizen_feature_check -Denable-tizen-feature-check=true
+%define enable_tizen_feature_check -Denable-tizen-feature-check=true -Dtizen-version-major=0%{?tizen_version_major} -Dtizen-version-minor=0%{?tizen_version_minor}
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false

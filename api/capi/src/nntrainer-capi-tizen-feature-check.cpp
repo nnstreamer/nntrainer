@@ -28,6 +28,39 @@ extern "C" {
  */
 #define ML_TRAIN_FEATURE_PATH "tizen.org/feature/machine_learning.training"
 
+/// please note that this is a improvised measure for nnstreamer/api#110
+/// proper way will need exposing this particular function in ml-api side
+#if (TIZENVERSION >= 7) && (TIZENVERSION < 9999)
+
+/**
+ * @brief tizen set feature state from ml api side
+ *
+ * @param state -1 NOT checked yet, 0 supported, 1 not supported
+ * @return int 0 if success
+ */
+int _ml_tizen_set_feature_state(int state);
+#define ml_api_set_feature_state(...) _ml_tizen_set_feature_state(__VA_ARGS__)
+
+#elif (TIZENVERSION >= 6) && (TIZENVERSION < 9999)
+
+/**
+ * @brief tizen set feature state from ml api side
+ *
+ * @param state -1 NOT checked yet, 0 supported, 1 not supported
+ * @return int 0 if success
+ */
+int ml_tizen_set_feature_state(int state);
+#define ml_api_set_feature_state(...) ml_tizen_set_feature_state(__VA_ARGS__)
+
+#elif (TIZENVERSION <= 5)
+
+#warning Tizen version under 5 does not support setting features for unittest
+#define ml_api_set_feature_state(...)
+
+#else /* TIZENVERSION */
+#error Tizen version is not defined.
+#endif /* TIZENVERSION */
+
 /**
  * @brief Internal struct to control tizen feature support
  * (machine_learning.training). -1: Not checked yet, 0: Not supported, 1:
@@ -46,23 +79,13 @@ typedef struct _feature_info_s {
 
 static feature_info_s feature_info;
 
-/// please note that this is a improvised measure for nnstreamer/api#110
-/// proper way will need exposing this particular function in ml-api side
-/**
- * @brief tizen set feature state from ml api side
- *
- * @param state -1 NOT checked yet, 0 supported, 1 not supported
- * @return int 0 if success
- */
-int _ml_tizen_set_feature_state(int state);
-
 /**
  * @brief Set the feature status of machine_learning.training.
  */
 void ml_train_tizen_set_feature_state(feature_state_t state) {
   pthread_mutex_lock(&feature_info.mutex);
 
-  _ml_tizen_set_feature_state((int)state);
+  ml_api_set_feature_state((int)state);
 
   /**
    * Update feature status
