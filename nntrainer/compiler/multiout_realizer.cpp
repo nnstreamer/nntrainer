@@ -56,6 +56,12 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
   for (auto &[con_name, freq] : freq_map) {
     props::InputConnection con;
     from_string(con_name, con);
+
+    /// @note freq < 1 should never happen as the map entry is not created.
+    /// but if it happens multiout realizer is not interested in checking if it
+    /// is a dangled or actually an output. So there is no assurance done at
+    /// this point. Some other class must check if the given graph is formed in
+    /// a correct way.
     if (freq <= 1) {
       continue;
     }
