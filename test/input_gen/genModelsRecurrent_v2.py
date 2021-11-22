@@ -88,6 +88,36 @@ class LSTMStacked(torch.nn.Module):
         loss = self.loss(ret, labels[0])
         return ret, loss
 
+class GRUCellStacked(torch.nn.Module):
+    def __init__(self, unroll_for=2, num_gru=1):
+        super().__init__()
+        self.input_size = self.hidden_size = 2
+        self.grus = torch.nn.ModuleList(
+            [
+                torch.nn.GRUCell(self.input_size, self.hidden_size, bias=True)
+                for _ in range(num_gru)
+            ]
+        )
+        for gru in self.grus:
+            gru.bias_hh.data.fill_(0.0)
+            gru.bias_hh.requires_grad=False
+        self.unroll_for = unroll_for
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        hs = [torch.zeros_like(inputs[0]) for _ in self.grus]
+        out = inputs[0]
+        ret = []
+        for _ in range(self.unroll_for):
+            for i, (gru, h) in enumerate(zip(self.grus, hs)):
+                hs[i] = gru(out, h)
+                out = hs[i]
+            ret.append(out)
+
+        ret = torch.stack(ret, dim=1)
+        loss = self.loss(ret, labels[0])
+        return ret, loss
+
 if __name__ == "__main__":
     record_v2(
         FCUnroll(unroll_for=5),
@@ -135,6 +165,22 @@ if __name__ == "__main__":
         input_dims=[(3, 2)],
         label_dims=[(3, 2, 2)],
         name="lstm_stacked",
+    )
+
+    record_v2(
+        GRUCellStacked(unroll_for=2, num_gru=1),
+        iteration=2,
+        input_dims=[(3, 2)],
+        label_dims=[(3, 2, 2)],
+        name="grucell_single",
+    )
+
+    record_v2(
+        GRUCellStacked(unroll_for=2, num_gru=2),
+        iteration=2,
+        input_dims=[(3, 2)],
+        label_dims=[(3, 2, 2)],
+        name="grucell_stacked",
     )
 
     # inspect_file("lstm_single.nnmodelgolden")
