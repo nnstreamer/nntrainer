@@ -10,10 +10,15 @@
  * @brief  This is the layer node for network graph
  */
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <utility>
 
 #include <activation_layer.h>
 #include <app_context.h>
+#include <base_properties.h>
+#include <common_properties.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -21,9 +26,6 @@
 #include <profiler.h>
 #include <time_dist.h>
 #include <util_func.h>
-
-#include <base_properties.h>
-#include <common_properties.h>
 
 namespace nntrainer {
 static constexpr const char *FORWARD_SUFFIX = ":forward";
@@ -188,19 +190,20 @@ const std::string LayerNode::getName() const noexcept {
 std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
 
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*l.layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*l.layer_node_props);
 
   out << "[" << l.getName() << '/' << l.getType() << "]\n";
   auto print_vector = [&out](const auto &layers, const std::string &title) {
     out << title << "[" << layers.size() << "] ";
     for (auto &layer : layers) {
-      out << static_cast<std::string>(layer) << ' ';
+      out << to_string(layer) << ' ';
     }
     out << '\n';
   };
 
   print_vector(input_layers, " input_layers");
-  print_vector(l.output_layers, "output_layers");
+  /// @todo enable this
+  // print_vector(l.output_layers, "output_layers");
   return out;
 }
 
@@ -215,14 +218,19 @@ ActivationType LayerNode::getActivationType() const {
 
 unsigned int LayerNode::getNumInputConnections() const {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
   return input_layers.size();
 }
 
 const std::vector<std::string> LayerNode::getInputLayers() const {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
-  return std::vector<std::string>(input_layers.begin(), input_layers.end());
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  std::vector<std::string> names;
+  names.reserve(input_layers.size());
+  std::transform(input_layers.begin(), input_layers.end(),
+                 std::back_inserter(names),
+                 [](const props::Connection &con) { return con.getName(); });
+  return names;
 }
 
 ActivationType LayerNode::getActivationToBeRealized() const {
@@ -284,10 +292,10 @@ nntrainer::Layer *LayerNode::getLayer() {
 void LayerNode::updateInputLayers(const std::string &from,
                                   const std::string &to) {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
   for (auto &input_layer : input_layers) {
-    if (istrequal(input_layer, from)) {
-      input_layer.set(to);
+    if (istrequal(input_layer.get().getName(), from)) {
+      input_layer.set({to, 0});
     }
   }
 }
@@ -295,21 +303,26 @@ void LayerNode::updateInputLayers(const std::string &from,
 void LayerNode::updateInputLayers(const unsigned int idx,
                                   const std::string &to) {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
 
-  input_layers.at(idx).set(to);
+  input_layers.at(idx).set({to, 0});
 }
 
 void LayerNode::addInputLayers(const std::string &in_layer) {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
-  input_layers.emplace_back(in_layer);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  input_layers.emplace_back(props::Connection(in_layer, 0));
 }
 
 void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
-  input_layers = std::vector<props::InputLayer>(layers.begin(), layers.end());
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  input_layers.clear();
+  input_layers.reserve(layers.size());
+  std::transform(layers.begin(), layers.end(), std::back_inserter(input_layers),
+                 [](const std::string &id) {
+                   return props::Connection{id, 0};
+                 });
 }
 
 bool LayerNode::hasInputShapeProperty() const {
@@ -390,16 +403,16 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   std::vector<TensorDim> actual_input_dims;
   auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
   auto &prop_in_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
 
   /** prepare input dimensions */
   if (!input_dims.empty()) {
     actual_input_dims = input_dims;
     if (hasInputShapeProperty()) {
-      std::vector<TensorDim> acutal_prop_dims(prop_dims.begin(),
+      std::vector<TensorDim> actual_prop_dims(prop_dims.begin(),
                                               prop_dims.end());
       /// if prop_dims exist, check if it's same with given input_dims
-      NNTR_THROW_IF(input_dims != acutal_prop_dims, std::invalid_argument)
+      NNTR_THROW_IF(input_dims != actual_prop_dims, std::invalid_argument)
         << "calculated input dimension is different from given input_shape "
            "property";
     }
@@ -622,10 +635,11 @@ void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
   }
 
   auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
 
   for (auto &input_layer : input_layers) {
-    remap_fn(input_layer);
+    auto &name = input_layer.get().getName();
+    remap_fn(name);
   }
 
   for (auto &output_layer : output_layers) {
@@ -710,5 +724,4 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
     printMetric(out);
   }
 };
-
 }; // namespace nntrainer

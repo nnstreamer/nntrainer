@@ -50,6 +50,7 @@ class InputLayer;
 class InputShape;
 class Activation;
 class SharedFrom;
+class InputConnection;
 } // namespace props
 
 /**
@@ -717,7 +718,6 @@ private:
                                  calcDerivative */
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
-  std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
 
   std::unique_ptr<RunLayerContext>
@@ -728,8 +728,8 @@ properties in the context/graph unless intended. */
 
   using PropsType =
     std::tuple<props::Name, props::Distribute, props::Trainable,
-               std::vector<props::InputLayer>, std::vector<props::InputShape>,
-               props::SharedFrom>;
+               std::vector<props::InputConnection>,
+               std::vector<props::InputShape>, props::SharedFrom>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence
