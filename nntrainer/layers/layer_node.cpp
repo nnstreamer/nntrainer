@@ -154,6 +154,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
+  output_layers(new std::vector<props::Connection>()),
   run_context(nullptr),
   layer_node_props(new PropsType(props::Name(), props::Distribute(),
                                  props::Trainable(), {}, {},
@@ -222,12 +223,25 @@ unsigned int LayerNode::getNumInputConnections() const {
   return input_layers.size();
 }
 
+unsigned int LayerNode::getNumOutputConnections() const {
+  return output_layers->size();
+}
+
 const std::vector<std::string> LayerNode::getInputLayers() const {
   auto &input_layers =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
   std::vector<std::string> names;
   names.reserve(input_layers.size());
   std::transform(input_layers.begin(), input_layers.end(),
+                 std::back_inserter(names),
+                 [](const props::Connection &con) { return con.getName(); });
+  return names;
+}
+
+const std::vector<std::string> LayerNode::getOutputLayers() const {
+  std::vector<std::string> names;
+  names.reserve(output_layers->size());
+  std::transform(output_layers->begin(), output_layers->end(),
                  std::back_inserter(names),
                  [](const props::Connection &con) { return con.getName(); });
   return names;
@@ -314,6 +328,10 @@ void LayerNode::addInputLayers(const std::string &in_layer) {
   input_layers.emplace_back(props::Connection(in_layer, 0));
 }
 
+void LayerNode::addOutputLayers(const std::string &out_layer) {
+  output_layers->emplace_back(out_layer, 0);
+}
+
 void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   auto &input_layers =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
@@ -321,6 +339,15 @@ void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   input_layers.reserve(layers.size());
   std::transform(layers.begin(), layers.end(), std::back_inserter(input_layers),
                  [](const std::string &id) {
+                   return props::Connection{id, 0};
+                 });
+}
+
+void LayerNode::setOutputLayers(const std::vector<std::string> &layers) {
+  output_layers->clear();
+  output_layers->reserve(layers.size());
+  std::transform(layers.begin(), layers.end(),
+                 std::back_inserter(*output_layers), [](const std::string &id) {
                    return props::Connection{id, 0};
                  });
 }
@@ -455,8 +482,8 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   layer_node_props_realization = std::make_unique<RealizationPropsType>(
     props::Flatten(), props::Activation());
 
-  auto num_outputs = output_layers.size();
-  if (output_layers.empty()) {
+  auto num_outputs = output_layers->size();
+  if (output_layers->empty()) {
     num_outputs = 1;
   }
 
@@ -642,8 +669,9 @@ void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
     remap_fn(name);
   }
 
-  for (auto &output_layer : output_layers) {
-    remap_fn(output_layer);
+  for (auto &output_layer : *output_layers) {
+    auto &name = output_layer.getName();
+    remap_fn(name);
   }
 }
 

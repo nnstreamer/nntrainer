@@ -81,7 +81,7 @@ public:
    *
    * @return list of name of the nodes which form output connections
    */
-  virtual const std::vector<std::string> &getOutputConnections() const = 0;
+  virtual const std::vector<std::string> getOutputConnections() const = 0;
 
   /**
    * @brief     get the execution order/location of this node
