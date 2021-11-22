@@ -18,6 +18,8 @@ cxx = meson.get_compiler('cpp')
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
   add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])
+  add_project_arguments('-DTIZENVERSION=@0@'.format(get_option('tizen-version-major')), language: ['c', 'cpp'])
+  add_project_arguments('-DTIZENVERSIONMINOR=@0@'.format(get_option('tizen-version-minor')), language: ['c', 'cpp'])
 
   if get_option('enable-tizen-feature-check')
     add_project_arguments('-D__FEATURE_CHECK_SUPPORT__', language: ['c', 'cpp'])
