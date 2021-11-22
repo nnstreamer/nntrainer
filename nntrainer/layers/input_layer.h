@@ -31,6 +31,8 @@ namespace nntrainer {
 
 /**
  * @class   Input Layer
+ * @note    input layers requires to be only single input, consider making the
+ * class deal with multiple inputs
  * @brief   Just Handle the Input of Network
  */
 class InputLayer : public Layer {
