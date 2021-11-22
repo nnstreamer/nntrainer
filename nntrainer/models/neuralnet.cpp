@@ -33,6 +33,7 @@
 #include <ini_wrapper.h>
 #include <input_realizer.h>
 #include <model_loader.h>
+#include <multiout_realizer.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -133,6 +134,7 @@ int NeuralNetwork::compile() {
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
   realizers.emplace_back(new PreviousInputRealizer(input_layers));
+  realizers.emplace_back(new MultioutRealizer());
   realizers.emplace_back(new FlattenRealizer());
 
   for (auto &realizer : realizers) {

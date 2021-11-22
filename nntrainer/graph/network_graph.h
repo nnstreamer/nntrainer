@@ -415,14 +415,6 @@ private:
   int realizeGraph();
 
   /**
-   * @brief     check and add Multi output Layer : output Layer
-   * @param[in] in_node layernode
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeMultiOutputType(const std::shared_ptr<LayerNode> &in_node);
-
-  /**
    * @brief     Realize act type to layer and insert it to layers
    * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.
