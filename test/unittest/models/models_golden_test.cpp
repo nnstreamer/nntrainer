@@ -17,18 +17,26 @@
 #include <gtest/gtest.h>
 #include <neuralnet.h>
 
-void nntrainerModelTest::compare(bool opt) {
-  GraphWatcher g(createModel(), opt);
-  if (options & (ModelTestOption::COMPARE_V2)) {
+void nntrainerModelTest::compare(
+  bool opt,
+  std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> creator) {
+
+  auto net = creator ? creator() : createModel();
+  GraphWatcher g(std::move(net), opt);
+  if (options & (ModelTestOption::USE_V2)) {
     g.compareFor_V2(getGoldenName_V2());
   } else {
     g.compareFor(getGoldenName(), getLabelDim(), getIteration());
   }
 }
 
-void nntrainerModelTest::validate(bool opt) {
-  GraphWatcher g(createModel(), opt);
-  if (options & (ModelTestOption::COMPARE_V2)) {
+void nntrainerModelTest::validate(
+  bool opt,
+  std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> creator) {
+
+  auto net = creator ? creator() : createModel();
+  GraphWatcher g(std::move(net), opt);
+  if (options & (ModelTestOption::USE_V2)) {
     g.validateFor_V2();
   } else {
     g.validateFor(getLabelDim());
@@ -92,7 +100,18 @@ TEST_P(nntrainerModelTest, model_test_save_load_compare) {
   EXPECT_NO_THROW(
     nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
 
-  compare(false);
+  auto creator = [&saved_ini_name]() {
+    std::unique_ptr<nntrainer::NeuralNetwork> nn(
+      new nntrainer::NeuralNetwork());
+    nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    if (remove(saved_ini_name.c_str())) {
+      std::cerr << "remove ini " << saved_ini_name
+                << "failed, reason: " << strerror(errno);
+    }
+    return nn;
+  };
+
+  compare(false, creator);
 }
 
 TEST_P(nntrainerModelTest, model_test_save_load_verify) {
@@ -111,12 +130,18 @@ TEST_P(nntrainerModelTest, model_test_save_load_verify) {
   }
   nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
 
-  GraphWatcher g(saved_ini_name, true);
-  g.validateFor(getLabelDim());
-  if (remove(saved_ini_name.c_str())) {
-    std::cerr << "remove ini " << saved_ini_name
-              << "failed, reason: " << strerror(errno);
-  }
+  auto creator = [&saved_ini_name]() {
+    std::unique_ptr<nntrainer::NeuralNetwork> nn(
+      new nntrainer::NeuralNetwork());
+    nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    if (remove(saved_ini_name.c_str())) {
+      std::cerr << "remove ini " << saved_ini_name
+                << "failed, reason: " << strerror(errno);
+    }
+    return nn;
+  };
+
+  validate(false, creator);
 }
 
 ModelGoldenTestParamType mkModelIniTc(const nntrainer::IniWrapper &ini,
