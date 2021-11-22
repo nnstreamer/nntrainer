@@ -131,6 +131,43 @@ public:
   }
 
   /**
+   * @brief Get the Input Connection Index object
+   *
+   * @param nth nth input
+   * @throws if nth is out of range of getNumInputConnection()
+   * @return const unsigned index
+   */
+  const unsigned getInputConnectionIndex(unsigned nth) const;
+
+  /**
+   * @brief Get the Input Connection Name object
+   *
+   * @param nth nth input
+   * @throws if nth is out of range of getNumInputConnection()
+   * @return const std::string& name
+   */
+  const std::string &getInputConnectionName(unsigned nth) const;
+
+  /**
+   * @brief Set the Input Connection Index object
+   *
+   * @param nth nth input
+   * @param index index to set
+   * @throws if nth is out of range of getNumInputConnection()
+   */
+  void setInputConnectionIndex(unsigned nth, unsigned index);
+
+  /**
+   * @brief Get the Input Connection Name object
+   *
+   * @param nth input
+   * @param index index to set
+   * @throws if nth is out of range of getNumInputConnection()
+   * @throws if new identifier is invalid
+   */
+  void setInputConnectionName(unsigned nth, const std::string &name);
+
+  /**
    * @brief     Get the input connections for this node
    *
    * @return list of name of the nodes which form input connections

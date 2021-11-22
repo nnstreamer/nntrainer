@@ -183,6 +183,30 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
   }
 }
 
+const unsigned LayerNode::getInputConnectionIndex(unsigned nth) const {
+  auto &input_layers =
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  return input_layers.at(nth).get().getIndex();
+}
+
+const std::string &LayerNode::getInputConnectionName(unsigned nth) const {
+  auto &input_layers =
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  return input_layers.at(nth).get().getName();
+}
+
+void LayerNode::setInputConnectionIndex(unsigned nth, unsigned index) {
+  auto &input_layers =
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  input_layers.at(nth).get().getIndex() = index;
+}
+
+void LayerNode::setInputConnectionName(unsigned nth, const std::string &name) {
+  auto &input_layers =
+    std::get<std::vector<props::InputConnection>>(*layer_node_props);
+  input_layers.at(nth).get().getName() = name;
+}
+
 const std::string LayerNode::getName() const noexcept {
   auto &name = std::get<props::Name>(*layer_node_props);
   return name.empty() ? "" : name.get();
