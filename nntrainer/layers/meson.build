@@ -31,6 +31,7 @@ layer_sources = [
   'permute_layer.cpp',
   'layer_impl.cpp',
   'gru.cpp',
+  'grucell.cpp',
   'dropout.cpp',
   'centroid_knn.cpp',
   'layer_context.cpp',
