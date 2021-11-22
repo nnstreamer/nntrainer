@@ -50,6 +50,7 @@ class InputLayer;
 class InputShape;
 class Activation;
 class SharedFrom;
+class Connection;
 class InputConnection;
 } // namespace props
 
@@ -143,7 +144,7 @@ public:
    *
    * @return list of name of the nodes which form output connections
    */
-  const std::vector<std::string> &getOutputConnections() const override {
+  const std::vector<std::string> getOutputConnections() const override {
     return getOutputLayers();
   }
 
@@ -323,7 +324,7 @@ public:
    * @brief     Get number of output connections
    * @retval    number of outputs
    */
-  unsigned int getNumOutputConnections() const { return output_layers.size(); }
+  unsigned int getNumOutputConnections() const;
 
   /**
    * @brief     Get number of inputs
@@ -366,11 +367,9 @@ public:
   /**
    * @brief Get the Output Layers object
    *
-   * @return const std::vector<std::string>&
+   * @return const std::vector<std::string>
    */
-  const std::vector<std::string> &getOutputLayers() const {
-    return output_layers;
-  }
+  const std::vector<std::string> getOutputLayers() const;
 
   /**
    * @brief Update input layers entry name
@@ -400,9 +399,7 @@ public:
    *
    * @param out_layer Name to be added
    */
-  void addOutputLayers(const std::string &out_layer) {
-    output_layers.push_back(out_layer);
-  }
+  void addOutputLayers(const std::string &out_layer);
 
   /**
    * @brief Set the Input Layers object
@@ -416,9 +413,7 @@ public:
    *
    * @param layers Name of the layers
    */
-  void setOutputLayers(const std::vector<std::string> &layers) {
-    output_layers = layers;
-  }
+  void setOutputLayers(const std::vector<std::string> &layers);
 
   /**
    * @brief check if input shape property is set
@@ -718,7 +713,8 @@ private:
                                  calcDerivative */
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
-  std::vector<std::string> output_layers; /**< output layer names */
+  std::unique_ptr<std::vector<props::Connection>>
+    output_layers; /**< output layer names */
 
   std::unique_ptr<RunLayerContext>
     run_context; /**< context required for running/execution of the layer. This
