@@ -387,6 +387,61 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
   return output;
 }
 
+int Tensor::add_i_strided(Tensor const &m, const float beta) {
+  try {
+    this->add_strided(m, *this, beta);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::add_strided(Tensor const &m, const float beta) const {
+  Tensor t;
+  return this->add_strided(m, t, beta);
+}
+
+Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
+                            const float beta) const {
+  /** TODO: throw than create new dimenions */
+  CREATE_IF_EMPTY_DIMS(output, dim);
+
+  if (size() != m.size() || size() != output.size())
+    throw std::invalid_argument(
+      "Strided addition does not support broadcasting");
+
+  if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+      beta != 0.0) {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.setValue(
+              b, c, h, w, getValue(b, c, h, w) + m.getValue(b, c, h, w) * beta);
+          }
+        }
+      }
+    }
+  } else {
+    /** @todo optimize this with combining these loops where stride is 1 */
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          float *out_data = output.getAddress(b, c, h, 0);
+          const float *m_data = m.getAddress(b, c, h, 0);
+          const float *in_data = getAddress(b, c, h, 0);
+          std::transform(in_data, in_data + width(), m_data, out_data,
+                         std::plus<float>());
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 int Tensor::multiply_i(float const &value) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot multiply";

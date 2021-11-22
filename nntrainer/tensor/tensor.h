@@ -391,6 +391,47 @@ public:
                            const float beta = 0.0) const;
 
   /**
+   * @brief     Add Tensor Elementwise
+   * @param[in] m Tensor to be added
+   * @param[in] beta scalar to add output with and add
+   * @retval    #ML_ERROR_NONE successful
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add_i
+   */
+  int add_i_strided(Tensor const &m, const float beta = 0.0);
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] m Tensor to be added
+   * @param[in] beta Value to be scale the added tensor
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  Tensor add_strided(Tensor const &m, const float beta = 0.0) const;
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] m Tensor to be added
+   * @param[out] output Tensor to store the result
+   * @param[in] beta Value to be scale the added tensor
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  Tensor &add_strided(Tensor const &m, Tensor &output,
+                      const float beta = 0.0) const;
+
+  /**
    * @brief     Divide value element by element immediately
    * @param[in] value divisor
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
