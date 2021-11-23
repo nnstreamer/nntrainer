@@ -9,12 +9,12 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-
-#include "activation_realizer.h"
 #include <gtest/gtest.h>
 
 #include <vector>
 
+#include <activation_realizer.h>
+#include <connection.h>
 #include <flatten_realizer.h>
 #include <input_realizer.h>
 #include <multiout_realizer.h>
@@ -273,7 +273,7 @@ TEST(PreviousInputRealizer, previous_p) {
       {"fully_connected", {"name=fc3", "input_layers=fc1"}},
       {"fully_connected", {"name=fc4"}},
     };
-    PreviousInputRealizer r({"fc1", "fc4"});
+    PreviousInputRealizer r({Connection("fc1"), Connection("fc4")});
     realizeAndEqual(r, before, after);
   }
   { /// intermediate node is auto input

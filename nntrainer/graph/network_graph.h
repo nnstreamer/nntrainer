@@ -28,6 +28,7 @@
 
 namespace nntrainer {
 
+class Connection;
 /**
  * @class   NeuralNetwork Graph Class
  * @brief   NeuralNetwork Graph Class which manage layers
@@ -242,14 +243,14 @@ public:
   /**
    * @brief initialize network graph
    *
-   * @param model_input_names model input names if empty list given, all of node
-   * that can be inputs will be identified in the sort order
+   * @param model_input_names model input connection if empty list given, all of
+   * node that can be inputs will be identified in the sort order
    * @param model_label_names model label names if empty list given, all of node
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int initialize(const std::vector<std::string> &model_input_names = {},
-                 const std::vector<std::string> &model_label_names = {});
+  int initialize(const std::vector<Connection> &model_input_names = {},
+                 const std::vector<Connection> &model_label_names = {});
 
   /**
    * @brief Create run layer context from the given init layer context
