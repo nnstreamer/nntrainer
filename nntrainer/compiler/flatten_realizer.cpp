@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file flatten_realizer.h
+ * @file flatten_realizer.cpp
  * @date 09 October 2021
  * @brief NNTrainer graph realizer which realizes flatten=true to actual node
  * @see	https://github.com/nnstreamer/nntrainer
