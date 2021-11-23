@@ -9,6 +9,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include "connection.h"
 #include <algorithm>
 #include <compiler_fwd.h>
 #include <memory>
@@ -22,7 +23,7 @@
 namespace nntrainer {
 
 PreviousInputRealizer::PreviousInputRealizer(
-  const std::vector<std::string> &identified_inputs_) :
+  const std::vector<Connection> &identified_inputs_) :
   identified_inputs(identified_inputs_) {}
 
 PreviousInputRealizer::~PreviousInputRealizer() {}
@@ -38,8 +39,9 @@ PreviousInputRealizer::realize(const GraphRepresentation &reference) {
    */
   auto is_actually_an_input_node = [this](const LayerNode &node) {
     return node.hasInputShapeProperty() or
-           std::any_of(identified_inputs.begin(), identified_inputs.end(),
-                       [&node](auto &name) { return node.getName() == name; });
+           std::any_of(
+             identified_inputs.begin(), identified_inputs.end(),
+             [&node](auto &conn) { return node.getName() == conn.getName(); });
   };
 
   for (auto iter = processed.begin(); iter != processed.end(); ++iter) {

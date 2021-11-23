@@ -108,16 +108,8 @@ int NeuralNetwork::compile() {
                             ? std::string()
                             : std::get<props::LossType>(model_props);
 
-  auto &input_layer_prop =
-    std::get<std::vector<props::InputConnection>>(model_props);
+  auto &input_conn = std::get<std::vector<props::InputConnection>>(model_props);
   /// @note label layer might need to be treated in the similar way as well
-
-  /// @todo deprecate this instead directly pass connection to the realizer
-  std::vector<std::string> input_layers = {};
-  if (!input_layer_prop.empty()) {
-    input_layers = std::vector<std::string>(input_layer_prop.begin(),
-                                            input_layer_prop.end());
-  }
 
   /// @todo make NetworkGraph compiled at the construction instead of having
   /// graph.compile(), neuralnetwork have ownership of list of layer nodes,
@@ -136,7 +128,8 @@ int NeuralNetwork::compile() {
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
-  realizers.emplace_back(new PreviousInputRealizer(input_layers));
+  realizers.emplace_back(new PreviousInputRealizer(
+    std::vector<Connection>(input_conn.begin(), input_conn.end())));
   realizers.emplace_back(new MultioutRealizer());
   realizers.emplace_back(new FlattenRealizer());
   realizers.emplace_back(new ActivationRealizer());
@@ -180,24 +173,22 @@ int NeuralNetwork::initialize() {
   model_graph.setBatchSize(
     std::get<props::TrainingBatchSize>(model_flex_props));
 
-  auto &input_layer_prop =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(model_props);
   auto &label_layer_prop =
     std::get<std::vector<props::LabelLayer>>(model_props);
 
-  std::vector<std::string> input_layers;
+  std::vector<Connection> input_layers(input_conns.begin(), input_conns.end());
   std::vector<std::string> label_layers;
 
-  if (!input_layer_prop.empty()) {
-    input_layers = std::vector<std::string>(input_layer_prop.begin(),
-                                            input_layer_prop.end());
-  }
   if (!label_layer_prop.empty()) {
     label_layers = std::vector<std::string>(label_layer_prop.begin(),
                                             label_layer_prop.end());
   }
 
-  status = model_graph.initialize(input_layers, label_layers);
+  status = model_graph.initialize(
+    std::vector<Connection>(input_conns.begin(), input_conns.end()),
+    std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
 
   // initialize optimizer and related variables
@@ -957,9 +948,12 @@ void NeuralNetwork::addWithReferenceLayers(
   auto start_layers_ = normalize(start_layers);
   auto end_layers_ = normalize(end_layers);
 
+  auto start_conns_ =
+    std::vector<Connection>(start_layers.begin(), start_layers.end());
+
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
-  realizers.emplace_back(new PreviousInputRealizer(start_layers));
+  realizers.emplace_back(new PreviousInputRealizer(start_conns_));
   realizers.emplace_back(new SliceRealizer(start_layers_, end_layers_));
 
   if (!input_layers_.empty()) {

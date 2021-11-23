@@ -165,24 +165,6 @@ public:
   static constexpr const char *key =
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
-
-  /**
-   * @brief cast operator for property
-   * @todo deprecate this, this is needed to bridge input_layers(name) <-> input
-   * connections temporarily
-   *
-   * @return std::string value
-   */
-  operator const std::string &() const { return get().getName(); }
-
-  /**
-   * @brief cast operator for property
-   * @todo deprecate this, this is needed to bridge input_layers(name) <-> input
-   * connections temporarily
-   *
-   * @return std::string value
-   */
-  operator std::string &() { return get().getName(); }
 };
 
 /**

@@ -19,6 +19,7 @@
 #include <addition_layer.h>
 #include <bn_layer.h>
 #include <concat_layer.h>
+#include <connection.h>
 #include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
@@ -752,9 +753,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   return outputs;
 }
 
-int NetworkGraph::initialize(
-  const std::vector<std::string> &model_input_names,
-  const std::vector<std::string> &model_label_names) {
+int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
+                             const std::vector<Connection> &model_label_names) {
 
   /**
    * this contains the map from node name to its input tensor names
@@ -890,9 +890,9 @@ int NetworkGraph::initialize(
     label_dims.push_back(node->getOutputDimensions()[0]);
   };
 
-  auto identify_external_tensors = [this](const std::vector<std::string> &names,
+  auto identify_external_tensors = [this](const std::vector<Connection> &conns,
                                           auto &&pred, auto &&identify) {
-    if (names.empty()) {
+    if (conns.empty()) {
       for (unsigned int i = 0; i < graph.size(); ++i) {
         auto lnode = getSortedLayerNode(i).get();
         if (!pred(lnode)) {
@@ -903,10 +903,10 @@ int NetworkGraph::initialize(
         identify(lnode);
       }
     } else {
-      for (auto &name : names) {
-        auto lnode = getLayerNode(name).get();
+      for (auto &conn : conns) {
+        auto lnode = getLayerNode(conn.getName()).get();
         NNTR_THROW_IF(!pred(lnode), std::invalid_argument)
-          << "given node is not of that kind, name: " << name;
+          << "given node is not of that kind, name: " << conn.getName();
         identify(lnode);
       }
       unsigned int num_node_of_kind = 0;
@@ -917,10 +917,10 @@ int NetworkGraph::initialize(
         }
         num_node_of_kind++;
       }
-      NNTR_THROW_IF(num_node_of_kind != names.size(), std::invalid_argument)
-        << "names given but there are not identified node of the kind, num "
+      NNTR_THROW_IF(num_node_of_kind != conns.size(), std::invalid_argument)
+        << "conns given but there are not identified node of the kind, num "
            "node of kind: "
-        << num_node_of_kind << " identifier size: " << names.size();
+        << num_node_of_kind << " identifier size: " << conns.size();
     }
   };
 

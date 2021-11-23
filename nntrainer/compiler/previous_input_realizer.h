@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 
+#include <connection.h>
 #include <realizer.h>
 
 namespace nntrainer {
@@ -33,7 +34,7 @@ public:
    * @param identified_inputs node that is identified as an input, this must not
    * connect to other nodes automatically
    */
-  PreviousInputRealizer(const std::vector<std::string> &identified_inputs);
+  PreviousInputRealizer(const std::vector<Connection> &identified_inputs);
 
   /**
    * @brief Destroy the Graph Realizer object
@@ -48,7 +49,7 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
-  std::vector<std::string> identified_inputs; /**< inputs are identified */
+  std::vector<Connection> identified_inputs; /**< inputs are identified */
 };
 
 } // namespace nntrainer
