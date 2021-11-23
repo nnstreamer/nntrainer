@@ -28,6 +28,7 @@
 #include <sstream>
 
 #include <activation_realizer.h>
+#include <common_properties.h>
 #include <databuffer.h>
 #include <flatten_realizer.h>
 #include <ini_interpreter.h>
@@ -108,9 +109,10 @@ int NeuralNetwork::compile() {
                             : std::get<props::LossType>(model_props);
 
   auto &input_layer_prop =
-    std::get<std::vector<props::InputLayer>>(model_props);
+    std::get<std::vector<props::InputConnection>>(model_props);
   /// @note label layer might need to be treated in the similar way as well
 
+  /// @todo deprecate this instead directly pass connection to the realizer
   std::vector<std::string> input_layers = {};
   if (!input_layer_prop.empty()) {
     input_layers = std::vector<std::string>(input_layer_prop.begin(),
@@ -179,7 +181,7 @@ int NeuralNetwork::initialize() {
     std::get<props::TrainingBatchSize>(model_flex_props));
 
   auto &input_layer_prop =
-    std::get<std::vector<props::InputLayer>>(model_props);
+    std::get<std::vector<props::InputConnection>>(model_props);
   auto &label_layer_prop =
     std::get<std::vector<props::LabelLayer>>(model_props);
 

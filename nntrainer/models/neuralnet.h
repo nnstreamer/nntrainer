@@ -489,7 +489,7 @@ private:
                props::ContinueTrain, props::SaveBestPath,
                props::MemoryOptimization>;
   using RigidPropTypes =
-    std::tuple<props::LossType, std::vector<props::InputLayer>,
+    std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>>;
 
   RigidPropTypes model_props;         /**< model props */
