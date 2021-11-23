@@ -1,5 +1,6 @@
 compiler_sources = [
   'ini_interpreter.cpp',
+  'activation_realizer.cpp',
   'flatten_realizer.cpp',
   'recurrent_realizer.cpp',
   'remap_realizer.cpp',
