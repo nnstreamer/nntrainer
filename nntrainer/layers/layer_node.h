@@ -37,7 +37,7 @@
 namespace nntrainer {
 
 class Layer;
-
+class Connection;
 class Exporter;
 enum class ExportMethods;
 
@@ -49,7 +49,6 @@ class Loss;
 class InputShape;
 class Activation;
 class SharedFrom;
-class Connection;
 class InputConnection;
 class ClipGradByGlobalNorm;
 } // namespace props
@@ -166,6 +165,23 @@ public:
    * @throws if new identifier is invalid
    */
   void setInputConnectionName(unsigned nth, const std::string &name);
+
+  /**
+   * @brief Set the Output Connection
+   * @note Each output must be identified only ONCE.
+   * @note when nth comes, getNumOutput() expends to nth + 1 as resize occurs.
+   * Please also notice none identified intermediate output (or mismatch between
+   * actual number of out tensors and output) is allowed but will produce
+   * warning, this implies that the output is not used else where.
+   * @throw std::invalid_argument when trying to identify output
+   * more then once
+   *
+   * @param nth nth output
+   * @param name name of the output bound connection
+   * @param index index of the output bound connection
+   */
+  void setOutputConnection(unsigned nth, const std::string &name,
+                           unsigned index);
 
   /**
    * @brief     Get the input connections for this node
@@ -742,7 +758,7 @@ private:
                                  calcDerivative */
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
-  std::unique_ptr<std::vector<props::Connection>>
+  std::vector<std::unique_ptr<Connection>>
     output_layers; /**< output layer names */
 
   std::unique_ptr<RunLayerContext>

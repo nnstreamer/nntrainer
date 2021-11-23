@@ -20,6 +20,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/models \
 	$(NNTRAINER_ROOT)/nntrainer/layers \
+	$(NNTRAINER_ROOT)/nntrainer/compiler \
 	$(NNTRAINER_ROOT)/nntrainer/graph \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/nntrainer/optimizers \

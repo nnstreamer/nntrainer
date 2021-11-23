@@ -1,5 +1,6 @@
 # node exporter and its dependencies
 /usr/include/nntrainer/nntrainer_error.h
+/usr/include/nntrainer/connection.h
 /usr/include/nntrainer/common_properties.h
 /usr/include/nntrainer/base_properties.h
 /usr/include/nntrainer/node_exporter.h

@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <common_properties.h>
+#include <connection.h>
 #include <tensor_dim.h>
 
 #include <array>
@@ -104,7 +105,7 @@ TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
 TEST(InputConnection, setPropertyValid_p) {
   using namespace nntrainer::props;
   {
-    InputConnection expected(Connection("a", 0));
+    InputConnection expected(nntrainer::Connection("a", 0));
 
     InputConnection actual;
     nntrainer::from_string("A", actual);
@@ -113,7 +114,7 @@ TEST(InputConnection, setPropertyValid_p) {
   }
 
   {
-    InputConnection expected(Connection("a", 2));
+    InputConnection expected(nntrainer::Connection("a", 2));
 
     InputConnection actual;
     nntrainer::from_string("a(2)", actual);

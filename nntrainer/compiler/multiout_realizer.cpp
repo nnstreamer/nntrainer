@@ -39,8 +39,8 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
 
     for (unsigned int i = 0, num_nodes = node->getNumInputConnections();
          i < num_nodes; ++i) {
-      props::InputConnection c(props::Connection(
-        node->getInputConnectionName(i), node->getInputConnectionIndex(i)));
+      Connection c(node->getInputConnectionName(i),
+                   node->getInputConnectionIndex(i));
       auto uniq_name = to_string(c);
       [[maybe_unused]] auto [iter, result] = freq_map.try_emplace(uniq_name, 0);
       iter->second++;
@@ -54,20 +54,18 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
     multiout_nodes;
 
   for (auto &[con_name, freq] : freq_map) {
-    props::InputConnection con;
-    from_string(con_name, con);
-
     /// @note freq < 1 should never happen as the map entry is not created.
     /// but if it happens multiout realizer is not interested in checking if it
     /// is a dangled or actually an output. So there is no assurance done at
     /// this point. Some other class must check if the given graph is formed in
     /// a correct way.
+    Connection con(con_name);
     if (freq <= 1) {
       continue;
     }
 
-    std::string id = con.get().getName();
-    auto idx = con.get().getIndex();
+    std::string id = con.getName();
+    auto idx = con.getIndex();
 
     std::stringstream ss;
     /// {connection_name}/generated_out_{index}

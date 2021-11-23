@@ -29,9 +29,12 @@
 #include <util_func.h>
 
 namespace nntrainer {
+
+#ifdef PROFILE
 static constexpr const char *FORWARD_SUFFIX = ":forward";
 static constexpr const char *CALC_DERIV_SUFFIX = ":calcDeriv";
 static constexpr const char *CALC_GRAD_SUFFIX = ":calcGrad";
+#endif
 
 namespace props {
 
@@ -166,7 +169,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
-  output_layers(new std::vector<props::Connection>()),
+  output_layers(),
   run_context(nullptr),
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
@@ -239,8 +242,7 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
   };
 
   print_vector(input_layers, " input_layers");
-  /// @todo enable this
-  // print_vector(l.output_layers, "output_layers");
+  //   print_vector(l.output_layers, "output_layers");
   return out;
 }
 
@@ -260,7 +262,7 @@ unsigned int LayerNode::getNumInputConnections() const {
 }
 
 unsigned int LayerNode::getNumOutputConnections() const {
-  return output_layers->size();
+  return output_layers.size();
 }
 
 const std::vector<std::string> LayerNode::getInputLayers() const {
@@ -270,16 +272,21 @@ const std::vector<std::string> LayerNode::getInputLayers() const {
   names.reserve(input_layers.size());
   std::transform(input_layers.begin(), input_layers.end(),
                  std::back_inserter(names),
-                 [](const props::Connection &con) { return con.getName(); });
+                 [](const Connection &con) { return con.getName(); });
   return names;
 }
 
 const std::vector<std::string> LayerNode::getOutputLayers() const {
   std::vector<std::string> names;
-  names.reserve(output_layers->size());
-  std::transform(output_layers->begin(), output_layers->end(),
-                 std::back_inserter(names),
-                 [](const props::Connection &con) { return con.getName(); });
+  names.reserve(output_layers.size());
+
+  for (auto &output_layer : output_layers) {
+    if (output_layer == nullptr) {
+      ml_logw("intermediate output is empty for layer: %s", getName().c_str());
+      continue;
+    }
+    names.push_back(output_layer->getName());
+  }
   return names;
 }
 
@@ -342,11 +349,11 @@ nntrainer::Layer *LayerNode::getLayer() {
 void LayerNode::addInputLayers(const std::string &in_layer) {
   auto &input_layers =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  input_layers.emplace_back(props::Connection(in_layer, 0));
+  input_layers.emplace_back(Connection(in_layer, 0));
 }
 
 void LayerNode::addOutputLayers(const std::string &out_layer) {
-  output_layers->emplace_back(out_layer, 0);
+  output_layers.emplace_back(new Connection(out_layer, 0));
 }
 
 void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
@@ -356,17 +363,16 @@ void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   input_layers.reserve(layers.size());
   std::transform(layers.begin(), layers.end(), std::back_inserter(input_layers),
                  [](const std::string &id) {
-                   return props::Connection{id, 0};
+                   return Connection{id, 0};
                  });
 }
 
 void LayerNode::setOutputLayers(const std::vector<std::string> &layers) {
-  output_layers->clear();
-  output_layers->reserve(layers.size());
-  std::transform(layers.begin(), layers.end(),
-                 std::back_inserter(*output_layers), [](const std::string &id) {
-                   return props::Connection{id, 0};
-                 });
+  output_layers.clear();
+  output_layers.reserve(layers.size());
+  std::transform(
+    layers.begin(), layers.end(), std::back_inserter(output_layers),
+    [](const std::string &id) { return std::make_unique<Connection>(id); });
 }
 
 bool LayerNode::hasInputShapeProperty() const {
@@ -499,8 +505,8 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   layer_node_props_realization = std::make_unique<RealizationPropsType>(
     props::Flatten(), props::Activation());
 
-  auto num_outputs = output_layers->size();
-  if (output_layers->empty()) {
+  auto num_outputs = output_layers.size();
+  if (output_layers.empty()) {
     num_outputs = 1;
   }
 
@@ -699,9 +705,13 @@ void LayerNode::remapConnections(
     remap_fn(name, idx);
   }
 
-  for (auto &output_layer : *output_layers) {
-    auto &name = output_layer.getName();
-    auto &idx = output_layer.getIndex();
+  for (auto &output_layer : output_layers) {
+    if (output_layer == nullptr) {
+      continue;
+    }
+
+    auto &name = output_layer->getName();
+    auto &idx = output_layer->getIndex();
     remap_fn(name, idx);
   }
 }

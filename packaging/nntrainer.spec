@@ -445,6 +445,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %files devel
 # node exporter and its dependencies
 %{_includedir}/nntrainer/nntrainer_error.h
+%{_includedir}/nntrainer/connection.h
 %{_includedir}/nntrainer/common_properties.h
 %{_includedir}/nntrainer/base_properties.h
 %{_includedir}/nntrainer/node_exporter.h
