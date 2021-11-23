@@ -413,7 +413,7 @@ private:
   /**
    * @brief     set output connections for all the layers
    */
-  void setOutputLayers();
+  void setOutputConnections();
 
   /**
    * @brief     Ensure that layer has a name.

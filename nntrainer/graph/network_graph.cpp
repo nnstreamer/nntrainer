@@ -46,7 +46,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   NN_RETURN_STATUS();
 
   try {
-    setOutputLayers();
+    setOutputConnections();
   } catch (std::exception &e) {
     ml_loge("setting output layer failed, reason: %s", e.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -164,29 +164,16 @@ int NetworkGraph::addLossLayer(const std::string &loss_type_) {
   return ML_ERROR_NONE;
 }
 
-void NetworkGraph::setOutputLayers() {
-  for (auto iter_idx = cbegin(); iter_idx != cend(); iter_idx++) {
-    auto &layer_idx = *iter_idx;
-    for (auto iter_i = cbegin(); iter_i != cend(); iter_i++) {
-      auto &layer_i = *iter_i;
-      if (istrequal(layer_i->getName(), layer_idx->getName()))
-        continue;
-      for (unsigned int j = 0; j < layer_i->getNumInputConnections(); ++j) {
-        if (istrequal(layer_i->getInputLayers()[j], layer_idx->getName())) {
-          bool already_exist = false;
-          for (unsigned int k = 0; k < layer_idx->getNumOutputConnections();
-               ++k) {
-            if (istrequal(layer_idx->getOutputLayers()[k],
-                          layer_i->getName())) {
-              already_exist = true;
-              break;
-            }
-          }
+void NetworkGraph::setOutputConnections() {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); layer_iter++) {
+    const auto &node = *layer_iter;
+    for (auto i = 0u, num_inode = node->getNumInputConnections(); i < num_inode;
+         ++i) {
+      const auto &name = node->getInputConnectionName(i);
+      const auto &idx = node->getInputConnectionIndex(i);
 
-          if (!already_exist)
-            layer_idx->addOutputLayers(layer_i->getName());
-        }
-      }
+      auto node_setting_output = getLayerNode(name);
+      node_setting_output->setOutputConnection(idx, node->getName(), i);
     }
   }
 }
