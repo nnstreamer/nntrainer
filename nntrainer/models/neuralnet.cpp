@@ -27,6 +27,7 @@
 #include <iostream>
 #include <sstream>
 
+#include <activation_realizer.h>
 #include <databuffer.h>
 #include <flatten_realizer.h>
 #include <ini_interpreter.h>
@@ -136,6 +137,7 @@ int NeuralNetwork::compile() {
   realizers.emplace_back(new PreviousInputRealizer(input_layers));
   realizers.emplace_back(new MultioutRealizer());
   realizers.emplace_back(new FlattenRealizer());
+  realizers.emplace_back(new ActivationRealizer());
 
   for (auto &realizer : realizers) {
     rep = realizer->realize(rep);

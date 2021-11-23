@@ -100,49 +100,6 @@ void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
   graph.addNode(std::make_unique<LayerNode>(std::move(layer)));
 }
 
-int NetworkGraph::realizeActivationType(
-  const std::shared_ptr<LayerNode> &in_node) {
-  int status = ML_ERROR_NONE;
-
-  ActivationType act = in_node->getActivationToBeRealized();
-
-  if (act == ActivationType::ACT_NONE) {
-    /// ActivationType::ACT_NONE does not need realization
-    return ML_ERROR_NONE;
-  }
-
-  if (act == ActivationType::ACT_UNKNOWN) {
-    ml_loge("cannot realize unknown activation type");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (in_node->getType() == ActivationLayer::type) {
-    ml_loge("It is not allowed to realize activation layer, possibly layer is "
-            "added right after activation");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::shared_ptr<LayerNode> lnode = createLayerNode(ActivationLayer::type);
-  graph.ensureName(*lnode, in_node->getName());
-
-  if (in_node->getDistribute()) {
-    lnode->setProperty({"distribute=true"});
-  }
-
-  props::Activation act_prop;
-  act_prop.set(act);
-  lnode->setProperty({"activation=" + to_string(act_prop)});
-  in_node->setProperty({"activation=none"});
-
-  lnode->setInputLayers({in_node->getName()});
-  /** output layers for layer obj will be set in setOutputLayers() */
-
-  updateConnectionName(in_node->getName(), lnode->getName());
-  graph.addNode(lnode, false);
-
-  return status;
-}
-
 int NetworkGraph::addLossLayer(const std::string &loss_type_) {
   for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
     auto output_layer_node = LNODE(graph.getOutputNode(i));
