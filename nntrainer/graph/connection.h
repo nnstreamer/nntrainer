@@ -13,6 +13,7 @@
 #define __CONNECTION_H__
 
 #include <string>
+#include <utility>
 
 namespace nntrainer {
 /**
@@ -117,5 +118,21 @@ private:
 };
 
 } // namespace nntrainer
+
+/**
+ * @brief hash specialization for connection
+ *
+ */
+template <> struct std::hash<nntrainer::Connection> {
+  /**
+   * @brief hash operator
+   *
+   * @param c connection to hash
+   * @return std::size_t hash
+   */
+  std::size_t operator()(const nntrainer::Connection &c) const {
+    return std::hash<std::string>{}(c.toString());
+  }
+};
 
 #endif // __CONNECTION_H__

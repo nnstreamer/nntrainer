@@ -57,7 +57,10 @@ SliceRealizer::realize(const GraphRepresentation &reference) {
   std::for_each(reference.begin(), reference.end(),
                 [&mp](std::shared_ptr<LayerNode> node) {
                   auto node_name = node->getName();
-                  for (auto &parent : node->getInputLayers()) {
+
+                  for (auto i = 0u, num_node = node->getNumInputConnections();
+                       i < num_node; ++i) {
+                    const auto &parent = node->getInputConnectionName(i);
                     mp.at(parent).children.push_back(node_name);
                   };
                 });

@@ -48,25 +48,25 @@ InputRealizer::realize(const GraphRepresentation &reference) {
 
   for (auto &start_name : start_layers) {
     auto node = existing_nodes.at(start_name);
-    auto node_input_layers = node->getInputLayers();
 
-    if (node_input_layers.empty()) {
+    auto num_input = node->getNumInputConnections();
+
+    if (num_input == 0) {
       // case1. There is no input layers presented -> push single input
-      node_input_layers.push_back(*get_next_input_ref());
+      node->setProperty({"input_layers=" + *get_next_input_ref()});
     } else {
       /// case2. There is multiple input layers -> substitute orphaned node
       /// Orphaned node probably is being created from slicing or it is also a
       /// possible scenario that the graph in the first place is designed to
       /// have a orphaned node. In the latter case, the graph was non-compilable
       /// from the first time.
-      for (auto &name : node_input_layers) {
+      for (auto i = 0u; i < num_input; ++i) {
+        auto name = node->getInputConnectionName(i);
         if (!existing_nodes.count(name)) {
-          name = *get_next_input_ref();
+          node->setInputConnectionName(i, *get_next_input_ref());
         }
       }
     }
-
-    node->setInputLayers(node_input_layers);
   }
 
   return reference;
