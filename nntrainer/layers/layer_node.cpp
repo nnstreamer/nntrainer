@@ -328,25 +328,6 @@ nntrainer::Layer *LayerNode::getLayer() {
     return layer.get();
 }
 
-void LayerNode::updateInputLayers(const std::string &from,
-                                  const std::string &to) {
-  auto &input_layers =
-    std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  for (auto &input_layer : input_layers) {
-    if (istrequal(input_layer.get().getName(), from)) {
-      input_layer.set({to, 0});
-    }
-  }
-}
-
-void LayerNode::updateInputLayers(const unsigned int idx,
-                                  const std::string &to) {
-  auto &input_layers =
-    std::get<std::vector<props::InputConnection>>(*layer_node_props);
-
-  input_layers.at(idx).set({to, 0});
-}
-
 void LayerNode::addInputLayers(const std::string &in_layer) {
   auto &input_layers =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);

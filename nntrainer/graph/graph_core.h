@@ -99,19 +99,6 @@ public:
   const std::shared_ptr<GraphNode> &getNode(const std::string &name) const;
 
   /**
-   * @brief     join passed graph into the existing graph model
-   * @param[in] graph graph to be added/to extend
-   * @param[in] prefix prefix added to names of nodes from this graph
-   * @note It is assumed that this model is valid by itself
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   *
-   * @todo rename to addnodes
-   */
-  void extendGraph(std::vector<std::shared_ptr<GraphNode>> graph,
-                   std::string &prefix);
-
-  /**
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
    */

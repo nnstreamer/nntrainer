@@ -409,22 +409,6 @@ public:
   const std::vector<std::string> getOutputLayers() const;
 
   /**
-   * @brief Update input layers entry name
-   *
-   * @param from The name to be updated
-   * @param to The name to be updated to
-   */
-  void updateInputLayers(const std::string &from, const std::string &to);
-
-  /**
-   * @brief Update the input layers name at the given idx
-   *
-   * @param idx The index at which layer name must be updated
-   * @param to The name to be updated to
-   */
-  void updateInputLayers(const unsigned int idx, const std::string &to);
-
-  /**
    * @brief Add name to the input layers
    *
    * @param in_layer Name to be added
