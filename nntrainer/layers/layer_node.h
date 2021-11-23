@@ -411,13 +411,6 @@ public:
   }
 
   /**
-   * @brief     Get the Input Layers object
-   *
-   * @return const std::vector<std::string>
-   */
-  const std::vector<std::string> getInputLayers() const;
-
-  /**
    * @brief Get the Output Layers object
    *
    * @return const std::vector<std::string>
@@ -749,6 +742,13 @@ public:
   bool needsCalcGradient() { return needs_calc_gradient; }
 
 private:
+  /**
+   * @brief     Get the Input Layers object
+   *
+   * @return const std::vector<std::string>
+   */
+  const std::vector<std::string> getInputLayers() const;
+
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 

@@ -222,6 +222,15 @@ void LayerNode::setInputConnectionName(unsigned nth, const std::string &name) {
   input_layers.at(nth).get().getName() = name;
 }
 
+void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
+                                    unsigned index) {
+  if (nth >= output_layers.size()) {
+    output_layers.resize(nth + 1);
+  }
+
+  output_layers[nth] = std::make_unique<Connection>(name, index);
+}
+
 const std::string LayerNode::getName() const noexcept {
   auto &name = std::get<props::Name>(*layer_node_props);
   return name.empty() ? "" : name.get();
