@@ -186,6 +186,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_impl.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/network_graph.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/graph_core.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/graph/connection.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_context.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_devel.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_impl.cpp \
@@ -274,6 +275,7 @@ CCAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/ccapi/src/factory.cpp
 
 CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/dataset \
+                      $(NNTRAINER_ROOT)/nntrainer/compiler \
                       $(NNTRAINER_ROOT)/nntrainer/layers \
                       $(NNTRAINER_ROOT)/nntrainer/models \
                       $(NNTRAINER_ROOT)/nntrainer/tensor \

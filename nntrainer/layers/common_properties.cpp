@@ -81,19 +81,6 @@ InputConnection::InputConnection() : nntrainer::Property<Connection>() {}
 InputConnection::InputConnection(const Connection &value) :
   nntrainer::Property<Connection>(value) {} /**< default value if any */
 
-Connection::Connection(const std::string &layer_name, unsigned int idx) :
-  index(idx),
-  name(layer_name) {}
-
-Connection::Connection(const Connection &rhs) = default;
-Connection &Connection::operator=(const Connection &rhs) = default;
-Connection::Connection(Connection &&rhs) noexcept = default;
-Connection &Connection::operator=(Connection &&rhs) noexcept = default;
-
-bool Connection::operator==(const Connection &rhs) const noexcept {
-  return index == rhs.index and name == rhs.name;
-};
-
 Epsilon::Epsilon(float value) { set(value); }
 
 bool Epsilon::isValid(const float &value) const { return value > 0.0f; }
@@ -310,31 +297,15 @@ void GenericShape::set(const TensorDim &value) {
 } // namespace props
 
 template <>
-std::string
-str_converter<props::connection_prop_tag, props::Connection>::to_string(
-  const props::Connection &value) {
-  std::stringstream ss;
-  ss << value.getName().get() << '(' << value.getIndex() << ')';
-  return ss.str();
+std::string str_converter<props::connection_prop_tag, Connection>::to_string(
+  const Connection &value) {
+  return value.toString();
 }
 
 template <>
-props::Connection
-str_converter<props::connection_prop_tag, props::Connection>::from_string(
+Connection str_converter<props::connection_prop_tag, Connection>::from_string(
   const std::string &value) {
-  auto pos = value.find_first_of('(');
-  auto idx = 0u;
-  auto name_part = value.substr(0, pos);
-
-  if (pos != std::string::npos) {
-    NNTR_THROW_IF(value.back() != ')', std::invalid_argument)
-      << "failed to parse connection invalid format: " << value;
-
-    auto idx_part = value.substr(pos + 1, value.length() - 1);
-    idx = str_converter<uint_prop_tag, unsigned>::from_string(idx_part);
-  }
-
-  return props::Connection(name_part, idx);
+  return Connection(value);
 }
 
 } // namespace nntrainer

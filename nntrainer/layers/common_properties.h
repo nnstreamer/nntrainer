@@ -18,6 +18,7 @@
 #include <string>
 
 #include <base_properties.h>
+#include <connection.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
@@ -135,92 +136,6 @@ public:
   Standardization(bool value = false);
   static constexpr const char *key = "standardization";
   using prop_tag = bool_prop_tag;
-};
-
-/**
- * @brief RAII class to define the connection
- *
- */
-class Connection {
-public:
-  /**
-   * @brief Construct a new Connection object
-   *
-   * @param layer_name layer identifier
-   */
-  Connection(const std::string &layer_name, unsigned int idx);
-
-  /**
-   * @brief Construct a new Connection object
-   *
-   * @param rhs rhs to copy
-   */
-  Connection(const Connection &rhs);
-
-  /**
-   * @brief Copy assignment operator
-   *
-   * @param rhs rhs to copy
-   * @return Connection&
-   */
-  Connection &operator=(const Connection &rhs);
-
-  /**
-   * @brief Move Construct Connection object
-   *
-   * @param rhs rhs to move
-   */
-  Connection(Connection &&rhs) noexcept;
-
-  /**
-   * @brief Move assign a connection operator
-   *
-   * @param rhs rhs to move
-   * @return Connection&
-   */
-  Connection &operator=(Connection &&rhs) noexcept;
-
-  /**
-   * @brief Get the index
-   *
-   * @return unsigned index
-   */
-  const unsigned getIndex() const { return index; }
-
-  /**
-   * @brief Get the index
-   *
-   * @return unsigned index
-   */
-  unsigned &getIndex() { return index; }
-
-  /**
-   * @brief Get the Layer name object
-   *
-   * @return const Name& name of layer
-   */
-  const Name &getName() const { return name; }
-
-  /**
-   * @brief Get the Layer name object
-   *
-   * @return Name& name of layer
-   */
-  Name &getName() { return name; }
-
-  /**
-   *
-   * @brief operator==
-   *
-   * @param rhs right side to compare
-   * @return true if equal
-   * @return false if not equal
-   */
-  bool operator==(const Connection &rhs) const noexcept;
-
-private:
-  unsigned index;
-  Name name;
 };
 
 /**
