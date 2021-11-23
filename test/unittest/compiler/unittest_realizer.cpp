@@ -10,6 +10,7 @@
  * @bug No known bugs except for NYI items
  */
 
+#include "activation_realizer.h"
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -377,4 +378,41 @@ TEST(MultioutRealizer, multiout_clashing_name_n) {
 
   MultioutRealizer r;
   EXPECT_ANY_THROW(realizeAndEqual(r, before, {}));
+}
+
+TEST(ActivationRealizer, activation_p) {
+  ActivationRealizer ar;
+
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a"}},
+    {"activation",
+     {"name=b", "activation=relu", "input_layers=a"}}, /// not realized
+    {"fully_connected",
+     {"name=c", "input_layers=b", "activation=softmax"}}, // realized
+  };
+
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected", {"name=a"}},
+    {"activation", {"name=b", "activation=relu", "input_layers=a"}},
+    {"fully_connected",
+     {"name=c/activation_realized", "input_layers=b", "activation=none"}},
+    {"activation",
+     {"name=c", "input_layers=c/activation_realized", "activation=softmax"}},
+  };
+
+  realizeAndEqual(ar, before, after);
+}
+
+TEST(ActivationRealizer, activation_unknown_n) {
+  ActivationRealizer ar;
+
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a"}},
+    {"activation",
+     {"name=b", "activation=relu", "input_layers=a"}}, /// not realized
+    {"fully_connected",
+     {"name=c", "input_layers=b", "activation=unknown"}}, // unknown
+  };
+
+  EXPECT_ANY_THROW(realizeAndEqual(ar, before, {}));
 }
