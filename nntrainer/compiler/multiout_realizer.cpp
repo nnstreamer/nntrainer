@@ -17,6 +17,7 @@
 
 #include <common_properties.h>
 #include <compiler_fwd.h>
+#include <connection.h>
 #include <layer_node.h>
 #include <multiout_realizer.h>
 #include <remap_realizer.h>
@@ -28,8 +29,8 @@ GraphRepresentation
 MultioutRealizer::realize(const GraphRepresentation &reference) {
   GraphRepresentation processed(reference.begin(), reference.end());
 
+  std::unordered_map<Connection, unsigned> freq_map;
   std::unordered_set<std::string> node_names;
-  std::unordered_map<std::string, unsigned> freq_map;
 
   /// 1. build frequency map and connection names
   for (auto &node : reference) {
@@ -41,8 +42,7 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
          i < num_nodes; ++i) {
       Connection c(node->getInputConnectionName(i),
                    node->getInputConnectionIndex(i));
-      auto uniq_name = to_string(c);
-      [[maybe_unused]] auto [iter, result] = freq_map.try_emplace(uniq_name, 0);
+      [[maybe_unused]] auto [iter, result] = freq_map.try_emplace(c, 0);
       iter->second++;
     }
   }
@@ -53,13 +53,12 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
                           std::shared_ptr<LayerNode> /**< created node */>
     multiout_nodes;
 
-  for (auto &[con_name, freq] : freq_map) {
+  for (auto &[con, freq] : freq_map) {
     /// @note freq < 1 should never happen as the map entry is not created.
     /// but if it happens multiout realizer is not interested in checking if it
     /// is a dangled or actually an output. So there is no assurance done at
     /// this point. Some other class must check if the given graph is formed in
     /// a correct way.
-    Connection con(con_name);
     if (freq <= 1) {
       continue;
     }
@@ -76,8 +75,8 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
     auto multiout_name = ss.str();
 
     multiout_nodes.emplace(
-      id, createLayerNode(
-            "multiout", {"name=" + multiout_name, "input_layers=" + con_name}));
+      id, createLayerNode("multiout", {"name=" + multiout_name,
+                                       "input_layers=" + con.toString()}));
     node_names.emplace(multiout_name);
 
     unsigned input_count = 0;

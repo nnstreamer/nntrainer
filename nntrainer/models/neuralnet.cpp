@@ -120,11 +120,6 @@ int NeuralNetwork::compile() {
     rep.push_back(*iter);
   }
 
-  if (input_layers.empty()) {
-    if (!rep.empty()) {
-      input_layers.emplace_back(rep.front()->getName());
-    }
-  }
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
@@ -173,12 +168,13 @@ int NeuralNetwork::initialize() {
   model_graph.setBatchSize(
     std::get<props::TrainingBatchSize>(model_flex_props));
 
-  auto &input_conns =
+  auto &input_conn_prop =
     std::get<std::vector<props::InputConnection>>(model_props);
   auto &label_layer_prop =
     std::get<std::vector<props::LabelLayer>>(model_props);
 
-  std::vector<Connection> input_layers(input_conns.begin(), input_conns.end());
+  std::vector<Connection> input_conn(input_conn_prop.begin(),
+                                     input_conn_prop.end());
   std::vector<std::string> label_layers;
 
   if (!label_layer_prop.empty()) {
@@ -187,7 +183,7 @@ int NeuralNetwork::initialize() {
   }
 
   status = model_graph.initialize(
-    std::vector<Connection>(input_conns.begin(), input_conns.end()),
+    input_conn,
     std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
 
@@ -933,6 +929,9 @@ void NeuralNetwork::addWithReferenceLayers(
   const std::vector<std::string> &type_properties) {
   /// @todo below configuration should be extracted as a free function to make
   /// it more testable, and reused inside graph interpreter
+
+  /// @note we can exploit connection to connection more fine grained, for now
+  /// it is not supported but we can easily make this supported
   std::vector<std::shared_ptr<LayerNode>> nodes;
   nodes.reserve(reference.size());
   for (auto &node : reference) {

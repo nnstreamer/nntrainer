@@ -55,6 +55,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   graph.realizeInputOutputNode();
 
   try {
+    /// @todo realize loss beforehand
     status = addLossLayer(loss_type);
     NN_RETURN_STATUS();
   } catch (const std::exception &e) {
@@ -139,7 +140,7 @@ int NetworkGraph::addLossLayer(const std::string &loss_type_) {
       }
 
       second_to_last_layer_node =
-        LNODE(graph.getNode(output_layer_node->getInputLayers()[0]));
+        LNODE(graph.getNode(output_layer_node->getInputConnectionName(0)));
     }
 
     std::shared_ptr<LayerNode> lnode = createLayerNode(loss_type);
@@ -546,10 +547,10 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * layer will be non-restricting.
    */
   if (no_op(lnode) || !lnode->supportBackwarding()) {
-    auto const &input_layers = lnode->getInputLayers();
-    for (unsigned int i = 0; i < input_layers.size(); ++i) {
-      if (getLayerNode(input_layers[i])->executeInPlace() ==
-          InPlace::RESTRICTING)
+    for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
+         ++i) {
+      const auto &input_name = lnode->getInputConnectionName(i);
+      if (getLayerNode(input_name)->executeInPlace() == InPlace::RESTRICTING)
         return InPlace::RESTRICTING;
     }
     return InPlace::NON_RESTRICTING;
@@ -586,25 +587,24 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * work in-place such as concat layer, split layer, addition layer, dropout
    * layer, etc.
    *
-   * @todo This logic sets layers to in-place one-by-one as they arrive.
-   * However setting some layers to in-place can save more memory than others
-   * (like multiout layer vs activaiton layer). The layers need to sorted
-   * based on the memory save they provide and then make them in-place in that
-   * order.
+   * @todo This logic sets layers to in-place one-by-one as they arrive. However
+   * setting some layers to in-place can save more memory than others (like
+   * multiout layer vs activation layer). The layers need to sorted based on the
+   * memory save they provide and then make them in-place in that order.
    */
   if (lnode->getType() == ActivationLayer::type ||
       lnode->getType() == BatchNormalizationLayer::type) {
-    auto const &input_layers = lnode->getInputLayers();
-    for (unsigned int i = 0; i < input_layers.size(); ++i) {
-      if (getLayerNode(input_layers[i])->executeInPlace() ==
+    for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
+         ++i) {
+      if (getLayerNode(lnode->getInputConnectionName(i))->executeInPlace() ==
           InPlace::RESTRICTING)
         return InPlace::NONE;
     }
 
     /**
      * if the layer does io_independent_backwarding where the input and output
-     * is not requried during backwarding, then it is a non-restricting
-     * in-place layer.
+     * is not required during backwarding, then it is a non-restricting in-place
+     * layer.
      */
     if (io_independent_backwarding(lnode))
       return InPlace::NON_RESTRICTING;
@@ -806,7 +806,8 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
 
       unsigned int j = 0;
       for (; j < out_layer_node->getNumInputConnections(); ++j) {
-        if (istrequal(out_layer_node->getInputLayers()[j], lnode->getName())) {
+        if (istrequal(out_layer_node->getInputConnectionName(j),
+                      lnode->getName())) {
           break;
         }
       }
