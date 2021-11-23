@@ -826,18 +826,6 @@ int NeuralNetwork::addLayer(NodeType layer) {
   return status;
 }
 
-int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
-  if (initialized) {
-    return ML_ERROR_NOT_SUPPORTED;
-  }
-
-  if (graph.size() == 0)
-    return ML_ERROR_NONE;
-
-  model_graph.extendGraph(graph, prefix);
-  return ML_ERROR_NONE;
-}
-
 NeuralNetwork::GraphType
 NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
                                  const std::string &output_layer) {

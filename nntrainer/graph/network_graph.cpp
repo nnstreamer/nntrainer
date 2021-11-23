@@ -43,8 +43,12 @@ int NetworkGraph::compile(const std::string &loss_type) {
   status = isCompilable();
   NN_RETURN_STATUS();
 
-  status = realizeGraph();
-  NN_RETURN_STATUS();
+  try {
+    setOutputLayers();
+  } catch (std::exception &e) {
+    ml_loge("setting output layer failed, reason: %s", e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   graph.realizeInputOutputNode();
 
@@ -83,16 +87,6 @@ void NetworkGraph::setExecutionOrder() {
     auto calc_derivative_order = calc_gradient_order + 1;
     node->setExecutionOrder(
       {forward_order, calc_gradient_order, calc_derivative_order});
-  }
-}
-
-void NetworkGraph::updateConnectionName(const std::string &from,
-                                        const std::string &to) {
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    auto &lnode = *iter;
-    if (istrequal(lnode->getName(), to))
-      continue;
-    lnode->updateInputLayers(from, to);
   }
 }
 
@@ -244,47 +238,6 @@ void NetworkGraph::markNodesForBackwarding() {
   /** mark all the required nodes support backwarding */
   for (auto const &node_name : must_support_backwarding)
     LNODE(graph.getNode(node_name))->needsCalcDerivative(true);
-}
-
-int NetworkGraph::realizeGraph() {
-  int status = ML_ERROR_NONE;
-
-  /**
-   * invariant: the new realized nodes are added to the end,
-   * otherwise this iteration becomes invalid. So, every iteration must be
-   * fresh iterator as vector resize invalidates all the iterators.
-   */
-  for (unsigned int i = 0; i < graph.size(); ++i) {
-    auto const &lnode = LNODE(*(cbegin() + i));
-    ml_logd("layer name: %s", lnode->getName().c_str());
-
-    /** If a layer does not has input nodes, then it must have input dimension
-     */
-    if (lnode->getNumInputConnections() == 0) {
-      if (!lnode->hasInputShapeProperty()) {
-        ml_loge("Input Dimension must be set");
-        status = ML_ERROR_INVALID_PARAMETER;
-        NN_RETURN_STATUS();
-      }
-    }
-
-    if (lnode->getType() != ActivationLayer::type) {
-      status = realizeActivationType(lnode);
-      NN_RETURN_STATUS();
-    }
-  }
-
-  try {
-    setOutputLayers();
-  } catch (std::exception &e) {
-    ml_loge("setting output layer failed, reason: %s", e.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  /// @todo add check that input_layers <-> output_layers does match.
-  /// @todo check whether graph has a cycle or graph is seperated to subgraph
-
-  return status;
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
@@ -500,59 +453,6 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
 
 std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
   return std::vector<std::shared_ptr<LayerNode>>(cbegin(), cend());
-}
-
-void NetworkGraph::extendGraph(std::vector<std::shared_ptr<LayerNode>> ex_graph,
-                               std::string &prefix) {
-  if (compiled)
-    throw std::runtime_error("Cannot modify graph after compile");
-
-  /**
-   * The input_layers for ex_graph[0] here is provided to the backbone by the
-   * ini file and is overwritten here by the model loader for connection
-   * making.
-   *
-   * This loop intends to connect a new backbone to be added with an old
-   * backbone.
-   */
-  auto &layer0_in = ex_graph[0]->getInputLayers();
-  for (unsigned int i = 0; i < layer0_in.size(); ++i) {
-    if (sub_in_out.find(layer0_in[i]) != sub_in_out.end()) {
-      ex_graph[0]->updateInputLayers(i, sub_in_out[layer0_in[i]]);
-    } else if (!graph.verifyNode(layer0_in[i])) {
-      throw std::runtime_error("Input layer name for backbone not found.");
-    }
-  }
-
-  /** Insert the layer to the graph */
-  for (auto &layernode : ex_graph) {
-    /**
-     * Add prefix to the existing layer name,
-     * and ensure it is unique in this new ex_graph
-     */
-    std::string orig_name = prefix + layernode->getName();
-    graph.ensureName(*layernode, prefix, "", true);
-    sub_in_out.insert(std::make_pair(orig_name, layernode->getName()));
-
-    auto &input_layers = layernode->getInputLayers();
-    for (unsigned int i = 0; i < input_layers.size(); ++i) {
-      if (sub_in_out.find(prefix + input_layers[i]) != sub_in_out.end()) {
-        layernode->updateInputLayers(
-          i, sub_in_out[prefix + layernode->getInputLayers()[i]]);
-      } else if (!graph.verifyNode(layernode->getInputLayers()[i])) {
-        throw std::runtime_error("Input layer name for backbone not found.");
-      }
-    }
-
-    graph.addNode(layernode, false);
-  }
-
-  /** This allows connecting a layer to the backbone */
-  sub_in_out.insert(
-    std::make_pair(prefix, graph.getNode(graph.size() - 1)->getName()));
-
-  /** @todo Update shared_from node name as well */
-  /** @todo Add test for this */
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {

@@ -127,19 +127,6 @@ public:
   std::vector<std::shared_ptr<LayerNode>> getLayerNodes() const;
 
   /**
-   * @brief     join passed graph into the existing graph model
-   * @param[in] graph graph to be added/to extend
-   * @param[in] prefix prefix added to names of layers from this graph
-   * @note It is assumed that this model is valid by itself
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   *
-   * @todo rename to addLayers
-   */
-  void extendGraph(std::vector<std::shared_ptr<LayerNode>> graph,
-                   std::string &prefix);
-
-  /**
    * @brief     set batch size
    * @param[in] batch size
    */
@@ -408,13 +395,6 @@ private:
   void markNodesForBackwarding();
 
   /**
-   * @brief     Realize Graph Nodes
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeGraph();
-
-  /**
    * @brief     adding loss layer at last position
    * @param[in] loss_type loss type
    * @retval #ML_ERROR_NONE Successful.
@@ -444,14 +424,6 @@ private:
    * @param[in] layer shared_ptr of Layer
    */
   void addLayerNode(std::unique_ptr<Layer> layer);
-
-  /**
-   * @brief update input_layers, output_layers node name
-   *
-   * @param from update name from @a from
-   * @param to update name to @a to
-   */
-  void updateConnectionName(const std::string &from, const std::string &to);
 
   /**
    * @brief finalize already added loss layers
