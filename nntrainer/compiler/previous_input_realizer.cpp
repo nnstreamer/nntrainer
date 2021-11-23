@@ -65,7 +65,7 @@ PreviousInputRealizer::realize(const GraphRepresentation &reference) {
       "being set ",
       node->getName().c_str(), prev_node->getName().c_str());
 
-    node->setInputLayers({prev_node->getName()});
+    node->setProperty({"input_layers=" + prev_node->getName()});
   }
 
   return processed;
