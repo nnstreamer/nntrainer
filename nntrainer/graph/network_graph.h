@@ -415,14 +415,6 @@ private:
   int realizeGraph();
 
   /**
-   * @brief     Realize act type to layer and insert it to layers
-   * @param[in] in_node layernode
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeActivationType(const std::shared_ptr<LayerNode> &in_node);
-
-  /**
    * @brief     adding loss layer at last position
    * @param[in] loss_type loss type
    * @retval #ML_ERROR_NONE Successful.
