@@ -14,6 +14,8 @@
 
 #include <cmath>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 
 #include <activation_layer.h>
 #include <addition_layer.h>
@@ -150,8 +152,10 @@ int NetworkGraph::addLossLayer(const std::string &loss_type_) {
       lnode->setProperty({"distribute=true"});
     }
 
+    /// @todo remove this by add loss at realization
     second_to_last_layer_node->setOutputLayers({lnode->getName()});
-    lnode->setInputLayers({second_to_last_layer_node->getName()});
+    lnode->setProperty(
+      {"input_layers=" + second_to_last_layer_node->getName()});
 
     if (is_cross_entropy_loss) {
       graph.replaceNode(output_layer_node, lnode);
@@ -226,8 +230,15 @@ void NetworkGraph::markNodesForBackwarding() {
         lnode->needsCalcDerivative(true);
       }
 #endif
-      for (auto const &out_layer : lnode->getOutputLayers()) {
-        must_support_backwarding.insert(out_layer);
+
+      for (auto i = 0u, num_node = lnode->getNumOutputConnections();
+           i < num_node; ++i) {
+        auto conn = lnode->getOutputConnection(i);
+        if (!conn) {
+          continue;
+        }
+
+        must_support_backwarding.insert(conn->getName());
       }
     }
   }
@@ -785,23 +796,28 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
     if (idx == graph.size() - 1)
       break;
 
-    auto &output_layers = lnode->getOutputLayers();
-    for (unsigned int i = 0; i < output_layers.size(); ++i) {
-      auto out_layer_node = getLayerNode(output_layers[i]);
-      if (input_map.find(output_layers[i]) == input_map.end())
-        input_map.insert({output_layers[i], {}});
-
-      unsigned int j = 0;
-      for (; j < out_layer_node->getNumInputConnections(); ++j) {
-        if (istrequal(out_layer_node->getInputConnectionName(j),
-                      lnode->getName())) {
-          break;
-        }
+    for (auto i = 0u, num_node = lnode->getNumOutputConnections(); i < num_node;
+         ++i) {
+      auto conn = lnode->getOutputConnection(i);
+      if (!conn) {
+        ml_logi("out connection not defined for  %s, %u",
+                lnode->getName().c_str(), i);
+        continue;
       }
 
-      auto &in_map = input_map.at(output_layers[i]);
-      in_map.resize(out_layer_node->getNumInputConnections());
-      in_map[j] = outputs[i];
+      auto sink_node = getLayerNode(conn->getName());
+      [[maybe_unused]] auto [it, b] =
+        input_map.try_emplace({sink_node->getName(), {}});
+
+      NNTR_THROW_IF(sink_node->getInputConnectionName(conn->getIndex()) !=
+                      lnode->getName(),
+                    std::invalid_argument)
+        << "node pair does not match between " << lnode->getName() << ' '
+        << sink_node->getName();
+
+      auto &sink_tensors = it->second;
+      sink_tensors.resize(sink_node->getNumInputConnections());
+      sink_tensors[conn->getIndex()] = outputs[i];
     }
   }
 

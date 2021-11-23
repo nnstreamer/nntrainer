@@ -169,7 +169,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
-  output_layers(),
+  output_connections(),
+  effective_output_connection_size(0),
   run_context(nullptr),
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
@@ -222,13 +223,23 @@ void LayerNode::setInputConnectionName(unsigned nth, const std::string &name) {
   input_layers.at(nth).get().getName() = name;
 }
 
+const Connection *LayerNode::getOutputConnection(unsigned nth) const {
+  return output_connections.at(nth).get();
+}
+
 void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
                                     unsigned index) {
-  if (nth >= output_layers.size()) {
-    output_layers.resize(nth + 1);
+  if (nth >= output_connections.size()) {
+    output_connections.resize(nth + 1);
   }
 
-  output_layers[nth] = std::make_unique<Connection>(name, index);
+  auto &con = output_connections[nth];
+  NNTR_THROW_IF(con, std::invalid_argument)
+    << "cannot override connection, this slot is reserved for "
+    << con->toString();
+
+  effective_output_connection_size++;
+  con = std::make_unique<Connection>(name, index);
 }
 
 const std::string LayerNode::getName() const noexcept {
@@ -238,7 +249,7 @@ const std::string LayerNode::getName() const noexcept {
 
 std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
 
-  auto &input_layers =
+  auto &input_connections =
     std::get<std::vector<props::InputConnection>>(*l.layer_node_props);
 
   out << "[" << l.getName() << '/' << l.getType() << "]\n";
@@ -250,8 +261,8 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
     out << '\n';
   };
 
-  print_vector(input_layers, " input_layers");
-  //   print_vector(l.output_layers, "output_layers");
+  print_vector(input_connections, " input_connections");
+  //   print_vector(l.output_connections, "output_connections");
   return out;
 }
 
@@ -265,21 +276,21 @@ ActivationType LayerNode::getActivationType() const {
 }
 
 unsigned int LayerNode::getNumInputConnections() const {
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  return input_layers.size();
+  return input_conns.size();
 }
 
 unsigned int LayerNode::getNumOutputConnections() const {
-  return output_layers.size();
+  return output_connections.size();
 }
 
 const std::vector<std::string> LayerNode::getInputLayers() const {
-  auto &input_layers =
+  auto &input_connections =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
   std::vector<std::string> names;
-  names.reserve(input_layers.size());
-  std::transform(input_layers.begin(), input_layers.end(),
+  names.reserve(input_connections.size());
+  std::transform(input_connections.begin(), input_connections.end(),
                  std::back_inserter(names),
                  [](const Connection &con) { return con.getName(); });
   return names;
@@ -287,14 +298,14 @@ const std::vector<std::string> LayerNode::getInputLayers() const {
 
 const std::vector<std::string> LayerNode::getOutputLayers() const {
   std::vector<std::string> names;
-  names.reserve(output_layers.size());
+  names.reserve(output_connections.size());
 
-  for (auto &output_layer : output_layers) {
-    if (output_layer == nullptr) {
+  for (auto &conn : output_connections) {
+    if (conn == nullptr) {
       ml_logw("intermediate output is empty for layer: %s", getName().c_str());
       continue;
     }
-    names.push_back(output_layer->getName());
+    names.push_back(conn->getName());
   }
   return names;
 }
@@ -355,33 +366,13 @@ nntrainer::Layer *LayerNode::getLayer() {
     return layer.get();
 }
 
-void LayerNode::addInputLayers(const std::string &in_layer) {
-  auto &input_layers =
-    std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  input_layers.emplace_back(Connection(in_layer, 0));
-}
-
-void LayerNode::addOutputLayers(const std::string &out_layer) {
-  output_layers.emplace_back(new Connection(out_layer, 0));
-}
-
-void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
-  auto &input_layers =
-    std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  input_layers.clear();
-  input_layers.reserve(layers.size());
-  std::transform(layers.begin(), layers.end(), std::back_inserter(input_layers),
-                 [](const std::string &id) {
-                   return Connection{id, 0};
-                 });
-}
-
 void LayerNode::setOutputLayers(const std::vector<std::string> &layers) {
-  output_layers.clear();
-  output_layers.reserve(layers.size());
+  output_connections.clear();
+  output_connections.reserve(layers.size());
   std::transform(
-    layers.begin(), layers.end(), std::back_inserter(output_layers),
-    [](const std::string &id) { return std::make_unique<Connection>(id); });
+    layers.begin(), layers.end(), std::back_inserter(output_connections),
+    [this](const std::string &id) { return std::make_unique<Connection>(id); });
+  effective_output_connection_size = layers.size();
 }
 
 bool LayerNode::hasInputShapeProperty() const {
@@ -424,9 +415,7 @@ const std::vector<TensorDim> LayerNode::getOutputDimensions() const {
 void LayerNode::exportTo(Exporter &exporter,
                          const ExportMethods &method) const {
   exporter.saveResult(*layer_node_props, method, this);
-  // TODO: update getLayer() for layerv2 and use getLayer()
   layer->exportTo(exporter, method);
-  /// have layer_v2 implementation
 }
 
 void LayerNode::read(std::ifstream &file) {
@@ -514,10 +503,24 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   layer_node_props_realization = std::make_unique<RealizationPropsType>(
     props::Flatten(), props::Activation());
 
-  auto num_outputs = output_layers.size();
-  if (output_layers.empty()) {
-    num_outputs = 1;
-  }
+  /// if intermediate node is not used anywhere, it means we need delicate
+  /// handling, including interface change for init layer context because layer
+  /// need to know which output is a dangling node, it is rather better to
+  /// assume this is a buggy behavior
+  /// if the output is possibly optional (for example, lstmcell returns hidden,
+  /// cell) but cell might not be used else where. this can be easily checked by
+  /// putting cell to the first output. In this case, there is no intermediate
+  /// node unidentified it will pass this check while lstmcell can query by
+  /// checking number of outputs from context
+  NNTR_THROW_IF(getNumOutputConnections() != effective_output_connection_size,
+                std::invalid_argument)
+    << "Intermediate node is not used anywhere for node: " << getName()
+    << " num output connection: " << getNumOutputConnections()
+    << " effective_output_connection: " << effective_output_connection_size;
+
+  auto num_outputs = effective_output_connection_size == 0
+                       ? 1
+                       : effective_output_connection_size;
 
   auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
@@ -714,7 +717,7 @@ void LayerNode::remapConnections(
     remap_fn(name, idx);
   }
 
-  for (auto &output_layer : output_layers) {
+  for (auto &output_layer : output_connections) {
     if (output_layer == nullptr) {
       continue;
     }

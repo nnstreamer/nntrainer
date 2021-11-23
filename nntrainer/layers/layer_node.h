@@ -15,10 +15,10 @@
  * GraphNode. Each layer is wrapped with LayerNode in order to add it to a
  * graph. Each LayerNode contains only 1 layer inside. LayerNode also intercepts
  * certain properties of the layer which are either related to graph related
- * connections (input_layers, output_layers, activation, flatten, distribute,
- * name) or essential for the description of the layer (trainable, input_dims)
- * iself. These properties, if needed by the layer object, are provided access
- * to via LayerContext.
+ * connections (input_connections, output_connections, activation, flatten,
+ * distribute, name) or essential for the description of the layer (trainable,
+ * input_dims) iself. These properties, if needed by the layer object, are
+ * provided access to via LayerContext.
  */
 
 #ifndef __LAYER_NODE_H__
@@ -165,6 +165,15 @@ public:
    * @throws if new identifier is invalid
    */
   void setInputConnectionName(unsigned nth, const std::string &name);
+
+  /**
+   * @brief Get the output connection object
+   *
+   * @param nth nth input
+   * @throws if nth is out of range of getNumOutputConnection()
+   * @return Connection * view of a connection, null means this does not exist
+   */
+  const Connection *getOutputConnection(unsigned nth) const;
 
   /**
    * @brief Set the Output Connection
@@ -409,34 +418,6 @@ public:
       << __func__ << " layer needs to be finalized first!";
     return run_context->getNumWeights();
   }
-
-  /**
-   * @brief Get the Output Layers object
-   *
-   * @return const std::vector<std::string>
-   */
-  const std::vector<std::string> getOutputLayers() const;
-
-  /**
-   * @brief Add name to the input layers
-   *
-   * @param in_layer Name to be added
-   */
-  void addInputLayers(const std::string &in_layer);
-
-  /**
-   * @brief Add name to the output layers
-   *
-   * @param out_layer Name to be added
-   */
-  void addOutputLayers(const std::string &out_layer);
-
-  /**
-   * @brief Set the Input Layers object
-   *
-   * @param layers Name of the layers
-   */
-  void setInputLayers(const std::vector<std::string> &layers);
 
   /**
    * @brief Set the Output Layers object
@@ -749,6 +730,14 @@ private:
    */
   const std::vector<std::string> getInputLayers() const;
 
+public:
+  /**
+   * @brief Get the Output Layers object
+   *
+   * @return const std::vector<std::string>
+   */
+  const std::vector<std::string> getOutputLayers() const;
+
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
@@ -759,7 +748,11 @@ private:
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
   std::vector<std::unique_ptr<Connection>>
-    output_layers; /**< output layer names */
+    output_connections;                      /**< output layer names */
+  unsigned effective_output_connection_size; /**< effective output connection
+                                                size, this skips not connected
+                                                slot, so this number can be
+                                                diffrent from num_outputs() */
 
   std::unique_ptr<RunLayerContext>
     run_context; /**< context required for running/execution of the layer. This
