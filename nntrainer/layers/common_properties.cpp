@@ -238,9 +238,6 @@ bool WeightRegularizerConstant::isValid(const float &value) const {
   return value >= 0.0f;
 }
 
-InputLayer::InputLayer() : Name() {}
-InputLayer::InputLayer(const std::string &name) : Name(name) {}
-
 OutputLayer::OutputLayer() : Name() {}
 OutputLayer::OutputLayer(const std::string &name) : Name(name) {}
 

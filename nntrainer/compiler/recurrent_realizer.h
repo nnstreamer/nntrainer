@@ -26,7 +26,6 @@ namespace nntrainer {
 namespace props {
 class UnrollFor;
 class ReturnSequences;
-class InputLayer;
 class OutputLayer;
 class RecurrentInput;
 class RecurrentOutput;
