@@ -26,7 +26,7 @@ enum EmbeddingParams { weight };
 
 EmbeddingLayer::EmbeddingLayer() :
   LayerImpl(),
-  embedding_props(props::InDim(), props::OutDim()),
+  embedding_props(props::InDim(), props::OutDim(), props::ZeroIdxMask()),
   weight_idx(0) {}
 
 void EmbeddingLayer::finalize(InitLayerContext &context) {
@@ -72,34 +72,39 @@ void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
+  /**
+   * TODO: if ZeroMaskIdx is set, then that idx weight should be reset to zero
+   * in the initialize or in the first run
+   */
   /// @todo get input and output dimension from input_ and hidden itself
   unsigned int in_dim = std::get<props::InDim>(embedding_props);
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+  auto &zero_mask_idx = std::get<props::ZeroIdxMask>(embedding_props);
 
   Tensor &weight = context.getWeight(weight_idx);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     uint *in_data =
-      (uint *)input_.getAddress(b * input_.getDim().getFeatureLen());
+      input_.getAddress<uint>(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = in_data[i] - 1;
-      if (embed_idx + 1 > in_dim) {
+      uint embed_idx = in_data[i];
+      if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
 
-      // Assume padding is 0 and index always start from 1.
-      // If in_data[i] - 1 < 0, then it skips.
-      if (embed_idx < 0)
-        continue;
+      Tensor cur_weight = weight.getSharedDataTensor(out_tensor_dim, embed_idx);
+      Tensor out_tensor = hidden_.getSharedDataTensor(out_tensor_dim, i);
 
-      float *weight_data = weight.getAddress(embed_idx * out_dim);
-      float *out_data =
-        hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i * out_dim);
-
-      std::copy(weight_data, weight_data + out_dim, out_data);
+      /** if zero_mask_idx matches the given index, set the output to zero */
+      if (!zero_mask_idx.empty() && embed_idx == zero_mask_idx.get()) {
+        out_tensor.setZero();
+      } else {
+        out_tensor.copyData(cur_weight);
+      }
     }
   }
 }
@@ -111,12 +116,12 @@ void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
 
 void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+  auto &zero_mask_idx = std::get<props::ZeroIdxMask>(embedding_props);
 
   Tensor &djdw = context.getWeightGrad(weight_idx);
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-
-  djdw.setZero();
+  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
 
   // TODO:
   // This is to calculate gradient with current implementation of optimizer.
@@ -124,21 +129,20 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     uint *in_data =
-      (uint *)input_.getAddress(b * input_.getDim().getFeatureLen());
+      input_.getAddress<uint>(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = in_data[i] - 1;
-      // Assume padding is 0 and index always start from 1.
-      // If in_data[i] - 1 < 0, then it skips.
-      if (embed_idx < 0)
-        continue;
+      uint embed_idx = in_data[i];
 
-      float *djdw_data = djdw.getAddress(embed_idx * out_dim);
-      float *grad_data = derivative_.getAddress(
-        b * derivative_.getDim().getFeatureLen() + i * out_dim);
+      Tensor cur_dw = djdw.getSharedDataTensor(out_tensor_dim, embed_idx);
+      Tensor in_derv = derivative_.getSharedDataTensor(out_tensor_dim, i);
 
-      std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
-                     std::plus<float>());
+      /** if zero_mask_idx matches the given index, set the grad to zero */
+      if (!zero_mask_idx.empty() && embed_idx == zero_mask_idx.get()) {
+        cur_dw.setZero();
+      } else {
+        cur_dw.copyData(in_derv);
+      }
     }
   }
 }

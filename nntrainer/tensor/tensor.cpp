@@ -1189,24 +1189,6 @@ std::ostream &operator<<(std::ostream &out, Tensor const &m) {
   return out;
 }
 
-float *Tensor::getAddress(unsigned int i) {
-  if (i > getIndex(batch(), channel(), height(), width())) {
-    ml_loge("Error: Index out of bounds");
-    return nullptr;
-  }
-
-  return &getData()[i];
-}
-
-const float *Tensor::getAddress(unsigned int i) const {
-  if (i > getIndex(batch(), channel(), height(), width())) {
-    ml_loge("Error: Index out of bounds");
-    return nullptr;
-  }
-
-  return &getData()[i];
-}
-
 void Tensor::copy(const float *buf) noexcept {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << "Tensor is not contiguous, cannot copy.";

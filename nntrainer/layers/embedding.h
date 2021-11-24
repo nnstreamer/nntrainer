@@ -94,7 +94,7 @@ public:
   inline static const std::string type = "embedding";
 
 private:
-  std::tuple<props::InDim, props::OutDim> embedding_props;
+  std::tuple<props::InDim, props::OutDim, props::ZeroIdxMask> embedding_props;
   unsigned int weight_idx;
 };
 } // namespace nntrainer
