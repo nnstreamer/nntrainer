@@ -890,14 +890,6 @@ public:
   }
 
   /**
-   * @brief     Get int interpretable tensor
-   *
-   * @todo      This is a temporary workout. Remove this once multiple datatypes
-   * are supported.
-   */
-  template <typename T> const int *getData() const { return (int *)data.get(); }
-
-  /**
    * @brief     Fill the Tensor elements with value
    * @param[in] value value to be stored
    */
@@ -1109,28 +1101,42 @@ public:
    * @brief     i data index
    * @retval    address of ith data
    */
-  float *getAddress(unsigned int i);
+  template <typename T = float> T *getAddress(unsigned int i) {
+    if (i > getIndex(batch(), channel(), height(), width())) {
+      return nullptr;
+    }
+
+    return &getData<T>()[i];
+  }
 
   /**
    * @brief     i data index
    * @retval    address of ith data
    */
-  const float *getAddress(unsigned int i) const;
+  template <typename T = float> const T *getAddress(unsigned int i) const {
+    if (i > getIndex(batch(), channel(), height(), width())) {
+      return nullptr;
+    }
 
-  /**
-   * @brief    get address of n-d data
-   */
-  float *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                    unsigned int w) {
-    return getAddress(getIndex(b, c, h, w));
+    return &getData<T>()[i];
   }
 
   /**
    * @brief    get address of n-d data
    */
-  const float *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                          unsigned int w) const {
-    return getAddress(getIndex(b, c, h, w));
+  template <typename T = float>
+  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                unsigned int w) {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                      unsigned int w) const {
+    return getAddress<T>(getIndex(b, c, h, w));
   }
 
   /**

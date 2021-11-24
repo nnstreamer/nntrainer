@@ -502,6 +502,18 @@ public:
 };
 
 /**
+ * @brief Zero idx mask property for embedding where the value of embedding
+ * will be zero
+ *
+ */
+class ZeroIdxMask : public nntrainer::Property<uint> {
+public:
+  static constexpr const char *key =
+    "zero_idx_mask";              /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
+/**
  * @brief DropOutRate property, this defines drop out specification of layer
  *
  */
