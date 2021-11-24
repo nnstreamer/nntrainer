@@ -114,12 +114,6 @@ int NeuralNetwork::compile() {
   /// @todo make NetworkGraph compiled at the construction instead of having
   /// graph.compile(), neuralnetwork have ownership of list of layer nodes,
   /// which will be passed at compile time.
-  GraphRepresentation rep;
-  rep.reserve(model_graph.size());
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    rep.push_back(*iter);
-  }
-
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
@@ -130,13 +124,13 @@ int NeuralNetwork::compile() {
   realizers.emplace_back(new ActivationRealizer());
 
   for (auto &realizer : realizers) {
-    rep = realizer->realize(rep);
+    graph_representation = realizer->realize(graph_representation);
   }
 
   model_graph = NetworkGraph();
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
-  for (auto &node : rep) {
+  for (auto &node : graph_representation) {
     model_graph.addLayer(node);
   }
 
@@ -462,12 +456,7 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
   wrapper.save_ini(file_path);
 
   IniGraphInterpreter interpreter;
-
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    GraphRepresentation g;
-    g.push_back(*iter);
-    interpreter.serialize(g, file_path);
-  }
+  interpreter.serialize(graph_representation, file_path);
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -803,6 +792,7 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     swap(lhs.data_buffers, rhs.data_buffers);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);
+    swap(lhs.graph_representation, rhs.graph_representation);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
   }
@@ -817,6 +807,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
 
   /** Insert the layer to the graph */
   model_graph.addLayer(layer);
+  graph_representation.push_back(layer);
 
   return status;
 }

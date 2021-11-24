@@ -35,6 +35,7 @@
 
 #include <app_context.h>
 #include <common_properties.h>
+#include <compiler_fwd.h>
 #include <dynamic_training_optimization.h>
 #include <execution_mode.h>
 #include <layer_node.h>
@@ -332,17 +333,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int getLayer(const char *name,
-                       std::shared_ptr<ml::train::Layer> *layer) override;
-
-  /**
-   * @brief     get layer by name from neural network model
-   * @param[in] name name of the layer to get
-   * @param[out] layer shared_ptr to hold the layer to get
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int getLayer(const char *name, NodeType *layer);
+  int getLayer(const char *name,
+               std::shared_ptr<ml::train::Layer> *layer) override;
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
@@ -533,7 +525,8 @@ private:
 
   AppContext app_context; /** Configurations bound to current app */
 
-  NetworkGraph model_graph; /** Network Model Graph */
+  NetworkGraph model_graph;                 /** Network Model Graph */
+  GraphRepresentation graph_representation; /** Unsorted graph representation */
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */

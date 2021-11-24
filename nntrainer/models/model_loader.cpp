@@ -397,7 +397,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     auto graph_representation = ini_interpreter->deserialize(ini_file);
 
     for (auto &node : graph_representation) {
-      model.model_graph.addLayer(node);
+      model.addLayer(node);
     }
     ml_logd("parsing graph finished");
 
