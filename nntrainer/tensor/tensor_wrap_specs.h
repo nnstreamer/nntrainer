@@ -143,7 +143,7 @@ struct WeightSpecV2 {
   VarGradSpecV2 vg_spec; /**< variable + graident specification */
   WeightRegularizer regularizer = WeightRegularizer::NONE; /**< regularizer */
   float regularizer_constant = 0.0f; /**< regularizer constant */
-  float clip_by_norm = 0.0f;         /**< clip the gradient by norm */
+  float clip_by_global_norm = 0.0f;  /**< clip the gradient by norm */
 };
 
 } // namespace nntrainer

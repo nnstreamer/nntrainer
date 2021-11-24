@@ -215,7 +215,7 @@ class WeightInitializer;
 class BiasInitializer;
 class SharedFrom;
 class InputConnection;
-class ClipGradByNorm;
+class ClipGradByGlobalNorm;
 } // namespace props
 
 class LayerNode;
@@ -228,7 +228,7 @@ void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputConnection>,
                    std::vector<props::InputShape>, props::SharedFrom,
-                   props::ClipGradByNorm> &props,
+                   props::ClipGradByGlobalNorm> &props,
   const LayerNode *self);
 
 class LayerImpl;

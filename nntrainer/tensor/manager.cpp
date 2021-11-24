@@ -256,12 +256,13 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  */
 std::vector<Weight *> Manager::requestWeights(
   const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
-  bool trainable, const std::vector<std::string> &shared_names) {
+  bool trainable, const std::vector<std::string> &shared_names,
+  const unsigned int max_exec_order) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
     {forwarding_order, calcGradient_order, calcDerivative_order});
-  std::vector<unsigned int> grad_exec_order(
+  std::vector<unsigned int> default_grad_exec_order(
     {calcGradient_order, calcDerivative_order});
 
   TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
@@ -271,8 +272,16 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, clip_by_norm, need_gradient,
-           name] = weights_spec.at(i);
+    auto &[dim, t_initializer, w_reg, w_reg_const, clip_by_global_norm,
+           need_gradient, name] = weights_spec.at(i);
+    auto grad_exec_order = default_grad_exec_order;
+    /**
+     * If the weight is supposed to be clip by global norm, extend its exec
+     * order with the max exec order where it will be used for clipping and then
+     * applied to the weight.
+     */
+    if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
+      grad_exec_order.push_back(max_exec_order);
 
     Tensor *var = nullptr, *grad = nullptr;
     bool is_dependent = !shared_names.empty();
@@ -288,7 +297,6 @@ std::vector<Weight *> Manager::requestWeights(
                                            dim, grad_exec_order, grad_ls,
                                            Tensor::Initializer::ZEROS);
       }
-
     } else {
       /** case requesting fresh weights */
       var =
@@ -300,8 +308,8 @@ std::vector<Weight *> Manager::requestWeights(
                                    Tensor::Initializer::ZEROS);
     }
 
-    weights_v2.emplace_back(
-      std::make_unique<Weight>(var, grad, w_reg, w_reg_const, is_dependent));
+    weights_v2.emplace_back(std::make_unique<Weight>(
+      var, grad, w_reg, w_reg_const, is_dependent, clip_by_global_norm));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),

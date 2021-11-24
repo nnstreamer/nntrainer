@@ -114,7 +114,7 @@ public:
  * @brief properties for getting the clipping value to clip the gradient by norm
  *
  */
-class ClipGradByNorm : public Property<float> {
+class ClipGradByGlobalNorm : public Property<float> {
 public:
   static constexpr const char *key =
     "clip_grad_by_norm";           /**< unique key to access */
@@ -168,9 +168,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_gradient(false),
   output_layers(new std::vector<props::Connection>()),
   run_context(nullptr),
-  layer_node_props(new PropsType(props::Name(), props::Distribute(),
-                                 props::Trainable(), {}, {},
-                                 props::SharedFrom(), props::ClipGradByNorm())),
+  layer_node_props(
+    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
+                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -506,8 +506,8 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
 
   auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
-  if (!std::get<props::ClipGradByNorm>(*layer_node_props).empty())
-    max_norm = std::get<props::ClipGradByNorm>(*layer_node_props).get();
+  if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
+    max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
   auto init_context = InitLayerContext(actual_input_dims, num_outputs,
                                        executeInPlace() != InPlace::NONE,
                                        getName(), scope, max_norm);
