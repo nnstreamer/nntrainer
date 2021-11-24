@@ -12,6 +12,7 @@
  * @todo    Support multi-input graph.
  */
 
+#include <cmath>
 #include <sstream>
 
 #include <activation_layer.h>
@@ -289,8 +290,8 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
-void NetworkGraph::applyGradients(LayerNode *node,
-                                  std::function<void(Weight &)> apply_func) {
+void NetworkGraph::applyGradients(
+  LayerNode *node, const std::function<void(Weight &)> &apply_func) {
   auto &rc = node->getRunContext();
   auto num_weight = rc.getNumWeights();
   for (unsigned i = 0; i < num_weight; ++i) {
@@ -339,7 +340,8 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
 
 void NetworkGraph::backwarding(
   int iteration,
-  std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op) const {
+  std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
+  std::function<void(Weight &, int)> &apply_grad_clip_op) const {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -362,6 +364,28 @@ void NetworkGraph::backwarding(
     START_PROFILE(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);
     END_PROFILE(profile_keys.at(ln->getType()));
+  }
+
+  /** perform clipping of the gradients by global norm if any */
+  if (clip_weights.empty())
+    return;
+
+  /** calculate the global norm */
+  Tensor global_norm_t(
+    TensorDim({1u, 1u, 1u, (unsigned int)clip_weights.size()}));
+  float *global_norm_data = global_norm_t.getData();
+  for (unsigned int idx = 0; idx < clip_weights.size(); idx++) {
+    auto const &w = clip_weights[idx];
+    global_norm_data[idx] = w->getGradientNorm();
+  }
+  float global_norm = global_norm_t.l2norm();
+  /** apply the gradient with the above global norm */
+  for (auto w : clip_weights) {
+    w->clipGradientByGlobalNorm(global_norm);
+  }
+  /** apply the gradient with the above global norm */
+  for (auto w : clip_weights) {
+    apply_grad_clip_op(*w, iteration);
   }
 }
 
@@ -545,26 +569,27 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
 
   /**
    * @note Conditions to decide if this layer node can be in-place:
-   * This is a generic case where the layer can support in-place but will modify
-   * its input in-place. This includes layers like activation, etc. Apply checks
-   * below to ensure that the layers can work in-place:
+   * This is a generic case where the layer can support in-place but will
+   * modify its input in-place. This includes layers like activation, etc.
+   * Apply checks below to ensure that the layers can work in-place:
    * - if any of the input layer are restriction, then this layer cannot work
    *   as layers behind this layer have added restrictions.
    * - if all of the input layers are either not inplace or have no
    * restrictions, then this layer can operate in-place.
    *
    * @note Conditions to decide the type of inplace for this layer:
-   * This is a generic case, and always restrictions on the next nodes to be not
-   * inplace.
+   * This is a generic case, and always restrictions on the next nodes to be
+   * not inplace.
    *
    * @note This logic is prone to change as more layers are allowed to
    * work in-place such as concat layer, split layer, addition layer, dropout
    * layer, etc.
    *
-   * @todo This logic sets layers to in-place one-by-one as they arrive. However
-   * setting some layers to in-place can save more memory than others (like
-   * multiout layer vs activaiton layer). The layers need to sorted based on the
-   * memory save they provide and then make them in-place in that order.
+   * @todo This logic sets layers to in-place one-by-one as they arrive.
+   * However setting some layers to in-place can save more memory than others
+   * (like multiout layer vs activaiton layer). The layers need to sorted
+   * based on the memory save they provide and then make them in-place in that
+   * order.
    */
   if (lnode->getType() == ActivationLayer::type ||
       lnode->getType() == BatchNormalizationLayer::type) {
@@ -577,8 +602,8 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
 
     /**
      * if the layer does io_independent_backwarding where the input and output
-     * is not requried during backwarding, then it is a non-restricting in-place
-     * layer.
+     * is not requried during backwarding, then it is a non-restricting
+     * in-place layer.
      */
     if (io_independent_backwarding(lnode))
       return InPlace::NON_RESTRICTING;
@@ -618,11 +643,11 @@ setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
   }
   /** @todo for addition layer, variables are not shared but gradients are */
   /**
-   * @todo for layers which support in-place, both variables and gradients will
-   * be be shared.
+   * @todo for layers which support in-place, both variables and gradients
+   * will be be shared.
    *
-   * @todo add a check here is the layer being checked here can support in-place
-   * or not
+   * @todo add a check here is the layer being checked here can support
+   * in-place or not
    */
 }
 
@@ -641,8 +666,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
-   * allocated input. This is necesary for manager to know when this input node
-   * is going to be used.
+   * allocated input. This is necesary for manager to know when this input
+   * node is going to be used.
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
@@ -664,8 +689,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated input. This is necesary for manager to know when this output node
-   * is going to be used with in-place optimizations.
+   * allocated input. This is necesary for manager to know when this output
+   * node is going to be used with in-place optimizations.
    */
   const std::vector<Var_Grad *> &outputs =
     tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions(),
@@ -679,7 +704,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     /// later(#1707)
     // auto shared_node = getLayerNode(shared_node_str).get();
     // NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
-    //   << "shared_node requested but it is not registered in the graph, name:
+    //   << "shared_node requested but it is not registered in the graph,
+    //   name:
     //   "
     //   << shared_node_str << " requested from " << lnode->getName();
     // NNTR_THROW_IF(shared_node->getType() != lnode->getType(),
@@ -689,7 +715,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     //   lnode->getType()
     //   << " depedent node name: " << lnode->getName();
     // NNTR_THROW_IF(!shared_node->isFinalized(), std::invalid_argument)
-    //   << "shared node must be prior to the dependent node and it should be "
+    //   << "shared node must be prior to the dependent node and it should be
+    //   "
     //      "finalized beforehand, shared node name: "
     //   << shared_node_str << " dependent node name: " << lnode->getName();
     // auto num_weight = shared_node->getNumWeights();
@@ -858,8 +885,8 @@ int NetworkGraph::initialize(
         if (!pred(lnode)) {
           continue;
         }
-        /// when name is empty, we identify everything as the node, all of them
-        /// must be having identical dimensions
+        /// when name is empty, we identify everything as the node, all of
+        /// them must be having identical dimensions
         identify(lnode);
       }
     } else {
@@ -899,6 +926,13 @@ int NetworkGraph::initialize(
       e.what());
     return ML_ERROR_INVALID_PARAMETER;
   }
+
+  /** select weights which would require clipping of the gradients by global
+   * norm if any */
+  clip_weights = tensor_manager->getWeights([](const Weight *w) {
+    return w->hasGradient() && w->isGradientLastAccess() &&
+           w->isGradientClipByGlobalNorm();
+  });
 
   return ML_ERROR_NONE;
 }

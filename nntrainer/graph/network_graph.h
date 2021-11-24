@@ -142,7 +142,7 @@ public:
    * @param apply_func apply function
    */
   static void applyGradients(LayerNode *node,
-                             std::function<void(Weight &)> apply_func);
+                             const std::function<void(Weight &)> &apply_func);
 
   /**
    * @brief     forwarding network graph
@@ -155,10 +155,12 @@ public:
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
    * @param[in] backwarding_op operation for the backwarding
+   * @param[in] apply_grad_clip_op operation for applying the clip gradients
    */
   void backwarding(
     int iteration,
-    std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op) const;
+    std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
+    std::function<void(Weight &, int)> &apply_grad_clip_op) const;
 
   /**
    * @brief     get begin iterator for the graph
@@ -368,6 +370,8 @@ private:
 
   std::unordered_map<std::string, int>
     profile_keys; /**< profile keys based on the layer type */
+  std::vector<Weight *>
+    clip_weights; /**< weights with global norm based clipping enabled */
 
   /**
    * @brief     topological sort

@@ -311,7 +311,13 @@ void NeuralNetwork::backwarding(int iteration) {
     }
   };
 
-  model_graph.backwarding(iteration, backwarding_op);
+  std::function<void(Weight &, int)> apply_grad_clip_op =
+    [opt_ = opt.get()](Weight &w, int iteration) -> void {
+    RunOptimizerContext opt_context(&w, iteration);
+    opt_->applyGradient(opt_context);
+  };
+
+  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op);
 }
 
 void NeuralNetwork::save(const std::string &file_path,

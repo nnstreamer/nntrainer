@@ -245,11 +245,12 @@ public:
                  bool shared_var = true, bool shared_grad = true);
 
   /**
-   * @brief     Get all the weights
+   * @brief     Get all the weights which match the above condition
    *
-   * @return    return all the weights
+   * @return    return the weights with satisfying the above condition
    */
-  std::vector<Weight *> getWeights();
+  std::vector<Weight *>
+  getWeights(const std::function<bool(const Weight *)> &condition = nullptr);
 
   /**
    * @brief Get the Min Max of a tensor execution order

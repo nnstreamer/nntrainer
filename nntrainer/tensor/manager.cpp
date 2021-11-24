@@ -578,14 +578,16 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   return ret;
 }
 
-std::vector<Weight *> Manager::getWeights() {
-  std::vector<Weight *> all_weights;
+std::vector<Weight *>
+Manager::getWeights(const std::function<bool(const Weight *)> &condition) {
+  std::vector<Weight *> conditional_weights;
 
   for (auto &w : weights_v2) {
-    all_weights.push_back(w.get());
+    if (!condition || condition(w.get()))
+      conditional_weights.push_back(w.get());
   }
 
-  return all_weights;
+  return conditional_weights;
 }
 
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
