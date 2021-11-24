@@ -271,8 +271,8 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, need_gradient, name] =
-      weights_spec.at(i);
+    auto &[dim, t_initializer, w_reg, w_reg_const, clip_by_norm, need_gradient,
+           name] = weights_spec.at(i);
 
     Tensor *var = nullptr, *grad = nullptr;
     bool is_dependent = !shared_names.empty();

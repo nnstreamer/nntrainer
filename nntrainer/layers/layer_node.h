@@ -46,12 +46,12 @@ class Name;
 class Distribute;
 class Flatten;
 class Loss;
-class InputLayer;
 class InputShape;
 class Activation;
 class SharedFrom;
 class Connection;
 class InputConnection;
+class ClipGradByNorm;
 } // namespace props
 
 /**
@@ -753,8 +753,8 @@ properties in the context/graph unless intended. */
 
   using PropsType =
     std::tuple<props::Name, props::Distribute, props::Trainable,
-               std::vector<props::InputConnection>,
-               std::vector<props::InputShape>, props::SharedFrom>;
+               std::vector<props::InputConnection>, std::vector<props::InputShape>,
+               props::SharedFrom, props::ClipGradByNorm>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence

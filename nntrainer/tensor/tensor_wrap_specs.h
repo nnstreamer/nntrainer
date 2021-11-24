@@ -59,10 +59,11 @@ enum class TensorLifespan {
  * @brief Specification of the Weight as a tensor wrapper
  *
  * @details The tuple values are dimension, initializer, regularizer,
- * regularizer_constant, need_gradient property amd name of the tensor object.
+ * regularizer_constant, clip gradient constant, need_gradient property amd name
+ * of the tensor object.
  */
 typedef std::tuple<TensorDim, Tensor::Initializer, WeightRegularizer, float,
-                   bool, const std::string>
+                   float, bool, const std::string>
   WeightSpec;
 
 /**
@@ -142,6 +143,7 @@ struct WeightSpecV2 {
   VarGradSpecV2 vg_spec; /**< variable + graident specification */
   WeightRegularizer regularizer = WeightRegularizer::NONE; /**< regularizer */
   float regularizer_constant = 0.0f; /**< regularizer constant */
+  float clip_by_norm = 0.0f;         /**< clip the gradient by norm */
 };
 
 } // namespace nntrainer
