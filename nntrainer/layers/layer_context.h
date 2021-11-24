@@ -536,6 +536,14 @@ public:
   bool isGradientLastAccess(unsigned int idx) const;
 
   /**
+   * @brief check if the gradient is to be clipped by global norm
+   *
+   * @param idx index
+   * @return bool true if it is to be clipped else false
+   */
+  bool isGradientClipByGlobalNorm(unsigned int idx) const;
+
+  /**
    * @brief Get the tensor name
    *
    * @param idx Identifier of the tensor

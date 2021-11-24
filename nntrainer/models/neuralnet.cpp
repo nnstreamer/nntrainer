@@ -302,7 +302,7 @@ void NeuralNetwork::backwarding(int iteration) {
 
     if (apply_gradient) {
       /// Apply gradient only at the end of the last shared weight access
-      model_graph.applyGradientsOnLastAccess(
+      model_graph.applyGradients(
         node.get(), [iteration, opt_ = opt.get()](Weight &w) {
           w.calcRegularizationGradient();
           RunOptimizerContext opt_context(&w, iteration);

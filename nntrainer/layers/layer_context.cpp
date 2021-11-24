@@ -267,6 +267,10 @@ bool RunLayerContext::isGradientLastAccess(unsigned int idx) const {
   return weights[idx]->isGradientLastAccess();
 }
 
+bool RunLayerContext::isGradientClipByGlobalNorm(unsigned int idx) const {
+  return weights[idx]->isGradientClipByGlobalNorm();
+}
+
 /**
  * @brief Get the tensor name
  *

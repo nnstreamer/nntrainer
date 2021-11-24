@@ -289,8 +289,8 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
-void NetworkGraph::applyGradientsOnLastAccess(
-  LayerNode *node, std::function<void(Weight &)> apply_func) {
+void NetworkGraph::applyGradients(LayerNode *node,
+                                  std::function<void(Weight &)> apply_func) {
   auto &rc = node->getRunContext();
   auto num_weight = rc.getNumWeights();
   for (unsigned i = 0; i < num_weight; ++i) {
@@ -303,6 +303,14 @@ void NetworkGraph::applyGradientsOnLastAccess(
       /// if weights are dependent to others to minimize overhead.
       /// this logic assums that the source of the dependent weight must be
       /// prior to the dependent.
+      continue;
+    }
+
+    if (rc.isGradientClipByGlobalNorm(i)) {
+      /**
+       * @note the weights whose gradient are to be clipped by global norm will
+       * be clipped at once at the end of iteration and applied then.
+       */
       continue;
     }
 
