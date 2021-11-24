@@ -40,7 +40,9 @@ typedef enum {
   COMPARE_V2 = COMPARE | USE_V2,                 /**< compare v2 */
   NO_THROW_RUN_V2 = NO_THROW_RUN | USE_V2,       /**< no throw run with v2 */
   SAVE_AND_LOAD_V2 = SAVE_AND_LOAD_INI | USE_V2, /**< save and load with v2 */
-  ALL = COMPARE | SAVE_AND_LOAD_INI              /**< Set every option */
+
+  ALL = COMPARE | SAVE_AND_LOAD_INI, /**< Set every option */
+  ALL_V2 = ALL | USE_V2              /**< Set every option with v2 */
 } ModelTestOption;
 
 using ModelGoldenTestParamType =
