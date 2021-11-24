@@ -43,6 +43,7 @@ public:
     graph(),
     compiled(false),
     batch_size(0),
+    max_exec_order(0),
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN) {}
 
@@ -347,9 +348,10 @@ private:
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  GraphCore graph;         /** core graph object */
-  bool compiled;           /**< if the model graph is compiled */
-  unsigned int batch_size; /**< current batch_size */
+  GraphCore graph;             /** core graph object */
+  bool compiled;               /**< if the model graph is compiled */
+  unsigned int batch_size;     /**< current batch_size */
+  unsigned int max_exec_order; /**< maximum execution order */
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
@@ -465,6 +467,13 @@ private:
    * @return the mode of inplace for the layer
    */
   InPlace canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
+
+  /**
+   * @brief Set the Max Execution Order
+   *
+   * @param skip_optimize Skip trying to optimize the max exec order
+   */
+  void setMaxExecutionOrder(bool skip_optimize = false);
 };
 
 } // namespace nntrainer

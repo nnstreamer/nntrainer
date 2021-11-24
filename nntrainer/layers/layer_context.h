@@ -48,7 +48,7 @@ public:
                    const float max_norm = 0.0) :
     input_dim(dim),
     in_place(in_place_),
-    clip_by_norm(max_norm),
+    clip_by_global_norm(max_norm),
     num_outputs(num_out),
     name(n),
     prefix(prefix_) {
@@ -148,7 +148,7 @@ public:
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const std::string &name, bool trainable = true) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, clip_by_norm,
+    weights_spec.emplace_back(dim, init, reg, reg_const, clip_by_global_norm,
                               trainable, prefix + ":" + name);
     return weights_spec.size() - 1;
   }
@@ -281,8 +281,8 @@ public:
 private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
-  bool in_place;      /**< if the layer is expected to run in-place */
-  float clip_by_norm; /**< max norm value for clip by norm */
+  bool in_place;             /**< if the layer is expected to run in-place */
+  float clip_by_global_norm; /**< max norm value for clip by norm */
 
   std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
   std::vector<TensorSpec>

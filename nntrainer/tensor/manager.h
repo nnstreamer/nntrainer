@@ -164,19 +164,23 @@ public:
 
   /**
    * @brief     Create weights with the given spec
+   * @todo      The max_exec_order can be reduced to the max exec order which
+   * updates gradient
    *
    * @param node Graph node to extract node identifiers/info
    * @param weights_spec Specficiation for the weights
    * @param trainable make the weight trainable if true
    * @param shared_names name to refer to when the weights are borrowed from the
    * original source. if not shared pass empty vector
+   * @param max_exec_order the maximum execution order
    *
    * @return created weights list
    */
   std::vector<Weight *>
   requestWeights(const GraphNode &node,
                  const std::vector<Weight::Spec> &weights_spec, bool trainable,
-                 const std::vector<std::string> &shared_names);
+                 const std::vector<std::string> &shared_names,
+                 const unsigned int max_exec_order);
 
   /**
    * @brief     Create tensors with the given spec

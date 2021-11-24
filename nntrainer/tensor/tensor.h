@@ -1169,8 +1169,8 @@ public:
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<unsigned int, TensorDim::MAXDIM>
-  getStrides() const noexcept {
+  const std::array<unsigned int, TensorDim::MAXDIM> getStrides() const
+    noexcept {
     return strides;
   }
   /**
