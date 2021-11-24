@@ -246,7 +246,19 @@ public:
    * @return true if it is to be clipped
    * @return false otherwise
    */
-  bool isGradientClipByGlobalNorm() { return clip_by_global_norm > epsilon; }
+  bool isGradientClipByGlobalNorm() const {
+    return clip_by_global_norm > epsilon;
+  }
+
+  /**
+   * @brief clip the gradient value based on the given global norm
+   *
+   * @param global_norm the global norm for all the weights
+   */
+  void clipGradientByGlobalNorm(const float global_norm) {
+    if (global_norm > clip_by_global_norm)
+      grad->multiply_i(clip_by_global_norm / (global_norm + epsilon));
+  }
 
 private:
   static constexpr float epsilon = 1e-8; /**< epsilon for zero comparison */

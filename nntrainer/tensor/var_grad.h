@@ -291,6 +291,13 @@ public:
    */
   bool isGradientLastAccess() const { return is_last_access_gradient; }
 
+  /**
+   * @brief Get the norm of the gradient
+   *
+   * @return float l2 norm of the gradient
+   */
+  float getGradientNorm() const { return grad->l2norm(); }
+
   inline static const std::string grad_suffix = ":grad";
 
 protected:
