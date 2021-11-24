@@ -208,7 +208,6 @@ class Unit;
 class Flatten;
 class Distribute;
 class Trainable;
-class InputLayer;
 class InputShape;
 class WeightRegularizer;
 class WeightRegularizerConstant;
@@ -216,6 +215,7 @@ class WeightInitializer;
 class BiasInitializer;
 class SharedFrom;
 class InputConnection;
+class ClipGradByNorm;
 } // namespace props
 
 class LayerNode;
@@ -227,7 +227,8 @@ template <>
 void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputConnection>,
-                   std::vector<props::InputShape>, props::SharedFrom> &props,
+                   std::vector<props::InputShape>, props::SharedFrom,
+                   props::ClipGradByNorm> &props,
   const LayerNode *self);
 
 class LayerImpl;

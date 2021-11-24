@@ -19,11 +19,13 @@
 namespace nntrainer {
 
 Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
-               const WeightRegularizer reg, const float reg_const, bool train,
-               bool alloc_now_, std::string name) :
+               const WeightRegularizer reg, const float reg_const,
+               const float max_norm, bool train, bool alloc_now_,
+               std::string name) :
   Var_Grad(dim, init, train, alloc_now_, name),
   regularizer(reg),
-  regularizer_constant(reg_const) {
+  regularizer_constant(reg_const),
+  clip_by_norm(max_norm) {
   if (init == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)

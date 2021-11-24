@@ -42,7 +42,8 @@ public:
   Weight() :
     Var_Grad(),
     regularizer(WeightRegularizer::UNKNOWN),
-    regularizer_constant(1.0f) {}
+    regularizer_constant(1.0f),
+    clip_by_norm(0.0f) {}
 
   /**
    * @brief Construct a new Weight object
@@ -59,8 +60,8 @@ public:
     const TensorDim &dim,
     const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, bool ng = true, bool alloc_now = false,
-    std::string name = "");
+    const float reg_const = 1.0f, const float clip_by_norm = 0.0f,
+    bool ng = true, bool alloc_now = false, std::string name = "");
 
   /**
    * @brief Construct a new Weight object
@@ -72,9 +73,10 @@ public:
            std::get<1>(spec), // Tensor::Initializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
-           std::get<4>(spec), // need_gradient
+           std::get<4>(spec), // MaxNorm for clipping
+           std::get<5>(spec), // need_gradient
            alloc_now,
-           std::get<5>(spec) // Name
+           std::get<6>(spec) // Name
     ) {}
 
   /**
@@ -95,7 +97,8 @@ public:
                   bool is_dependent = false) :
     Var_Grad(v, g, n, is_dependent),
     regularizer(WeightRegularizer::NONE),
-    regularizer_constant(1.0f) {}
+    regularizer_constant(1.0f),
+    clip_by_norm(0.0f) {}
 
   /**
    * @brief Construct a new Weight object
@@ -109,7 +112,8 @@ public:
                   const float reg_const, bool is_dependent = false) :
     Var_Grad(v, g, is_dependent),
     regularizer(reg),
-    regularizer_constant(reg_const) {}
+    regularizer_constant(reg_const),
+    clip_by_norm(0.0f) {}
 
   /**
    * @brief Swap for weight
@@ -123,6 +127,7 @@ public:
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.regularizer, rhs.regularizer);
     swap(lhs.regularizer_constant, rhs.regularizer_constant);
+    swap(lhs.clip_by_norm, rhs.clip_by_norm);
     swap(lhs.opt_vars, rhs.opt_vars);
   }
 
@@ -223,8 +228,11 @@ public:
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
 private:
-  WeightRegularizer regularizer;  /**< regularizer for this variable */
-  float regularizer_constant;     /**< constant factor for regularization */
+  static constexpr float epsilon = 1e-8; /**< epsilon for zero comparison */
+
+  WeightRegularizer regularizer; /**< regularizer for this variable */
+  float regularizer_constant;    /**< constant factor for regularization */
+  float clip_by_norm; /**< constant factor to clip gradient by L2 norm */
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
 };
 
