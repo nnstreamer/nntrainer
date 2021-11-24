@@ -20,6 +20,7 @@
 #include <app_context.h>
 #include <base_properties.h>
 #include <common_properties.h>
+#include <connection.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -253,16 +254,26 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
     std::get<std::vector<props::InputConnection>>(*l.layer_node_props);
 
   out << "[" << l.getName() << '/' << l.getType() << "]\n";
-  auto print_vector = [&out](const auto &layers, const std::string &title) {
-    out << title << "[" << layers.size() << "] ";
-    for (auto &layer : layers) {
-      out << to_string(layer) << ' ';
+  auto print_vector = [&out](const auto &cons, const std::string &title) {
+    out << title << "[" << cons.size() << "] ";
+    for (auto &con : cons) {
+      out << con.toString() << ' ';
     }
     out << '\n';
   };
 
-  print_vector(input_connections, " input_connections");
-  //   print_vector(l.output_connections, "output_connections");
+  auto print_vector_2 = [&out](const auto &cons, const std::string &title) {
+    out << title << "[" << cons.size() << "] ";
+    for (auto &con : cons) {
+      out << con->toString() << ' ';
+    }
+    out << '\n';
+  };
+
+  print_vector(
+    std::vector<Connection>(input_connections.begin(), input_connections.end()),
+    " input_connections");
+  print_vector_2(l.output_connections, "output_connections");
   return out;
 }
 

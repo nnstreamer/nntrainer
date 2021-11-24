@@ -9,13 +9,13 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include "connection.h"
 #include <algorithm>
 #include <compiler_fwd.h>
 #include <memory>
 #include <stdexcept>
 #include <vector>
 
+#include <connection.h>
 #include <layer_node.h>
 #include <nntrainer_log.h>
 #include <previous_input_realizer.h>
