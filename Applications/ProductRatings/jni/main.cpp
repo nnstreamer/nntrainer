@@ -82,10 +82,11 @@ bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
     return false;
 
   std::istringstream buffer(temp);
-  float x;
+  uint *input_int = (uint *)input;
+  uint x;
   for (unsigned int j = 0; j < feature_size; ++j) {
     buffer >> x;
-    input[j] = x;
+    input_int[j] = x;
   }
   buffer >> x;
   label[0] = x;
@@ -130,6 +131,7 @@ int getSample_train(float **outVec, float **outLabel, bool *last,
 
   return 0;
 }
+
 /**
  * @brief     create NN
  *            back propagation of NN

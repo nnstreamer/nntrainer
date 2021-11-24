@@ -81,20 +81,21 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+    uint *in_data =
+      (uint *)input_.getAddress(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      if (in_data[i] > in_dim) {
+      uint embed_idx = in_data[i] - 1;
+      if (embed_idx + 1 > in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
 
       // Assume padding is 0 and index always start from 1.
       // If in_data[i] - 1 < 0, then it skips.
-      if (in_data[i] - 1 < 0)
+      if (embed_idx < 0)
         continue;
 
-      float *weight_data =
-        weight.getAddress(static_cast<uint>(in_data[i] - 1) * out_dim);
+      float *weight_data = weight.getAddress(embed_idx * out_dim);
       float *out_data =
         hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i * out_dim);
 
@@ -122,16 +123,17 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // In order to accelerate, we need to better way like using index to weight.
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+    uint *in_data =
+      (uint *)input_.getAddress(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
+      uint embed_idx = in_data[i] - 1;
       // Assume padding is 0 and index always start from 1.
       // If in_data[i] - 1 < 0, then it skips.
-      if (in_data[i] - 1 < 0)
+      if (embed_idx < 0)
         continue;
 
-      float *djdw_data =
-        djdw.getAddress(static_cast<uint>(in_data[i] - 1) * out_dim);
+      float *djdw_data = djdw.getAddress(embed_idx * out_dim);
       float *grad_data = derivative_.getAddress(
         b * derivative_.getDim().getFeatureLen() + i * out_dim);
 
