@@ -17,15 +17,10 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <tensor.h>
 
 namespace nntrainer {
 
-/**
- * @brief     Activation enum to string map
- */
-const std::array<std::string, 6> ActivationTypeStr = {
-  "tanh", "sigmoid", "relu", "softmax", "none", "unknown"};
+class Tensor;
 
 /**
  * @class   ActiFunc Class
@@ -37,16 +32,12 @@ public:
   /**
    * @brief     Constructor of ActiFunc
    */
-  ActiFunc(ActivationType at = ActivationType::ACT_NONE,
-           bool in_place_ = true) :
-    in_place(in_place_) {
-    setActiFunc(at);
-  }
+  ActiFunc(ActivationType at = ActivationType::ACT_NONE, bool in_place_ = true);
 
   /**
    * @brief     Destructor of ActiFunc
    */
-  ~ActiFunc() = default;
+  ~ActiFunc();
 
   /**
    * @brief setActivation by preset ActivationType
@@ -145,6 +136,28 @@ public:
   static float no_op_prime(float x);
 
   /**
+   * @brief leaky relu function
+   * @note slope parameter is needed for leaky relu, but supporting property on
+   * this class will need extensive refactoring. For now 0.01 is used for
+   * negative slope.
+   *
+   * @param x input
+   * @return float output
+   */
+  static float leakyRelu(float x);
+
+  /**
+   * @brief leaky relu prime function
+   * @note slope parameter is needed for leaky relu, but supporting property on
+   * this class will need extensive refactoring. For now 0.01 is used for
+   * negative slope.
+   *
+   * @param x input
+   * @return float output
+   */
+  static float leakyReluPrime(float x);
+
+  /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative
@@ -192,20 +205,14 @@ public:
    *
    * @param val True if execute in-place, else false
    */
-  void executeInPlace(bool val) {
-    if (val && !supportInPlace())
-      throw std::runtime_error(
-        "Error setting activation layer to work in-place");
-
-    in_place = val;
-  }
+  void executeInPlace(bool val);
 
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> _act_prime_fn;
 
   ActivationType
-    activation_type; /**< type of the activaiton represented by this */
+    activation_type; /**< type of the activation represented by this */
   bool in_place;     /**< if this class should operate in_place */
 };
 

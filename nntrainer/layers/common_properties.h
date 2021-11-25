@@ -29,12 +29,13 @@ namespace nntrainer {
  * accordingly
  */
 enum class ActivationType {
-  ACT_TANH,    /** tanh */
-  ACT_SIGMOID, /** sigmoid */
-  ACT_RELU,    /** ReLU */
-  ACT_SOFTMAX, /** softmax */
-  ACT_NONE,    /** no op */
-  ACT_UNKNOWN  /** unknown */
+  ACT_TANH,       /**< tanh */
+  ACT_SIGMOID,    /**< sigmoid */
+  ACT_RELU,       /**< ReLU */
+  ACT_SOFTMAX,    /**< softmax */
+  ACT_LEAKY_RELU, /**< Leaky ReLU */
+  ACT_NONE,       /**< no op */
+  ACT_UNKNOWN     /**< unknown */
 };
 
 namespace props {
@@ -717,11 +718,12 @@ public:
 struct ActivationTypeInfo {
   using Enum = nntrainer::ActivationType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::ACT_TANH,    Enum::ACT_SIGMOID, Enum::ACT_RELU,
-    Enum::ACT_SOFTMAX, Enum::ACT_NONE,    Enum::ACT_UNKNOWN};
+    Enum::ACT_TANH,    Enum::ACT_SIGMOID,    Enum::ACT_RELU,
+    Enum::ACT_SOFTMAX, Enum::ACT_LEAKY_RELU, Enum::ACT_NONE,
+    Enum::ACT_UNKNOWN};
 
-  static constexpr const char *EnumStr[] = {"tanh",    "sigmoid", "relu",
-                                            "softmax", "none",    "unknown"};
+  static constexpr const char *EnumStr[] = {
+    "tanh", "sigmoid", "relu", "softmax", "leaky_relu", "none", "unknown"};
 };
 
 /**
