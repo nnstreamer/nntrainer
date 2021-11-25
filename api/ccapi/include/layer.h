@@ -72,6 +72,7 @@ enum LayerType {
   LAYER_RNNCELL,                           /**< RNN Cell Layer type */
   LAYER_LSTMCELL,                          /**< LSTM Cell Layer type */
   LAYER_GRUCELL,                           /**< GRU Cell Layer type */
+  LAYER_REDUCE_MEAN,                       /**< Reduce mean Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
@@ -391,6 +392,14 @@ Attention(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Permute(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_PERMUTE, properties);
+}
+
+/**
+ * @brief Helper function to create Reduce Mean Layer
+ */
+inline std::unique_ptr<Layer>
+ReduceMean(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_REDUCE_MEAN, properties);
 }
 
 /**

@@ -15,6 +15,8 @@
 #define __REDUCE_MEAN_LAYER_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
+#include <layer_context.h>
 #include <layer_devel.h>
 
 namespace nntrainer {
@@ -86,7 +88,7 @@ public:
 
 private:
   /** TODO: support scalar multiplier to simulate reduce_sum */
-  std::tuple<props::Axis>
+  std::tuple<props::ReduceDimension>
     reduce_mean_props; /**< reduce_mean properties : axis to reduce along */
 };
 

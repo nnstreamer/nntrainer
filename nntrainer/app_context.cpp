@@ -59,6 +59,7 @@
 #include <preprocess_flip_layer.h>
 #include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
+#include <reduce_mean_layer.h>
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
@@ -262,6 +263,8 @@ static void add_default_object(AppContext &ac) {
                      AttentionLayer::type, LayerType::LAYER_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
                      MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
+  ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
+                     ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
