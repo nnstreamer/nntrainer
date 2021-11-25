@@ -27,9 +27,11 @@ void ReduceMeanLayer::finalize(InitLayerContext &context) {
   const TensorDim &in_dim = context.getInputDimensions()[0];
   TensorDim out_dim = in_dim;
 
-  /** if reduce axis is not provided, reduction is performed across all the
-   * dimensions */
-  auto &reduce_axis = std::get<props::Axis>(reduce_mean_props);
+  /**
+   * if reduce axis is not provided, reduction is performed across all the
+   * dimensions except the batch
+   */
+  auto &reduce_axis = std::get<props::ReduceDimension>(reduce_mean_props);
   if (reduce_axis.empty()) {
     out_dim = TensorDim({1, 1, 1, 1});
   }
@@ -39,10 +41,10 @@ void ReduceMeanLayer::finalize(InitLayerContext &context) {
 }
 
 void ReduceMeanLayer::forwarding(RunLayerContext &context, bool training) {
-  auto &reduce_axis = std::get<props::Axis>(reduce_mean_props);
+  auto &reduce_axis = std::get<props::ReduceDimension>(reduce_mean_props);
   if (reduce_axis.empty()) {
     context.getInput(SINGLE_INOUT_IDX)
-      .average(context.getOutput(SINGLE_INOUT_IDX));
+      .average({1, 2, 3}, context.getOutput(SINGLE_INOUT_IDX));
   } else {
     context.getInput(SINGLE_INOUT_IDX)
       .average(reduce_axis, context.getOutput(SINGLE_INOUT_IDX));
@@ -50,19 +52,14 @@ void ReduceMeanLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void ReduceMeanLayer::calcDerivative(RunLayerContext &context) {
-  auto &deriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  auto &ret_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  auto &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  auto &ret_deriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   unsigned int div = ret_deriv.size() / deriv.size();
-  auto &reduce_axis = std::get<props::Axis>(reduce_mean_props);
 
-  if (reduce_axis.empty()) {
-    ret_deriv.setValue(deriv.getValue(0));
-  } else {
-    /** TODO: optimize this by supporting broadcast in copy */
-    ret_deriv.setZero();
-    ret_deriv.add_i(deriv);
-  }
+  /** TODO: optimize this by supporting broadcast in copy */
+  ret_deriv.setZero();
+  ret_deriv.add_i(deriv);
 
   ret_deriv.divide_i(div);
 }

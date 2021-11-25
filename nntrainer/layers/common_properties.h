@@ -349,6 +349,12 @@ public:
 class ConcatDimension : public SplitDimension {};
 
 /**
+ * @brief ReduceDimension property, dimension along which to reduce the input
+ *
+ */
+class ReduceDimension : public SplitDimension {};
+
+/**
  * @brief FilterSize property, filter size is used to measure how many filters
  * are there
  *

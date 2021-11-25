@@ -6,7 +6,8 @@ models_targets = [
   'models_test_utils.cpp',
   'models_golden_test.cpp',
   'unittest_models_recurrent.cpp',
-  'unittest_models_multiout.cpp'
+  'unittest_models_multiout.cpp',
+  'unittest_models.cpp',
 ]
 
 test_target += models_targets
