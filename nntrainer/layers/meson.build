@@ -37,6 +37,7 @@ layer_sources = [
   'centroid_knn.cpp',
   'layer_context.cpp',
   'reshape_layer.cpp',
+  'reduce_mean_layer.cpp'
 ]
 
 layer_headers = [
