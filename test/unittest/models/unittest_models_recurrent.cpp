@@ -58,6 +58,24 @@ IniWrapper fc_unroll_single__1(
     constant_loss,
   });
 
+IniWrapper fc_unroll_single__2(
+  "fc_unroll_single__2",
+  {
+    nn_base,
+    sgd_base + "learning_rate=0.1",
+    IniSection("fc_1") + fc_base +
+      "unit=1 | input_shape=1:1:1 | clip_grad_by_norm = 10000.0",
+    IniSection("fc_2") + fc_base +
+      "unit=1 | shared_from = fc_1 | clip_grad_by_norm = 10000.0",
+    IniSection("fc_3") + fc_base +
+      "unit=1 | shared_from = fc_1 | clip_grad_by_norm = 10000.0",
+    IniSection("fc_4") + fc_base +
+      "unit=1 | shared_from = fc_1 | clip_grad_by_norm = 10000.0",
+    IniSection("fc_5") + fc_base +
+      "unit=1 | shared_from = fc_1 | clip_grad_by_norm = 10000.0",
+    constant_loss,
+  });
+
 std::unique_ptr<NeuralNetwork> makeFC() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=1"});
@@ -74,6 +92,38 @@ std::unique_ptr<NeuralNetwork> makeFC() {
   auto fcfc = makeGraph({
     {"Fully_connected", {"name=a1", "unit=1"}},
     {"Fully_connected", {"name=a2", "unit=1", "input_layers=a1"}},
+  });
+
+  nn->addWithReferenceLayers(fcfc, "recurrent", {"input"}, {"a1"}, {"a2"},
+                             ml::train::ReferenceLayersType::RECURRENT,
+                             {
+                               "unroll_for=2",
+                               "return_sequences=false",
+                               "recurrent_input=a1",
+                               "recurrent_output=a2",
+                             });
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
+std::unique_ptr<NeuralNetwork> makeFCClipped() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=1"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:1"}},
+    /// here lstm_cells is being inserted
+    {"constant_derivative", {"name=loss", "input_layers=recurrent/a2"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto fcfc = makeGraph({
+    {"Fully_connected", {"name=a1", "unit=1", "clip_grad_by_norm=0.0001"}},
+    {"Fully_connected",
+     {"name=a2", "unit=1", "input_layers=a1", "clip_grad_by_norm=0.0001"}},
   });
 
   nn->addWithReferenceLayers(fcfc, "recurrent", {"input"}, {"a1"}, {"a2"},
@@ -340,7 +390,11 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::COMPARE_V2),
     mkModelIniTc(fc_unroll_single__1, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
+    mkModelIniTc(fc_unroll_single__2, DIM_UNUSED, NOT_USED_,
+                 ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeFC, "fc_unroll_stacked", ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeFCClipped, "fc_unroll_stacked_clipped",
+                 ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleLSTMCell, "lstm_single__1",
                  ModelTestOption::COMPARE_V2),

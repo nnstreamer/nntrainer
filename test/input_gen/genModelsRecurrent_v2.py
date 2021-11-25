@@ -136,6 +136,15 @@ if __name__ == "__main__":
     )
 
     record_v2(
+        FCUnroll(unroll_for=2, num_fc=2),
+        iteration=2,
+        input_dims=[(1,)],
+        label_dims=[(1,)],
+        name="fc_unroll_stacked_clipped",
+        clip=True
+    )
+
+    record_v2(
         RNNCellStacked(unroll_for=2, num_rnn=1, input_size=2, hidden_size=2),
         iteration=2,
         input_dims=[(3, 2)],

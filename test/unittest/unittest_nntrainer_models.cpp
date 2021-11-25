@@ -103,6 +103,30 @@ INI fc_sigmoid_mse =
 INI fc_sigmoid_mse__1 =
   INI("fc_sigmoid_mse__1") + fc_sigmoid_baseline + softmax_base +  I("loss", mse_base);
 
+INI fc_sigmoid_baseline_clipped_at_0(
+  "fc_sigmoid",
+  {nn_base + "batch_size = 3",
+   sgd_base + "learning_rate = 1",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 5" + "clip_grad_by_norm = 0.0",
+   I("act") + sigmoid_base,
+   I("dense_1") + fc_base + "unit = 10" + "clip_grad_by_norm = 0.0"});
+
+INI fc_sigmoid_mse__2 =
+  INI("fc_sigmoid_mse__2") + fc_sigmoid_baseline_clipped_at_0 + softmax_base +  I("loss", mse_base);
+
+INI fc_sigmoid_baseline_clipped_too_high(
+  "fc_sigmoid",
+  {nn_base + "batch_size = 3",
+   sgd_base + "learning_rate = 1",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 5" + "clip_grad_by_norm = 10000.0",
+   I("act") + sigmoid_base,
+   I("dense_1") + fc_base + "unit = 10" + "clip_grad_by_norm = 10000.0"});
+
+INI fc_sigmoid_mse__3 =
+  INI("fc_sigmoid_mse__3") + fc_sigmoid_baseline_clipped_too_high + softmax_base +  I("loss", mse_base);
+
 INI fc_sigmoid_cross =
   INI("fc_sigmoid_cross") + fc_sigmoid_baseline + softmax_base + "model/loss=cross";
 
@@ -844,6 +868,8 @@ INSTANTIATE_TEST_CASE_P(
     {
       mkModelIniTc(fc_sigmoid_mse, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelIniTc(fc_sigmoid_mse__1, "3:1:1:10", 1, ModelTestOption::ALL),
+      mkModelIniTc(fc_sigmoid_mse__2, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelIniTc(fc_sigmoid_mse__3, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelIniTc(fc_sigmoid_cross, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelIniTc(fc_sigmoid_cross__1, "3:1:1:10", 1, ModelTestOption::ALL),
       mkModelIniTc(fc_relu_mse, "3:1:1:2", 10, ModelTestOption::ALL),

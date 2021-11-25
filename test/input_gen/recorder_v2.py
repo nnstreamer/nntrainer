@@ -59,7 +59,7 @@ def _rand_like(*shapes, scale=1, rand="int"):
 # @param input_dims dimensions to record including batch (list of tuple)
 # @param label_dims dimensions to record including batch (list of tuple)
 # @param name golden name
-def record_v2(model, iteration, input_dims, label_dims, name):
+def record_v2(model, iteration, input_dims, label_dims, name, clip=False):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
     # Each iteration contains
@@ -84,6 +84,8 @@ def record_v2(model, iteration, input_dims, label_dims, name):
 
         optimizer.zero_grad()
         loss.backward()
+        if clip:
+            norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 0.0001)
         optimizer.step()
 
     with open(file_name, "wb") as f:

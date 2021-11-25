@@ -256,12 +256,12 @@ public:
    * @param global_norm the global norm for all the weights
    */
   void clipGradientByGlobalNorm(const float global_norm) {
-    if (global_norm > clip_by_global_norm)
+    if ((global_norm + epsilon) > clip_by_global_norm)
       grad->multiply_i(clip_by_global_norm / (global_norm + epsilon));
   }
 
 private:
-  static constexpr float epsilon = 1e-8; /**< epsilon for zero comparison */
+  static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
 
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */

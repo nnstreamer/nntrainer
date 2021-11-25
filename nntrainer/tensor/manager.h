@@ -263,6 +263,16 @@ public:
   getMinMaxTensorExecutionOrder(const std::string &name, bool is_weight);
 
   /**
+   * @brief Get the second max of a tensor execution order
+   *
+   * @param name name of the tensor
+   * @param is_weight check if this should be queried in weight pool
+   * @return 2nd max execution order value
+   */
+  unsigned int getSecondMaxTensorExecutionOrder(const std::string &name,
+                                                bool is_weight);
+
+  /**
    * @brief check if given execution order is the first access
    *
    * @param name tensor name
@@ -283,6 +293,17 @@ public:
    */
   bool isLastAccess(const std::string &name, unsigned current_execution,
                     bool is_weight = false);
+
+  /**
+   * @brief check if given execution order is the second last access
+   *
+   * @param name tensor name
+   * @param current_execution current execution
+   * @param is_weight check if this should be queried in weight pool
+   * @return bool ture if given execution order is the second last access
+   */
+  bool isSecondLastAccess(const std::string &name, unsigned current_execution,
+                          bool is_weight = false);
 
   /**
    * @brief   Check if the manager has allocated tensors

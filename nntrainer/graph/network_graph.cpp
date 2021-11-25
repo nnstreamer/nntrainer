@@ -840,8 +840,21 @@ int NetworkGraph::initialize(
                                           first_grad_access)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
         }
+        /**
+         * if the gradient is to be clipped by global norm, then the last access
+         * is by clipping itself. However, as clipping is not a layer and does
+         * not contain any weights, such weights never get assigned
+         * gradient_last_access. This is a quick hotfix.
+         * TODO: make an independent clipping layer which will execute at the
+         * end, and will share ownership of weights which it will clip. This
+         * will remove this hot fix, and also remove the checks of if weights
+         * require clipping.
+         */
         if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
-                                         last_grad_access)) {
+                                         last_grad_access) ||
+            (rc.isGradientClipByGlobalNorm(i) &&
+             tensor_manager->isSecondLastAccess(rc.getWeightGrad(i).getName(),
+                                                last_grad_access))) {
           rc.getWeightObject(i).setAsGradientLastAccess();
         }
       }
