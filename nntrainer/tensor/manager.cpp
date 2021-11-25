@@ -544,6 +544,20 @@ Manager::getMinMaxTensorExecutionOrder(const std::string &name,
   return {*min_, *max_};
 }
 
+unsigned int Manager::getSecondMaxTensorExecutionOrder(const std::string &name,
+                                                       bool is_weight) {
+
+  auto orders = is_weight ? weight_pool.getExecutionOrder(name)
+                          : tensor_pool.getExecutionOrder(name);
+  if (orders.size() < 2)
+    throw std::runtime_error(
+      "Requesting second last access with less than 2 exec orders");
+  /** tensor pool exec order can have same exec order multiple times */
+  std::sort(orders.begin(), orders.end());
+  orders.erase(std::unique(orders.begin(), orders.end()), orders.end());
+  return orders[orders.size() - 2];
+}
+
 bool Manager::isFirstAccess(const std::string &name, unsigned current_execution,
                             bool is_weight) {
   /// @todo add cache machanism, eg) sort at finalizing requesting
@@ -556,6 +570,12 @@ bool Manager::isLastAccess(const std::string &name, unsigned current_execution,
   /// @todo add cache machanism, eg) sort at finalizing requesting
   return getMinMaxTensorExecutionOrder(name, is_weight).second ==
          current_execution;
+}
+
+bool Manager::isSecondLastAccess(const std::string &name,
+                                 unsigned current_execution, bool is_weight) {
+  /// @todo add cache machanism, eg) sort at finalizing requesting
+  return getSecondMaxTensorExecutionOrder(name, is_weight) == current_execution;
 }
 
 /**
