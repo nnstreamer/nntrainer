@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_flatten.cpp
+ * @file unittest_layers_reshape.cpp
  * @date 19 October 2021
  * @brief Reshape Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
