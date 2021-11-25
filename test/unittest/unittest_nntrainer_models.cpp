@@ -125,6 +125,8 @@ INI fc_relu_mse =
 INI fc_relu_mse__1 =
   INI("fc_relu_mse__1") + fc_relu_baseline + I("loss", mse_base);
 
+INI fc_leaky_relu_mse = INI("fc_relu_leaky_relu") + fc_relu_baseline + "act/activation=leaky_relu";
+
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
   {nn_base + "loss=cross | batch_size = 3",
@@ -764,7 +766,7 @@ auto mkResNet18Tc(const unsigned int iteration,
   auto getPreviousName = [&count]() -> std::string { return "layer" + std::to_string(count); };
 
   /** add blocks */
-  auto addBlock = [&count, &layers, &getName, &getPreviousName] (
+  auto addBlock = [&layers, &getName, &getPreviousName] (
     unsigned int filters, unsigned int kernel_size, bool downsample) {
     std::string filter_str = "filters=" + std::to_string(filters);
     std::string kernel_str = "kernel_size=" + std::to_string(kernel_size) + "," + std::to_string(kernel_size);
@@ -836,6 +838,7 @@ INSTANTIATE_TEST_CASE_P(
       mkModelIniTc(fc_sigmoid_cross, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelIniTc(fc_sigmoid_cross__1, "3:1:1:10", 1, ModelTestOption::ALL),
       mkModelIniTc(fc_relu_mse, "3:1:1:2", 10, ModelTestOption::ALL),
+      mkModelIniTc(fc_leaky_relu_mse, "3:1:1:2", 10, ModelTestOption::SAVE_AND_LOAD_INI),
       mkModelIniTc(fc_relu_mse__1, "3:1:1:2", 1, ModelTestOption::ALL),
       /// @todo bn with custom initializer
       mkModelIniTc(fc_bn_sigmoid_cross, "3:1:1:10", 10, ModelTestOption::ALL),

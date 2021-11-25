@@ -28,6 +28,11 @@
 #include <util_func.h>
 
 namespace nntrainer {
+ActiFunc::ActiFunc(ActivationType at, bool in_place_) : in_place(in_place_) {
+  setActiFunc(at);
+}
+
+ActiFunc::~ActiFunc() {}
 
 int ActiFunc::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
@@ -121,6 +126,9 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
     break;
   case ActivationType::ACT_RELU:
     this->setActivation(relu, reluPrime);
+    break;
+  case ActivationType::ACT_LEAKY_RELU:
+    this->setActivation(leakyRelu, leakyReluPrime);
     break;
   case ActivationType::ACT_NONE:
     this->setActivation(no_op, no_op_prime);
@@ -261,4 +269,21 @@ float ActiFunc::reluPrime(float x) {
 float ActiFunc::no_op(float x) { return x; }
 
 float ActiFunc::no_op_prime(float x) { return 1.0f; }
+
+constexpr static inline float NEGATIVE_SLOPE = 0.01f;
+
+float ActiFunc::leakyRelu(float x) {
+  return x >= 0.0f ? x : NEGATIVE_SLOPE * x;
+}
+
+float ActiFunc::leakyReluPrime(float x) {
+  return x >= 0.0f ? 1.0f : NEGATIVE_SLOPE;
+}
+
+void ActiFunc::executeInPlace(bool val) {
+  if (val && !supportInPlace())
+    throw std::runtime_error("Error setting activation layer to work in-place");
+
+  in_place = val;
+}
 }; // namespace nntrainer
