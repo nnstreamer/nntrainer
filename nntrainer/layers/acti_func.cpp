@@ -164,6 +164,11 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   float *dp;
   float *rp;
 
+  /** TODO: fix this check */
+  if (t.size() == output.size() && t.getStrides() != output.getStrides())
+    throw std::invalid_argument(
+      "Softmax does not support operating on strided tensors");
+
   Tensor divisor = t.clone();
 
   dp = divisor.getData();
@@ -197,6 +202,13 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
 
 Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
                                Tensor const &derivative) {
+  /** TODO: fix this check */
+  if ((x.size() == output.size() && x.getStrides() != output.getStrides()) ||
+      (x.size() == derivative.size() &&
+       x.getStrides() != derivative.getStrides()))
+    throw std::invalid_argument(
+      "SoftmaxPrime does not support operating on strided tensors");
+
   unsigned int batch = x.batch();
   unsigned int channel = x.channel();
   unsigned int height = x.height();

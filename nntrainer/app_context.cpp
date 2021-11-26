@@ -48,6 +48,7 @@
 #include <input_layer.h>
 #include <lstm.h>
 #include <lstmcell.h>
+#include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
@@ -259,6 +260,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_DROPOUT);
   ac.registerFactory(nntrainer::createLayer<AttentionLayer>,
                      AttentionLayer::type, LayerType::LAYER_ATTENTION);
+  ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
+                     MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,

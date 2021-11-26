@@ -400,9 +400,14 @@ void GraphWatcher::compareFor(const std::string &reference,
 }
 
 void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
-  auto in_tensor = MAKE_SHARED_TENSOR(nn->getInputDimension()[0]);
-  in_tensor->setRandNormal();
-  nntrainer::sharedConstTensors input = {in_tensor};
+  sharedConstTensors input;
+  for (auto const &dim : nn->getInputDimension()) {
+    auto in_tensor = MAKE_SHARED_TENSOR(dim);
+    in_tensor->setRandNormal();
+    input.push_back(in_tensor);
+  }
+
+  // nntrainer::sharedConstTensors input = {in_tensor};
 
   auto label_tensor = MAKE_SHARED_TENSOR(label_shape);
   label_tensor->setRandNormal();
