@@ -60,11 +60,11 @@ LOCAL_C_INCLUDES    := @MESON_NNTRAINER_INCS@ @MESON_ML_API_COMMON_ROOT@/include
 LOCAL_EXPORT_C_INCLUDES  := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp @MESON_CFLAGS@ -Ofast
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@ -Ofast
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_STATIC_LIBRARIES += iniparser openblas
 
@@ -82,11 +82,11 @@ LOCAL_C_INCLUDES    := @MESON_CCAPI_NNTRAINER_INCS@ @MESON_ML_API_COMMON_ROOT@/i
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp @MESON_CFLAGS@
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_SHARED_LIBRARIES += nntrainer
 
@@ -100,11 +100,11 @@ LOCAL_C_INCLUDES    := @MESON_CAPI_NNTRAINER_INCS@
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp @MESON_CFLAGS@
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_SHARED_LIBRARIES += ccapi-nntrainer nntrainer ml-api-inference
 
