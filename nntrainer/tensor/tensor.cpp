@@ -120,7 +120,8 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, unsigned int offset) :
-    src(tensor), off(offset) {}
+    src(tensor),
+    off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -600,8 +601,9 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
     saxpy(e.buffer_size, alpha, m_buf, e.strides[3], out_buf, strides[3]);
   };
 
-  NNTR_THROW_IF(!contiguous || !m.contiguous, std::invalid_argument)
-    << getName() << " is not contiguous, cannot add";
+  /// @todo: enable this after add_strided supports broadcast
+  // NNTR_THROW_IF(!contiguous || !m.contiguous, std::invalid_argument)
+  //   << getName() << " is not contiguous, cannot add";
 
   try {
     apply_broadcast(m, f, *this);
