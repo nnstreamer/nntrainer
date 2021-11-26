@@ -42,7 +42,13 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   tanh.setActiFunc(ActivationType::ACT_TANH);
   sigmoid.setActiFunc(ActivationType::ACT_SIGMOID);
 
+  NNTR_THROW_IF(std::get<props::Unit>(mol_props).empty(), std::invalid_argument)
+    << "Number of units not provided for layer " << context.getName();
   auto unit = std::get<props::Unit>(mol_props).get();
+
+  NNTR_THROW_IF(std::get<props::MoL_K>(mol_props).empty(),
+                std::invalid_argument)
+    << "MoL_K property not provided for layer " << context.getName();
   auto mol_k = std::get<props::MoL_K>(mol_props).get();
 
   TensorDim mlp_w_dim = {query_dim.width(), unit};
@@ -78,46 +84,53 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 
   Tensor mlp_proj_out = mlp_tanh.dot(mlp_proj_w);
 
-  /** @note kappa_hat, beta_hat, alpha_hat are strided */
-  Tensor kappa_hat = mlp_proj_out.getSharedDataTensor({batch, mol_k}, 0, false);
+  /** @note kappa_hat, beta_hat are strided */
+  Tensor kappa_hat =
+    mlp_proj_out.getSharedDataTensor({batch, 1, 1, mol_k}, 0, false);
   Tensor beta_hat =
-    mlp_proj_out.getSharedDataTensor({batch, mol_k}, mol_k, false);
-  Tensor alpha_hat =
-    mlp_proj_out.getSharedDataTensor({batch, mol_k}, mol_k * 2, false);
+    mlp_proj_out.getSharedDataTensor({batch, 1, 1, mol_k}, mol_k, false);
+  Tensor alpha_hat;
+  alpha_hat.copy_with_stride(
+    mlp_proj_out.getSharedDataTensor({batch, 1, 1, mol_k}, mol_k * 2, false));
 
   Tensor kappa = kappa_hat.apply(static_cast<float (*)(float)>(&std::exp));
   Tensor beta = beta_hat.apply(static_cast<float (*)(float)>(&std::exp));
 
   Tensor alpha;
-  /** @todo support stride for softmax */
   softmax.run_fn(alpha_hat, alpha);
 
   Tensor m = state.add(kappa);
 
-  /** @todo cache u_pos */
-  Tensor u_pos = Tensor(TensorDim({batch, 1, value.height() / mol_k, mol_k}));
-  float *u_pos_data = u_pos.getData();
-  for (unsigned int idx = 0; idx < u_pos.size(); idx++) {
-    u_pos_data[idx] = ((float)idx) + 1.0 + 0.5;
+  /** @todo cache u_base, u_pos, u_neg */
+  Tensor u_base = Tensor(TensorDim({batch, 1, value.height(), mol_k}));
+  for (unsigned int b = 0; b < batch; b++) {
+    for (unsigned int h = 0; h < u_base.height(); h++) {
+      float *u_data = u_base.getAddress(b, 0, h, 0);
+      std::fill(u_data, u_data + u_base.width(), h + 1);
+    }
   }
 
-  /** @todo cache u_neg */
-  Tensor u_neg = Tensor(TensorDim({batch, 1, value.height() / mol_k, mol_k}));
-  float *u_neg_data = u_neg.getData();
-  for (unsigned int idx = 0; idx < u_neg.size(); idx++) {
-    u_neg_data[idx] = ((float)idx) + 1.0 - 0.5;
-  }
+  Tensor u_pos = u_base.add(0.5);
+  u_base.add_i(-0.5);
+  Tensor u_neg = u_base;
 
   Tensor integral_left, integral_right;
-  /** @todo support stride for divide */
   sigmoid.run_fn(u_pos.subtract(state).divide(beta.add(1e-8f)), integral_left);
   sigmoid.run_fn(u_neg.subtract(state).divide(beta.add(1e-8f)), integral_right);
   Tensor integral = integral_left.subtract(integral_right);
 
-  Tensor integral_scaled = alpha.multiply(integral);
-  Tensor scores = integral_scaled.sum(2);
+  Tensor integral_scaled = integral.multiply(alpha);
+  Tensor scores = integral_scaled.sum(3);
+  scores.reshape(TensorDim({scores.batch(), 1, 1, scores.height()}));
 
-  scores.dot(value, output);
+  for (unsigned int b = 0; b < batch; b++) {
+    /** @todo try using transpose to speedup the operation */
+    Tensor value_b = value.getBatchSlice(b, 1);
+    Tensor score_b = scores.getBatchSlice(b, 1);
+    Tensor output_b = output.getBatchSlice(b, 1);
+
+    score_b.dot(value_b, output_b);
+  }
 }
 
 void MoLAttentionLayer::calcDerivative(RunLayerContext &context) { /** NYI */

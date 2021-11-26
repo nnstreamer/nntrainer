@@ -1025,8 +1025,8 @@ public:
  */
 class MoL_K : public PositiveIntegerProperty {
 public:
-  static constexpr const char *key = "K"; /**< unique key to access */
-  using prop_tag = uint_prop_tag;         /**< property type */
+  static constexpr const char *key = "MoL_K"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;             /**< property type */
 };
 
 } // namespace props

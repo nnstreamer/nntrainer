@@ -66,6 +66,7 @@ enum LayerType {
                                                  type */
   LAYER_BACKBONE_TFLITE,                   /**< Backbone using TFLite */
   LAYER_ATTENTION,                         /**< Attention Layer type */
+  LAYER_MOL_ATTENTION,                     /**< MoL Attention Layer type */
   LAYER_CONV1D,                            /**< Convolution 1D Layer type */
   LAYER_RESHAPE,                           /**< Reshape Layer type */
   LAYER_RNNCELL,                           /**< RNN Cell Layer type */
