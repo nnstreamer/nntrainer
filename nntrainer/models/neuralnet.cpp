@@ -124,6 +124,12 @@ int NeuralNetwork::compile() {
     rep.push_back(*iter);
   }
 
+  if (input_layers.empty()) {
+    if (!rep.empty()) {
+      input_layers.emplace_back(rep.front()->getName());
+    }
+  }
+
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
   realizers.emplace_back(new PreviousInputRealizer(input_layers));
