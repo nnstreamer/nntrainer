@@ -93,7 +93,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  input_.dot(weight, hidden_);
+  input_.dot(weight, hidden_, false, false);
   hidden_.add_i(bias);
 }
 
@@ -103,7 +103,7 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  derivative_.dot(weight, ret_, false, true);
+  ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
 }
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
@@ -121,11 +121,9 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     djdb.add_i(t);
   }
 
-  if (context.isGradientFirstAccess(weight_idx[FCParams::weight])) {
-    input_.dot(derivative_, djdw, true, false, 0.0f);
-  } else {
-    input_.dot(derivative_, djdw, true, false, 1.0f);
-  }
+  input_.dot_deriv_wrt_2(
+    djdw, derivative_, false, false,
+    !context.isGradientFirstAccess(weight_idx[FCParams::weight]));
 }
 
 } /* namespace nntrainer */
