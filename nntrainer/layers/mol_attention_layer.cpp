@@ -12,6 +12,8 @@
  */
 
 #include <cmath>
+
+#include <layer_context.h>
 #include <mol_attention_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -123,14 +125,7 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor scores = integral_scaled.sum(3);
   scores.reshape(TensorDim({scores.batch(), 1, 1, scores.height()}));
 
-  for (unsigned int b = 0; b < batch; b++) {
-    /** @todo try using transpose to speedup the operation */
-    Tensor value_b = value.getBatchSlice(b, 1);
-    Tensor score_b = scores.getBatchSlice(b, 1);
-    Tensor output_b = output.getBatchSlice(b, 1);
-
-    score_b.dot(value_b, output_b);
-  }
+  scores.dotBatched(value, output);
 }
 
 void MoLAttentionLayer::calcDerivative(RunLayerContext &context) { /** NYI */

@@ -164,6 +164,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/reshape_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/addition_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/attention_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/mol_attention_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/concat_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_flip_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_translate_layer.cpp \
