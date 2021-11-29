@@ -77,9 +77,9 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
   Tensor &score = context.getTensor(wt_idx[AttentionParams::score]);
 
-  query.dotBatched(key, score, false, true);
-  sm.run_fn(score, weights);
-  weights.dotBatched(value, output);
+  query.dotBatched(key, score, false, true); /** dot 1 */
+  sm.run_fn(score, weights);                 /** softmax */
+  weights.dotBatched(value, output);         /** dot 2 */
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
@@ -99,17 +99,19 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor dweight = Tensor(
     TensorDim({derivative.batch(), 1, derivative.height(), value.height()}));
-  derivative.dotBatched(value, dweight, false, true);
 
-  Tensor t1;
-  sm.run_prime_fn(weights, t1, dweight);
-  t1.dotBatched(key, dquery);
+  /** derivative for dot 2 */
+  dweight.dot_batched_deriv_wrt_1(value, derivative);
+  weights.dot_batched_deriv_wrt_2(dvalue, derivative);
 
-  weights.dotBatched(derivative, dvalue, true, false);
-  if (context.getNumInputs() == 2)
-    t1.dotBatched(query, dvalue, true, false, 1.0);
-  else
-    t1.dotBatched(query, dkey, true, false);
+  /** derivative for softmax */
+  Tensor dscore;
+  sm.run_prime_fn(weights, dscore, dweight);
+
+  /** derivative for dot 1 */
+  dquery.dot_batched_deriv_wrt_1(key, dscore, false, true);
+  query.dot_batched_deriv_wrt_2(dkey, dscore, false, true,
+                                context.getNumInputs() == 2);
 }
 
 void AttentionLayer::setProperty(const std::vector<std::string> &values) {
