@@ -618,12 +618,56 @@ public:
               bool trans_m = false, float beta = 0.0f) const;
 
   /**
+   * @brief compute the derivative of this in the current tensor
+   * @param m same as given to the dot()
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_m same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note This will compute the derivative in-place and will overwrite existing
+   * data in the tensor
+   */
+  Tensor &dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
+                          bool trans = false, bool trans_m = false,
+                          float beta = 0.0f);
+
+  /**
+   * @brief compute the derivative wrt m in the m tensor
+   * @param m_deriv tensor where derivative wrt m will be stored
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_m same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note The caller tensor must be the same tensor as the one which called the
+   * dot() product.
+   */
+  Tensor &dot_deriv_wrt_2(Tensor &m_deriv, Tensor const &output_deriv,
+                          bool trans = false, bool trans_m = false,
+                          float beta = 0.0f) const;
+
+  /**
    * @copydoc Tensor::dot(Tensor const &m, Tensor &output, bool trans,
               bool trans_m, float beta) const
    * @details performs dot operation over a batch of inputs
    */
   Tensor &dotBatched(Tensor const &m, Tensor &result, bool trans = false,
                      bool trans_m = false, float beta = 0.0f) const;
+
+  /**
+   * @copydoc Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const
+   &output_deriv, bool trans, bool trans_m, float beta)
+   */
+  Tensor &dot_batched_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
+                                  bool trans = false, bool trans_m = false,
+                                  float beta = 0.0f);
+
+  /**
+   * @brief Tensor::dot_deriv_wrt_2(Tensor const &m_deriv, Tensor const
+   &output_deriv, bool trans, bool trans_m, float beta) const
+   */
+  Tensor &dot_batched_deriv_wrt_2(Tensor &m_deriv, Tensor const &output_deriv,
+                                  bool trans = false, bool trans_m = false,
+                                  float beta = 0.0f) const;
 
   /**
    * @brief     Transpose Tensor
