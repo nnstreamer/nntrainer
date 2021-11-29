@@ -76,19 +76,9 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
   Tensor &score = context.getTensor(wt_idx[AttentionParams::score]);
 
-  for (unsigned int b = 0; b < query.batch(); b++) {
-    /** @todo try using transpose to speedup the operation */
-    Tensor query_b = query.getBatchSlice(b, 1);
-    Tensor value_b = value.getBatchSlice(b, 1);
-    Tensor key_b = key.getBatchSlice(b, 1);
-    Tensor score_b = score.getBatchSlice(b, 1);
-    Tensor weights_b = weights.getBatchSlice(b, 1);
-    Tensor output_b = output.getBatchSlice(b, 1);
-
-    query_b.dot(key_b, score_b, false, true);
-    sm.run_fn(score_b, weights_b);
-    weights_b.dot(value_b, output_b);
-  }
+  query.dotBatched(key, score, false, true);
+  sm.run_fn(score, weights);
+  weights.dotBatched(value, output);
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
@@ -106,30 +96,19 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
 
-  for (unsigned int b = 0; b < query.batch(); b++) {
-    /** @todo try using transpose to speedup the operation */
-    Tensor query_b = query.getBatchSlice(b, 1);
-    Tensor value_b = value.getBatchSlice(b, 1);
-    Tensor key_b = key.getBatchSlice(b, 1);
-    Tensor weights_b = weights.getBatchSlice(b, 1);
+  Tensor dweight = Tensor(
+    TensorDim({derivative.batch(), 1, derivative.height(), value.height()}));
+  derivative.dotBatched(value, dweight, false, true);
 
-    Tensor dquery_b = dquery.getBatchSlice(b, 1);
-    Tensor dvalue_b = dvalue.getBatchSlice(b, 1);
-    Tensor dkey_b = dkey.getBatchSlice(b, 1);
-    Tensor deriv_b = derivative.getBatchSlice(b, 1);
+  Tensor t1;
+  sm.run_prime_fn(weights, t1, dweight);
+  t1.dotBatched(key, dquery);
 
-    Tensor dweight = deriv_b.dot(value_b, false, true);
-
-    Tensor t1;
-    sm.run_prime_fn(weights_b, t1, dweight);
-    t1.dot(key_b, dquery_b);
-
-    weights_b.dot(deriv_b, dvalue_b, true, false);
-    if (context.getNumInputs() == 2)
-      t1.dot(query_b, dvalue_b, true, false, 1.0);
-    else
-      t1.dot(query_b, dkey_b, true, false);
-  }
+  weights.dotBatched(derivative, dvalue, true, false);
+  if (context.getNumInputs() == 2)
+    t1.dotBatched(query, dvalue, true, false, 1.0);
+  else
+    t1.dotBatched(query, dkey, true, false);
 }
 
 void AttentionLayer::setProperty(const std::vector<std::string> &values) {

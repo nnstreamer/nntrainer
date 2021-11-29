@@ -577,6 +577,14 @@ public:
               bool trans_m = false, float beta = 0.0f) const;
 
   /**
+   * @copydoc Tensor::dot(Tensor const &m, Tensor &output, bool trans,
+              bool trans_m, float beta) const
+   * @details performs dot operation over a batch of inputs
+   */
+  Tensor &dotBatched(Tensor const &m, Tensor &result, bool trans = false,
+                     bool trans_m = false, float beta = 0.0f) const;
+
+  /**
    * @brief     Transpose Tensor
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    Calculated Tensor

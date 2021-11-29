@@ -156,7 +156,7 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   float *dp;
   float *rp;
 
-  /** TODO: fix this check */
+  /** TODO: support strided operations */
   if (t.size() == output.size() && t.getStrides() != output.getStrides())
     throw std::invalid_argument(
       "Softmax does not support operating on strided tensors");
@@ -194,7 +194,7 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
 
 Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
                                Tensor const &derivative) {
-  /** TODO: fix this check */
+  /** TODO: support strided operations */
   if ((x.size() == output.size() && x.getStrides() != output.getStrides()) ||
       (x.size() == derivative.size() &&
        x.getStrides() != derivative.getStrides()))
