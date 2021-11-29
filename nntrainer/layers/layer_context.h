@@ -295,7 +295,7 @@ private:
  * @class   Layer Context class for all layers
  * @brief   Class for Layer context
  *
- * @details This provides for the layer executiong. This context will contain
+ * @details This provides for the layer executing. This context will contain
  * structures with memory allocated or support to allocate any new memory, but
  * rather only support storing specifications based on which memory will be
  * allocated later.

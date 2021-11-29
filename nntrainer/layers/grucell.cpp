@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 hyeonseok lee <hs89.lee@samsung.com>
+ * Copyright (C) 2021 hyeonseok lee <hs89.lee@samsung.com>
  *
  * @file   grucell.cpp
  * @date   28 Oct 2021
@@ -34,6 +34,8 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <util_func.h>
+
+#include <layer_context.h>
 
 namespace nntrainer {
 
