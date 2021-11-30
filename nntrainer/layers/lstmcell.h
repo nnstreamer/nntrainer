@@ -18,6 +18,7 @@
 #include <acti_func.h>
 #include <common_properties.h>
 #include <layer_impl.h>
+#include <lstmcell_core.h>
 
 namespace nntrainer {
 
@@ -87,34 +88,31 @@ public:
 private:
   static constexpr unsigned int NUM_GATE = 4;
 
+  LSTMCellCoreLayer lstmcellcorelayer;
+
   /**
    * Unit: number of output neurons
-   * HiddenStateActivation: activation type for hidden state. default is tanh
-   * RecurrentActivation: activation type for recurrent. default is sigmoid
    * DropOutRate: dropout rate
+   * MaxTimestep: maximum timestep for lstmcell
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, props::HiddenStateActivation,
-             props::RecurrentActivation, props::DropOutRate, props::MaxTimestep,
+  std::tuple<props::Unit, props::DropOutRate, props::MaxTimestep,
              props::Timestep>
-    lstm_props;
+    lstmcell_props;
   std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
-
-  /**
-   * @brief     activation function for h_t : default is tanh
-   */
-  ActiFunc acti_func;
-
-  /**
-   * @brief     activation function for recurrent : default is sigmoid
-   */
-  ActiFunc recurrent_acti_func;
 
   /**
    * @brief     to protect overflow
    */
   float epsilon;
+
+  // These weights, inputs, outputs, tensors are all for the lstm_core
+  // Todo: remove this
+  std::vector<Weight> weights;
+  std::vector<Var_Grad> inputs;
+  std::vector<Var_Grad> outputs;
+  std::vector<Var_Grad> tensors;
 };
 } // namespace nntrainer
 
