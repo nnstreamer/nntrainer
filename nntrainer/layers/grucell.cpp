@@ -409,7 +409,11 @@ void GRUCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[GRUCellParams::hidden_state],
                        max_timestep * batch);
   context.updateTensor(wt_idx[GRUCellParams::zrg], max_timestep * batch);
-  context.updateTensor(wt_idx[GRUCellParams::dropout_mask], batch);
+
+  const float dropout_rate = std::get<props::DropOutRate>(grucell_props);
+  if (dropout_rate > epsilon) {
+    context.updateTensor(wt_idx[GRUCellParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer

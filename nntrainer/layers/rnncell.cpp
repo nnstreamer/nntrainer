@@ -12,6 +12,7 @@
  */
 
 #include <cmath>
+#include <common_properties.h>
 
 #include <layer_context.h>
 #include <nntrainer_error.h>
@@ -248,7 +249,12 @@ void RNNCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   const unsigned int max_timestep = std::get<props::MaxTimestep>(rnncell_props);
   context.updateTensor(wt_idx[RNNCellParams::hidden_state],
                        batch * max_timestep);
-  context.updateTensor(wt_idx[RNNCellParams::dropout_mask], batch);
+
+  const float dropout_rate = std::get<props::DropOutRate>(rnncell_props);
+  if (dropout_rate > epsilon) {
+    /// @note default value of wt_idx[dropout_mask] is 0
+    context.updateTensor(wt_idx[RNNCellParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer
