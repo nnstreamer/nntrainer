@@ -27,6 +27,7 @@ layer_sources = [
   'lstm.cpp',
   'lstmcell.cpp',
   'lstmcell_core.cpp',
+  'zoneout_lstmcell.cpp',
   'time_dist.cpp',
   'common_properties.cpp',
   'split_layer.cpp',

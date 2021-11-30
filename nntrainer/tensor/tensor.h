@@ -705,6 +705,26 @@ public:
   void filter_mask(const Tensor &mask_len, bool reverse = false);
 
   /**
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param zoneout zone out rate
+   * @retval Tensor zone out mask for opposite tensor
+   */
+  Tensor zoneout_mask(float zoneout);
+
+  /**
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param opposite opposite zone out mask
+   * @param zoneout zone out rate
+   */
+  void zoneout_mask(Tensor &opposite, float zoneout);
+
+  /**
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
@@ -972,6 +992,12 @@ public:
    * @param[in] max maximum value for the distribution
    */
   void setRandUniform(float min = -0.05f, float max = 0.05f);
+
+  /**
+   * @brief     Set the tensor with random bernoulli distribution
+   * @param[in] probability probability value for the distribution
+   */
+  void setRandBernoulli(float probability = 0.5f);
 
   /**
    * @brief     Initialize the memory of the given tensor

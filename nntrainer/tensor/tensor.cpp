@@ -120,8 +120,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, unsigned int offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -250,6 +249,11 @@ void Tensor::setRandNormal(float mean, float std) {
 void Tensor::setRandUniform(float min, float max) {
   setDist<std::uniform_real_distribution<float>>(
     std::uniform_real_distribution<float>(min, max));
+}
+
+void Tensor::setRandBernoulli(float probability) {
+  setDist<std::bernoulli_distribution>(
+    std::bernoulli_distribution(probability));
 }
 
 void Tensor::initialize() {
@@ -1245,6 +1249,26 @@ void Tensor::filter_mask(const Tensor &mask_len, bool reverse) {
     float *addr = getAddress(b, 0, 0, 0);
     const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
     std::fill(addr, addr + (*mask_len_val), en_mask_val);
+  }
+}
+
+Tensor Tensor::zoneout_mask(float zoneout) {
+  Tensor ret(getDim());
+  zoneout_mask(ret, zoneout);
+  return ret;
+}
+
+void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
+  opposite.setRandBernoulli(zoneout);
+  float *data = getData();
+  float *opposite_data = opposite.getData();
+
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (opposite_data[i] > epsilon) {
+      data[i] = 0.0f;
+    } else {
+      data[i] = 1.0f;
+    }
   }
 }
 
