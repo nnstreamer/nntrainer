@@ -26,6 +26,7 @@ layer_sources = [
   'acti_func.cpp',
   'lstm.cpp',
   'lstmcell.cpp',
+  'lstmcell_core.cpp',
   'time_dist.cpp',
   'common_properties.cpp',
   'split_layer.cpp',
