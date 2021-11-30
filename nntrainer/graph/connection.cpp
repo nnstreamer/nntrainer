@@ -12,6 +12,7 @@
 #include <connection.h>
 
 #include <common_properties.h>
+#include <stdexcept>
 
 namespace {}
 
@@ -30,7 +31,12 @@ Connection::Connection(const std::string &string_representation) {
     NNTR_THROW_IF(sr.back() != ')', std::invalid_argument)
       << "failed to parse connection invalid format: " << sr;
 
-    auto idx_part = sr.substr(pos + 1, sr.length() - 1);
+    auto idx_part = std::string(sr.begin() + pos + 1, sr.end() - 1);
+    /// idx_part must not have '(' or ')' inside
+    NNTR_THROW_IF(idx_part.find_first_of('(') != std::string::npos or
+                    idx_part.find_first_of(')') != std::string::npos,
+                  std::invalid_argument)
+      << "failed to parse connection invalid format: " << sr;
     idx = str_converter<uint_prop_tag, unsigned>::from_string(idx_part);
   }
 
