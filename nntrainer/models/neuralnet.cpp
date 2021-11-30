@@ -159,9 +159,6 @@ int NeuralNetwork::initialize() {
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
-  model_graph.setBatchSize(
-    std::get<props::TrainingBatchSize>(model_flex_props));
-
   auto &input_conn_prop =
     std::get<std::vector<props::InputConnection>>(model_props);
   auto &label_layer_prop =
@@ -180,6 +177,9 @@ int NeuralNetwork::initialize() {
     input_conn,
     std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
+
+  model_graph.setBatchSize(
+    std::get<props::TrainingBatchSize>(model_flex_props));
 
   // initialize optimizer and related variables
   if (opt) {

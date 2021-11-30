@@ -611,20 +611,10 @@ void LayerNode::calcGradient() {
  * @brief Set the batch for the layer
  */
 void LayerNode::setBatch(unsigned int batch) {
-  /** @todo we won't going to need Layer::setBatch(InitLayerContext), remove it
-   */
-  if (hasInputShapeProperty()) {
-    auto &input_shapes =
-      std::get<std::vector<props::InputShape>>(*layer_node_props);
-    for (auto &input_shape : input_shapes) {
-      input_shape.get().batch(batch);
-    }
-  }
+  NNTR_THROW_IF(!run_context, std::invalid_argument)
+    << " setting batch not supported before initialization";
 
-  if (run_context) {
-    run_context->setBatch(batch);
-    getLayer()->setBatch(*run_context, batch);
-  }
+  getLayer()->setBatch(*run_context, batch);
 }
 
 /**

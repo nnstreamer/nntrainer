@@ -126,7 +126,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    * as the output of this layer need not be stored all the time.
    */
   wt_idx[BNParams::t_full] =
-    context.requestTensor(in_dim, "tesnor_full", Tensor::Initializer::NONE,
+    context.requestTensor(in_dim, "tensor_full", Tensor::Initializer::NONE,
                           false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
   /**
    * caches variance + epsilon as well.
@@ -256,6 +256,18 @@ void BatchNormalizationLayer::setBatch(RunLayerContext &context,
                                        unsigned int batch) {
   context.updateTensor(wt_idx[BNParams::deviation], batch);
   context.updateTensor(wt_idx[BNParams::t_full], batch);
+
+  /// reset divider
+  divider = 1;
+  auto input_dim = context.getInput(0).getDim();
+  for (auto axis : axes_to_reduce) {
+    if (axis == 0) {
+      /// @note input dim batch is not updated, it will be more sensible we
+      /// update batch before any node comes to this spot
+      divider *= batch;
+    }
+    divider *= input_dim.getTensorDim(axis);
+  }
 }
 
 } /* namespace nntrainer */

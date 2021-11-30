@@ -378,7 +378,11 @@ void LSTMCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[LSTMParams::hidden_state], batch * max_timestep);
   context.updateTensor(wt_idx[LSTMParams::mem_cell], batch * max_timestep);
   context.updateTensor(wt_idx[LSTMParams::fgio], batch * max_timestep);
-  context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
+
+  const float dropout_rate = std::get<props::DropOutRate>(lstm_props);
+  if (dropout_rate > epsilon) {
+    context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer

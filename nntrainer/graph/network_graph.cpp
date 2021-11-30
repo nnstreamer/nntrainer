@@ -13,7 +13,6 @@
  */
 
 #include <cmath>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -262,10 +261,12 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     deallocateTensors();
 
   for (auto iter = cbegin(); iter != cend(); iter++) {
-    (*iter)->setBatch(batch_size);
     if ((*iter)->isFinalized()) {
+      /// resize tensors spec
+      /// @todo remove below, if cutsom tensor needs to change dimension
+      /// according to the tensor, it must be done explicitly, or at least have
+      /// a property to control the behavior
       const RunLayerContext &context = (*iter)->getRunContext();
-      // resize tensors spec
       for (unsigned int idx = 0; idx < context.getNumTensors(); idx++) {
         auto const &ts = context.getTensor(idx);
         tensor_manager->setBatchSize(ts.getName(), ts.getDim().batch());
@@ -275,6 +276,8 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
                                        ts_grad.getDim().batch());
         }
       }
+      /// override setting batch as per request
+      (*iter)->setBatch(batch_size);
     }
   }
   /// resize input and output spec
@@ -688,7 +691,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated input. This is necesary for manager to know when this output
+   * allocated input. This is neccesary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
   const std::vector<Var_Grad *> &outputs =
