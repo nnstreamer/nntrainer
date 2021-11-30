@@ -458,6 +458,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer_context.h
 %{_includedir}/nntrainer/layer_devel.h
 %{_includedir}/nntrainer/layer_impl.h
+# custom layer kits
+%{_includedir}/nntrainer/app_context.h
 # optimizer headers
 %{_includedir}/nntrainer/optimizer_context.h
 %{_includedir}/nntrainer/optimizer_devel.h
