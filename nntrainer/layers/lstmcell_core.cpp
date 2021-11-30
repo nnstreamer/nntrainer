@@ -125,7 +125,7 @@ void fillInputs(std::vector<Var_Grad> &inputs, RunLayerContext &context,
     }
   }
 
-  inputs[0] = Var_Grad(input, outgoing_derivative);
+  inputs[0] = Var_Grad(input, outgoing_derivative, "lstmcell_core input");
   inputs[1] = Var_Grad(prev_hidden_state, prev_hidden_state_derivative,
                        context.getTensorName(wt_idx[1]));
   inputs[2] = Var_Grad(prev_cell_state, prev_cell_state_derivative,
@@ -220,7 +220,6 @@ void fillTensors(std::vector<Var_Grad> &tensors, RunLayerContext &context,
   }
   tensors[0] =
     Var_Grad(ifgo_t, ifgo_derivative_t, context.getTensorName(wt_idx[0]));
-  context.getTensorName(wt_idx[0]);
 #endif
 }
 

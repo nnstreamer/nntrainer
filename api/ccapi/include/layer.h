@@ -71,6 +71,7 @@ enum LayerType {
   LAYER_RESHAPE,                           /**< Reshape Layer type */
   LAYER_RNNCELL,                           /**< RNN Cell Layer type */
   LAYER_LSTMCELL,                          /**< LSTM Cell Layer type */
+  LAYER_ZONEOUT_LSTMCELL,                  /**< Zoneout LSTM Cell Layer type */
   LAYER_GRUCELL,                           /**< GRU Cell Layer type */
   LAYER_REDUCE_MEAN,                       /**< Reduce mean Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
@@ -336,6 +337,14 @@ LSTM(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 LSTMCell(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_LSTMCELL, properties);
+}
+
+/**
+ * @brief Helper function to create ZoneoutLSTMCell layer
+ */
+inline std::unique_ptr<Layer>
+ZoneoutLSTMCell(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_ZONEOUT_LSTMCELL, properties);
 }
 
 /**

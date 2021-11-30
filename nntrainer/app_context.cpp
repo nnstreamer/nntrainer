@@ -66,6 +66,7 @@
 #include <rnncell.h>
 #include <split_layer.h>
 #include <time_dist.h>
+#include <zoneout_lstmcell.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -251,6 +252,9 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_LSTM);
   ac.registerFactory(nntrainer::createLayer<LSTMCellLayer>, LSTMCellLayer::type,
                      LayerType::LAYER_LSTMCELL);
+  ac.registerFactory(nntrainer::createLayer<ZoneoutLSTMCellLayer>,
+                     ZoneoutLSTMCellLayer::type,
+                     LayerType::LAYER_ZONEOUT_LSTMCELL);
   ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
                      LayerType::LAYER_SPLIT);
   ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,

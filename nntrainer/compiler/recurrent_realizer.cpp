@@ -24,6 +24,7 @@
 #include <remap_realizer.h>
 #include <rnncell.h>
 #include <util_func.h>
+#include <zoneout_lstmcell.h>
 
 namespace nntrainer {
 
@@ -134,6 +135,7 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
            node->getType() == LSTMLayer::type ||
            node->getType() == LSTMCellLayer::type ||
            node->getType() == LSTMCellCoreLayer::type ||
+           node->getType() == ZoneoutLSTMCellLayer::type ||
            node->getType() == GRUCellLayer::type;
   };
 
