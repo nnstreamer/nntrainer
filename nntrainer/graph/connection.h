@@ -18,6 +18,7 @@
 namespace nntrainer {
 /**
  * @brief RAII class to define a connection
+ * @note connection is a light weight class wraps around connection information
  *
  */
 class Connection {
@@ -26,6 +27,7 @@ public:
    * @brief Construct a new Connection object
    *
    * @param layer_name layer identifier
+   * @param idx index denotes nth tensor in a layer
    */
   Connection(const std::string &layer_name, unsigned int idx);
 
