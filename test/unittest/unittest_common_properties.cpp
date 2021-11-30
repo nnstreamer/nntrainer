@@ -132,19 +132,44 @@ TEST(InputConnection, emptyString_n_01) {
 TEST(InputConnection, onlyIndex_n_01) {
   using namespace nntrainer::props;
   InputConnection actual;
-  EXPECT_THROW(nntrainer::from_string("[0]", actual), std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string("(0)", actual), std::invalid_argument);
 }
 
 TEST(InputConnection, invalidFormat_n_01) {
   using namespace nntrainer::props;
   InputConnection actual;
-  EXPECT_THROW(nntrainer::from_string("a[0", actual), std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string("a(0", actual), std::invalid_argument);
 }
 
 TEST(InputConnection, invalidFormat_n_02) {
   using namespace nntrainer::props;
   InputConnection actual;
-  EXPECT_THROW(nntrainer::from_string("[0", actual), std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string("(0", actual), std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_03) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("a((0))", actual), std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_04) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("a((0)", actual), std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_05) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("a(0))", actual), std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_06) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("a(0)(1)", actual),
+               std::invalid_argument);
 }
 
 TEST(Padding2D, setPropertyValid_p) {
