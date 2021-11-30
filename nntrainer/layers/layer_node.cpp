@@ -190,27 +190,27 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
 }
 
 const unsigned LayerNode::getInputConnectionIndex(unsigned nth) const {
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  return input_layers.at(nth).get().getIndex();
+  return input_conns.at(nth).get().getIndex();
 }
 
 const std::string &LayerNode::getInputConnectionName(unsigned nth) const {
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  return input_layers.at(nth).get().getName();
+  return input_conns.at(nth).get().getName();
 }
 
 void LayerNode::setInputConnectionIndex(unsigned nth, unsigned index) {
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  input_layers.at(nth).get().getIndex() = index;
+  input_conns.at(nth).get().getIndex() = index;
 }
 
 void LayerNode::setInputConnectionName(unsigned nth, const std::string &name) {
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
-  input_layers.at(nth).get().getName() = name;
+  input_conns.at(nth).get().getName() = name;
 }
 
 const Connection *LayerNode::getOutputConnection(unsigned nth) const {
@@ -698,10 +698,10 @@ void LayerNode::remapConnections(
   NNTR_THROW_IF(isFinalized(), std::invalid_argument)
     << "cannot remap identifiers after finalized";
 
-  auto &input_layers =
+  auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
 
-  for (auto &input_layer : input_layers) {
+  for (auto &input_layer : input_conns) {
     auto &name = input_layer.get().getName();
     auto &idx = input_layer.get().getIndex();
     remap_fn(name, idx);
