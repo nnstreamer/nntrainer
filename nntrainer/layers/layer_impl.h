@@ -45,7 +45,7 @@ enum class ExportMethods;
  * @brief   An abstract class for all layers
  *
  */
-class LayerImpl : public Layer {
+class LayerImpl : public virtual Layer {
 
 public:
   /**

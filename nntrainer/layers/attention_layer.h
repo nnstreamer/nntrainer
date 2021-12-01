@@ -24,7 +24,7 @@ namespace nntrainer {
  * @class   Attention Layer
  * @brief   Attention Layer
  */
-class AttentionLayer : public Layer {
+class AttentionLayer : public virtual Layer {
 public:
   /**
    * @brief     Constructor of Attention Layer
