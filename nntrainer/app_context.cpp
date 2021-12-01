@@ -21,8 +21,10 @@
 #include <iniparser.h>
 
 #include <app_context.h>
+#include <layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer.h>
 #include <util_func.h>
 
 #include <adam.h>
@@ -483,5 +485,59 @@ AppContext::registerPluggableFromDirectory(const std::string &base_path) {
 
   return keys;
 }
+
+template <typename T>
+const int AppContext::registerFactory(const FactoryType<T> factory,
+                                      const std::string &key,
+                                      const int int_key) {
+  static_assert(isSupported<T>::value,
+                "given type is not supported for current app context");
+
+  auto &index = std::get<IndexType<T>>(factory_map);
+  auto &str_map = std::get<StrIndexType<T>>(index);
+  auto &int_map = std::get<IntIndexType>(index);
+
+  std::string assigned_key = key == "" ? factory({})->getType() : key;
+
+  std::transform(assigned_key.begin(), assigned_key.end(), assigned_key.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+
+  const std::lock_guard<std::mutex> lock(factory_mutex);
+  if (str_map.find(assigned_key) != str_map.end()) {
+    std::stringstream ss;
+    ss << "cannot register factory with already taken key: " << key;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  if (int_key != -1 && int_map.find(int_key) != int_map.end()) {
+    std::stringstream ss;
+    ss << "cannot register factory with already taken int key: " << int_key;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  int assigned_int_key = int_key == -1 ? str_map.size() + 1 : int_key;
+
+  str_map[assigned_key] = factory;
+  int_map[assigned_int_key] = assigned_key;
+
+  ml_logd("factory has registered with key: %s, int_key: %d",
+          assigned_key.c_str(), assigned_int_key);
+
+  return assigned_int_key;
+}
+
+/**
+ * @copydoc const int AppContext::registerFactory
+ */
+template const int AppContext::registerFactory<ml::train::Optimizer>(
+  const FactoryType<ml::train::Optimizer> factory, const std::string &key,
+  const int int_key);
+
+/**
+ * @copydoc const int AppContext::registerFactory
+ */
+template const int AppContext::registerFactory<nntrainer::Layer>(
+  const FactoryType<nntrainer::Layer> factory, const std::string &key,
+  const int int_key);
 
 } // namespace nntrainer
