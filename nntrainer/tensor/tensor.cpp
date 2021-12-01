@@ -1336,37 +1336,24 @@ void Tensor::copy(const float *buf) noexcept {
 }
 
 void Tensor::copy_with_stride(const Tensor &from) {
-  if (from.size() != 0 && size() == from.size()) {
-    reshape(from.getDim());
-    for (unsigned int b = 0; b < from.batch(); ++b) {
-      unsigned int from_b = b * from.strides[0];
-      unsigned int t_b = b * from.channel() * from.height() * from.width();
-      for (unsigned int c = 0; c < from.channel(); ++c) {
-        unsigned int from_c = c * from.strides[1];
-        unsigned int t_c = c * from.height() * from.width();
-        for (unsigned int h = 0; h < from.height(); ++h) {
-          unsigned int from_h = h * from.strides[2];
-          unsigned int t_h = h * from.width();
-          for (unsigned int w = 0; w < from.width(); ++w) {
-            unsigned int from_w = w * from.strides[3];
-            getData()[t_b + t_c + t_h + w] =
-              from.getData()[from_b + from_c + from_h + from_w];
+
+  if (dim == from.getDim()) {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            setValue(b, c, h, w, from.getValue(b, c, h, w));
           }
         }
       }
     }
   } else {
     Tensor t = Tensor(from.getDim(), true);
-    for (unsigned int b = 0; b < from.batch(); ++b) {
-      unsigned int from_b = b * from.strides[0];
-      for (unsigned int c = 0; c < from.channel(); ++c) {
-        unsigned int from_c = c * from.strides[1];
-        for (unsigned int h = 0; h < from.height(); ++h) {
-          unsigned int from_h = h * from.strides[2];
-          for (unsigned int w = 0; w < from.width(); ++w) {
-            unsigned int from_w = w * from.strides[3];
-            t.setValue(b, c, h, w,
-                       from.getData()[from_b + from_c + from_h + from_w]);
+    for (unsigned int b = 0; b < t.batch(); ++b) {
+      for (unsigned int c = 0; c < t.channel(); ++c) {
+        for (unsigned int h = 0; h < t.height(); ++h) {
+          for (unsigned int w = 0; w < t.width(); ++w) {
+            t.setValue(b, c, h, w, from.getValue(b, c, h, w));
           }
         }
       }
