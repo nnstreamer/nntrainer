@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <attention_layer.h>
+#include <layer_impl.h>
 
 namespace nntrainer {
 
@@ -23,7 +24,7 @@ namespace nntrainer {
  * @class   MoL Attention Layer
  * @brief   Mixture of Logistics Attention Layer
  */
-class MoLAttentionLayer : public AttentionLayer {
+class MoLAttentionLayer : public AttentionLayer, public LayerImpl {
 public:
   /**
    * @brief     Constructor of MoL Attention Layer
@@ -63,6 +64,11 @@ public:
   void calcDerivative(RunLayerContext &context) override;
 
   /**
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
+   */
+  void calcGradient(RunLayerContext &context) override;
+
+  /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return true; };
@@ -70,8 +76,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
@@ -97,10 +102,20 @@ private:
     mol_props; /**< mol attention layer properties : unit - number of output
                   neurons */
 
-  ActiFunc softmax;                   /** softmax activation operation */
-  ActiFunc tanh;                      /** softmax activation operation */
-  ActiFunc sigmoid;                   /** softmax activation operation */
-  std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
+  bool helper_exec; /** check if the helper function has already ran */
+  ActiFunc softmax; /** softmax activation operation */
+  ActiFunc tanh;    /** softmax activation operation */
+  ActiFunc sigmoid; /** softmax activation operation */
+  std::array<unsigned int, 15>
+    wt_idx; /**< indices of the weights and tensors */
+
+  /**
+   * @brief Helper function for calculation of the derivative
+   *
+   * @param context layer context
+   * @param dstate to store the derivative of the state
+   */
+  void calcDerivativeHelper(RunLayerContext &context, Tensor &dstate);
 };
 
 } // namespace nntrainer
