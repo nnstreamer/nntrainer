@@ -43,7 +43,10 @@ def fc_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
     def transpose_(weight):
         return (weight[0], weight[1].transpose(1, 0))
-    new_params = [transpose_(params[0]), params[1]]
+    if len(params) == 2:
+        new_params = [transpose_(params[0]), params[1]]
+    else:
+        new_params = [transpose_(params[0])]
     yield from new_params
 
 @register_for_(torch.nn.BatchNorm1d)
