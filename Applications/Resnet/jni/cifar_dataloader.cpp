@@ -85,11 +85,9 @@ void RandomDataLoader::next(float **input, float **label, bool *last) {
 
   auto fill_label = [this](float *label, unsigned int batch,
                            unsigned int length) {
-    for (unsigned int i = 0; i < batch; ++i) {
-      unsigned int generated_label = label_dist(rng);
-      fillLabel(label, length, generated_label);
-      label += length;
-    }
+    unsigned int generated_label = label_dist(rng);
+    fillLabel(label, length, generated_label);
+    label += length;
   };
 
   if (updateIteration(iteration, iteration_for_one_epoch)) {
@@ -99,7 +97,7 @@ void RandomDataLoader::next(float **input, float **label, bool *last) {
 
   float **cur_input_tensor = input;
   for (unsigned int i = 0; i < input_shapes.size(); ++i) {
-    fill_input(*cur_input_tensor, input_shapes.at(i).getDataLen());
+    fill_input(*cur_input_tensor, input_shapes.at(i).getFeatureLen());
     cur_input_tensor++;
   }
 
