@@ -34,7 +34,6 @@ def _get_writer(file):
             items = [items]
 
         for item in items:
-            print(item.numel())
             np.array([item.numel()], dtype="int32").tofile(file)
             item.detach().cpu().numpy().tofile(file)
 
@@ -81,7 +80,6 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
         inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
         labels = _rand_like(label_dims, dtype=float)
         write_fn(inputs)
-        print(labels)
         write_fn(labels)
         write_fn(list(t for _, t in params_translated(model)))
         output, loss = model(inputs, labels)

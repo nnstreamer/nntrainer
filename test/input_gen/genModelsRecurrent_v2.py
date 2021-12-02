@@ -9,6 +9,7 @@
 # @author Jihoon lee <jhoon.it.lee@samsung.com>
 
 from recorder_v2 import record_v2, inspect_file
+from zoneout import Zoneout
 import torch
 
 class FCUnroll(torch.nn.Module):
@@ -81,6 +82,38 @@ class LSTMStacked(torch.nn.Module):
         for _ in range(self.unroll_for):
             for i, (lstm, h, c) in enumerate(zip(self.lstms, hs, cs)):
                 hs[i], cs[i] = lstm(out, (h, c))
+                out = hs[i]
+            ret.append(out)
+
+        ret = torch.stack(ret, dim=1)
+        loss = self.loss(ret, labels[0])
+        return ret, loss
+
+class ZoneoutLSTMStacked(torch.nn.Module):
+    def __init__(self, batch_size=3, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=1, cell_state_zoneout_rate=1):
+        super().__init__()
+        self.input_size = self.hidden_size = 2
+        self.cell_state_zoneout_rate = cell_state_zoneout_rate
+        self.zoneout_lstms = torch.nn.ModuleList(
+            [
+                Zoneout(batch_size, self.input_size, self.hidden_size, unroll_for, hidden_state_zoneout_rate, cell_state_zoneout_rate)
+                for _ in range(num_lstm)
+            ]
+        )
+        for zoneout_lstm in self.zoneout_lstms:
+            zoneout_lstm.bias_hh.data.fill_(0.0)
+            zoneout_lstm.bias_hh.requires_grad=False
+        self.unroll_for = unroll_for
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        hs = [torch.zeros_like(inputs[0]) for _ in self.zoneout_lstms]
+        cs = [torch.zeros_like(inputs[0]) for _ in self.zoneout_lstms]
+        out = inputs[0]
+        ret = []
+        for num_unroll in range(self.unroll_for):
+            for i, (zoneout_lstm, h, c) in enumerate(zip(self.zoneout_lstms, hs, cs)):
+                hs[i], cs[i] = zoneout_lstm(out, (h, c, num_unroll))
                 out = hs[i]
             ret.append(out)
 
@@ -174,6 +207,150 @@ if __name__ == "__main__":
         input_dims=[(3, 2)],
         label_dims=[(3, 2, 2)],
         name="lstm_stacked",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_000_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_000_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_050_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_050_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_100_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=0.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_100_000",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_000_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_000_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_050_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_050_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_100_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=0.5),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_100_050",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_000_100",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.0, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_000_100",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_050_100",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=0.5, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_050_100",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_single_100_100",
+    )
+
+    record_v2(
+        ZoneoutLSTMStacked(batch_size=1, unroll_for=2, num_lstm=2, hidden_state_zoneout_rate=1.0, cell_state_zoneout_rate=1.0),
+        iteration=2,
+        input_dims=[(1, 2)],
+        label_dims=[(1, 2, 2)],
+        name="zoneout_lstm_stacked_100_100",
     )
 
     record_v2(

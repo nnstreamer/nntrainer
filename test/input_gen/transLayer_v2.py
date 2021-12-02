@@ -10,6 +10,7 @@
 
 import torch
 from collections.abc import Iterable
+from zoneout import Zoneout
 
 __all__ = ["params_translated"]
 
@@ -55,6 +56,20 @@ def bn1d_translate(model):
     mu, var, _ = [(name, tensor.detach()) for name, tensor in model.named_buffers()]
     yield from [mu, var, gamma, beta]
 
+
+@register_for_((Zoneout))
+def zoneout_translate(model):
+    params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
+    bias = ("bias", params[2][1] + params[3][1])
+    hidden_state = ("hidden_state", torch.stack(model.hidden_state_zoneout_mask, dim=0))
+    cell_state = ("cell_state", torch.stack(model.cell_state_zoneout_mask, dim=0))
+
+    # [hidden, input] -> [input, hidden]
+    def transpose_(weight):
+        return (weight[0], weight[1].transpose(1, 0))
+
+    new_params = [transpose_(params[0]), transpose_(params[1]), bias, hidden_state, cell_state]
+    yield from new_params
 
 @register_for_((torch.nn.RNNCell, torch.nn.LSTMCell))
 def rnn_lstm_translate(model):

@@ -261,6 +261,75 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=1"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:2"}},
+    /// here zoneout_lstm_cell is being inserted
+    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a1"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto zoneout_lstm = makeGraph({
+    {"zoneout_lstmcell",
+     {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
+      "cell_state_zoneout_rate=1.0", "test=true"}},
+  });
+
+  nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},
+                             {"a1"}, {"a1"},
+                             ml::train::ReferenceLayersType::RECURRENT,
+                             {
+                               "unroll_for=2",
+                               "return_sequences=true",
+                               "recurrent_input=a1",
+                               "recurrent_output=a1",
+                             });
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=1"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:2"}},
+    /// here zoneout_lstm_cell is being inserted
+    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a2"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto zoneout_lstm = makeGraph({
+    {"zoneout_lstmcell",
+     {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
+      "cell_state_zoneout_rate=1.0", "test=true"}},
+    {"zoneout_lstmcell",
+     {"name=a2", "unit=2", "hidden_state_zoneout_rate=1.0",
+      "cell_state_zoneout_rate=1.0", "test=true", "input_layers=a1"}},
+  });
+
+  nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},
+                             {"a1"}, {"a2"},
+                             ml::train::ReferenceLayersType::RECURRENT,
+                             {
+                               "unroll_for=2",
+                               "return_sequences=true",
+                               "recurrent_input=a1",
+                               "recurrent_output=a2",
+                             });
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=3"});
@@ -400,6 +469,42 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeStackedLSTMCell, "lstm_stacked__1",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_100",
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleRNNCell, "rnncell_single__1",
                  ModelTestOption::COMPARE_V2),
