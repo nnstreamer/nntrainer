@@ -103,7 +103,7 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
   const TensorDim dim(batch_size * max_timestep, 1, 1, unit);
   wt_idx[RNNCellParams::hidden_state] =
     context.requestTensor(dim, "hidden_state", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
+                          TensorLifespan::ITERATION_LIFESPAN, false);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);

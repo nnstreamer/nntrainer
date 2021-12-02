@@ -132,12 +132,12 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
   TensorDim hidden_state_dim(max_timestep * batch_size, 1, 1, unit);
   wt_idx[GRUCellParams::hidden_state] = context.requestTensor(
     hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::ITERATION_LIFESPAN, false);
 
   TensorDim zrg_dim(max_timestep * batch_size, 1, 1, unit * NUM_GATE);
   wt_idx[GRUCellParams::zrg] =
     context.requestTensor(zrg_dim, "zrg", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
+                          TensorLifespan::ITERATION_LIFESPAN, false);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);
