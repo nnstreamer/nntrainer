@@ -146,8 +146,7 @@ void Manager::allocateTensors(unsigned int max_exec_order_) {
 
   if (!tensor_pool.isAllocated()) {
     finalizeTensorPool(tensor_pool, 0, max_exec_order_);
-    if (tensor_pool.minMemoryRequirement() > 0)
-      tensor_pool.allocate();
+    tensor_pool.allocate();
   }
 }
 

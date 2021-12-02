@@ -169,6 +169,8 @@ void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
  * @brief Allocate memory for all the managed tensors
  */
 void TensorPool::allocate() {
+  if (minMemoryRequirement() == 0)
+    return;
   mem_pool.allocate();
 
   /** set the pointers using the token for all the tensors */

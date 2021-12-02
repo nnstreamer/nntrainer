@@ -298,7 +298,7 @@ TEST(TensorPool, allocate_deallocate_01_p) {
 TEST(TensorPool, allocate_deallocate_02_n) {
   nntrainer::TensorPool pool;
 
-  EXPECT_THROW(pool.allocate(), std::runtime_error);
+  EXPECT_NO_THROW(pool.allocate());
 
   EXPECT_NO_THROW(pool.deallocate());
 }
@@ -439,7 +439,7 @@ TEST(TensorPool, placeholder_p) {
   pool.placeholder("a", {10});
   pool.placeholder("b", {10});
   pool.finalize(nntrainer::BasicPlanner(), 0, 2);
-  EXPECT_ANY_THROW(pool.allocate()); // allocating size of 0
+  EXPECT_NO_THROW(pool.allocate());
 }
 
 TEST(TensorPool, placeholder_clashing_name_n) {
