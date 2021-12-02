@@ -31,6 +31,7 @@ enum AttentionParams {
   query = 0,
   value = 1,
   state = 2,
+  mask_len = 3,
   fc_w,
   fc_bias,
   fc_proj_w,
@@ -46,8 +47,8 @@ enum AttentionParams {
 };
 
 void MoLAttentionLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 3)
-    throw std::runtime_error("MoL Attention layer needs 3 inputs.");
+  if (context.getNumInputs() < 3 || context.getNumInputs() > 4)
+    throw std::runtime_error("MoL Attention layer needs 3-4 inputs.");
 
   auto const &all_dims = context.getInputDimensions();
   auto const &query_dim = all_dims[AttentionParams::query];
@@ -57,6 +58,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   wt_idx[AttentionParams::query] = AttentionParams::query;
   wt_idx[AttentionParams::value] = AttentionParams::value;
   wt_idx[AttentionParams::state] = AttentionParams::state;
+  wt_idx[AttentionParams::mask_len] = AttentionParams::mask_len;
 
   softmax.setActiFunc(ActivationType::ACT_SOFTMAX);
   tanh.setActiFunc(ActivationType::ACT_TANH);
@@ -225,6 +227,13 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor prob_scaled = prob.multiply(alpha);
   prob_scaled.sum(3, scores);
 
+  if (context.getNumInputs() == 4) {
+    Tensor mask = Tensor(scores.getDim());
+    mask.filter_mask(context.getInput(wt_idx[AttentionParams::mask_len]),
+                     false);
+    scores.multiply_i(mask);
+  }
+
   scores.dotBatched(value, output);
 }
 
@@ -261,6 +270,11 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
   Tensor dscores = Tensor(TensorDim({value.batch(), 1, 1, value.height()}));
   dscores.dot_batched_deriv_wrt_1(value, derivative);
   dscores.reshape(TensorDim({scores.batch(), 1, scores.width(), 1}));
+  if (context.getNumInputs() == 4) {
+    Tensor mask = Tensor(dscores.getDim());
+    mask.filter_mask(context.getInput(wt_idx[AttentionParams::mask_len]));
+    dscores.multiply_i(mask);
+  }
 
   Tensor dprob_scaled = Tensor(TensorDim({batch, 1, value.height(), mol_k}));
   dprob_scaled.setZero();

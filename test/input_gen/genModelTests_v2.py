@@ -34,7 +34,11 @@ class MolAttention(torch.nn.Module):
         self.loss = torch.nn.Identity()
 
     def forward(self, inputs, labels):
-        query, values, attention_state = inputs
+        if len(inputs) == 4:
+            query, values, attention_state, mask_len = inputs
+        else:
+            query, values, attention_state = inputs
+            mask_len = None
         batch_size, timesteps, _ = values.size()
 
         dense1_out = torch.tanh(self.dense1(query.unsqueeze(1)))
@@ -54,6 +58,14 @@ class MolAttention(torch.nn.Module):
         integrals = alpha * (integrals_left - integrals_right)
         scores = torch.sum(integrals, dim=2)
 
+        if mask_len is not None:
+            max_len = max(int(mask_len.max()), scores.shape[1])
+            mask = torch.arange(0, max_len)\
+                    .type_as(mask_len)\
+                    .unsqueeze(0).expand(mask_len.numel(), max_len)\
+                    .lt(mask_len.unsqueeze(1))
+            scores.masked_fill_(torch.logical_not(mask), 0.)
+
         output = torch.matmul(scores.unsqueeze(1), values).squeeze(dim=1)
 
         loss = self.loss(torch.sum(output))
@@ -72,9 +84,19 @@ if __name__ == "__main__":
     record_v2(
         MolAttention(query_size=6),
         iteration=2,
+        input_dims=[(3,6), (3,4,6), (3,1,5), (3)],
+        input_dtype=[float, float, float, int],
+        label_dims=[(3,1,6)],
+        name="mol_attention_masked",
+    )
+
+    record_v2(
+        MolAttention(query_size=6),
+        iteration=2,
         input_dims=[(3,6), (3,4,6), (3,1,5)],
+        input_dtype=[float, float, float],
         label_dims=[(3,1,6)],
         name="mol_attention",
     )
 
-    # inspect_file("mol_attention.nnmodelgolden")
+    # inspect_file("mol_attention_masked.nnmodelgolden")

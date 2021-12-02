@@ -31,14 +31,17 @@ class NeuralNetwork;
  *
  */
 typedef enum {
-  NO_THROW_RUN = 0, /**< no comparison, only validate execution without throw */
-  COMPARE = 1 << 0, /**< Set this to compare the numbers */
-  SAVE_AND_LOAD_INI = 1 << 1, /**< Set this to check if saving and constructing
+  NO_THROW_RUN =
+    1 << 0, /**< no comparison, only validate execution without throw */
+  COMPARE_RUN = 1 << 1,       /**< Set this to compare the numbers */
+  SAVE_AND_LOAD_INI = 1 << 2, /**< Set this to check if saving and constructing
                                  a new model works okay (without weights) */
-  USE_V2 = 1 << 2,            /**< use v2 model format */
+  USE_V2 = 1 << 3,            /**< use v2 model format */
+  COMPARE = COMPARE_RUN | NO_THROW_RUN, /**< Set this to comp are the numbers */
 
-  COMPARE_V2 = COMPARE | USE_V2,                 /**< compare v2 */
+  COMPARE_RUN_V2 = COMPARE_RUN | USE_V2,         /**< compare run v2 */
   NO_THROW_RUN_V2 = NO_THROW_RUN | USE_V2,       /**< no throw run with v2 */
+  COMPARE_V2 = COMPARE | USE_V2,                 /**< compare v2 */
   SAVE_AND_LOAD_V2 = SAVE_AND_LOAD_INI | USE_V2, /**< save and load with v2 */
 
   ALL = COMPARE | SAVE_AND_LOAD_INI, /**< Set every option */
@@ -135,7 +138,13 @@ protected:
    *
    * @return bool true if test should be done
    */
-  bool shouldCompare() { return options & (ModelTestOption::COMPARE); }
+  bool shouldCompare() { return options & (ModelTestOption::COMPARE_RUN); }
+  /**
+   * @brief query if compare test should be conducted
+   *
+   * @return bool true if test should be done
+   */
+  bool shouldValidate() { return options & (ModelTestOption::NO_THROW_RUN); }
 
   /**
    * @brief query if saveload ini test should be done

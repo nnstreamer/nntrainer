@@ -1228,6 +1228,26 @@ void Tensor::dropout_mask(float dropout) {
   }
 }
 
+void Tensor::filter_mask(const Tensor &mask_len, bool reverse) {
+  float fill_mask_val = 0.0;
+  float en_mask_val = 1.0 - fill_mask_val;
+
+  if (reverse) {
+    fill_mask_val = 1.0;
+    en_mask_val = 1.0 - fill_mask_val;
+  }
+
+  setValue(fill_mask_val);
+  if (mask_len.batch() != batch())
+    throw std::invalid_argument("Number of filter masks mismatched");
+
+  for (unsigned int b = 0; b < batch(); b++) {
+    float *addr = getAddress(b, 0, 0, 0);
+    const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
+    std::fill(addr, addr + (*mask_len_val), en_mask_val);
+  }
+}
+
 int Tensor::apply_i(std::function<float(float)> f) {
   Tensor result = *this;
   apply(f, result);
