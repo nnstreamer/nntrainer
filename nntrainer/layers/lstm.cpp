@@ -133,15 +133,15 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   wt_idx[LSTMParams::hidden_state] =
     context.requestTensor(d, "hidden_state", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
+                          TensorLifespan::ITERATION_LIFESPAN, false);
   wt_idx[LSTMParams::mem_cell] =
     context.requestTensor(d, "mem_cell", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
+                          TensorLifespan::ITERATION_LIFESPAN, false);
 
   d.width(unit * NUM_GATE);
   wt_idx[LSTMParams::fgio] =
     context.requestTensor(d, "fgio", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
+                          TensorLifespan::ITERATION_LIFESPAN, false);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);

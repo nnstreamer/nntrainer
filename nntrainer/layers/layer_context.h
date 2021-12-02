@@ -174,6 +174,7 @@ public:
    * @param trainable if the tensor is trainable (require gradient or not)
    * @param name name of the tensor
    * @param lifespan lifespan of the tensor
+   * @param private_ if custom tensor should not be shared, and only for soleuse
    * @return unsigned int index of the tensor for its getter
    *
    * @todo Consider providing a guarantee that the returned indices will always
@@ -183,8 +184,10 @@ public:
   requestTensor(const TensorDim &dim, const std::string &name,
                 const Tensor::Initializer init = Tensor::Initializer::NONE,
                 bool trainable = false,
-                TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, init, trainable, prefix + ":" + name,
+                TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
+                bool private_ = true) {
+    auto prefix_ = private_ ? this->name : this->prefix;
+    tensors_spec.emplace_back(dim, init, trainable, prefix_ + ":" + name,
                               lifespan);
     return tensors_spec.size() - 1;
   }
