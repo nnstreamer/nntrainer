@@ -63,7 +63,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
     vg.reserve(dims.size());
 
     for (auto &dim : dims) {
-      vg.emplace_back(dim, Tensor::Initializer::NONE, true, true);
+      vg.emplace_back(dim, Tensor::Initializer::NONE, true, true, "golden");
       sizeCheckedReadTensor(vg.back().getVariableRef(), file,
                             vg.back().getName());
     }

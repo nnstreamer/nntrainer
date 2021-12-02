@@ -190,5 +190,6 @@ if __name__ == "__main__":
         input_dims=[(3, 2)],
         label_dims=[(3, 2, 2)],
         name="grucell_stacked",
+    )
 
     # inspect_file("lstm_single.nnmodelgolden")

@@ -367,7 +367,10 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
    * references which leads to nasty bugs. This validation ensures that the
    * tensors are not set mistakenly by verifying their unique names
    */
+  bool ret = true;
 #ifdef DEBUG
+  std::function<bool(const Var_Grad *, bool)> matcher;
+
   if (tensor_map.empty() || !tensor_map[inputs[0]->getName()]) {
     auto filler = [this](const auto &vec) {
       for (auto const &val : vec) {
@@ -381,52 +384,46 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
     filler(inputs);
     filler(outputs);
     filler(tensors);
-  } else {
-    auto matcher = [this](const Var_Grad *val, bool skip_grad = false) {
-      if (val->getName().empty() ||
-          (val->hasGradient() && val->getGradientName().empty()))
-        return false;
-
-      if (tensor_map.find(val->getName()) == tensor_map.end())
-        /**
-         * Disabled because of in-place input layer. Enable this later.
-         * tensor_map[val->getName()] != val->getVariableRef().getData())
-         */
-        return false;
-
-      if (skip_grad &&
-          (tensor_map.find(val->getGradientName()) == tensor_map.end()))
-        return false;
-
-      return true;
-    };
-
-    auto matcher_w = [this, matcher](const std::vector<Weight *> &vec) {
-      return std::all_of(vec.begin(), vec.end(), matcher);
-    };
-
-    auto matcher_vw = [this, matcher](const std::vector<Var_Grad *> &vec,
-                                      bool skip_grad = false) {
-      return std::all_of(vec.begin(), vec.end(),
-                         std::bind(matcher, std::placeholders::_1, skip_grad));
-      auto ret = true;
-      for (auto const &val : vec)
-        ret &= matcher(val, skip_grad);
-      return ret;
-    };
-
-    /** match the tensor map from the next validations */
-
-    auto ret = matcher_w(weights) & matcher_vw(tensors) &
-               matcher_vw(outputs, skip_label);
-    if (!skip_input)
-      ret &= matcher_vw(inputs);
-
-    return ret;
   }
+
+  matcher = [this](const Var_Grad *val, bool skip_grad) -> bool {
+    if (val->getName().empty() ||
+        (val->hasGradient() && val->getGradientName().empty()))
+      return false;
+
+    if (tensor_map.find(val->getName()) == tensor_map.end())
+      /**
+       * Disabled because of in-place input layer. Enable this later.
+       * tensor_map[val->getName()] != val->getVariableRef().getData())
+       */
+      return false;
+
+    if (skip_grad &&
+        (tensor_map.find(val->getGradientName()) == tensor_map.end()))
+      return false;
+
+    return true;
+  };
+
+  auto matcher_w = [this, &matcher](const std::vector<Weight *> &vec) {
+    return std::all_of(vec.begin(), vec.end(),
+                       std::bind(matcher, std::placeholders::_1, false));
+  };
+
+  auto matcher_vw = [this, &matcher](const std::vector<Var_Grad *> &vec,
+                                     bool skip_grad = false) {
+    return std::all_of(vec.begin(), vec.end(),
+                       std::bind(matcher, std::placeholders::_1, skip_grad));
+  };
+
+  /** match the tensor map from the next validations */
+  ret =
+    matcher_w(weights) & matcher_vw(tensors) & matcher_vw(outputs, skip_label);
+  if (!skip_input)
+    ret &= matcher_vw(inputs);
 #endif
 
-  return true;
+  return ret;
 }
 
 } // namespace nntrainer

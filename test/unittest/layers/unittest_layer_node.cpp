@@ -81,8 +81,9 @@ TEST(nntrainer_LayerNode, finalize_05_n) {
   auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
   lnode->setProperty({"input_shape=1:1:1", "name=abc", "unit=4"});
   EXPECT_NO_THROW(lnode->finalize());
-  nntrainer::Var_Grad input =
-    nntrainer::Var_Grad(nntrainer::TensorDim({1, 1, 1, 1}));
+  nntrainer::Var_Grad input = nntrainer::Var_Grad(
+    nntrainer::TensorDim({1, 1, 1, 1}), nntrainer::Tensor::Initializer::NONE,
+    true, false, "dummy");
   lnode->configureRunContext({}, {&input}, {}, {});
   EXPECT_ANY_THROW(lnode->finalize());
 }

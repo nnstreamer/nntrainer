@@ -52,6 +52,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   auto const &all_dims = context.getInputDimensions();
   auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
+  auto const &state_dim = all_dims[AttentionParams::state];
 
   wt_idx[AttentionParams::query] = AttentionParams::query;
   wt_idx[AttentionParams::value] = AttentionParams::value;
@@ -61,6 +62,9 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   tanh.setActiFunc(ActivationType::ACT_TANH);
   sigmoid.setActiFunc(ActivationType::ACT_SIGMOID);
 
+  NNTR_THROW_IF(query_dim.width() != value_dim.width(), std::invalid_argument)
+    << "Query and Value dimension mismatch for layer " << context.getName();
+
   NNTR_THROW_IF(std::get<props::Unit>(mol_props).empty(), std::invalid_argument)
     << "Number of units not provided for layer " << context.getName();
   auto unit = std::get<props::Unit>(mol_props).get();
@@ -69,6 +73,10 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
                 std::invalid_argument)
     << "MoL_K property not provided for layer " << context.getName();
   auto mol_k = std::get<props::MoL_K>(mol_props).get();
+
+  NNTR_THROW_IF(mol_k != state_dim.width(), std::invalid_argument)
+    << "MoL_K property mismatches the provided state dimension for layer"
+    << context.getName();
 
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
@@ -99,7 +107,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
                           false, TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim fc_proj_out_dim = fc_out_dim;
-  fc_out_dim.width(fc_proj_w_dim.width());
+  fc_proj_out_dim.width(fc_proj_w_dim.width());
   wt_idx[AttentionParams::fc_proj_out] = context.requestTensor(
     fc_proj_out_dim, "fc_proj_out", Tensor::Initializer::NONE, false,
     TensorLifespan::ITERATION_LIFESPAN);
@@ -157,12 +165,12 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   /** reset helper state */
   helper_exec = false;
 
-  fc_out = query.dot(fc_w);
+  query.dot(fc_w, fc_out);
   fc_out.add_i(fc_bias);
 
   tanh.run_fn(fc_out, fc_tanh);
 
-  fc_proj_out = fc_tanh.dot(fc_proj_w);
+  fc_tanh.dot(fc_proj_w, fc_proj_out);
 
   Tensor kappa_src, beta_src, alpha_src;
   kappa_src.copy_with_stride(
@@ -222,6 +230,7 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 
 void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
                                              Tensor &dstate) {
+  /** optimize temporary tensor usage here */
   Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
   Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
 
@@ -359,7 +368,7 @@ void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
 
 void MoLAttentionLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, mol_props);
-  AttentionLayer::setProperty(remain_props);
+  LayerImpl::setProperty(remain_props);
 }
 
 void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
@@ -375,7 +384,6 @@ void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
 
 void MoLAttentionLayer::exportTo(Exporter &exporter,
                                  const ExportMethods &method) const {
-  AttentionLayer::exportTo(exporter, method);
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(mol_props, method, this);
 }

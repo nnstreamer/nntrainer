@@ -24,7 +24,7 @@ namespace nntrainer {
  * @class   MoL Attention Layer
  * @brief   Mixture of Logistics Attention Layer
  */
-class MoLAttentionLayer : public AttentionLayer, public LayerImpl {
+class MoLAttentionLayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of MoL Attention Layer
