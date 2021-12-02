@@ -42,15 +42,17 @@ def _get_writer(file):
     return write_fn
 
 
-def _rand_like(*shapes, scale=1, rand="int"):
-    shape_to_np = (
-        lambda shape: np.random.randint(0, 10, shape).astype(dtype=np.float32)
-        if rand == "int"
-        else np.random.rand(*shape).astype(dtype=np.float32)
-    )
+def _rand_like(shapes, scale=1, dtype=None):
+    def shape_to_np(shape, dtype=int):
+        if dtype == int:
+            return np.random.randint(0, 4, shape).astype(dtype=np.int32)
+        else:
+            return np.random.rand(*shape).astype(dtype=np.float32)
 
-    np_array = map(shape_to_np, shapes)
-    return [torch.tensor(t * scale) for t in np_array]
+    if not isinstance(dtype, list):
+        dtype = [dtype] * len(shapes)
+    np_array = list([shape_to_np(s,t) for s,t in zip(shapes, dtype)])
+    return list([torch.tensor(t * scale) for t in np_array])
 
 
 ##
@@ -59,7 +61,8 @@ def _rand_like(*shapes, scale=1, rand="int"):
 # @param input_dims dimensions to record including batch (list of tuple)
 # @param label_dims dimensions to record including batch (list of tuple)
 # @param name golden name
-def record_v2(model, iteration, input_dims, label_dims, name, clip=False):
+def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
+              input_dtype=None):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
     # Each iteration contains
@@ -74,8 +77,8 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
     def record_iteration(write_fn):
-        inputs = _rand_like(*input_dims, rand="float")
-        labels = _rand_like(*label_dims, rand="float")
+        inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
+        labels = _rand_like(label_dims, dtype=float)
         write_fn(inputs)
         write_fn(labels)
         write_fn(list(t for _, t in params_translated(model)))

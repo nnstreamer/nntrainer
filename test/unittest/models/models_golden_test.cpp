@@ -78,6 +78,11 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
  * @brief check given ini is failing/suceeding at validation
  */
 TEST_P(nntrainerModelTest, model_test_validate) {
+  if (!shouldValidate()) {
+    std::cout << "[ SKIPPED  ] option not enabled \n";
+    return;
+  }
+
   validate(true);
   /// add stub test for tcm
   EXPECT_TRUE(true);

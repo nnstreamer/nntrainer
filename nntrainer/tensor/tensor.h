@@ -698,6 +698,13 @@ public:
   void dropout_mask(float dropout);
 
   /**
+   * @brief Calculate filter mask
+   * @param mask_len length of each mask along the last axis
+   * @param invert invert the mask
+   */
+  void filter_mask(const Tensor &mask_len, bool reverse = false);
+
+  /**
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
