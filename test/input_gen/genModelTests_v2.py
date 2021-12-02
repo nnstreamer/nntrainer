@@ -76,3 +76,5 @@ if __name__ == "__main__":
         label_dims=[(3,1,6)],
         name="mol_attention",
     )
+
+    # inspect_file("mol_attention.nnmodelgolden")

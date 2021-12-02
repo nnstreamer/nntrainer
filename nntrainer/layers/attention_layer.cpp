@@ -31,7 +31,11 @@ void AttentionLayer::finalizeCommon(InitLayerContext &context) {
     throw std::runtime_error("Attention layer needs 2-3 inputs.");
 
   auto const &all_dims = context.getInputDimensions();
+  auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
+
+  NNTR_THROW_IF(query_dim.width() != value_dim.width(), std::invalid_argument)
+    << "Query and Value dimension mismatch for layer " << context.getName();
 
   wt_idx[AttentionParams::query] = AttentionParams::query;
   wt_idx[AttentionParams::value] = AttentionParams::value;

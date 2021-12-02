@@ -95,6 +95,7 @@ Tensor TimeDistLayer::transposeTensor(Tensor &m) {
   Tensor in = m.transpose("1:0:2");
   in.reshape({dim[2], dim[1], dim[0], dim[3]});
   m.reshape(dim);
+  in.setName(m.getName() + "_trans");
 
   return in;
 }
@@ -202,7 +203,9 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
   // TODO: This transposed Input Tensor could be resued for backwarding
   Tensor in = transposeTensor(input_);
 
-  Tensor out = Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true);
+  Tensor out =
+    Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true,
+           Tensor::Initializer::NONE, context.getName() + ":inter_output");
 
   TensorDim i_dim = in_dim;
   i_dim.channel(1);
@@ -234,18 +237,18 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
     //
     Tensor label_iter;
 
-    Tensor in_iter =
-      in.getSharedDataTensor(i_dim, i * in_dim.batch() * in_dim.width());
-    Tensor out_iter =
-      out.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
+    Tensor in_iter = in.getSharedDataTensor(
+      i_dim, i * in_dim.batch() * in_dim.width(), true, in.getName());
+    Tensor out_iter = out.getSharedDataTensor(
+      h_dim, i * ho_dim.batch() * ho_dim.width(), true, out.getName());
 
     in_var.initializeVariable(in_iter);
     out_var.initializeVariable(out_iter);
 
     if (dist_layer->requireLabel() &&
         context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-      label_iter =
-        h_g.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
+      label_iter = h_g.getSharedDataTensor(
+        h_dim, i * ho_dim.batch() * ho_dim.width(), true, h_g.getName());
       out_var.initializeGradient(label_iter);
     }
 
@@ -280,14 +283,14 @@ void TimeDistLayer::calcDerivative(RunLayerContext &context) {
   fillTensorsFromContext(context);
 
   for (unsigned int i = 0; i < der_dim[0]; ++i) {
-    Tensor ret_iter =
-      ret_.getSharedDataTensor(r_dim, i * r_dim.batch() * r_dim.width());
-    Tensor in_iter =
-      input_.getSharedDataTensor(r_dim, i * r_dim.batch() * r_dim.width());
-    Tensor d_iter =
-      derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
-    Tensor hval_iter =
-      hval_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
+    Tensor ret_iter = ret_.getSharedDataTensor(
+      r_dim, i * r_dim.batch() * r_dim.width(), true, ret_.getName());
+    Tensor in_iter = input_.getSharedDataTensor(
+      r_dim, i * r_dim.batch() * r_dim.width(), true, input_.getName());
+    Tensor d_iter = derivative_.getSharedDataTensor(
+      d_dim, i * d_dim.batch() * d_dim.width(), true, derivative_.getName());
+    Tensor hval_iter = hval_.getSharedDataTensor(
+      d_dim, i * d_dim.batch() * d_dim.width(), true, hval_.getName());
 
     in_var.initializeGradient(ret_iter);
     in_var.initializeVariable(in_iter);
@@ -334,10 +337,10 @@ void TimeDistLayer::calcGradient(RunLayerContext &context) {
   fillTensorsFromContext(context);
 
   for (unsigned int i = 0; i < der_dim[0]; ++i) {
-    Tensor in_iter =
-      input_.getSharedDataTensor(i_dim, i * i_dim.batch() * i_dim.width());
-    Tensor d_iter =
-      derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
+    Tensor in_iter = input_.getSharedDataTensor(
+      i_dim, i * i_dim.batch() * i_dim.width(), true, input_.getName());
+    Tensor d_iter = derivative_.getSharedDataTensor(
+      d_dim, i * d_dim.batch() * d_dim.width(), true, derivative_.getName());
 
     Var_Grad in_var(i_dim, Tensor::Initializer::NONE, true, false, "input");
     Var_Grad out_var(d_dim, Tensor::Initializer::NONE, true, false, "output");
