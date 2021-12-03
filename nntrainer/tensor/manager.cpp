@@ -462,11 +462,10 @@ Manager::requestInputs(const GraphNode &node,
 /**
  * @brief     Create tensors with the given spec
  */
-std::vector<Var_Grad *>
-Manager::requestOutputs(const GraphNode &node,
-                        const std::vector<TensorDim> &outputs_dim,
-                        const std::vector<std::string> &inputs_name,
-                        bool shared_var, bool shared_grad) {
+std::vector<Var_Grad *> Manager::requestOutputs(
+  const GraphNode &node, const std::vector<TensorDim> &outputs_dim,
+  const std::vector<std::string> &inputs_name, unsigned int max_fwd_exec_order,
+  bool shared_var, bool shared_grad) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order({forwarding_order});
@@ -475,6 +474,10 @@ Manager::requestOutputs(const GraphNode &node,
     var_exec_order.push_back(calcDerivative_order);
   std::vector<unsigned int> grad_exec_order(
     {calcGradient_order, calcDerivative_order});
+
+  /** @todo only do this for inference */
+  if (node.getOutputConnections().size() == 0u)
+    var_exec_order.push_back(max_fwd_exec_order);
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;

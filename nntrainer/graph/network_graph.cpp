@@ -691,9 +691,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * allocated input. This is necesary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
-  const std::vector<Var_Grad *> &outputs =
-    tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions(),
-                                   inputs_name, shared_var, shared_grad);
+  unsigned int max_fwd_exec_order = graph.size();
+  const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
+    gnode, init_context.getOutputDimensions(), inputs_name, max_fwd_exec_order,
+    shared_var, shared_grad);
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;

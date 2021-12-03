@@ -242,7 +242,8 @@ public:
   requestOutputs(const GraphNode &node,
                  const std::vector<TensorDim> &outputs_dim,
                  const std::vector<std::string> &inputs_name = {},
-                 bool shared_var = true, bool shared_grad = true);
+                 unsigned int max_fwd_exec_order = 0, bool shared_var = true,
+                 bool shared_grad = true);
 
   /**
    * @brief     Get all the weights which match the above condition
