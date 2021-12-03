@@ -106,7 +106,7 @@ private:
   ActiFunc softmax; /** softmax activation operation */
   ActiFunc tanh;    /** softmax activation operation */
   ActiFunc sigmoid; /** softmax activation operation */
-  std::array<unsigned int, 15>
+  std::array<unsigned int, 16>
     wt_idx; /**< indices of the weights and tensors */
 
   /**
