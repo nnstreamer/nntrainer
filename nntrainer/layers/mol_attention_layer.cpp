@@ -43,7 +43,8 @@ enum AttentionParams {
   prob_left,
   prob_right,
   u_neg_div,
-  u_pos_div
+  u_pos_div,
+  dstate
 };
 
 void MoLAttentionLayer::finalize(InitLayerContext &context) {
@@ -137,6 +138,9 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   wt_idx[AttentionParams::u_pos_div] =
     context.requestTensor(prob_dim, "u_pos_div", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[AttentionParams::dstate] =
+    context.requestTensor(state_dim, "dstate", Tensor::Initializer::NONE, false,
+                          TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 
   context.setOutputDimensions({query_dim, state_dim});
 }
@@ -331,6 +335,7 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
     context.getOutgoingDerivative(wt_idx[AttentionParams::value]);
   Tensor &dstate =
     context.getOutgoingDerivative(wt_idx[AttentionParams::state]);
+  Tensor &dstate_local = context.getTensor(wt_idx[AttentionParams::dstate]);
 
   Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
@@ -346,6 +351,8 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
 
   if (!helper_exec)
     calcDerivativeHelper(context, dstate);
+  else
+    dstate.copyData(dstate_local);
 
   Tensor dfc_tanh = Tensor(fc_out.getDim());
   dfc_tanh.dot_deriv_wrt_1(fc_proj_w, dfc_proj_out);
@@ -357,8 +364,7 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
 
 void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
   Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
-  Tensor &dstate =
-    context.getOutgoingDerivative(wt_idx[AttentionParams::state]);
+  Tensor &dstate = context.getTensor(wt_idx[AttentionParams::dstate]);
 
   Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
   Tensor &dfc_w = context.getWeightGrad(wt_idx[AttentionParams::fc_w]);
