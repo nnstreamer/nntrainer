@@ -767,15 +767,6 @@ INI multiout_model(
   }
 );
 
-INI mol_attention(
-  "mol_attention",
-  {nn_base + "batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("in0") + input_base + "input_shape = 1:1:256",
-   I("in1") + input_base + "input_shape = 1:84:256",
-   I("in2") + input_base + "input_shape = 1:1:5", // this shape should match mol_k
-   I("mol") + "type=mol_attention" + "unit = 128" + "mol_k=5" + "input_layers=in0,in1,in2"});
-
 /**
  * @brief helper function to make model testcase
  *
@@ -911,7 +902,6 @@ INSTANTIATE_TEST_CASE_P(
       mkModelIniTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
   #endif
       mkModelIniTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
-      mkModelIniTc(mol_attention, "3:1:1:128", 2, ModelTestOption::NO_THROW_RUN),
 
       /**< Addition test */
       mkModelIniTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
@@ -973,7 +963,8 @@ TEST(nntrainerModels, read_save_01_n) {
 
 TEST(nntrainerModels, loadFromLayersBackbone_p) {
   std::vector<std::shared_ptr<ml::train::Layer>> reference;
-  reference.emplace_back(ml::train::layer::FullyConnected({"name=fc1", "input_shape=3:1:2"}));
+  reference.emplace_back(
+    ml::train::layer::FullyConnected({"name=fc1", "input_shape=3:1:2"}));
   reference.emplace_back(
     ml::train::layer::FullyConnected({"name=fc2", "input_layers=fc1"}));
 

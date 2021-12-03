@@ -68,9 +68,9 @@ class MolAttention(torch.nn.Module):
 
         output = torch.matmul(scores.unsqueeze(1), values).squeeze(dim=1)
 
-        loss = self.loss(torch.sum(output))
+        loss = self.loss(torch.sum(output)) + self.loss(torch.sum(kappa))
 
-        return output, loss
+        return (output, kappa), loss
 
 if __name__ == "__main__":
     record_v2(
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         iteration=2,
         input_dims=[(3,6), (3,4,6), (3,1,5), (3)],
         input_dtype=[float, float, float, int],
-        label_dims=[(3,1,6)],
+        label_dims=[(3,1,6), (3,1,5)],
         name="mol_attention_masked",
     )
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         iteration=2,
         input_dims=[(3,6), (3,4,6), (3,1,5)],
         input_dtype=[float, float, float],
-        label_dims=[(3,1,6)],
+        label_dims=[(3,1,6), (3,1,5)],
         name="mol_attention",
     )
 

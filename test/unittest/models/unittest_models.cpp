@@ -50,9 +50,11 @@ static std::unique_ptr<NeuralNetwork> makeMolAttention() {
     {"input", {"name=in1", "input_shape=1:1:6"}},
     {"mol_attention",
      {"name=mol", "input_layers=in1,in2,in3", "unit=8", "mol_k=5"}},
-    {"constant_derivative", {"name=loss", "input_layers=mol"}},
+    {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
+    {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
   });
 
+  nn->setProperty({"label_layers=loss1,loss2"});
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
@@ -72,9 +74,11 @@ static std::unique_ptr<NeuralNetwork> makeMolAttentionMasked() {
     {"input", {"name=in1", "input_shape=1:1:6"}},
     {"mol_attention",
      {"name=mol", "input_layers=in1,in2,in3,in4", "unit=8", "mol_k=5"}},
-    {"constant_derivative", {"name=loss", "input_layers=mol"}},
+    {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
+    {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
   });
 
+  nn->setProperty({"label_layers=loss1,loss2"});
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
