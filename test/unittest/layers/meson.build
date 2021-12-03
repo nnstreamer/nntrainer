@@ -57,7 +57,7 @@ test_target = [
   'unittest_layers_attention.cpp',
   'unittest_layers_dropout.cpp',
   'unittest_layers_reshape.cpp',
-  'unittest_layers_mol_attention.cpp',
+  # 'unittest_layers_mol_attention.cpp',
 ]
 
 if get_option('enable-tflite-backbone')

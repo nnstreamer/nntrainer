@@ -138,7 +138,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
     context.requestTensor(prob_dim, "u_pos_div", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
 
-  context.setOutputDimensions({query_dim});
+  context.setOutputDimensions({query_dim, state_dim});
 }
 
 void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
@@ -146,7 +146,8 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
   Tensor &state = context.getInput(wt_idx[AttentionParams::state]);
 
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &output = context.getOutput(0);
+  Tensor &updated_state = context.getOutput(1);
   Tensor &fc_w = context.getWeight(wt_idx[AttentionParams::fc_w]);
   Tensor &fc_bias = context.getWeight(wt_idx[AttentionParams::fc_bias]);
   Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
@@ -197,7 +198,7 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   fc_proj_out.getSharedDataTensor({batch, 1, 1, mol_k}, mol_k * 2, false)
     .copy_with_stride(alpha);
 
-  Tensor m = state.add(kappa);
+  state.add(kappa, updated_state);
 
   /** @todo cache u_base, u_pos, u_neg */
   Tensor u_base = Tensor(TensorDim({batch, 1, value.height(), mol_k}));
@@ -214,11 +215,11 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 
   Tensor beta_eps = beta.add(1e-8f);
 
-  Tensor u_pos_m = u_pos.subtract(m);
+  Tensor u_pos_m = u_pos.subtract(updated_state);
   u_pos_m.divide(beta_eps, u_pos_div);
   sigmoid.run_fn(u_pos_div, prob_left);
 
-  Tensor u_neg_m = u_neg.subtract(m);
+  Tensor u_neg_m = u_neg.subtract(updated_state);
   u_neg_m.divide(beta_eps, u_neg_div);
   sigmoid.run_fn(u_neg_div, prob_right);
 
@@ -243,7 +244,8 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
   Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
   Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
 
-  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &derivative = context.getIncomingDerivative(0);
+  Tensor &derivative_state = context.getIncomingDerivative(1);
 
   Tensor &fc_proj_out = context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
   Tensor &dfc_proj_out =
@@ -300,6 +302,7 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
 
   Tensor dbeta_eps = dbeta_eps_neg.add(dbeta_eps_pos);
   dm_neg.add(dm_pos, dstate);
+  dstate.add_i(derivative_state);
   Tensor dkappa = dstate;
   Tensor dbeta = dbeta_eps;
 
