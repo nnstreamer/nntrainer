@@ -58,7 +58,7 @@
 namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
-  model_props(props::LossType(), {}, {}),
+  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath(), props::MemoryOptimization()),
@@ -131,6 +131,10 @@ int NeuralNetwork::compile() {
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
   for (auto &node : graph_representation) {
+    if (auto &prop = std::get<props::ClipGradByGlobalNorm>(model_props);
+        !prop.empty()) {
+      node->setProperty({"clip_grad_by_norm=" + to_string(prop)});
+    }
     model_graph.addLayer(node);
   }
 
