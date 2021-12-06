@@ -62,7 +62,7 @@ def _rand_like(shapes, scale=1, dtype=None):
 # @param label_dims dimensions to record including batch (list of tuple)
 # @param name golden name
 def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
-              input_dtype=None):
+              input_dtype=None, input_label_reader=None):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
     # Each iteration contains
@@ -77,8 +77,11 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
     def record_iteration(write_fn):
-        inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
-        labels = _rand_like(label_dims, dtype=float)
+        if input_label_reader != None:
+            inputs, labels = input_label_reader(input_dims, label_dims)
+        else:
+            inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
+            labels = _rand_like(label_dims, dtype=float)
         write_fn(inputs)
         write_fn(labels)
         write_fn(list(t for _, t in params_translated(model)))
