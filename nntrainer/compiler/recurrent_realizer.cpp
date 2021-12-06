@@ -11,9 +11,10 @@
  * @bug No known bugs except for NYI items
  */
 #include <algorithm>
-#include <recurrent_realizer.h>
+#include <stdexcept>
 
 #include <common_properties.h>
+#include <connection.h>
 #include <grucell.h>
 #include <input_layer.h>
 #include <layer_node.h>
@@ -21,12 +22,10 @@
 #include <lstmcell.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
+#include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <rnncell.h>
-#include <stdexcept>
 #include <util_func.h>
-
-#include <iostream>
 
 namespace nntrainer {
 
@@ -49,7 +48,7 @@ UnrollFor::UnrollFor(const unsigned &value) { set(value); }
  * @brief Property for recurrent inputs
  *
  */
-class RecurrentInput final : public Name {
+class RecurrentInput final : public Property<Connection> {
 public:
   /**
    * @brief Construct a new Recurrent Input object
@@ -62,19 +61,19 @@ public:
    *
    * @param name name
    */
-  RecurrentInput(const std::string &name);
+  RecurrentInput(const Connection &name);
   static constexpr const char *key = "recurrent_input";
-  using prop_tag = str_prop_tag;
+  using prop_tag = connection_prop_tag;
 };
 
 RecurrentInput::RecurrentInput() {}
-RecurrentInput::RecurrentInput(const std::string &name) { set(name); };
+RecurrentInput::RecurrentInput(const Connection &con) { set(con); };
 
 /**
  * @brief Property for recurrent outputs
  *
  */
-class RecurrentOutput final : public Name {
+class RecurrentOutput final : public Property<Connection> {
 public:
   /**
    * @brief Construct a new Recurrent Output object
@@ -87,13 +86,13 @@ public:
    *
    * @param name name
    */
-  RecurrentOutput(const std::string &name);
+  RecurrentOutput(const Connection &name);
   static constexpr const char *key = "recurrent_output";
-  using prop_tag = str_prop_tag;
+  using prop_tag = connection_prop_tag;
 };
 
 RecurrentOutput::RecurrentOutput() {}
-RecurrentOutput::RecurrentOutput(const std::string &name) { set(name); };
+RecurrentOutput::RecurrentOutput(const Connection &con) { set(con); };
 } // namespace props
 
 RecurrentRealizer::RecurrentRealizer(
@@ -108,8 +107,6 @@ RecurrentRealizer::RecurrentRealizer(
     std::vector<props::AsSequence>(), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
 
-  /// @todo check input, output number matches
-  /// @todo check if as sequence is subset of recurrent output
   /// @note AsSequence must be identifier based (not connection based) for now
   /// consider A(layer) outputs a0, a1 connection and a0 needs return seq
   /// Then it is impossible to locate a0 and a1 with the same name unless we
@@ -131,7 +128,7 @@ RecurrentRealizer::RecurrentRealizer(
                                                 seq) != end_layers.end();
                              }),
                 std::invalid_argument)
-    << "as_sequence property must be subset of recurrent_outputs";
+    << "as_sequence property must be subset of end_layers";
 
   std::unordered_set<std::string> check_seqs;
   for (auto &name : as_sequence) {
@@ -185,16 +182,8 @@ RecurrentRealizer::~RecurrentRealizer() {}
 GraphRepresentation
 RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
-  auto step0_verify_and_prepare = [this, &reference]() {
-    for (auto &node : reference) {
-      if (recurrent_info.count(node->getName())) {
-        /// @todo this does not have to be the restriction as we
-        /// are supporting connections (#1760)
-        NNTR_THROW_IF(node->getNumInputConnections() != 1,
-                      std::invalid_argument)
-          << "recurrent input must have single connection: " << node->getName();
-      }
-    }
+  auto step0_verify_and_prepare = []() {
+    /// empty intended
   };
 
   /**
@@ -245,18 +234,15 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
         });
 
       /// 2. override first output name to $name/$idx - 1
-      auto &name = node->getName();
-      auto suffix_len = std::string("/0").length();
-      if (auto iter =
-            recurrent_info.find(name.substr(0, name.length() - suffix_len));
-          iter != recurrent_info.end()) {
-        std::string output_name =
-          iter->second + "/" + std::to_string(time_idx - 1);
-        new_node->remapConnections(
-          [&output_name](std::string &name, unsigned &idx) {
-            /// @todo alter only when idx matches
-            name = output_name;
-          });
+      for (auto &[recurrent_input, recurrent_output] : recurrent_info) {
+        if (node->getName() != recurrent_input.getName() + "/0") {
+          continue;
+        }
+        new_node->setInputConnectionIndex(recurrent_input.getIndex(),
+                                          recurrent_output.getIndex());
+        new_node->setInputConnectionName(recurrent_input.getIndex(),
+                                         recurrent_output.getName() + "/" +
+                                           std::to_string(time_idx - 1));
       }
 
       /// 3. set shared_from

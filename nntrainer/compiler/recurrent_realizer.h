@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <connection.h>
 namespace nntrainer {
 
 namespace props {
@@ -94,7 +95,7 @@ private:
   std::unordered_set<std::string>
     sequenced_return_layers; /**< sequenced return layers, subset of end_layers
                               */
-  std::unordered_map<std::string, std::string>
+  std::unordered_map<Connection, Connection>
     recurrent_info;                           /**< final output layers id */
   std::unique_ptr<PropTypes> recurrent_props; /**< recurrent properties */
 };
