@@ -12,6 +12,7 @@
  */
 #include "nntrainer_error.h"
 #include <activation_realizer.h>
+#include <remap_realizer.h>
 
 #include <activation_layer.h>
 #include <layer_node.h>
@@ -26,6 +27,13 @@ ActivationRealizer::realize(const GraphRepresentation &reference) {
   GraphRepresentation processed;
   processed.reserve(reference.size());
 
+  std::unordered_map<std::string /**< layer_name */,
+                     std::string /**< act_layer_name */>
+    remap_table;
+  std::unordered_map<std::string /**< temp_layer_name */,
+                     std::string /**< layer_name */>
+    recovery_table;
+  std::vector<LayerNode *> act_nodes;
   for (auto &node : reference) {
     processed.push_back(node);
     if (node->getType() == ActivationLayer::type) {
@@ -37,7 +45,6 @@ ActivationRealizer::realize(const GraphRepresentation &reference) {
       /// make it robust, plus we might want to change the behavior
       continue;
     }
-
     if (auto act = node->getActivationToBeRealized();
         act != ActivationType::ACT_NONE) {
       NNTR_THROW_IF(act == ActivationType::ACT_UNKNOWN, std::invalid_argument)
@@ -47,15 +54,32 @@ ActivationRealizer::realize(const GraphRepresentation &reference) {
       props::Activation act_prop;
       act_prop.set(act);
       node->setProperty({"activation=none"});
-      node->setProperty({"name=" + layer_name + "/activation_realized"});
 
+      auto act_name = layer_name + "/activation_realized";
+      auto temp_name = act_name + "/temp";
+      remap_table.insert({layer_name, act_name});
+      recovery_table.insert({temp_name, layer_name});
       auto act_node =
-        createLayerNode("activation", {"name=" + layer_name,
+        createLayerNode("activation", {"name=" + act_name,
                                        "activation=" + to_string(act_prop)});
-      act_node->setProperty({"input_layers=" + node->getName()});
+      act_node->setProperty({"input_layers=" + temp_name});
       processed.push_back(std::move(act_node));
     }
   }
+  processed =
+    RemapRealizer([&remap_table](std::string &name, unsigned &idx) {
+      if (auto iter = remap_table.find(name); iter != remap_table.end()) {
+        name = iter->second;
+      }
+    })
+      .realize(processed);
+  processed =
+    RemapRealizer([&recovery_table](std::string &name, unsigned &idx) {
+      if (auto iter = recovery_table.find(name); iter != recovery_table.end()) {
+        name = iter->second;
+      }
+    })
+      .realize(processed);
 
   return processed;
 }
