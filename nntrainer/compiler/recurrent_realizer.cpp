@@ -301,16 +301,14 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
                               const std::string &con, unsigned unroll_for) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
 
-    for (auto &end : end_layers) {
-      std::vector<props::Name> names;
-      for (unsigned int i = 0; i < unroll_for; ++i) {
-        names.push_back(end + "/" + std::to_string(i));
-      }
-      /// @todo have axis in concat layer
-      auto node = createLayerNode(
-        "concat", {"name=" + end, "input_layers=" + to_string(names)});
-      processed.push_back(std::move(node));
+    std::vector<props::Name> names;
+    for (unsigned int i = 0; i < unroll_for; ++i) {
+      names.push_back(con + "/" + std::to_string(i));
     }
+    /// @todo have axis in concat layer
+    auto node = createLayerNode(
+      "concat", {"name=" + con, "input_layers=" + to_string(names)});
+    processed.push_back(std::move(node));
 
     return processed;
   };
