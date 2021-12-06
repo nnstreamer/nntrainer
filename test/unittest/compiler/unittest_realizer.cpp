@@ -59,9 +59,9 @@ TEST(FlattenRealizer, flatten_p) {
 
 TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
 
-  RecurrentRealizer r({"unroll_for=3", "return_sequences=false",
-                       "recurrent_input=fc_in", "recurrent_output=fc_out"},
-                      {"source"}, {"fc_out"});
+  RecurrentRealizer r(
+    {"unroll_for=3", "recurrent_input=fc_in", "recurrent_output=fc_out"},
+    {"source"}, {"fc_out"});
 
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc_in", "input_layers=source"}},
@@ -75,17 +75,17 @@ TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
     {"fully_connected",
      {"name=fc_out/1", "input_layers=fc_in/1", "shared_from=fc_out/0"}},
     {"fully_connected",
-     {"name=fc_in", "input_layers=fc_out/1", "shared_from=fc_in/0"}},
+     {"name=fc_in/2", "input_layers=fc_out/1", "shared_from=fc_in/0"}},
     {"fully_connected",
-     {"name=fc_out", "input_layers=fc_in", "shared_from=fc_out/0"}},
+     {"name=fc_out", "input_layers=fc_in/2", "shared_from=fc_out/0"}},
   };
 
   realizeAndEqual(r, before, expected);
 }
 
-TEST(DISABLED_RecurrentRealizer, recurrent_return_sequence_single_p) {
+TEST(RecurrentRealizer, recurrent_return_sequence_single_p) {
 
-  RecurrentRealizer r({"unroll_for=3", "return_sequences=fc_out",
+  RecurrentRealizer r({"unroll_for=3", "as_sequence=fc_out",
                        "recurrent_input=lstm", "recurrent_output=fc_out"},
                       {"source"}, {"fc_out"});
 

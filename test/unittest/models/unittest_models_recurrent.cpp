@@ -98,7 +98,6 @@ std::unique_ptr<NeuralNetwork> makeFC() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=false",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
@@ -130,7 +129,6 @@ std::unique_ptr<NeuralNetwork> makeFCClipped() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=false",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
@@ -160,7 +158,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a1",
                                "recurrent_input=a1",
                                "recurrent_output=a1",
                              });
@@ -191,7 +189,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a2",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
@@ -221,7 +219,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a1",
                                "recurrent_input=a1",
                                "recurrent_output=a1",
                              });
@@ -252,7 +250,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a2",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
@@ -351,7 +349,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
                              {"a1"}, ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a1",
                                "recurrent_input=a1",
                                "recurrent_output=a1",
                              });
@@ -382,7 +380,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
                              {"a2"}, ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a2",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
@@ -412,7 +410,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
                              {"a1"}, ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a1",
                                "recurrent_input=a1",
                                "recurrent_output=a1",
                              });
@@ -443,7 +441,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedGRUCell() {
                              {"a2"}, ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a2",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });

@@ -543,6 +543,17 @@ public:
 };
 
 /**
+ * @brief Identifiers to locate a connection which should be returned as whole
+ * used in recurrent realizer
+ *
+ */
+class AsSequence : public Name {
+public:
+  static constexpr const char *key = "as_sequence";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief Number of class
  * @todo deprecate this
  */
