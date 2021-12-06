@@ -27,7 +27,7 @@ enum EmbeddingParams { weight };
 
 EmbeddingLayer::EmbeddingLayer() :
   LayerImpl(),
-  embedding_props(props::InDim(), props::OutDim(), props::ZeroIdxMask()),
+  embedding_props(props::InDim(), props::OutDim()),
   weight_idx(0) {}
 
 void EmbeddingLayer::finalize(InitLayerContext &context) {
@@ -73,14 +73,9 @@ void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
-  /**
-   * TODO: if ZeroMaskIdx is set, then that idx weight should be reset to zero
-   * in the initialize or in the first run
-   */
   /// @todo get input and output dimension from input_ and hidden itself
   unsigned int in_dim = std::get<props::InDim>(embedding_props);
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
-  auto &zero_mask_idx = std::get<props::ZeroIdxMask>(embedding_props);
 
   Tensor &weight = context.getWeight(weight_idx);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -88,27 +83,41 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    uint *in_data =
-      input_.getAddress<uint>(b * input_.getDim().getFeatureLen());
+    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = in_data[i];
+      uint embed_idx = ((uint *)(in_data))[i];
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
 
       Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, embed_idx * out_dim);
+        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
       Tensor out_tensor =
-        batchsliced_hidden.getSharedDataTensor(out_tensor_dim, i * out_dim);
+        batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
+      // float *out_data =
+      //   hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i *
+      //   out_dim);
+      // float *weight_data =
+      //   weight.getAddress(embed_idx * out_dim);
+      // Tensor cur_weight = Tensor::Map(weight_data,
+      // out_tensor_dim.getDataLen() * 4, out_tensor_dim); Tensor out_tensor =
+      // Tensor::Map(out_data, out_tensor_dim.getDataLen() * 4, out_tensor_dim);
+      out_tensor.copyData(cur_weight);
 
-      /** if zero_mask_idx matches the given index, set the output to zero */
-      if (!zero_mask_idx.empty() && embed_idx == zero_mask_idx.get()) {
-        out_tensor.setZero();
-      } else {
-        out_tensor.copyData(cur_weight);
-      }
+      // Assume padding is 0 and index always start from 1.
+      // If in_data[i] - 1 < 0, then it skips.
+      // if (embed_idx == 0)
+      //   continue;
+
+      // float *weight_data =
+      //   weight.getAddress(embed_idx * out_dim);
+      // float *out_data =
+      //   hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i *
+      //   out_dim);
+
+      // std::copy(weight_data, weight_data + out_dim, out_data);
     }
   }
 }
@@ -120,36 +129,33 @@ void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
 
 void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
-  auto &zero_mask_idx = std::get<props::ZeroIdxMask>(embedding_props);
 
   Tensor &djdw = context.getWeightGrad(weight_idx);
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
+
+  djdw.setZero();
 
   // TODO:
   // This is to calculate gradient with current implementation of optimizer.
   // In order to accelerate, we need to better way like using index to weight.
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    uint *in_data =
-      input_.getAddress<uint>(b * input_.getDim().getFeatureLen());
+    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
 
-    Tensor batchsliced_derivative = derivative_.getBatchSlice(b, 1);
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = in_data[i];
+      uint embed_idx = ((uint *)(in_data))[i];
+      // Assume padding is 0 and index always start from 1.
+      // If in_data[i] - 1 < 0, then it skips.
+      // if (embed_idx == 0)
+      //   continue;
 
-      Tensor cur_dw =
-        djdw.getSharedDataTensor(out_tensor_dim, embed_idx * out_dim);
-      Tensor in_derv =
-        batchsliced_derivative.getSharedDataTensor(out_tensor_dim, i * out_dim);
+      float *djdw_data = djdw.getAddress(embed_idx * out_dim);
+      float *grad_data = derivative_.getAddress(
+        b * derivative_.getDim().getFeatureLen() + i * out_dim);
 
-      /** if zero_mask_idx matches the given index, set the grad to zero */
-      if (!zero_mask_idx.empty() && embed_idx == zero_mask_idx.get()) {
-        cur_dw.setZero();
-      } else {
-        cur_dw.copyData(in_derv);
-      }
+      std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
+                     std::plus<float>());
     }
   }
 }
