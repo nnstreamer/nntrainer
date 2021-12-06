@@ -482,7 +482,7 @@ private:
                props::MemoryOptimization>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
-               std::vector<props::LabelLayer>>;
+               std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
 
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */

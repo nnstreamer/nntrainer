@@ -114,17 +114,6 @@ public:
   using prop_tag = str_prop_tag;                    /**< property type */
 };
 
-/**
- * @brief properties for getting the clipping value to clip the gradient by norm
- *
- */
-class ClipGradByGlobalNorm : public Property<float> {
-public:
-  static constexpr const char *key =
-    "clip_grad_by_norm";           /**< unique key to access */
-  using prop_tag = float_prop_tag; /**< property type */
-};
-
 } // namespace props
 
 /**
