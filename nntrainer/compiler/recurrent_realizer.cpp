@@ -159,6 +159,8 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     for (auto &node : reference) {
       auto &input = std::get<props::RecurrentInput>(*recurrent_props);
       if (node->getName() == input.get()) {
+        /// @todo this does not have to be the restriction as we
+        /// are supporting connections (#1760)
         NNTR_THROW_IF(node->getNumInputConnections() != 1,
                       std::invalid_argument)
           << "recurrent input must have single connection: " << input.get();
@@ -172,7 +174,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto step1_connect_external_input =
-    [this](const GraphRepresentation &reference_, unsigned max_idx) {
+    [this](const GraphRepresentation &reference_, unsigned max_time_idx) {
       RemapRealizer input_mapper([this](std::string &id) {
         if (input_layers.count(id) == 0) {
           id += "/0";
@@ -181,7 +183,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
       auto nodes = input_mapper.realize(reference_);
       for (auto &node : nodes) {
-        propagateTimestep(node.get(), 0, max_idx);
+        propagateTimestep(node.get(), 0, max_time_idx);
       }
 
       return nodes;
@@ -191,39 +193,45 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @brief Create a single time step. Used inside step2_unroll.
    *
    */
-  auto create_step = [this](const GraphRepresentation &reference_, unsigned idx,
-                            unsigned max_idx) {
+  auto create_step = [this](const GraphRepresentation &reference_,
+                            unsigned time_idx, unsigned max_time_idx) {
     GraphRepresentation step;
     auto &input = std::get<props::RecurrentInput>(*recurrent_props);
     auto &output = std::get<props::RecurrentOutput>(*recurrent_props);
     step.reserve(reference_.size());
 
-    auto replace_idx = [this](std::string &name, unsigned idx) {
+    auto replace_time_idx = [](std::string &name, unsigned time_idx) {
       auto pos = name.find_last_of('/');
-      if (pos != std::string::npos && input_layers.count(name) == 0) {
-        name.replace(pos + 1, std::string::npos, std::to_string(idx));
+      if (pos != std::string::npos) {
+        name.replace(pos + 1, std::string::npos, std::to_string(time_idx));
       }
     };
     for (auto &node : reference_) {
       auto new_node = node->cloneConfiguration();
 
       /// 1. remap identifiers to $name/$idx
-      new_node->remapIdentifiers([this, idx, replace_idx](std::string &id) {
-        if (input_layers.count(id) == 0) {
-          replace_idx(id, idx);
-        }
-      });
+      new_node->remapIdentifiers(
+        [this, time_idx, replace_time_idx](std::string &id) {
+          if (input_layers.count(id) == 0) {
+            replace_time_idx(id, time_idx);
+          }
+        });
 
       /// 2. override first output name to $name/$idx - 1
       if (node->getName() == input.get() + "/0") {
-        std::string output_name = output.get() + "/" + std::to_string(idx - 1);
+        std::string output_name =
+          output.get() + "/" + std::to_string(time_idx - 1);
+        /// @note below does not respect connection
         new_node->setProperty({"input_layers=" + output_name});
+        /// @todo use remapConnection when input becomes connection
+        // new_node->remapConnections(std::function<void (std::string &,
+        // unsigned int &)> remap_fn)
       }
 
       /// 3. set shared_from
       new_node->setProperty({"shared_from=" + node->getName()});
       /// 4. if recurrent layer type set timestep property
-      propagateTimestep(new_node.get(), idx, max_idx);
+      propagateTimestep(new_node.get(), time_idx, max_time_idx);
 
       step.push_back(std::move(new_node));
     }
@@ -234,8 +242,8 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @brief unroll the graph by calling create_step()
    *
    */
-  auto step2_unroll = [this, create_step](const GraphRepresentation &reference_,
-                                          unsigned unroll_for_) {
+  auto step2_unroll = [create_step](const GraphRepresentation &reference_,
+                                    unsigned unroll_for_) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
     processed.reserve(reference_.size() * unroll_for_);
 
@@ -249,10 +257,10 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
   /**
    * @brief case when return sequence is not true, only last output is renamed
-   *
+   * @todo support connection using node->remapConnection
    */
-  auto naive_output = [this](const GraphRepresentation &reference_,
-                             unsigned unroll_for) {
+  auto naive_output = [](const GraphRepresentation &reference_,
+                         unsigned unroll_for) {
     /// last output's index is removed so that it can be directly an output
     auto suffix = "/" + std::to_string(unroll_for - 1);
     RemapRealizer r([suffix](std::string &name) {
@@ -299,6 +307,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
                                         unsigned unroll_for) {
       bool return_sequence =
         std::get<props::ReturnSequences>(*recurrent_props).get();
+      /// @todo return_sequence will become a sequenced_output_layers
       return return_sequence ? concat_output(reference_, unroll_for)
                              : naive_output(reference_, unroll_for);
     };
