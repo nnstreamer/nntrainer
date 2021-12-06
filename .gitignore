@@ -4,6 +4,7 @@
 # ignore build directory
 /build
 /builddir
+.cache/
 
 # jni build files
 iniparser/

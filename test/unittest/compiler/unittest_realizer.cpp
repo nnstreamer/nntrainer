@@ -677,10 +677,9 @@ TEST(ActivationRealizer, activation_p) {
   std::vector<LayerRepresentation> after = {
     {"fully_connected", {"name=a"}},
     {"activation", {"name=b", "activation=relu", "input_layers=a"}},
-    {"fully_connected",
-     {"name=c/activation_realized", "input_layers=b", "activation=none"}},
+    {"fully_connected", {"name=c", "input_layers=b", "activation=none"}},
     {"activation",
-     {"name=c", "input_layers=c/activation_realized", "activation=softmax"}},
+     {"name=c/activation_realized", "input_layers=c", "activation=softmax"}},
   };
 
   realizeAndEqual(ar, before, after);
