@@ -10,6 +10,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <algorithm>
 #include <recurrent_realizer.h>
 
 #include <common_properties.h>
@@ -22,6 +23,7 @@
 #include <node_exporter.h>
 #include <remap_realizer.h>
 #include <rnncell.h>
+#include <stdexcept>
 #include <util_func.h>
 
 #include <iostream>
@@ -100,16 +102,11 @@ RecurrentRealizer::RecurrentRealizer(
   const std::vector<std::string> &end_layers) :
   input_layers(input_layers.begin(), input_layers.end()),
   end_layers(end_layers),
-  recurrent_props(
-    new PropTypes(props::RecurrentInput(), props::RecurrentOutput(),
-                  std::vector<props::AsSequence>(), props::UnrollFor(1))) {
+  sequenced_return_layers(),
+  recurrent_props(new PropTypes(
+    std::vector<props::RecurrentInput>(), std::vector<props::RecurrentOutput>(),
+    std::vector<props::AsSequence>(), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
-
-  auto throw_if_empty = [](auto &&prop) {
-    NNTR_THROW_IF(prop.empty(), std::invalid_argument)
-      << "there is unfilled property for recurrent realizer, key: "
-      << getPropKey(prop);
-  };
 
   /// @todo check input, output number matches
   /// @todo check if as sequence is subset of recurrent output
@@ -118,11 +115,35 @@ RecurrentRealizer::RecurrentRealizer(
   /// Then it is impossible to locate a0 and a1 with the same name unless we
   /// have some kind of multi,multiout identity layer. Until this is supported,
   /// AsSequenced stays as identifier based
-  throw_if_empty(std::get<0>(*recurrent_props)); // input
-  throw_if_empty(std::get<1>(*recurrent_props)); // ouput
-  throw_if_empty(std::get<3>(*recurrent_props)); // unroll for
+
+  auto &[inputs, outputs, as_sequence, unroll_for] = *recurrent_props;
+
+  NNTR_THROW_IF(inputs.empty() || inputs.size() != outputs.size(),
+                std::invalid_argument)
+    << "recurrent inputs and outputs must not be empty and 1:1 map but given "
+       "different size. input: "
+    << inputs.size() << " output: " << outputs.size();
+
+  NNTR_THROW_IF(!std::all_of(as_sequence.begin(), as_sequence.end(),
+                             [&end_layers](const std::string &seq) {
+                               return std::find(end_layers.begin(),
+                                                end_layers.end(),
+                                                seq) != end_layers.end();
+                             }),
+                std::invalid_argument)
+    << "as_sequence property must be subset of recurrent_outputs";
+
+  std::unordered_set<std::string> check_seqs;
+  for (auto &name : as_sequence) {
+    sequenced_return_layers.emplace(name.get());
+  };
+
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "There is unparesed properties";
+
+  for (unsigned i = 0, sz = inputs.size(); i < sz; ++i) {
+    recurrent_info.emplace(inputs.at(i).get(), outputs.at(i).get());
+  }
 }
 
 /**
@@ -163,15 +184,15 @@ RecurrentRealizer::~RecurrentRealizer() {}
 
 GraphRepresentation
 RecurrentRealizer::realize(const GraphRepresentation &reference) {
+
   auto step0_verify_and_prepare = [this, &reference]() {
     for (auto &node : reference) {
-      auto &input = std::get<props::RecurrentInput>(*recurrent_props);
-      if (node->getName() == input.get()) {
+      if (recurrent_info.count(node->getName())) {
         /// @todo this does not have to be the restriction as we
         /// are supporting connections (#1760)
         NNTR_THROW_IF(node->getNumInputConnections() != 1,
                       std::invalid_argument)
-          << "recurrent input must have single connection: " << input.get();
+          << "recurrent input must have single connection: " << node->getName();
       }
     }
   };
@@ -204,8 +225,6 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto create_step = [this](const GraphRepresentation &reference_,
                             unsigned time_idx, unsigned max_time_idx) {
     GraphRepresentation step;
-    auto &input = std::get<props::RecurrentInput>(*recurrent_props);
-    auto &output = std::get<props::RecurrentOutput>(*recurrent_props);
     step.reserve(reference_.size());
 
     auto replace_time_idx = [](std::string &name, unsigned time_idx) {
@@ -226,14 +245,18 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
         });
 
       /// 2. override first output name to $name/$idx - 1
-      if (node->getName() == input.get() + "/0") {
+      auto &name = node->getName();
+      auto suffix_len = std::string("/0").length();
+      if (auto iter =
+            recurrent_info.find(name.substr(0, name.length() - suffix_len));
+          iter != recurrent_info.end()) {
         std::string output_name =
-          output.get() + "/" + std::to_string(time_idx - 1);
-        /// @note below does not respect connection
-        new_node->setProperty({"input_layers=" + output_name});
-        /// @todo use remapConnection when input becomes connection
-        // new_node->remapConnections(std::function<void (std::string &,
-        // unsigned int &)> remap_fn)
+          iter->second + "/" + std::to_string(time_idx - 1);
+        new_node->remapConnections(
+          [&output_name](std::string &name, unsigned &idx) {
+            /// @todo alter only when idx matches
+            name = output_name;
+          });
       }
 
       /// 3. set shared_from
@@ -271,9 +294,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
                          const std::string &con, unsigned unroll_for) {
     auto target = con + "/" + std::to_string(unroll_for - 1);
     RemapRealizer r([target, con](std::string &name) {
-      std::cout << name << " vs " << target << '\n';
       if (name == target) {
-        std::cout << "matched, setting to con: " << con << '\n';
         name = con;
       }
     });
@@ -311,22 +332,11 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto step3_connect_output =
     [this, naive_output, concat_output](const GraphRepresentation &reference_,
                                         unsigned unroll_for) {
-      auto sequenced_layers =
-        std::get<std::vector<props::AsSequence>>(*recurrent_props);
-
-      std::unordered_set<std::string> check_seqs;
-      for (auto &name : sequenced_layers) {
-        check_seqs.emplace(name.get());
-      };
-
-      /// @note below is inefficient way of processing nodes consider optimize
+      /// @note below is inefficient way of processing nodes. consider optimize
       /// below as needed by calling remap realizer only once
-      std::vector<props::RecurrentOutput> output_conns = {
-        std::get<props::RecurrentOutput>(*recurrent_props)};
-
       auto processed = reference_;
-      for (auto &name : output_conns) {
-        processed = check_seqs.count(name)
+      for (auto &name : end_layers) {
+        processed = sequenced_return_layers.count(name)
                       ? concat_output(processed, name, unroll_for)
                       : naive_output(processed, name, unroll_for);
       }

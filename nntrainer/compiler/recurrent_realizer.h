@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -84,12 +85,18 @@ public:
 
 private:
   using PropTypes =
-    std::tuple<props::RecurrentInput, props::RecurrentOutput,
+    std::tuple<std::vector<props::RecurrentInput>,
+               std::vector<props::RecurrentOutput>,
                std::vector<props::AsSequence>, props::UnrollFor>;
 
   std::unordered_set<std::string> input_layers; /**< external input layers */
   std::vector<std::string> end_layers;          /**< final output layers id */
-  std::unique_ptr<PropTypes> recurrent_props;   /**< recurrent properties */
+  std::unordered_set<std::string>
+    sequenced_return_layers; /**< sequenced return layers, subset of end_layers
+                              */
+  std::unordered_map<std::string, std::string>
+    recurrent_info;                           /**< final output layers id */
+  std::unique_ptr<PropTypes> recurrent_props; /**< recurrent properties */
 };
 
 } // namespace nntrainer
