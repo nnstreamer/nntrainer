@@ -403,6 +403,7 @@ void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[AttentionParams::prob_right], batch);
   context.updateTensor(wt_idx[AttentionParams::u_neg_div], batch);
   context.updateTensor(wt_idx[AttentionParams::u_pos_div], batch);
+  context.updateTensor(wt_idx[AttentionParams::dstate], batch);
 }
 
 void MoLAttentionLayer::exportTo(Exporter &exporter,
