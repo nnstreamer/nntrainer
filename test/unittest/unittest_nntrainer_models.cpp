@@ -990,7 +990,7 @@ TEST(nntrainerModels, loadFromLayersRecurrent_p) {
                             {"fc2"}, ml::train::ReferenceLayersType::RECURRENT,
                             {
                               "unroll_for=3",
-                              "return_sequences=true",
+                              "as_sequence=fc2",
                               "recurrent_input=fc1",
                               "recurrent_output=fc2",
                             });

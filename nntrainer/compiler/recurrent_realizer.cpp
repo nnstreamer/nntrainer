@@ -24,6 +24,8 @@
 #include <rnncell.h>
 #include <util_func.h>
 
+#include <iostream>
+
 namespace nntrainer {
 
 namespace props {
@@ -100,7 +102,7 @@ RecurrentRealizer::RecurrentRealizer(
   end_layers(end_layers),
   recurrent_props(
     new PropTypes(props::RecurrentInput(), props::RecurrentOutput(),
-                  props::ReturnSequences(false), props::UnrollFor(1))) {
+                  std::vector<props::AsSequence>(), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
 
   auto throw_if_empty = [](auto &&prop) {
@@ -109,10 +111,16 @@ RecurrentRealizer::RecurrentRealizer(
       << getPropKey(prop);
   };
 
-  throw_if_empty(std::get<0>(*recurrent_props));
-  throw_if_empty(std::get<1>(*recurrent_props));
-  throw_if_empty(std::get<2>(*recurrent_props));
-  throw_if_empty(std::get<3>(*recurrent_props));
+  /// @todo check input, output number matches
+  /// @todo check if as sequence is subset of recurrent output
+  /// @note AsSequence must be identifier based (not connection based) for now
+  /// consider A(layer) outputs a0, a1 connection and a0 needs return seq
+  /// Then it is impossible to locate a0 and a1 with the same name unless we
+  /// have some kind of multi,multiout identity layer. Until this is supported,
+  /// AsSequenced stays as identifier based
+  throw_if_empty(std::get<0>(*recurrent_props)); // input
+  throw_if_empty(std::get<1>(*recurrent_props)); // ouput
+  throw_if_empty(std::get<3>(*recurrent_props)); // unroll for
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "There is unparesed properties";
 }
@@ -260,15 +268,13 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @todo support connection using node->remapConnection
    */
   auto naive_output = [](const GraphRepresentation &reference_,
-                         unsigned unroll_for) {
-    /// last output's index is removed so that it can be directly an output
-    auto suffix = "/" + std::to_string(unroll_for - 1);
-    RemapRealizer r([suffix](std::string &name) {
-      if (endswith(name, suffix)) {
-        auto pos = name.find_last_of('/');
-        if (pos != std::string::npos) {
-          name = name.substr(0, pos);
-        }
+                         const std::string &con, unsigned unroll_for) {
+    auto target = con + "/" + std::to_string(unroll_for - 1);
+    RemapRealizer r([target, con](std::string &name) {
+      std::cout << name << " vs " << target << '\n';
+      if (name == target) {
+        std::cout << "matched, setting to con: " << con << '\n';
+        name = con;
       }
     });
 
@@ -281,7 +287,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto concat_output = [this](const GraphRepresentation &reference_,
-                              unsigned unroll_for) {
+                              const std::string &con, unsigned unroll_for) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
 
     for (auto &end : end_layers) {
@@ -305,11 +311,27 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto step3_connect_output =
     [this, naive_output, concat_output](const GraphRepresentation &reference_,
                                         unsigned unroll_for) {
-      bool return_sequence =
-        std::get<props::ReturnSequences>(*recurrent_props).get();
-      /// @todo return_sequence will become a sequenced_output_layers
-      return return_sequence ? concat_output(reference_, unroll_for)
-                             : naive_output(reference_, unroll_for);
+      auto sequenced_layers =
+        std::get<std::vector<props::AsSequence>>(*recurrent_props);
+
+      std::unordered_set<std::string> check_seqs;
+      for (auto &name : sequenced_layers) {
+        check_seqs.emplace(name.get());
+      };
+
+      /// @note below is inefficient way of processing nodes consider optimize
+      /// below as needed by calling remap realizer only once
+      std::vector<props::RecurrentOutput> output_conns = {
+        std::get<props::RecurrentOutput>(*recurrent_props)};
+
+      auto processed = reference_;
+      for (auto &name : output_conns) {
+        processed = check_seqs.count(name)
+                      ? concat_output(processed, name, unroll_for)
+                      : naive_output(processed, name, unroll_for);
+      }
+
+      return processed;
     };
 
   auto unroll_for = std::get<props::UnrollFor>(*recurrent_props).get();
