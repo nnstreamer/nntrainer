@@ -83,9 +83,9 @@ TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
   realizeAndEqual(r, before, expected);
 }
 
-TEST(RecurrentRealizer, recurrent_return_sequence_p) {
+TEST(DISABLED_RecurrentRealizer, recurrent_return_sequence_single_p) {
 
-  RecurrentRealizer r({"unroll_for=3", "return_sequences=true",
+  RecurrentRealizer r({"unroll_for=3", "return_sequences=fc_out",
                        "recurrent_input=lstm", "recurrent_output=fc_out"},
                       {"source"}, {"fc_out"});
 
@@ -111,6 +111,84 @@ TEST(RecurrentRealizer, recurrent_return_sequence_p) {
   };
 
   realizeAndEqual(r, before, expected);
+}
+
+TEST(DISABLED_RecurrentRealizer, recurrent_multi_inout_p) {
+
+  RecurrentRealizer r({"unroll_for=3", "return_sequences=fc_out",
+                       "recurrent_input=lstm,source3_dummy",
+                       "recurrent_output=fc_out,output_dummy"},
+                      {"source", "source2", "source3"}, {"fc_out"});
+
+  /// @note for below graph,
+  /// 1. fc_out feds back to lstm
+  /// 2. ouput_dummy feds back to source2_dummy
+  /// ========================================================
+  /// lstm        -------- addition - split ---- fc_out
+  /// source2_dummy   --/                  \-----output_dummy
+  /// source3_dummy    /
+  std::vector<LayerRepresentation> before = {
+    {"lstm", {"name=lstm", "input_layers=source"}},
+    {"concat", {"name=source2_dummy", "input_layers=source2"}},
+    {"concat", {"name=source3_dummy", "input_layers=source3"}},
+    {"addition", {"name=add", "input_layers=lstm,source2_dummy,source3_dummy"}},
+    {"split", {"name=split", "input_layers=add"}},
+    {"concat", {"name=output_dummy", "input_layers=split(1)"}},
+    {"fully_connected", {"name=fc_out", "input_layers=split(0)"}},
+  };
+
+  std::vector<LayerRepresentation> expected = {
+    /// timestep 0
+    {"lstm",
+     {"name=lstm/0", "input_layers=source", "max_timestep=3", "timestep=0"}},
+    {"concat", {"name=source2_dummy/0", "input_layers=source2"}},
+    {"concat", {"name=source3_dummy/0", "input_layers=source3"}},
+    {"addition",
+     {"name=add/0", "input_layers=lstm/0,source2_dummy/0,source3_dummy/0"}},
+    {"split", {"name=split/0", "input_layers=add/0"}},
+    {"concat", {"name=output_dummy/0", "input_layers=split/0(1)"}},
+    {"fully_connected", {"name=fc_out/0", "input_layers=split/0(0)"}},
+
+    /// timestep 1
+    {"lstm",
+     {"name=lstm/1", "input_layers=fc_out/0", "max_timestep=3", "timestep=1"}},
+    {"concat", {"name=source2_dummy/1", "input_layers=source2"}},
+    {"concat", {"name=source3_dummy/1", "input_layers=output_dummy/0"}},
+    {"addition",
+     {"name=add/1", "input_layers=lstm/1,source2_dummy/1,source3_dummy/1"}},
+    {"split", {"name=split/1", "input_layers=add/1"}},
+    {"concat", {"name=output_dummy/1", "input_layers=split/1(1)"}},
+    {"fully_connected", {"name=fc_out/1", "input_layers=split/1(0)"}},
+
+    /// timestep 2
+    {"lstm",
+     {"name=lstm/2", "input_layers=fc_out/1", "max_timestep=3", "timestep=2"}},
+    {"concat", {"name=source2_dummy/2", "input_layers=source2"}},
+    {"concat", {"name=source3_dummy/2", "input_layers=output_dummy/1"}},
+    {"addition",
+     {"name=add/2", "input_layers=lstm/2,source2_dummy/2,source3_dummy/2"}},
+    {"split", {"name=split/2", "input_layers=add/2"}},
+    {"concat", {"name=output_dummy/2", "input_layers=split/2(1)"}},
+    {"fully_connected", {"name=fc_out", "input_layers=split/2(0)"}},
+  };
+
+  realizeAndEqual(r, before, expected);
+}
+
+TEST(DISABLED_RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
+  /// NYI, just for specification
+  EXPECT_TRUE(false);
+}
+
+TEST(DISABLED_RecurrentRealizer,
+     recurrent_multi_inout_using_connection_return_seq_p) {
+  /// NYI, just for specification
+  EXPECT_TRUE(false);
+}
+
+TEST(DISABLED_RecurrentRealizer, recurrent_multi_inout_using_connection_p) {
+  /// NYI, just for specification
+  EXPECT_TRUE(false);
 }
 
 TEST(RemapRealizer, remap_p) {
