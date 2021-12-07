@@ -216,6 +216,7 @@ class BiasInitializer;
 class SharedFrom;
 class InputConnection;
 class ClipGradByGlobalNorm;
+class DisableBias;
 } // namespace props
 
 class LayerNode;
@@ -240,7 +241,8 @@ class LayerImpl;
 template <>
 void Exporter::saveTflResult(
   const std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
-                   props::WeightInitializer, props::BiasInitializer> &props,
+                   props::WeightInitializer, props::BiasInitializer,
+                   props::DisableBias> &props,
   const LayerImpl *self);
 
 class FullyConnectedLayer;
