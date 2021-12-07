@@ -283,7 +283,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a1",
                                "recurrent_input=a1",
                                "recurrent_output=a1",
                              });
@@ -319,7 +319,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
                              ml::train::ReferenceLayersType::RECURRENT,
                              {
                                "unroll_for=2",
-                               "return_sequences=true",
+                               "as_sequence=a2",
                                "recurrent_input=a1",
                                "recurrent_output=a2",
                              });
