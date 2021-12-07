@@ -265,6 +265,7 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
 
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &kernel_size =
@@ -281,8 +282,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   wt_idx[ConvParams::weight] =
     context.requestWeight(dim, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "filter", true);
-  wt_idx[ConvParams::bias] = context.requestWeight(
-    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+
+  if (disable_bias.empty() || disable_bias.get() == false) {
+    wt_idx[ConvParams::bias] = context.requestWeight(
+      bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+  }
 
   // this output_dim must be the same with dimension of hidden
   unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
@@ -334,7 +338,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
-  Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
 
   /** Calculate Convolution 2D
    *
@@ -404,9 +407,13 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   }
 
   filter_kernel.reshape(filter_dim);
-  status = hidden_.add_i(bias_kernel);
-  if (status != ML_ERROR_NONE) {
-    throw std::invalid_argument("[Conv2D] adding bias failed");
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
+    status = hidden_.add_i(bias_kernel);
+    if (status != ML_ERROR_NONE) {
+      throw std::invalid_argument("[Conv2D] adding bias failed");
+    }
   }
 }
 
@@ -450,7 +457,6 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
-  Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
   delK.setZero();
 
   TensorDim filter_dim = delK.getDim();
@@ -484,7 +490,11 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   }
 
   delK.reshape(filter_dim);
-  derivative.sum({0, 2, 3}, delBias);
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
+    derivative.sum({0, 2, 3}, delBias);
+  }
 }
 
 void Conv2DLayer::exportTo(Exporter &exporter,

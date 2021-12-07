@@ -21,6 +21,7 @@
  *
  */
 
+#include <common_properties.h>
 #include <fc_layer.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -43,6 +44,7 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
 
   auto unit = std::get<props::Unit>(fc_props).get();
 
@@ -71,8 +73,10 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
     context.requestWeight(weight_dim, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "weight", true);
 
-  weight_idx[FCParams::bias] = context.requestWeight(
-    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+  if (disable_bias.empty() || disable_bias.get() == false) {
+    weight_idx[FCParams::bias] = context.requestWeight(
+      bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+  }
 }
 
 void FullyConnectedLayer::exportTo(Exporter &exporter,
@@ -88,13 +92,17 @@ void FullyConnectedLayer::setProperty(const std::vector<std::string> &values) {
 
 void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
-  Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
 
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   input_.dot(weight, hidden_, false, false);
-  hidden_.add_i(bias);
+
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
+    hidden_.add_i(bias);
+  }
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
@@ -108,17 +116,21 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
-  Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
 
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
-    derivative_.sum({0, 1, 2}, djdb);
-  } else {
-    /// @todo optimize below by adding beta to Tensor::sum
-    Tensor t = derivative_.sum({0, 1, 2});
-    djdb.add_i(t);
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
+
+    if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
+      derivative_.sum({0, 1, 2}, djdb);
+    } else {
+      /// @todo optimize below by adding beta to Tensor::sum
+      Tensor t = derivative_.sum({0, 1, 2});
+      djdb.add_i(t);
+    }
   }
 
   input_.dot_deriv_wrt_2(
