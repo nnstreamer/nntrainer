@@ -107,6 +107,21 @@ public:
 };
 
 /**
+ * @brief BiasInitializer Initialization Enumeration Information
+ *
+ */
+class DisableBias : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a DisableBias object
+   *
+   */
+  DisableBias(bool val = false) : nntrainer::Property<bool>(val) {}
+  using prop_tag = bool_prop_tag;
+  static constexpr const char *key = "disable_bias";
+};
+
+/**
  * @brief Normalization property, normalize the input to be in range [0, 1] if
  * true
  *
