@@ -376,7 +376,7 @@ void GraphWatcher::compareFor(const std::string &reference,
 
     auto it = nodes.begin();
     for (; it != nodes.end() - 1; ++it) {
-      it->forward(iteration, !(it + 1)->supportInPlace());
+      it->forward(iteration, it->isOutputNode() | !optimize);
     }
     it->forward(iteration, true);
 

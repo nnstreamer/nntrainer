@@ -133,6 +133,13 @@ public:
    */
   bool needsCalcDerivative() { return node->needsCalcDerivative(); }
 
+  /**
+   * @brief check if the node is an output node
+   *
+   * @return true if output node else false
+   */
+  bool isOutputNode() { return node->getNumOutputConnections() == 0; }
+
 private:
   NodeType node;
   std::vector<nntrainer::Tensor> expected_output;
