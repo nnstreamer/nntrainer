@@ -400,6 +400,9 @@ Manager::requestInputs(const GraphNode &node,
   std::vector<unsigned int> var_exec_order(
     {forwarding_order, calcGradient_order});
 
+  if (node.getType() == ActivationLayer::type)
+    var_exec_order = {forwarding_order};
+
   if (node.getType() == MultiOutLayer::type)
     var_exec_order = {forwarding_order};
 

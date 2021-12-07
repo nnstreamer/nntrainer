@@ -973,7 +973,8 @@ TEST(nntrainerModels, read_save_01_n) {
 
 TEST(nntrainerModels, loadFromLayersBackbone_p) {
   std::vector<std::shared_ptr<ml::train::Layer>> reference;
-  reference.emplace_back(ml::train::layer::FullyConnected({"name=fc1", "input_shape=3:1:2"}));
+  reference.emplace_back(
+    ml::train::layer::FullyConnected({"name=fc1", "input_shape=3:1:2"}));
   reference.emplace_back(
     ml::train::layer::FullyConnected({"name=fc2", "input_layers=fc1"}));
 
