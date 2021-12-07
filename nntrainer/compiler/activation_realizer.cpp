@@ -17,6 +17,7 @@
 #include <activation_layer.h>
 #include <layer_node.h>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace nntrainer {
 
