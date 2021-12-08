@@ -122,6 +122,22 @@ public:
 };
 
 /**
+ * @brief Integrate bias_ih and bias_hh to bias_h to use only 1 bias (Used in
+ * rnn variant)
+ *
+ */
+class IntegrateBias : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a IntegrateBias object
+   *
+   */
+  IntegrateBias(bool val = false) : nntrainer::Property<bool>(val) {}
+  using prop_tag = bool_prop_tag;
+  static constexpr const char *key = "integrate_bias";
+};
+
+/**
  * @brief Normalization property, normalize the input to be in range [0, 1] if
  * true
  *

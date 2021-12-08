@@ -342,7 +342,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
   }
 
   auto rnncell = makeGraph({
-    {"rnncell", {"name=a1", "unit=2"}},
+    {"rnncell", {"name=a1", "unit=2", "integrate_bias=false"}},
   });
 
   nn->addWithReferenceLayers(rnncell, "rnncell_scope", {"input"}, {"a1"},
@@ -372,8 +372,9 @@ static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
   }
 
   auto rnncell = makeGraph({
-    {"rnncell", {"name=a1", "unit=2"}},
-    {"rnncell", {"name=a2", "unit=2", "input_layers=a1"}},
+    {"rnncell", {"name=a1", "unit=2", "integrate_bias=false"}},
+    {"rnncell",
+     {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
   });
 
   nn->addWithReferenceLayers(rnncell, "rnncell_scope", {"input"}, {"a1"},

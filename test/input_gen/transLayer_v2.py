@@ -71,7 +71,17 @@ def zoneout_translate(model):
     new_params = [transpose_(params[0]), transpose_(params[1]), bias, hidden_state, cell_state]
     yield from new_params
 
-@register_for_((torch.nn.RNNCell, torch.nn.LSTMCell, torch.nn.LSTM))
+@register_for_((torch.nn.RNNCell))
+def rnn_lstm_translate(model):
+    params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
+    # [hidden, input] -> [input, hidden]
+    def transpose_(weight):
+        return (weight[0], weight[1].transpose(1, 0))
+
+    new_params = [transpose_(params[0]), transpose_(params[1]), params[2], params[3]]
+    yield from new_params
+
+@register_for_((torch.nn.LSTMCell, torch.nn.LSTM))
 def rnn_lstm_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
     bias = ("bias", params[2][1] + params[3][1])

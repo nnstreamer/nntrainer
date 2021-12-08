@@ -26,7 +26,7 @@ INSTANTIATE_TEST_CASE_P(RNNCell, LayerSemantics,
 
 auto rnncell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::RNNCellLayer>,
-  {"unit=5", "timestep=0", "max_timestep=1"}, "3:1:1:7",
+  {"unit=5", "integrate_bias=true", "timestep=0", "max_timestep=1"}, "3:1:1:7",
   "rnn_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(RNNCell, LayerGoldenTest,

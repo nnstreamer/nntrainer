@@ -102,14 +102,15 @@ private:
    * Unit: number of output neurons
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * DropOutRate: dropout rate
+   * IntegrateBias: Integrate bias_ih, bias_hh to bias_h
    * MaxTimestep: maximum timestep for rnncell
    * TimeStep: timestep for which rnncell should operate
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation, props::DropOutRate,
-             props::MaxTimestep, props::Timestep>
+             props::IntegrateBias, props::MaxTimestep, props::Timestep>
     rnncell_props;
-  std::array<unsigned int, 5> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh
