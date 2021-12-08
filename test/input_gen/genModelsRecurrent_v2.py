@@ -38,9 +38,6 @@ class RNNCellStacked(torch.nn.Module):
                 for _ in range(num_rnn)
             ]
         )
-        for rnn in self.rnns:
-            rnn.bias_hh.data.fill_(0.0)
-            rnn.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
