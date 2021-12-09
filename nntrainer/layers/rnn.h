@@ -103,12 +103,13 @@ private:
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * ReturnSequence: option for return sequence
    * DropOutRate: dropout rate
+   * IntegrateBias: Integrate bias_ih, bias_hh to bias_h
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation, props::ReturnSequences,
-             props::DropOutRate>
+             props::DropOutRate, props::IntegrateBias>
     rnn_props;
-  std::array<unsigned int, 5> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh

@@ -24,7 +24,7 @@ INSTANTIATE_TEST_CASE_P(RNN, LayerSemantics, ::testing::Values(semantic_rnn));
 
 auto rnn_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::RNNLayer>,
-  {"unit=5", "return_sequences=false"}, "3:1:1:7",
+  {"unit=5", "return_sequences=false", "integrate_bias=true"}, "3:1:1:7",
   "rnn_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(RNN, LayerGoldenTest,
