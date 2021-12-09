@@ -151,7 +151,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
   }
 
   auto lstm = makeGraph({
-    {"lstm", {"name=a1", "unit=2"}},
+    {"lstm", {"name=a1", "unit=2", "integrate_bias=false"}},
   });
 
   nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a1"},
@@ -181,8 +181,8 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
   }
 
   auto lstm = makeGraph({
-    {"lstm", {"name=a1", "unit=2"}},
-    {"lstm", {"name=a2", "unit=2", "input_layers=a1"}},
+    {"lstm", {"name=a1", "unit=2", "integrate_bias=false"}},
+    {"lstm", {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
   });
 
   nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a2"},
@@ -212,7 +212,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
   }
 
   auto lstm = makeGraph({
-    {"lstmcell", {"name=a1", "unit=2"}},
+    {"lstmcell", {"name=a1", "unit=2", "integrate_bias=false"}},
   });
 
   nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a1"},
@@ -242,8 +242,9 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
   }
 
   auto lstm = makeGraph({
-    {"lstmcell", {"name=a1", "unit=2"}},
-    {"lstmcell", {"name=a2", "unit=2", "input_layers=a1"}},
+    {"lstmcell", {"name=a1", "unit=2", "integrate_bias=false"}},
+    {"lstmcell",
+     {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
   });
 
   nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a2"},
@@ -275,7 +276,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
   auto zoneout_lstm = makeGraph({
     {"zoneout_lstmcell",
      {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true"}},
+      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false"}},
   });
 
   nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},
@@ -308,10 +309,11 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
   auto zoneout_lstm = makeGraph({
     {"zoneout_lstmcell",
      {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true"}},
+      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false"}},
     {"zoneout_lstmcell",
      {"name=a2", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true", "input_layers=a1"}},
+      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false",
+      "input_layers=a1"}},
   });
 
   nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},

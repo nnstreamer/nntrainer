@@ -26,7 +26,7 @@ INSTANTIATE_TEST_CASE_P(LSTMCell, LayerSemantics,
 
 auto lstmcell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
-  {"unit=5", "timestep=0", "max_timestep=1"}, "3:1:1:7",
+  {"unit=5", "timestep=0", "max_timestep=1", "integrate_bias=true"}, "3:1:1:7",
   "lstm_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerGoldenTest,

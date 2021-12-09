@@ -25,8 +25,9 @@ namespace init_lstm_context {
 void fillLayerInitContext(InitLayerContext &context,
                           const InitLayerContext &core_context);
 void fillWeights(std::vector<Weight> &weights, const RunLayerContext &context,
-                 bool training, const unsigned int max_timestep,
-                 const unsigned int timestep, bool test = false);
+                 bool training, const std::vector<unsigned int> &wt_idx,
+                 const unsigned int max_timestep, const unsigned int timestep,
+                 bool test = false);
 const std::vector<Weight *> getWeights(std::vector<Weight> &weights);
 void fillInputs(std::vector<Var_Grad> &inputs, RunLayerContext &context,
                 bool training, const std::vector<unsigned int> &wt_idx,
@@ -114,12 +115,13 @@ private:
    * Unit: number of output neurons
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * RecurrentActivation: activation type for recurrent. default is sigmoid
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation,
-             props::RecurrentActivation>
+             props::RecurrentActivation, props::IntegrateBias>
     lstmcell_core_props;
-  std::array<unsigned int, 4> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 6> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh

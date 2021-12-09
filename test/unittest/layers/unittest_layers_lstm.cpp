@@ -23,34 +23,36 @@ auto semantic_lstm =
 INSTANTIATE_TEST_CASE_P(LSTM, LayerSemantics, ::testing::Values(semantic_lstm));
 
 auto lstm_single_step = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::LSTMLayer>, {"unit=5"}, "3:1:1:7",
+  nntrainer::createLayer<nntrainer::LSTMLayer>,
+  {"unit=5", "integrate_bias=true"}, "3:1:1:7",
   "lstm_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto lstm_multi_step = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::LSTMLayer>, {"unit=5"}, "3:1:4:7",
-  "lstm_multi_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  nntrainer::createLayer<nntrainer::LSTMLayer>,
+  {"unit=5", "integrate_bias=true"}, "3:1:4:7", "lstm_multi_step.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
 
 auto lstm_single_step_seq = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
-  {"unit=5", "return_sequences=true"}, "3:1:1:7",
+  {"unit=5", "integrate_bias=true", "return_sequences=true"}, "3:1:1:7",
   "lstm_single_step_seq.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto lstm_multi_step_seq = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
-  {"unit=5", "return_sequences=true"}, "3:1:4:7",
+  {"unit=5", "integrate_bias=true", "return_sequences=true"}, "3:1:4:7",
   "lstm_multi_step_seq.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto lstm_multi_step_seq_act_orig = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
-  {"unit=5", "return_sequences=true", "hidden_state_activation=tanh",
-   "recurrent_activation=sigmoid"},
+  {"unit=5", "integrate_bias=true", "return_sequences=true",
+   "hidden_state_activation=tanh", "recurrent_activation=sigmoid"},
   "3:1:4:7", "lstm_multi_step_seq.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
 auto lstm_multi_step_seq_act = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
-  {"unit=5", "return_sequences=true", "hidden_state_activation=sigmoid",
-   "recurrent_activation=tanh"},
+  {"unit=5", "integrate_bias=true", "return_sequences=true",
+   "hidden_state_activation=sigmoid", "recurrent_activation=tanh"},
   "3:1:4:7", "lstm_multi_step_seq_act.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 

@@ -44,16 +44,18 @@ void fillLayerInitContext(InitLayerContext &context,
 }
 
 void fillWeights(std::vector<Weight> &weights, const RunLayerContext &context,
-                 bool training, const unsigned int max_timestep,
-                 const unsigned int timestep, bool test) {
+                 bool training, const std::vector<unsigned int> &wt_idx,
+                 const unsigned int max_timestep, const unsigned int timestep,
+                 bool test) {
   weights.resize(context.getNumWeights());
   for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
-    if (training && (!test || i < 3u)) {
-      weights[i] = Weight(context.getWeight(i), context.getWeightGrad(i),
-                          context.getWeightName(i));
-    } else {
+    if (training && (!test || i < context.getNumWeights() - 2)) {
       weights[i] =
-        Weight(context.getWeight(i), Tensor(), context.getWeightName(i));
+        Weight(context.getWeight(wt_idx[i]), context.getWeightGrad(wt_idx[i]),
+               context.getWeightName(wt_idx[i]));
+    } else {
+      weights[i] = Weight(context.getWeight(wt_idx[i]), Tensor(),
+                          context.getWeightName(wt_idx[i]));
     }
   }
 }
@@ -244,7 +246,9 @@ enum INDEX {
 enum LSTMCellCoreParams {
   weight_ih,
   weight_hh,
+  bias_h,
   bias_ih,
+  bias_hh,
   ifgo,
 };
 
@@ -252,31 +256,38 @@ LSTMCellCoreLayer::LSTMCellCoreLayer() :
   LayerImpl(),
   lstmcell_core_props(
     props::Unit(), props::HiddenStateActivation() = ActivationType::ACT_TANH,
-    props::RecurrentActivation() = ActivationType::ACT_SIGMOID),
+    props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
+    props::IntegrateBias()),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
 void LSTMCellCoreLayer::finalize(InitLayerContext &context) {
+#if ENBABLE_SHARING_WEIGHT
+  const Tensor::Initializer weight_initializer =
+    std::get<props::WeightInitializer>(*layer_impl_props).get();
+  const Tensor::Initializer bias_initializer =
+    std::get<props::BiasInitializer>(*layer_impl_props).get();
+  const WeightRegularizer weight_regularizer =
+    std::get<props::WeightRegularizer>(*layer_impl_props).get();
+  const float weight_regularizer_constant =
+    std::get<props::WeightRegularizerConstant>(*layer_impl_props).get();
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+#endif
+
   NNTR_THROW_IF(std::get<props::Unit>(lstmcell_core_props).empty(),
                 std::invalid_argument)
     << "unit property missing for lstmcell_core layer";
   const unsigned int unit = std::get<props::Unit>(lstmcell_core_props).get();
-  const nntrainer::props::HiddenStateActivation hidden_state_activation_type =
-    std::get<props::HiddenStateActivation>(lstmcell_core_props);
-  const nntrainer::props::RecurrentActivation recurrent_activation_type =
-    std::get<props::RecurrentActivation>(lstmcell_core_props);
-
+  const ActivationType hidden_state_activation_type =
+    std::get<props::HiddenStateActivation>(lstmcell_core_props).get();
+  const ActivationType recurrent_activation_type =
+    std::get<props::RecurrentActivation>(lstmcell_core_props).get();
 #if ENBABLE_SHARING_WEIGHT
-  const Tensor::Initializer weight_initializer =
-    std::get<props::WeightInitializer>(*layer_impl_props);
-  const Tensor::Initializer bias_initializer =
-    std::get<props::BiasInitializer>(*layer_impl_props);
-  const nntrainer::WeightRegularizer weight_regularizer =
-    std::get<props::WeightRegularizer>(*layer_impl_props);
-  const float weight_regularizer_constant =
-    std::get<props::WeightRegularizerConstant>(*layer_impl_props);
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcell_core_props).get();
 #endif
 
   if (context.getNumInputs() != 3)
@@ -328,12 +339,29 @@ void LSTMCellCoreLayer::finalize(InitLayerContext &context) {
   wt_idx[LSTMCellCoreParams::weight_hh] =
     context.requestWeight(weight_hh_dim, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "weight_hh", true);
-  // - bias_ih ( input bias )
-  //  : [1, 1, 1, NUM_GATE x unit] -> i, f, g, o
-  TensorDim bias_ih_dim({NUM_GATE * unit});
-  wt_idx[LSTMCellCoreParams::bias_ih] =
-    context.requestWeight(bias_ih_dim, bias_initializer,
-                          WeightRegularizer::NONE, 1.0f, "bias_ih", true);
+  if (!disable_bias) {
+    if (integrate_bias) {
+      // - bias_h ( input bias, hidden bias are integrate to 1 bias )
+      //  : [1, 1, 1, NUM_GATE x unit] -> i, f, g, o
+      TensorDim bias_h_dim({NUM_GATE * unit});
+      wt_idx[LSTMCellCoreParams::bias_h] =
+        context.requestWeight(bias_h_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_h", true);
+    } else {
+      // - bias_ih ( input bias )
+      //  : [1, 1, 1, NUM_GATE x unit] -> i, f, g, o
+      TensorDim bias_ih_dim({NUM_GATE * unit});
+      wt_idx[LSTMCellCoreParams::bias_ih] =
+        context.requestWeight(bias_ih_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_ih", true);
+      // - bias_hh ( hidden bias )
+      //  : [1, 1, 1, NUM_GATE x unit] -> i, f, g, o
+      TensorDim bias_hh_dim({NUM_GATE * unit});
+      wt_idx[LSTMCellCoreParams::bias_hh] =
+        context.requestWeight(bias_hh_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_hh", true);
+    }
+  }
 #endif
 
 #if ENABLE_SHARING_WT_IDX
@@ -342,8 +370,8 @@ void LSTMCellCoreLayer::finalize(InitLayerContext &context) {
     context.requestTensor(ifgo_dim, "ifgo", Tensor::Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 #endif
-  acti_func.setActiFunc(hidden_state_activation_type.get());
-  recurrent_acti_func.setActiFunc(recurrent_activation_type.get());
+  acti_func.setActiFunc(hidden_state_activation_type);
+  recurrent_acti_func.setActiFunc(recurrent_activation_type);
 }
 
 void LSTMCellCoreLayer::setProperty(const std::vector<std::string> &values) {
@@ -361,14 +389,18 @@ void LSTMCellCoreLayer::exportTo(Exporter &exporter,
 }
 
 void LSTMCellCoreLayer::forwarding(RunLayerContext &context, bool training) {
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+
   const unsigned int unit = std::get<props::Unit>(lstmcell_core_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcell_core_props).get();
 
   const Tensor &input = context.getInput(INDEX::INPUT);
+  const unsigned int batch_size = input.getDim().batch();
+
   const Tensor &prev_hidden_state = context.getInput(INDEX::HIDDEN_STATE_IN);
   const Tensor &prev_cell_state = context.getInput(INDEX::CELL_STATE_IN);
-  const TensorDim &input_dim = input.getDim();
-  const unsigned int batch_size = input_dim.batch();
-
   Tensor &next_hidden_state = context.getOutput(INDEX::HIDDEN_STATE_OUT);
   Tensor &next_cell_state = context.getOutput(INDEX::CELL_STATE_OUT);
 
@@ -377,12 +409,30 @@ void LSTMCellCoreLayer::forwarding(RunLayerContext &context, bool training) {
     context.getWeight(wt_idx[LSTMCellCoreParams::weight_ih]);
   const Tensor &weight_hh =
     context.getWeight(wt_idx[LSTMCellCoreParams::weight_hh]);
-  const Tensor &bias_ih =
-    context.getWeight(wt_idx[LSTMCellCoreParams::bias_ih]);
+  Tensor empty;
+  Tensor &bias_h = !disable_bias && integrate_bias
+                     ? context.getWeight(wt_idx[LSTMCellCoreParams::bias_h])
+                     : empty;
+  Tensor &bias_ih = !disable_bias && !integrate_bias
+                      ? context.getWeight(wt_idx[LSTMCellCoreParams::bias_ih])
+                      : empty;
+  Tensor &bias_hh = !disable_bias && !integrate_bias
+                      ? context.getWeight(wt_idx[LSTMCellCoreParams::bias_hh])
+                      : empty;
 #else
   const Tensor &weight_ih = context.getWeight(LSTMCellCoreParams::weight_ih);
   const Tensor &weight_hh = context.getWeight(LSTMCellCoreParams::weight_hh);
-  const Tensor &bias_ih = context.getWeight(LSTMCellCoreParams::bias_ih);
+  Tensor empty;
+  Tensor &bias_h = !disable_bias && integrate_bias
+                     ? context.getWeight(LSTMCellCoreParams::bias_h)
+                     : empty;
+  // subtract index by 1 cause there is no bias_h
+  Tensor &bias_ih = !disable_bias && !integrate_bias
+                      ? context.getWeight(LSTMCellCoreParams::bias_ih - 1)
+                      : empty;
+  Tensor &bias_hh = !disable_bias && !integrate_bias
+                      ? context.getWeight(LSTMCellCoreParams::bias_hh - 1)
+                      : empty;
 #endif
 
 #if ENABLE_SHARING_WT_IDX
@@ -393,7 +443,14 @@ void LSTMCellCoreLayer::forwarding(RunLayerContext &context, bool training) {
 
   input.dot(weight_ih, ifgo);
   prev_hidden_state.dot(weight_hh, ifgo, false, false, 1.0);
-  ifgo.add_i(bias_ih);
+  if (!disable_bias) {
+    if (integrate_bias) {
+      ifgo.add_i(bias_h);
+    } else {
+      ifgo.add_i(bias_ih);
+      ifgo.add_i(bias_hh);
+    }
+  }
 
   Tensor input_forget_gate =
     ifgo.getSharedDataTensor({batch_size, 1, 1, unit * 2}, 0, false);
@@ -433,11 +490,15 @@ void LSTMCellCoreLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void LSTMCellCoreLayer::calcGradient(RunLayerContext &context) {
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+
   const unsigned int unit = std::get<props::Unit>(lstmcell_core_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcell_core_props).get();
 
   const Tensor &input = context.getInput(INDEX::INPUT);
-  const TensorDim &input_dim = input.getDim();
-  const unsigned int batch_size = input_dim.batch();
+  const unsigned int batch_size = input.getDim().batch();
 
 #if ENABLE_SHARING_WT_IDX
   Tensor &djdweight_ih =
@@ -446,13 +507,36 @@ void LSTMCellCoreLayer::calcGradient(RunLayerContext &context) {
     context.getWeight(wt_idx[LSTMCellCoreParams::weight_hh]);
   Tensor &djdweight_hh =
     context.getWeightGrad(wt_idx[LSTMCellCoreParams::weight_hh]);
+  Tensor empty;
+  Tensor &djdbias_h =
+    !disable_bias && integrate_bias
+      ? context.getWeightGrad(wt_idx[LSTMCellCoreParams::bias_h])
+      : empty;
   Tensor &djdbias_ih =
-    context.getWeightGrad(wt_idx[LSTMCellCoreParams::bias_ih]);
+    !disable_bias && !integrate_bias
+      ? context.getWeightGrad(wt_idx[LSTMCellCoreParams::bias_ih])
+      : empty;
+  Tensor &djdbias_hh =
+    !disable_bias && !integrate_bias
+      ? context.getWeightGrad(wt_idx[LSTMCellCoreParams::bias_hh])
+      : empty;
 #else
   Tensor &djdweight_ih = context.getWeightGrad(LSTMCellCoreParams::weight_ih);
   const Tensor &weight_hh = context.getWeight(LSTMCellCoreParams::weight_hh);
   Tensor &djdweight_hh = context.getWeightGrad(LSTMCellCoreParams::weight_hh);
-  Tensor &djdbias_ih = context.getWeightGrad(LSTMCellCoreParams::bias_ih);
+  Tensor empty;
+  Tensor &djdbias_h = !disable_bias && integrate_bias
+                        ? context.getWeightGrad(LSTMCellCoreParams::bias_h)
+                        : empty;
+  // subtract index by 1 cause there is no bias_h(and also djdbias_h)
+  Tensor &djdbias_ih =
+    !disable_bias && !integrate_bias
+      ? context.getWeightGrad(LSTMCellCoreParams::bias_ih - 1)
+      : empty;
+  Tensor &djdbias_hh =
+    !disable_bias && !integrate_bias
+      ? context.getWeightGrad(LSTMCellCoreParams::bias_hh - 1)
+      : empty;
 #endif
 
   const Tensor &prev_hidden_state = context.getInput(INDEX::HIDDEN_STATE_IN);
@@ -525,7 +609,14 @@ void LSTMCellCoreLayer::calcGradient(RunLayerContext &context) {
   acti_func.run_prime_fn(memory_cell, memory_cell_derivative,
                          memory_cell_derivative);
 
-  ifgo_derivative.sum(0, djdbias_ih, 1.0f, 1.0f);
+  if (!disable_bias) {
+    if (integrate_bias) {
+      ifgo_derivative.sum(0, djdbias_h, 1.0f, 1.0f);
+    } else {
+      ifgo_derivative.sum(0, djdbias_ih, 1.0f, 1.0f);
+      ifgo_derivative.sum(0, djdbias_hh, 1.0f, 1.0f);
+    }
+  }
   input.dot(ifgo_derivative, djdweight_ih, true, false, 1.0f);
   prev_hidden_state.dot(ifgo_derivative, djdweight_hh, true, false, 1.0f);
   ifgo_derivative.dot(weight_hh, prev_hidden_state_derivative, false, true);

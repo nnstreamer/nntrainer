@@ -173,15 +173,16 @@ private:
    * Unit: number of output neurons
    * HiddenStateZoneOutRate: zoneout rate for hidden_state
    * CellStateZoneOutRate: zoneout rate for cell_state
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * Test: property for test mode
    * MaxTimestep: maximum timestep for zoneout lstmcell
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, HiddenStateZoneOutRate, CellStateZoneOutRate, Test,
-             props::MaxTimestep, props::Timestep>
+  std::tuple<props::Unit, HiddenStateZoneOutRate, CellStateZoneOutRate,
+             props::IntegrateBias, Test, props::MaxTimestep, props::Timestep>
     zoneout_lstmcell_props;
-  std::array<unsigned int, 8> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 10> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     Protect overflow
