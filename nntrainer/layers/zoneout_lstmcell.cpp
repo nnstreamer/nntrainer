@@ -64,8 +64,9 @@ ZoneoutLSTMCellLayer::ZoneoutLSTMCellLayer() :
   zoneout_lstmcell_props(props::Unit(), HiddenStateZoneOutRate(),
                          CellStateZoneOutRate(), Test(), props::MaxTimestep(),
                          props::Timestep()),
-  wt_idx({0}),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 bool ZoneoutLSTMCellLayer::HiddenStateZoneOutRate::isValid(
   const float &value) const {

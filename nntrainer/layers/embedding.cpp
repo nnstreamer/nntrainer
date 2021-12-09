@@ -28,7 +28,7 @@ enum EmbeddingParams { weight };
 EmbeddingLayer::EmbeddingLayer() :
   LayerImpl(),
   embedding_props(props::InDim(), props::OutDim()),
-  weight_idx(0) {}
+  weight_idx(std::numeric_limits<unsigned>::max()) {}
 
 void EmbeddingLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {

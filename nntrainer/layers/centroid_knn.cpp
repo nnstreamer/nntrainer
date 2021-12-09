@@ -31,10 +31,9 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum KNNParams { map, num_samples };
 
-CentroidKNN::CentroidKNN() :
-  Layer(),
-  centroid_knn_props(props::NumClass()),
-  weight_idx({0}) {}
+CentroidKNN::CentroidKNN() : Layer(), centroid_knn_props(props::NumClass()) {
+  weight_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 CentroidKNN::~CentroidKNN() {}
 

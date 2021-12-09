@@ -107,7 +107,7 @@ public:
 };
 
 /**
- * @brief BiasInitializer Initialization Enumeration Information
+ * @brief DisableBias to disable the bias
  *
  */
 class DisableBias : public nntrainer::Property<bool> {

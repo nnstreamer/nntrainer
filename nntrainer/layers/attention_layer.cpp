@@ -18,7 +18,9 @@
 
 namespace nntrainer {
 
-AttentionLayer::AttentionLayer() : wt_idx({0}) {}
+AttentionLayer::AttentionLayer() {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 AttentionLayer::~AttentionLayer() {}
 

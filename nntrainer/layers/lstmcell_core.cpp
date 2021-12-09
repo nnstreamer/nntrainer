@@ -253,9 +253,10 @@ LSTMCellCoreLayer::LSTMCellCoreLayer() :
   lstmcell_core_props(
     props::Unit(), props::HiddenStateActivation() = ActivationType::ACT_TANH,
     props::RecurrentActivation() = ActivationType::ACT_SIGMOID),
-  wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
-  recurrent_acti_func(ActivationType::ACT_NONE, true) {}
+  recurrent_acti_func(ActivationType::ACT_NONE, true) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 void LSTMCellCoreLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(std::get<props::Unit>(lstmcell_core_props).empty(),

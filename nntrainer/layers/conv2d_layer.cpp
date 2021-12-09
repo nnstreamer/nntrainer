@@ -248,8 +248,9 @@ Conv2DLayer::Conv2DLayer(
   LayerImpl(),
   padding(padding_),
   conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_DIM>(),
-             std::array<props::Stride, CONV2D_DIM>(), props::Padding2D()),
-  wt_idx({0}) {}
+             std::array<props::Stride, CONV2D_DIM>(), props::Padding2D()) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 void Conv2DLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {

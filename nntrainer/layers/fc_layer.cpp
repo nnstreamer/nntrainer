@@ -36,6 +36,12 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum FCParams { weight, bias };
 
+FullyConnectedLayer::FullyConnectedLayer() :
+  LayerImpl(),
+  fc_props(props::Unit()) {
+  weight_idx.fill(std::numeric_limits<unsigned>::max());
+}
+
 void FullyConnectedLayer::finalize(InitLayerContext &context) {
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);

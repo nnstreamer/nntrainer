@@ -53,10 +53,11 @@ GRULayer::GRULayer() :
   gru_props(props::Unit(), props::HiddenStateActivation(),
             props::RecurrentActivation(), props::ReturnSequences(),
             props::DropOutRate()),
-  wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 // - weight_xh ( input to hidden )
 //  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> z, r, g
@@ -435,7 +436,10 @@ void GRULayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[GRUParams::hidden_state], batch);
   context.updateTensor(wt_idx[GRUParams::zrg], batch);
   context.updateTensor(wt_idx[GRUParams::h_prev], batch);
-  context.updateTensor(wt_idx[GRUParams::dropout_mask], batch);
+
+  if (std::get<props::DropOutRate>(gru_props).get() > epsilon) {
+    context.updateTensor(wt_idx[GRUParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer
