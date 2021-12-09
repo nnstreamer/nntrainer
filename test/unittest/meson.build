@@ -42,6 +42,7 @@ test_target = [
   ['unittest_base_properties', []],
   ['unittest_common_properties', []],
   ['unittest_nntrainer_tensor_pool', []],
+  ['unittest_nntrainer_lr_scheduler', []],
 ]
 
 if get_option('enable-profile')
