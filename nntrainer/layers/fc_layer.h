@@ -29,10 +29,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() :
-    LayerImpl(),
-    fc_props(props::Unit()),
-    weight_idx({0}) {}
+  FullyConnectedLayer();
 
   /**
    * @brief     Destructor of Fully Connected Layer

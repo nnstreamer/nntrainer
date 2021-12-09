@@ -25,8 +25,9 @@ MoLAttentionLayer::MoLAttentionLayer() :
   helper_exec(false),
   softmax(ActivationType::ACT_SOFTMAX, false),
   tanh(ActivationType::ACT_TANH, false),
-  sigmoid(ActivationType::ACT_SIGMOID, false),
-  wt_idx({std::numeric_limits<unsigned>::max()}) {}
+  sigmoid(ActivationType::ACT_SIGMOID, false) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 MoLAttentionLayer::~MoLAttentionLayer() {}
 

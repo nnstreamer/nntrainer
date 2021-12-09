@@ -32,8 +32,8 @@ Conv1DLayer::Conv1DLayer(const std::array<unsigned int, 2> &padding_) :
   LayerImpl(),
   padding(padding_),
   conv_props(props::FilterSize(), props::KernelSize(), props::Stride(),
-             props::Padding2D()),
-  wt_idx({0}) {
+             props::Padding2D()) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
   conv2d_layer = std::make_unique<Conv2DLayer>();
 }
 

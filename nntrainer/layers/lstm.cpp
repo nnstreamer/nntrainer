@@ -38,10 +38,11 @@ LSTMLayer::LSTMLayer() :
   lstm_props(props::Unit(), props::HiddenStateActivation(),
              props::RecurrentActivation(), props::ReturnSequences(),
              props::DropOutRate(), props::MaxTimestep(), props::Timestep()),
-  wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 // - weight_xh ( input to hidden )
 //  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> f, g, i, o
@@ -507,7 +508,10 @@ void LSTMLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[LSTMParams::hidden_state], batch);
   context.updateTensor(wt_idx[LSTMParams::mem_cell], batch);
   context.updateTensor(wt_idx[LSTMParams::fgio], batch);
-  context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
+
+  if (std::get<props::DropOutRate>(lstm_props).get() > epsilon) {
+    context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer

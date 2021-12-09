@@ -48,10 +48,11 @@ enum BNParams {
 BatchNormalizationLayer::BatchNormalizationLayer() :
   Layer(),
   divider(0),
-  wt_idx({0}),
   bn_props(props::Epsilon(), props::BNPARAMS_MU_INIT(),
            props::BNPARAMS_VAR_INIT(), props::BNPARAMS_BETA_INIT(),
-           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis()) {}
+           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis()) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 /// @todo add multiple axis support
 void BatchNormalizationLayer::finalize(InitLayerContext &context) {

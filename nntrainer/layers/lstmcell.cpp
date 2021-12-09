@@ -53,8 +53,9 @@ LSTMCellLayer::LSTMCellLayer() :
   LayerImpl(),
   lstmcell_props(props::Unit(), props::DropOutRate(), props::MaxTimestep(),
                  props::Timestep()),
-  wt_idx({0}),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 void LSTMCellLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(std::get<props::Unit>(lstmcell_props).empty(),

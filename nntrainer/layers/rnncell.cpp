@@ -34,9 +34,10 @@ RNNCellLayer::RNNCellLayer() :
   LayerImpl(),
   rnncell_props(props::Unit(), props::HiddenStateActivation(),
                 props::DropOutRate(), props::MaxTimestep(), props::Timestep()),
-  wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 void RNNCellLayer::finalize(InitLayerContext &context) {
   const nntrainer::WeightRegularizer weight_regularizer =

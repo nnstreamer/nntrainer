@@ -35,9 +35,10 @@ RNNLayer::RNNLayer() :
   LayerImpl(),
   rnn_props(props::Unit(), props::HiddenStateActivation(),
             props::ReturnSequences(), props::DropOutRate()),
-  wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {}
+  epsilon(1e-3) {
+  wt_idx.fill(std::numeric_limits<unsigned>::max());
+}
 
 void RNNLayer::finalize(InitLayerContext &context) {
   auto &weight_regularizer =
@@ -267,7 +268,10 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
 
 void RNNLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   context.updateTensor(wt_idx[RNNParams::hidden_state], batch);
-  context.updateTensor(wt_idx[RNNParams::dropout_mask], batch);
+
+  if (std::get<props::DropOutRate>(rnn_props).get() > epsilon) {
+    context.updateTensor(wt_idx[RNNParams::dropout_mask], batch);
+  }
 }
 
 } // namespace nntrainer
