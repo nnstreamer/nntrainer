@@ -105,15 +105,16 @@ private:
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * DropOutRate: dropout rate
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * MaxTimeStep: Maximum timestep of gru
    * TimeStep: timestep for which gru should operate
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation,
-             props::RecurrentActivation, props::DropOutRate, props::MaxTimestep,
-             props::Timestep>
+             props::RecurrentActivation, props::DropOutRate,
+             props::IntegrateBias, props::MaxTimestep, props::Timestep>
     grucell_props;
-  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is sigmoid

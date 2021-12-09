@@ -122,9 +122,6 @@ class GRUCellStacked(torch.nn.Module):
                 for _ in range(num_gru)
             ]
         )
-        for gru in self.grus:
-            gru.bias_hh.data.fill_(0.0)
-            gru.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 

@@ -83,24 +83,26 @@ def rnn_lstm_translate(model):
 @register_for_((torch.nn.GRUCell))
 def gru_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
-    bias = ("bias", params[2][1] + params[3][1])
 
     # [hidden, input] -> [input, hidden]
     def transpose_(weight):
         return (weight[0], weight[1].transpose(1, 0))
 
     # resetgate, inputgate, newgate -> inputgate, resetgate, newgate
-    def reorder_weight(param):
-        if (param[1].dim() == 2):
-            hidden_size = int(param[1].shape[1] / 3)
-        else:
-            hidden_size = int(param[1].shape[0] / 3)
+    def reorder_weights(params):
+        reordered_weights = []
+        for param in params: # param = ("name", weight)
+            if (param[1].dim() == 2): # weight
+                hidden_size = int(param[1].shape[1] / 3)
+            else: # bias
+                hidden_size = int(param[1].shape[0] / 3)
 
-        weight = param[1].hsplit(3)
-        return (param[0], torch.hstack((weight[1], weight[0], weight[2])))
+            weight = param[1].hsplit(3)
+            reordered_weights.append((param[0], torch.hstack((weight[1], weight[0], weight[2])))) # reorder
+        return reordered_weights
 
-    transposed_params = [transpose_(params[0]), transpose_(params[1]), bias]
-    new_params = [reorder_weight(transposed_params[0]), reorder_weight(transposed_params[1]), reorder_weight(transposed_params[2])]
+    transposed_params = [transpose_(params[0]), transpose_(params[1]), params[2], params[3]]
+    new_params = reorder_weights(transposed_params)
 
     yield from new_params
 

@@ -406,7 +406,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
   }
 
   auto grucell = makeGraph({
-    {"grucell", {"name=a1", "unit=2"}},
+    {"grucell", {"name=a1", "unit=2", "integrate_bias=false"}},
   });
 
   nn->addWithReferenceLayers(grucell, "grucell_scope", {"input"}, {"a1"},
@@ -436,8 +436,9 @@ static std::unique_ptr<NeuralNetwork> makeStackedGRUCell() {
   }
 
   auto grucell = makeGraph({
-    {"grucell", {"name=a1", "unit=2"}},
-    {"grucell", {"name=a2", "unit=2", "input_layers=a1"}},
+    {"grucell", {"name=a1", "unit=2", "integrate_bias=false"}},
+    {"grucell",
+     {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
   });
 
   nn->addWithReferenceLayers(grucell, "grucell_scope", {"input"}, {"a1"},
