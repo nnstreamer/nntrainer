@@ -23,6 +23,14 @@ class Exporter;
 enum class ExportMethods;
 
 /**
+ * @brief     Enumeration of optimizer type
+ */
+enum LearningRateType {
+  CONSTANT = 0, /** constant */
+  EXPONENTIAL   /** exponentially decay */
+};
+
+/**
  * @class   Learning Rate Schedulers Base class
  * @brief   Base class for all Learning Rate Schedulers
  */
@@ -93,6 +101,22 @@ public:
    */
   virtual const std::string getType() const = 0;
 };
+
+/**
+ * @brief General LR Scheduler Factory function to create LR Scheduler
+ *
+ * @param props property representation
+ * @return std::unique_ptr<nntrainer::LearningRateScheduler> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<LearningRateScheduler, T>::value, T>
+            * = nullptr>
+std::unique_ptr<LearningRateScheduler>
+createLearningRateScheduler(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<LearningRateScheduler> ptr = std::make_unique<T>();
+  ptr->setProperty(props);
+  return ptr;
+}
 
 } /* namespace nntrainer */
 

@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include <common_properties.h>
 #include <lr_scheduler.h>
 
 namespace nntrainer {

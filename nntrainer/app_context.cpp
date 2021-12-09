@@ -49,6 +49,8 @@
 #include <grucell.h>
 #include <identity_layer.h>
 #include <input_layer.h>
+#include <lr_scheduler_constant.h>
+#include <lr_scheduler_exponential.h>
 #include <lstm.h>
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
@@ -217,6 +219,14 @@ static void add_default_object(AppContext &ac) {
                      OptType::ADAM);
   ac.registerFactory(AppContext::unknownFactory<ml::train::Optimizer>,
                      "unknown", OptType::UNKNOWN);
+
+  using LRType = LearningRateType;
+  ac.registerFactory(
+    nntrainer::createLearningRateScheduler<ConstantLearningRateScheduler>,
+    ConstantLearningRateScheduler::type, LRType::CONSTANT);
+  ac.registerFactory(
+    nntrainer::createLearningRateScheduler<ExponentialLearningRateScheduler>,
+    ExponentialLearningRateScheduler::type, LRType::EXPONENTIAL);
 
   using LayerType = ml::train::LayerType;
   ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
@@ -546,5 +556,13 @@ template const int AppContext::registerFactory<ml::train::Optimizer>(
 template const int AppContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
+
+/**
+ * @copydoc const int AppContext::registerFactory
+ */
+template const int
+AppContext::registerFactory<nntrainer::LearningRateScheduler>(
+  const FactoryType<nntrainer::LearningRateScheduler> factory,
+  const std::string &key, const int int_key);
 
 } // namespace nntrainer
