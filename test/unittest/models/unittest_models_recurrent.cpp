@@ -259,8 +259,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
   return nn;
 }
 
-[[maybe_unused]] static std::unique_ptr<NeuralNetwork>
-makeSingleZoneoutLSTMCell() {
+static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=1"});
 
@@ -293,8 +292,7 @@ makeSingleZoneoutLSTMCell() {
   return nn;
 }
 
-[[maybe_unused]] static std::unique_ptr<NeuralNetwork>
-makeStackedZoneoutLSTMCell() {
+static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=1"});
 
@@ -470,42 +468,42 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeStackedLSTMCell, "lstm_stacked__1",
                  ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_000",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_050",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_100",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_100",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_100",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_100",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_100",
-    //              ModelTestOption::COMPARE_V2),
-    // mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_100",
-    //              ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_000",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_050",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_100",
+                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_100",
+                 ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleRNNCell, "rnncell_single__1",
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeStackedRNNCell, "rnncell_stacked__1",
