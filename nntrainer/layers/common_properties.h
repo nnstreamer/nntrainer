@@ -971,6 +971,37 @@ public:
   using prop_tag = float_prop_tag; /**< property type */
 };
 
+/**
+ * @brief Learning Rate props
+ *
+ */
+class LearningRate : public Property<float> {
+public:
+  static constexpr const char *key =
+    "learning_rate";               /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+};
+
+/**
+ * @brief Decay rate property
+ *
+ */
+class DecayRate : public Property<float> {
+public:
+  static constexpr const char *key = "decay_rate"; /**< unique key to access */
+  using prop_tag = float_prop_tag;                 /**< property type */
+};
+
+/**
+ * @brief decay steps property
+ *
+ */
+class DecaySteps : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "decay_steps"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
+};
+
 } // namespace props
 } // namespace nntrainer
 

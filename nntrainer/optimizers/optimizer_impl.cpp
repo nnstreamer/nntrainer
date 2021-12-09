@@ -12,10 +12,11 @@
  *
  */
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
-#include <cmath>
+#include <common_properties.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -25,7 +26,8 @@
 namespace nntrainer {
 
 OptimizerImpl::OptimizerImpl() :
-  optimizer_impl_props(PropsLR(), PropsDecayRate(), PropsDecaySteps()) {}
+  optimizer_impl_props(props::LearningRate(), props::DecayRate(),
+                       props::DecaySteps()) {}
 
 void OptimizerImpl::setProperty(const std::vector<std::string> &values) {
   auto left = loadProperties(values, optimizer_impl_props);
