@@ -18,41 +18,10 @@
 
 #include <tuple>
 
-#include <base_properties.h>
+#include <common_properties.h>
 #include <optimizer_devel.h>
 
 namespace nntrainer {
-
-/**
- * @brief Learning Rate props
- *
- */
-class PropsLR : public Property<float> {
-public:
-  static constexpr const char *key =
-    "learning_rate";               /**< unique key to access */
-  using prop_tag = float_prop_tag; /**< property type */
-};
-
-/**
- * @brief Decay rate property
- *
- */
-class PropsDecayRate : public Property<float> {
-public:
-  static constexpr const char *key = "decay_rate"; /**< unique key to access */
-  using prop_tag = float_prop_tag;                 /**< property type */
-};
-
-/**
- * @brief decay steps property
- *
- */
-class PropsDecaySteps : public PositiveIntegerProperty {
-public:
-  static constexpr const char *key = "decay_steps"; /**< unique key to access */
-  using prop_tag = uint_prop_tag;                   /**< property type */
-};
 
 /**
  * @class   Optimizer Base class for optimizers
@@ -120,7 +89,8 @@ public:
   }
 
 protected:
-  std::tuple<PropsLR, PropsDecayRate, PropsDecaySteps> optimizer_impl_props;
+  std::tuple<props::LearningRate, props::DecayRate, props::DecaySteps>
+    optimizer_impl_props;
 };
 
 } /* namespace nntrainer */
