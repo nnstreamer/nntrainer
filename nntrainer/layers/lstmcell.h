@@ -93,14 +93,15 @@ private:
   /**
    * Unit: number of output neurons
    * DropOutRate: dropout rate
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * MaxTimestep: maximum timestep for lstmcell
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, props::DropOutRate, props::MaxTimestep,
-             props::Timestep>
+  std::tuple<props::Unit, props::DropOutRate, props::IntegrateBias,
+             props::MaxTimestep, props::Timestep>
     lstmcell_props;
-  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     to protect overflow

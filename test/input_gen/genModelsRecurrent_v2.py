@@ -65,9 +65,6 @@ class LSTMStacked(torch.nn.Module):
                 for _ in range(num_lstm)
             ]
         )
-        for lstm in self.lstms:
-            lstm.bias_hh.data.fill_(0.0)
-            lstm.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
@@ -97,9 +94,6 @@ class ZoneoutLSTMStacked(torch.nn.Module):
                 for _ in range(num_lstm)
             ]
         )
-        for zoneout_lstm in self.zoneout_lstms:
-            zoneout_lstm.bias_hh.data.fill_(0.0)
-            zoneout_lstm.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
