@@ -579,7 +579,7 @@ INI rnn_basic(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:1:1",
     I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input",
+      "unit = 2" + "input_layers=input" + "integrate_bias=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn"
   }
 );
@@ -591,7 +591,7 @@ INI rnn_return_sequences(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:2:1",
     I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input" + "return_sequences=true",
+      "unit = 2" + "input_layers=input" + "return_sequences=true" + "integrate_bias=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn"
   }
 );
@@ -631,7 +631,7 @@ INI rnn_return_sequence_with_batch(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:2:1",
     I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 2" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn"
   }
 );
@@ -643,9 +643,9 @@ INI multi_rnn_return_sequence(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:2:1",
     I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 2" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true",
     I("rnn2") + rnn_base +
-      "unit = 2" + "input_layers=rnn",
+      "unit = 2" + "input_layers=rnn" + "integrate_bias=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn2"
   }
 );
@@ -657,9 +657,9 @@ INI multi_rnn_return_sequence_with_batch(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:2:1",
     I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 2" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true",
     I("rnn2") + rnn_base +
-      "unit = 2" + "input_layers=rnn",
+      "unit = 2" + "input_layers=rnn" + "integrate_bias=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn2"
   }
 );
