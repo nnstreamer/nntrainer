@@ -50,10 +50,9 @@ void Adam::setProperty(const std::vector<std::string> &values) {
   OptimizerImpl::setProperty(left);
 }
 
-double Adam::getLearningRate(size_t iteration) const {
+double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
-  double ll = OptimizerImpl::getLearningRate(iteration);
 
   std::function<float(double)> biasCorrection = [&](float f) {
     return 1.0f - pow(f, iteration + 1);
@@ -92,8 +91,7 @@ void Adam::applyGradient(RunOptimizerContext &context) {
     denom.add_i(epsilon);
     wm.divide(denom, x_grad);
 
-    context.applyGradient(OptimizerImpl::getLearningRate(iteration) /
-                          biasCorrection1);
+    context.applyGradient(context.getLearningRate() / biasCorrection1);
   } else {
     std::function<double(double)> sqrtEps = [epsilon](double f) {
       return 1 / (sqrtDouble(f) + epsilon);
@@ -101,7 +99,8 @@ void Adam::applyGradient(RunOptimizerContext &context) {
 
     x_grad = wv.apply(sqrtEps, x_grad);
     x_grad.multiply_i(wm);
-    context.applyGradient(getLearningRate(context.getIteration()));
+    context.applyGradient(getUpdatedLearningRate(context.getIteration(),
+                                                 context.getLearningRate()));
   }
 }
 
