@@ -12,12 +12,10 @@
  */
 #ifndef __MOMENTUM_H__
 #define __MOMENTUM_H__
-#include "tensor_dim.h"
 #ifdef __cplusplus
 
-#include <optimizer_impl.h>
-
 #include <base_properties.h>
+#include <optimizer_impl.h>
 
 namespace ml::train {
 class TensorDim;
@@ -29,6 +27,11 @@ class RunOptimizerContext;
 
 namespace custom {
 
+/**
+ * @brief lightweight property wrapper for parsing and serialization of the
+ * property, "momentum=0.1" kind of string
+ *
+ */
 class PropMomentum final : public nntrainer::Property<float> {
 public:
   static constexpr const char *key = "momentum";

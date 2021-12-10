@@ -12,13 +12,12 @@
  */
 #include <momentum.h>
 #include <nntrainer_error.h>
-#include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <tensor.h>
 
 namespace custom {
 
-Momentum::Momentum() { setProperty({"learning_rate=0.001", "momentum=0.9f"}); }
+Momentum::Momentum() { setProperty({"learning_rate=0.0001", "momentum=0.9f"}); }
 
 void Momentum::applyGradient(nntrainer::RunOptimizerContext &context) {
   nntrainer::Tensor &x_grad = context.getGradient();
