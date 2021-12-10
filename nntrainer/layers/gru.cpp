@@ -39,9 +39,11 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum GRUParams {
-  weight_xh,
+  weight_ih,
   weight_hh,
   bias_h,
+  bias_ih,
+  bias_hh,
   hidden_state,
   zrg,
   h_prev,
@@ -50,118 +52,124 @@ enum GRUParams {
 
 GRULayer::GRULayer() :
   LayerImpl(),
-  gru_props(props::Unit(), props::HiddenStateActivation(),
-            props::RecurrentActivation(), props::ReturnSequences(),
-            props::DropOutRate()),
+  gru_props(props::Unit(),
+            props::HiddenStateActivation() = ActivationType::ACT_TANH,
+            props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
+            props::ReturnSequences(), props::DropOutRate(),
+            props::IntegrateBias(), props::ResetAfter()),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
   epsilon(1e-3) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
-// - weight_xh ( input to hidden )
-//  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> z, r, g
-// - weight_hh ( hidden to hidden )
-//  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> z, r, g
-// - bias_h ( hidden bias )
-//  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> z, r, g
 void GRULayer::finalize(InitLayerContext &context) {
-  auto &weight_regularizer =
-    std::get<props::WeightRegularizer>(*layer_impl_props);
-  auto &weight_regularizer_constant =
-    std::get<props::WeightRegularizerConstant>(*layer_impl_props);
-  auto &weight_initializer =
-    std::get<props::WeightInitializer>(*layer_impl_props);
-  auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+  const Tensor::Initializer weight_initializer =
+    std::get<props::WeightInitializer>(*layer_impl_props).get();
+  const Tensor::Initializer bias_initializer =
+    std::get<props::BiasInitializer>(*layer_impl_props).get();
+  const WeightRegularizer weight_regularizer =
+    std::get<props::WeightRegularizer>(*layer_impl_props).get();
+  const float weight_regularizer_constant =
+    std::get<props::WeightRegularizerConstant>(*layer_impl_props).get();
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
 
-  auto unit = std::get<props::Unit>(gru_props).get();
-  auto &hidden_state_activation_type =
-    std::get<props::HiddenStateActivation>(gru_props);
-  auto &recurrent_activation_type =
-    std::get<props::RecurrentActivation>(gru_props);
-  bool return_sequences = std::get<props::ReturnSequences>(gru_props);
-  float dropout_rate = std::get<props::DropOutRate>(gru_props);
+  const unsigned int unit = std::get<props::Unit>(gru_props).get();
+  ActivationType hidden_state_activation_type =
+    std::get<props::HiddenStateActivation>(gru_props).get();
+  ActivationType recurrent_activation_type =
+    std::get<props::RecurrentActivation>(gru_props).get();
+  const bool return_sequences =
+    std::get<props::ReturnSequences>(gru_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(gru_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(gru_props).get();
 
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument("GRU layer takes only one input");
   }
 
-  TensorDim output_dim;
-  const TensorDim &input_dim = context.getInputDimensions()[0];
-
   // input_dim = [ batch, 1, time_iteration, feature_size ]
+  const TensorDim &input_dim = context.getInputDimensions()[0];
+  const unsigned int batch_size = input_dim.batch();
+  const unsigned int max_timestep = input_dim.height();
+  const unsigned int feature_size = input_dim.width();
+
   // if return_sequences == False :
-  //      output_dim = [ batch, 1, 1, hidden_size (unit)]
+  //      output_dim = [ batch, 1, 1, unit ]
   // else:
-  //      output_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
-  output_dim = input_dim;
-  output_dim.width(unit);
+  //      output_dim = [ batch, 1, time_iteration, unit ]
+  TensorDim output_dim(
+    {batch_size, 1, return_sequences ? max_timestep : 1, unit});
+  context.setOutputDimensions({output_dim});
+
+  // weight_initializer can be set seperately. weight_ih initializer,
+  // weight_hh initializer kernel initializer & recurrent_initializer in keras
+  // for now, it is set same way.
+
+  // - weight_ih ( input to hidden )
+  // weight_ih_dim : [ 1, 1, feature_size, NUMGATE * unit ] -> z, r, g
+  TensorDim weight_ih_dim({feature_size, NUM_GATE * unit});
+  wt_idx[GRUParams::weight_ih] =
+    context.requestWeight(weight_ih_dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_ih", true);
+  // - weight_hh ( hidden to hidden )
+  // weight_hh_dim : [ 1, 1, unit, NUM_GATE * unit ] -> z, r, g
+  TensorDim weight_hh_dim({unit, NUM_GATE * unit});
+  wt_idx[GRUParams::weight_hh] =
+    context.requestWeight(weight_hh_dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_hh", true);
+  if (!disable_bias) {
+    if (integrate_bias) {
+      // - bias_h ( input bias, hidden bias are integrate to 1 bias )
+      // bias_h_dim : [ 1, 1, 1, NUM_GATE * unit ] -> z, r, g
+      TensorDim bias_h_dim({NUM_GATE * unit});
+      wt_idx[GRUParams::bias_h] =
+        context.requestWeight(bias_h_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_h", true);
+    } else {
+      // - bias_ih ( input bias )
+      // bias_ih_dim : [ 1, 1, 1, NUM_GATE * unit ] -> z, r, g
+      TensorDim bias_ih_dim({NUM_GATE * unit});
+      wt_idx[GRUParams::bias_ih] =
+        context.requestWeight(bias_ih_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_ih", true);
+      // - bias_hh ( hidden bias )
+      // bias_hh_dim : [ 1, 1, 1, NUM_GATE * unit ] -> z, r, g
+      TensorDim bias_hh_dim({NUM_GATE * unit});
+      wt_idx[GRUParams::bias_hh] =
+        context.requestWeight(bias_hh_dim, bias_initializer,
+                              WeightRegularizer::NONE, 1.0f, "bias_hh", true);
+    }
+  }
+
+  // hidden_state_dim = [ batch, 1, max_timestep, unit ]
+  TensorDim hidden_state_dim(batch_size, 1, max_timestep, unit);
+  wt_idx[GRUParams::hidden_state] = context.requestTensor(
+    hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
+    TensorLifespan::ITERATION_LIFESPAN);
+
+  // zrg_dim = [ batch, 1, max_timestep, NUM_GATE * unit ]
+  TensorDim zrg_dim(batch_size, 1, max_timestep, NUM_GATE * unit);
+  wt_idx[GRUParams::zrg] =
+    context.requestTensor(zrg_dim, "zrg", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
+
+  // h_prev_dim = [ batch, 1, 1, unit ]
+  TensorDim h_prev_dim = TensorDim({batch_size, 1, 1, unit});
+  wt_idx[GRUParams::h_prev] =
+    context.requestTensor(h_prev_dim, "h_prev", Tensor::Initializer::NONE,
+                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   if (dropout_rate > epsilon) {
+    TensorDim dropout_mask_dim(batch_size, 1, max_timestep, unit);
     wt_idx[GRUParams::dropout_mask] = context.requestTensor(
       output_dim, "dropout_mask", Tensor::Initializer::NONE, false,
       TensorLifespan::ITERATION_LIFESPAN);
   }
 
-  if (!return_sequences) {
-    output_dim.height(1);
-  }
-
-  context.setOutputDimensions({output_dim});
-
-  TensorDim bias_dim = TensorDim();
-  bias_dim.setTensorDim(3, unit * NUM_GATE);
-
-  TensorDim dim_xh = output_dim;
-  dim_xh.height(input_dim.width());
-  dim_xh.width(unit * NUM_GATE);
-  dim_xh.batch(1);
-
-  TensorDim dim_hh = output_dim;
-  dim_hh.height(unit);
-  dim_hh.width(unit * NUM_GATE);
-  dim_hh.batch(1);
-
-  // weight_initializer can be set seperately. weight_xh initializer,
-  // weight_hh initializer kernel initializer & recurrent_initializer in keras
-  // for now, it is set same way.
-  wt_idx[GRUParams::weight_xh] =
-    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_xh", true);
-  wt_idx[GRUParams::weight_hh] =
-    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_hh", true);
-  wt_idx[GRUParams::bias_h] = context.requestWeight(
-    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias_h", true);
-
-  TensorDim d = input_dim;
-  d.width(unit);
-
-  wt_idx[GRUParams::hidden_state] =
-    context.requestTensor(d, "hidden_state", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
-
-  d.width(unit * NUM_GATE);
-  wt_idx[GRUParams::zrg] =
-    context.requestTensor(d, "zrg", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN);
-
-  TensorDim h_dim = TensorDim();
-  h_dim.setTensorDim(3, unit);
-  h_dim.batch(input_dim.batch());
-  wt_idx[GRUParams::h_prev] =
-    context.requestTensor(h_dim, "h_prev", Tensor::Initializer::NONE, false,
-                          TensorLifespan::FORWARD_FUNC_LIFESPAN);
-
-  if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
-    hidden_state_activation_type.set(ActivationType::ACT_TANH);
-  }
-  acti_func.setActiFunc(hidden_state_activation_type.get());
-
-  if (recurrent_activation_type.get() == ActivationType::ACT_NONE) {
-    recurrent_activation_type.set(ActivationType::ACT_SIGMOID);
-  }
-  recurrent_acti_func.setActiFunc(recurrent_activation_type.get());
+  acti_func.setActiFunc(hidden_state_activation_type);
+  recurrent_acti_func.setActiFunc(recurrent_activation_type);
 }
 
 void GRULayer::setProperty(const std::vector<std::string> &values) {
@@ -175,25 +183,45 @@ void GRULayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
 }
 
 void GRULayer::forwarding(RunLayerContext &context, bool training) {
-  auto unit = std::get<props::Unit>(gru_props).get();
-  bool return_sequences = std::get<props::ReturnSequences>(gru_props);
-  float dropout_rate = std::get<props::DropOutRate>(gru_props);
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
 
-  Tensor &weight_xh = context.getWeight(wt_idx[GRUParams::weight_xh]);
-  Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
-  Tensor &bias_h = context.getWeight(wt_idx[GRUParams::bias_h]);
+  const unsigned int unit = std::get<props::Unit>(gru_props).get();
+  const bool return_sequences =
+    std::get<props::ReturnSequences>(gru_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(gru_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(gru_props).get();
+  const bool reset_after = std::get<props::ResetAfter>(gru_props).get();
 
-  Tensor &hidden_ = context.getTensor(wt_idx[GRUParams::hidden_state]);
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input.getDim();
+  const unsigned int batch_size = input_dim.batch();
+  const unsigned int max_timestep = input_dim.height();
+  const unsigned int feature_size = input_dim.width();
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+
+  const Tensor &weight_ih = context.getWeight(wt_idx[GRUParams::weight_ih]);
+  const Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
+  Tensor empty;
+  Tensor &bias_h = !disable_bias && integrate_bias
+                     ? context.getWeight(wt_idx[GRUParams::bias_h])
+                     : empty;
+  Tensor &bias_ih = !disable_bias && !integrate_bias
+                      ? context.getWeight(wt_idx[GRUParams::bias_ih])
+                      : empty;
+  Tensor &bias_hh = !disable_bias && !integrate_bias
+                      ? context.getWeight(wt_idx[GRUParams::bias_hh])
+                      : empty;
+
+  Tensor &hidden_state = context.getTensor(wt_idx[GRUParams::hidden_state]);
   Tensor &zrg = context.getTensor(wt_idx[GRUParams::zrg]);
   Tensor &h_prev = context.getTensor(wt_idx[GRUParams::h_prev]);
-  const TensorDim &input_dim = input_.getDim();
 
-  hidden_.setZero();
+  hidden_state.setZero();
   zrg.setZero();
   h_prev.setZero();
 
-  Tensor hs_prev;
+  Tensor prev_hs;
   Tensor hs;
 
   // zt = sigma(W_hz.h_prev + W_xz.xs)
@@ -201,34 +229,31 @@ void GRULayer::forwarding(RunLayerContext &context, bool training) {
   // gt = tanh((h_prev*rt).W_hr + W_xg.xs)
   // h_nx = (1-zt)*gt + zt*h_prev
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    Tensor islice = input_.getBatchSlice(b, 1);
-    Tensor oslice = hidden_.getBatchSlice(b, 1);
+  for (unsigned int b = 0; b < batch_size; ++b) {
+    Tensor islice = input.getBatchSlice(b, 1);
+    Tensor oslice = hidden_state.getBatchSlice(b, 1);
     Tensor zrg_ = zrg.getBatchSlice(b, 1);
 
-    for (unsigned int t = 0; t < islice.height(); ++t) {
-      Tensor xs =
-        islice.getSharedDataTensor({islice.width()}, t * islice.width());
+    for (unsigned int t = 0; t < max_timestep; ++t) {
+      Tensor xs = islice.getSharedDataTensor({feature_size}, t * feature_size);
 
       /** @todo verify this dropout working */
       // if (dropout_rate > 0.0 && training) {
       //   xs.multiply_i(xs.dropout_mask(dropout_rate));
       // }
-      hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
+      hs = oslice.getSharedDataTensor({unit}, t * unit);
       Tensor zrg_t =
         zrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
       if (t > 0) {
-        hs_prev = oslice.getSharedDataTensor({oslice.width()},
-                                             (t - 1) * oslice.width());
+        prev_hs = oslice.getSharedDataTensor({unit}, (t - 1) * unit);
       } else {
-        hs_prev = h_prev.getBatchSlice(b, 1);
+        prev_hs = h_prev.getBatchSlice(b, 1);
       }
 
-      xs.dot(weight_xh, zrg_t); // x_z, x_r, x_g
+      xs.dot(weight_ih, zrg_t); // x_z, x_r, x_g
 
       Tensor ztrt = zrg_t.getSharedDataTensor({unit * 2}, 0);
-      Tensor ztrt_b = bias_h.getSharedDataTensor({unit * 2}, 0);
 
       Tensor w_hh;
       w_hh.copy_with_stride(
@@ -238,123 +263,181 @@ void GRULayer::forwarding(RunLayerContext &context, bool training) {
         weight_hh.getSharedDataTensor({1, 1, unit, unit}, unit * 2, false));
 
       Tensor gt = zrg_t.getSharedDataTensor({unit}, unit * 2);
-      Tensor gt_b = bias_h.getSharedDataTensor({unit}, unit * 2);
 
-      ztrt.add_i(hs_prev.dot(w_hh));
-      ztrt.add_i(ztrt_b);
+      ztrt.add_i(prev_hs.dot(w_hh));
+      if (!disable_bias) {
+        if (integrate_bias) {
+          Tensor ztrt_bias_h = bias_h.getSharedDataTensor({unit * 2}, 0);
+          ztrt.add_i(ztrt_bias_h);
+        } else {
+          Tensor ztrt_bias_ih = bias_ih.getSharedDataTensor({unit * 2}, 0);
+          ztrt.add_i(ztrt_bias_ih);
+          Tensor ztrt_bias_hh = bias_hh.getSharedDataTensor({unit * 2}, 0);
+          ztrt.add_i(ztrt_bias_hh);
+        }
+      }
+
+      recurrent_acti_func.run_fn(ztrt, ztrt);
 
       Tensor zt = ztrt.getSharedDataTensor({unit}, 0);
       Tensor rt = ztrt.getSharedDataTensor({unit}, unit);
 
-      recurrent_acti_func.run_fn(rt, rt);
-      recurrent_acti_func.run_fn(zt, zt);
-
       Tensor temp;
-      rt.multiply(hs_prev, temp);
-      gt.add_i(temp.dot(w_g));
-      gt.add_i(gt_b);
+      if (reset_after) {
+        prev_hs.dot(w_g, temp);
+        if (!disable_bias && !integrate_bias) {
+          Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
+          temp.add_i(bias_hh_g);
+        }
+        temp.multiply_i(rt);
+        gt.add_i(temp);
+      } else {
+        rt.multiply(prev_hs, temp);
+        temp.dot(w_g, gt, false, false, 1.0f);
+        if (!disable_bias && !integrate_bias) {
+          Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
+          gt.add_i(bias_hh_g);
+        }
+      }
+      if (!disable_bias) {
+        if (integrate_bias) {
+          Tensor gt_bias_h = bias_h.getSharedDataTensor({unit}, unit * 2);
+          gt.add_i(gt_bias_h);
+        } else {
+          Tensor gt_bias_ih = bias_ih.getSharedDataTensor({unit}, unit * 2);
+          gt.add_i(gt_bias_ih);
+        }
+      }
+
       acti_func.run_fn(gt, gt);
 
-      zt.multiply(hs_prev, hs);
+      zt.multiply(prev_hs, hs);
       temp = zt.multiply(-1.0).add(1.0);
       hs.add_i(gt.multiply(temp));
 
       if (dropout_rate > epsilon && training) {
         Tensor mask_ = context.getTensor(wt_idx[GRUParams::dropout_mask])
                          .getBatchSlice(b, 1);
-        Tensor msk =
-          mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
+        Tensor msk = mask_.getSharedDataTensor({unit}, t * unit);
         msk.dropout_mask(dropout_rate);
         hs.multiply_i(msk);
       }
     }
   }
 
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   if (!return_sequences) {
-    TensorDim d = hidden_.getDim();
-    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-      Tensor dest = output.getSharedDataTensor({d.width()}, b * d.width());
-      Tensor src = hidden_.getSharedDataTensor(
-        {d.width()}, b * d.width() * d.height() + (d.height() - 1) * d.width());
+    for (unsigned int batch = 0; batch < batch_size; ++batch) {
+      Tensor dest = output.getSharedDataTensor({unit}, batch * unit);
+      Tensor src = hidden_state.getSharedDataTensor(
+        {unit}, batch * unit * max_timestep + (max_timestep - 1) * unit);
       dest.copy(src);
     }
   } else {
-    output.copy(hidden_);
+    output.copy(hidden_state);
   }
 }
 
 void GRULayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative_ = context.getTensorGrad(wt_idx[GRUParams::zrg]);
-  Tensor &weight = context.getWeight(wt_idx[GRUParams::weight_xh]);
-  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &zrg_derivative = context.getTensorGrad(wt_idx[GRUParams::zrg]);
+  Tensor &weight_ih = context.getWeight(wt_idx[GRUParams::weight_ih]);
+  Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  derivative_.dot(weight, ret_, false, true);
+  zrg_derivative.dot(weight_ih, outgoing_derivative, false, true);
 }
 
 void GRULayer::calcGradient(RunLayerContext &context) {
-  auto unit = std::get<props::Unit>(gru_props).get();
-  bool return_sequences = std::get<props::ReturnSequences>(gru_props);
-  float dropout_rate = std::get<props::DropOutRate>(gru_props);
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
 
-  Tensor &djdw_x = context.getWeightGrad(wt_idx[GRUParams::weight_xh]);
-  Tensor &djdw_h = context.getWeightGrad(wt_idx[GRUParams::weight_hh]);
-  Tensor &djdb_h = context.getWeightGrad(wt_idx[GRUParams::bias_h]);
+  const unsigned int unit = std::get<props::Unit>(gru_props).get();
+  const bool return_sequences =
+    std::get<props::ReturnSequences>(gru_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(gru_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(gru_props).get();
+  const bool reset_after = std::get<props::ResetAfter>(gru_props).get();
+
+  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input.getDim();
+  const unsigned int batch_size = input_dim.batch();
+  const unsigned int max_timestep = input_dim.height();
+  const unsigned int feature_size = input_dim.width();
+  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+
+  Tensor &djdweight_ih = context.getWeightGrad(wt_idx[GRUParams::weight_ih]);
   Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
+  Tensor &djdweight_hh = context.getWeightGrad(wt_idx[GRUParams::weight_hh]);
+  Tensor empty;
+  Tensor &djdbias_h = !disable_bias && integrate_bias
+                        ? context.getWeightGrad(wt_idx[GRUParams::bias_h])
+                        : empty;
+  Tensor &djdbias_ih = !disable_bias && !integrate_bias
+                         ? context.getWeightGrad(wt_idx[GRUParams::bias_ih])
+                         : empty;
+  Tensor &bias_hh = !disable_bias && !integrate_bias
+                      ? context.getWeight(wt_idx[GRUParams::bias_hh])
+                      : empty;
+  Tensor &djdbias_hh = !disable_bias && !integrate_bias
+                         ? context.getWeightGrad(wt_idx[GRUParams::bias_hh])
+                         : empty;
 
-  Tensor djdw_zr_h = Tensor({1, 1, unit, unit * 2}, true);
-  Tensor djdw_g_h = Tensor({1, 1, unit, unit}, true);
-  Tensor &derivative_ = context.getTensorGrad(wt_idx[GRUParams::hidden_state]);
-  Tensor &hidden_ = context.getTensor(wt_idx[GRUParams::hidden_state]);
-  Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor djdweight_hh_zr = Tensor({1, 1, unit, unit * 2}, true);
+  Tensor djdweight_hh_g = Tensor({1, 1, unit, unit}, true);
+  Tensor &hidden_state_derivative =
+    context.getTensorGrad(wt_idx[GRUParams::hidden_state]);
+  Tensor &hidden_state = context.getTensor(wt_idx[GRUParams::hidden_state]);
   Tensor &zrg = context.getTensor(wt_idx[GRUParams::zrg]);
   Tensor &d_zrg = context.getTensorGrad(wt_idx[GRUParams::zrg]);
-  const TensorDim &input_dim = input_.getDim();
 
-  djdw_x.setZero();
-  djdw_zr_h.setZero();
-  djdw_g_h.setZero();
-  djdb_h.setZero();
+  djdweight_ih.setZero();
+  djdweight_hh_zr.setZero();
+  djdweight_hh_g.setZero();
+  if (!disable_bias) {
+    if (integrate_bias) {
+      djdbias_h.setZero();
+    } else {
+      djdbias_ih.setZero();
+      djdbias_hh.setZero();
+    }
+  }
 
-  derivative_.setZero();
+  hidden_state_derivative.setZero();
   d_zrg.setZero();
 
   if (!return_sequences) {
-    TensorDim d = derivative_.getDim();
-    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-      Tensor dest = derivative_.getSharedDataTensor(
-        {d.width()}, b * d.width() * d.height() + (d.height() - 1) * d.width());
+    for (unsigned int batch = 0; batch < batch_size; ++batch) {
+      Tensor dest = hidden_state_derivative.getSharedDataTensor(
+        {unit}, batch * unit * max_timestep + (max_timestep - 1) * unit);
       Tensor src =
-        incoming_deriv.getSharedDataTensor({d.width()}, b * d.width());
+        incoming_derivative.getSharedDataTensor({unit}, batch * unit);
       dest.copy(src);
     }
   } else {
-    derivative_.copy(incoming_deriv);
+    hidden_state_derivative.copy(incoming_derivative);
   }
 
   if (dropout_rate > epsilon) {
-    derivative_.multiply_i(context.getTensor(wt_idx[GRUParams::dropout_mask]));
+    hidden_state_derivative.multiply_i(
+      context.getTensor(wt_idx[GRUParams::dropout_mask]));
   }
 
-  Tensor dh_nx = Tensor({derivative_.width()});
+  Tensor dh_nx = Tensor({unit});
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    Tensor deriv_t = derivative_.getBatchSlice(b, 1);
-    Tensor xs_t = input_.getBatchSlice(b, 1);
-    Tensor hs_t = hidden_.getBatchSlice(b, 1);
+  for (unsigned int b = 0; b < batch_size; ++b) {
+    Tensor deriv_t = hidden_state_derivative.getBatchSlice(b, 1);
+    Tensor xs_t = input.getBatchSlice(b, 1);
+    Tensor hs_t = hidden_state.getBatchSlice(b, 1);
 
     dh_nx.setZero();
 
     Tensor dh;
-    Tensor hs_prev;
+    Tensor prev_hs;
     Tensor xs;
     Tensor dzrg_ = d_zrg.getBatchSlice(b, 1);
     Tensor zrg_ = zrg.getBatchSlice(b, 1);
 
-    for (unsigned int t = deriv_t.height(); t-- > 0;) {
-      dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
-      xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
+    for (unsigned int t = max_timestep; t-- > 0;) {
+      dh = deriv_t.getSharedDataTensor({unit}, t * unit);
+      xs = xs_t.getSharedDataTensor({feature_size}, t * feature_size);
 
       Tensor dzrg_t =
         dzrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
@@ -362,13 +445,12 @@ void GRULayer::calcGradient(RunLayerContext &context) {
         zrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
       if (t == 0) {
-        hs_prev = Tensor({hs_t.width()});
-        hs_prev.setZero();
+        prev_hs = Tensor({unit});
+        prev_hs.setZero();
       } else {
-        hs_prev =
-          hs_t.getSharedDataTensor({hs_t.width()}, (t - 1) * hs_t.width());
+        prev_hs = hs_t.getSharedDataTensor({unit}, (t - 1) * unit);
       }
-      if (t < deriv_t.height() - 1) {
+      if (t < max_timestep - 1) {
         dh.add_i(dh_nx);
       }
 
@@ -380,9 +462,8 @@ void GRULayer::calcGradient(RunLayerContext &context) {
       Tensor rt = zrg_t.getSharedDataTensor({unit}, unit);
       Tensor gt = zrg_t.getSharedDataTensor({unit}, unit * 2);
 
-      zt.multiply(dh, dh_nx); // dh_nx = d1
-
-      dh.multiply(hs_prev, dhz);       // dhz = d2
+      zt.multiply(dh, dh_nx);          // dh_nx = d1
+      dh.multiply(prev_hs, dhz);       // dhz = d2
       dhz.subtract_i(gt.multiply(dh)); // dhz = d5
       zt.multiply(-1.0, dhg);
       dhg.add_i(1.0);
@@ -400,34 +481,69 @@ void GRULayer::calcGradient(RunLayerContext &context) {
       wzr_hh.copy_with_stride(
         weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
 
-      Tensor temp = Tensor({hs_t.width()});
-      temp.setZero();
-      dhg.dot(wg_hh, temp, false, true); // temp = d10
-      hs_prev.multiply(temp, dhr);       // dhr = d15
-      temp.multiply_i(rt);               // temp=d14
-      dh_nx.add_i(temp);                 //  dh_nx = d1 + d14
-      // reset temp : hs_prev * rt for djdw_g_h
-      hs_prev.multiply(rt, temp);
+      Tensor temp = Tensor({unit});
+
+      if (reset_after) {
+        prev_hs.dot(wg_hh, temp);
+        if (!disable_bias && !integrate_bias) {
+          const Tensor bias_hh_g =
+            bias_hh.getSharedDataTensor({unit}, 2 * unit);
+          temp.add_i(bias_hh_g);
+        }
+        dhg.multiply(temp, dhr);
+
+        // reset temp: dhg * rt for djdbias_hh_g, dh_nx and djdweight_hh_g
+        dhg.multiply(rt, temp);
+        if (!disable_bias && !integrate_bias) {
+          Tensor djdbias_hh_g =
+            djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
+          djdbias_hh_g.add_i(temp);
+        }
+        temp.dot(wg_hh, dh_nx, false, true, 1.0f); // dh_nx = d1 + d14
+        djdweight_hh_g.add_i(prev_hs.dot(temp, true, false));
+      } else {
+        if (!disable_bias && !integrate_bias) {
+          Tensor djdbias_hh_g =
+            djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
+          djdbias_hh_g.add_i(dhg);
+        }
+
+        dhg.dot(wg_hh, temp, false, true); // temp = d10
+        temp.multiply(prev_hs, dhr);       // dhr = d15s
+        temp.multiply_i(rt);               // temp=d14
+        dh_nx.add_i(temp);                 //  dh_nx = d1 + d14
+
+        // reset temp : prev_hs * rt for djdweight_hh_g
+        rt.multiply(prev_hs, temp);
+        temp.dot(dhg, djdweight_hh_g, true, false, 1.0f);
+      }
+
       recurrent_acti_func.run_prime_fn(rt, dhr, dhr); // dhr = d16
 
-      djdb_h.add_i(dzrg_t); // dzrg_t = d7+d16+d8
+      if (!disable_bias) {
+        if (integrate_bias) {
+          djdbias_h.add_i(dzrg_t); // dzrg_t = d7+d16+d8
+        } else {
+          djdbias_ih.add_i(dzrg_t); // dzrg_t = d7+d16+d8
+          Tensor djdbias_hh_zr = djdbias_hh.getSharedDataTensor({2 * unit}, 0);
+          djdbias_hh_zr.add_i(dzrg_t.getSharedDataTensor({2 * unit}, 0));
+        }
+      }
 
-      djdw_x.add_i(xs.dot(dzrg_t, true, false));
-
-      djdw_zr_h.add_i(hs_prev.dot(dhzr, true, false));
-      djdw_g_h.add_i(temp.dot(dhg, true, false));
+      djdweight_hh_zr.add_i(prev_hs.dot(dhzr, true, false));
+      xs.dot(dzrg_t, djdweight_ih, true, false, 1.0f);
       dhzr.dot(wzr_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14 + d12 + d17
     }
   }
   for (unsigned int h = 0; h < unit; ++h) {
-    float *data = djdw_zr_h.getAddress(h * unit * 2);
-    float *rdata = djdw_h.getAddress(h * unit * NUM_GATE);
+    float *data = djdweight_hh_zr.getAddress(h * unit * 2);
+    float *rdata = djdweight_hh.getAddress(h * unit * NUM_GATE);
     std::copy(data, data + unit * 2, rdata);
   }
 
   for (unsigned int h = 0; h < unit; ++h) {
-    float *data = djdw_g_h.getAddress(h * unit);
-    float *rdata = djdw_h.getAddress(h * unit * NUM_GATE + unit * 2);
+    float *data = djdweight_hh_g.getAddress(h * unit);
+    float *rdata = djdweight_hh.getAddress(h * unit * NUM_GATE + unit * 2);
     std::copy(data, data + unit, rdata);
   }
 }

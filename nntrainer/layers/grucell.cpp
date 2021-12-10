@@ -60,7 +60,7 @@ GRUCellLayer::GRUCellLayer() :
                 props::HiddenStateActivation() = ActivationType::ACT_TANH,
                 props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
                 props::DropOutRate(), props::IntegrateBias(),
-                props::MaxTimestep(), props::Timestep()),
+                props::ResetAfter(), props::MaxTimestep(), props::Timestep()),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
   epsilon(1e-3) {
@@ -191,6 +191,7 @@ void GRUCellLayer::forwarding(RunLayerContext &context, bool training) {
   const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const bool integrate_bias =
     std::get<props::IntegrateBias>(grucell_props).get();
+  const bool reset_after = std::get<props::ResetAfter>(grucell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(grucell_props).get();
   const unsigned int timestep = std::get<props::Timestep>(grucell_props).get();
@@ -262,13 +263,22 @@ void GRUCellLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor r_gate = zr_gate.getSharedDataTensor({batch_size, unit}, unit, false);
 
   Tensor temp;
-  prev_hidden_state.dot(weight_hh_g, temp);
-  if (!disable_bias && !integrate_bias) {
-    Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
-    temp.add_i(bias_hh_g);
+  if (reset_after) {
+    prev_hidden_state.dot(weight_hh_g, temp);
+    if (!disable_bias && !integrate_bias) {
+      Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.add_i(bias_hh_g);
+    }
+    temp.multiply_i_strided(r_gate);
+    g_gate.add_i_strided(temp);
+  } else {
+    r_gate.multiply_strided(prev_hidden_state, temp);
+    temp.dot(weight_hh_g, g_gate, false, false, 1.0f);
+    if (!disable_bias && !integrate_bias) {
+      Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      g_gate.add_i(bias_hh_g);
+    }
   }
-  temp.multiply_i_strided(r_gate);
-  g_gate.add_i_strided(temp);
   if (!disable_bias) {
     if (integrate_bias) {
       Tensor bias_h_g = bias_h.getSharedDataTensor({unit}, 2 * unit);
@@ -321,16 +331,17 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const bool integrate_bias =
     std::get<props::IntegrateBias>(grucell_props).get();
+  const bool reset_after = std::get<props::ResetAfter>(grucell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(grucell_props).get();
   const unsigned int timestep = std::get<props::Timestep>(grucell_props).get();
 
-  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   const unsigned int batch_size = input.getDim().batch();
 
   Tensor &djdweight_ih =
     context.getWeightGrad(wt_idx[GRUCellParams::weight_ih]);
-  Tensor &weight_hh = context.getWeight(wt_idx[GRUCellParams::weight_hh]);
+  const Tensor &weight_hh = context.getWeight(wt_idx[GRUCellParams::weight_hh]);
   Tensor &djdweight_hh =
     context.getWeightGrad(wt_idx[GRUCellParams::weight_hh]);
 
@@ -341,9 +352,9 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdbias_ih = !disable_bias && !integrate_bias
                          ? context.getWeightGrad(wt_idx[GRUCellParams::bias_ih])
                          : empty;
-  Tensor &bias_hh = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[GRUCellParams::bias_hh])
-                      : empty;
+  const Tensor &bias_hh = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[GRUCellParams::bias_hh])
+                            : empty;
   Tensor &djdbias_hh = !disable_bias && !integrate_bias
                          ? context.getWeightGrad(wt_idx[GRUCellParams::bias_hh])
                          : empty;
@@ -355,7 +366,6 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   Tensor &hidden_states =
     context.getTensor(wt_idx[GRUCellParams::hidden_state]);
   hidden_states.reshape({max_timestep, 1, batch_size, unit});
-  Tensor hidden_state = hidden_states.getBatchSlice(timestep, 1);
   Tensor &hidden_states_derivatives =
     context.getTensorGrad(wt_idx[GRUCellParams::hidden_state]);
   Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
@@ -441,20 +451,37 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   Tensor temp = Tensor(batch_size, unit);
   Tensor dhg_;
   dhg_.copy_with_stride(dhg);
-  prev_hidden_state.dot(wg_hh, temp);
-  if (!disable_bias && !integrate_bias) {
-    Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
-    temp.add_i(bias_hh_g);
-  }
-  dhg_.multiply_strided(temp, dhr); // dhr = d15
 
-  // reset temp : prev_hidden_state * rt for djdbias_hh_g and dh_nx
-  dhg_.multiply_strided(rt, temp);
-  if (!disable_bias && !integrate_bias) {
-    Tensor djdbias_hh_g = djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
-    temp.sum(2, djdbias_hh_g, 1.0, 1.0);
+  if (reset_after) {
+    prev_hidden_state.dot(wg_hh, temp);
+    if (!disable_bias && !integrate_bias) {
+      const Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.add_i(bias_hh_g);
+    }
+    dhg_.multiply_strided(temp, dhr); // dhr = d15
+
+    // reset temp: dhg_ * rt for djdbias_hh_g, dh_nx and djdweight_hh_g
+    dhg_.multiply_strided(rt, temp);
+    if (!disable_bias && !integrate_bias) {
+      Tensor djdbias_hh_g = djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.sum(2, djdbias_hh_g, 1.0, 1.0);
+    }
+    temp.dot(wg_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14
+    djdweight_hh_g.add_i_strided(prev_hidden_state.dot(temp, true, false));
+  } else {
+    if (!disable_bias && !integrate_bias) {
+      Tensor djdbias_hh_g = djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
+      dhg.sum(2, djdbias_hh_g, 1.0, 1.0);
+    }
+
+    dhg_.dot(wg_hh, temp, false, true);
+    temp.multiply_strided(prev_hidden_state, dhr);
+    temp.multiply_strided(rt, dh_nx, 1.0f);
+
+    // reset temp: rt * prev_hidden_state for and djdweight_hh_g
+    rt.multiply_strided(prev_hidden_state, temp);
+    temp.dot(dhg_, djdweight_hh_g, true, false, 1.0f);
   }
-  temp.dot(wg_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14
 
   recurrent_acti_func.run_prime_fn(rt, dhr, dhr); // dhr = d16
 
@@ -469,12 +496,10 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
     }
   }
 
-  djdweight_ih.add_i(input.dot(zrg_gate_derivative, true, false));
-
   Tensor dhzr_;
   dhzr_.copy_with_stride(dhzr);
   djdweight_hh_zr.add_i_strided(prev_hidden_state.dot(dhzr_, true, false));
-  djdweight_hh_g.add_i_strided(prev_hidden_state.dot(temp, true, false));
+  input.dot(zrg_gate_derivative, djdweight_ih, true, false, 1.0f);
   dhzr_.dot(wzr_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14 + d12 + d17
 }
 

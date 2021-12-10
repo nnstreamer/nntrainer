@@ -669,9 +669,9 @@ INI gru_basic(
   {
     nn_base + "loss=mse | batch_size=1",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:1:1",
+    I("input") + input_base + "input_shape=1:1:4",
     I("gru") + gru_base +
-      "unit = 1" + "input_layers=input",
+      "unit = 3" + "input_layers=input" + "integrate_bias=true" + "reset_after=false",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
   }
 );
@@ -681,9 +681,9 @@ INI gru_return_sequence(
   {
     nn_base + "loss=mse | batch_size=1",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
+    I("input") + input_base + "input_shape=1:2:4",
     I("gru") + gru_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true" + "reset_after=false",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
   }
 );
@@ -693,9 +693,9 @@ INI gru_return_sequence_with_batch(
   {
     nn_base + "loss=mse | batch_size=2",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
+    I("input") + input_base + "input_shape=1:2:4",
     I("gru") + gru_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true" + "reset_after=false",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
   }
 );
@@ -705,11 +705,11 @@ INI multi_gru_return_sequence(
   {
     nn_base + "loss=mse | batch_size=1",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
+    I("input") + input_base + "input_shape=1:2:4",
     I("gru") + gru_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true" + "reset_after=false",
     I("gru2") + gru_base +
-      "unit = 2" + "input_layers=gru",
+      "unit = 3" + "input_layers=gru" + "integrate_bias=true" + "reset_after=false",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
   }
 );
@@ -719,11 +719,76 @@ INI multi_gru_return_sequence_with_batch(
   {
     nn_base + "loss=mse | batch_size=2",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
+    I("input") + input_base + "input_shape=1:2:4",
     I("gru") + gru_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=true" + "reset_after=false",
     I("gru2") + gru_base +
-      "unit = 2" + "input_layers=gru",
+      "unit = 3" + "input_layers=gru" + "integrate_bias=true" + "reset_after=false",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
+  }
+);
+
+// Check reset_after
+INI gru_reset_after_basic(
+  "gru_reset_after_basic",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:1:4",
+    I("gru") + gru_base +
+      "unit = 3" + "input_layers=input" + "integrate_bias=false" + "reset_after=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI gru_reset_after_return_sequence(
+  "gru_reset_after_return_sequence",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:4",
+    I("gru") + gru_base +
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=false" + "reset_after=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI gru_reset_after_return_sequence_with_batch(
+  "gru_reset_after_return_sequence_with_batch",
+  {
+    nn_base + "loss=mse | batch_size=2",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:4",
+    I("gru") + gru_base +
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=false" + "reset_after=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI multi_gru_reset_after_return_sequence(
+  "multi_gru_reset_after_return_sequence",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:4",
+    I("gru") + gru_base +
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=false" + "reset_after=true",
+    I("gru2") + gru_base +
+      "unit = 3" + "input_layers=gru" + "integrate_bias=false" + "reset_after=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
+  }
+);
+
+INI multi_gru_reset_after_return_sequence_with_batch(
+  "multi_gru_reset_after_return_sequence_with_batch",
+  {
+    nn_base + "loss=mse | batch_size=2",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:4",
+    I("gru") + gru_base +
+      "unit = 3" + "input_layers=input"+ "return_sequences=true" + "integrate_bias=false" + "reset_after=true",
+    I("gru2") + gru_base +
+      "unit = 3" + "input_layers=gru" + "integrate_bias=false" + "reset_after=true",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
   }
 );
@@ -928,6 +993,11 @@ INSTANTIATE_TEST_CASE_P(
       mkModelIniTc(gru_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
       mkModelIniTc(multi_gru_return_sequence, "1:1:1:1", 10, ModelTestOption::ALL),
       mkModelIniTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::ALL),
+      mkModelIniTc(gru_reset_after_basic, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelIniTc(gru_reset_after_return_sequence, "1:1:2:1", 10, ModelTestOption::ALL),
+      mkModelIniTc(gru_reset_after_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
+      mkModelIniTc(multi_gru_reset_after_return_sequence, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelIniTc(multi_gru_reset_after_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::ALL),
 
       /**< multi output test */
       mkModelIniTc(multiple_output_model, "3:1:1:10", 10, ModelTestOption::COMPARE) // Todo: Enable option to ALL

@@ -213,6 +213,19 @@ class MultiOutLayer(IdentityTransLayer):
 
         return [layer(tf_output) for layer in self.stub_layers]
 
+##
+# @brief Translayer for gru layer
+class GRUTransLayer(IdentityTransLayer):
+    def to_nntr_weights(self, tensorOrList):
+        bias = tensorOrList[2]
+        if bias.shape.rank == 2:
+            bias_ih, bias_hh = bias[0], bias[1]
+            return [tensorOrList[0], tensorOrList[1], bias_ih, bias_hh]
+        else:
+            return tensorOrList
+
+    def to_nntr_trainable_weights(self, tensorOrList):
+        return self.to_nntr_weights(tensorOrList)
 
 ##
 # @brief A factory function to attach translayer to existing layer
@@ -225,5 +238,8 @@ def attach_trans_layer(layer):
 
     if isinstance(layer, CHANNEL_LAST_LAYERS):
         return ChannelLastTransLayer(layer)
+
+    if isinstance(layer, K.layers.GRU):
+        return GRUTransLayer(layer)
 
     return layer
