@@ -42,7 +42,7 @@
 #include <ml-api-common.h>
 #include <model_common_properties.h>
 #include <network_graph.h>
-#include <optimizer_devel.h>
+#include <optimizer_wrapped.h>
 #include <tensor.h>
 
 #include <model.h>
@@ -518,8 +518,8 @@ private:
 
   float loss; /**< loss */
 
-  std::shared_ptr<Optimizer> opt; /**< Optimizer; this gets copied into each
-                    layer, do not use this directly */
+  std::shared_ptr<OptimizerWrapped> opt; /**< Optimizer; this gets copied into
+                    each layer, do not use this directly */
 
   std::array<std::shared_ptr<DataBuffer>, 3>
     data_buffers; /**< Data Buffers to get Input */

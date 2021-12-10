@@ -33,7 +33,7 @@ class DecayRate;
 } // namespace props
 
 /** TODO: change to nntrainer::Optimizer */
-using OptimizerCore = ml::train::Optimizer;
+using OptimizerCore = nntrainer::Optimizer;
 
 /**
  * @class   Optimizer Base class for optimizers

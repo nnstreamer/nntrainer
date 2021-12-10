@@ -214,10 +214,10 @@ static void add_default_object(AppContext &ac) {
   /// @note all layers should be added to the app_context to gaurantee that
   /// createLayer/createOptimizer class is created
   using OptType = ml::train::OptimizerType;
-  ac.registerFactory(ml::train::createOptimizer<SGD>, SGD::type, OptType::SGD);
-  ac.registerFactory(ml::train::createOptimizer<Adam>, Adam::type,
+  ac.registerFactory(nntrainer::createOptimizer<SGD>, SGD::type, OptType::SGD);
+  ac.registerFactory(nntrainer::createOptimizer<Adam>, Adam::type,
                      OptType::ADAM);
-  ac.registerFactory(AppContext::unknownFactory<ml::train::Optimizer>,
+  ac.registerFactory(AppContext::unknownFactory<nntrainer::Optimizer>,
                      "unknown", OptType::UNKNOWN);
 
   using LRType = LearningRateType;
@@ -455,15 +455,15 @@ int AppContext::registerOptimizer(const std::string &library_path,
     << func_tag << "custom optimizer must specify type name, but it is empty";
   pluggable->destroyfunc(optimizer);
 
-  FactoryType<ml::train::Optimizer> factory_func =
+  FactoryType<nntrainer::Optimizer> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<ml::train::Optimizer> optimizer =
+      std::unique_ptr<nntrainer::Optimizer> optimizer =
         std::make_unique<internal::PluggedOptimizer>(pluggable);
 
       return optimizer;
     };
 
-  return registerFactory<ml::train::Optimizer>(factory_func, type);
+  return registerFactory<nntrainer::Optimizer>(factory_func, type);
 }
 
 std::vector<int>
@@ -546,8 +546,8 @@ const int AppContext::registerFactory(const FactoryType<T> factory,
 /**
  * @copydoc const int AppContext::registerFactory
  */
-template const int AppContext::registerFactory<ml::train::Optimizer>(
-  const FactoryType<ml::train::Optimizer> factory, const std::string &key,
+template const int AppContext::registerFactory<nntrainer::Optimizer>(
+  const FactoryType<nntrainer::Optimizer> factory, const std::string &key,
   const int int_key);
 
 /**

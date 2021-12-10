@@ -30,6 +30,7 @@
 #include <layer_devel.h>
 #include <lr_scheduler.h>
 #include <optimizer.h>
+#include <optimizer_devel.h>
 
 #include <nntrainer_error.h>
 
@@ -264,7 +265,7 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer, nntrainer::Layer,
+  FactoryMap<nntrainer::Optimizer, nntrainer::Layer,
              nntrainer::LearningRateScheduler>
     factory_map;
   std::string working_path_base;
@@ -290,8 +291,8 @@ private:
 /**
  * @copydoc const int AppContext::registerFactory
  */
-extern template const int AppContext::registerFactory<ml::train::Optimizer>(
-  const FactoryType<ml::train::Optimizer> factory, const std::string &key,
+extern template const int AppContext::registerFactory<nntrainer::Optimizer>(
+  const FactoryType<nntrainer::Optimizer> factory, const std::string &key,
   const int int_key);
 
 /**
