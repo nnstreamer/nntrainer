@@ -23,6 +23,8 @@
 
 namespace nntrainer {
 
+class OptimizerWrapped;
+
 /**
  * @class   ModelLoader
  * @brief   Model Loader class to load model from various config files
@@ -85,6 +87,14 @@ private:
    * @param[in/out] model model to be loaded
    */
   int loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model);
+
+  /**
+   * @brief     load learning rate scheduler config from ini
+   * @param[in] ini dictionary containing the config
+   * @param[in/out] optimizer to contain the lr scheduler
+   */
+  int loadLearningRateSchedulerConfigIni(
+    dictionary *ini, std::shared_ptr<ml::train::Optimizer> &optimizer);
 
   /**
    * @brief     Check if the file extension is the given @a ext

@@ -163,12 +163,15 @@ static nntrainer::IniSection model_base("Model", "Type = NeuralNetwork"
                                                  " | batch_size = 32");
 
 static nntrainer::IniSection optimizer("Optimizer", "Type = adam"
-                                                    " | Learning_rate = 0.0001"
-                                                    " | Decay_rate = 0.96"
-                                                    " | Decay_steps = 1000"
                                                     " | beta1 = 0.9"
                                                     " | beta2 = 0.9999"
                                                     " | epsilon = 1e-7");
+
+static nntrainer::IniSection learning_rate("LearningRateScheduler",
+                                           "Type = exponential"
+                                           " | Learning_rate = 0.0001"
+                                           " | Decay_rate = 0.96"
+                                           " | Decay_steps = 1000");
 
 static nntrainer::IniSection dataset("Dataset", "BufferSize=100"
                                                 " | TrainData = trainingSet.dat"
@@ -194,7 +197,7 @@ static nntrainer::IniSection outputlayer("outputlayer",
 TEST(nntrainer_ccapi, train_with_config_01_p) {
   std::unique_ptr<ml::train::Model> model;
   ScopedIni s("test_train_01_p",
-              {model_base + "batch_size = 16", optimizer,
+              {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
 
   EXPECT_NO_THROW(model =
@@ -407,8 +410,9 @@ TEST(nntrainer_ccapi, train_with_config_02_n) {
 TEST(nntrainer_ccapi, save_ini_p) {
   std::unique_ptr<ml::train::Model> model;
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  ScopedIni s("simple_ini", {model_base + "batch_size = 16", optimizer,
-                             dataset + "-BufferSize", inputlayer, outputlayer});
+  ScopedIni s("simple_ini",
+              {model_base + "batch_size = 16", optimizer, learning_rate,
+               dataset + "-BufferSize", inputlayer, outputlayer});
 
   std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
     ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
