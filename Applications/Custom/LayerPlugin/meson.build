@@ -2,7 +2,7 @@
 pow_layer = shared_library('pow_layer',
   layer_example_pow_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
-  include_directories: layer_example_inc,
+  include_directories: example_inc,
   install: true,
   install_dir: application_install_dir,
   cpp_args: '-DPLUGGABLE'
@@ -12,7 +12,7 @@ pow_layer = shared_library('pow_layer',
 mae_loss_layer  = shared_library('mae_loss_layer',
   layer_example_mae_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
-  include_directories: layer_example_inc,
+  include_directories: example_inc,
   install: true,
   install_dir: application_install_dir,
   cpp_args: '-DPLUGGABLE'
@@ -22,7 +22,7 @@ mae_loss_layer  = shared_library('mae_loss_layer',
 rnnt_loss_layer  = shared_library('rnnt_loss_layer',
   layer_example_rnnt_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
-  include_directories: layer_example_inc,
+  include_directories: example_inc,
   install: true,
   install_dir: application_install_dir,
   cpp_args: '-DPLUGGABLE'
@@ -30,17 +30,17 @@ rnnt_loss_layer  = shared_library('rnnt_loss_layer',
 
 pow_layer_dep = declare_dependency(
   link_with: pow_layer,
-  include_directories: layer_example_inc
+  include_directories: example_inc
   )
 
 mae_loss_layer_dep = declare_dependency(
   link_with: mae_loss_layer,
-  include_directories: layer_example_inc
+  include_directories: example_inc
   )
 
 rnnt_loss_layer_dep = declare_dependency(
   link_with: rnnt_loss_layer,
-  include_directories: layer_example_inc
+  include_directories: example_inc
   )
 
 if get_option('enable-test')
