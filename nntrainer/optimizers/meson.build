@@ -5,7 +5,8 @@ optimizer_sources = [
   'sgd.cpp',
   'optimizer_context.cpp',
   'lr_scheduler_constant.cpp',
-  'lr_scheduler_exponential.cpp'
+  'lr_scheduler_exponential.cpp',
+  'optimizer_wrapped.cpp'
 ]
 
 optimizer_headers = [
