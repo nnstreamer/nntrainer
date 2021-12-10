@@ -20,7 +20,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <sgd.h>
+#include <optimizer_wrapped.h>
 #include <time_dist.h>
 #include <util_func.h>
 
@@ -66,7 +66,7 @@ int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
 
   try {
     std::shared_ptr<ml::train::Optimizer> optimizer =
-      app_context.createObject<ml::train::Optimizer>(opt_type, properties);
+      createOptimizerWrapped(opt_type, properties);
     model.setOptimizer(optimizer);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
@@ -134,7 +134,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
 
   try {
     std::shared_ptr<ml::train::Optimizer> optimizer =
-      app_context.createObject<ml::train::Optimizer>(opt_type, {});
+      createOptimizerWrapped(opt_type, {});
     model.setOptimizer(optimizer);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());

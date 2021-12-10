@@ -107,6 +107,21 @@ using CreateOptimizerFunc = ml::train::Optimizer *(*)();
 using DestroyOptimizerFunc = void (*)(ml::train::Optimizer *);
 
 /**
+ * @brief General Optimizer Factory function to register Optimizer
+ *
+ * @param props property representation
+ * @return std::unique_ptr<nntrainer::Optimizer> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<Optimizer, T>::value, T> * = nullptr>
+std::unique_ptr<Optimizer>
+createOptimizer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<Optimizer> ptr = std::make_unique<T>();
+  ptr->setProperty(props);
+  return ptr;
+}
+
+/**
  * @brief  Optimizer Pluggable struct that enables pluggable layer
  *
  */
