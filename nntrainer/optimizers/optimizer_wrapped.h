@@ -20,19 +20,13 @@
 #include <string>
 #include <vector>
 
+#include <common_properties.h>
 #include <lr_scheduler.h>
 #include <optimizer.h>
 #include <optimizer_devel.h>
 
 namespace nntrainer {
 
-namespace props {
-class LearningRate;
-class DecaySteps;
-class DecayRate;
-} // namespace props
-
-/** TODO: change to nntrainer::Optimizer */
 using OptimizerCore = nntrainer::Optimizer;
 
 /**

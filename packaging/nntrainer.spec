@@ -489,7 +489,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # optimizer headers
 %{_includedir}/nntrainer/optimizer_context.h
 %{_includedir}/nntrainer/optimizer_devel.h
-%{_includedir}/nntrainer/optimizer_impl.h
 %{_includedir}/nntrainer/lr_scheduler.h
 %{_libdir}/pkgconfig/nntrainer.pc
 # update this to enable external applications
