@@ -34,9 +34,10 @@ public:
    * @brief Construct a new Run Optimizer Context object
    *
    */
-  RunOptimizerContext(Weight *w = nullptr, size_t iter = 0) :
+  RunOptimizerContext(Weight *w = nullptr, size_t iter = 0, double lr = 0.0) :
     weight(w),
-    iteration(iter) {}
+    iteration(iter),
+    learning_rate(lr) {}
 
   /**
    * @brief Get the Weight tensor object
@@ -81,9 +82,17 @@ public:
    */
   size_t getIteration() const { return iteration; }
 
+  /**
+   * @brief   Get the current iteration value
+   *
+   * @return iteration value
+   */
+  double getLearningRate() const { return learning_rate; }
+
 private:
-  Weight *weight;   /**< weights for the optimizer */
-  size_t iteration; /**< iteration number */
+  Weight *weight;       /**< weights for the optimizer */
+  size_t iteration;     /**< iteration number */
+  double learning_rate; /**< learning rate */
 };
 
 } // namespace nntrainer

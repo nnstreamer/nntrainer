@@ -296,7 +296,8 @@ void NeuralNetwork::backwarding(int iteration) {
         node.get(), [iteration, opt_ = opt.get()](Weight &w) {
           w.calcRegularizationGradient();
           w.calcWeightDecayGradient();
-          RunOptimizerContext opt_context(&w, iteration);
+          RunOptimizerContext opt_context(&w, iteration,
+                                          opt_->getLearningRate(iteration));
           opt_->applyGradient(opt_context);
         });
     }
@@ -306,7 +307,8 @@ void NeuralNetwork::backwarding(int iteration) {
     [opt_ = opt.get()](Weight &w, int iteration) -> void {
     w.calcRegularizationGradient();
     w.calcWeightDecayGradient();
-    RunOptimizerContext opt_context(&w, iteration);
+    RunOptimizerContext opt_context(&w, iteration,
+                                    opt_->getLearningRate(iteration));
     opt_->applyGradient(opt_context);
   };
 
