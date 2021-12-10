@@ -58,7 +58,9 @@ createOptimizerWrapped(std::unique_ptr<OptimizerCore> &&opt,
 OptimizerWrapped::OptimizerWrapped(std::unique_ptr<OptimizerCore> &&opt) :
   optimizer(std::move(opt)),
   lr_sched(),
-  props(props::LearningRate(), props::DecayRate(), props::DecaySteps()) {}
+  props(props::LearningRate(), props::DecayRate(), props::DecaySteps()) {
+  std::get<props::LearningRate>(props).set(optimizer->getDefaultLearningRate());
+}
 
 const std::string OptimizerWrapped::getType() const {
   return optimizer->getType();
@@ -66,9 +68,7 @@ const std::string OptimizerWrapped::getType() const {
 
 void OptimizerWrapped::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, props);
-  // TODO: update to remain_props
-  optimizer->setProperty(values);
-  // optimizer->setProperty(remain_props);
+  optimizer->setProperty(remain_props);
 }
 
 double OptimizerWrapped::getLearningRate(size_t iteration) {

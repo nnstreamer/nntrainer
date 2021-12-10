@@ -14,7 +14,7 @@
 #define __SGD_H__
 #ifdef __cplusplus
 
-#include <optimizer_impl.h>
+#include <optimizer_devel.h>
 
 namespace nntrainer {
 
@@ -22,13 +22,19 @@ namespace nntrainer {
  * @class   SGD optimizer class
  * @brief   Stochastic Gradient Descent optimizer class
  */
-class SGD : public OptimizerImpl {
+class SGD : public Optimizer {
 public:
   /**
    * @brief Construct a new SGD object
    *
    */
-  SGD();
+  SGD() {}
+
+  /**
+   * @copydoc Optimizer::getDefaultLearningRate()
+   *
+   */
+  double getDefaultLearningRate() const { return 0.0001; }
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
@@ -39,6 +45,14 @@ public:
    * @copydoc Optimizer::getType()
    */
   const std::string getType() const { return SGD::type; }
+
+  /**
+   * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)
+   */
+  std::vector<TensorDim>
+  getOptimizerVariableDim(const TensorDim &dim) override {
+    return {};
+  }
 
   inline static const std::string type = "sgd";
 };

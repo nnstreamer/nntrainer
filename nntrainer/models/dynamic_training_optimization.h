@@ -40,13 +40,13 @@
 #include <vector>
 
 #include <layer_devel.h>
-#include <optimizer_devel.h>
 #include <tensor.h>
 
 namespace nntrainer {
 
 class Weight;
 class Var_Grad;
+class OptimizerWrapped;
 
 /**
  * @class   DynamicTraining Optimization
@@ -146,7 +146,8 @@ public:
   bool checkIfApply(const std::vector<Weight> &weights,
                     const std::shared_ptr<Var_Grad> &input,
                     const std::shared_ptr<Var_Grad> &output,
-                    const std::shared_ptr<Optimizer> &opt, int iteration);
+                    const std::shared_ptr<OptimizerWrapped> &opt,
+                    int iteration);
 
   /**
    * @brief     Check if the given weight can skip updating
@@ -160,7 +161,8 @@ public:
   bool checkIfApply(const Weight &weight,
                     const std::shared_ptr<Var_Grad> &input,
                     const std::shared_ptr<Var_Grad> &output,
-                    const std::shared_ptr<Optimizer> &opt, int iteration);
+                    const std::shared_ptr<OptimizerWrapped> &opt,
+                    int iteration);
 
   /**< Different types of reduce operations */
   static const std::string dft_opt_max;

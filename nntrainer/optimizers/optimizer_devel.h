@@ -38,17 +38,7 @@ public:
    * @brief     get Learning Rate
    * @retval    Learning rate in float
    */
-  virtual float getLearningRate() const { return getLearningRate(0); }
-
-  /**
-   * @brief     get Learning Rate for the given iteration
-   * @param[in] iteration Iteration for the learning rate
-   * @retval    Learning rate in double
-   * @detail    the return value of this function and getLearningRate() must
-   * match for iteration == 0.
-   */
-  virtual double getLearningRate(size_t iteration) const = 0;
-
+  virtual double getDefaultLearningRate() const = 0;
   /**
    * @brief     apply gradient to weight
    * @param[in] context Optimizer context
