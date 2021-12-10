@@ -91,11 +91,6 @@ public:
   const std::string getType() const override { return Adam::type; }
 
   /**
-   * @copydoc   getLearningRate(int iteration)
-   */
-  double getLearningRate(size_t iteration) const override;
-
-  /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)
    */
   std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim) override;
@@ -114,7 +109,17 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
 private:
+
   std::tuple<PropsB1, PropsB2, PropsEpsilon, TorchRef> adam_props;
+
+  /**
+   * @brief Get updated learning rate
+   *
+   * @param ll learning rate
+   *
+   * @return updated learning rate
+   */
+  double getUpdatedLearningRate(unsigned int iteration, double ll) const;
 };
 } /* namespace nntrainer */
 
