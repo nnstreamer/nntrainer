@@ -42,6 +42,7 @@ static constexpr const char *TRAINSET_STR = "train_set";
 static constexpr const char *VALIDSET_STR = "valid_set";
 static constexpr const char *TESTSET_STR = "test_set";
 static constexpr const char *OPTIMIZER_STR = "optimizer";
+static constexpr const char *LRSCHED_STR = "LearningRateScheduler";
 
 namespace nntrainer {
 
@@ -316,7 +317,8 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
           istrequal(sec_name, TRAINSET_STR) ||
           istrequal(sec_name, VALIDSET_STR) ||
           istrequal(sec_name, TESTSET_STR) ||
-          istrequal(sec_name, OPTIMIZER_STR)) {
+          istrequal(sec_name, OPTIMIZER_STR) ||
+          istrequal(sec_name, LRSCHED_STR)) {
         /// dedicated sections so skip
         continue;
       }

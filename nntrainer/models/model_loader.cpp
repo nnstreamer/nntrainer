@@ -42,6 +42,37 @@
 
 namespace nntrainer {
 
+int ModelLoader::loadLearningRateSchedulerConfigIni(
+  dictionary *ini, std::shared_ptr<ml::train::Optimizer> &optimizer) {
+  int status = ML_ERROR_NONE;
+
+  if (iniparser_find_entry(ini, "LearningRateScheduler") == 0) {
+    return ML_ERROR_NONE;
+  }
+
+  /** Default to adam optimizer */
+  const char *lrs_type =
+    iniparser_getstring(ini, "LearningRateScheduler:Type", "unknown");
+  std::vector<std::string> properties =
+    parseProperties(ini, "LearningRateScheduler", {"type"});
+
+  try {
+    std::unique_ptr<nntrainer::LearningRateScheduler> lrs =
+      app_context.createObject<nntrainer::LearningRateScheduler>(lrs_type,
+                                                                 properties);
+    auto opt_wrapped = std::static_pointer_cast<OptimizerWrapped>(optimizer);
+    opt_wrapped->setLearningRateScheduler(std::move(lrs));
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Creating the optimizer failed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
+}
+
 int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
@@ -68,6 +99,7 @@ int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
     std::shared_ptr<ml::train::Optimizer> optimizer =
       createOptimizerWrapped(opt_type, properties);
     model.setOptimizer(optimizer);
+    loadLearningRateSchedulerConfigIni(ini, optimizer);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;

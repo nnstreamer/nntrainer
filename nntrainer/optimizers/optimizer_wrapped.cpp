@@ -91,16 +91,14 @@ void OptimizerWrapped::finalize() {
   auto const &props_ds = std::get<props::DecaySteps>(props);
 
   /** if lr_sched already set and property not empty, error */
-  bool props_empty = props_lr.empty() & props_dr.empty() & props_ds.empty();
+  bool props_empty = props_dr.empty() & props_ds.empty();
 
-  NNTR_THROW_IF(props_empty && !lr_sched, std::invalid_argument)
-    << "Learning rate scheduler not set for the optimizer " << getType();
   NNTR_THROW_IF(!props_empty && lr_sched, std::invalid_argument)
     << "Multiple learning rate schedulers set for the optimizer " << getType();
 
   /** if lr_sched not set, make lr_sched from properties */
-  if (!props_empty) {
-    if (!props_dr.empty() || !props_ds.empty()) {
+  if (!lr_sched) {
+    if (!props_empty) {
       lr_sched = std::make_unique<ExponentialLearningRateScheduler>();
       if (!props_dr.empty())
         lr_sched->setProperty({"decay_rate=" + std::to_string(props_dr.get())});
@@ -110,10 +108,7 @@ void OptimizerWrapped::finalize() {
     } else {
       lr_sched = std::make_unique<ConstantLearningRateScheduler>();
     }
-
-    if (!props_lr.empty())
-      lr_sched->setProperty(
-        {"learning_rate=" + std::to_string(props_lr.get())});
+    lr_sched->setProperty({"learning_rate=" + std::to_string(props_lr.get())});
   }
 
   lr_sched->finalize();
