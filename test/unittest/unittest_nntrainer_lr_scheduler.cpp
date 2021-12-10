@@ -108,6 +108,7 @@ TEST(lr_constant, final_02_p) {
   auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  /** fails as learning rate property is not set */
   EXPECT_NO_THROW(lr->finalize());
 }
 
