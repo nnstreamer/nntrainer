@@ -63,24 +63,12 @@ public:
   PluggedOptimizer &operator=(PluggedOptimizer &&rhs) = default;
 
   /**
-   * @copydoc OptimizerDevel::getLearningRate()
+   * @copydoc Optimizer::getDefaultLearningRate()
    *
    */
-  float getLearningRate() const override {
-    return optimizer_devel->getLearningRate();
+  double getDefaultLearningRate() const override {
+    return optimizer_devel->getDefaultLearningRate();
   }
-
-  /**
-   * @brief     get Learning Rate for the given iteration
-   * @param[in] iteration Iteration for the learning rate
-   * @retval    Learning rate in double
-   * @detail    the return value of this function and getLearningRate() must
-   * match for iteration == 0.
-   */
-  double getLearningRate(size_t iteration) const override {
-    return optimizer_devel->getLearningRate(iteration);
-  }
-
   /**
    * @brief     apply gradient to weight
    * @param[in] context Optimizer context

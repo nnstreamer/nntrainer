@@ -193,7 +193,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/connection.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_context.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_devel.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_impl.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_wrapped.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/adam.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/lr_scheduler_constant.cpp \
