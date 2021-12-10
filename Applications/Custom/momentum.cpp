@@ -6,55 +6,48 @@
  * @date   1 June 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the Momentum optimizer.
  */
-
-#include <cmath>
-#include <fstream>
-
 #include <momentum.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
+#include <tensor.h>
 
-namespace nntrainer {
+namespace custom {
 
-const std::string Momentum::type = "momentum";
+Momentum::Momentum() { setProperty({"learning_rate=0.001", "momentum=0.9f"}); }
 
-void Momentum::addOptimizerVariable(std::vector<Weight> &weight_list) {
-  for (auto &w : weight_list) {
-    w.clearOptimizerVariables();
+void Momentum::applyGradient(nntrainer::RunOptimizerContext &context) {
+  nntrainer::Tensor &x_grad = context.getGradient();
+  nntrainer::Tensor &accumulated = context.getOptimizerVariable(0);
 
-    if (!w.getTrainable())
-      continue;
+  float momentum = std::get<PropMomentum>(momentum_props);
 
-    w.addOptimizerVariable(w.getDim()); /** Add accumulated_momentum */
-  }
-}
-
-void Momentum::applyGradient(Weight &weight, double updated_lr, int iteration) {
-
-  Tensor &x_grad = weight.getGradientRef();
-  Tensor &accumulated = weight.getOptimizerVariableRef(0);
-
-  accumulated.multiply_i(momentum);
-  accumulated.add_i(x_grad);
+  accumulated.add_i(x_grad, momentum);
 
   x_grad.fill(accumulated);
-  weight.applyGradient(updated_lr);
+  context.applyGradient(getLearningRate(context.getIteration()));
 }
 
-void Momentum::setProperty(const std::string &key, const std::string &value) {
-  int status = ML_ERROR_NONE;
-  if (key == "momentum") {
-    status = setDouble(momentum, value);
-  } else {
-    OptimizerImpl::setProperty(key, value);
-  }
-
-  throw_status(status);
+double Momentum::getLearningRate(size_t iteration) const {
+  return nntrainer::OptimizerImpl::getLearningRate(iteration);
 }
 
+std::vector<ml::train::TensorDim>
+Momentum::getOptimizerVariableDim(const ml::train::TensorDim &dim) {
+  /// momentum optimizer uses *accumulated
+  return {dim};
+}
+
+void Momentum::setProperty(const std::vector<std::string> &values) {
+  auto left = loadProperties(values, momentum_props);
+  OptimizerImpl::setProperty(left);
+}
+
+/// if a custom optimizer is compiled as a separate so, this is where you need
 #ifdef PLUGGABLE
 
 ml::train::Optimizer *create_momentum_optimizer() {
@@ -73,4 +66,4 @@ nntrainer::OptimizerPluggable ml_train_optimizer_pluggable{
 
 #endif
 
-} // namespace nntrainer
+} // namespace custom

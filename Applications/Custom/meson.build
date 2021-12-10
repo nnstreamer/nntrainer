@@ -7,3 +7,8 @@ layer_example_inc = include_directories('./')
 
 subdir('LayerClient/jni')
 subdir('LayerPlugin')
+
+
+optimizer_example_momentum_src = files('momentum.cpp')
+
+subdir('OptimizerClient')
