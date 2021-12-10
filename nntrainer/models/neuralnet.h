@@ -129,8 +129,10 @@ public:
   /**
    * @brief     Get Learning rate
    * @retval    Learning rate
+   *
+   * @todo update to return the last used learning rate
    */
-  float getLearningRate() { return opt->getLearningRate(); };
+  float getLearningRate() { return opt->getLearningRate(0); };
 
   /**
    * @brief     Create and load the Network with ini configuration file.

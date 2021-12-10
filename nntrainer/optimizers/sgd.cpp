@@ -18,7 +18,7 @@ namespace nntrainer {
 SGD::SGD() { setProperty({"learning_rate=0.0001"}); }
 
 void SGD::applyGradient(RunOptimizerContext &context) {
-  context.applyGradient(getLearningRate(context.getIteration()));
+  context.applyGradient(context.getLearningRate());
 }
 
 } // namespace nntrainer

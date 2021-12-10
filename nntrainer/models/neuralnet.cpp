@@ -292,7 +292,8 @@ void NeuralNetwork::backwarding(int iteration) {
       model_graph.applyGradients(
         node.get(), [iteration, opt_ = opt.get()](Weight &w) {
           w.calcRegularizationGradient();
-          RunOptimizerContext opt_context(&w, iteration);
+          RunOptimizerContext opt_context(&w, iteration,
+                                          opt_->getLearningRate(iteration));
           opt_->applyGradient(opt_context);
         });
     }
@@ -300,7 +301,8 @@ void NeuralNetwork::backwarding(int iteration) {
 
   std::function<void(Weight &, int)> apply_grad_clip_op =
     [opt_ = opt.get()](Weight &w, int iteration) -> void {
-    RunOptimizerContext opt_context(&w, iteration);
+    RunOptimizerContext opt_context(&w, iteration,
+                                    opt_->getLearningRate(iteration));
     opt_->applyGradient(opt_context);
   };
 
