@@ -35,6 +35,16 @@ public:
   virtual ~LearningRateScheduler() = default;
 
   /**
+   * @brief     Finalize creating the learning rate scheduler
+   *
+   * @details   Verify that all the needed properties have been and within the
+   * valid range.
+   * @note      After calling this it is not allowed to
+   * change properties.
+   */
+  virtual void finalize() = 0;
+
+  /**
    * @brief     get Learning Rate for the given iteration
    * @param[in] iteration Iteration for the learning rate
    * @retval    Learning rate in double

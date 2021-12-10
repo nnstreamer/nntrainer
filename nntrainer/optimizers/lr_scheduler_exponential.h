@@ -25,7 +25,8 @@ namespace nntrainer {
  * @class   Constant Learning Rate Scheduler class
  * @brief   class for constant Learning Rate Schedulers
  */
-class ExponentialLearningRateScheduler : public ConstantLearningRateScheduler {
+class ExponentialLearningRateScheduler final
+  : public ConstantLearningRateScheduler {
 
 public:
   /**
@@ -38,7 +39,13 @@ public:
    * @copydoc LearningRateScheduler::getLearningRate(size_t iteration) const
    *
    */
-  virtual double getLearningRate(size_t iteration) override;
+  double getLearningRate(size_t iteration) override;
+
+  /**
+   * @copydoc LearningRateScheduler::finalize()
+   *
+   */
+  void finalize() override;
 
   /**
    * @copydoc LearningRateScheduler::exportTo(Exporter &exporter, const

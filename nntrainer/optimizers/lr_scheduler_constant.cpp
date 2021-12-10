@@ -24,6 +24,12 @@ namespace nntrainer {
 ConstantLearningRateScheduler::ConstantLearningRateScheduler() :
   lr_props(props::LearningRate()) {}
 
+void ConstantLearningRateScheduler::finalize() {
+  NNTR_THROW_IF(std::get<props::LearningRate>(lr_props).empty(),
+                std::invalid_argument)
+    << "[ConstantLearningRateScheduler] Learning Rate is not set";
+}
+
 void ConstantLearningRateScheduler::setProperty(
   const std::vector<std::string> &values) {
   auto left = loadProperties(values, lr_props);

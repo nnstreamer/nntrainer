@@ -41,6 +41,12 @@ public:
   virtual double getLearningRate(size_t iteration) override;
 
   /**
+   * @copydoc LearningRateScheduler::finalize()
+   *
+   */
+  virtual void finalize() override;
+
+  /**
    * @copydoc LearningRateScheduler::exportTo(Exporter &exporter, const
    * ExportMethods& method)
    *
