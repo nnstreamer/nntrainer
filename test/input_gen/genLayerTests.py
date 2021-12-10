@@ -119,28 +119,58 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(lstm, (3, 4, 7), "lstm_multi_step_seq_act")
 
-    gru = K.layers.GRU(units=5, reset_after=False,
+    gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         activation="tanh",
+                         bias_initializer='GlorotUniform',
                          return_sequences=False,
-                         return_state=False)
+                         return_state=False,
+                         reset_after=False)
     record_single(gru, (3, 1, 7), "gru_single_step")
     record_single(gru, (3, 4, 7), "gru_multi_step")
 
-    gru = K.layers.GRU(units=5, reset_after=False,
+    gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         activation="tanh",
+                         bias_initializer='GlorotUniform',
                          return_sequences=True,
-                         return_state=False)
+                         return_state=False,
+                         reset_after=False)
     record_single(gru, (3, 1, 7), "gru_single_step_seq")
     record_single(gru, (3, 4, 7), "gru_multi_step_seq", input_type='float')
 
-    gru = K.layers.GRU(units=5, reset_after=False,
+    gru = K.layers.GRU(units=5, activation="sigmoid", 
                          recurrent_activation="tanh",
-                         activation="sigmoid",
+                         bias_initializer='GlorotUniform',
                          return_sequences=True,
-                         return_state=False)
+                         return_state=False,
+                         reset_after=False,)
     record_single(gru, (3, 4, 7), "gru_multi_step_seq_act", input_type='float')
+
+    # check reset_after
+    gru = K.layers.GRU(units=5, activation="tanh", 
+                         recurrent_activation="sigmoid",
+                         bias_initializer='GlorotUniform',
+                         return_sequences=False,
+                         return_state=False,
+                         reset_after=True,)
+    record_single(gru, (3, 1, 7), "gru_reset_after_single_step")
+    record_single(gru, (3, 4, 7), "gru_reset_after_multi_step")
+
+    gru = K.layers.GRU(units=5, activation="tanh", 
+                         recurrent_activation="sigmoid",
+                         bias_initializer='GlorotUniform',
+                         return_sequences=True,
+                         return_state=False,
+                         reset_after=True)
+    record_single(gru, (3, 1, 7), "gru_reset_after_single_step_seq")
+    record_single(gru, (3, 4, 7), "gru_reset_after_multi_step_seq", input_type='float')
+
+    gru = K.layers.GRU(units=5, activation="sigmoid", 
+                         recurrent_activation="tanh",
+                         bias_initializer='GlorotUniform',
+                         return_sequences=True,
+                         return_state=False,
+                         reset_after=True)
+    record_single(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_act", input_type='float')
 
     dropout = K.layers.Dropout(rate=0.2)
     record_single(dropout, (2, 3, 2, 3), "dropout_20_training", {"training": True})

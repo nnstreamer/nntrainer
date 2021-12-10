@@ -585,6 +585,24 @@ public:
 };
 
 /**
+ * @brief ResetAfter property, apply reset gate after matrix multiplication if
+ * this property is true. Apply before the multiplication if false. Used in gru,
+ * grucell.
+ *
+ */
+class ResetAfter : public nntrainer::Property<bool> {
+
+public:
+  /**
+   * @brief Construct a new ResetAfter object with a default value true
+   *
+   */
+  ResetAfter(bool value = true) : nntrainer::Property<bool>(value) {}
+  static constexpr const char *key = "reset_after"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;                   /**< property type */
+};
+
+/**
  * @brief Number of class
  * @todo deprecate this
  */

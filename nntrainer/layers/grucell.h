@@ -106,13 +106,16 @@ private:
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * DropOutRate: dropout rate
    * IntegrateBias: integrate bias_ih, bias_hh to bias_h
+   * ResetAfter: Whether apply reset gate before/after the matrix
+   * multiplication. Apply reset gate after the mulplication if true.
    * MaxTimeStep: Maximum timestep of gru
    * TimeStep: timestep for which gru should operate
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation,
              props::RecurrentActivation, props::DropOutRate,
-             props::IntegrateBias, props::MaxTimestep, props::Timestep>
+             props::IntegrateBias, props::ResetAfter, props::MaxTimestep,
+             props::Timestep>
     grucell_props;
   std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 

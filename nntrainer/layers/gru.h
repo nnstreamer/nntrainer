@@ -106,13 +106,15 @@ private:
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * ReturnSequence: option for return sequence
    * DropOutRate: dropout rate
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
+   * ResetAfter: Whether apply reset gate before/after the matrix
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation,
              props::RecurrentActivation, props::ReturnSequences,
-             props::DropOutRate>
+             props::DropOutRate, props::IntegrateBias, props::ResetAfter>
     gru_props;
-  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is sigmoid

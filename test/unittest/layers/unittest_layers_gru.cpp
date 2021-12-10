@@ -16,47 +16,97 @@
 #include <gru.h>
 #include <layers_common_tests.h>
 
-auto semantic_gru =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::GRULayer>,
-                          nntrainer::GRULayer::type, {"unit=1"}, 0, false, 1);
+auto semantic_gru = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>, nntrainer::GRULayer::type,
+  {"unit=1", "integrate_bias=true", "reset_after=false"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(GRU, LayerSemantics, ::testing::Values(semantic_gru));
 
 auto gru_single_step = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::GRULayer>, {"unit=5"}, "3:1:1:7",
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "integrate_bias=true", "reset_after=false"}, "3:1:1:7",
   "gru_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto gru_multi_step = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::GRULayer>, {"unit=5"}, "3:1:4:7",
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "integrate_bias=true", "reset_after=false"}, "3:1:4:7",
   "gru_multi_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
-auto gru_single_step_seq = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::GRULayer>,
-  {"unit=5", "return_sequences=true"}, "3:1:1:7",
-  "gru_single_step_seq.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+auto gru_single_step_seq =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::GRULayer>,
+                           {"unit=5", "return_sequences=true",
+                            "integrate_bias=true", "reset_after=false"},
+                           "3:1:1:7", "gru_single_step_seq.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
 
-auto gru_multi_step_seq = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::GRULayer>,
-  {"unit=5", "return_sequences=true"}, "3:1:4:7",
-  "gru_multi_step_seq.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+auto gru_multi_step_seq =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::GRULayer>,
+                           {"unit=5", "return_sequences=true",
+                            "integrate_bias=true", "reset_after=false"},
+                           "3:1:4:7", "gru_multi_step_seq.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
 
 auto gru_multi_step_seq_act_orig = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRULayer>,
   {"unit=5", "return_sequences=true", "hidden_state_activation=tanh",
-   "recurrent_activation=sigmoid"},
+   "recurrent_activation=sigmoid", "integrate_bias=true", "reset_after=false"},
   "3:1:4:7", "gru_multi_step_seq.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
 auto gru_multi_step_seq_act = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRULayer>,
   {"unit=5", "return_sequences=true", "hidden_state_activation=sigmoid",
-   "recurrent_activation=tanh"},
+   "recurrent_activation=tanh", "integrate_bias=true", "reset_after=false"},
   "3:1:4:7", "gru_multi_step_seq_act.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(GRU, LayerGoldenTest,
-                        ::testing::Values(gru_single_step, gru_multi_step,
-                                          gru_single_step_seq,
-                                          gru_multi_step_seq,
-                                          gru_multi_step_seq_act_orig,
-                                          gru_multi_step_seq_act));
+// Check reset_after
+auto gru_reset_after_single_step = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "integrate_bias=false", "reset_after=true"}, "3:1:1:7",
+  "gru_reset_after_single_step.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto gru_reset_after_multi_step = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "integrate_bias=false", "reset_after=true"}, "3:1:4:7",
+  "gru_reset_after_multi_step.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto gru_reset_after_single_step_seq = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "return_sequences=true", "integrate_bias=false",
+   "reset_after=true"},
+  "3:1:1:7", "gru_reset_after_single_step_seq.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto gru_reset_after_multi_step_seq = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "return_sequences=true", "integrate_bias=false",
+   "reset_after=true"},
+  "3:1:4:7", "gru_reset_after_multi_step_seq.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto gru_reset_after_multi_step_seq_act_orig = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "return_sequences=true", "hidden_state_activation=tanh",
+   "recurrent_activation=sigmoid", "integrate_bias=false", "reset_after=true"},
+  "3:1:4:7", "gru_reset_after_multi_step_seq.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto gru_reset_after_multi_step_seq_act = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRULayer>,
+  {"unit=5", "return_sequences=true", "hidden_state_activation=sigmoid",
+   "recurrent_activation=tanh", "integrate_bias=false", "reset_after=true"},
+  "3:1:4:7", "gru_reset_after_multi_step_seq_act.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+INSTANTIATE_TEST_CASE_P(
+  GRU, LayerGoldenTest,
+  ::testing::Values(gru_single_step, gru_multi_step, gru_single_step_seq,
+                    gru_multi_step_seq, gru_multi_step_seq_act_orig,
+                    gru_multi_step_seq_act, gru_reset_after_single_step,
+                    gru_reset_after_multi_step, gru_reset_after_single_step_seq,
+                    gru_reset_after_multi_step_seq,
+                    gru_reset_after_multi_step_seq_act_orig,
+                    gru_reset_after_multi_step_seq_act));
