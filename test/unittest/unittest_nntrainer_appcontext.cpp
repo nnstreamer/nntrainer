@@ -151,7 +151,7 @@ public:
 
 using AC = nntrainer::AppContext;
 
-AC::PtrType<ml::train::Optimizer>
+AC::PtrType<nntrainer::Optimizer>
 createCustomOptimizer(const AC::PropsType &v) {
   auto p = std::make_unique<CustomOptimizer>();
   p->setProperty(v);
@@ -165,9 +165,9 @@ TEST(nntrainerAppContextObjs, RegisterCreateCustomOptimizer_p) {
   {
     auto ac = nntrainer::AppContext();
     int num_id = ac.registerFactory(createCustomOptimizer);
-    auto opt = ac.createObject<ml::train::Optimizer>("identity_optimizer", {});
+    auto opt = ac.createObject<nntrainer::Optimizer>("identity_optimizer", {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<ml::train::Optimizer>(num_id, {});
+    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
   }
 
@@ -175,9 +175,9 @@ TEST(nntrainerAppContextObjs, RegisterCreateCustomOptimizer_p) {
   {
     auto ac = nntrainer::AppContext();
     int num_id = ac.registerFactory(createCustomOptimizer, "custom_key");
-    auto opt = ac.createObject<ml::train::Optimizer>("custom_key", {});
+    auto opt = ac.createObject<nntrainer::Optimizer>("custom_key", {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<ml::train::Optimizer>(num_id, {});
+    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
   }
 
@@ -186,9 +186,9 @@ TEST(nntrainerAppContextObjs, RegisterCreateCustomOptimizer_p) {
     auto ac = nntrainer::AppContext();
     int num_id = ac.registerFactory(createCustomOptimizer, "custom_key", 5);
     EXPECT_EQ(num_id, 5);
-    auto opt = ac.createObject<ml::train::Optimizer>("custom_key", {});
+    auto opt = ac.createObject<nntrainer::Optimizer>("custom_key", {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<ml::train::Optimizer>(num_id, {});
+    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
   }
 }
@@ -222,7 +222,7 @@ TEST(nntrainerAppContextObjs, createObjectNotExistingKey_n) {
   auto ac = nntrainer::AppContext();
 
   ac.registerFactory(createCustomOptimizer);
-  EXPECT_THROW(ac.createObject<ml::train::Optimizer>("not_exisiting_key"),
+  EXPECT_THROW(ac.createObject<nntrainer::Optimizer>("not_exisiting_key"),
                nntrainer::exception::not_supported);
 }
 
@@ -230,7 +230,7 @@ TEST(nntrainerAppContextObjs, createObjectNotExistingIntKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(createCustomOptimizer);
-  EXPECT_THROW(ac.createObject<ml::train::Optimizer>(num + 3),
+  EXPECT_THROW(ac.createObject<nntrainer::Optimizer>(num + 3),
                nntrainer::exception::not_supported);
 }
 
@@ -238,11 +238,11 @@ TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(
-    nntrainer::AppContext::unknownFactory<ml::train::Optimizer>, "unknown",
+    nntrainer::AppContext::unknownFactory<nntrainer::Optimizer>, "unknown",
     999);
 
   EXPECT_EQ(num, 999);
-  EXPECT_THROW(ac.createObject<ml::train::Optimizer>("unknown"),
+  EXPECT_THROW(ac.createObject<nntrainer::Optimizer>("unknown"),
                std::invalid_argument);
 }
 
@@ -250,11 +250,11 @@ TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithIntKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(
-    nntrainer::AppContext::unknownFactory<ml::train::Optimizer>, "unknown",
+    nntrainer::AppContext::unknownFactory<nntrainer::Optimizer>, "unknown",
     999);
 
   EXPECT_EQ(num, 999);
-  EXPECT_THROW(ac.createObject<ml::train::Optimizer>(num),
+  EXPECT_THROW(ac.createObject<nntrainer::Optimizer>(num),
                std::invalid_argument);
 }
 

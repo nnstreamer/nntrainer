@@ -22,6 +22,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <optimizer.h>
+#include <optimizer_wrapped.h>
 
 namespace ml {
 namespace train {
@@ -42,8 +43,7 @@ std::unique_ptr<Layer> createLayer(const std::string &type,
 std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return ac.createObject<Optimizer>(type, properties);
+  return nntrainer::createOptimizerWrapped(type, properties);
 }
 
 /**
@@ -52,8 +52,7 @@ createOptimizer(const OptimizerType &type,
 std::unique_ptr<Optimizer>
 createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return ac.createObject<Optimizer>(type, properties);
+  return nntrainer::createOptimizerWrapped(type, properties);
 }
 
 /**

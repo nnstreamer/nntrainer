@@ -35,28 +35,28 @@
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, create_01_p) {
-  std::unique_ptr<ml::train::Optimizer> op;
+  std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
-  EXPECT_NO_THROW(op = ac.createObject<ml::train::Optimizer>("adam", {}));
+  EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("adam", {}));
 }
 
 /**
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_02_p) {
-  std::unique_ptr<ml::train::Optimizer> op;
+  std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
-  EXPECT_NO_THROW(op = ac.createObject<ml::train::Optimizer>("sgd", {}));
+  EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("sgd", {}));
 }
 
 /**
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_03_n) {
-  std::unique_ptr<ml::train::Optimizer> op;
+  std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_ANY_THROW(
-    op = ac.createObject<ml::train::Optimizer>("non-existing type", {}));
+    op = ac.createObject<nntrainer::Optimizer>("non-existing type", {}));
 }
 
 TEST(nntrainer_throw_if, throw_invalid_arg_p) {

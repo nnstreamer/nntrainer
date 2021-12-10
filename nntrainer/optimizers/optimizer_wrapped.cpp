@@ -66,7 +66,9 @@ const std::string OptimizerWrapped::getType() const {
 
 void OptimizerWrapped::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, props);
-  optimizer->setProperty(remain_props);
+  // TODO: update to remain_props
+  optimizer->setProperty(values);
+  // optimizer->setProperty(remain_props);
 }
 
 double OptimizerWrapped::getLearningRate(size_t iteration) {
@@ -74,12 +76,12 @@ double OptimizerWrapped::getLearningRate(size_t iteration) {
 }
 
 void OptimizerWrapped::applyGradient(RunOptimizerContext &context) {
-  // optimizer->applyGradient(context);
+  optimizer->applyGradient(context);
 }
 
 void OptimizerWrapped::exportTo(Exporter &exporter,
                                 const ExportMethods &method) const {
-  // optimizer->exportTo(exporter, method);
+  optimizer->exportTo(exporter, method);
   lr_sched->exportTo(exporter, method);
 }
 
@@ -115,21 +117,16 @@ void OptimizerWrapped::finalize() {
   }
 
   lr_sched->finalize();
-  // optimizer->finalize();
+  optimizer->finalize();
 }
 
-void OptimizerWrapped::read(std::ifstream &file) {
-  // optimizer->read(file);
-}
+void OptimizerWrapped::read(std::ifstream &file) { optimizer->read(file); }
 
-void OptimizerWrapped::save(std::ofstream &file) {
-  // optimizer->save(file);
-}
+void OptimizerWrapped::save(std::ofstream &file) { optimizer->save(file); }
 
 std::vector<TensorDim>
 OptimizerWrapped::getOptimizerVariableDim(const TensorDim &dim) {
-  return {};
-  // return optimizer->getOptimizerVariableDim(dim);
+  return optimizer->getOptimizerVariableDim(dim);
 }
 
 void OptimizerWrapped::setLearningRateScheduler(

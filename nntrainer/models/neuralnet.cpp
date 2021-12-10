@@ -862,7 +862,7 @@ int NeuralNetwork::setOptimizer(
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  opt = std::static_pointer_cast<Optimizer>(optimizer);
+  opt = std::static_pointer_cast<OptimizerWrapped>(optimizer);
 
   return ML_ERROR_NONE;
 }
