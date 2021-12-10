@@ -91,6 +91,30 @@ TEST(lr_constant, prop_03_p) {
  * @brief test set and get learning rate
  *
  */
+TEST(lr_constant, final_01_n) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+
+  /** fails as learning rate property is not set */
+  EXPECT_ANY_THROW(lr->finalize());
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_constant, final_02_p) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->finalize());
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
 TEST(lr_exponential, prop_01_n) {
   auto &ac = nntrainer::AppContext::Global();
   auto lr = ac.createObject<nntrainer::LearningRateScheduler>("exponential");
@@ -107,12 +131,15 @@ TEST(lr_exponential, prop_02_p) {
   auto lr = ac.createObject<nntrainer::LearningRateScheduler>("exponential");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_ANY_THROW(lr->finalize());
   EXPECT_ANY_THROW(lr->getLearningRate(0));
 
   EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+  EXPECT_ANY_THROW(lr->finalize());
   EXPECT_ANY_THROW(lr->getLearningRate(0));
 
   EXPECT_NO_THROW(lr->setProperty({"decay_rate=0.9"}));
+  EXPECT_NO_THROW(lr->finalize());
   EXPECT_NO_THROW(lr->getLearningRate(0));
 
   EXPECT_FLOAT_EQ(lr->getLearningRate(0), 1.0f);
