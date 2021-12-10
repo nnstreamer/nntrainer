@@ -24,6 +24,16 @@ namespace nntrainer {
 ExponentialLearningRateScheduler::ExponentialLearningRateScheduler() :
   lr_props(props::DecayRate(), props::DecaySteps()) {}
 
+void ExponentialLearningRateScheduler::finalize() {
+  NNTR_THROW_IF(std::get<props::DecayRate>(lr_props).empty(),
+                std::invalid_argument)
+    << "[ConstantLearningRateScheduler] Decay Rate is not set";
+  NNTR_THROW_IF(std::get<props::DecaySteps>(lr_props).empty(),
+                std::invalid_argument)
+    << "[ConstantLearningRateScheduler] Decay Steps is not set";
+  ConstantLearningRateScheduler::finalize();
+}
+
 void ExponentialLearningRateScheduler::setProperty(
   const std::vector<std::string> &values) {
   auto left = loadProperties(values, lr_props);
