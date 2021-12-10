@@ -19,7 +19,6 @@
 # optimizer headers
 /usr/include/nntrainer/optimizer_context.h
 /usr/include/nntrainer/optimizer_devel.h
-/usr/include/nntrainer/optimizer_impl.h
 # pkg config and static binary
 /usr/lib/*/pkgconfig/nntrainer.pc
 /usr/lib/*/libnntrainer.a

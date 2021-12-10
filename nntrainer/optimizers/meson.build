@@ -1,7 +1,6 @@
 optimizer_sources = [
   'adam.cpp',
   'optimizer_devel.cpp',
-  'optimizer_impl.cpp',
   'sgd.cpp',
   'optimizer_context.cpp',
   'lr_scheduler_constant.cpp',
@@ -11,7 +10,6 @@ optimizer_sources = [
 
 optimizer_headers = [
   'optimizer_devel.h',
-  'optimizer_impl.h',
   'optimizer_context.h',
 ]
 

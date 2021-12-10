@@ -102,9 +102,7 @@ public:
   /** Full custom optimizer example which overrides all functions */
   const std::string getType() const override { return "identity_optimizer"; }
 
-  float getLearningRate() const override { return 1.0f; }
-
-  double getLearningRate(size_t iteration) const override { return 1.0f; }
+  double getDefaultLearningRate() const override { return 1.0; }
 
   void setProperty(const std::vector<std::string> &values) override {}
 
@@ -125,7 +123,7 @@ public:
   /** Minimal custom optimizer example which define only necessary functions */
   const std::string getType() const override { return "identity_optimizer"; }
 
-  double getLearningRate(size_t iteration) const override { return 1.0f; }
+  double getDefaultLearningRate() const override { return 1.0; }
 
   std::vector<nntrainer::TensorDim>
   getOptimizerVariableDim(const nntrainer::TensorDim &dim) override {

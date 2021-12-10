@@ -17,7 +17,7 @@
 #include <tuple>
 
 #include <base_properties.h>
-#include <optimizer_impl.h>
+#include <optimizer_devel.h>
 
 namespace nntrainer {
 
@@ -56,7 +56,7 @@ public:
  * @class   Adam optimizer class
  * @brief   Adam optimizer
  */
-class Adam : public OptimizerImpl {
+class Adam : public Optimizer {
 public:
   /**
    * @brief Construct a new Adam object
@@ -69,6 +69,12 @@ public:
    *
    */
   ~Adam();
+
+  /**
+   * @copydoc Optimizer::getDefaultLearningRate()
+   *
+   */
+  double getDefaultLearningRate() const { return 0.001; }
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)

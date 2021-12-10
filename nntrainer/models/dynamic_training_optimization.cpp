@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <dynamic_training_optimization.h>
+#include <optimizer_wrapped.h>
 #include <tensor.h>
 #include <util_func.h>
 #include <weight.h>
@@ -39,7 +40,7 @@ DynamicTrainingOptimization::DynamicTrainingOptimization(int threshold_,
 bool DynamicTrainingOptimization::checkIfApply(
   const std::vector<Weight> &weights, const std::shared_ptr<Var_Grad> &input,
   const std::shared_ptr<Var_Grad> &output,
-  const std::shared_ptr<Optimizer> &opt, int iteration) {
+  const std::shared_ptr<OptimizerWrapped> &opt, int iteration) {
   if (!enabled || iteration < skip_n_iterations)
     return true;
 
@@ -60,7 +61,7 @@ bool DynamicTrainingOptimization::checkIfApply(
 bool DynamicTrainingOptimization::checkIfApply(
   const Weight &weight, const std::shared_ptr<Var_Grad> &input,
   const std::shared_ptr<Var_Grad> &output,
-  const std::shared_ptr<Optimizer> &opt, int iteration) {
+  const std::shared_ptr<OptimizerWrapped> &opt, int iteration) {
   if (iteration < skip_n_iterations)
     return true;
 

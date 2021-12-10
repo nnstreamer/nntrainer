@@ -24,7 +24,6 @@ namespace nntrainer {
 
 Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon()) {
   /** default properties */
-  setProperty({"learning_rate=0.001"});
   auto &[b1, b2, eps] = adam_props;
   b1.set(0.9f);
   b2.set(0.999f);
@@ -41,12 +40,12 @@ std::vector<TensorDim> Adam::getOptimizerVariableDim(const TensorDim &dim) {
 
 void Adam::exportTo(Exporter &exporter, const ExportMethods &method) const {
   exporter.saveResult(adam_props, method, this);
-  OptimizerImpl::exportTo(exporter, method);
+  Optimizer::exportTo(exporter, method);
 }
 
 void Adam::setProperty(const std::vector<std::string> &values) {
   auto left = loadProperties(values, adam_props);
-  OptimizerImpl::setProperty(left);
+  Optimizer::setProperty(left);
 }
 
 double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
