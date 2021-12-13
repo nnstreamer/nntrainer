@@ -31,14 +31,20 @@ enum class ExportMethods;
  * @class   Optimizer Base class for optimizers
  * @brief   Base class for all optimizers
  */
-class Optimizer : public ml::train::Optimizer {
+class Optimizer {
 
 public:
+  /**
+   * @brief     Destructor of Optimizer Class
+   */
+  virtual ~Optimizer() = default;
+
   /**
    * @brief     get Learning Rate
    * @retval    Learning rate in float
    */
   virtual double getDefaultLearningRate() const = 0;
+
   /**
    * @brief     apply gradient to weight
    * @param[in] context Optimizer context
@@ -93,8 +99,8 @@ public:
   virtual const std::string getType() const = 0;
 };
 
-using CreateOptimizerFunc = ml::train::Optimizer *(*)();
-using DestroyOptimizerFunc = void (*)(ml::train::Optimizer *);
+using CreateOptimizerFunc = nntrainer::Optimizer *(*)();
+using DestroyOptimizerFunc = void (*)(nntrainer::Optimizer *);
 
 /**
  * @brief General Optimizer Factory function to register Optimizer

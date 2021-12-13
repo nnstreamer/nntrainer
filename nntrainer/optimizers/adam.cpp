@@ -24,7 +24,7 @@ namespace nntrainer {
 
 Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon(), TorchRef()) {
   /** default properties */
-  auto &[b1, b2, eps, rotch_ref] = adam_props;
+  auto &[b1, b2, eps, torch_ref] = adam_props;
   b1.set(0.9f);
   b2.set(0.999f);
   eps.set(1.0e-7f);
@@ -90,8 +90,7 @@ void Adam::applyGradient(RunOptimizerContext &context) {
     denom.add_i(epsilon);
     wm.divide(denom, x_grad);
 
-    context.applyGradient(OptimizerImpl::getLearningRate(iteration) /
-                          biasCorrection1);
+    context.applyGradient(context.getLearningRate() / biasCorrection1);
 
   } else {
     std::function<double(double)> sqrtEps = [epsilon](double f) {

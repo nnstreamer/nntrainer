@@ -17,9 +17,9 @@
 #include <ini_wrapper.h>
 #include <layer.h>
 #include <model.h>
+#include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
-#include <nntrainer_error.h>
 
 static const std::string getTestResPath(const std::string &file) {
   return getResPath(file, {"test"});
@@ -219,6 +219,7 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   std::unique_ptr<ml::train::Model> model;
   std::shared_ptr<ml::train::Layer> layer;
   std::shared_ptr<ml::train::Optimizer> optimizer;
+  std::unique_ptr<ml::train::LearningRateScheduler> lrs;
   std::shared_ptr<ml::train::Dataset> dataset;
 
   EXPECT_NO_THROW(model =
@@ -235,10 +236,14 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
        "weight_initializer=xavier_uniform", "input_layers=input0"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
+  EXPECT_NO_THROW(optimizer = ml::train::optimizer::Adam(
+                    {"beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
+
   EXPECT_NO_THROW(
-    optimizer = ml::train::optimizer::Adam(
-      {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
-       "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
+    lrs = ml::train::optimizer::learning_rate::Exponential(
+      {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000"}));
+
+  EXPECT_NO_THROW(optimizer->setLearningRateScheduler(std::move(lrs)));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
   EXPECT_NO_THROW(

@@ -57,9 +57,8 @@ int ModelLoader::loadLearningRateSchedulerConfigIni(
     parseProperties(ini, "LearningRateScheduler", {"type"});
 
   try {
-    std::unique_ptr<nntrainer::LearningRateScheduler> lrs =
-      app_context.createObject<nntrainer::LearningRateScheduler>(lrs_type,
-                                                                 properties);
+    auto lrs = app_context.createObject<ml::train::LearningRateScheduler>(
+      lrs_type, properties);
     auto opt_wrapped = std::static_pointer_cast<OptimizerWrapped>(optimizer);
     opt_wrapped->setLearningRateScheduler(std::move(lrs));
   } catch (std::exception &e) {

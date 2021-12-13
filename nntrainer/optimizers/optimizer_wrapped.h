@@ -55,7 +55,7 @@ public:
    * @brief     get Optimizer Type
    * @retval    Optimizer type
    */
-  const std::string getType() const;
+  const std::string getType() const override;
 
   /**
    * @brief     Default allowed properties
@@ -78,7 +78,15 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  void setProperty(const std::vector<std::string> &values);
+  void setProperty(const std::vector<std::string> &values) override;
+
+  /**
+   * @brief Set the Learning Rate Scheduler object
+   *
+   * @param lrs the learning rate scheduler object
+   */
+  void setLearningRateScheduler(
+    std::unique_ptr<ml::train::LearningRateScheduler> &&lrs) override;
 
   /**
    * Support all the interface requirements by nntrainer::Optimizer
@@ -131,14 +139,6 @@ public:
    * @return    Vector of dimensions
    */
   std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim);
-
-  /**
-   * @brief Set the Learning Rate Scheduler object
-   *
-   * @param lrs the learning rate scheduler object
-   */
-  void setLearningRateScheduler(
-    std::unique_ptr<nntrainer::LearningRateScheduler> &&lrs);
 
   /**
    * @brief Get the Learning Rate Scheduler object
