@@ -26,8 +26,9 @@ enum class ExportMethods;
  * @brief     Enumeration of optimizer type
  */
 enum LearningRateType {
-  CONSTANT = 0, /** constant */
-  EXPONENTIAL   /** exponentially decay */
+  CONSTANT = 0, /**< constant */
+  EXPONENTIAL,  /**< exponentially decay */
+  STEP          /**< step wise decay */
 };
 
 /**

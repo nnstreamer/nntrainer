@@ -198,6 +198,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/lr_scheduler_constant.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/lr_scheduler_exponential.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/lr_scheduler_step.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/ini_wrapper.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \

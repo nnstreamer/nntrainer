@@ -148,6 +148,98 @@ TEST(lr_exponential, prop_02_p) {
   EXPECT_FLOAT_EQ(lr->getLearningRate(3), 1.0 * std::pow(0.9f, 3));
 }
 
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_step, prop_01_n) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+
+  EXPECT_ANY_THROW(lr->finalize());
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_step, prop_02_n) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
+  EXPECT_ANY_THROW(lr->finalize());
+
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1,2"}));
+  EXPECT_ANY_THROW(lr->finalize());
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_step, prop_03_n) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_ANY_THROW(lr->finalize());
+
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1,2"}));
+  EXPECT_ANY_THROW(lr->finalize());
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_step, prop_04_p) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
+  EXPECT_ANY_THROW(lr->finalize());
+
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1"}));
+  EXPECT_NO_THROW(lr->finalize());
+  EXPECT_NO_THROW(lr->getLearningRate(0));
+
+  EXPECT_FLOAT_EQ(lr->getLearningRate(0), 1.0f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(1), 1.0f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(3), 0.1f);
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_step, prop_05_p) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01, 0.001"}));
+
+  EXPECT_NO_THROW(lr->setProperty({"iteration=10,20,30"}));
+  EXPECT_NO_THROW(lr->finalize());
+
+  /** step 0 */
+  EXPECT_FLOAT_EQ(lr->getLearningRate(0), 1.0f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(5), 1.0f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(10), 1.0f)
+  /** step 1 */;
+  EXPECT_FLOAT_EQ(lr->getLearningRate(11), 0.1f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(15), 0.1f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(20), 0.1f);
+  /** step 2 */
+  EXPECT_FLOAT_EQ(lr->getLearningRate(21), 0.01f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(25), 0.01f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(30), 0.01f);
+  /** step 3 */
+  EXPECT_FLOAT_EQ(lr->getLearningRate(31), 0.001f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(35), 0.001f);
+  EXPECT_FLOAT_EQ(lr->getLearningRate(1000), 0.001f);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
