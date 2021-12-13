@@ -17,6 +17,8 @@
 
 #include <string>
 
+#include <optimizer.h>
+
 namespace nntrainer {
 
 class Exporter;
@@ -35,7 +37,7 @@ enum LearningRateType {
  * @class   Learning Rate Schedulers Base class
  * @brief   Base class for all Learning Rate Schedulers
  */
-class LearningRateScheduler {
+class LearningRateScheduler : public ml::train::LearningRateScheduler {
 
 public:
   /**

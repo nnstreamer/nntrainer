@@ -21,6 +21,14 @@
 
 #include "nntrainer_test_util.h"
 
+static std::unique_ptr<nntrainer::LearningRateScheduler>
+createLRS(const std::string &type) {
+  auto &ac = nntrainer::AppContext::Global();
+  auto lrs = ac.createObject<ml::train::LearningRateScheduler>(type);
+  auto lrs_ptr = static_cast<nntrainer::LearningRateScheduler *>(lrs.release());
+  return std::unique_ptr<nntrainer::LearningRateScheduler>(lrs_ptr);
+}
+
 /**
  * @brief test constructing lr scheduler
  *
@@ -35,9 +43,7 @@ TEST(lr_constant, ctor_initializer_01_p) {
  *
  */
 TEST(lr_constant, ctor_initializer_02_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_NO_THROW(
-    ac.createObject<nntrainer::LearningRateScheduler>("constant"));
+  EXPECT_NO_THROW(createLRS("constant"));
 }
 
 /**
@@ -45,8 +51,7 @@ TEST(lr_constant, ctor_initializer_02_p) {
  *
  */
 TEST(lr_constant, ctor_initializer_03_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(ac.createObject<nntrainer::LearningRateScheduler>("random"));
+  EXPECT_ANY_THROW(createLRS("random"));
 }
 
 /**
@@ -54,8 +59,7 @@ TEST(lr_constant, ctor_initializer_03_n) {
  *
  */
 TEST(lr_constant, prop_01_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+  auto lr = createLRS("constant");
 
   /** fails as learning rate property is not set */
   EXPECT_ANY_THROW(lr->getLearningRate(0));
@@ -66,8 +70,7 @@ TEST(lr_constant, prop_01_n) {
  *
  */
 TEST(lr_constant, prop_02_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+  auto lr = createLRS("constant");
 
   EXPECT_ANY_THROW(lr->setProperty({"random=1.0"}));
 }
@@ -77,8 +80,7 @@ TEST(lr_constant, prop_02_n) {
  *
  */
 TEST(lr_constant, prop_03_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+  auto lr = createLRS("constant");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
 
@@ -92,8 +94,7 @@ TEST(lr_constant, prop_03_p) {
  *
  */
 TEST(lr_constant, final_01_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+  auto lr = createLRS("constant");
 
   /** fails as learning rate property is not set */
   EXPECT_ANY_THROW(lr->finalize());
@@ -104,8 +105,7 @@ TEST(lr_constant, final_01_n) {
  *
  */
 TEST(lr_constant, final_02_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("constant");
+  auto lr = createLRS("constant");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
   /** fails as learning rate property is not set */
@@ -117,8 +117,7 @@ TEST(lr_constant, final_02_p) {
  *
  */
 TEST(lr_exponential, prop_01_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("exponential");
+  auto lr = createLRS("exponential");
 
   EXPECT_ANY_THROW(lr->getLearningRate(0));
 }
@@ -128,8 +127,7 @@ TEST(lr_exponential, prop_01_n) {
  *
  */
 TEST(lr_exponential, prop_02_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("exponential");
+  auto lr = createLRS("exponential");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
   EXPECT_ANY_THROW(lr->finalize());
@@ -153,8 +151,7 @@ TEST(lr_exponential, prop_02_p) {
  *
  */
 TEST(lr_step, prop_01_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+  auto lr = createLRS("step");
 
   EXPECT_ANY_THROW(lr->finalize());
 }
@@ -164,8 +161,7 @@ TEST(lr_step, prop_01_n) {
  *
  */
 TEST(lr_step, prop_02_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+  auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
   EXPECT_ANY_THROW(lr->finalize());
@@ -179,8 +175,7 @@ TEST(lr_step, prop_02_n) {
  *
  */
 TEST(lr_step, prop_03_n) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+  auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
   EXPECT_ANY_THROW(lr->finalize());
@@ -194,8 +189,7 @@ TEST(lr_step, prop_03_n) {
  *
  */
 TEST(lr_step, prop_04_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+  auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
   EXPECT_ANY_THROW(lr->finalize());
@@ -214,8 +208,7 @@ TEST(lr_step, prop_04_p) {
  *
  */
 TEST(lr_step, prop_05_p) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lr = ac.createObject<nntrainer::LearningRateScheduler>("step");
+  auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01, 0.001"}));
 

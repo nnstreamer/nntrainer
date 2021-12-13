@@ -125,8 +125,10 @@ OptimizerWrapped::getOptimizerVariableDim(const TensorDim &dim) {
 }
 
 void OptimizerWrapped::setLearningRateScheduler(
-  std::unique_ptr<nntrainer::LearningRateScheduler> &&lrs) {
-  lr_sched = std::move(lrs);
+  std::unique_ptr<ml::train::LearningRateScheduler> &&lrs) {
+  nntrainer::LearningRateScheduler *ptr =
+    static_cast<nntrainer::LearningRateScheduler *>(lrs.release());
+  lr_sched = std::unique_ptr<nntrainer::LearningRateScheduler>(ptr);
 }
 
 nntrainer::LearningRateScheduler *OptimizerWrapped::setLearningRateScheduler() {

@@ -28,7 +28,6 @@
 
 #include <layer.h>
 #include <layer_devel.h>
-#include <lr_scheduler.h>
 #include <optimizer.h>
 #include <optimizer_devel.h>
 
@@ -266,7 +265,7 @@ public:
 
 private:
   FactoryMap<nntrainer::Optimizer, nntrainer::Layer,
-             nntrainer::LearningRateScheduler>
+             ml::train::LearningRateScheduler>
     factory_map;
   std::string working_path_base;
 
@@ -306,8 +305,8 @@ extern template const int AppContext::registerFactory<nntrainer::Layer>(
  * @copydoc const int AppContext::registerFactory
  */
 extern template const int
-AppContext::registerFactory<nntrainer::LearningRateScheduler>(
-  const FactoryType<nntrainer::LearningRateScheduler> factory,
+AppContext::registerFactory<ml::train::LearningRateScheduler>(
+  const FactoryType<ml::train::LearningRateScheduler> factory,
   const std::string &key, const int int_key);
 
 namespace plugin {}
