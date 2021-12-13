@@ -107,5 +107,25 @@ createDataset(DatasetType type, datagen_cb cb, void *user_data,
   return dataset;
 }
 
+/**
+ * @brief Factory creator with constructor for learning rate scheduler type
+ */
+std::unique_ptr<ml::train::LearningRateScheduler>
+createLearningRateScheduler(const LearningRateType &type,
+                            const std::vector<std::string> &properties) {
+  auto &ac = nntrainer::AppContext::Global();
+  return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+}
+
+/**
+ * @brief Factory creator with constructor for learning rate scheduler
+ */
+std::unique_ptr<ml::train::LearningRateScheduler>
+createLearningRateScheduler(const std::string &type,
+                            const std::vector<std::string> &properties) {
+  auto &ac = nntrainer::AppContext::Global();
+  return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+}
+
 } // namespace train
 } // namespace ml

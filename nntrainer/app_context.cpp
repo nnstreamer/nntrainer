@@ -222,13 +222,13 @@ static void add_default_object(AppContext &ac) {
 
   using LRType = LearningRateType;
   ac.registerFactory(
-    nntrainer::createLearningRateScheduler<ConstantLearningRateScheduler>,
+    ml::train::createLearningRateScheduler<ConstantLearningRateScheduler>,
     ConstantLearningRateScheduler::type, LRType::CONSTANT);
   ac.registerFactory(
-    nntrainer::createLearningRateScheduler<ExponentialLearningRateScheduler>,
+    ml::train::createLearningRateScheduler<ExponentialLearningRateScheduler>,
     ExponentialLearningRateScheduler::type, LRType::EXPONENTIAL);
   ac.registerFactory(
-    nntrainer::createLearningRateScheduler<StepLearningRateScheduler>,
+    ml::train::createLearningRateScheduler<StepLearningRateScheduler>,
     StepLearningRateScheduler::type, LRType::STEP);
 
   using LayerType = ml::train::LayerType;
@@ -562,8 +562,8 @@ template const int AppContext::registerFactory<nntrainer::Layer>(
  * @copydoc const int AppContext::registerFactory
  */
 template const int
-AppContext::registerFactory<nntrainer::LearningRateScheduler>(
-  const FactoryType<nntrainer::LearningRateScheduler> factory,
+AppContext::registerFactory<ml::train::LearningRateScheduler>(
+  const FactoryType<ml::train::LearningRateScheduler> factory,
   const std::string &key, const int int_key);
 
 } // namespace nntrainer

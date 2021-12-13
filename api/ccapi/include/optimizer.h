@@ -27,6 +27,9 @@
 namespace ml {
 namespace train {
 
+/** forward declaration */
+class LearningRateScheduler;
+
 /**
  * @brief     Enumeration of optimizer type
  */
@@ -75,6 +78,14 @@ public:
    *  { std::string property_name, void * property_val, ...}
    */
   virtual void setProperty(const std::vector<std::string> &values) = 0;
+
+  /**
+   * @brief Set the Learning Rate Scheduler object
+   *
+   * @param lrs the learning rate scheduler object
+   */
+  virtual void setLearningRateScheduler(
+    std::unique_ptr<ml::train::LearningRateScheduler> &&lrs) = 0;
 };
 
 /**
@@ -125,6 +136,119 @@ SGD(const std::vector<std::string> &properties = {}) {
   return createOptimizer(OptimizerType::SGD, properties);
 }
 
+} // namespace optimizer
+
+/**
+ * @brief     Enumeration of learning type
+ */
+enum LearningRateType {
+  CONSTANT = 0, /**< constant */
+  EXPONENTIAL,  /**< exponentially decay */
+  STEP          /**< step wise decay */
+};
+
+/**
+ * @class   Learning Rate Schedulers Base class
+ * @brief   Base class for all Learning Rate Schedulers
+ */
+class LearningRateScheduler {
+
+public:
+  /**
+   * @brief     Destructor of learning rate scheduler Class
+   */
+  virtual ~LearningRateScheduler() = default;
+
+  /**
+   * @brief     Default allowed properties
+   * Constant Learning rate scheduler
+   * - learning_rate : float
+   *
+   * Exponential Learning rate scheduler
+   * - learning_rate : float
+   * - decay_rate : float,
+   * - decay_steps : float,
+   *
+   * Step Learning rate scheduler
+   * - learing_rate : float, float, ...
+   * - iteration : uint, uint, ...
+   *
+   * more to be added
+   */
+
+  /**
+   * @brief     set learning rate scheduler properties
+   * @param[in] values learning rate scheduler properties list
+   * @details   This function accepts vector of properties in the format -
+   *  { std::string property_name = std::string property_val, ...}
+   */
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
+
+  /**
+   * @brief     get learning rate scheduler Type
+   * @retval    learning rate scheduler type
+   */
+  virtual const std::string getType() const = 0;
+};
+
+/**
+ * @brief Factory creator with constructor for learning rate scheduler type
+ */
+std::unique_ptr<ml::train::LearningRateScheduler>
+createLearningRateScheduler(const LearningRateType &type,
+                            const std::vector<std::string> &properties = {});
+
+/**
+ * @brief Factory creator with constructor for learning rate scheduler
+ */
+std::unique_ptr<ml::train::LearningRateScheduler>
+createLearningRateScheduler(const std::string &type,
+                            const std::vector<std::string> &properties = {});
+
+/**
+ * @brief General LR Scheduler Factory function to create LR Scheduler
+ *
+ * @param props property representation
+ * @return std::unique_ptr<nntrainer::LearningRateScheduler> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<LearningRateScheduler, T>::value, T>
+            * = nullptr>
+std::unique_ptr<LearningRateScheduler>
+createLearningRateScheduler(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<LearningRateScheduler> ptr = std::make_unique<T>();
+  ptr->setProperty(props);
+  return ptr;
+}
+
+namespace optimizer {
+namespace learning_rate {
+
+/**
+ * @brief Helper function to create constant learning rate scheduler
+ */
+inline std::unique_ptr<LearningRateScheduler>
+Constant(const std::vector<std::string> &properties = {}) {
+  return createLearningRateScheduler(LearningRateType::CONSTANT, properties);
+}
+
+/**
+ * @brief Helper function to create exponential learning rate scheduler
+ */
+inline std::unique_ptr<LearningRateScheduler>
+Exponential(const std::vector<std::string> &properties = {}) {
+  return createLearningRateScheduler(LearningRateType::EXPONENTIAL, properties);
+}
+
+/**
+ * @brief Helper function to create step learning rate scheduler
+ */
+inline std::unique_ptr<LearningRateScheduler>
+Step(const std::vector<std::string> &properties = {}) {
+  return createLearningRateScheduler(LearningRateType::STEP, properties);
+}
+
+} // namespace learning_rate
 } // namespace optimizer
 
 } // namespace train
