@@ -21,14 +21,18 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
-  Tensor l;
 
   // hidden_ <- y2 - y;
   if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
     Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
     y2.subtract(y, hidden_);
-    hidden_.multiply_i(hidden_);
-    l = hidden_.average();
+
+    /** calculate sum of squares normalized by size */
+    float l2norm = hidden_.l2norm();
+    l2norm *= l2norm / hidden_.size();
+
+    /** wrap in tensor for update loss */
+    Tensor l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
     LossLayer::updateLoss(context, l);
   }
 
