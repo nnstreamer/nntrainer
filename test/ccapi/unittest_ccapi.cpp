@@ -196,7 +196,7 @@ static nntrainer::IniSection outputlayer("outputlayer",
  */
 TEST(nntrainer_ccapi, train_with_config_01_p) {
   std::unique_ptr<ml::train::Model> model;
-  ScopedIni s("test_train_01_p",
+  ScopedIni s("ccapi_test_train_01_p",
               {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
 
@@ -394,7 +394,7 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
  */
 TEST(nntrainer_ccapi, train_with_config_02_n) {
   std::unique_ptr<ml::train::Model> model;
-  ScopedIni s("test_train_01_p",
+  ScopedIni s("ccapi_test_train_01_p",
               {model_base + "batch_size = 16", dataset + "-BufferSize",
                inputlayer, outputlayer});
 
@@ -410,7 +410,7 @@ TEST(nntrainer_ccapi, train_with_config_02_n) {
 TEST(nntrainer_ccapi, save_ini_p) {
   std::unique_ptr<ml::train::Model> model;
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  ScopedIni s("simple_ini",
+  ScopedIni s("ccapi_simple_ini",
               {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
 
