@@ -42,8 +42,8 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   y.subtract(y2, ret_derivative);
-  ret_derivative.multiply_i(2);
-  if (ret_derivative.divide_i(y.size()) != ML_ERROR_NONE) {
+  float divider = ((float)y.size()) / 2;
+  if (ret_derivative.divide_i(divider) != ML_ERROR_NONE) {
     throw std::runtime_error(
       "[MSELossLayer::calcDerivative] Error when calculating loss");
   }
