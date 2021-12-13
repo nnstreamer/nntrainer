@@ -27,10 +27,10 @@ ExponentialLearningRateScheduler::ExponentialLearningRateScheduler() :
 void ExponentialLearningRateScheduler::finalize() {
   NNTR_THROW_IF(std::get<props::DecayRate>(lr_props).empty(),
                 std::invalid_argument)
-    << "[ConstantLearningRateScheduler] Decay Rate is not set";
+    << "[ExponentialLearningRateScheduler] Decay Rate is not set";
   NNTR_THROW_IF(std::get<props::DecaySteps>(lr_props).empty(),
                 std::invalid_argument)
-    << "[ConstantLearningRateScheduler] Decay Steps is not set";
+    << "[ExponentialLearningRateScheduler] Decay Steps is not set";
   ConstantLearningRateScheduler::finalize();
 }
 

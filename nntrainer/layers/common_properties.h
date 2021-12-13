@@ -1121,6 +1121,16 @@ public:
 };
 
 /**
+ * @brief Iteration props
+ *
+ */
+class Iteration : public Property<unsigned int> {
+public:
+  static constexpr const char *key = "iteration"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                 /**< property type */
+};
+
+/**
  * @brief Decay rate property
  *
  */

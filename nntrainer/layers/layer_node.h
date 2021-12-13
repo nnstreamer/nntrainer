@@ -738,7 +738,6 @@ private:
    */
   const std::vector<std::string> getInputLayers() const;
 
-public:
   /**
    * @brief Get the Output Layers object
    *
