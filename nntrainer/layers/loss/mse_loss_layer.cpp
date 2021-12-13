@@ -12,7 +12,6 @@
  */
 
 #include <layer_context.h>
-#include <lazy_tensor.h>
 #include <mse_loss_layer.h>
 
 namespace nntrainer {
@@ -24,15 +23,17 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
   Tensor l;
 
-  // fill the output
-  hidden_.fill(y);
-  // y2 <- y2 - y;
+  // hidden_ <- y2 - y;
   if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
     Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
-    Tensor residual = y2.subtract(y);
-    l = residual.chain().multiply_i(residual).average().run();
+    y2.subtract(y, hidden_);
+    hidden_.multiply_i(hidden_);
+    l = hidden_.average();
     LossLayer::updateLoss(context, l);
   }
+
+  // fill the output
+  hidden_.fill(y);
 }
 
 void MSELossLayer::calcDerivative(RunLayerContext &context) {
