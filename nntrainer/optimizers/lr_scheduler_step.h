@@ -2,38 +2,43 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file   lr_scheduler_exponential.h
- * @date   09 December 2021
- * @brief  This is Exponential Learning Rate Scheduler class
+ * @file   lr_scheduler_step.h
+ * @date   13 December 2021
+ * @brief  This is Step Learning Rate Scheduler class
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
  *
  */
 
-#ifndef __LEARNING_RATE_SCHEDULER_EXPONENTIAL__
-#define __LEARNING_RATE_SCHEDULER_EXPONENTIAL__
+#ifndef __LEARNING_RATE_SCHEDULER_STEP__
+#define __LEARNING_RATE_SCHEDULER_STEP__
 #ifdef __cplusplus
 
 #include <string>
+#include <vector>
 
-#include <lr_scheduler_constant.h>
+#include <lr_scheduler.h>
 
 namespace nntrainer {
 
+namespace props {
+class LearningRate;
+class Iteration;
+} // namespace props
+
 /**
- * @class   Constant Learning Rate Scheduler class
- * @brief   class for constant Learning Rate Schedulers
+ * @class   Step Learning Rate Scheduler class
+ * @brief   class for Step Learning Rate Schedulers
  */
-class ExponentialLearningRateScheduler final
-  : public ConstantLearningRateScheduler {
+class StepLearningRateScheduler final : public LearningRateScheduler {
 
 public:
   /**
-   * @brief Construct a new exponential learning rate scheduler object
+   * @brief Construct a new step learning rate scheduler object
    *
    */
-  ExponentialLearningRateScheduler();
+  StepLearningRateScheduler();
 
   /**
    * @copydoc LearningRateScheduler::getLearningRate(size_t iteration) const
@@ -65,16 +70,17 @@ public:
    *
    */
   const std::string getType() const override {
-    return ExponentialLearningRateScheduler::type;
+    return StepLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "exponential";
+  inline static const std::string type = "step";
 
 private:
-  std::tuple<props::DecayRate, props::DecaySteps> lr_props;
+  std::tuple<std::vector<props::LearningRate>, std::vector<props::Iteration>>
+    lr_props;
 };
 
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
-#endif /* __LEARNING_RATE_SCHEDULER_EXPONENTIAL__ */
+#endif /* __LEARNING_RATE_SCHEDULER_STEP__ */

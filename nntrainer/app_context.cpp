@@ -50,6 +50,7 @@
 #include <input_layer.h>
 #include <lr_scheduler_constant.h>
 #include <lr_scheduler_exponential.h>
+#include <lr_scheduler_step.h>
 #include <lstm.h>
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
@@ -226,6 +227,9 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(
     nntrainer::createLearningRateScheduler<ExponentialLearningRateScheduler>,
     ExponentialLearningRateScheduler::type, LRType::EXPONENTIAL);
+  ac.registerFactory(
+    nntrainer::createLearningRateScheduler<StepLearningRateScheduler>,
+    StepLearningRateScheduler::type, LRType::STEP);
 
   using LayerType = ml::train::LayerType;
   ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,

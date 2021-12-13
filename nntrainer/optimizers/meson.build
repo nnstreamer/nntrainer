@@ -5,6 +5,7 @@ optimizer_sources = [
   'optimizer_context.cpp',
   'lr_scheduler_constant.cpp',
   'lr_scheduler_exponential.cpp',
+  'lr_scheduler_step.cpp',
   'optimizer_wrapped.cpp'
 ]
 
