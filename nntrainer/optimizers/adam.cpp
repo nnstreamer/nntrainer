@@ -22,13 +22,14 @@
 
 namespace nntrainer {
 
-Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon()) {
+Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon(), TorchRef()) {
   /** default properties */
   setProperty({"learning_rate=0.001"});
-  auto &[b1, b2, eps] = adam_props;
+  auto &[b1, b2, eps, torch_ref] = adam_props;
   b1.set(0.9f);
   b2.set(0.999f);
   eps.set(1.0e-7f);
+  torch_ref.set(false);
 }
 
 Adam::~Adam() {}
@@ -69,29 +70,13 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
   auto &epsilon = std::get<PropsEpsilon>(adam_props).get();
+  auto &torch_ref = std::get<TorchRef>(adam_props).get();
 
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.
-  // float biasCorrection1 = 1 - pow(beta1, iteration + 1);
-  // float biasCorrection2 = 1 - pow(beta2, iteration + 1);
-  // Tensor &wm = weight.getOptimizerVariableRef(AdamParams::wm);
-  // Tensor &wv = weight.getOptimizerVariableRef(AdamParams::wv);
-
-  // wm.multiply_i(beta1);
-  // wm.add_i(x_grad, 1.0f - beta1);
-
-  // wv.multiply_i(beta2);
-  // wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
-
-  // Tensor denom = wv.apply(sqrtFloat)
-  //                  .divide(sqrtFloat(biasCorrection2))
-  //                  .add(epsilon);
-  // x.add_i(wm.divide(denom), -ll / biasCorrection1);
-
-  std::function<double(double)> sqrtEps = [epsilon](double f) {
-    return 1 / (sqrtDouble(f) + epsilon);
-  };
-
+  unsigned int iteration = context.getIteration();
+  float biasCorrection1 = 1 - pow(beta1, iteration + 1);
+  float biasCorrection2 = 1 - pow(beta2, iteration + 1);
   Tensor &wm = context.getOptimizerVariable(AdamParams::wm);
   Tensor &wv = context.getOptimizerVariable(AdamParams::wv);
 
@@ -101,9 +86,23 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
-  x_grad = wv.apply(sqrtEps, x_grad);
-  x_grad.multiply_i(wm);
-  context.applyGradient(getLearningRate(context.getIteration()));
+  if (torch_ref) {
+    Tensor denom = wv.apply(sqrtFloat);
+    denom.divide_i(sqrtFloat(biasCorrection2));
+    denom.add_i(epsilon);
+    wm.divide(denom, x_grad);
+
+    context.applyGradient(OptimizerImpl::getLearningRate(iteration) /
+                          biasCorrection1);
+  } else {
+    std::function<double(double)> sqrtEps = [epsilon](double f) {
+      return 1 / (sqrtDouble(f) + epsilon);
+    };
+
+    x_grad = wv.apply(sqrtEps, x_grad);
+    x_grad.multiply_i(wm);
+    context.applyGradient(getLearningRate(context.getIteration()));
+  }
 }
 
 } // namespace nntrainer
