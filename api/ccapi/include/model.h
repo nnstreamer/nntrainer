@@ -29,6 +29,9 @@
 #include <optimizer.h>
 #include <tensor_dim.h>
 
+namespace nntrainer {
+class RunLayerContext;
+}
 /** Define more aliases for the model in the API */
 namespace ml {
 namespace train {
@@ -191,6 +194,22 @@ public:
     const std::vector<std::string> &start_layers,
     const std::vector<std::string> &end_layers, ReferenceLayersType type,
     const std::vector<std::string> &type_properties = {}) = 0;
+
+  /**
+   * @brief Visit each layer inside model
+   * @param fn function to be called for each layer
+   * - call param
+   *   @param layer layer the call back is visiting
+   *   @param rc run layer context reference clubbed with layer
+   *   @param user_data user data passed along the function
+   * @param user_data user data to pass along the callback
+   */
+  virtual void
+  forEachLayer(std::function<void(Layer & /**< layer */,
+                                  nntrainer::RunLayerContext & /**< rc */,
+                                  void * /**< user_data */)>
+                 fn,
+               void *user_data = nullptr) = 0;
 
   /**
    * @brief     set optimizer for the neural network model

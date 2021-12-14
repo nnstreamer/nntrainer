@@ -293,6 +293,17 @@ public:
                  std::shared_ptr<ml::train::Dataset> dataset) override;
 
   /**
+   * @copydoc void forEachLayer(std::function<void(Layer &,
+   * nntrainer::RunLayerContext &), void *user_data> fn);
+   *
+   */
+  void forEachLayer(
+    std::function<void(ml::train::Layer & /**< layer */,
+                       RunLayerContext & /**< rc */, void *user_data)>
+      fn,
+    void *user_data = nullptr) override;
+
+  /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] dt datatype (mode) where it should be
    * @param[in] databuffer set the databuffer
