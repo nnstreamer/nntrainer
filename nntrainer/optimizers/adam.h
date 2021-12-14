@@ -53,6 +53,16 @@ public:
 };
 
 /**
+ * @brief pytorch reference implementation
+ *
+ */
+class TorchRef : public Property<bool> {
+public:
+  static constexpr const char *key = "torch_ref"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;                 /**< property type */
+};
+
+/**
  * @class   Adam optimizer class
  * @brief   Adam optimizer
  */
@@ -104,7 +114,7 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
 private:
-  std::tuple<PropsB1, PropsB2, PropsEpsilon> adam_props;
+  std::tuple<PropsB1, PropsB2, PropsEpsilon, TorchRef> adam_props;
 };
 } /* namespace nntrainer */
 
