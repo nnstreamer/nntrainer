@@ -21,6 +21,7 @@
  *
  */
 
+#include "layer_context.h"
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -1024,5 +1025,14 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     (*iter)->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
+}
+
+void NeuralNetwork::forEachLayer(
+  std::function<void(ml::train::Layer &, RunLayerContext &, void *)> fn,
+  void *user_data) {
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
+    fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
+  };
 }
 } /* namespace nntrainer */
