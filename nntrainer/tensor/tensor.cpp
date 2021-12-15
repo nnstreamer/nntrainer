@@ -21,6 +21,7 @@
  *
  */
 
+#include <algorithm>
 #include <assert.h>
 #include <cmath>
 #include <cstring>
@@ -28,6 +29,7 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <numeric>
 #include <random>
 #include <regex>
 #include <sstream>
@@ -753,9 +755,14 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
 }
 
 std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
+
+  NNTR_THROW_IF(num_size == 0, std::invalid_argument)
+    << "num size cannot be zero";
+
   if (axis == -1) {
     axis = 3;
   }
+
   NNTR_THROW_IF(!(0 <= axis && axis < 4), std::invalid_argument)
     << "cannot split axis of axis: " << axis;
 
@@ -767,8 +774,8 @@ std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
   auto new_dim = dim.getTensorDim(axis) / num_size;
   ret_dim.setTensorDim(axis, new_dim);
 
-  auto iter_value = [this, &ret_dim](std::array<unsigned, 4> &loc) {
-    auto value = getValue(loc[0], loc[1], loc[2], loc[3]);
+  auto iter_value = [this, &ret_dim](std::array<unsigned, 4> &loc) -> float & {
+    auto &value = getValue(loc[0], loc[1], loc[2], loc[3]);
     for (int i = 3; i >= 0; --i) {
       loc[i]++;
       if (loc[i] % ret_dim.getTensorDim(i) == 0) {
@@ -790,6 +797,66 @@ std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
     auto &ret_t = ret.back();
 
     ret_t.apply_i([&iter_value, &loc](float _) { return iter_value(loc); });
+  }
+
+  return ret;
+}
+
+Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
+
+  if (axis == -1) {
+    axis = 3;
+  }
+
+  NNTR_THROW_IF(!(0 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(tensors.empty(), std::invalid_argument)
+    << "given tensor vector is empty";
+
+  auto ref_dim = tensors.front().getDim();
+  ref_dim.setTensorDim(axis, 1);
+  NNTR_THROW_IF(!std::all_of(tensors.begin(), tensors.end(),
+                             [&ref_dim, axis](const Tensor &t) {
+                               auto cur_dim = t.getDim();
+                               cur_dim.setTensorDim(axis, 1);
+                               return ref_dim == cur_dim;
+                             }),
+                std::invalid_argument)
+    << " all tensor must have the same dimension except for the axis, ref_dim: "
+    << ref_dim << " axis : " << axis;
+
+  auto axis_dim = std::accumulate(tensors.begin(), tensors.end(), 0u,
+                                  [axis](unsigned cur, const Tensor &t) {
+                                    return cur += t.getDim().getTensorDim(axis);
+                                  });
+  auto iter_value = [](std::array<unsigned, 4> &loc,
+                       std::array<unsigned, 4> &start_loc, Tensor &t,
+                       const TensorDim &ref_dim) -> float & {
+    auto &value = t.getValue(loc[0], loc[1], loc[2], loc[3]);
+    for (int i = 3; i >= 0; --i) {
+      loc[i]++;
+      if (loc[i] - start_loc[i] == ref_dim.getTensorDim(i)) {
+        loc[i] = start_loc[i];
+        continue;
+      }
+      break;
+    }
+    return value;
+  };
+
+  auto ret_dim = ref_dim;
+  ret_dim.setTensorDim(axis, axis_dim);
+
+  auto ret = Tensor(ret_dim);
+
+  std::array<unsigned, 4> loc = {0, 0, 0, 0};
+  for (auto &t : tensors) {
+    std::array<unsigned, 4> start_loc = loc;
+    for (auto i = 0u, sz = t.size(); i < sz; ++i) {
+      iter_value(loc, start_loc, ret, t.getDim()) = t.getValue(i);
+    }
+    loc[axis] += t.getDim().getTensorDim(axis);
   }
 
   return ret;

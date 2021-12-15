@@ -91,14 +91,9 @@ def gru_translate(model):
     # resetgate, inputgate, newgate -> inputgate, resetgate, newgate
     def reorder_weights(params):
         reordered_weights = []
-        for param in params: # param = ("name", weight)
-            if (param[1].dim() == 2): # weight
-                hidden_size = int(param[1].shape[1] / 3)
-            else: # bias
-                hidden_size = int(param[1].shape[0] / 3)
-
-            weight = param[1].hsplit(3)
-            reordered_weights.append((param[0], torch.hstack((weight[1], weight[0], weight[2])))) # reorder
+        for (name, weight) in params: # param = ("name", weight)
+            weight = weight.hsplit(3)
+            reordered_weights.append((name, torch.hstack((weight[1], weight[0], weight[2])))) # reorder
         return reordered_weights
 
     transposed_params = [transpose_(params[0]), transpose_(params[1]), params[2], params[3]]

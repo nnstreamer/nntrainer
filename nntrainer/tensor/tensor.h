@@ -252,16 +252,29 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  float getValue(unsigned int batch, unsigned int c, unsigned int h,
-                 unsigned int w) const noexcept {
-    return getData()[getIndex(batch, c, h, w)];
+  const float &getValue(unsigned int batch, unsigned int c, unsigned int h,
+                        unsigned int w) const noexcept {
+    return getValue(getIndex(batch, c, h, w));
+  }
+
+  float &getValue(unsigned int batch, unsigned int c, unsigned int h,
+                  unsigned int w) noexcept {
+    return getValue(getIndex(batch, c, h, w));
   }
 
   /**
    * @brief     return value at specific location
    * @param[in] idx location
    */
-  float getValue(unsigned int idx) const noexcept { return getData()[idx]; }
+  const float &getValue(unsigned int idx) const noexcept {
+    return getData()[idx];
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   */
+  float &getValue(unsigned int idx) noexcept { return getData()[idx]; }
 
   /**
    * @brief Get the Value thinking that it is padded
@@ -1065,6 +1078,15 @@ public:
    * @return Tensor splitted tensor
    */
   std::vector<Tensor> split(unsigned num_size, int axis = 0);
+
+  /**
+   * @brief concatenate tensors along axis
+   *
+   * @param tensors tensors to be concatenated to the first tensor
+   * @param axis axis
+   * @return Tensor concatenated tensor
+   */
+  static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
 
   /**
    * @brief make this tensor share memory with given tensor
