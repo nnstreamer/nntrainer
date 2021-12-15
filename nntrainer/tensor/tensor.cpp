@@ -26,10 +26,12 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <iterator>
 #include <random>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <stdio.h>
 
 #include <blas_interface.h>
@@ -746,6 +748,49 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
    * called for the output tensor before operating on the output tensor.
    */
   createSharedDataTensor(*this, ret, offset);
+
+  return ret;
+}
+
+std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
+  if (axis == -1) {
+    axis = 3;
+  }
+  NNTR_THROW_IF(!(0 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(dim.getTensorDim(axis) % num_size != 0, std::invalid_argument)
+    << "axis is not divisible by num_size, axis: " << axis
+    << " num size: " << num_size;
+
+  auto ret_dim = dim;
+  auto new_dim = dim.getTensorDim(axis) / num_size;
+  ret_dim.setTensorDim(axis, new_dim);
+
+  auto iter_value = [this, &ret_dim](std::array<unsigned, 4> &loc) {
+    auto value = getValue(loc[0], loc[1], loc[2], loc[3]);
+    for (int i = 3; i >= 0; --i) {
+      loc[i]++;
+      if (loc[i] % ret_dim.getTensorDim(i) == 0) {
+        loc[i] -= ret_dim.getTensorDim(i);
+        continue;
+      }
+      break;
+    }
+    return value;
+  };
+
+  std::vector<Tensor> ret;
+  ret.reserve(num_size);
+
+  for (unsigned int i = 0; i < num_size; ++i) {
+    std::array<unsigned, 4> loc = {0, 0, 0, 0};
+    loc[axis] = new_dim * i;
+    ret.emplace_back(ret_dim);
+    auto &ret_t = ret.back();
+
+    ret_t.apply_i([&iter_value, &loc](float _) { return iter_value(loc); });
+  }
 
   return ret;
 }

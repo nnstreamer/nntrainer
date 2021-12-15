@@ -1057,6 +1057,14 @@ public:
   Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset,
                              bool reset_stride = true,
                              const std::string &name_ = "") const;
+  /**
+   * @brief split tensor along axis.
+   *
+   * @param num_size num_size
+   * @param axis axis
+   * @return Tensor splitted tensor
+   */
+  std::vector<Tensor> split(unsigned num_size, int axis = 0);
 
   /**
    * @brief make this tensor share memory with given tensor
