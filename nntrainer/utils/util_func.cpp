@@ -82,7 +82,7 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
   checkFile(file, error_msg);
 }
 
-void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
+void checkedWrite(std::ostream &file, const char *array, std::streamsize size,
                   const char *error_msg) {
   file.write(array, size);
 

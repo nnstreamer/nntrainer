@@ -134,7 +134,7 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
  * @param error_msg error msg to print when operation fail
  * @throw std::runtime_error if file.fail() is true after write.
  */
-void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
+void checkedWrite(std::ostream &file, const char *array, std::streamsize size,
                   const char *error_msg = default_error_msg);
 /**
  * @brief read string from a binary file

@@ -80,7 +80,7 @@ TEST(nntrainer_util_func, checkedRead_n) {
 }
 
 TEST(nntrainer_util_func, checkedWrite_n) {
-  std::ofstream file("/not good file");
+  std::ofstream file("!@/not good file");
   char array[5];
 
   EXPECT_THROW(nntrainer::checkedWrite(file, array, 5), std::runtime_error);
@@ -93,7 +93,7 @@ TEST(nntrainer_util_func, readString_n) {
 }
 
 TEST(nntrainer_util_func, writeString_n) {
-  std::ofstream file("/not good file");
+  std::ofstream file("!@/not good file");
   std::string str;
 
   EXPECT_THROW(nntrainer::writeString(file, str), std::runtime_error);
