@@ -1081,7 +1081,7 @@ public:
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */
-  void save(std::ofstream &file);
+  void save(std::ostream &file);
 
   /**
    * @brief     Read the Tensor from file

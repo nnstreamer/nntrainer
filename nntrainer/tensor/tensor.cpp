@@ -1479,7 +1479,7 @@ void Tensor::fill(const Tensor &from, bool alloc) {
   this->copy(from.getData());
 }
 
-void Tensor::save(std::ofstream &file) {
+void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
 
