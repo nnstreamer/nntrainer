@@ -14,6 +14,7 @@
 
 #include <memory>
 
+#include <identity_layer.h>
 #include <models_test_utils.h>
 #include <multiout_layer.h>
 #include <nntrainer_test_util.h>
@@ -268,13 +269,15 @@ void NodeWatcher::forward(int iteration, bool verify_forward) {
     out.push_back(node->getOutput(idx));
   }
 
-  if (verify_forward && getType() != nntrainer::MultiOutLayer::type)
+  if (verify_forward && getType() != nntrainer::MultiOutLayer::type &&
+      getType() != nntrainer::IdentityLayer::type)
     verify(out, expected_output, err_msg + " at output");
 }
 
 void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 
-  if (getType() == nntrainer::MultiOutLayer::type) {
+  if (getType() == nntrainer::MultiOutLayer::type ||
+      getType() == nntrainer::IdentityLayer::type) {
     return;
   }
 
@@ -502,7 +505,8 @@ GraphWatcher::prepareData(std::ifstream &f,
 
 void GraphWatcher::readIteration(std::ifstream &f) {
   for (auto &i : nodes) {
-    if (i.getType() == nntrainer::MultiOutLayer::type) {
+    if (i.getType() == nntrainer::MultiOutLayer::type ||
+        i.getType() == nntrainer::IdentityLayer::type) {
       continue;
     }
 
