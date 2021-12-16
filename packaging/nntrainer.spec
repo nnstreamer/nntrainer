@@ -1,6 +1,7 @@
 # Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
 %define         use_cblas 1
 %define         nnstreamer_filter 1
+%define         nnstreamer_subplugin_path /usr/lib/nnstreamer
 %define         use_gym 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
@@ -9,6 +10,7 @@
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %define         support_data_augmentation_opencv 1
+%define         configure_subplugin_install_path -Dnnstreamer-subplugin-install-path=%{nnstreamer_subplugin_path}
 
 %bcond_with tizen
 
@@ -353,7 +355,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
-      %{enable_reduce_tolerance} %{enable_debug} build
+      %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug}  build
 
 ninja -C build %{?_smp_mflags}
 
@@ -514,7 +516,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
-%{_libdir}/nnstreamer/filters/libnnstreamer_filter_nntrainer.so
+%{nnstreamer_subplugin_path}/filters/libnnstreamer_filter_nntrainer.so
 
 %files -n nnstreamer-nntrainer-devel-static
 %manifest nntrainer.manifest

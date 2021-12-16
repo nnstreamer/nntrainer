@@ -8,6 +8,7 @@ option('enable-test', type: 'boolean', value: true)
 option('enable-logging', type: 'boolean', value: true)
 option('enable-tizen-feature-check', type: 'boolean', value: true)
 option('enable-nnstreamer-tensor-filter', type: 'boolean', value: true)
+option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nnstreamer') # where nnstreamer subplugin should be installed
 option('enable-nnstreamer-backbone', type: 'boolean', value: true)
 option('enable-tflite-backbone', type: 'boolean', value: true)
 option('enable-profile', type: 'boolean', value: false)
