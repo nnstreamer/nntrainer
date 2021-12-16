@@ -27,11 +27,6 @@ ConcatLayer::ConcatLayer() : Layer(), leading_helper_dim(1) {}
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void ConcatLayer::finalize(InitLayerContext &context) {
-  if (context.getNumOutputs() != 1) {
-    throw std::invalid_argument(
-      "Error: only a single output is supported with concat layer");
-  }
-
   auto &concat_dimension_prop = std::get<props::ConcatDimension>(concat_props);
   /** for backward compatibility, default concat dimension will be channel */
   /// @todo this is hacky way to force concat dimension to width if channel

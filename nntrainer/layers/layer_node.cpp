@@ -160,7 +160,6 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_derivative(false),
   needs_calc_gradient(false),
   output_connections(),
-  effective_output_connection_size(0),
   run_context(nullptr),
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
@@ -228,7 +227,6 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
     << "cannot override connection, this slot is reserved for "
     << con->toString();
 
-  effective_output_connection_size++;
   con = std::make_unique<Connection>(name, index);
 }
 
@@ -371,8 +369,7 @@ void LayerNode::setOutputLayers(const std::vector<std::string> &layers) {
   output_connections.reserve(layers.size());
   std::transform(
     layers.begin(), layers.end(), std::back_inserter(output_connections),
-    [this](const std::string &id) { return std::make_unique<Connection>(id); });
-  effective_output_connection_size = layers.size();
+    [](const std::string &id) { return std::make_unique<Connection>(id); });
 }
 
 bool LayerNode::hasInputShapeProperty() const {
@@ -499,36 +496,13 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     layer = std::move(dlayer);
   }
 
-  /// remove flatten and activation since it's already realized
-  layer_node_props_realization = std::make_unique<RealizationPropsType>(
-    props::Flatten(), props::Activation());
-
-  /// if intermediate node is not used anywhere, it means we need delicate
-  /// handling, including interface change for init layer context because layer
-  /// need to know which output is a dangling node, it is rather better to
-  /// assume this is a buggy behavior
-  /// if the output is possibly optional (for example, lstmcell returns hidden,
-  /// cell) but cell might not be used else where. this can be easily checked by
-  /// putting cell to the first output. In this case, there is no intermediate
-  /// node unidentified it will pass this check while lstmcell can query by
-  /// checking number of outputs from context
-  NNTR_THROW_IF(getNumOutputConnections() != effective_output_connection_size,
-                std::invalid_argument)
-    << "Intermediate node is not used anywhere for node: " << getName()
-    << " num output connection: " << getNumOutputConnections()
-    << " effective_output_connection: " << effective_output_connection_size;
-
-  auto num_outputs = effective_output_connection_size == 0
-                       ? 1
-                       : effective_output_connection_size;
-
   auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
-  auto init_context = InitLayerContext(actual_input_dims, num_outputs,
-                                       executeInPlace() != InPlace::NONE,
-                                       getName(), scope, max_norm);
+  auto init_context = InitLayerContext(
+    actual_input_dims, output_connections.size(),
+    executeInPlace() != InPlace::NONE, getName(), scope, max_norm);
 
   layer->finalize(init_context);
 

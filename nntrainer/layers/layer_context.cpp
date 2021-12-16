@@ -14,10 +14,22 @@
 #include <functional>
 
 #include <layer_context.h>
+#include <stdexcept>
 #include <var_grad.h>
 #include <weight.h>
 
 namespace nntrainer {
+void InitLayerContext::setOutputDimensions(
+  const std::vector<TensorDim> &out_dim) {
+  NNTR_THROW_IF(out_dim.size() < num_requested_out, std::invalid_argument)
+    << "number of output dimension set is smaller than the number of out "
+       "tensor slots "
+       "requested, num output dimensions: "
+    << output_dim.size() << " slots to fill: " << num_requested_out
+    << " context name: " << name;
+  output_dim = out_dim;
+}
+
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  float l, bool in_place_,
                                  const std::vector<Weight *> &w,

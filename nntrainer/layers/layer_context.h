@@ -42,14 +42,14 @@ public:
    *
    * @param dim Input dimensions for the layer
    */
-  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out,
+  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_req_out,
                    bool in_place_, const std::string &n = "",
                    const std::string &prefix_ = "",
                    const float max_norm = 0.0) :
     input_dim(dim),
     in_place(in_place_),
     clip_by_global_norm(max_norm),
-    num_outputs(num_out),
+    num_requested_out(num_req_out),
     name(n),
     prefix(prefix_) {
     NNTR_THROW_IF(!validate(), std::invalid_argument)
@@ -78,7 +78,7 @@ public:
    *
    * @return unsigned int number of inputs
    */
-  unsigned int getNumOutputs() const { return num_outputs; }
+  unsigned int getNumRequestedOutputs() const { return num_requested_out; }
 
   /**
    * @brief Get the Input Dimensions object
@@ -124,11 +124,7 @@ public:
    *
    * @param out_dim the output dimension to set to
    */
-  void setOutputDimensions(const std::vector<TensorDim> &out_dim) {
-    if (out_dim.size() != num_outputs)
-      throw std::invalid_argument("Mismatch number of outputs");
-    output_dim = out_dim;
-  }
+  void setOutputDimensions(const std::vector<TensorDim> &out_dim);
 
   /**
    * @brief Request a new weight for the layer
@@ -292,9 +288,10 @@ private:
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */
 
-  unsigned int num_outputs; /**< number of outputs for the layer */
-  std::string name;         /**< name of the layer */
-  std::string prefix;       /**< prefix of the layer */
+  unsigned int
+    num_requested_out; /**< number of requested outputs for the layer */
+  std::string name;    /**< name of the layer */
+  std::string prefix;  /**< prefix of the layer */
 };
 
 /**

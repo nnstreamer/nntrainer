@@ -149,7 +149,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
     context.requestTensor(state_dim, "dstate", Tensor::Initializer::NONE, false,
                           TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 
-  if (context.getNumOutputs() == 2)
+  if (context.getNumRequestedOutputs() == 2)
     context.setOutputDimensions({query_dim, state_dim});
   else
     context.setOutputDimensions({query_dim});
