@@ -47,6 +47,7 @@
 #include <flatten_layer.h>
 #include <gru.h>
 #include <grucell.h>
+#include <identity_layer.h>
 #include <input_layer.h>
 #include <lstm.h>
 #include <lstmcell.h>
@@ -271,6 +272,8 @@ static void add_default_object(AppContext &ac) {
                      MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
                      ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
+  ac.registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,
+                     LayerType::LAYER_IDENTITY);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,

@@ -187,6 +187,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/common_properties.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_impl.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/reduce_mean_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/identity_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/network_graph.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/graph_core.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/connection.cpp \
