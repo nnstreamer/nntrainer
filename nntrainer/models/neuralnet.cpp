@@ -943,13 +943,16 @@ void NeuralNetwork::addWithReferenceLayers(
   auto start_layers_ = normalize(start_layers);
   auto end_layers_ = normalize(end_layers);
 
-  auto start_conns_ =
+  auto start_conns =
     std::vector<Connection>(start_layers.begin(), start_layers.end());
+
+  auto end_conns =
+    std::vector<Connection>(end_layers.begin(), end_layers.end());
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
 
-  realizers.emplace_back(new PreviousInputRealizer(start_conns_));
-  realizers.emplace_back(new SliceRealizer(start_layers_, end_layers_));
+  realizers.emplace_back(new PreviousInputRealizer(start_conns));
+  realizers.emplace_back(new SliceRealizer(start_conns, end_conns));
 
   if (!input_layers_.empty()) {
     realizers.emplace_back(new InputRealizer(start_layers_, input_layers_));
