@@ -16,18 +16,17 @@
 #include <string>
 #include <vector>
 
+#include <connection.h>
 #include <realizer.h>
 
 namespace nntrainer {
 
 /**
  * @brief Graph realizer class which remaps input from start -> input layers
- * @note This class find orphaned identifer in order from start_layers and
- * change the identifier to input_layers. If start_layers does not have any
- * input layers, push single input identifier, if start_layers have
- * input_layers, check if the given input layer exists starting from the first
- * input layers, if not exist, change to the given input layer in order. In case
- * of start_layer contains n input_layers to be replaced.
+ * @note This class overwrites input conns to the location of start conns.
+ * This requires each start location have the slot for input connection.
+ * @note When number of input connection == 0 for a start connection of index
+ * zero, this pushes input connection to the slot
  *
  */
 class InputRealizer final : public GraphRealizer {
@@ -35,11 +34,11 @@ public:
   /**
    * @brief Construct a new Input Realizer object
    *
-   * @param start_layers start layers
-   * @param input_layers input layers
+   * @param start_conns start layers
+   * @param input_conns input layers
    */
-  InputRealizer(const std::vector<std::string> &start_layers,
-                const std::vector<std::string> &input_layers);
+  InputRealizer(const std::vector<Connection> &start_conns,
+                const std::vector<Connection> &input_conns);
 
   /**
    * @brief Destroy the Graph Realizer object
@@ -57,8 +56,8 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
-  std::vector<std::string> start_layers;
-  std::vector<std::string> input_layers;
+  std::vector<Connection> start_conns;
+  std::vector<Connection> input_conns;
 };
 
 } // namespace nntrainer
