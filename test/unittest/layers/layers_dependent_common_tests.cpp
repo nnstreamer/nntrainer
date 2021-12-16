@@ -51,13 +51,12 @@ TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
   props.push_back(input_shape);
   props.push_back(input_layers);
   lnode->setProperty(props);
+  lnode->setOutputLayers({"dummy"});
 
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 
   if (!must_fail) {
     nntrainer::InitLayerContext init_context = lnode->finalize();
-    EXPECT_EQ(init_context.getOutputDimensions().size(),
-              init_context.getNumOutputs());
 
     for (auto const &dim : init_context.getOutputDimensions())
       EXPECT_GT(dim.getDataLen(), size_t(0));
@@ -98,6 +97,7 @@ TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
   props.push_back(input_shape);
   props.push_back(input_layers);
   lnode->setProperty(props);
+  lnode->setOutputLayers({"dummy"});
 
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 

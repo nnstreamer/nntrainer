@@ -44,14 +44,14 @@ void SplitLayer::finalize(InitLayerContext &context) {
    * 3. axis = 3, output_dim = [b,c,h,1], num_outputs = w
    */
   const TensorDim &in_dim = context.getInputDimensions()[0];
-  if (in_dim.getTensorDim(split_dimension) != context.getNumOutputs())
+  if (in_dim.getTensorDim(split_dimension) != context.getNumRequestedOutputs())
     throw std::invalid_argument(
       "Split dimension cannot be split into given number of outputs");
 
   TensorDim d = in_dim;
   d.setTensorDim(split_dimension, 1);
 
-  std::vector<TensorDim> output_dim(context.getNumOutputs());
+  std::vector<TensorDim> output_dim(context.getNumRequestedOutputs());
   for (auto &out_dim : output_dim) {
     out_dim = d;
   }

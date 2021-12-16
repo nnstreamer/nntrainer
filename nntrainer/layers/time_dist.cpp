@@ -121,7 +121,7 @@ void TimeDistLayer::finalize(InitLayerContext &context) {
    */
   TensorDim dist_dim = input_dim;
   dist_dim.height(1);
-  InitLayerContext dist_context({dist_dim}, context.getNumOutputs(),
+  InitLayerContext dist_context({dist_dim}, context.getNumRequestedOutputs(),
                                 context.executeInPlace(), context.getName());
 
   // During forwarding and backwarding, it set the input and output buffer of

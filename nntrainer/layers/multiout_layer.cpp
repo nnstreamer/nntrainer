@@ -23,7 +23,7 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void MultiOutLayer::finalize(InitLayerContext &context) {
-  std::vector<TensorDim> out_dims(context.getNumOutputs());
+  std::vector<TensorDim> out_dims(context.getNumRequestedOutputs());
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
   std::fill(out_dims.begin(), out_dims.end(), in_dim);

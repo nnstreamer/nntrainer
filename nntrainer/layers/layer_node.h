@@ -748,11 +748,7 @@ public:
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
 
   std::vector<std::unique_ptr<Connection>>
-    output_connections;                      /**< output layer names */
-  unsigned effective_output_connection_size; /**< effective output connection
-                                                size, this skips not connected
-                                                slot, so this number can be
-                                                diffrent from num_outputs() */
+    output_connections; /**< output layer names */
 
   std::unique_ptr<RunLayerContext>
     run_context; /**< context required for running/execution of the layer. This
