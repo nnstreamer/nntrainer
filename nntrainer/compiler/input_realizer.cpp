@@ -9,19 +9,24 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <connection.h>
 #include <input_realizer.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
 #include <algorithm>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace nntrainer {
-InputRealizer::InputRealizer(const std::vector<std::string> &start_layers,
-                             const std::vector<std::string> &input_layers) :
-  start_layers(start_layers),
-  input_layers(input_layers) {}
+InputRealizer::InputRealizer(const std::vector<Connection> &start_conns,
+                             const std::vector<Connection> &input_conns) :
+  start_conns(start_conns),
+  input_conns(input_conns) {
+  NNTR_THROW_IF(start_conns.size() != input_conns.size(), std::invalid_argument)
+    << "start connection size is not same input_conns size";
+}
 
 InputRealizer::~InputRealizer() {}
 
@@ -34,38 +39,24 @@ InputRealizer::realize(const GraphRepresentation &reference) {
     std::inserter(existing_nodes, existing_nodes.end()),
     [](auto &node) { return std::pair(node->getName(), node.get()); });
 
-  /// if start_layer is empty, it's not a hard error but likely to be wrong if
-  /// there is two inputs
-  ml_logw("trying to realize without start_layer specified, if there is more "
-          "than two inputs, sort order make setting graph not determinated");
+  for (unsigned i = 0u, sz = start_conns.size(); i < sz; ++i) {
+    const auto &sc = start_conns[i];
+    const auto &ic = input_conns[i];
+    auto node = existing_nodes.at(sc.getName());
 
-  auto get_next_input_ref = [input_ref_iter = input_layers.begin(),
-                             this]() mutable {
-    NNTR_THROW_IF(input_ref_iter == input_layers.end(), std::invalid_argument)
-      << "there is no more input layers";
-    return input_ref_iter++;
-  };
-
-  for (auto &start_name : start_layers) {
-    auto node = existing_nodes.at(start_name);
-
-    auto num_input = node->getNumInputConnections();
-
-    if (num_input == 0) {
-      // case1. There is no input layers presented -> push single input
-      node->setProperty({"input_layers=" + *get_next_input_ref()});
+    auto num_connection = node->getNumInputConnections();
+    if (num_connection == 0) {
+      NNTR_THROW_IF(sc.getIndex() != 0, std::invalid_argument)
+        << "start connection: " << sc.toString()
+        << " not defined and num connection of that node is empty, although "
+           "start connection of index zero is allowed";
+      node->setProperty({"input_layers=" + ic.toString()});
     } else {
-      /// case2. There is multiple input layers -> substitute orphaned node
-      /// Orphaned node probably is being created from slicing or it is also a
-      /// possible scenario that the graph in the first place is designed to
-      /// have a orphaned node. In the latter case, the graph was non-compilable
-      /// from the first time.
-      for (auto i = 0u; i < num_input; ++i) {
-        auto name = node->getInputConnectionName(i);
-        if (!existing_nodes.count(name)) {
-          node->setInputConnectionName(i, *get_next_input_ref());
-        }
-      }
+      NNTR_THROW_IF(sc.getIndex() >= num_connection, std::invalid_argument)
+        << "start connection: " << sc.toString()
+        << " not defined, num connection: " << num_connection;
+      node->setInputConnectionName(sc.getIndex(), ic.getName());
+      node->setInputConnectionIndex(sc.getIndex(), ic.getIndex());
     }
   }
 

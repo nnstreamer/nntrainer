@@ -945,7 +945,8 @@ void NeuralNetwork::addWithReferenceLayers(
 
   auto start_conns =
     std::vector<Connection>(start_layers.begin(), start_layers.end());
-
+  auto input_conns =
+    std::vector<Connection>(input_layers.begin(), input_layers.end());
   auto end_conns =
     std::vector<Connection>(end_layers.begin(), end_layers.end());
 
@@ -955,7 +956,7 @@ void NeuralNetwork::addWithReferenceLayers(
   realizers.emplace_back(new SliceRealizer(start_conns, end_conns));
 
   if (!input_layers_.empty()) {
-    realizers.emplace_back(new InputRealizer(start_layers_, input_layers_));
+    realizers.emplace_back(new InputRealizer(start_conns, input_conns));
   }
 
   if (type == ml::train::ReferenceLayersType::RECURRENT) {
