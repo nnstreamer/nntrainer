@@ -74,6 +74,7 @@ enum LayerType {
   LAYER_ZONEOUT_LSTMCELL,                  /**< Zoneout LSTM Cell Layer type */
   LAYER_GRUCELL,                           /**< GRU Cell Layer type */
   LAYER_REDUCE_MEAN,                       /**< Reduce mean Layer type */
+  LAYER_IDENTITY,                          /**< Identity Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
