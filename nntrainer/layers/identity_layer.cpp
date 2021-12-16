@@ -28,8 +28,8 @@ void IdentityLayer::finalize(InitLayerContext &context) {
 void IdentityLayer::forwarding(RunLayerContext &context, bool training) {
   if (!context.executeInPlace()) {
     for (unsigned int i = 0, sz = context.getNumInputs(); i < sz; ++i) {
-      Tensor &hidden_ = context.getOutput(i);
       Tensor &input_ = context.getInput(i);
+      Tensor &hidden_ = context.getOutput(i);
       hidden_.copyData(input_);
     }
   }

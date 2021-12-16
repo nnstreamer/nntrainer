@@ -537,6 +537,27 @@ INI addition_resnet_like(
   }
 );
 
+INI addition_resnet_like__1(
+  "addition_resnet_like__1",
+  {
+    nn_base + "loss=mse | batch_size = 3",
+    sgd_base + "learning_rate = 0.1",
+    I("x") + input_base + "input_shape = 2:3:5",
+    I("addition_a1") + conv_base
+      + "filters=4 | kernel_size=3,3 | stride=2,2 | padding=1,1",
+    I("addition_a2") + relu_base,
+    I("addition_a3") + conv_base + "filters=4 | kernel_size=3,3 | padding=1,1",
+    I("addition_b1") + conv_base
+      + "filters=4 | kernel_size=1,1 | stride=2,2"
+      + "input_layers=x",
+    I("identity", "type=identity | input_layers=addition_a3, addition_b1"),
+    I("addition_c1", "type=addition | input_layers=identity(0), identity(1)"),
+    I("addition_c2", "type=flatten"),
+    I("addition_c3") + fc_base + "unit=10",
+    I("addition_c4") + softmax_base,
+  }
+);
+
 INI lstm_basic(
   "lstm_basic",
   {
@@ -970,6 +991,7 @@ INSTANTIATE_TEST_CASE_P(
 
       /**< Addition test */
       mkModelIniTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
+      mkModelIniTc(addition_resnet_like__1, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
 
       /** Multiout test */
       mkModelIniTc(multiout_model, "3:1:1:3", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
