@@ -464,7 +464,18 @@ TEST(SliceRealizer, slice_01_p) {
     {"fully_connected", {"name=d2", "input_layers=c1"}},
   };
 
-  SliceRealizer r({"a1", "b1", "b2"}, {"a1", "d1", "d2"});
+  using C = Connection;
+  SliceRealizer r(
+    {
+      C("a1"),
+      C("b1"),
+      C("b2"),
+    },
+    {
+      C("a1"),
+      C("d1"),
+      C("d2"),
+    });
 
   realizeAndEqual(r, before, after);
 }
@@ -498,7 +509,7 @@ TEST(SliceRealizer, slice_02_p) {
     {"concat", {"name=c1", "input_layers=a1, b1"}},
   };
 
-  SliceRealizer r({"a1"}, {"c1"});
+  SliceRealizer r({Connection("a1")}, {Connection("c1")});
 
   realizeAndEqual(r, before, after);
 }

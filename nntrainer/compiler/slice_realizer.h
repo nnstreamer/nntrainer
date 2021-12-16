@@ -21,6 +21,8 @@
 
 namespace nntrainer {
 
+class Connection;
+
 /**
  * @brief Graph realizer class which slice graph representation
  *
@@ -30,11 +32,11 @@ public:
   /**
    * @brief Construct a new Slice Realizer object
    *
-   * @param start_layers start layers
-   * @param end_layers end layers
+   * @param start_connections start layers
+   * @param end_connections end layers
    */
-  SliceRealizer(const std::vector<std::string> &start_layers,
-                const std::vector<std::string> &end_layers);
+  SliceRealizer(const std::vector<Connection> &start_connections,
+                const std::vector<Connection> &end_connections);
 
   /**
    * @brief Destroy the Graph Realizer object

@@ -10,6 +10,8 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <connection.h>
+#include <iterator>
 #include <layer_node.h>
 #include <slice_realizer.h>
 
@@ -17,10 +19,19 @@
 
 namespace nntrainer {
 
-SliceRealizer::SliceRealizer(const std::vector<std::string> &start_layers,
-                             const std::vector<std::string> &end_layers) :
-  start_layers(start_layers),
-  end_layers(end_layers.begin(), end_layers.end()) {}
+SliceRealizer::SliceRealizer(const std::vector<Connection> &start_layers,
+                             const std::vector<Connection> &end_layers) {
+  /// discard index information as it is not needed as it is not really needed
+  this->start_layers.reserve(start_layers.size());
+
+  std::transform(start_layers.begin(), start_layers.end(),
+                 std::back_inserter(this->start_layers),
+                 [](const Connection &c) { return c.getName(); });
+
+  std::transform(end_layers.begin(), end_layers.end(),
+                 std::inserter(this->end_layers, this->end_layers.begin()),
+                 [](const Connection &c) { return c.getName(); });
+}
 
 SliceRealizer::~SliceRealizer() {}
 
