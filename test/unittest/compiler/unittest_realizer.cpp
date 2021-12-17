@@ -47,12 +47,15 @@ static void realizeAndEqual(GraphRealizer &realizer,
 TEST(FlattenRealizer, flatten_p) {
   FlattenRealizer fr;
 
-  LayerRepresentation input1 = {"fully_connected",
-                                {"name=layer1", "flatten=true"}};
-  LayerRepresentation expected1 = {"fully_connected",
-                                   {"name=layer1/flatten_realized"}};
+  LayerRepresentation input1 = {
+    "fully_connected",
+    {"name=layer1", "flatten=true"},
+  };
+  LayerRepresentation expected1 = {"fully_connected", {"name=layer1"}};
   LayerRepresentation expected2 = {
-    "flatten", {"name=layer1", "input_layers=layer1/flatten_realized"}};
+    "flatten",
+    {"name=layer1/flatten_realized", "input_layers=layer1"},
+  };
 
   realizeAndEqual(fr, {input1}, {expected1, expected2});
 }
