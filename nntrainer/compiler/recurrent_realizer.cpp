@@ -11,8 +11,11 @@
  * @bug No known bugs except for NYI items
  */
 #include <algorithm>
+#include <iterator>
 #include <stdexcept>
+#include <string>
 
+#include <base_properties.h>
 #include <common_properties.h>
 #include <connection.h>
 #include <grucell.h>
@@ -101,17 +104,35 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
                                      const std::vector<Connection> &input_conns,
                                      const std::vector<Connection> &end_conns) :
   input_layers(),
-  end_conns(end_conns),
+  end_info(),
   sequenced_return_conns(),
   recurrent_props(new PropTypes(
     std::vector<props::RecurrentInput>(), std::vector<props::RecurrentOutput>(),
     std::vector<props::AsSequence>(), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
 
-  /// @todo support AsSequence with index with identity layer
   std::transform(input_conns.begin(), input_conns.end(),
                  std::inserter(this->input_layers, this->input_layers.begin()),
                  [](const Connection &c) { return c.getName(); });
+
+  /// build end info.
+  /// eg)
+  /// end_layers: a(0), a(3), b(0) becomes
+  /// end_info: {{a, 3}, {b, 0}}
+  /// end_layers: a(1), b(3), c(0) becomes
+  /// end_info: {{a, 1}, {b, 3}, {c, 0}}
+  for (unsigned i = 0u, sz = end_conns.size(); i < sz; ++i) {
+    const auto &name = end_conns[i].getName();
+    const auto &idx = end_conns[i].getIndex();
+    auto iter =
+      std::find_if(end_info.begin(), end_info.end(),
+                   [&name](auto &info) { return info.first == name; });
+    if (iter == end_info.end()) {
+      end_info.emplace_back(name, idx);
+    } else {
+      iter->second = std::max(iter->second, idx);
+    }
+  }
 
   auto &[inputs, outputs, as_sequence, unroll_for] = *recurrent_props;
 
@@ -276,28 +297,13 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   };
 
   /**
-   * @brief case when return sequence is not true, only last output is renamed
-   * @todo support connection using node->remapConnection
-   */
-  auto naive_output = [](const GraphRepresentation &reference_,
-                         const Connection &con, unsigned unroll_for) {
-    auto target = con.getName() + "/" + std::to_string(unroll_for - 1);
-    RemapRealizer r([target, con](std::string &name) {
-      if (name == target) {
-        name = con.getName();
-      }
-    });
-
-    return r.realize(reference_);
-  };
-
-  /**
    * @brief case when return sequence is true, concat layer is added to
    * aggregate all the output
    *
    */
-  auto concat_output = [this](const GraphRepresentation &reference_,
-                              const Connection &con, unsigned unroll_for) {
+  auto concat_output = [](const GraphRepresentation &reference_,
+                          const Connection &con, unsigned unroll_for,
+                          const std::string &new_layer_name) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
 
     std::vector<props::RecurrentInput> conns;
@@ -310,30 +316,61 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     /// @todo have axis in concat layer
     /// @todo this has to be wrapped with identity layer as #1793
     auto node = createLayerNode(
-      "concat", {"name=" + con.getName(), "input_layers=" + to_string(conns)});
+      "concat", {"name=" + new_layer_name, "input_layers=" + to_string(conns)});
     processed.push_back(std::move(node));
 
     return processed;
   };
 
   /**
-   * @brief set output name
+   * @brief create identity layer with output name by either creating concat
+   * layer or directly using the connection, the number of inputs connection
+   * have is depending on the end_conns max.
+   *
+   * eg)
+   * layer A outputs a, b, c, d
+   *
+   * if end_layers=A(0),A(2)
+   *    as_sequence=A(0)
+   * realizer cannot know there is d so this is ignored. It is okay because user
+   * didn't specify to use it anyway
+   *
+   * [A]
+   * type=identity
+   * input_layers=A_concat_0, A(1), A(2)
    *
    */
-  auto step3_connect_output =
-    [this, naive_output, concat_output](const GraphRepresentation &reference_,
-                                        unsigned unroll_for) {
-      /// @note below is inefficient way of processing nodes. consider optimize
-      /// below as needed by calling remap realizer only once
-      auto processed = reference_;
-      for (auto &conn : end_conns) {
-        processed = sequenced_return_conns.count(conn)
-                      ? concat_output(processed, conn, unroll_for)
-                      : naive_output(processed, conn, unroll_for);
+  auto step3_connect_output = [this, concat_output](
+                                const GraphRepresentation &reference_,
+                                unsigned unroll_for) {
+    /// @note below is inefficient way of processing nodes. consider optimize
+    /// below as needed by calling remap realizer only once
+    auto processed = reference_;
+    for (auto [name, max_idx] : end_info) {
+
+      std::vector<props::InputConnection> out_node_inputs;
+
+      for (auto i = 0u; i <= max_idx; ++i) {
+
+        if (auto con = Connection(name, i); sequenced_return_conns.count(con)) {
+          auto concat_name = name + "/concat_" + std::to_string(i);
+          processed = concat_output(processed, con, unroll_for, concat_name);
+          // create concat connection name,
+          out_node_inputs.emplace_back(Connection(concat_name, 0));
+        } else {
+          auto last_layer_name = name + "/" + std::to_string(unroll_for - 1);
+          out_node_inputs.emplace_back(Connection(last_layer_name, i));
+        }
       }
 
-      return processed;
-    };
+      auto alias_layer = createLayerNode(
+        "identity",
+        {"name=" + name, "input_layers=" + to_string(out_node_inputs)});
+      processed.push_back(std::move(alias_layer));
+    }
+
+    return processed;
+  };
 
   auto unroll_for = std::get<props::UnrollFor>(*recurrent_props).get();
   step0_verify_and_prepare();
