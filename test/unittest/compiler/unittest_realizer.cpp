@@ -58,10 +58,11 @@ TEST(FlattenRealizer, flatten_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
+  using C = Connection;
 
   RecurrentRealizer r(
     {"unroll_for=3", "recurrent_input=fc_in", "recurrent_output=fc_out"},
-    {"source"}, {"fc_out"});
+    {C("source")}, {C("fc_out")});
 
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc_in", "input_layers=source"}},
@@ -84,10 +85,10 @@ TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_return_sequence_single_p) {
-
+  using C = Connection;
   RecurrentRealizer r({"unroll_for=3", "as_sequence=fc_out",
                        "recurrent_input=lstm", "recurrent_output=fc_out"},
-                      {"source"}, {"fc_out"});
+                      {C("source")}, {C("fc_out")});
 
   std::vector<LayerRepresentation> before = {
     {"lstm", {"name=lstm", "input_layers=source"}},
@@ -114,13 +115,14 @@ TEST(RecurrentRealizer, recurrent_return_sequence_single_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_p) {
+  using C = Connection;
   RecurrentRealizer r(
     {
       "unroll_for=3",
       "recurrent_input=lstm,source3_dummy",
       "recurrent_output=fc_out,output_dummy",
     },
-    {"source", "source2", "source3"}, {"fc_out"});
+    {C("source"), C("source2"), C("source3")}, {C("fc_out")});
 
   /// @note for below graph,
   /// 1. fc_out feds back to lstm
@@ -196,6 +198,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
+  using C = Connection;
   RecurrentRealizer r(
     {
       "unroll_for=3",
@@ -203,7 +206,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
       "as_sequence=fc_out",
       "recurrent_output=fc_out,output_dummy",
     },
-    {"source", "source2", "source3"}, {"fc_out"});
+    {C("source"), C("source2"), C("source3")}, {C("fc_out")});
 
   /// @note for below graph,
   /// 1. fc_out feds back to lstm
@@ -282,7 +285,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_return_seq_p) {
-
+  using C = Connection;
   RecurrentRealizer r(
     {
       "unroll_for=3",
@@ -290,7 +293,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_return_seq_p) {
       "recurrent_input=lstm,add(2)",
       "recurrent_output=fc_out,split(1)",
     },
-    {"source", "source2", "source3"}, {"fc_out"});
+    {C("source"), C("source2"), C("source3")}, {C("fc_out")});
 
   /// @note for below graph,
   /// 1. fc_out feds back to lstm
@@ -341,13 +344,14 @@ TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_return_seq_p) {
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_p) {
+  using C = Connection;
   RecurrentRealizer r(
     {
       "unroll_for=3",
       "recurrent_input=lstm,add(2)",
       "recurrent_output=fc_out,split(1)",
     },
-    {"source", "source2", "source3"}, {"fc_out"});
+    {C("source"), C("source2"), C("source3")}, {C("fc_out")});
 
   /// @note for below graph,
   /// 1. fc_out feds back to lstm

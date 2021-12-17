@@ -35,9 +35,9 @@ public:
    * @brief Construct a new Connection object from string representation
    * string representation is format of {layer_name, idx};
    *
-   * @param string_representation string format of {layer_name}({idx})
+   * @param str_repr string format of {layer_name}({idx})
    */
-  explicit Connection(const std::string &string_representation);
+  explicit Connection(const std::string &str_repr);
 
   /**
    * @brief Construct a new Connection object

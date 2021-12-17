@@ -934,15 +934,6 @@ void NeuralNetwork::addWithReferenceLayers(
     nodes.push_back(node->cloneConfiguration());
   }
 
-  auto normalize = [](const std::vector<std::string> &names) {
-    std::vector<props::Name> prop_names(names.begin(), names.end());
-    return std::vector<std::string>(prop_names.begin(), prop_names.end());
-  };
-
-  auto input_layers_ = normalize(input_layers);
-  auto start_layers_ = normalize(start_layers);
-  auto end_layers_ = normalize(end_layers);
-
   auto start_conns =
     std::vector<Connection>(start_layers.begin(), start_layers.end());
   auto input_conns =
@@ -955,20 +946,20 @@ void NeuralNetwork::addWithReferenceLayers(
   realizers.emplace_back(new PreviousInputRealizer(start_conns));
   realizers.emplace_back(new SliceRealizer(start_conns, end_conns));
 
-  if (!input_layers_.empty()) {
+  if (!input_conns.empty()) {
     realizers.emplace_back(new InputRealizer(start_conns, input_conns));
   }
 
   if (type == ml::train::ReferenceLayersType::RECURRENT) {
     realizers.emplace_back(
-      new RecurrentRealizer(type_properties, input_layers_, end_layers_));
+      new RecurrentRealizer(type_properties, input_conns, end_conns));
   }
 
   if (!scope.empty()) {
     realizers.emplace_back(
-      new RemapRealizer([&scope, &input_layers_](std::string &name) {
-        for (auto &i : input_layers_) {
-          if (i == name) {
+      new RemapRealizer([&scope, &input_conns](std::string &name) {
+        for (auto &i : input_conns) {
+          if (i.getName() == name) {
             return;
           }
         }

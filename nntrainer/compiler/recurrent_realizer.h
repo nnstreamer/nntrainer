@@ -50,16 +50,16 @@ public:
    * steps, where steps > 0
    *
    * @param properties
-   *        unroll_for = <int> // define timestep of unrolloing
+   *        unroll_for = <int> // define timestep of unrolling
    *        return_sequences = <bool> // return sequences
    *        recurrent_inputs = <vector<std::string>> // start of the loop
    *        recurrent_ouptuts = <vector<std::string>> // end of the loop
-   * @param input_layers input layer from outer side
-   * @param end_layers end layers (output of the internal graph)
+   * @param input_conns input conns from outer side
+   * @param end_conns end connections (output of the internal graph)
    */
   RecurrentRealizer(const std::vector<std::string> &properties,
-                    const std::vector<std::string> &input_layers,
-                    const std::vector<std::string> &end_layers);
+                    const std::vector<Connection> &input_conns,
+                    const std::vector<Connection> &end_conns);
 
   /**
    * @brief Construct a new Recurrent Realizer object
@@ -91,10 +91,10 @@ private:
                std::vector<props::AsSequence>, props::UnrollFor>;
 
   std::unordered_set<std::string> input_layers; /**< external input layers */
-  std::vector<std::string> end_layers;          /**< final output layers id */
-  std::unordered_set<std::string>
-    sequenced_return_layers; /**< sequenced return layers, subset of end_layers
-                              */
+  std::vector<Connection> end_conns;            /**< final output layers id */
+  std::unordered_set<Connection>
+    sequenced_return_conns; /**< sequenced return conns, subset of end_conns
+                             */
   std::unordered_map<Connection, Connection>
     recurrent_info;                           /**< final output layers id */
   std::unique_ptr<PropTypes> recurrent_props; /**< recurrent properties */

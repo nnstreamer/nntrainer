@@ -578,10 +578,10 @@ public:
  * used in recurrent realizer
  *
  */
-class AsSequence : public Name {
+class AsSequence : public Property<Connection> {
 public:
   static constexpr const char *key = "as_sequence";
-  using prop_tag = str_prop_tag;
+  using prop_tag = connection_prop_tag;
 };
 
 /**
