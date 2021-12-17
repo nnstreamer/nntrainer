@@ -97,23 +97,21 @@ RecurrentOutput::RecurrentOutput() {}
 RecurrentOutput::RecurrentOutput(const Connection &con) { set(con); };
 } // namespace props
 
-RecurrentRealizer::RecurrentRealizer(
-  const std::vector<std::string> &properties,
-  const std::vector<std::string> &input_layers,
-  const std::vector<std::string> &end_layers) :
-  input_layers(input_layers.begin(), input_layers.end()),
-  end_layers(end_layers),
-  sequenced_return_layers(),
+RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
+                                     const std::vector<Connection> &input_conns,
+                                     const std::vector<Connection> &end_conns) :
+  input_layers(),
+  end_conns(end_conns),
+  sequenced_return_conns(),
   recurrent_props(new PropTypes(
     std::vector<props::RecurrentInput>(), std::vector<props::RecurrentOutput>(),
     std::vector<props::AsSequence>(), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
 
-  /// @note AsSequence must be identifier based (not connection based) for now
-  /// consider A(layer) outputs a0, a1 connection and a0 needs return seq
-  /// Then it is impossible to locate a0 and a1 with the same name unless we
-  /// have some kind of multi,multiout identity layer. Until this is supported,
-  /// AsSequenced stays as identifier based
+  /// @todo support AsSequence with index with identity layer
+  std::transform(input_conns.begin(), input_conns.end(),
+                 std::inserter(this->input_layers, this->input_layers.begin()),
+                 [](const Connection &c) { return c.getName(); });
 
   auto &[inputs, outputs, as_sequence, unroll_for] = *recurrent_props;
 
@@ -123,18 +121,19 @@ RecurrentRealizer::RecurrentRealizer(
        "different size. input: "
     << inputs.size() << " output: " << outputs.size();
 
+  /// @todo Deal as sequence as proper connection with identity layer
   NNTR_THROW_IF(!std::all_of(as_sequence.begin(), as_sequence.end(),
-                             [&end_layers](const std::string &seq) {
-                               return std::find(end_layers.begin(),
-                                                end_layers.end(),
-                                                seq) != end_layers.end();
+                             [&end_conns](const Connection &seq) {
+                               return std::find(end_conns.begin(),
+                                                end_conns.end(),
+                                                seq) != end_conns.end();
                              }),
                 std::invalid_argument)
     << "as_sequence property must be subset of end_layers";
 
   std::unordered_set<std::string> check_seqs;
   for (auto &name : as_sequence) {
-    sequenced_return_layers.emplace(name.get());
+    sequenced_return_conns.emplace(name.get());
   };
 
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
@@ -281,11 +280,11 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @todo support connection using node->remapConnection
    */
   auto naive_output = [](const GraphRepresentation &reference_,
-                         const std::string &con, unsigned unroll_for) {
-    auto target = con + "/" + std::to_string(unroll_for - 1);
+                         const Connection &con, unsigned unroll_for) {
+    auto target = con.getName() + "/" + std::to_string(unroll_for - 1);
     RemapRealizer r([target, con](std::string &name) {
       if (name == target) {
-        name = con;
+        name = con.getName();
       }
     });
 
@@ -298,16 +297,20 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto concat_output = [this](const GraphRepresentation &reference_,
-                              const std::string &con, unsigned unroll_for) {
+                              const Connection &con, unsigned unroll_for) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
 
-    std::vector<props::Name> names;
+    std::vector<props::RecurrentInput> conns;
     for (unsigned int i = 0; i < unroll_for; ++i) {
-      names.push_back(con + "/" + std::to_string(i));
+      conns.emplace_back(Connection{
+        con.getName() + "/" + std::to_string(i),
+        con.getIndex(),
+      });
     }
     /// @todo have axis in concat layer
+    /// @todo this has to be wrapped with identity layer as #1793
     auto node = createLayerNode(
-      "concat", {"name=" + con, "input_layers=" + to_string(names)});
+      "concat", {"name=" + con.getName(), "input_layers=" + to_string(conns)});
     processed.push_back(std::move(node));
 
     return processed;
@@ -323,10 +326,10 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
       /// @note below is inefficient way of processing nodes. consider optimize
       /// below as needed by calling remap realizer only once
       auto processed = reference_;
-      for (auto &name : end_layers) {
-        processed = sequenced_return_layers.count(name)
-                      ? concat_output(processed, name, unroll_for)
-                      : naive_output(processed, name, unroll_for);
+      for (auto &conn : end_conns) {
+        processed = sequenced_return_conns.count(conn)
+                      ? concat_output(processed, conn, unroll_for)
+                      : naive_output(processed, conn, unroll_for);
       }
 
       return processed;
