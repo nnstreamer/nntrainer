@@ -20,6 +20,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <connection.h>
@@ -91,7 +92,9 @@ private:
                std::vector<props::AsSequence>, props::UnrollFor>;
 
   std::unordered_set<std::string> input_layers; /**< external input layers */
-  std::vector<Connection> end_conns;            /**< final output layers id */
+  std::vector<std::pair<std::string /**< connection name*/,
+                        unsigned /**< max idx requested */>>
+    end_info; /**< final end layers id */
   std::unordered_set<Connection>
     sequenced_return_conns; /**< sequenced return conns, subset of end_conns
                              */

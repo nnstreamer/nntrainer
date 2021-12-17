@@ -1088,8 +1088,9 @@ TEST(nntrainerModels, loadFromLayersRecurrent_p) {
                             });
 
   std::vector<std::string> expected_node_names = {
-    "recurrent/fc1/0", "recurrent/fc2/0", "recurrent/fc1/1", "recurrent/fc2/1",
-    "recurrent/fc1/2", "recurrent/fc2/2", "recurrent/fc2"};
+    "recurrent/fc1/0",        "recurrent/fc2/0", "recurrent/fc1/1",
+    "recurrent/fc2/1",        "recurrent/fc1/2", "recurrent/fc2/2",
+    "recurrent/fc2/concat_0", "recurrent/fc2"};
   std::vector<std::string> expected_input_layers = {
     "out_source" /**< input added with external_input */,
     "recurrent/fc1/0",
@@ -1098,10 +1099,13 @@ TEST(nntrainerModels, loadFromLayersRecurrent_p) {
     "recurrent/fc2/1",
     "recurrent/fc1/2",
     "recurrent/fc2/0" /**< out source's first input */,
+    "recurrent/fc2/concat_0", /**< identity's input */
   };
 
   auto graph = nn.getFlatGraph();
   for (unsigned int i = 0; i < graph.size(); ++i) {
+    /// comment below intended
+    // std::cout << *graph.at(i);
     EXPECT_EQ(graph.at(i)->getName(), expected_node_names.at(i)) << "at " << i;
     EXPECT_EQ(graph.at(i)->getInputConnectionName(0),
               expected_input_layers.at(i))
