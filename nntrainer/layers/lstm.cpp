@@ -11,13 +11,12 @@
  *
  */
 
-#include <cmath>
 #include <layer_context.h>
 #include <lstm.h>
+#include <lstmcell_core.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
-#include <util_func.h>
 
 namespace nntrainer {
 
@@ -37,23 +36,17 @@ enum LSTMParams {
 
 LSTMLayer::LSTMLayer() :
   LayerImpl(),
-  lstm_props(props::Unit(),
+  lstm_props(props::Unit(), props::IntegrateBias(),
              props::HiddenStateActivation() = ActivationType::ACT_TANH,
              props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
              props::ReturnSequences(), props::DropOutRate(),
-             props::IntegrateBias(), props::MaxTimestep(), props::Timestep()),
+             props::MaxTimestep(), props::Timestep()),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
   epsilon(1e-3) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
-// - weight_ih ( input to hidden )
-//  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> f, g, i, o
-// - weight_hh ( hidden to hidden )
-//  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> f, g, i, o
-// - bias_h ( hidden bias )
-//  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 void LSTMLayer::finalize(InitLayerContext &context) {
   const Tensor::Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
@@ -70,6 +63,7 @@ void LSTMLayer::finalize(InitLayerContext &context) {
                 std::invalid_argument)
     << "unit property missing for lstm layer";
   const unsigned int unit = std::get<props::Unit>(lstm_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
   const ActivationType hidden_state_activation_type =
     std::get<props::HiddenStateActivation>(lstm_props).get();
   const ActivationType recurrent_activation_type =
@@ -77,14 +71,18 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
 
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument("LSTM layer takes only one input");
   }
 
-  // input_dim = [ batch, 1, time_iteration, feature_size ]
+  // input_dim = [ batch_size, 1, time_iteration, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
+  if (input_dim.channel() != 1) {
+    throw std::invalid_argument(
+      "Input must be single channel dimension for LSTM (shape should be "
+      "[batch_size, 1, time_iteration, feature_size])");
+  }
   const unsigned int batch_size = input_dim.batch();
   unsigned int max_timestep = input_dim.height();
   if (!std::get<props::MaxTimestep>(lstm_props).empty())
@@ -94,9 +92,9 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   const unsigned int feature_size = input_dim.width();
 
   // if return_sequences == false :
-  //      output_dim = [ batch, 1, 1, unit ]
+  //      output_dim = [ batch_size, 1, 1, unit ]
   // else:
-  //      output_dim = [ batch, 1, time_iteration, unit ]
+  //      output_dim = [ batch_size, 1, time_iteration, unit ]
   const TensorDim output_dim(batch_size, 1, return_sequences ? max_timestep : 1,
                              unit);
   context.setOutputDimensions({output_dim});
@@ -105,30 +103,33 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
 
-  // weight_ih_dim : [ 1, 1, feature_size, NUM_GATE * unit ]
+  // weight_ih ( input to hidden ) : [ 1, 1, feature_size, NUM_GATE * unit ] ->
+  // i, f, g, o
   const TensorDim weight_ih_dim({feature_size, NUM_GATE * unit});
   wt_idx[LSTMParams::weight_ih] =
     context.requestWeight(weight_ih_dim, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "weight_ih", true);
-  // weight_hh_dim : [ 1, 1, unit, NUM_GATE * unit ]
+  // weight_hh ( hidden to hidden ) : [ 1, 1, unit, NUM_GATE * unit ] -> i, f,
+  // g, o
   const TensorDim weight_hh_dim({unit, NUM_GATE * unit});
   wt_idx[LSTMParams::weight_hh] =
     context.requestWeight(weight_hh_dim, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "weight_hh", true);
   if (!disable_bias) {
     if (integrate_bias) {
-      // bias_h_dim : [ 1, 1, 1, NUM_GATE * unit ]
+      // bias_h ( input bias, hidden bias are integrate to 1 bias ) : [ 1, 1, 1,
+      // NUM_GATE * unit ] -> i, f, g, o
       const TensorDim bias_h_dim({NUM_GATE * unit});
       wt_idx[LSTMParams::bias_h] =
         context.requestWeight(bias_h_dim, bias_initializer,
                               WeightRegularizer::NONE, 1.0f, "bias_h", true);
     } else {
-      // bias_ih_dim : [ 1, 1, 1, NUM_GATE * unit ]
+      // bias_ih ( input bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
       const TensorDim bias_ih_dim({NUM_GATE * unit});
       wt_idx[LSTMParams::bias_ih] =
         context.requestWeight(bias_ih_dim, bias_initializer,
                               WeightRegularizer::NONE, 1.0f, "bias_ih", true);
-      // bias_hh_dim : [ 1, 1, 1, NUM_GATE * unit ]
+      // bias_hh ( hidden bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
       const TensorDim bias_hh_dim({NUM_GATE * unit});
       wt_idx[LSTMParams::bias_hh] =
         context.requestWeight(bias_hh_dim, bias_initializer,
@@ -146,6 +147,7 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   wt_idx[LSTMParams::cell_state] = context.requestTensor(
     cell_state_dim, "cell_state", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN, false);
+
   // ifgo_dim : [ batch_size, 1, max_timestep, NUM_GATE * unit ]
   const TensorDim ifgo_dim(batch_size, 1, max_timestep, NUM_GATE * unit);
   wt_idx[LSTMParams::ifgo] =
@@ -165,7 +167,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 }
 
 void LSTMLayer::setProperty(const std::vector<std::string> &values) {
-  auto remain_props = loadProperties(values, lstm_props);
+  const std::vector<std::string> &remain_props =
+    loadProperties(values, lstm_props);
   LayerImpl::setProperty(remain_props);
 }
 
@@ -180,10 +183,10 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(lstm_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(lstm_props).get();
   const props::Timestep timestep = std::get<props::Timestep>(lstm_props);
@@ -192,38 +195,39 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   unsigned int end_timestep = max_timestep;
   if (!timestep.empty()) {
     const unsigned int current_timestep = timestep.get();
-    if (current_timestep >= end_timestep)
+    if (current_timestep >= end_timestep) {
       throw std::runtime_error("Timestep to run exceeds input dimensions");
+    }
 
     start_timestep = current_timestep;
     end_timestep = current_timestep + 1;
   }
 
-  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  const TensorDim &input_dim = input.getDim();
-  const unsigned int batch_size = input_dim.batch();
-  const unsigned int feature_size = input_dim.width();
+  const Tensor &inputs = context.getInput(SINGLE_INOUT_IDX);
+  const unsigned int batch_size = inputs.getDim().batch();
+  const unsigned int feature_size = inputs.getDim().width();
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
   const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
   const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
   Tensor empty;
-  Tensor &bias_h = !disable_bias && integrate_bias
-                     ? context.getWeight(wt_idx[LSTMParams::bias_h])
-                     : empty;
-  Tensor &bias_ih = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[LSTMParams::bias_ih])
-                      : empty;
-  Tensor &bias_hh = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[LSTMParams::bias_hh])
-                      : empty;
+  const Tensor &bias_h = !disable_bias && integrate_bias
+                           ? context.getWeight(wt_idx[LSTMParams::bias_h])
+                           : empty;
+  const Tensor &bias_ih = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[LSTMParams::bias_ih])
+                            : empty;
+  const Tensor &bias_hh = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[LSTMParams::bias_hh])
+                            : empty;
 
-  Tensor &hidden_state = context.getTensor(wt_idx[LSTMParams::hidden_state]);
-  Tensor &cell_state = context.getTensor(wt_idx[LSTMParams::cell_state]);
-  Tensor &ifgo = context.getTensor(wt_idx[LSTMParams::ifgo]);
+  Tensor &hs = context.getTensor(wt_idx[LSTMParams::hidden_state]);
+  Tensor &cs = context.getTensor(wt_idx[LSTMParams::cell_state]);
+  Tensor &ifgos = context.getTensor(wt_idx[LSTMParams::ifgo]);
 
   if (!start_timestep) {
-    hidden_state.setZero();
-    cell_state.setZero();
+    hs.setZero();
+    cs.setZero();
   }
 
   /**
@@ -234,78 +238,60 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
    */
 
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
-    Tensor input_batch = input.getBatchSlice(batch, 1);
-    Tensor hidden_state_batch = hidden_state.getBatchSlice(batch, 1);
-    Tensor cell_state_batch = cell_state.getBatchSlice(batch, 1);
-    Tensor ifgo_batch = ifgo.getBatchSlice(batch, 1);
+    const Tensor input_batch = inputs.getBatchSlice(batch, 1);
+    Tensor hs_batch = hs.getBatchSlice(batch, 1);
+    Tensor cs_batch = cs.getBatchSlice(batch, 1);
+    Tensor ifgo_batch = ifgos.getBatchSlice(batch, 1);
 
     for (unsigned int t = start_timestep; t < end_timestep; ++t) {
-      Tensor in;
+      Tensor input;
       if (input_batch.height() != 1)
-        in = input_batch.getSharedDataTensor({feature_size}, t * feature_size);
+        input =
+          input_batch.getSharedDataTensor({feature_size}, t * feature_size);
       else
-        in = input_batch;
+        input = input_batch;
 
-      Tensor hs = hidden_state_batch.getSharedDataTensor({unit}, t * unit);
-      Tensor cs = cell_state_batch.getSharedDataTensor({unit}, t * unit);
-      Tensor ifgo_t =
+      Tensor prev_hidden_state;
+      if (!t) {
+        prev_hidden_state = Tensor(unit);
+        prev_hidden_state.setZero();
+      } else {
+        prev_hidden_state =
+          hs_batch.getSharedDataTensor({unit}, (t - 1) * unit);
+      }
+      Tensor hidden_state = hs_batch.getSharedDataTensor({unit}, t * unit);
+      Tensor prev_cell_state;
+      if (!t) {
+        prev_cell_state = Tensor(unit);
+        prev_cell_state.setZero();
+      } else {
+        prev_cell_state = cs_batch.getSharedDataTensor({unit}, (t - 1) * unit);
+      }
+      Tensor cell_state = cs_batch.getSharedDataTensor({unit}, t * unit);
+      Tensor ifgo =
         ifgo_batch.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
-      in.dot(weight_ih, ifgo_t);
-      if (!disable_bias) {
-        if (integrate_bias) {
-          ifgo_t.add_i(bias_h);
-        } else {
-          ifgo_t.add_i(bias_ih);
-          ifgo_t.add_i(bias_hh);
-        }
-      }
-
-      if (t) {
-        Tensor prev_hs =
-          hidden_state_batch.getSharedDataTensor({unit}, (t - 1) * unit);
-        prev_hs.dot(weight_hh, ifgo_t, false, false, 1.0);
-      }
-
-      Tensor hi = ifgo_t.getSharedDataTensor({unit}, 0);
-      Tensor hf = ifgo_t.getSharedDataTensor({unit}, unit);
-      Tensor hg = ifgo_t.getSharedDataTensor({unit}, unit * 2);
-      Tensor ho = ifgo_t.getSharedDataTensor({unit}, unit * 3);
-
-      recurrent_acti_func.run_fn(hf, hf);
-      recurrent_acti_func.run_fn(hi, hi);
-      recurrent_acti_func.run_fn(ho, ho);
-      acti_func.run_fn(hg, hg);
-
-      if (t) {
-        Tensor prev_cs =
-          cell_state_batch.getSharedDataTensor({unit}, (t - 1) * unit);
-        hf.multiply(prev_cs, cs);
-      }
-      cs.add_i(hg.multiply(hi));
-
-      acti_func.run_fn(cs, hs);
-      hs.multiply_i(ho);
+      lstmcell_forwarding(unit, 1, disable_bias, integrate_bias, acti_func,
+                          recurrent_acti_func, input, prev_hidden_state,
+                          prev_cell_state, hidden_state, cell_state, weight_ih,
+                          weight_hh, bias_h, bias_ih, bias_hh, ifgo);
 
       if (dropout_rate > epsilon && training) {
-        Tensor mask_ = context.getTensor(wt_idx[LSTMParams::dropout_mask])
+        Tensor masks = context.getTensor(wt_idx[LSTMParams::dropout_mask])
                          .getBatchSlice(batch, 1);
-        Tensor msk =
-          mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
-        msk.dropout_mask(dropout_rate);
-        hs.multiply_i(msk);
+        Tensor mask = masks.getSharedDataTensor({unit}, t * unit);
+        mask.dropout_mask(dropout_rate);
+        hidden_state.multiply_i(mask);
       }
     }
   }
 
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   if (start_timestep == 0 && end_timestep == max_timestep && return_sequences) {
-    std::copy(hidden_state.getData(),
-              hidden_state.getData() + hidden_state.size(), output.getData());
+    std::copy(hs.getData(), hs.getData() + hs.size(), output.getData());
   } else {
     for (unsigned int batch = 0; batch < batch_size; ++batch) {
-      float *hidden_state_data = hidden_state.getAddress(
-        batch * unit * max_timestep + (end_timestep - 1) * unit);
+      float *hidden_state_data =
+        hs.getAddress(batch * max_timestep * unit + (end_timestep - 1) * unit);
       float *output_data = output.getAddress(batch * unit);
       std::copy(hidden_state_data, hidden_state_data + unit, output_data);
     }
@@ -313,7 +299,7 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void LSTMLayer::calcDerivative(RunLayerContext &context) {
-  /** get the timestep values */
+  const unsigned int unit = std::get<props::Unit>(lstm_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(lstm_props).get();
   const props::Timestep timestep = std::get<props::Timestep>(lstm_props);
@@ -322,16 +308,22 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
   unsigned int end_timestep = max_timestep;
   if (!timestep.empty()) {
     const unsigned int cur_timestep = timestep.get();
-    if (cur_timestep >= end_timestep)
+    // Todo: replace end_timestep with input's time iteration
+    if (cur_timestep >= end_timestep) {
       throw std::runtime_error("Timestep to run exceeds input dimensions");
+    }
 
     start_timestep = cur_timestep;
     end_timestep = cur_timestep + 1;
   }
   const unsigned int timestep_diff = end_timestep - start_timestep;
 
-  Tensor &ifgo_derivative = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
-  Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
+  const TensorDim input_dim = context.getInput(SINGLE_INOUT_IDX).getDim();
+  const unsigned int batch_size = input_dim.batch();
+  const unsigned int feature_size = input_dim.width();
+
+  const Tensor &d_ifgos = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
+  const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   if (start_timestep == 0 && end_timestep == max_timestep) {
@@ -339,29 +331,29 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
      * this if is only for optimization purpose. The else calculates for
      * this scenario as well.
      */
-    ifgo_derivative.dot(weight_ih, outgoing_derivative, false, true);
+    lstmcell_calcDerivative(d_ifgos, weight_ih, outgoing_derivative);
   } else {
-    for (unsigned int b = 0; b < ifgo_derivative.batch(); ++b) {
-      Tensor deriv_t = ifgo_derivative.getBatchSlice(b, 1);
-      Tensor ret_deriv_t = outgoing_derivative.getBatchSlice(b, 1);
-      Tensor dt, rdt;
+    for (unsigned int b = 0; b < batch_size; ++b) {
+      const Tensor d_ifgo_batch = d_ifgos.getBatchSlice(b, 1);
+      Tensor outgoing_derivative_batch =
+        outgoing_derivative.getBatchSlice(b, 1);
+      Tensor d_ifgo, outgoing_derivative_;
 
-      if (deriv_t.height() != 1) {
-        dt = deriv_t.getSharedDataTensor({timestep_diff, deriv_t.width()},
-                                         start_timestep * deriv_t.width());
+      if (d_ifgo_batch.height() != 1) {
+        d_ifgo = d_ifgo_batch.getSharedDataTensor(
+          {timestep_diff, NUM_GATE * unit}, start_timestep * NUM_GATE * unit);
       } else {
-        dt = deriv_t;
+        d_ifgo = d_ifgo_batch;
       }
 
-      if (ret_deriv_t.height() != 1) {
-        rdt =
-          ret_deriv_t.getSharedDataTensor({timestep_diff, ret_deriv_t.width()},
-                                          start_timestep * ret_deriv_t.width());
+      if (outgoing_derivative_batch.height() != 1) {
+        outgoing_derivative_ = outgoing_derivative_batch.getSharedDataTensor(
+          {timestep_diff, feature_size}, start_timestep * feature_size);
       } else {
-        rdt = ret_deriv_t;
+        outgoing_derivative_ = outgoing_derivative_batch;
       }
 
-      dt.dot(weight_ih, rdt, false, true);
+      lstmcell_calcDerivative(d_ifgo, weight_ih, outgoing_derivative_);
     }
   }
 }
@@ -371,10 +363,10 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(lstm_props).get();
+  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(lstm_props).get();
   const props::Timestep timestep = std::get<props::Timestep>(lstm_props);
@@ -390,60 +382,60 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     end_timestep = cur_timestep - 1;
   }
 
-  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  const TensorDim &input_dim = input.getDim();
-  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &inputs = context.getInput(SINGLE_INOUT_IDX);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const TensorDim input_dim = inputs.getDim();
+  const unsigned int batch_size = input_dim.batch();
+  const unsigned int feature_size = input_dim.width();
 
-  Tensor &djdweight_ih = context.getWeightGrad(wt_idx[LSTMParams::weight_ih]);
-  Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
-  Tensor &djdweight_hh = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
+  Tensor &d_weight_ih = context.getWeightGrad(wt_idx[LSTMParams::weight_ih]);
+  const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
+  Tensor &d_weight_hh = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
   Tensor empty;
-  Tensor &djdbias_h = !disable_bias && integrate_bias
-                        ? context.getWeightGrad(wt_idx[LSTMParams::bias_h])
+  Tensor &d_bias_h = !disable_bias && integrate_bias
+                       ? context.getWeightGrad(wt_idx[LSTMParams::bias_h])
+                       : empty;
+  Tensor &d_bias_ih = !disable_bias && !integrate_bias
+                        ? context.getWeightGrad(wt_idx[LSTMParams::bias_ih])
                         : empty;
-  Tensor &djdbias_ih = !disable_bias && !integrate_bias
-                         ? context.getWeightGrad(wt_idx[LSTMParams::bias_ih])
-                         : empty;
-  Tensor &djdbias_hh = !disable_bias && !integrate_bias
-                         ? context.getWeightGrad(wt_idx[LSTMParams::bias_hh])
-                         : empty;
+  Tensor &d_bias_hh = !disable_bias && !integrate_bias
+                        ? context.getWeightGrad(wt_idx[LSTMParams::bias_hh])
+                        : empty;
 
-  Tensor &hidden_state = context.getTensor(wt_idx[LSTMParams::hidden_state]);
-  Tensor &hidden_state_derivative =
-    context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
-  Tensor &cell_state = context.getTensor(wt_idx[LSTMParams::cell_state]);
-  Tensor &cell_state_derivative =
-    context.getTensorGrad(wt_idx[LSTMParams::cell_state]);
-  Tensor &ifgo = context.getTensor(wt_idx[LSTMParams::ifgo]);
-  Tensor &ifgo_derivative = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
+  Tensor &hs = context.getTensor(wt_idx[LSTMParams::hidden_state]);
+  Tensor &d_hs = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
+  Tensor &cs = context.getTensor(wt_idx[LSTMParams::cell_state]);
+  Tensor &d_cs = context.getTensorGrad(wt_idx[LSTMParams::cell_state]);
+
+  Tensor &ifgos = context.getTensor(wt_idx[LSTMParams::ifgo]);
+  Tensor &d_ifgos = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
 
   if (start_timestep + 1 == max_timestep) {
-    djdweight_ih.setZero();
-    djdweight_hh.setZero();
+    d_weight_ih.setZero();
+    d_weight_hh.setZero();
     if (!disable_bias) {
       if (integrate_bias) {
-        djdbias_h.setZero();
+        d_bias_h.setZero();
       } else {
-        djdbias_ih.setZero();
-        djdbias_hh.setZero();
+        d_bias_ih.setZero();
+        d_bias_hh.setZero();
       }
     }
 
-    cell_state_derivative.setZero();
-    hidden_state_derivative.setZero();
-    ifgo_derivative.setZero();
+    d_cs.setZero();
+    d_hs.setZero();
   }
 
   if (start_timestep == max_timestep - 1 && end_timestep == -1 &&
       return_sequences) {
     std::copy(incoming_derivative.getData(),
               incoming_derivative.getData() + incoming_derivative.size(),
-              hidden_state_derivative.getData());
+              d_hs.getData());
   } else {
-    TensorDim d = hidden_state_derivative.getDim();
-    for (unsigned int batch = 0; batch < input_dim.batch(); ++batch) {
-      Tensor data = hidden_state_derivative.getSharedDataTensor(
-        {unit}, batch * unit * max_timestep + start_timestep * unit);
+    for (unsigned int batch = 0; batch < batch_size; ++batch) {
+      Tensor data = d_hs.getSharedDataTensor(
+        {unit}, batch * max_timestep * unit + start_timestep * unit);
 
       Tensor rdata =
         incoming_derivative.getSharedDataTensor({unit}, batch * unit);
@@ -458,111 +450,79 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   }
 
   if (dropout_rate > epsilon) {
-    hidden_state_derivative.multiply_i(
-      context.getTensor(wt_idx[LSTMParams::dropout_mask]));
+    d_hs.multiply_i(context.getTensor(wt_idx[LSTMParams::dropout_mask]));
   }
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    Tensor deriv_t = hidden_state_derivative.getBatchSlice(b, 1);
-    Tensor derivc_t = cell_state_derivative.getBatchSlice(b, 1);
-    Tensor xs_t = input.getBatchSlice(b, 1);
-    Tensor hs_t = hidden_state.getBatchSlice(b, 1);
-    Tensor cs_t = cell_state.getBatchSlice(b, 1);
+  for (unsigned int batch = 0; batch < batch_size; ++batch) {
+    const Tensor input_batch = inputs.getBatchSlice(batch, 1);
 
-    Tensor dh;
-    Tensor xs;
-    Tensor hs_prev;
-    Tensor cs_prev;
-    Tensor cs;
-    Tensor dc;
-    Tensor difgo_ = ifgo_derivative.getBatchSlice(b, 1);
-    Tensor ifgo_ = ifgo.getBatchSlice(b, 1);
+    Tensor hs_batch = hs.getBatchSlice(batch, 1);
+    Tensor d_hidden_state_batch = d_hs.getBatchSlice(batch, 1);
+    Tensor cs_batch = cs.getBatchSlice(batch, 1);
+    Tensor d_cell_state_batch = d_cs.getBatchSlice(batch, 1);
+
+    Tensor ifgo_batch = ifgos.getBatchSlice(batch, 1);
+    Tensor d_ifgo_batch = d_ifgos.getBatchSlice(batch, 1);
+
+    Tensor input;
+    Tensor prev_hidden_state;
+    Tensor d_prev_hidden_state;
+    Tensor prev_cell_state;
+    Tensor d_prev_cell_state;
+    Tensor d_hidden_state;
+    Tensor cell_state;
+    Tensor d_cell_state;
 
     for (int t = start_timestep; t > end_timestep; t--) {
-      dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
-
-      dc =
-        derivc_t.getSharedDataTensor({derivc_t.width()}, t * derivc_t.width());
-
-      if (xs_t.height() != 1)
-        xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
+      if (input_batch.height() != 1)
+        input =
+          input_batch.getSharedDataTensor({feature_size}, t * feature_size);
       else
-        xs = xs_t;
+        input = input_batch;
 
-      cs = cs_t.getSharedDataTensor({cs_t.width()}, t * cs_t.width());
-
-      Tensor difgo_t =
-        difgo_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
-      Tensor ifgo_t =
-        ifgo_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
-
-      if (t == 0) {
-        hs_prev = Tensor(hs_t.width());
-        hs_prev.setZero();
-        cs_prev = Tensor(cs_t.width());
-        cs_prev.setZero();
+      if (!t) {
+        prev_hidden_state = Tensor(unit);
+        prev_hidden_state.setZero();
+        d_prev_hidden_state = Tensor(unit);
+        d_prev_hidden_state.setZero();
       } else {
-        hs_prev =
-          hs_t.getSharedDataTensor({hs_t.width()}, (t - 1) * hs_t.width());
-        cs_prev =
-          cs_t.getSharedDataTensor({cs_t.width()}, (t - 1) * cs_t.width());
+        prev_hidden_state =
+          hs_batch.getSharedDataTensor({unit}, (t - 1) * unit);
+        d_prev_hidden_state =
+          d_hidden_state_batch.getSharedDataTensor({unit}, (t - 1) * unit);
       }
+      d_hidden_state =
+        d_hidden_state_batch.getSharedDataTensor({unit}, t * unit);
 
-      Tensor dhi = difgo_t.getSharedDataTensor({unit}, 0);
-      Tensor dhf = difgo_t.getSharedDataTensor({unit}, unit);
-      Tensor dhg = difgo_t.getSharedDataTensor({unit}, unit * 2);
-      Tensor dho = difgo_t.getSharedDataTensor({unit}, unit * 3);
-
-      Tensor hi = ifgo_t.getSharedDataTensor({unit}, 0);
-      Tensor hf = ifgo_t.getSharedDataTensor({unit}, unit);
-      Tensor hg = ifgo_t.getSharedDataTensor({unit}, unit * 2);
-      Tensor ho = ifgo_t.getSharedDataTensor({unit}, unit * 3);
-
-      acti_func.run_fn(cs, dho);
-      dho.multiply_i(dh);
-      acti_func.run_fn(cs, cs);
-
-      if ((unsigned)t + 1 == max_timestep) {
-        acti_func.run_prime_fn(cs, dc, dh);
-        dc.multiply_i(ho);
+      if (!t) {
+        prev_cell_state = Tensor(unit);
+        prev_cell_state.setZero();
+        d_prev_cell_state = Tensor(unit);
+        d_prev_cell_state.setZero();
       } else {
-        /// @todo optimize this by updating run_prime_fn to accumulate or make
-        /// it inplace somehow
-        Tensor dc_temp(dc.getDim());
-        acti_func.run_prime_fn(cs, dc_temp, dh);
-        dc_temp.multiply_i(ho);
-        dc.add_i(dc_temp);
+        prev_cell_state = cs_batch.getSharedDataTensor({unit}, (t - 1) * unit);
+        d_prev_cell_state =
+          d_cell_state_batch.getSharedDataTensor({unit}, (t - 1) * unit);
       }
+      cell_state = cs_batch.getSharedDataTensor({unit}, t * unit);
+      d_cell_state = d_cell_state_batch.getSharedDataTensor({unit}, t * unit);
 
-      if (t > 0) {
-        Tensor dc_nx = derivc_t.getSharedDataTensor({derivc_t.width()},
-                                                    (t - 1) * derivc_t.width());
-        dc.multiply(hf, dc_nx);
-      }
+      Tensor ifgo =
+        ifgo_batch.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
+      Tensor d_ifgo = d_ifgo_batch.getSharedDataTensor({unit * NUM_GATE},
+                                                       unit * t * NUM_GATE);
 
-      dc.multiply(cs_prev, dhf);
-      dc.multiply(hg, dhi);
-      dc.multiply(hi, dhg);
+      // Temporary variable for d_prev_hidden_state. d_prev_hidden_state already
+      // have precalculated values from incomming derivatives
+      Tensor d_prev_hidden_state_temp;
 
-      recurrent_acti_func.run_prime_fn(ho, dho, dho);
-      recurrent_acti_func.run_prime_fn(hf, dhf, dhf);
-      recurrent_acti_func.run_prime_fn(hi, dhi, dhi);
-      acti_func.run_prime_fn(hg, dhg, dhg);
-      if (!disable_bias) {
-        if (integrate_bias) {
-          djdbias_h.add_i(difgo_t);
-        } else {
-          djdbias_ih.add_i(difgo_t);
-          djdbias_hh.add_i(difgo_t);
-        }
-      }
-      djdweight_ih.add_i(xs.dot(difgo_t, true, false));
-      djdweight_hh.add_i(hs_prev.dot(difgo_t, true, false));
-      if (t > 0) {
-        Tensor dh_nx = deriv_t.getSharedDataTensor({deriv_t.width()},
-                                                   (t - 1) * deriv_t.width());
-        difgo_t.dot(weight_hh, dh_nx, false, true, 1.0f);
-      }
+      lstmcell_calcGradient(unit, 1, disable_bias, integrate_bias, acti_func,
+                            recurrent_acti_func, input, prev_hidden_state,
+                            d_prev_hidden_state_temp, prev_cell_state,
+                            d_prev_cell_state, d_hidden_state, cell_state,
+                            d_cell_state, d_weight_ih, weight_hh, d_weight_hh,
+                            d_bias_h, d_bias_ih, d_bias_hh, ifgo, d_ifgo);
+      d_prev_hidden_state.add_i(d_prev_hidden_state_temp);
     }
   }
 }
