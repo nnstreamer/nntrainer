@@ -168,6 +168,13 @@ public:
 
 private:
   static constexpr unsigned int NUM_GATE = 4;
+  enum INOUT_INDEX {
+    INPUT = 0,
+    INPUT_HIDDEN_STATE = 1,
+    INPUT_CELL_STATE = 2,
+    OUTPUT_HIDDEN_STATE = 0,
+    OUTPUT_CELL_STATE = 1
+  };
 
   /**
    * Unit: number of output neurons
@@ -185,7 +192,7 @@ private:
              props::RecurrentActivation, HiddenStateZoneOutRate,
              CellStateZoneOutRate, Test, props::MaxTimestep, props::Timestep>
     zoneout_lstmcell_props;
-  std::array<unsigned int, 11> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh

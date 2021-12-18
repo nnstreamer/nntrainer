@@ -21,16 +21,12 @@
 
 namespace nntrainer {
 
-static constexpr size_t SINGLE_INOUT_IDX = 0;
-
 enum ZoneoutLSTMParams {
   weight_ih,
   weight_hh,
   bias_h,
   bias_ih,
   bias_hh,
-  hidden_state,
-  cell_state,
   ifgo,
   lstm_cell_state,
   hidden_state_zoneout_mask,
@@ -95,27 +91,51 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props).get();
 
-  if (context.getNumInputs() != 1)
-    throw std::invalid_argument("ZoneoutLSTMCellLayer takes only one input");
-  if (std::get<props::MaxTimestep>(zoneout_lstmcell_props).empty())
-    throw std::invalid_argument("Number of unroll steps(max timestep) must be "
-                                "provided to zoneout LSTM cells");
-  if (std::get<props::Timestep>(zoneout_lstmcell_props).empty())
+  if (context.getNumInputs() != 3) {
     throw std::invalid_argument(
-      "Current timestep must be provided to zoneout LSTM cell");
+      "Number of input is not 3. ZoneoutLSTMCellLayer should takes 3 inputs");
+  }
 
   // input_dim = [ batch_size, 1, 1, feature_size ]
-  const TensorDim &input_dim = context.getInputDimensions()[0];
+  const TensorDim &input_dim = context.getInputDimensions()[INOUT_INDEX::INPUT];
   if (input_dim.channel() != 1 || input_dim.height() != 1)
     throw std::invalid_argument("Input must be single time dimension for "
                                 "ZoneoutLSTMCell (shape should be "
                                 "[batch_size, 1, 1, feature_size])");
+  // input_hidden_state_dim = [ batch_size, 1, 1, unit ]
+  const TensorDim &input_hidden_state_dim =
+    context.getInputDimensions()[INOUT_INDEX::INPUT_HIDDEN_STATE];
+  if (input_hidden_state_dim.channel() != 1 ||
+      input_hidden_state_dim.height() != 1) {
+    throw std::invalid_argument(
+      "Input hidden state's dimension should be"
+      "[batch_size, 1, 1, unit] for zoneout LSTMcell");
+  }
+  // input_cell_state_dim = [ batch_size, 1, 1, unit ]
+  const TensorDim &input_cell_state_dim =
+    context.getInputDimensions()[INOUT_INDEX::INPUT_CELL_STATE];
+  if (input_cell_state_dim.channel() != 1 ||
+      input_cell_state_dim.height() != 1) {
+    throw std::invalid_argument(
+      "Input cell state's dimension should be"
+      "[batch_size, 1, 1, unit] for zoneout LSTMcell");
+  }
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();
 
-  // output_dim = [ batch_size, 1, 1, unit ]
-  const TensorDim output_dim(batch_size, 1, 1, unit);
-  context.setOutputDimensions({output_dim});
+  // output_hidden_state_dim = [ batch_size, 1, 1, unit ]
+  const TensorDim output_hidden_state_dim = input_hidden_state_dim;
+  // output_cell_state_dim = [ batch_size, 1, 1, unit ]
+  const TensorDim output_cell_state_dim = input_cell_state_dim;
+
+  std::vector<VarGradSpecV2> out_specs;
+  out_specs.push_back(
+    InitLayerContext::outSpec(output_hidden_state_dim, "output_hidden_state",
+                              TensorLifespan::FORWARD_DERIV_LIFESPAN));
+  out_specs.push_back(
+    InitLayerContext::outSpec(output_cell_state_dim, "output_cell_state",
+                              TensorLifespan::FORWARD_DERIV_LIFESPAN));
+  context.requestOutputs(std::move(out_specs));
 
   // weight_initializer can be set seperately. weight_ih initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
@@ -156,21 +176,6 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
                               WeightRegularizer::NONE, 1.0f, "bias_hh", true);
     }
   }
-
-  /**
-   * TODO: hidden_state is only used from the previous timestep. Once it is
-   * supported as input, no need to cache the hidden_state itself
-   */
-  /** hidden_state_dim = [ max_timestep * batch_size, 1, 1, unit ] */
-  const TensorDim hidden_state_dim(max_timestep * batch_size, 1, 1, unit);
-  wt_idx[ZoneoutLSTMParams::hidden_state] = context.requestTensor(
-    hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN, false);
-  /** cell_state_dim = [ max_timestep * batch_size, 1, 1, unit ] */
-  const TensorDim cell_state_dim(max_timestep * batch_size, 1, 1, unit);
-  wt_idx[ZoneoutLSTMParams::cell_state] = context.requestTensor(
-    cell_state_dim, "cell_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN, false);
 
   /** ifgo_dim = [ batch_size, 1, 1, NUM_GATE * unit ] */
   const TensorDim ifgo_dim(batch_size, 1, 1, NUM_GATE * unit);
@@ -244,8 +249,13 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   const unsigned int timestep =
     std::get<props::Timestep>(zoneout_lstmcell_props).get();
 
-  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  const Tensor &input = context.getInput(INOUT_INDEX::INPUT);
+  const Tensor &prev_hidden_state =
+    context.getInput(INOUT_INDEX::INPUT_HIDDEN_STATE);
+  const Tensor &prev_cell_state =
+    context.getInput(INOUT_INDEX::INPUT_CELL_STATE);
+  Tensor &hidden_state = context.getOutput(INOUT_INDEX::OUTPUT_HIDDEN_STATE);
+  Tensor &cell_state = context.getOutput(INOUT_INDEX::OUTPUT_CELL_STATE);
 
   const unsigned int batch_size = input.getDim().batch();
 
@@ -254,41 +264,18 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   const Tensor &weight_hh =
     context.getWeight(wt_idx[ZoneoutLSTMParams::weight_hh]);
   Tensor empty;
-  Tensor &bias_h = !disable_bias && integrate_bias
-                     ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_h])
-                     : empty;
-  Tensor &bias_ih = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_ih])
-                      : empty;
-  Tensor &bias_hh = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_hh])
-                      : empty;
-
-  Tensor &hs = context.getTensor(wt_idx[ZoneoutLSTMParams::hidden_state]);
-  hs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor prev_hidden_state;
-  if (!timestep) {
-    prev_hidden_state = Tensor(batch_size, 1, 1, unit);
-    prev_hidden_state.setZero();
-  } else {
-    prev_hidden_state = hs.getBatchSlice(timestep - 1, 1);
-    prev_hidden_state.reshape({batch_size, 1, 1, unit});
-  }
-  Tensor hidden_state = hs.getBatchSlice(timestep, 1);
-  hidden_state.reshape({batch_size, 1, 1, unit});
-
-  Tensor &cs = context.getTensor(wt_idx[ZoneoutLSTMParams::cell_state]);
-  cs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor prev_cell_state;
-  if (!timestep) {
-    prev_cell_state = Tensor(batch_size, 1, 1, unit);
-    prev_cell_state.setZero();
-  } else {
-    prev_cell_state = cs.getBatchSlice(timestep - 1, 1);
-    prev_cell_state.reshape({batch_size, 1, 1, unit});
-  }
-  Tensor cell_state = cs.getBatchSlice(timestep, 1);
-  cell_state.reshape({batch_size, 1, 1, unit});
+  const Tensor &bias_h =
+    !disable_bias && integrate_bias
+      ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_h])
+      : empty;
+  const Tensor &bias_ih =
+    !disable_bias && !integrate_bias
+      ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_ih])
+      : empty;
+  const Tensor &bias_hh =
+    !disable_bias && !integrate_bias
+      ? context.getWeight(wt_idx[ZoneoutLSTMParams::bias_hh])
+      : empty;
 
   Tensor &ifgo = context.getTensor(wt_idx[ZoneoutLSTMParams::ifgo]);
 
@@ -343,15 +330,14 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
     prev_cell_state.multiply(prev_cell_state_zoneout_mask, cell_state, 1.0f);
   }
   // Todo: zoneout at inference
-
-  output.copyData(hidden_state);
 }
 
 void ZoneoutLSTMCellLayer::calcDerivative(RunLayerContext &context) {
   Tensor &d_ifgo = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::ifgo]);
   const Tensor &weight_ih =
     context.getWeight(wt_idx[ZoneoutLSTMParams::weight_ih]);
-  Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &outgoing_derivative =
+    context.getOutgoingDerivative(INOUT_INDEX::INPUT);
 
   lstmcell_calcDerivative(d_ifgo, weight_ih, outgoing_derivative);
 }
@@ -373,9 +359,19 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   const unsigned int timestep =
     std::get<props::Timestep>(zoneout_lstmcell_props).get();
 
-  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  const Tensor &incoming_derivative =
-    context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &input = context.getInput(INOUT_INDEX::INPUT);
+  const Tensor &prev_hidden_state =
+    context.getInput(INOUT_INDEX::INPUT_HIDDEN_STATE);
+  Tensor &d_prev_hidden_state =
+    context.getOutgoingDerivative(INOUT_INDEX::INPUT_HIDDEN_STATE);
+  const Tensor &prev_cell_state =
+    context.getInput(INOUT_INDEX::INPUT_CELL_STATE);
+  Tensor &d_prev_cell_state =
+    context.getOutgoingDerivative(INOUT_INDEX::INPUT_CELL_STATE);
+  const Tensor &d_hidden_state =
+    context.getIncomingDerivative(INOUT_INDEX::OUTPUT_HIDDEN_STATE);
+  const Tensor &d_cell_state =
+    context.getIncomingDerivative(INOUT_INDEX::OUTPUT_CELL_STATE);
 
   unsigned int batch_size = input.getDim().batch();
 
@@ -399,56 +395,6 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
       ? context.getWeightGrad(wt_idx[ZoneoutLSTMParams::bias_hh])
       : empty;
 
-  Tensor &hs = context.getTensor(wt_idx[ZoneoutLSTMParams::hidden_state]);
-  hs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor prev_hidden_state;
-  if (!timestep) {
-    prev_hidden_state = Tensor(batch_size, 1, 1, unit);
-    prev_hidden_state.setZero();
-  } else {
-    prev_hidden_state = hs.getBatchSlice(timestep - 1, 1);
-    prev_hidden_state.reshape({batch_size, 1, 1, unit});
-  }
-
-  Tensor &d_hs = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::hidden_state]);
-  d_hs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor d_prev_hidden_state;
-  if (!timestep) {
-    d_prev_hidden_state = Tensor(batch_size, 1, 1, unit);
-    d_prev_hidden_state.setZero();
-  } else {
-    d_prev_hidden_state = d_hs.getBatchSlice(timestep - 1, 1);
-    d_prev_hidden_state.reshape({batch_size, 1, 1, unit});
-  }
-  Tensor d_hidden_state = d_hs.getBatchSlice(timestep, 1);
-  d_hidden_state.reshape({batch_size, 1, 1, unit});
-
-  Tensor &cs = context.getTensor(wt_idx[ZoneoutLSTMParams::cell_state]);
-  cs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor prev_cell_state;
-  if (!timestep) {
-    prev_cell_state = Tensor(batch_size, 1, 1, unit);
-    prev_cell_state.setZero();
-  } else {
-    prev_cell_state = cs.getBatchSlice(timestep - 1, 1);
-    prev_cell_state.reshape({batch_size, 1, 1, unit});
-  }
-  Tensor cell_state = cs.getBatchSlice(timestep, 1);
-  cell_state.reshape({batch_size, 1, 1, unit});
-
-  Tensor &d_cs = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::cell_state]);
-  d_cs.reshape({max_timestep, 1, batch_size, unit});
-  Tensor d_prev_cell_state;
-  if (!timestep) {
-    d_prev_cell_state = Tensor(batch_size, 1, 1, unit);
-    d_prev_cell_state.setZero();
-  } else {
-    d_prev_cell_state = d_cs.getBatchSlice(timestep - 1, 1);
-    d_prev_cell_state.reshape({batch_size, 1, 1, unit});
-  }
-  Tensor d_cell_state = d_cs.getBatchSlice(timestep, 1);
-  d_cell_state.reshape({batch_size, 1, 1, unit});
-
   Tensor &ifgo = context.getTensor(wt_idx[ZoneoutLSTMParams::ifgo]);
   Tensor &d_ifgo = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::ifgo]);
 
@@ -457,25 +403,28 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor &d_lstm_cell_state =
     context.getTensorGrad(wt_idx[ZoneoutLSTMParams::lstm_cell_state]);
 
-  if (timestep + 1 == max_timestep) {
+  if (context.isGradientFirstAccess(wt_idx[ZoneoutLSTMParams::weight_ih])) {
     d_weight_ih.setZero();
+  }
+  if (context.isGradientFirstAccess(wt_idx[ZoneoutLSTMParams::weight_hh])) {
     d_weight_hh.setZero();
-    if (!disable_bias) {
-      if (integrate_bias) {
+  }
+  if (!disable_bias) {
+    if (integrate_bias) {
+      if (context.isGradientFirstAccess(wt_idx[ZoneoutLSTMParams::bias_h])) {
         d_bias_h.setZero();
-      } else {
+      }
+    } else {
+      if (context.isGradientFirstAccess(wt_idx[ZoneoutLSTMParams::bias_ih])) {
         d_bias_ih.setZero();
+      }
+      if (context.isGradientFirstAccess(wt_idx[ZoneoutLSTMParams::bias_hh])) {
         d_bias_hh.setZero();
       }
     }
-    d_hidden_state.setZero();
-    d_cell_state.setZero();
   }
 
-  d_hidden_state.add_i(incoming_derivative);
-
   Tensor d_prev_hidden_state_residual;
-
   Tensor &hs_zoneout_mask =
     test
       ? context.getWeight(wt_idx[ZoneoutLSTMParams::hidden_state_zoneout_mask])
@@ -494,10 +443,10 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
 
   d_hidden_state.multiply(prev_hidden_state_zoneout_mask,
                           d_prev_hidden_state_residual);
-  d_hidden_state.multiply_i(hidden_state_zoneout_mask);
+  Tensor d_hidden_state_masked;
+  d_hidden_state.multiply(hidden_state_zoneout_mask, d_hidden_state_masked);
 
   Tensor d_prev_cell_state_residual;
-
   Tensor &cs_zoneout_mask =
     test
       ? context.getWeight(wt_idx[ZoneoutLSTMParams::cell_state_zoneout_mask])
@@ -518,12 +467,12 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
                         d_prev_cell_state_residual);
   d_cell_state.multiply(cell_state_zoneout_mask, d_lstm_cell_state);
 
-  lstmcell_calcGradient(unit, batch_size, disable_bias, integrate_bias,
-                        acti_func, recurrent_acti_func, input,
-                        prev_hidden_state, d_prev_hidden_state, prev_cell_state,
-                        d_prev_cell_state, d_hidden_state, lstm_cell_state,
-                        d_lstm_cell_state, d_weight_ih, weight_hh, d_weight_hh,
-                        d_bias_h, d_bias_ih, d_bias_hh, ifgo, d_ifgo);
+  lstmcell_calcGradient(
+    unit, batch_size, disable_bias, integrate_bias, acti_func,
+    recurrent_acti_func, input, prev_hidden_state, d_prev_hidden_state,
+    prev_cell_state, d_prev_cell_state, d_hidden_state_masked, lstm_cell_state,
+    d_lstm_cell_state, d_weight_ih, weight_hh, d_weight_hh, d_bias_h, d_bias_ih,
+    d_bias_hh, ifgo, d_ifgo);
 
   d_prev_hidden_state.add_i(d_prev_hidden_state_residual);
   d_prev_cell_state.add_i(d_prev_cell_state_residual);
@@ -534,10 +483,6 @@ void ZoneoutLSTMCellLayer::setBatch(RunLayerContext &context,
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props);
 
-  context.updateTensor(wt_idx[ZoneoutLSTMParams::hidden_state],
-                       max_timestep * batch);
-  context.updateTensor(wt_idx[ZoneoutLSTMParams::cell_state],
-                       max_timestep * batch);
   context.updateTensor(wt_idx[ZoneoutLSTMParams::ifgo], batch);
   context.updateTensor(wt_idx[ZoneoutLSTMParams::lstm_cell_state], batch);
 

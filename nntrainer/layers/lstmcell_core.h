@@ -36,7 +36,7 @@ void lstmcell_calcGradient(
   ActiFunc &recurrent_acti_func, const Tensor &input,
   const Tensor &prev_hidden_state, Tensor &d_prev_hidden_state,
   const Tensor &prev_cell_state, Tensor &d_prev_cell_state,
-  Tensor &d_hidden_state, const Tensor &cell_state, Tensor &d_cell_state,
+  const Tensor &d_hidden_state, const Tensor &cell_state, const Tensor &d_cell_state,
   Tensor &d_weight_ih, const Tensor &weight_hh, Tensor &d_weight_hh,
   Tensor &d_bias_h, Tensor &d_bias_ih, Tensor &d_bias_hh, const Tensor &ifgo,
   Tensor &d_ifgo);

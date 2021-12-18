@@ -266,29 +266,37 @@ static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=input_cell_state", "input_shape=1:1:2"}},
     /// here zoneout_lstm_cell is being inserted
-    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a1"}},
+    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a1(0)"}},
   });
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
 
   auto zoneout_lstm = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
     {"zoneout_lstmcell",
      {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false"}},
+      "cell_state_zoneout_rate=1.0", "test=true",
+      "input_layers=dummy_0, dummy_1, dummy_2"}},
   });
 
-  nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},
-                             {"a1"}, {"a1"},
-                             ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a1",
-                               "recurrent_input=a1",
-                               "recurrent_output=a1",
-                             });
+  nn->addWithReferenceLayers(
+    zoneout_lstm, "zoneout_lstm_scope",
+    {"input", "input_hidden_state", "input_cell_state"}, {"a1"}, {"a1"},
+    ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a1",
+      "recurrent_input=a1(0), a1(1), a1(2)",
+      "recurrent_output=a1(0), a1(0), a1(1)",
+    });
 
+  nn->setProperty({"input_layers=input, input_hidden_state, input_cell_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
@@ -299,33 +307,53 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_cell_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_cell_state", "input_shape=1:1:2"}},
     /// here zoneout_lstm_cell is being inserted
-    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a2"}},
+    {"mse", {"name=loss", "input_layers=zoneout_lstm_scope/a2(0)"}},
   });
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
 
   auto zoneout_lstm = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
+    {"input", {"name=dummy_3", "input_shape=1"}},
+    {"input", {"name=dummy_4", "input_shape=1"}},
     {"zoneout_lstmcell",
      {"name=a1", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false"}},
+      "cell_state_zoneout_rate=1.0", "test=true",
+      "input_layers=dummy_0, dummy_1, dummy_2"}},
     {"zoneout_lstmcell",
      {"name=a2", "unit=2", "hidden_state_zoneout_rate=1.0",
-      "cell_state_zoneout_rate=1.0", "test=true", "integrate_bias=false",
-      "input_layers=a1"}},
+      "cell_state_zoneout_rate=1.0", "test=true",
+      "input_layers=a1(0), dummy_3, dummy_4"}},
   });
 
-  nn->addWithReferenceLayers(zoneout_lstm, "zoneout_lstm_scope", {"input"},
-                             {"a1"}, {"a2"},
-                             ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a2",
-                               "recurrent_input=a1",
-                               "recurrent_output=a2",
-                             });
+  nn->addWithReferenceLayers(
+    zoneout_lstm, "zoneout_lstm_scope",
+    {
+      "input",
+      "a1_input_hidden_state",
+      "a1_input_cell_state",
+      "a2_input_hidden_state",
+      "a2_input_cell_state",
+    },
+    {"a1", "a2"}, {"a2"}, ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a2",
+      "recurrent_input=a1(0), a1(1), a1(2), a2(1), a2(2)",
+      "recurrent_output=a2(0), a1(0), a1(1), a2(0), a2(1)",
+    });
 
+  nn->setProperty(
+    {"input_layers=input, a1_input_hidden_state, a1_input_cell_state, "
+     "a2_input_hidden_state, a2_input_cell_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
