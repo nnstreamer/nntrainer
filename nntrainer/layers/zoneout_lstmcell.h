@@ -169,34 +169,38 @@ public:
 private:
   static constexpr unsigned int NUM_GATE = 4;
 
-  LSTMCellCoreLayer lstmcellcorelayer;
-
   /**
    * Unit: number of output neurons
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
+   * HiddenStateActivation: activation type for hidden state. default is tanh
+   * RecurrentActivation: activation type for recurrent. default is sigmoid
    * HiddenStateZoneOutRate: zoneout rate for hidden_state
    * CellStateZoneOutRate: zoneout rate for cell_state
-   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * Test: property for test mode
    * MaxTimestep: maximum timestep for zoneout lstmcell
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, HiddenStateZoneOutRate, CellStateZoneOutRate,
-             props::IntegrateBias, Test, props::MaxTimestep, props::Timestep>
+  std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
+             props::RecurrentActivation, HiddenStateZoneOutRate,
+             CellStateZoneOutRate, Test, props::MaxTimestep, props::Timestep>
     zoneout_lstmcell_props;
-  std::array<unsigned int, 10> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 11> wt_idx; /**< indices of the weights */
+
+  /**
+   * @brief     activation function for h_t : default is tanh
+   */
+  ActiFunc acti_func;
+
+  /**
+   * @brief     activation function for recurrent : default is sigmoid
+   */
+  ActiFunc recurrent_acti_func;
 
   /**
    * @brief     Protect overflow
    */
   float epsilon;
-
-  // These weights, inputs, outputs, tensors are all for the lstm_core
-  // Todo: remove this
-  std::vector<Weight> weights;
-  std::vector<Var_Grad> inputs;
-  std::vector<Var_Grad> outputs;
-  std::vector<Var_Grad> tensors;
 };
 } // namespace nntrainer
 
