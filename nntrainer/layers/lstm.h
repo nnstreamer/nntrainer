@@ -102,19 +102,18 @@ private:
 
   /**
    * Unit: number of output neurons
+   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * ReturnSequence: option for return sequence
    * DropOutRate: dropout rate
-   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * MaxTimestep: maximum timestep for lstmcell
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, props::HiddenStateActivation,
+  std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
              props::RecurrentActivation, props::ReturnSequences,
-             props::DropOutRate, props::IntegrateBias, props::MaxTimestep,
-             props::Timestep>
+             props::DropOutRate, props::MaxTimestep, props::Timestep>
     lstm_props;
   std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 
