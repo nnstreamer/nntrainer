@@ -20,7 +20,6 @@
 #include <layer_node.h>
 #include <lstm.h>
 #include <lstmcell.h>
-#include <lstmcell_core.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <recurrent_realizer.h>
@@ -159,7 +158,6 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
     return node->getType() == RNNCellLayer::type ||
            node->getType() == LSTMLayer::type ||
            node->getType() == LSTMCellLayer::type ||
-           node->getType() == LSTMCellCoreLayer::type ||
            node->getType() == ZoneoutLSTMCellLayer::type ||
            node->getType() == GRUCellLayer::type;
   };
