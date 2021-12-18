@@ -56,6 +56,7 @@ public:
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
   void calcGradient(RunLayerContext &context) override;
+
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
@@ -86,6 +87,13 @@ public:
 
 private:
   static constexpr unsigned int NUM_GATE = 4;
+  enum INOUT_INDEX {
+    INPUT = 0,
+    INPUT_HIDDEN_STATE = 1,
+    INPUT_CELL_STATE = 2,
+    OUTPUT_HIDDEN_STATE = 0,
+    OUTPUT_CELL_STATE = 1
+  };
 
   /**
    * Unit: number of output neurons
@@ -93,15 +101,12 @@ private:
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * DropOutRate: dropout rate
-   * MaxTimestep: maximum timestep for lstmcell
-   * TimeStep: timestep for which lstm should operate
    *
    * */
   std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
-             props::RecurrentActivation, props::DropOutRate, props::MaxTimestep,
-             props::Timestep>
+             props::RecurrentActivation, props::DropOutRate>
     lstmcell_props;
-  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh

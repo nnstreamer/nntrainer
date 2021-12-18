@@ -204,26 +204,36 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=input_cell_state", "input_shape=1:1:2"}},
     /// here lstm_cells is being inserted
-    {"mse", {"name=loss", "input_layers=lstm_scope/a1"}},
+    {"mse", {"name=loss", "input_layers=lstmcell_scope/a1(0)"}},
   });
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
 
-  auto lstm = makeGraph({
-    {"lstmcell", {"name=a1", "unit=2", "integrate_bias=false"}},
+  auto lstmcell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
+    {"lstmcell",
+     {"name=a1", "unit=2", "input_layers=dummy_0, dummy_1, dummy_2"}},
   });
 
-  nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a1"},
-                             ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a1",
-                               "recurrent_input=a1",
-                               "recurrent_output=a1",
-                             });
+  nn->addWithReferenceLayers(
+    lstmcell, "lstmcell_scope",
+    {"input", "input_hidden_state", "input_cell_state"},
+    {"a1(0)", "a1(1)", "a1(2)"}, {"a1"},
+    ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a1",
+      "recurrent_input=a1(0), a1(1), a1(2)",
+      "recurrent_output=a1(0), a1(0), a1(1)",
+    });
 
+  nn->setProperty({"input_layers=input, input_hidden_state, input_cell_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
@@ -234,28 +244,49 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_cell_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_cell_state", "input_shape=1:1:2"}},
     /// here lstm_cells is being inserted
-    {"mse", {"name=loss", "input_layers=lstm_scope/a2"}},
+    {"mse", {"name=loss", "input_layers=lstmcell_scope/a2(0)"}},
   });
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
 
-  auto lstm = makeGraph({
-    {"lstmcell", {"name=a1", "unit=2", "integrate_bias=false"}},
+  auto lstmcell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
+    {"input", {"name=dummy_3", "input_shape=1"}},
+    {"input", {"name=dummy_4", "input_shape=1"}},
     {"lstmcell",
-     {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
+     {"name=a1", "unit=2", "input_layers=dummy_0, dummy_1, dummy_2"}},
+    {"lstmcell", {"name=a2", "unit=2", "input_layers=a1(0), dummy_3, dummy_4"}},
   });
 
-  nn->addWithReferenceLayers(lstm, "lstm_scope", {"input"}, {"a1"}, {"a2"},
-                             ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a2",
-                               "recurrent_input=a1",
-                               "recurrent_output=a2",
-                             });
+  nn->addWithReferenceLayers(
+    lstmcell, "lstmcell_scope",
+    {
+      "input",
+      "a1_input_hidden_state",
+      "a1_input_cell_state",
+      "a2_input_hidden_state",
+      "a2_input_cell_state",
+    },
+    {"a1(0)", "a1(1)", "a1(2)", "a2(1)", "a2(2)"}, {"a2"},
+    ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a2",
+      "recurrent_input=a1(0), a1(1), a1(2), a2(1), a2(2)",
+      "recurrent_output=a2(0), a1(0), a1(1), a2(0), a2(1)",
+    });
 
+  nn->setProperty(
+    {"input_layers=input, a1_input_hidden_state, a1_input_cell_state, "
+     "a2_input_hidden_state, a2_input_cell_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
@@ -287,7 +318,8 @@ static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
 
   nn->addWithReferenceLayers(
     zoneout_lstm, "zoneout_lstm_scope",
-    {"input", "input_hidden_state", "input_cell_state"}, {"a1"}, {"a1"},
+    {"input", "input_hidden_state", "input_cell_state"},
+    {"a1(0)", "a1(1)", "a1(2)"}, {"a1"},
     ml::train::ReferenceLayersType::RECURRENT,
     {
       "unroll_for=2",
@@ -343,7 +375,8 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
       "a2_input_hidden_state",
       "a2_input_cell_state",
     },
-    {"a1", "a2"}, {"a2"}, ml::train::ReferenceLayersType::RECURRENT,
+    {"a1(0)", "a1(1)", "a1(2)", "a2(1)", "a2(2)"}, {"a2"},
+    ml::train::ReferenceLayersType::RECURRENT,
     {
       "unroll_for=2",
       "as_sequence=a2",
@@ -497,56 +530,56 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc_V2(makeFC, "fc_unroll_stacked", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeFCClipped, "fc_unroll_stacked_clipped",
                  ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeSingleLSTMCell, "lstm_single__1",
-                 ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeStackedLSTMCell, "lstm_stacked__1",
-                 ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeSingleLSTMCell, "lstmcell_single",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedLSTMCell, "lstmcell_stacked",
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_000",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_050",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_000_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_000_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_050_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_050_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleZoneoutLSTMCell, "zoneout_lstm_single_100_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_100",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleRNNCell, "rnncell_single__1",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedRNNCell, "rnncell_stacked__1",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleGRUCell, "grucell_single__1",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedGRUCell, "grucell_stacked__1",
-                 ModelTestOption::COMPARE_V2),
+                 ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);

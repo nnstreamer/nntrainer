@@ -119,6 +119,13 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(lstm, (3, 4, 7), "lstm_multi_step_seq_act")
 
+    unit, batch_size, unroll_for, feature_size, state_num = [5, 3, 1, 7, 2]
+    lstmcell = K.layers.LSTMCell(units=unit,
+                         activation="tanh",
+                         recurrent_activation="sigmoid",
+                         bias_initializer='glorot_uniform')
+    record_single(lstmcell, [(batch_size, feature_size)] + [(batch_size, unit) for _ in range(state_num)], "lstmcell_single_step", input_type='float')
+
     gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
                          bias_initializer='GlorotUniform',

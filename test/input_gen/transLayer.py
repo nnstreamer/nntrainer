@@ -214,6 +214,23 @@ class MultiOutLayer(IdentityTransLayer):
         return [layer(tf_output) for layer in self.stub_layers]
 
 ##
+# @brief Translayer for lstmcell layer
+class LSTMCellTransLayer(IdentityTransLayer):
+    def build(self, input_shape):
+        if not self.built:
+            self.tf_layer.build(input_shape[0])
+            super().build(input_shape[0])
+
+    ##
+    # @brief call function
+    # @param inputs input with nntrainer layout
+    def call(self, inputs):
+        input = inputs[0]
+        states = inputs[1:]
+        _, states = self.tf_layer.call(input, states)
+        return states
+
+##
 # @brief Translayer for gru layer
 class GRUTransLayer(IdentityTransLayer):
     def to_nntr_weights(self, tensorOrList):
@@ -238,6 +255,9 @@ def attach_trans_layer(layer):
 
     if isinstance(layer, CHANNEL_LAST_LAYERS):
         return ChannelLastTransLayer(layer)
+
+    if isinstance(layer, K.layers.LSTMCell):
+        return LSTMCellTransLayer(layer)
 
     if isinstance(layer, K.layers.GRU):
         return GRUTransLayer(layer)
