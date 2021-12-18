@@ -18,16 +18,15 @@
 
 auto semantic_lstmcell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
-  nntrainer::LSTMCellLayer::type, {"unit=1", "timestep=0", "max_timestep=1"}, 0,
-  false, 1);
+  nntrainer::LSTMCellLayer::type, {"unit=1"}, 0, false, 3);
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerSemantics,
                         ::testing::Values(semantic_lstmcell));
 
 auto lstmcell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
-  {"unit=5", "timestep=0", "max_timestep=1", "integrate_bias=true"}, "3:1:1:7",
-  "lstm_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5,3:1:1:5",
+  "lstmcell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerGoldenTest,
                         ::testing::Values(lstmcell_single_step));

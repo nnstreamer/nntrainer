@@ -83,6 +83,36 @@ class LSTMStacked(torch.nn.Module):
         loss = self.loss(ret, labels[0])
         return ret, loss
 
+class LSTMCellStacked(torch.nn.Module):
+    def __init__(self, unroll_for=2, num_lstmcell=1):
+        super().__init__()
+        self.input_size = self.hidden_size = 2
+        self.lstmcells = torch.nn.ModuleList(
+            [
+                torch.nn.LSTMCell(self.input_size, self.hidden_size, bias=True)
+                for _ in range(num_lstmcell)
+            ]
+        )
+        self.unroll_for = unroll_for
+        self.num_lstmcell = num_lstmcell
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = inputs[0]
+        states = inputs[1:]
+        hs = [states[2 * i] for i in range(self.num_lstmcell)]
+        cs = [states[2 * i + 1] for i in range(self.num_lstmcell)]
+        ret = []
+        for _ in range(self.unroll_for):
+            for i, (lstm, h, c) in enumerate(zip(self.lstmcells, hs, cs)):
+                hs[i], cs[i] = lstm(out, (h, c))
+                out = hs[i]
+            ret.append(out)
+
+        ret = torch.stack(ret, dim=1)
+        loss = self.loss(ret, labels[0])
+        return ret, loss
+
 class ZoneoutLSTMStacked(torch.nn.Module):
     def __init__(self, batch_size=3, unroll_for=2, num_lstm=1, hidden_state_zoneout_rate=1, cell_state_zoneout_rate=1):
         super().__init__()
@@ -197,6 +227,24 @@ if __name__ == "__main__":
         input_dims=[(3, 2)],
         label_dims=[(3, 2, 2)],
         name="lstm_stacked",
+    )
+
+    unroll_for, num_lstmcell, state_num, batch_size, unit, feature_size, iteration = [2, 1, 2, 3, 2, 2, 2]
+    record_v2(
+        LSTMCellStacked(unroll_for=unroll_for, num_lstmcell=num_lstmcell),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(state_num * num_lstmcell)],
+        label_dims=[(batch_size, unroll_for, unit)],
+        name="lstmcell_single",
+    )
+
+    unroll_for, num_lstmcell, state_num, batch_size, unit, feature_size, iteration = [2, 2, 2, 3, 2, 2, 2]
+    record_v2(
+        LSTMCellStacked(unroll_for=unroll_for, num_lstmcell=num_lstmcell),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(state_num * num_lstmcell)],
+        label_dims=[(batch_size, unroll_for, unit)],
+        name="lstmcell_stacked",
     )
 
     unroll_for, num_lstm, state_num, batch_size, unit, feature_size, iteration, hidden_state_zoneout_rate, cell_state_zoneout_rate = [2, 1, 2, 1, 2, 2, 2, 0.0, 0.0]
