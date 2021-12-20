@@ -61,7 +61,7 @@ void DropOutLayer::calcDerivative(RunLayerContext &context) {
   auto &rate_ = std::get<props::DropOutRate>(dropout_rate).get();
 
   for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
-    Tensor &derivative_ = context.getIncomingDerivative(i);
+    const Tensor &derivative_ = context.getIncomingDerivative(i);
     Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
     /** @todo make this in-place */

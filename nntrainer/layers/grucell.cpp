@@ -368,7 +368,8 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   hidden_states.reshape({max_timestep, 1, batch_size, unit});
   Tensor &hidden_states_derivatives =
     context.getTensorGrad(wt_idx[GRUCellParams::hidden_state]);
-  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &zrg_gates = context.getTensor(wt_idx[GRUCellParams::zrg]);
   zrg_gates.reshape({max_timestep, 1, batch_size, NUM_GATE * unit});
   Tensor zrg_gate = zrg_gates.getBatchSlice(timestep, 1);

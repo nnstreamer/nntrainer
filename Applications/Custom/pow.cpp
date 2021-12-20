@@ -108,7 +108,7 @@ void PowLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   std::cout << "pow layer backward is called\n";
 #endif
 
-  nntrainer::Tensor &derivative_ =
+  const nntrainer::Tensor &derivative_ =
     context.getIncomingDerivative(SINGLE_INOUT_IDX);
   nntrainer::Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 

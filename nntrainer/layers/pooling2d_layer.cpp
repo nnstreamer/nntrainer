@@ -150,7 +150,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
     std::get<std::array<props::Stride, POOLING2D_DIM>>(pooling2d_props);
   auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
 
-  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &result = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &pool_helper = context.getTensor(pool_helper_idx);
 
@@ -224,7 +224,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
     }
   } break;
   case props::PoolingTypeInfo::Enum::global_max: {
-    float *deriv_data = deriv.getData();
+    const float *deriv_data = deriv.getData();
     for (unsigned int b = 0; b < batch; b++) {
       for (unsigned int c = 0; c < channel; c++) {
         const int *iter =
@@ -290,8 +290,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   unsigned int max_idx_count = 0;
   switch (pooling_type) {
   case props::PoolingTypeInfo::Enum::max: {
-    pool_fn = [&, this](const float *in_data, int channel_idx, int start_h,
-                        int start_w) {
+    pool_fn = [&](const float *in_data, int channel_idx, int start_h,
+                  int start_w) {
       int end_h = start_h + patch_height;
       int end_w = start_w + patch_width;
 
@@ -354,8 +354,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   }
   case props::PoolingTypeInfo::Enum::global_average:
   case props::PoolingTypeInfo::Enum::average: {
-    pool_fn = [&, this](const float *in_data, int channel_idx, int start_h,
-                        int start_w) {
+    pool_fn = [&](const float *in_data, int channel_idx, int start_h,
+                  int start_w) {
       int end_h = start_h + patch_height;
       int end_w = start_w + patch_width;
       float total = 0.0f;

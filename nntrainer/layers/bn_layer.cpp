@@ -202,7 +202,7 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
 void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &gamma = context.getWeight(wt_idx[BNParams::gamma]);
-  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
   Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
@@ -243,7 +243,7 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   /** dgamma is calculated in calcDerivative. dbeta is calculated here */
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
-  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   deriv.sum(axes_to_reduce, dbeta);
 }

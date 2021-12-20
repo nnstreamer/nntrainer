@@ -89,7 +89,7 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
   Tensor &value = context.getInput(wt_idx[AttentionParams::value]);

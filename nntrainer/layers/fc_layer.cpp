@@ -114,7 +114,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
 
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
@@ -123,7 +123,7 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
 
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);

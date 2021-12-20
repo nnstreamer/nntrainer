@@ -42,7 +42,7 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
 
 void MSELossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   y.subtract(y2, ret_derivative);

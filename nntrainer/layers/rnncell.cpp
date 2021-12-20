@@ -262,7 +262,8 @@ void RNNCellLayer::calcGradient(RunLayerContext &context) {
   const unsigned int timestep = std::get<props::Timestep>(rnncell_props).get();
 
   Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(SINGLE_INOUT_IDX);
   const unsigned int batch_size = input.getDim().batch();
 
   Tensor &djdweight_ih =

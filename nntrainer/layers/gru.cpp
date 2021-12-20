@@ -361,7 +361,8 @@ void GRULayer::calcGradient(RunLayerContext &context) {
   const unsigned int batch_size = input_dim.batch();
   const unsigned int max_timestep = input_dim.height();
   const unsigned int feature_size = input_dim.width();
-  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   Tensor &djdweight_ih = context.getWeightGrad(wt_idx[GRUParams::weight_ih]);
   Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
