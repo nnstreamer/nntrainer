@@ -137,6 +137,42 @@ static std::unique_ptr<NeuralNetwork> one_to_many() {
   return nn;
 }
 
+///         input
+///        (split)
+///   a0   a1   a2   a3
+///  (fc)           (fc)
+///   b0             b1
+///         (add)
+///          c0
+///
+/// only c0 is fed to loss, a1 and a2 is dangled
+/// @note we are not supporting explicit layer with dangling output, It is also
+/// unclear that if this should be supported.
+static std::unique_ptr<NeuralNetwork> split_and_join_dangle() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=5"});
+
+  auto graph = makeGraph({
+    {"fully_connected", {"name=fc", "input_shape=1:1:3", "unit=4"}},
+    {"split", {"name=a", "input_layers=fc", "axis=3"}},
+    {"activation", {"name=a0", "activation=sigmoid", "input_layers=a(0)"}},
+    {"activation", {"name=a3", "activation=sigmoid", "input_layers=a(3)"}},
+    {"fully_connected",
+     {"name=b0", "input_layers=a0", "unit=3", "shared_from=b0"}},
+    {"fully_connected",
+     {"name=b1", "input_layers=a3", "unit=3", "shared_from=b0"}},
+    {"addition", {"name=c0", "input_layers=b0,b1", "activation=sigmoid"}},
+    {"mse", {"name=loss", "input_layers=c0"}},
+  });
+
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 INSTANTIATE_TEST_CASE_P(
   multiInoutModels, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -145,6 +181,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc_V2(one_to_one_reversed, "one_to_one__reversed",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(one_to_many, "one_to_many", ModelTestOption::ALL_V2),
+    mkModelTc_V2(split_and_join_dangle, "split_and_join_dangle",
+                 ModelTestOption::NO_THROW_RUN_V2),
+    //  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);
