@@ -131,7 +131,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
 
   Tensor &djdw = context.getWeightGrad(weight_idx);
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   djdw.setZero();
@@ -151,7 +151,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
       //   continue;
 
       float *djdw_data = djdw.getAddress(embed_idx * out_dim);
-      float *grad_data = derivative_.getAddress(
+      const float *grad_data = derivative_.getAddress(
         b * derivative_.getDim().getFeatureLen() + i * out_dim);
 
       std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,

@@ -43,7 +43,7 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
 
 void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   Tensor ret;

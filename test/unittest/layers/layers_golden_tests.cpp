@@ -124,7 +124,7 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
 
   for (unsigned i = 0; i < num_outputs; ++i) {
     rc.getOutput(i).setRandUniform(); /// randomize output
-    rc.getIncomingDerivative(i).setValue(
+    rc.getOutputGradUnsafe(i).setValue(
       2.0); /// incoming derivative is fixed to 2
   }
 

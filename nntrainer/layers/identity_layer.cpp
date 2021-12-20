@@ -38,7 +38,7 @@ void IdentityLayer::forwarding(RunLayerContext &context, bool training) {
 void IdentityLayer::calcDerivative(RunLayerContext &context) {
   if (!context.executeInPlace()) {
     for (unsigned int i = 0, sz = context.getNumInputs(); i < sz; ++i) {
-      Tensor &d_hidden = context.getIncomingDerivative(i);
+      const Tensor &d_hidden = context.getIncomingDerivative(i);
       Tensor &d_input = context.getOutgoingDerivative(i);
       d_input.copyData(d_hidden);
     }

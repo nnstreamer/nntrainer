@@ -53,7 +53,7 @@ void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void ActivationLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
 

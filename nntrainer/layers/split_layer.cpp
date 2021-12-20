@@ -127,9 +127,7 @@ void SplitLayer::calcDerivative(RunLayerContext &context) {
   input_.reshape(input_reshape_helper);
 
   for (unsigned int idx = 0; idx < context.getNumOutputs(); idx++) {
-    Tensor &output_ = context.getIncomingDerivative(idx);
-    const TensorDim out_dim = output_.getDim();
-    output_.reshape(output_reshape_helper);
+    Tensor output_ = context.getIncomingDerivative(idx);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
       Tensor dest_tensor =
@@ -142,8 +140,6 @@ void SplitLayer::calcDerivative(RunLayerContext &context) {
                     {1, 1, 1, output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
-
-    output_.reshape(out_dim);
   }
 
   input_.reshape(in_dim);

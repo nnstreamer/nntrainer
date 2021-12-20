@@ -265,7 +265,8 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
   const TensorDim &input_dim = input.getDim();
   const unsigned int batch_size = input_dim.batch();
   const unsigned int max_timestep = input_dim.height();
-  Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   Tensor &djdweight_ih = context.getWeightGrad(wt_idx[RNNParams::weight_ih]);
   Tensor &weight_hh = context.getWeight(wt_idx[RNNParams::weight_hh]);
@@ -300,7 +301,7 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
     for (unsigned int batch = 0; batch < batch_size; ++batch) {
       float *hidden_state_derivative_data = hidden_state_derivative.getAddress(
         batch * unit * max_timestep + (max_timestep - 1) * unit);
-      float *incoming_derivative_data =
+      const float *incoming_derivative_data =
         incoming_derivative.getAddress(batch * unit);
       std::copy(incoming_derivative_data, incoming_derivative_data + unit,
                 hidden_state_derivative_data);

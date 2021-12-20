@@ -33,7 +33,8 @@ void TimeDistLayer::setPosition(RunLayerContext &context) {
   /** TODO: use mode of execution here */
   try {
     positions[1] = context.getOutgoingDerivative(SINGLE_INOUT_IDX).getData();
-    positions[3] = context.getIncomingDerivative(SINGLE_INOUT_IDX).getData();
+    positions[3] =
+      (float *)context.getIncomingDerivative(SINGLE_INOUT_IDX).getData();
   } catch (...) {
     /** in case of training, these tensors will not exist */
   }
@@ -63,7 +64,9 @@ void TimeDistLayer::transposeInOut(RunLayerContext &context) {
   // Position[3] : net_hidden.gradient
   bool trans = true;
 
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  /// @fixme: below will be propably wrong as this changes incoming derivative.
+  /// other layer referring to this will have wrong output grad information.
+  Tensor &derivative_ = context.getOutputGradUnsafe(SINGLE_INOUT_IDX);
   for (unsigned int i = 0; i < 3; ++i) {
     if (derivative_.getData() == positions[i]) {
       trans = false;
@@ -265,7 +268,9 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void TimeDistLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  /// @fixme: this will be probably wrong as this mutates incoming derivative,
+  /// we will need the layer to copy and paste instead of transpose and override
+  Tensor &derivative_ = context.getOutputGradUnsafe(SINGLE_INOUT_IDX);
   Tensor &hval_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -325,7 +330,7 @@ void TimeDistLayer::calcGradient(RunLayerContext &context) {
     return;
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   TensorDim der_dim = derivative_.getDim();
   TensorDim in_dim = input_.getDim();

@@ -396,7 +396,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  Tensor &getOutputGrad(unsigned int idx);
+  const Tensor &getOutputGrad(unsigned int idx) const;
 
   /**
    * @brief Get the Output Grad tensor object
@@ -423,7 +423,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output derivative tensor
    */
-  Tensor &getIncomingDerivative(unsigned int idx);
+  const Tensor &getIncomingDerivative(unsigned int idx) const;
 
   /**
    * @brief Get the Input tensor object

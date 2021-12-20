@@ -149,9 +149,8 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
    * @todo avoid copy by creating input here as a shared_tensor of the output
    * here and then this layer can be in_place as well
    */
-  Tensor &output = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor output = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
-  const TensorDim out_dim = output.getDim();
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
   unsigned int data_copy_size = output_reshape_helper.width();
@@ -179,8 +178,6 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
     input.reshape(in_dim);
     output_height_offset += irh.height();
   }
-
-  output.reshape(out_dim);
 }
 
 void ConcatLayer::setProperty(const std::vector<std::string> &values) {

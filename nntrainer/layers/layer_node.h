@@ -553,7 +553,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  Tensor &getOutputGrad(unsigned int idx) {
+  const Tensor &getOutputGrad(unsigned int idx) const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getOutputGrad(idx);
@@ -565,7 +565,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  Tensor &getOutputGradUnsafe(unsigned int idx) {
+  const Tensor &getOutputGradUnsafe(unsigned int idx) const {
     return run_context->getOutputGradUnsafe(idx);
   }
 

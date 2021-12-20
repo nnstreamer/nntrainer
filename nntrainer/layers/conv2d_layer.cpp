@@ -422,7 +422,7 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
 
-  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
@@ -454,7 +454,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
 
-  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);

@@ -75,7 +75,7 @@ void PermuteLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void PermuteLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &hidden_grad = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &hidden_grad = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_grad = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   hidden_grad.transpose(rdirection_str, input_grad);

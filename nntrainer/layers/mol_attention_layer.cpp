@@ -265,7 +265,7 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
   Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
   Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
 
-  Tensor &derivative = context.getIncomingDerivative(0);
+  const Tensor &derivative = context.getIncomingDerivative(0);
 
   Tensor &fc_proj_out = context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
   Tensor &dfc_proj_out =
@@ -323,7 +323,7 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
   Tensor dbeta_eps = dbeta_eps_neg.add(dbeta_eps_pos);
   dm_neg.add(dm_pos, dstate);
   if (context.getNumOutputs() == 2) {
-    Tensor &derivative_state = context.getIncomingDerivative(1);
+    const Tensor &derivative_state = context.getIncomingDerivative(1);
     dstate.add_i(derivative_state);
   }
   Tensor dkappa = dstate;
@@ -356,7 +356,7 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
     context.getOutgoingDerivative(wt_idx[AttentionParams::state]);
   Tensor &dstate_local = context.getTensor(wt_idx[AttentionParams::dstate]);
 
-  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   Tensor &fc_w = context.getWeight(wt_idx[AttentionParams::fc_w]);
   Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
