@@ -112,11 +112,23 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     }
     details->token = 0;
 
-    /** 1. create the validity ranges for the all the requested tensors */
-    unsigned int validity_start =
-      *std::min_element(details->exec_order.begin(), details->exec_order.end());
-    unsigned int validity_end =
-      *std::max_element(details->exec_order.begin(), details->exec_order.end());
+    /**
+     * 1. create the validity ranges for the all the requested tensors.
+     * validity_start/validity_end should be a value in the exec order of the
+     * given tensor or a value out of range so as to not request memory for this
+     * tensor
+     */
+    unsigned int validity_start = end_order + 1;
+    for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
+      if (details->exec_order[idx] >= start_order)
+        validity_start = std::min(validity_start, details->exec_order[idx]);
+    }
+
+    unsigned int validity_end = validity_start;
+    for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
+      if (details->exec_order[idx] <= end_order)
+        validity_end = std::max(validity_end, details->exec_order[idx]);
+    }
 
     /**
      * use lifespan to update the validity.
@@ -131,8 +143,6 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     /** 2. for each tensor request if it is in the provided range */
     if (validity_end < start_order || validity_start > end_order)
       continue;
-    validity_start = std::max(validity_start, start_order);
-    validity_end = std::min(validity_end, end_order);
 
     /**
      * 3. requestMemory for all the tensors and set their tokens
