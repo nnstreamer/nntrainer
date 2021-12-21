@@ -27,14 +27,8 @@ void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
-  if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-    nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);
-    predicted.subtract(label, output);
-    /// make Tensor::abs instead and use it here
-    output.apply_i([](float x) { return x > 0 ? x : -x; });
-  } else {
+  if (!context.executeInPlace())
     output.fill(predicted);
-  }
 }
 
 void MaeLossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
@@ -46,12 +40,14 @@ void MaeLossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   /// This can be saved at MaeLossLayer::forwarding, but this is done here on
   /// purpose for demonstration purpose
   predicted.subtract(label, deriv);
+  unsigned int size = predicted.size();
+  float deriv_val = 1.0f / (float)size;
 
-  deriv.apply_i([](float x) {
+  deriv.apply_i([deriv_val](float x) {
     if (fabs(x) < EPSILON_) {
       return 0.0f;
     }
-    return x > 0 ? 1.0f : -1.0f;
+    return x > 0 ? deriv_val : -deriv_val;
   });
 }
 
