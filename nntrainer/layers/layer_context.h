@@ -44,20 +44,7 @@ public:
    */
   InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_req_out,
                    bool in_place_, const std::string &n = "",
-                   const std::string &prefix_ = "",
-                   const float max_norm = 0.0) :
-    input_dim(dim),
-    in_place(in_place_),
-    clip_by_global_norm(max_norm),
-    num_requested_out(num_req_out),
-    name(n),
-    prefix(prefix_) {
-    NNTR_THROW_IF(!validate(), std::invalid_argument)
-      << "Invalid init context name: " << name
-      << " num inputs: " << getNumInputs();
-    if (prefix.empty())
-      prefix = name; // default prefix is the name
-  }
+                   const std::string &prefix_ = "", const float max_norm = 0.0);
 
   /**
    * @brief   get name by the layer
@@ -115,7 +102,11 @@ public:
    *
    * @return std::vector<TensorDim>& Output dimensions
    */
-  const std::vector<TensorDim> &getOutputDimensions() const {
+  const std::vector<TensorDim> getOutputDimensions() const {
+    std::vector<TensorDim> output_dim;
+    for (auto &spec : output_specs) {
+      output_dim.push_back(spec.variable_spec.dim);
+    }
     return output_dim;
   }
 
@@ -237,14 +228,33 @@ public:
   unsigned int getNumTensors() const { return tensors_spec.size(); }
 
   /**
-   * @brief Update the dimensions for a requested tensor
+   * @brief create var grad specification with output default
    *
-   * @param idx index of the tensor (identifier)
-   * @param batch Updated batch size
+   * @param dim dimension dimension
+   * @param name name name
+   * @param ls variable lifespan
+   * @param grad_ls gradient lifespan
+   * @return VarGradSpecV2 var grad specification
    */
-  void updateTensorSpec(unsigned int idx, unsigned int batch) {
-    std::get<0>(tensors_spec[idx]).batch(batch);
-  }
+  static VarGradSpecV2
+  outSpec(const TensorDim &dim, const std::string &name = "out",
+          TensorLifespan ls = TensorLifespan::FORWARD_GRAD_LIFESPAN,
+          TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+
+  /**
+   * @brief request outputs
+   *
+   * @param out_specs pack of out specification, name will be automatically
+   * indexed to prevent name clash
+   */
+  void requestOutputs(std::vector<VarGradSpecV2> &&out_specs);
+
+  /**
+   * @brief Get the Out Specs object
+   *
+   * @return std::vector<VarGradSpecV2> out specification
+   */
+  const std::vector<VarGradSpecV2> &getOutSpecs();
 
   /**
    * @brief Validate the context
@@ -278,13 +288,12 @@ public:
   bool executeInPlace() const { return in_place; }
 
 private:
-  std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
-  std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
+  std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
   bool in_place;             /**< if the layer is expected to run in-place */
   float clip_by_global_norm; /**< max norm value for clip by norm */
 
-  std::vector<TensorSpecV2> output_spec;
-  std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
+  std::vector<VarGradSpecV2> output_specs; /**< Specification for the output */
+  std::vector<WeightSpec> weights_spec;    /**< Specification for the weights */
   std::vector<TensorSpec>
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */

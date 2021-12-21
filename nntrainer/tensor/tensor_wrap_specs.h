@@ -45,6 +45,7 @@ enum class TensorLifespan {
   CALC_GRAD_DERIV_LIFESPAN = 0b110, /**< tensor must not be reset before during
                              the calc_grad and clac_deriv call, eg. temporary
                              tensors needed during backward operations */
+  FORWARD_GRAD_LIFESPAN = 0b101,    /**< Forward + grad lifespan */
   BACKWARD_FUNC_LIFESPAN =
     CALC_GRAD_DERIV_LIFESPAN, /**< Alias of CALC_GRAD_DERIV_LIFESPAN */
   ITERATION_LIFESPAN = 0b111, /**< tensor must not be reset until the owning
