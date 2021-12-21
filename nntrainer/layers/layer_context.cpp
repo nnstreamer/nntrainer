@@ -12,22 +12,102 @@
 
 #include "nntrainer_error.h"
 #include <functional>
+#include <memory>
+#include <tensor_wrap_specs.h>
 
+#include <iterator>
 #include <layer_context.h>
 #include <stdexcept>
 #include <var_grad.h>
 #include <weight.h>
 
 namespace nntrainer {
+
+/**
+ * @brief rename specification
+ *
+ * @param spec spec to rename
+ * @param fn fn to rename
+ */
+static void renameSpec(VarGradSpecV2 &spec,
+                       std::function<void(std::string &)> fn) {
+  fn(spec.variable_spec.name);
+  if (spec.gradient_spec) {
+    fn(spec.gradient_spec->name);
+  }
+}
+
+InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
+                                   unsigned int num_req_out, bool in_place_,
+                                   const std::string &n,
+                                   const std::string &prefix_,
+                                   const float max_norm) :
+  input_dim(dim),
+  in_place(in_place_),
+  clip_by_global_norm(max_norm),
+  output_specs(),
+  num_requested_out(num_req_out),
+  name(n),
+  prefix(prefix_) {
+  NNTR_THROW_IF(!validate(), std::invalid_argument)
+    << "Invalid init context name: " << name
+    << " num inputs: " << getNumInputs();
+  if (prefix.empty())
+    prefix = name; // default prefix is the name
+}
+
 void InitLayerContext::setOutputDimensions(
   const std::vector<TensorDim> &out_dim) {
   NNTR_THROW_IF(out_dim.size() < num_requested_out, std::invalid_argument)
     << "number of output dimension set is smaller than the number of out "
        "tensor slots "
        "requested, num output dimensions: "
-    << output_dim.size() << " slots to fill: " << num_requested_out
+    << out_dim.size() << " slots to fill: " << num_requested_out;
     << " context name: " << name;
-  output_dim = out_dim;
+  NNTR_THROW_IF(output_specs.size(), std::invalid_argument)
+    << "output specification already set, cannot set twice. Check if output is "
+       "already requested elsewhere";
+  output_specs.reserve(out_dim.size());
+
+  for (unsigned i = 0u, sz = out_dim.size(); i < sz; ++i) {
+    auto spec = outSpec(out_dim.at(i));
+    output_specs.push_back(std::move(spec));
+  }
+}
+
+VarGradSpecV2 InitLayerContext::outSpec(const TensorDim &dim,
+                                        const std::string &name,
+                                        TensorLifespan ls,
+                                        TensorLifespan grad_ls) {
+  VarGradSpecV2 spec;
+  spec.variable_spec.dim = dim;
+  spec.variable_spec.name = name;
+  spec.variable_spec.ls = ls;
+  spec.gradient_spec = std::make_unique<TensorSpecV2>(spec.variable_spec);
+  spec.gradient_spec->ls = grad_ls;
+
+  return spec;
+}
+
+void InitLayerContext::requestOutputs(std::vector<VarGradSpecV2> &&out_specs) {
+  NNTR_THROW_IF(out_specs.size() < num_requested_out, std::invalid_argument)
+    << "number of output dimension set is smaller than the number of out "
+       "tensor slots requested, num output specification: "
+    << out_specs.size() << " slots to fill: " << num_requested_out;
+  NNTR_THROW_IF(output_specs.size(), std::invalid_argument)
+    << "output specification already set, cannot set twice. Check if output is "
+       "already requested elsewhere";
+  output_specs.reserve(out_specs.size());
+
+  for (unsigned i = 0u, sz = out_specs.size(); i < sz; ++i) {
+    auto &spec = out_specs.at(i);
+    renameSpec(spec, [i](std::string &name) { name += std::to_string(i); });
+    output_specs.push_back(std::move(spec));
+  }
+}
+
+const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() {
+  return output_specs;
 }
 
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
