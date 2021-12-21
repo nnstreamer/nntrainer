@@ -283,6 +283,7 @@ private:
   bool in_place;             /**< if the layer is expected to run in-place */
   float clip_by_global_norm; /**< max norm value for clip by norm */
 
+  std::vector<TensorSpecV2> output_spec;
   std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
   std::vector<TensorSpec>
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
@@ -394,15 +395,17 @@ public:
    * @brief Get the Output Grad tensor object
    *
    * @param idx Identifier of the output
-   * @return Tensor& Reference to the output grad tensor
+   * @return Read-only output grad tensor, if derivative does not have
+   * gradient, return a temporary, initialized to zero
    */
-  const Tensor &getOutputGrad(unsigned int idx) const;
+  const Tensor getOutputGrad(unsigned int idx) const;
 
   /**
    * @brief Get the Output Grad tensor object
    *
    * @param idx Identifier of the output
-   * @return Tensor& Reference to the output grad tensor
+   * @return Tensor& Reference to the output grad tensor, this is valid only if
+   * the given output is trainable
    *
    * @note recommended to NOT use this function as a layer developer but rather
    * use getOutputGrad().
@@ -421,9 +424,10 @@ public:
    * @brief Get the incoming Derivative tensor object
    *
    * @param idx Identifier of the output
-   * @return Tensor& Reference to the output derivative tensor
+   * @return Tensor output derivative tensor, if derivative does not have
+   * gradient, return a temporary, initialized to zero
    */
-  const Tensor &getIncomingDerivative(unsigned int idx) const;
+  const Tensor getIncomingDerivative(unsigned int idx) const;
 
   /**
    * @brief Get the Input tensor object
