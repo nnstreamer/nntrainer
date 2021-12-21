@@ -122,12 +122,12 @@ const Tensor &RunLayerContext::getOutput(unsigned int idx) const {
  * @brief Get the Output Grad tensor object
  *
  * @param idx Identifier of the output
- * @return Tensor& Reference to the output grad tensor
+ * @return Tensor Read-only output grad tensor
  */
-const Tensor &RunLayerContext::getOutputGrad(unsigned int idx) const {
-  if (!outputs[idx]->hasGradient())
-    throw std::invalid_argument(
-      "Requesting gradient for a non-trainable tensor.");
+const Tensor RunLayerContext::getOutputGrad(unsigned int idx) const {
+  if (!outputs[idx]->hasGradient()) {
+    return Tensor(outputs[idx]->getDim(), true, Tensor::Initializer::ZEROS);
+  }
   return const_cast<RunLayerContext *>(this)->getOutputGradUnsafe(idx);
 }
 
@@ -158,9 +158,9 @@ Tensor &RunLayerContext::getOutputGradUnsafe(unsigned int idx) {
  * @brief Get the incoming Derivative tensor object
  *
  * @param idx Identifier of the output
- * @return Tensor& Reference to the output derivative tensor
+ * @return Tensor tensor to incoming derivative. If
  */
-const Tensor &RunLayerContext::getIncomingDerivative(unsigned int idx) const {
+const Tensor RunLayerContext::getIncomingDerivative(unsigned int idx) const {
   return getOutputGrad(idx);
 }
 
