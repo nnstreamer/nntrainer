@@ -482,10 +482,6 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(zoneout_lstmcell_props).get();
-  const float hidden_state_zoneout_rate =
-    std::get<HiddenStateZoneOutRate>(zoneout_lstmcell_props);
-  const float cell_state_zoneout_rate =
-    std::get<CellStateZoneOutRate>(zoneout_lstmcell_props);
   const bool integrate_bias =
     std::get<props::IntegrateBias>(zoneout_lstmcell_props).get();
   const bool test = std::get<Test>(zoneout_lstmcell_props);
@@ -554,15 +550,8 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor next_hidden_state_zoneout_mask =
     hidden_state_zoneout_mask.getBatchSlice(timestep, 1);
   next_hidden_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
-  Tensor prev_hidden_state_zoneout_mask;
-  if (!test) {
-    prev_hidden_state_zoneout_mask =
-      next_hidden_state_zoneout_mask.zoneout_mask(hidden_state_zoneout_rate);
-  } else {
-    next_hidden_state_zoneout_mask.multiply(-1.0f,
-                                            prev_hidden_state_zoneout_mask);
-    prev_hidden_state_zoneout_mask.add_i(1.0f);
-  }
+  Tensor prev_hidden_state_zoneout_mask = next_hidden_state_zoneout_mask.apply(
+    [epsilon = epsilon](float x) { return x < epsilon; });
 
   if (timestep) {
     prev_hidden_state_derivative =
@@ -582,14 +571,8 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor next_cell_state_zoneout_mask =
     cell_state_zoneout_mask.getBatchSlice(timestep, 1);
   next_cell_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
-  Tensor prev_cell_state_zoneout_mask;
-  if (!test) {
-    prev_cell_state_zoneout_mask =
-      next_cell_state_zoneout_mask.zoneout_mask(cell_state_zoneout_rate);
-  } else {
-    next_cell_state_zoneout_mask.multiply(-1.0f, prev_cell_state_zoneout_mask);
-    prev_cell_state_zoneout_mask.add_i(1.0f);
-  }
+  Tensor prev_cell_state_zoneout_mask = next_cell_state_zoneout_mask.apply(
+    [epsilon = epsilon](float x) { return x < epsilon; });
 
   if (timestep) {
     prev_cell_state_derivative =
