@@ -223,7 +223,9 @@ void NetworkGraph::markNodesForBackwarding() {
     if (lnode->getTrainable() ||
         must_support_backwarding.find(lnode->getName()) !=
           must_support_backwarding.end()) {
-      lnode->needsCalcGradient(true);
+      if (lnode->getTrainable()) {
+        lnode->needsCalcGradient(true);
+      }
 #ifdef ENABLE_TEST
       if (lnode->supportBackwarding() && !optimize_memory) {
         lnode->needsCalcDerivative(true);
