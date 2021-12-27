@@ -349,10 +349,6 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   const unsigned int unit = std::get<props::Unit>(zoneout_lstmcell_props).get();
   const bool integrate_bias =
     std::get<props::IntegrateBias>(zoneout_lstmcell_props).get();
-  const float hidden_state_zoneout_rate =
-    std::get<HiddenStateZoneOutRate>(zoneout_lstmcell_props).get();
-  const float cell_state_zoneout_rate =
-    std::get<CellStateZoneOutRate>(zoneout_lstmcell_props).get();
   const bool test = std::get<Test>(zoneout_lstmcell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props).get();
@@ -432,14 +428,8 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   hs_zoneout_mask.reshape({max_timestep, 1, batch_size, unit});
   Tensor hidden_state_zoneout_mask = hs_zoneout_mask.getBatchSlice(timestep, 1);
   hidden_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
-  Tensor prev_hidden_state_zoneout_mask;
-  if (!test) {
-    prev_hidden_state_zoneout_mask =
-      hidden_state_zoneout_mask.zoneout_mask(hidden_state_zoneout_rate);
-  } else {
-    hidden_state_zoneout_mask.multiply(-1.0f, prev_hidden_state_zoneout_mask);
-    prev_hidden_state_zoneout_mask.add_i(1.0f);
-  }
+  Tensor prev_hidden_state_zoneout_mask = hidden_state_zoneout_mask.apply(
+    [epsilon = epsilon](float x) { return x < epsilon; });
 
   d_hidden_state.multiply(prev_hidden_state_zoneout_mask,
                           d_prev_hidden_state_residual);
@@ -454,14 +444,8 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   cs_zoneout_mask.reshape({max_timestep, 1, batch_size, unit});
   Tensor cell_state_zoneout_mask = cs_zoneout_mask.getBatchSlice(timestep, 1);
   cell_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
-  Tensor prev_cell_state_zoneout_mask;
-  if (!test) {
-    prev_cell_state_zoneout_mask =
-      cell_state_zoneout_mask.zoneout_mask(cell_state_zoneout_rate);
-  } else {
-    cell_state_zoneout_mask.multiply(-1.0f, prev_cell_state_zoneout_mask);
-    prev_cell_state_zoneout_mask.add_i(1.0f);
-  }
+  Tensor prev_cell_state_zoneout_mask = cell_state_zoneout_mask.apply(
+    [epsilon = epsilon](float x) { return x < epsilon; });
 
   d_cell_state.multiply(prev_cell_state_zoneout_mask,
                         d_prev_cell_state_residual);
