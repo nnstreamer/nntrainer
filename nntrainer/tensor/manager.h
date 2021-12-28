@@ -425,9 +425,10 @@ public:
    * @param scope common scope to attach in front of current specification name
    * @return Tensor* tensor
    */
-  Tensor *requestTensor(const VarGradSpecV2 &spec, TensorGroupType identify_as,
-                        const GraphNode::ExecutionOrder &exec_order,
-                        const std::string &scope = "");
+  Var_Grad *requestTensor(const VarGradSpecV2 &spec,
+                          TensorGroupType identify_as,
+                          const GraphNode::ExecutionOrder &exec_order,
+                          const std::string &scope = "");
 
 private:
   /** @todo: merge this list to one */
