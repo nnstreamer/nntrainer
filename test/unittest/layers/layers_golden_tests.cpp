@@ -49,7 +49,7 @@ static InitLayerContext createInitContext(Layer *layer,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
-  InitLayerContext context({parsed.begin(), parsed.end()}, 1, false,
+  InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
                            "golden_test");
   layer->finalize(context);
 

@@ -124,15 +124,15 @@ void TimeDistLayer::finalize(InitLayerContext &context) {
    */
   TensorDim dist_dim = input_dim;
   dist_dim.height(1);
-  InitLayerContext dist_context({dist_dim}, context.getNumRequestedOutputs(),
-                                context.executeInPlace(), context.getName());
+  InitLayerContext dist_context({dist_dim}, {}, context.executeInPlace(),
+                                context.getName());
 
   // During forwarding and backwarding, it set the input and output buffer of
   // dist_layer properly
   // dist_layer will use forwarding_with_val and backwarding_with_val
   dist_layer->finalize(dist_context);
 
-  TensorDim output_dim = dist_context.getOutputDimensions()[0];
+  TensorDim output_dim = dist_context.getOutSpecs()[0].variable_spec.dim;
   // input_dim.height is number of time iteration
   output_dim.height(input_dim.height());
   context.setOutputDimensions({output_dim});

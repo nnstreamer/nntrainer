@@ -500,9 +500,14 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   float max_norm = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
-  auto init_context = InitLayerContext(
-    actual_input_dims, output_connections.size(),
-    executeInPlace() != InPlace::NONE, getName(), scope, max_norm);
+
+  std::vector<bool> out_info;
+  out_info.reserve(output_connections.size());
+  std::transform(output_connections.begin(), output_connections.end(),
+                 std::back_inserter(out_info), [](auto &con) { return !!con; });
+  auto init_context = InitLayerContext(actual_input_dims, out_info,
+                                       executeInPlace() != InPlace::NONE,
+                                       getName(), scope, max_norm);
 
   layer->finalize(init_context);
 

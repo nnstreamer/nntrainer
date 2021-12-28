@@ -17,6 +17,7 @@
 
 #include <iterator>
 #include <layer_context.h>
+#include <nntrainer_log.h>
 #include <stdexcept>
 #include <var_grad.h>
 #include <weight.h>
@@ -38,15 +39,15 @@ static void renameSpec(VarGradSpecV2 &spec,
 }
 
 InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
-                                   unsigned int num_req_out, bool in_place_,
-                                   const std::string &n,
+                                   const std::vector<bool> &req_out_connected,
+                                   bool in_place_, const std::string &n,
                                    const std::string &prefix_,
                                    const float max_norm) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
   output_specs(),
-  num_requested_out(num_req_out),
+  req_out_is_connected(req_out_connected),
   name(n),
   prefix(prefix_) {
   NNTR_THROW_IF(!validate(), std::invalid_argument)
@@ -56,23 +57,21 @@ InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
     prefix = name; // default prefix is the name
 }
 
+unsigned int InitLayerContext::getNumRequestedOutputs() const {
+  return req_out_is_connected.size();
+}
+
 void InitLayerContext::setOutputDimensions(
   const std::vector<TensorDim> &out_dim) {
-  NNTR_THROW_IF(out_dim.size() < num_requested_out, std::invalid_argument)
-    << "number of output dimension set is smaller than the number of out "
-       "tensor slots "
-       "requested, num output dimensions: "
-    << out_dim.size() << " slots to fill: " << num_requested_out;
-    << " context name: " << name;
-  NNTR_THROW_IF(output_specs.size(), std::invalid_argument)
-    << "output specification already set, cannot set twice. Check if output is "
-       "already requested elsewhere";
-  output_specs.reserve(out_dim.size());
+  std::vector<VarGradSpecV2> specs;
+  specs.reserve(out_dim.size());
 
   for (unsigned i = 0u, sz = out_dim.size(); i < sz; ++i) {
     auto spec = outSpec(out_dim.at(i));
-    output_specs.push_back(std::move(spec));
+    specs.push_back(std::move(spec));
   }
+
+  requestOutputs(std::move(specs));
 }
 
 VarGradSpecV2 InitLayerContext::outSpec(const TensorDim &dim,
@@ -90,18 +89,29 @@ VarGradSpecV2 InitLayerContext::outSpec(const TensorDim &dim,
 }
 
 void InitLayerContext::requestOutputs(std::vector<VarGradSpecV2> &&out_specs) {
-  NNTR_THROW_IF(out_specs.size() < num_requested_out, std::invalid_argument)
+  NNTR_THROW_IF(out_specs.size() < getNumRequestedOutputs(),
+                std::invalid_argument)
     << "number of output dimension set is smaller than the number of out "
        "tensor slots requested, num output specification: "
-    << out_specs.size() << " slots to fill: " << num_requested_out;
+    << out_specs.size() << " slots to fill: " << getNumRequestedOutputs()
+    << " context name: " << name;
   NNTR_THROW_IF(output_specs.size(), std::invalid_argument)
     << "output specification already set, cannot set twice. Check if output is "
        "already requested elsewhere";
   output_specs.reserve(out_specs.size());
 
+  auto is_dangled = [this](unsigned int idx) {
+    return req_out_is_connected.size() <= idx || req_out_is_connected[idx];
+  };
+
   for (unsigned i = 0u, sz = out_specs.size(); i < sz; ++i) {
     auto &spec = out_specs.at(i);
     renameSpec(spec, [i](std::string &name) { name += std::to_string(i); });
+    if (is_dangled(i)) {
+      ml_logw("given output is being dangled: %s in context: %s",
+              spec.variable_spec.name.c_str(), name.c_str());
+      spec.gradient_spec = nullptr;
+    }
     output_specs.push_back(std::move(spec));
   }
 }
