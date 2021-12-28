@@ -51,8 +51,8 @@ TEST_P(LayerSemantics, finalizeValidate_p) {
   if (!must_fail) {
     EXPECT_NO_THROW(layer->finalize(init_context));
 
-    for (auto const &dim : init_context.getOutputDimensions())
-      EXPECT_GT(dim.getDataLen(), size_t(0));
+    for (auto const &spec : init_context.getOutSpecs())
+      EXPECT_GT(spec.variable_spec.dim.getDataLen(), size_t(0));
     for (auto const &ws : init_context.getWeightsSpec())
       EXPECT_GT(std::get<0>(ws).getDataLen(), size_t(0));
     for (auto const &ts : init_context.getTensorsSpec())

@@ -12,6 +12,7 @@
  * @todo    Support multi-input graph.
  */
 
+#include "tensor.h"
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -696,10 +697,13 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * allocated input. This is neccesary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
+  std::vector<TensorDim> out_dims;
+  for (auto &spec : init_context.getOutSpecs()) {
+    out_dims.push_back(spec.variable_spec.dim);
+  }
   unsigned int max_fwd_exec_order = graph.size();
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
-    gnode, init_context.getOutputDimensions(), inputs_name, max_fwd_exec_order,
-    shared_var, shared_grad);
+    gnode, out_dims, inputs_name, max_fwd_exec_order, shared_var, shared_grad);
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
