@@ -46,6 +46,7 @@ enum class TensorLifespan {
                              the calc_grad and clac_deriv call, eg. temporary
                              tensors needed during backward operations */
   FORWARD_GRAD_LIFESPAN = 0b101,    /**< Forward + grad lifespan */
+  FORWARD_DERIV_LIFESPAN = 0b011,   /**< Forward + deriv lifespan */
   BACKWARD_FUNC_LIFESPAN =
     CALC_GRAD_DERIV_LIFESPAN, /**< Alias of CALC_GRAD_DERIV_LIFESPAN */
   ITERATION_LIFESPAN = 0b111, /**< tensor must not be reset until the owning
@@ -122,7 +123,7 @@ struct TensorSpecV2 {
     Tensor::Initializer::NONE; /**< initializer */
 
   /** ONLY USED FOR READ_ONLY_VIEW, MAYBE_MODIFYING_VIEW */
-  unsigned int offset;        /**< tensor offset */
+  unsigned int offset = 0u;   /**< tensor offset */
   std::string reference_name; /**< reference name */
 };
 
@@ -131,6 +132,45 @@ struct TensorSpecV2 {
  *
  */
 struct VarGradSpecV2 {
+
+  /**
+   * @brief Construct a new Var Grad Spec V2 object
+   *
+   */
+  VarGradSpecV2() = default;
+
+  /**
+   * @brief Copy construct
+   *
+   * @param rhs
+   */
+  VarGradSpecV2(const VarGradSpecV2 &rhs) :
+    variable_spec(rhs.variable_spec),
+    gradient_spec(rhs.gradient_spec
+                    ? std::make_unique<TensorSpecV2>(*rhs.gradient_spec)
+                    : nullptr) {}
+
+  /**
+   * @brief copy assignment
+   *
+   * @param rhs
+   * @return VarGradSpecV2&
+   */
+  VarGradSpecV2 &operator=(const VarGradSpecV2 &rhs) {
+    variable_spec = rhs.variable_spec;
+    gradient_spec = rhs.gradient_spec
+                      ? std::make_unique<TensorSpecV2>(*rhs.gradient_spec)
+                      : nullptr;
+    return *this;
+  }
+
+  /**
+   * @brief Move Construct
+   *
+   */
+  VarGradSpecV2(VarGradSpecV2 &&) noexcept = default;
+  VarGradSpecV2 &operator=(VarGradSpecV2 &&) noexcept = default;
+
   TensorSpecV2 variable_spec; /**< variable spec */
   std::unique_ptr<TensorSpecV2> gradient_spec =
     nullptr; /**< gradient spec, if null it cannot be trained*/

@@ -505,6 +505,12 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   out_info.reserve(output_connections.size());
   std::transform(output_connections.begin(), output_connections.end(),
                  std::back_inserter(out_info), [](auto &con) { return !!con; });
+
+  if (requireLabel() && out_info.empty()) {
+    /// as we are using output Grad to save label, add fake out info if it's
+    /// label. This should be substituted to the proper label management
+    out_info.push_back(true);
+  }
   auto init_context = InitLayerContext(actual_input_dims, out_info,
                                        executeInPlace() != InPlace::NONE,
                                        getName(), scope, max_norm);

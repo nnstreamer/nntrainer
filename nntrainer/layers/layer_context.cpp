@@ -28,13 +28,12 @@ namespace nntrainer {
  * @brief rename specification
  *
  * @param spec spec to rename
- * @param fn fn to rename
+ * @param idx idx to suffix
  */
-static void renameSpec(VarGradSpecV2 &spec,
-                       std::function<void(std::string &)> fn) {
-  fn(spec.variable_spec.name);
+static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
+  spec.variable_spec.name += std::to_string(idx);
   if (spec.gradient_spec) {
-    fn(spec.gradient_spec->name);
+    spec.gradient_spec->name += std::to_string(idx) + Var_Grad::grad_suffix;
   }
 }
 
@@ -101,12 +100,12 @@ void InitLayerContext::requestOutputs(std::vector<VarGradSpecV2> &&out_specs) {
   output_specs.reserve(out_specs.size());
 
   auto is_dangled = [this](unsigned int idx) {
-    return req_out_is_connected.size() <= idx || req_out_is_connected[idx];
+    return req_out_is_connected.size() <= idx || !req_out_is_connected[idx];
   };
 
   for (unsigned i = 0u, sz = out_specs.size(); i < sz; ++i) {
     auto &spec = out_specs.at(i);
-    renameSpec(spec, [i](std::string &name) { name += std::to_string(i); });
+    suffixSpec(spec, i);
     if (is_dangled(i)) {
       ml_logw("given output is being dangled: %s in context: %s",
               spec.variable_spec.name.c_str(), name.c_str());

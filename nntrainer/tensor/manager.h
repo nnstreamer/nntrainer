@@ -230,22 +230,6 @@ public:
                 const std::vector<std::string> &outputs_name = {});
 
   /**
-   * @brief     Create tensors with the given spec
-   *
-   * @param node Graph node to extract node identifiers/info
-   * @param outputs_dim Specficiation for the tensors
-   * @param inputs_name Name of the inputs tensors which for tensor sharing
-   *
-   * @return created tensors list
-   */
-  std::vector<Var_Grad *>
-  requestOutputs(const GraphNode &node,
-                 const std::vector<TensorDim> &outputs_dim,
-                 const std::vector<std::string> &inputs_name = {},
-                 unsigned int max_fwd_exec_order = 0, bool shared_var = true,
-                 bool shared_grad = true);
-
-  /**
    * @brief     Get all the weights which match the above condition
    *
    * @return    return the weights with satisfying the above condition
@@ -430,10 +414,23 @@ public:
                           const GraphNode::ExecutionOrder &exec_order,
                           const std::string &scope = "");
 
+  /**
+   * @brief request vector of tensors with variable + gradient specification
+   *
+   * @param spec specification
+   * @param identify_as identify as tensor as a group
+   * @param exec_order execution order to refer to
+   * @param scope common scope to attach in front of current specification name
+   * @return Tensor* tensor
+   */
+  std::vector<Var_Grad *> requestTensors(
+    const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
+    const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "");
+
 private:
   /** @todo: merge this list to one */
-  std::vector<std::unique_ptr<Weight>>
-    weights_v2; /**< weights for the layers */
+  std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
+                                                    */
   std::vector<std::unique_ptr<Var_Grad>>
     inputs_v2; /**< inputs for the layers */
   std::vector<std::unique_ptr<Var_Grad>>

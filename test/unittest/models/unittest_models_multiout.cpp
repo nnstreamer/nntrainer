@@ -182,8 +182,7 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(one_to_many, "one_to_many", ModelTestOption::ALL_V2),
     mkModelTc_V2(split_and_join_dangle, "split_and_join_dangle",
-                 ModelTestOption::NO_THROW_RUN_V2),
-    //  ModelTestOption::ALL_V2),
+                 ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);

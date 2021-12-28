@@ -202,7 +202,30 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
     << "Currently, input and tensors group type is not yet implemented, use "
        "requestInputs() requestTensors() instead";
 
-  return nullptr;
+  Tensor *var =
+    requestTensor_(spec.variable_spec, exec_order, scope, tensor_pool);
+  Tensor *grad =
+    spec.gradient_spec
+      ? requestTensor_(*spec.gradient_spec, exec_order, scope, tensor_pool)
+      : nullptr;
+
+  /// @note as only supporting identify_as == TensorGroupType::output, only
+  /// saves to outputs for now
+  outputs_v2.push_back(std::make_unique<Var_Grad>(var, grad));
+
+  return outputs_v2.back().get();
+}
+
+std::vector<Var_Grad *> Manager::requestTensors(
+  const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
+  const GraphNode::ExecutionOrder &exec_order, const std::string &scope) {
+  std::vector<Var_Grad *> ret;
+  ret.reserve(specs.size());
+  for (auto &spec : specs) {
+    ret.push_back(requestTensor(spec, identify_as, exec_order, scope));
+  }
+
+  return ret;
 }
 
 /**
@@ -511,83 +534,6 @@ Manager::requestInputs(const GraphNode &node,
 
   ret.reserve(inputs_dim.size());
   std::transform(inputs_v2.begin() + current_size, inputs_v2.end(),
-                 std::back_inserter(ret),
-                 [](auto const &elem) { return elem.get(); });
-
-  return ret;
-}
-
-/**
- * @brief     Create tensors with the given spec
- */
-std::vector<Var_Grad *> Manager::requestOutputs(
-  const GraphNode &node, const std::vector<TensorDim> &outputs_dim,
-  const std::vector<std::string> &inputs_name, unsigned int max_fwd_exec_order,
-  bool shared_var, bool shared_grad) {
-  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
-    node.getExecutionOrder();
-  std::vector<unsigned int> var_exec_order({forwarding_order});
-  if (node.getType() == ActivationLayer::type)
-    /** TODO: if removing this reduces memory consumption, resolve this */
-    var_exec_order.push_back(calcDerivative_order);
-  std::vector<unsigned int> grad_exec_order(
-    {calcGradient_order, calcDerivative_order});
-
-  /** @todo only do this for inference */
-  if (node.getOutputConnections().size() == 0u)
-    var_exec_order.push_back(max_fwd_exec_order);
-
-  TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
-  TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
-
-  std::vector<Var_Grad *> ret;
-  size_t current_size = outputs_v2.size();
-  shared_var = shared_var & !inputs_name.empty();
-  shared_grad = shared_grad & !inputs_name.empty();
-
-  for (unsigned int idx = 0; idx < outputs_dim.size(); idx++) {
-    auto const &dim = outputs_dim[idx];
-    Tensor *var = nullptr, *grad = nullptr;
-    const std::string &var_name =
-      node.getName() + std::string(":output") + std::to_string(idx);
-    std::string shared_name = "";
-    if (inputs_name.size() == 1)
-      shared_name = inputs_name[0];
-    else if (inputs_name.size() == 1)
-      shared_name = inputs_name[idx];
-
-    if (shared_var) {
-      /** request shared tensor for variable */
-      var =
-        tensor_pool.view(var_name, shared_name, dim, var_exec_order, var_ls);
-    } else {
-      /** request new tensor for variable */
-      var = tensor_pool.request(var_name, dim, var_exec_order, var_ls,
-                                Tensor::Initializer::NONE);
-    }
-
-    if (shared_grad) {
-      /** request share tensor for gradient */
-      grad = tensor_pool.view(var_name + Var_Grad::grad_suffix,
-                              shared_name + Var_Grad::grad_suffix, dim,
-                              grad_exec_order, grad_ls);
-    } else {
-      /** request new tensor for gradient */
-      if (!node.getOutputConnections().empty()) {
-        /** request a simple tensor */
-        grad = tensor_pool.request(var_name + Var_Grad::grad_suffix, dim,
-                                   grad_exec_order, grad_ls,
-                                   Tensor::Initializer::ZEROS);
-      } else {
-        /** requesting externally allocated tensor for label */
-        grad = tensor_pool.placeholder(var_name + Var_Grad::grad_suffix, dim);
-      }
-    }
-
-    outputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
-  }
-
-  std::transform(outputs_v2.begin() + current_size, outputs_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
 
