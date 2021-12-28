@@ -41,10 +41,17 @@ public:
    * @brief Construct a new Init Layer Context object
    *
    * @param dim Input dimensions for the layer
+   * @param req_out_connected bool vector to tell if requested output is
+   * trainable or not
+   * @param in_place_ true if the context is inplacable
+   * @param name name
+   * @param prefix_ prefix
+   * @param max_norm max norm
    */
-  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_req_out,
-                   bool in_place_, const std::string &n = "",
-                   const std::string &prefix_ = "", const float max_norm = 0.0);
+  InitLayerContext(const std::vector<TensorDim> &dim,
+                   const std::vector<bool> &req_out_connected, bool in_place_,
+                   const std::string &n = "", const std::string &prefix_ = "",
+                   const float max_norm = 0.0);
 
   /**
    * @brief   get name by the layer
@@ -65,7 +72,7 @@ public:
    *
    * @return unsigned int number of inputs
    */
-  unsigned int getNumRequestedOutputs() const { return num_requested_out; }
+  unsigned int getNumRequestedOutputs() const;
 
   /**
    * @brief Get the Input Dimensions object
@@ -230,8 +237,8 @@ public:
   /**
    * @brief create var grad specification with output default
    *
-   * @param dim dimension dimension
-   * @param name name name
+   * @param dim dimension
+   * @param name name
    * @param ls variable lifespan
    * @param grad_ls gradient lifespan
    * @return VarGradSpecV2 var grad specification
@@ -298,10 +305,10 @@ private:
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */
 
-  unsigned int
-    num_requested_out; /**< number of requested outputs for the layer */
-  std::string name;    /**< name of the layer */
-  std::string prefix;  /**< prefix of the layer */
+  std::vector<bool> req_out_is_connected;
+  /**< a bool vector to tell if requested out is actually connected to others */
+  std::string name;   /**< name of the layer */
+  std::string prefix; /**< prefix of the layer */
 };
 
 /**
