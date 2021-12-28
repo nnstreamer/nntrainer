@@ -58,8 +58,8 @@ TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
   if (!must_fail) {
     nntrainer::InitLayerContext init_context = lnode->finalize();
 
-    for (auto const &dim : init_context.getOutputDimensions())
-      EXPECT_GT(dim.getDataLen(), size_t(0));
+    for (auto const &spec : init_context.getOutSpecs())
+      EXPECT_GT(spec.variable_spec.dim.getDataLen(), size_t(0));
     for (auto const &ws : init_context.getWeightsSpec())
       EXPECT_GT(std::get<0>(ws).getDataLen(), size_t(0));
     for (auto const &ts : init_context.getTensorsSpec())

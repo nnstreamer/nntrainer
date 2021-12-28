@@ -105,19 +105,6 @@ public:
   }
 
   /**
-   * @brief Get the Output Dimensions object
-   *
-   * @return std::vector<TensorDim>& Output dimensions
-   */
-  const std::vector<TensorDim> getOutputDimensions() const {
-    std::vector<TensorDim> output_dim;
-    for (auto &spec : output_specs) {
-      output_dim.push_back(spec.variable_spec.dim);
-    }
-    return output_dim;
-  }
-
-  /**
    * @brief Set the Output Dimensions object
    *
    * @param out_dim the output dimension to set to
@@ -261,7 +248,7 @@ public:
    *
    * @return std::vector<VarGradSpecV2> out specification
    */
-  const std::vector<VarGradSpecV2> &getOutSpecs();
+  const std::vector<VarGradSpecV2> &getOutSpecs() const;
 
   /**
    * @brief Validate the context

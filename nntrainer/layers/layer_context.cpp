@@ -116,7 +116,7 @@ void InitLayerContext::requestOutputs(std::vector<VarGradSpecV2> &&out_specs) {
   }
 }
 
-const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() {
+const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
   return output_specs;
 }
 

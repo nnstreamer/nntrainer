@@ -10,6 +10,7 @@
  * @bug No known bugs except for NYI items
  */
 #include <layers_common_tests.h>
+#include <tensor_wrap_specs.h>
 
 #include <fstream>
 #include <type_traits>
@@ -80,6 +81,18 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
     return vg;
   };
 
+  auto allocate_tensors_v2 = [](const std::vector<VarGradSpecV2> &specs) {
+    std::vector<Var_Grad> vg;
+    vg.reserve(specs.size());
+
+    for (auto &spec : specs) {
+      /// todo initializer should be depending is as well
+      vg.emplace_back(spec.variable_spec.dim, Tensor::Initializer::NONE, true,
+                      true, "golden");
+    }
+    return vg;
+  };
+
   auto allocate_weights = [&file](const auto &specs) {
     std::vector<Weight> weights;
     weights.reserve(specs.size());
@@ -96,7 +109,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
   return {
     allocate_weights(context.getWeightsSpec()),
     allocate_inouts(context.getInputDimensions()),
-    allocate_inouts(context.getOutputDimensions()),
+    allocate_tensors_v2(context.getOutSpecs()),
     allocate_tensors(context.getTensorsSpec()),
   };
 }
