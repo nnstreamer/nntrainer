@@ -16,6 +16,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include <activation_layer.h>
@@ -26,6 +27,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <tensor.h>
+#include <tensor_wrap_specs.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -42,7 +44,19 @@ void ActivationLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(act.empty(), std::invalid_argument)
     << "activation has not been set!";
   acti_func.setActiFunc(act.get());
-  context.setOutputDimensions(context.getInputDimensions());
+
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "activation layer, " << context.getName()
+    << "requires exactly one input, but given: " << context.getNumInputs()
+    << ", check graph connection if it is correct";
+
+  /// @todo for only certain types of activation needs lifespan of
+  /// forward_derivative order
+  std::vector<VarGradSpecV2> out_specs;
+  out_specs.push_back(
+    InitLayerContext::outSpec(context.getInputDimensions()[0], "out",
+                              TensorLifespan::FORWARD_DERIV_LIFESPAN));
+  context.requestOutputs(std::move(out_specs));
   acti_func.executeInPlace(context.executeInPlace());
 }
 

@@ -671,7 +671,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
-   * allocated input. This is necesary for manager to know when this input
+   * allocated input. This is neccesary for manager to know when this input
    * node is going to be used.
    */
   std::vector<std::string> input_names;
@@ -683,27 +683,51 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     gnode, init_context.getInputDimensions(), input_names);
 
   /** In-Place optimizations */
-  std::vector<std::string> inputs_name;
-  bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace() != InPlace::NONE) {
-    std::transform(inputs.begin(), inputs.end(),
-                   std::back_inserter(inputs_name),
-                   [](const Var_Grad *val) { return val->getName(); });
-    setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
-  }
-
   /**
    * Request manager for either a pre-allocated input as output or a newly
    * allocated input. This is neccesary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
-  std::vector<TensorDim> out_dims;
-  for (auto &spec : init_context.getOutSpecs()) {
-    out_dims.push_back(spec.variable_spec.dim);
+  auto out_specs = init_context.getOutSpecs();
+  /// @note try move inplace control to finalize
+  bool shared_var = false, shared_grad = false;
+  if (lnode->executeInPlace() != InPlace::NONE) {
+    setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
+    for (unsigned int i = 0; i < out_specs.size(); ++i) {
+      auto &s = out_specs.at(i);
+      if (shared_var) {
+        s.variable_spec.request_type =
+          TensorSpecV2::RequestType::READ_ONLY_VIEW;
+        s.variable_spec.reference_name = inputs[0]->getName();
+      }
+      if (shared_grad && s.gradient_spec) {
+        s.gradient_spec->request_type =
+          TensorSpecV2::RequestType::READ_ONLY_VIEW;
+        s.gradient_spec->reference_name = inputs[0]->getGradientName();
+      }
+    }
   }
-  unsigned int max_fwd_exec_order = graph.size();
-  const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
-    gnode, out_dims, inputs_name, max_fwd_exec_order, shared_var, shared_grad);
+  if (lnode->requireLabel()) {
+    NNTR_THROW_IF(out_specs.size() != 1, std::invalid_argument)
+      << "out specification size must be 1 for label layer for now, "
+      << lnode->getName() << " out spec size: " << out_specs.size();
+    NNTR_THROW_IF(out_specs[0].gradient_spec == nullptr, std::invalid_argument)
+      << "label space does not exist for " << lnode->getName();
+    out_specs[0].gradient_spec->request_type =
+      TensorSpecV2::RequestType::PLACEHOLDER;
+  }
+
+  /// @todo switch to check if model inputs instead and add a new tensor life
+  /// span to represent from here to ~ max_fwd_exec_order, also this is only
+  /// needed for the inference mode
+  if (lnode->getOutputConnections().size() == 0u) {
+    std::for_each(out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
+      spec.variable_spec.ls = TensorLifespan::MAX_LIFESPAN;
+    });
+  }
+  const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
+    out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
+    lnode->getName());
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
