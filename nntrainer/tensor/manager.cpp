@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -32,12 +33,16 @@
 #include <activation_layer.h>
 #include <basic_planner.h>
 #include <bn_layer.h>
+#include <graph_node.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <multiout_layer.h>
 #include <nntrainer_log.h>
 #include <optimized_v1_planner.h>
+#include <tensor_pool.h>
+#include <tensor_wrap_specs.h>
 #include <util_func.h>
+#include <var_grad.h>
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
@@ -137,6 +142,68 @@ void Manager::allocateWeights(unsigned int max_exec_order_) {
 }
 
 void Manager::deallocateWeights() { weight_pool.deallocate(); }
+
+static Tensor *requestTensor_(const TensorSpecV2 &spec,
+                              const GraphNode::ExecutionOrder &exec_order,
+                              const std::string &scope, TensorPool &tp) {
+  using RT = TensorSpecV2::RequestType;
+  using LS = TensorLifespan;
+  NNTR_THROW_IF(spec.request_type == RT::MAYBE_MODIFYING_VIEW,
+                std::invalid_argument)
+    << "Modifying view cannot be requested, the request type has to be "
+       "delegated to either view or unique";
+
+  auto [forward, calc_grad, calc_deriv] = exec_order;
+
+  std::vector<unsigned> order;
+
+  const auto name = scope + ":" + spec.name;
+
+  if (enum_class_or(spec.ls, LS::FORWARD_FUNC_LIFESPAN) == spec.ls) {
+    order.push_back(forward);
+  }
+  if (enum_class_or(spec.ls, LS::CALC_GRAD_LIFESPAN) == spec.ls) {
+    order.push_back(calc_grad);
+  }
+  if (enum_class_or(spec.ls, LS::CALC_DERIV_LIFESPAN) == spec.ls) {
+    order.push_back(calc_deriv);
+  }
+
+  switch (spec.request_type) {
+  case RT::PLACEHOLDER:
+    return tp.placeholder(name, spec.dim);
+  case RT::UNIQUE:
+    return tp.request(name, spec.dim, order, spec.ls, spec.initializer);
+  case RT::SHARED:
+    return tp.requestOrExtend(name, spec.dim, order, spec.ls, spec.initializer);
+  case RT::READ_ONLY_VIEW:
+    return tp.view(name, spec.reference_name, spec.dim, order, spec.ls);
+  case RT::MAYBE_MODIFYING_VIEW:
+  default:
+    throw std::logic_error("requestTensor_ should not reach here");
+  }
+
+  throw std::logic_error("requestTensor_ should not reach here");
+
+  return nullptr;
+}
+
+Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
+                                 TensorGroupType identify_as,
+                                 const GraphNode::ExecutionOrder &exec_order,
+                                 const std::string &scope) {
+  NNTR_THROW_IF(identify_as == TensorGroupType::WEIGHT, std::invalid_argument)
+    << "requestTensor with var grad spec cannot be identified as weights, use "
+       "requestTensor with weight spec instead";
+
+  NNTR_THROW_IF(identify_as == TensorGroupType::INPUT or
+                  identify_as == TensorGroupType::TENSORS,
+                nntrainer::exception::not_supported)
+    << "Currently, input and tensors group type is not yet implemented, use "
+       "requestInputs() requestTensors() instead";
+
+  return nullptr;
+}
 
 /**
  * @brief Allocate memory for all the managed tensors
@@ -395,63 +462,51 @@ std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
                        const std::vector<std::string> &outputs_name) {
-  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
-    node.getExecutionOrder();
-  std::vector<unsigned int> var_exec_order(
-    {forwarding_order, calcGradient_order});
+  using RT = TensorSpecV2::RequestType;
 
-  if (node.getType() == ActivationLayer::type)
-    var_exec_order = {forwarding_order};
+  TensorSpecV2 var_common_spec, grad_common_spec;
+  var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  grad_common_spec.ls = TensorLifespan::CALC_DERIV_LIFESPAN;
 
-  if (node.getType() == MultiOutLayer::type)
-    var_exec_order = {forwarding_order};
-
-  std::vector<unsigned int> grad_exec_order({calcDerivative_order});
-
-  /** batch normalization layer uses input in forwarding only */
-  if (node.getType() == BatchNormalizationLayer::type)
-    var_exec_order = {forwarding_order};
-
-  TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
-  TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
+  /// @todo handle this inside layer
+  if (node.getType() == ActivationLayer::type or
+      node.getType() == MultiOutLayer::type or
+      node.getType() == BatchNormalizationLayer::type)
+    var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
 
   std::vector<Var_Grad *> ret;
   size_t current_size = inputs_v2.size();
 
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
-    auto const &dim = inputs_dim[idx];
-    Tensor *var = nullptr, *grad = nullptr;
-    const std::string &var_name =
-      node.getName() + std::string(":input") + std::to_string(idx);
+    TensorSpecV2 var_spec = var_common_spec, grad_spec = grad_common_spec;
+
+    var_spec.name = std::string("input") + std::to_string(idx);
+    var_spec.dim = inputs_dim[idx];
+
+    grad_spec.name = var_spec.name + Var_Grad::grad_suffix;
+    grad_spec.dim = inputs_dim[idx];
+
     if (!outputs_name.empty()) {
-      var = tensor_pool.view(var_name,          /// name
-                             outputs_name[idx], /// shared name
-                             dim, var_exec_order, var_ls);
-
-      grad = tensor_pool.view(var_name + Var_Grad::grad_suffix,
-                              outputs_name[idx] + Var_Grad::grad_suffix,
-                              dim, /// tensor dim
-                              grad_exec_order, grad_ls);
+      grad_spec.request_type = var_spec.request_type = RT::READ_ONLY_VIEW;
+      var_spec.reference_name = outputs_name[idx];
+      grad_spec.reference_name = outputs_name[idx] + Var_Grad::grad_suffix;
     } else if (!node.getInputConnections().empty()) {
-      var = tensor_pool.request(var_name, dim, var_exec_order, var_ls);
-
-      grad = tensor_pool.request(var_name + Var_Grad::grad_suffix, dim,
-                                 grad_exec_order, grad_ls,
-                                 Tensor::Initializer::ZEROS);
+      grad_spec.request_type = var_spec.request_type = RT::UNIQUE;
     } else {
-      /** requesting placeholder for input */
-      var = tensor_pool.placeholder(var_name, dim);
+      var_spec.request_type = RT::PLACEHOLDER;
 
 #ifdef ENABLE_TEST
-      grad = tensor_pool.request(var_name + Var_Grad::grad_suffix, dim,
-                                 grad_exec_order, grad_ls,
-                                 Tensor::Initializer::ZEROS);
+      grad_spec.request_type = RT::UNIQUE;
 #else
-      grad = tensor_pool.placeholder(var_name + Var_Grad::grad_suffix, dim);
+      grad_spec.request_type = RT::PLACEHOLDER;
 #endif
     }
 
-    inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
+    inputs_v2.emplace_back(std::make_unique<Var_Grad>(
+      requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
+                     tensor_pool),
+      requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
+                     tensor_pool)));
   }
 
   ret.reserve(inputs_dim.size());
