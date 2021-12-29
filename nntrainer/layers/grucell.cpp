@@ -10,11 +10,11 @@
  * @bug    No known bugs except for NYI items
  *
  * h_prev --------d1------->[*]-------d0----->[+]---d0--> h
- * dh_nx    |  |             |                 | d0      dh
+ * d_h_prev |  |             |                 | d0      dh
  *          | d14            | d2        d3    |
  *          |  |             +-----[1-]------>[*]
  *          | [*]<---+ d15   |d5               | d6
- *          |  |     |rt     | zt              |gt
+ *          |  |     |reset_g| update_gate     | memory_cell
  *          |  |    [sig]   [sig]            [tanh]
  *          |  |     |d16    | d7              |d8
  *          |  |    [+]      [+]              [+]
@@ -80,13 +80,13 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(grucell_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(grucell_props).get();
   const ActivationType hidden_state_activation_type =
     std::get<props::HiddenStateActivation>(grucell_props).get();
   const ActivationType recurrent_activation_type =
     std::get<props::RecurrentActivation>(grucell_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
-  const bool integrate_bias =
-    std::get<props::IntegrateBias>(grucell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(grucell_props).get();
 
@@ -94,9 +94,9 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
     throw std::invalid_argument("GRUCell layer takes only one input");
   }
 
-  // input_dim = [ batch, 1, 1, feature_size ]
+  // input_dim = [ batch_size, 1, 1, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[0];
-  if (input_dim.height() != 1 && input_dim.channel() != 1) {
+  if (input_dim.channel() != 1 && input_dim.height() != 1) {
     throw std::invalid_argument(
       "Input must be single time dimension for GRUCell");
   }
@@ -104,7 +104,7 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();
 
-  // output_dim = [ batch, 1, 1, unit ]
+  // output_dim = [ batch_size, 1, 1, unit ]
   TensorDim output_dim(batch_size, 1, 1, unit);
   context.setOutputDimensions({output_dim});
 
@@ -148,21 +148,21 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
     }
   }
 
-  // hidden_state_dim = [ max_timestep * batch, 1, 1, unit ]
+  // hidden_state_dim = [ max_timestep * batch_size, 1, 1, unit ]
   TensorDim hidden_state_dim(max_timestep * batch_size, 1, 1, unit);
   wt_idx[GRUCellParams::hidden_state] = context.requestTensor(
     hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN, false);
 
-  // zrg_dim = [ max_timestep * batch, 1, 1, NUM_GATE * unit ]
-  TensorDim zrg_dim(max_timestep * batch_size, 1, 1, NUM_GATE * unit);
+  // zrg_dim = [ batch_size, 1, 1, NUM_GATE * unit ]
+  TensorDim zrg_dim(batch_size, 1, 1, NUM_GATE * unit);
   wt_idx[GRUCellParams::zrg] =
     context.requestTensor(zrg_dim, "zrg", Tensor::Initializer::NONE, true,
-                          TensorLifespan::ITERATION_LIFESPAN, false);
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   if (dropout_rate > epsilon) {
-    // dropout_mask_dim = [ max_timestep * batch, 1, 1, unit ]
-    TensorDim dropout_mask_dim(max_timestep * batch_size, 1, 1, unit);
+    // dropout_mask_dim = [ batch_size, 1, 1, unit ]
+    TensorDim dropout_mask_dim(batch_size, 1, 1, unit);
     wt_idx[GRUCellParams::dropout_mask] = context.requestTensor(
       dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
       TensorLifespan::ITERATION_LIFESPAN);
@@ -188,31 +188,30 @@ void GRUCellLayer::forwarding(RunLayerContext &context, bool training) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(grucell_props).get();
-  const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const bool integrate_bias =
     std::get<props::IntegrateBias>(grucell_props).get();
   const bool reset_after = std::get<props::ResetAfter>(grucell_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(grucell_props).get();
   const unsigned int timestep = std::get<props::Timestep>(grucell_props).get();
 
-  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  const TensorDim &input_dim = input.getDim();
-  const unsigned int batch_size = input_dim.batch();
+  const unsigned int batch_size = input.getDim().batch();
 
-  Tensor &weight_ih = context.getWeight(wt_idx[GRUCellParams::weight_ih]);
-  Tensor &weight_hh = context.getWeight(wt_idx[GRUCellParams::weight_hh]);
+  const Tensor &weight_ih = context.getWeight(wt_idx[GRUCellParams::weight_ih]);
+  const Tensor &weight_hh = context.getWeight(wt_idx[GRUCellParams::weight_hh]);
   Tensor empty;
-  Tensor &bias_h = !disable_bias && integrate_bias
-                     ? context.getWeight(wt_idx[GRUCellParams::bias_h])
-                     : empty;
-  Tensor &bias_ih = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[GRUCellParams::bias_ih])
-                      : empty;
-  Tensor &bias_hh = !disable_bias && !integrate_bias
-                      ? context.getWeight(wt_idx[GRUCellParams::bias_hh])
-                      : empty;
+  const Tensor &bias_h = !disable_bias && integrate_bias
+                           ? context.getWeight(wt_idx[GRUCellParams::bias_h])
+                           : empty;
+  const Tensor &bias_ih = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[GRUCellParams::bias_ih])
+                            : empty;
+  const Tensor &bias_hh = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[GRUCellParams::bias_hh])
+                            : empty;
 
   Tensor &hidden_states =
     context.getTensor(wt_idx[GRUCellParams::hidden_state]);
@@ -224,76 +223,86 @@ void GRUCellLayer::forwarding(RunLayerContext &context, bool training) {
   } else {
     prev_hidden_state = hidden_states.getBatchSlice(timestep - 1, 1);
   }
+  prev_hidden_state.reshape({batch_size, 1, 1, unit});
   Tensor hidden_state = hidden_states.getBatchSlice(timestep, 1);
+  hidden_state.reshape({batch_size, 1, 1, unit});
 
-  Tensor &zrg_gates = context.getTensor(wt_idx[GRUCellParams::zrg]);
-  zrg_gates.reshape({max_timestep, 1, batch_size, NUM_GATE * unit});
-  Tensor zrg_gate = zrg_gates.getBatchSlice(timestep, 1);
+  Tensor &zrg = context.getTensor(wt_idx[GRUCellParams::zrg]);
 
-  input.dot(weight_ih, zrg_gate); // x_z, x_r, x_g
+  input.dot(weight_ih, zrg);
 
-  Tensor zr_gate =
-    zrg_gate.getSharedDataTensor({batch_size, 2 * unit}, 0, false);
-  Tensor g_gate =
-    zrg_gate.getSharedDataTensor({batch_size, unit}, 2 * unit, false);
+  Tensor update_reset_gate =
+    zrg.getSharedDataTensor({batch_size, 1, 1, 2 * unit}, 0, false);
+  Tensor memory_cell =
+    zrg.getSharedDataTensor({batch_size, 1, 1, unit}, 2 * unit, false);
 
-  Tensor weight_hh_zr;
-  Tensor weight_hh_g;
-  weight_hh_zr.copy_with_stride(
-    weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
-  weight_hh_g.copy_with_stride(
-    weight_hh.getSharedDataTensor({1, 1, unit, unit}, unit * 2, false));
+  Tensor weight_hh_update_reset_gate;
+  Tensor weight_hh_memory_cell;
+  weight_hh_update_reset_gate.copy_with_stride(
+    weight_hh.getSharedDataTensor({unit, 2 * unit}, 0, false));
+  weight_hh_memory_cell.copy_with_stride(
+    weight_hh.getSharedDataTensor({unit, unit}, 2 * unit, false));
 
-  zr_gate.add_i_strided(prev_hidden_state.dot(weight_hh_zr));
+  update_reset_gate.add_i_strided(
+    prev_hidden_state.dot(weight_hh_update_reset_gate));
   if (!disable_bias) {
     if (integrate_bias) {
-      Tensor bias_h_zr = bias_h.getSharedDataTensor({2 * unit}, 0);
-      zr_gate.add_i(bias_h_zr);
+      const Tensor bias_h_update_reset_gate =
+        bias_h.getSharedDataTensor({2 * unit}, 0);
+      update_reset_gate.add_i(bias_h_update_reset_gate);
     } else {
-      Tensor bias_ih_zr = bias_ih.getSharedDataTensor({2 * unit}, 0);
-      zr_gate.add_i(bias_ih_zr);
-      Tensor bias_hh_zr = bias_hh.getSharedDataTensor({2 * unit}, 0);
-      zr_gate.add_i(bias_hh_zr);
+      const Tensor bias_ih_update_reset_gate =
+        bias_ih.getSharedDataTensor({2 * unit}, 0);
+      update_reset_gate.add_i(bias_ih_update_reset_gate);
+      const Tensor bias_hh_update_reset_gate =
+        bias_hh.getSharedDataTensor({2 * unit}, 0);
+      update_reset_gate.add_i(bias_hh_update_reset_gate);
     }
   }
 
-  recurrent_acti_func.run_fn(zr_gate, zr_gate);
+  recurrent_acti_func.run_fn(update_reset_gate, update_reset_gate);
 
-  Tensor z_gate = zr_gate.getSharedDataTensor({batch_size, unit}, 0, false);
-  Tensor r_gate = zr_gate.getSharedDataTensor({batch_size, unit}, unit, false);
+  Tensor update_gate =
+    update_reset_gate.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
+  Tensor reset_gate = update_reset_gate.getSharedDataTensor(
+    {batch_size, 1, 1, unit}, unit, false);
 
   Tensor temp;
   if (reset_after) {
-    prev_hidden_state.dot(weight_hh_g, temp);
+    prev_hidden_state.dot(weight_hh_memory_cell, temp);
     if (!disable_bias && !integrate_bias) {
-      Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
-      temp.add_i(bias_hh_g);
+      const Tensor bias_hh_memory_cell =
+        bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.add_i(bias_hh_memory_cell);
     }
-    temp.multiply_i_strided(r_gate);
-    g_gate.add_i_strided(temp);
+    temp.multiply_i_strided(reset_gate);
+    memory_cell.add_i_strided(temp);
   } else {
-    r_gate.multiply_strided(prev_hidden_state, temp);
-    temp.dot(weight_hh_g, g_gate, false, false, 1.0f);
+    reset_gate.multiply_strided(prev_hidden_state, temp);
+    temp.dot(weight_hh_memory_cell, memory_cell, false, false, 1.0f);
     if (!disable_bias && !integrate_bias) {
-      Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
-      g_gate.add_i(bias_hh_g);
+      const Tensor bias_hh_memory_cell =
+        bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      memory_cell.add_i(bias_hh_memory_cell);
     }
   }
   if (!disable_bias) {
     if (integrate_bias) {
-      Tensor bias_h_g = bias_h.getSharedDataTensor({unit}, 2 * unit);
-      g_gate.add_i(bias_h_g);
+      const Tensor bias_h_memory_cell =
+        bias_h.getSharedDataTensor({unit}, 2 * unit);
+      memory_cell.add_i(bias_h_memory_cell);
     } else {
-      Tensor bias_ih_g = bias_ih.getSharedDataTensor({unit}, 2 * unit);
-      g_gate.add_i(bias_ih_g);
+      const Tensor bias_ih_memory_cell =
+        bias_ih.getSharedDataTensor({unit}, 2 * unit);
+      memory_cell.add_i(bias_ih_memory_cell);
     }
   }
 
-  acti_func.run_fn(g_gate, g_gate);
+  acti_func.run_fn(memory_cell, memory_cell);
 
-  z_gate.multiply_strided(prev_hidden_state, hidden_state);
-  temp = z_gate.multiply(-1.0).add(1.0);
-  hidden_state.add_i(g_gate.multiply_strided(temp));
+  update_gate.multiply_strided(prev_hidden_state, hidden_state);
+  temp = update_gate.multiply(-1.0).add(1.0);
+  hidden_state.add_i(memory_cell.multiply_strided(temp));
 
   if (dropout_rate > epsilon && training) {
     Tensor mask = context.getTensor(wt_idx[GRUCellParams::dropout_mask]);
@@ -301,26 +310,15 @@ void GRUCellLayer::forwarding(RunLayerContext &context, bool training) {
     hidden_state.multiply_i(mask);
   }
 
-  output.copy(hidden_state);
+  output.copyData(hidden_state);
 }
 
 void GRUCellLayer::calcDerivative(RunLayerContext &context) {
-  const unsigned int unit = std::get<props::Unit>(grucell_props).get();
-  const unsigned int max_timestep =
-    std::get<props::MaxTimestep>(grucell_props).get();
-  const unsigned int timestep = std::get<props::Timestep>(grucell_props).get();
-
-  const unsigned int batch_size =
-    context.getInput(SINGLE_INOUT_IDX).getDim().batch();
-
-  Tensor &zrg_gates_derivatives =
-    context.getTensorGrad(wt_idx[GRUCellParams::zrg]);
-  zrg_gates_derivatives.reshape({max_timestep, 1, batch_size, NUM_GATE * unit});
-  Tensor zrg_gate_derivative = zrg_gates_derivatives.getBatchSlice(timestep, 1);
-  Tensor &weight_ih = context.getWeight(wt_idx[GRUCellParams::weight_ih]);
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &weight_ih = context.getWeight(wt_idx[GRUCellParams::weight_ih]);
+  const Tensor &d_zrg = context.getTensorGrad(wt_idx[GRUCellParams::zrg]);
 
-  zrg_gate_derivative.dot(weight_ih, outgoing_derivative, false, true);
+  d_zrg.dot(weight_ih, outgoing_derivative, false, true);
 }
 
 void GRUCellLayer::calcGradient(RunLayerContext &context) {
@@ -328,10 +326,10 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
     std::get<props::DisableBias>(*layer_impl_props).get();
 
   const unsigned int unit = std::get<props::Unit>(grucell_props).get();
-  const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const bool integrate_bias =
     std::get<props::IntegrateBias>(grucell_props).get();
   const bool reset_after = std::get<props::ResetAfter>(grucell_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(grucell_props).get();
   const unsigned int timestep = std::get<props::Timestep>(grucell_props).get();
@@ -339,181 +337,192 @@ void GRUCellLayer::calcGradient(RunLayerContext &context) {
   const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   const unsigned int batch_size = input.getDim().batch();
 
-  Tensor &djdweight_ih =
-    context.getWeightGrad(wt_idx[GRUCellParams::weight_ih]);
+  Tensor &d_weight_ih = context.getWeightGrad(wt_idx[GRUCellParams::weight_ih]);
   const Tensor &weight_hh = context.getWeight(wt_idx[GRUCellParams::weight_hh]);
-  Tensor &djdweight_hh =
-    context.getWeightGrad(wt_idx[GRUCellParams::weight_hh]);
+  Tensor &d_weight_hh = context.getWeightGrad(wt_idx[GRUCellParams::weight_hh]);
 
   Tensor empty;
-  Tensor &djdbias_h = !disable_bias && integrate_bias
-                        ? context.getWeightGrad(wt_idx[GRUCellParams::bias_h])
+  Tensor &d_bias_h = !disable_bias && integrate_bias
+                       ? context.getWeightGrad(wt_idx[GRUCellParams::bias_h])
+                       : empty;
+  Tensor &d_bias_ih = !disable_bias && !integrate_bias
+                        ? context.getWeightGrad(wt_idx[GRUCellParams::bias_ih])
                         : empty;
-  Tensor &djdbias_ih = !disable_bias && !integrate_bias
-                         ? context.getWeightGrad(wt_idx[GRUCellParams::bias_ih])
-                         : empty;
   const Tensor &bias_hh = !disable_bias && !integrate_bias
                             ? context.getWeight(wt_idx[GRUCellParams::bias_hh])
                             : empty;
-  Tensor &djdbias_hh = !disable_bias && !integrate_bias
-                         ? context.getWeightGrad(wt_idx[GRUCellParams::bias_hh])
-                         : empty;
+  Tensor &d_bias_hh = !disable_bias && !integrate_bias
+                        ? context.getWeightGrad(wt_idx[GRUCellParams::bias_hh])
+                        : empty;
 
-  Tensor djdweight_hh_zr =
-    djdweight_hh.getSharedDataTensor({unit, 2 * unit}, 0, false);
-  Tensor djdweight_hh_g =
-    djdweight_hh.getSharedDataTensor({unit, unit}, 2 * unit, false);
+  Tensor d_weight_hh_update_reset_gate =
+    d_weight_hh.getSharedDataTensor({unit, 2 * unit}, 0, false);
+  Tensor d_weight_hh_memory_cell =
+    d_weight_hh.getSharedDataTensor({unit, unit}, 2 * unit, false);
   Tensor &hidden_states =
     context.getTensor(wt_idx[GRUCellParams::hidden_state]);
   hidden_states.reshape({max_timestep, 1, batch_size, unit});
-  Tensor &hidden_states_derivatives =
+  Tensor &d_hidden_states =
     context.getTensorGrad(wt_idx[GRUCellParams::hidden_state]);
   const Tensor &incoming_derivative =
     context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &zrg_gates = context.getTensor(wt_idx[GRUCellParams::zrg]);
-  zrg_gates.reshape({max_timestep, 1, batch_size, NUM_GATE * unit});
-  Tensor zrg_gate = zrg_gates.getBatchSlice(timestep, 1);
-  Tensor &zrg_gates_derivatives =
-    context.getTensorGrad(wt_idx[GRUCellParams::zrg]);
-  zrg_gates_derivatives.reshape({max_timestep, 1, batch_size, NUM_GATE * unit});
-  Tensor zrg_gate_derivative = zrg_gates_derivatives.getBatchSlice(timestep, 1);
+  const Tensor &zrg = context.getTensor(wt_idx[GRUCellParams::zrg]);
+  Tensor &d_zrg = context.getTensorGrad(wt_idx[GRUCellParams::zrg]);
 
-  hidden_states_derivatives.reshape({max_timestep, 1, batch_size, unit});
-  Tensor hidden_state_derivative =
-    hidden_states_derivatives.getBatchSlice(timestep, 1);
+  d_hidden_states.reshape({max_timestep, 1, batch_size, unit});
+  Tensor d_hidden_state = d_hidden_states.getBatchSlice(timestep, 1);
+  d_hidden_state.reshape({batch_size, 1, 1, unit});
   if (timestep + 1 == max_timestep) {
-    djdweight_ih.setZero();
-    djdweight_hh.setZero();
+    d_weight_ih.setZero();
+    d_weight_hh.setZero();
     if (!disable_bias) {
       if (integrate_bias) {
-        djdbias_h.setZero();
+        d_bias_h.setZero();
       } else {
-        djdbias_ih.setZero();
-        djdbias_hh.setZero();
+        d_bias_ih.setZero();
+        d_bias_hh.setZero();
       }
     }
-    hidden_state_derivative.setZero();
+    d_hidden_state.setZero();
   }
 
-  hidden_state_derivative.reshape(
-    incoming_derivative.getDim()); // reshape to incoming_derivative dim
-  hidden_state_derivative.add_i(incoming_derivative);
-  hidden_state_derivative.reshape(
-    {1, 1, batch_size, unit}); // restore the dimension
+  d_hidden_state.add_i(incoming_derivative);
 
   Tensor prev_hidden_state;
-  Tensor dh_nx;
+  Tensor d_prev_hidden_state;
   if (timestep) {
     prev_hidden_state = hidden_states.getBatchSlice(timestep - 1, 1);
-    dh_nx = hidden_states_derivatives.getBatchSlice(timestep - 1, 1);
+    d_prev_hidden_state = d_hidden_states.getBatchSlice(timestep - 1, 1);
   } else {
-    dh_nx = Tensor(batch_size, unit);
     prev_hidden_state = Tensor(batch_size, unit);
     prev_hidden_state.setZero();
+    d_prev_hidden_state = Tensor(batch_size, unit);
+    d_prev_hidden_state.setZero();
   }
+  prev_hidden_state.reshape({batch_size, 1, 1, unit});
+  d_prev_hidden_state.reshape({batch_size, 1, 1, unit});
 
   if (dropout_rate > epsilon) {
-    hidden_states_derivatives.multiply_i(
+    d_hidden_states.multiply_i(
       context.getTensor(wt_idx[GRUCellParams::dropout_mask]));
   }
 
-  Tensor dhz =
-    zrg_gate_derivative.getSharedDataTensor({batch_size, unit}, 0, false);
-  Tensor dhr =
-    zrg_gate_derivative.getSharedDataTensor({batch_size, unit}, unit, false);
-  Tensor dhg = zrg_gate_derivative.getSharedDataTensor({batch_size, unit},
-                                                       unit * 2, false);
+  Tensor update_gate =
+    zrg.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
+  Tensor reset_gate =
+    zrg.getSharedDataTensor({batch_size, 1, 1, unit}, unit, false);
+  Tensor memory_cell =
+    zrg.getSharedDataTensor({batch_size, 1, 1, unit}, 2 * unit, false);
 
-  Tensor zt = zrg_gate.getSharedDataTensor({batch_size, unit}, 0, false);
-  Tensor rt = zrg_gate.getSharedDataTensor({batch_size, unit}, unit, false);
-  Tensor gt = zrg_gate.getSharedDataTensor({batch_size, unit}, unit * 2, false);
+  Tensor d_update_gate =
+    d_zrg.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
+  Tensor d_reset_gate =
+    d_zrg.getSharedDataTensor({batch_size, 1, 1, unit}, unit, false);
+  Tensor d_memory_cell =
+    d_zrg.getSharedDataTensor({batch_size, 1, 1, unit}, 2 * unit, false);
 
-  hidden_state_derivative.multiply_strided(zt, dh_nx); // dh_nx = d1
-  hidden_state_derivative.multiply_strided(prev_hidden_state, dhz); // dhz = d2
-  dhz.add_i_strided(hidden_state_derivative.multiply_strided(gt),
-                    -1.0f); // dhz = d5
-  zt.multiply(-1.0, dhg);
-  dhg.add_i(1.0);
-  dhg.multiply_i_strided(hidden_state_derivative); // dhg = d6
+  d_hidden_state.multiply_strided(
+    update_gate, d_prev_hidden_state); // d_prev_hidden_state = d1
+  d_hidden_state.multiply_strided(prev_hidden_state,
+                                  d_update_gate); // d_update_gate = d2
+  d_update_gate.add_i_strided(d_hidden_state.multiply_strided(memory_cell),
+                              -1.0f); // d_update_gate = d5
+  update_gate.multiply(-1.0, d_memory_cell);
+  d_memory_cell.add_i(1.0);
+  d_memory_cell.multiply_i_strided(d_hidden_state); // d_memory_cell = d6
 
-  recurrent_acti_func.run_prime_fn(zt, dhz, dhz); // dhz = d7
-  acti_func.run_prime_fn(gt, dhg, dhg);           // dhg = d8
+  recurrent_acti_func.run_prime_fn(update_gate, d_update_gate,
+                                   d_update_gate); // d_update_gate = d7
+  acti_func.run_prime_fn(memory_cell, d_memory_cell,
+                         d_memory_cell); // d_memory_cell = d8
 
-  Tensor dhzr = zrg_gate_derivative.getSharedDataTensor({batch_size, unit * 2},
-                                                        0, false); // dhz+dhr
+  Tensor d_update_reset_gate = d_zrg.getSharedDataTensor(
+    {batch_size, 1, 1, 2 * unit}, 0, false); // d_update_gate+d_reset_gate
 
-  Tensor wg_hh;
-  wg_hh.copy_with_stride(
-    weight_hh.getSharedDataTensor({1, 1, unit, unit}, unit * 2, false));
-  Tensor wzr_hh;
-  wzr_hh.copy_with_stride(
-    weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
+  Tensor weight_hh_memory_cell;
+  weight_hh_memory_cell.copy_with_stride(
+    weight_hh.getSharedDataTensor({unit, unit}, 2 * unit, false));
+  Tensor weight_hh_update_reset_gate;
+  weight_hh_update_reset_gate.copy_with_stride(
+    weight_hh.getSharedDataTensor({unit, 2 * unit}, 0, false));
 
-  Tensor temp = Tensor(batch_size, unit);
-  Tensor dhg_;
-  dhg_.copy_with_stride(dhg);
+  Tensor temp = Tensor(batch_size, 1, 1, unit);
+  Tensor d_memory_cell_contiguous;
+  d_memory_cell_contiguous.copy_with_stride(d_memory_cell);
 
   if (reset_after) {
-    prev_hidden_state.dot(wg_hh, temp);
+    prev_hidden_state.dot(weight_hh_memory_cell, temp);
     if (!disable_bias && !integrate_bias) {
-      const Tensor bias_hh_g = bias_hh.getSharedDataTensor({unit}, 2 * unit);
-      temp.add_i(bias_hh_g);
+      const Tensor bias_hh_memory_cell =
+        bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.add_i(bias_hh_memory_cell);
     }
-    dhg_.multiply_strided(temp, dhr); // dhr = d15
+    d_memory_cell_contiguous.multiply_strided(
+      temp, d_reset_gate); // d_reset_gate = d15
 
-    // reset temp: dhg_ * rt for djdbias_hh_g, dh_nx and djdweight_hh_g
-    dhg_.multiply_strided(rt, temp);
+    // reset temp: d_memory_cell_contiguous * reset_gate for
+    // d_bias_hh_memory_cell, d_prev_hidden_state and d_weight_hh_memory_cell
+    d_memory_cell_contiguous.multiply_strided(reset_gate, temp);
     if (!disable_bias && !integrate_bias) {
-      Tensor djdbias_hh_g = djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
-      temp.sum(2, djdbias_hh_g, 1.0, 1.0);
+      Tensor d_bias_hh_memory_cell =
+        d_bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      temp.sum(0, d_bias_hh_memory_cell, 1.0, 1.0);
     }
-    temp.dot(wg_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14
-    djdweight_hh_g.add_i_strided(prev_hidden_state.dot(temp, true, false));
+    temp.dot(weight_hh_memory_cell, d_prev_hidden_state, false, true,
+             1.0); // d_prev_hidden_state = d1 + d14
+    d_weight_hh_memory_cell.add_i_strided(
+      prev_hidden_state.dot(temp, true, false));
   } else {
     if (!disable_bias && !integrate_bias) {
-      Tensor djdbias_hh_g = djdbias_hh.getSharedDataTensor({unit}, 2 * unit);
-      dhg.sum(2, djdbias_hh_g, 1.0, 1.0);
+      Tensor d_bias_hh_memory_cell =
+        d_bias_hh.getSharedDataTensor({unit}, 2 * unit);
+      d_memory_cell.sum(0, d_bias_hh_memory_cell, 1.0, 1.0);
     }
 
-    dhg_.dot(wg_hh, temp, false, true);
-    temp.multiply_strided(prev_hidden_state, dhr);
-    temp.multiply_strided(rt, dh_nx, 1.0f);
+    d_memory_cell_contiguous.dot(weight_hh_memory_cell, temp, false, true);
+    temp.multiply_strided(prev_hidden_state, d_reset_gate);
+    temp.multiply_strided(reset_gate, d_prev_hidden_state, 1.0f);
 
-    // reset temp: rt * prev_hidden_state for and djdweight_hh_g
-    rt.multiply_strided(prev_hidden_state, temp);
-    temp.dot(dhg_, djdweight_hh_g, true, false, 1.0f);
+    // reset temp: reset_gate * prev_hidden_state for and
+    // d_weight_hh_memory_cell
+    reset_gate.multiply_strided(prev_hidden_state, temp);
+    temp.dot(d_memory_cell_contiguous, d_weight_hh_memory_cell, true, false,
+             1.0f);
   }
 
-  recurrent_acti_func.run_prime_fn(rt, dhr, dhr); // dhr = d16
+  recurrent_acti_func.run_prime_fn(reset_gate, d_reset_gate,
+                                   d_reset_gate); // d_reset_gate = d16
 
   if (!disable_bias) {
     if (integrate_bias) {
-      zrg_gate_derivative.sum(2, djdbias_h, 1.0, 1.0);
+      d_zrg.sum(0, d_bias_h, 1.0, 1.0);
     } else {
-      zrg_gate_derivative.sum(2, djdbias_ih, 1.0, 1.0);
-      Tensor djdbias_hh_zr = djdbias_hh.getSharedDataTensor({2 * unit}, 0);
-      djdbias_hh_zr.add_i(
-        zrg_gate_derivative.sum(2).getSharedDataTensor({2 * unit}, 0));
+      d_zrg.sum(0, d_bias_ih, 1.0, 1.0);
+      Tensor d_bias_hh_update_reset_gate =
+        d_bias_hh.getSharedDataTensor({2 * unit}, 0);
+      d_bias_hh_update_reset_gate.add_i(
+        d_zrg.sum(0).getSharedDataTensor({2 * unit}, 0));
     }
   }
 
-  Tensor dhzr_;
-  dhzr_.copy_with_stride(dhzr);
-  djdweight_hh_zr.add_i_strided(prev_hidden_state.dot(dhzr_, true, false));
-  input.dot(zrg_gate_derivative, djdweight_ih, true, false, 1.0f);
-  dhzr_.dot(wzr_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14 + d12 + d17
+  Tensor d_update_reset_gate_contiguous;
+  d_update_reset_gate_contiguous.copy_with_stride(d_update_reset_gate);
+  d_weight_hh_update_reset_gate.add_i_strided(
+    prev_hidden_state.dot(d_update_reset_gate_contiguous, true, false));
+  input.dot(d_zrg, d_weight_ih, true, false, 1.0f);
+  d_update_reset_gate_contiguous.dot(
+    weight_hh_update_reset_gate, d_prev_hidden_state, false, true,
+    1.0); // d_prev_hidden_state = d1 + d14 + d12 + d17
 }
 
 void GRUCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  const float dropout_rate = std::get<props::DropOutRate>(grucell_props);
   unsigned int &max_timestep = std::get<props::MaxTimestep>(grucell_props);
   context.updateTensor(wt_idx[GRUCellParams::hidden_state],
                        max_timestep * batch);
-  context.updateTensor(wt_idx[GRUCellParams::zrg], max_timestep * batch);
-
-  const float dropout_rate = std::get<props::DropOutRate>(grucell_props);
+  context.updateTensor(wt_idx[GRUCellParams::zrg], batch);
   if (dropout_rate > epsilon) {
-    context.updateTensor(wt_idx[GRUCellParams::dropout_mask],
-                         max_timestep * batch);
+    context.updateTensor(wt_idx[GRUCellParams::dropout_mask], batch);
   }
 }
 
