@@ -29,6 +29,7 @@ namespace nntrainer {
 namespace props {
 class UnrollFor;
 class AsSequence;
+class InputIsSequence;
 class OutputLayer;
 class RecurrentInput;
 class RecurrentOutput;
@@ -86,12 +87,15 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
-  using PropTypes =
-    std::tuple<std::vector<props::RecurrentInput>,
-               std::vector<props::RecurrentOutput>,
-               std::vector<props::AsSequence>, props::UnrollFor>;
+  using PropTypes = std::tuple<std::vector<props::RecurrentInput>,
+                               std::vector<props::RecurrentOutput>,
+                               std::vector<props::AsSequence>, props::UnrollFor,
+                               std::vector<props::InputIsSequence>>;
 
   std::unordered_set<std::string> input_layers; /**< external input layers */
+  std::unordered_set<std::string>
+    sequenced_input; /**< external input layers which should be prefixed to /0 ~
+                        $(unroll_for)-1 */
   std::vector<std::pair<std::string /**< connection name*/,
                         unsigned /**< max idx requested */>>
     end_info; /**< final end layers id */

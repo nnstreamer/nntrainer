@@ -585,6 +585,17 @@ public:
 };
 
 /**
+ * @brief Identifiers to locate an **input** connection which should be
+ * sequenced for the connection
+ *
+ */
+class InputIsSequence : public Name {
+public:
+  static constexpr const char *key = "input_is_sequence";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief ResetAfter property, apply reset gate after matrix multiplication if
  * this property is true. Apply before the multiplication if false. Used in gru,
  * grucell.

@@ -1021,7 +1021,7 @@ void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
   bool request_only_trainable) {
   for (auto const &w : tensor_manager->getWeights()) {
-    if (!w->isDependent() && w->hasGradient()) {
+    if (w->isGradientLastAccess() && w->hasGradient()) {
       const TensorDim &dim = w->getDim();
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
