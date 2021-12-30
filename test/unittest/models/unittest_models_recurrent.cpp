@@ -459,6 +459,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=input_hidden_state", "input_shape=1:1:2"}},
     /// here grucell is being inserted
     {"mse", {"name=loss", "input_layers=grucell_scope/a1"}},
   });
@@ -467,19 +468,24 @@ static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
   }
 
   auto grucell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
     {"grucell",
-     {"name=a1", "unit=2", "integrate_bias=false", "reset_after=true"}},
+     {"name=a1", "unit=2", "integrate_bias=false", "reset_after=true",
+      "input_layers=dummy_0, dummy_1"}},
   });
 
-  nn->addWithReferenceLayers(grucell, "grucell_scope", {"input"}, {"a1"},
-                             {"a1"}, ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a1",
-                               "recurrent_input=a1",
-                               "recurrent_output=a1",
-                             });
+  nn->addWithReferenceLayers(
+    grucell, "grucell_scope", {"input", "input_hidden_state"},
+    {"a1(0)", "a1(1)"}, {"a1"}, ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a1",
+      "recurrent_input=a1(0), a1(1)",
+      "recurrent_output=a1(0), a1(0)",
+    });
 
+  nn->setProperty({"input_layers=input, input_hidden_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
@@ -490,30 +496,41 @@ static std::unique_ptr<NeuralNetwork> makeStackedGRUCell() {
 
   auto outer_graph = makeGraph({
     {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_hidden_state", "input_shape=1:1:2"}},
     /// here grucells are being inserted
-    {"mse", {"name=loss", "input_layers=grucell_scope/a2"}},
+    {"mse", {"name=loss", "input_layers=grucell_scope/a2(0)"}},
   });
   for (auto &node : outer_graph) {
     nn->addLayer(node);
   }
 
   auto grucell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
     {"grucell",
-     {"name=a1", "unit=2", "integrate_bias=false", "reset_after=true"}},
+     {"name=a1", "unit=2", "integrate_bias=false", "reset_after=true",
+      "input_layers=dummy_0, dummy_1"}},
     {"grucell",
      {"name=a2", "unit=2", "integrate_bias=false", "reset_after=true",
-      "input_layers=a1"}},
+      "input_layers=a1(0), dummy_2"}},
   });
 
-  nn->addWithReferenceLayers(grucell, "grucell_scope", {"input"}, {"a1"},
-                             {"a2"}, ml::train::ReferenceLayersType::RECURRENT,
-                             {
-                               "unroll_for=2",
-                               "as_sequence=a2",
-                               "recurrent_input=a1",
-                               "recurrent_output=a2",
-                             });
+  nn->addWithReferenceLayers(
+    grucell, "grucell_scope",
+    {"input", "a1_input_hidden_state", "a2_input_hidden_state"},
+    {"a1(0)", "a1(1)", "a2(1)"}, {"a2"},
+    ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a2",
+      "recurrent_input=a1(0), a1(1), a2(1)",
+      "recurrent_output=a2(0), a1(0), a2(0)",
+    });
 
+  nn->setProperty(
+    {"input_layers=input, a1_input_hidden_state, a2_input_hidden_state"});
   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
   return nn;
 }
@@ -576,9 +593,8 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedRNNCell, "rnncell_stacked__1",
                  ModelTestOption::ALL_V2),
-    mkModelTc_V2(makeSingleGRUCell, "grucell_single__1",
-                 ModelTestOption::ALL_V2),
-    mkModelTc_V2(makeStackedGRUCell, "grucell_stacked__1",
+    mkModelTc_V2(makeSingleGRUCell, "grucell_single", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedGRUCell, "grucell_stacked",
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {

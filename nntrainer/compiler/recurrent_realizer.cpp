@@ -18,7 +18,6 @@
 #include <base_properties.h>
 #include <common_properties.h>
 #include <connection.h>
-#include <grucell.h>
 #include <input_layer.h>
 #include <layer_node.h>
 #include <lstm.h>
@@ -188,8 +187,7 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
   auto is_recurrent_type = [](LayerNode *node) {
     return node->getType() == RNNCellLayer::type ||
            node->getType() == LSTMLayer::type ||
-           node->getType() == ZoneoutLSTMCellLayer::type ||
-           node->getType() == GRUCellLayer::type;
+           node->getType() == ZoneoutLSTMCellLayer::type;
   };
 
   if (is_recurrent_type(node)) {

@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=False,
                          return_state=False,
                          reset_after=False)
@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
     gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=True,
                          return_state=False,
                          reset_after=False)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     gru = K.layers.GRU(units=5, activation="sigmoid", 
                          recurrent_activation="tanh",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=True,
                          return_state=False,
                          reset_after=False,)
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # check reset_after
     gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=False,
                          return_state=False,
                          reset_after=True,)
@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     gru = K.layers.GRU(units=5, activation="tanh", 
                          recurrent_activation="sigmoid",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=True,
                          return_state=False,
                          reset_after=True)
@@ -173,11 +173,31 @@ if __name__ == "__main__":
 
     gru = K.layers.GRU(units=5, activation="sigmoid", 
                          recurrent_activation="tanh",
-                         bias_initializer='GlorotUniform',
+                         bias_initializer='glorot_uniform',
                          return_sequences=True,
                          return_state=False,
                          reset_after=True)
     record_single(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_act", input_type='float')
+
+    unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
+    grucell = K.layers.GRUCell(units=unit,
+                         recurrent_activation='sigmoid',
+                         bias_initializer='glorot_uniform')
+    record_single(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step", input_type='float')
+
+    unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
+    grucell = K.layers.GRUCell(units=unit,
+                         recurrent_activation='sigmoid',
+                         bias_initializer='glorot_uniform',
+                         reset_after=True)
+    record_single(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_reset_after_single_step", input_type='float')
+
+    unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
+    grucell = K.layers.GRUCell(units=unit,
+                         activation="sigmoid",
+                         recurrent_activation="tanh",
+                         bias_initializer='glorot_uniform')
+    record_single(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step_act", input_type='float')
 
     dropout = K.layers.Dropout(rate=0.2)
     record_single(dropout, (2, 3, 2, 3), "dropout_20_training", {"training": True})

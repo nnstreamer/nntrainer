@@ -244,6 +244,33 @@ class GRUTransLayer(IdentityTransLayer):
     def to_nntr_trainable_weights(self, tensorOrList):
         return self.to_nntr_weights(tensorOrList)
 
+class GRUCellTransLayer(IdentityTransLayer):
+    def build(self, input_shape):
+        if not self.built:
+            self.tf_layer.build(input_shape[0])
+            super().build(input_shape[0])
+
+    ##
+    # @brief call function
+    # @param inputs input with nntrainer layout
+    def call(self, inputs):
+        input = inputs[0]
+        states = inputs[1:]
+        output, states = self.tf_layer.call(input, states)
+        # print(output)
+        return output
+
+    def to_nntr_weights(self, tensorOrList):
+        bias = tensorOrList[2]
+        if bias.shape.rank == 2:
+            bias_ih, bias_hh = bias[0], bias[1]
+            return [tensorOrList[0], tensorOrList[1], bias_ih, bias_hh]
+        else:
+            return tensorOrList
+
+    def to_nntr_trainable_weights(self, tensorOrList):
+        return self.to_nntr_weights(tensorOrList)
+
 ##
 # @brief A factory function to attach translayer to existing layer
 # if nothing should be attached, it does not attach the layer
@@ -261,5 +288,8 @@ def attach_trans_layer(layer):
 
     if isinstance(layer, K.layers.GRU):
         return GRUTransLayer(layer)
+
+    if isinstance(layer, K.layers.GRUCell):
+        return GRUCellTransLayer(layer)
 
     return layer

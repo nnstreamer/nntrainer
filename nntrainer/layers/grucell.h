@@ -99,25 +99,27 @@ public:
 
 private:
   static constexpr unsigned int NUM_GATE = 3;
+  enum INOUT_INDEX {
+    INPUT = 0,
+    INPUT_HIDDEN_STATE = 1,
+    OUTPUT = 0,
+  };
 
   /**
    * Unit: number of output neurons
-   * HiddenStateActivation: activation type for hidden state. default is tanh
-   * RecurrentActivation: activation type for recurrent. default is sigmoid
-   * DropOutRate: dropout rate
    * IntegrateBias: integrate bias_ih, bias_hh to bias_h
    * ResetAfter: Whether apply reset gate before/after the matrix
    * multiplication. Apply reset gate after the mulplication if true.
-   * MaxTimeStep: Maximum timestep of gru
-   * TimeStep: timestep for which gru should operate
+   * HiddenStateActivation: activation type for hidden state. default is tanh
+   * RecurrentActivation: activation type for recurrent. default is sigmoid
+   * DropOutRate: dropout rate
    *
    * */
-  std::tuple<props::Unit, props::HiddenStateActivation,
-             props::RecurrentActivation, props::DropOutRate,
-             props::IntegrateBias, props::ResetAfter, props::MaxTimestep,
-             props::Timestep>
+  std::tuple<props::Unit, props::IntegrateBias, props::ResetAfter,
+             props::HiddenStateActivation, props::RecurrentActivation,
+             props::DropOutRate>
     grucell_props;
-  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is sigmoid
