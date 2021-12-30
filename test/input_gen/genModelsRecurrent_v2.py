@@ -145,21 +145,21 @@ class ZoneoutLSTMStacked(torch.nn.Module):
         return ret, loss
 
 class GRUCellStacked(torch.nn.Module):
-    def __init__(self, unroll_for=2, num_gru=1):
+    def __init__(self, unroll_for=2, num_grucell=1):
         super().__init__()
         self.input_size = self.hidden_size = 2
         self.grus = torch.nn.ModuleList(
             [
                 torch.nn.GRUCell(self.input_size, self.hidden_size, bias=True)
-                for _ in range(num_gru)
+                for _ in range(num_grucell)
             ]
         )
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        hs = [torch.zeros_like(inputs[0]) for _ in self.grus]
         out = inputs[0]
+        hs = inputs[1:]
         ret = []
         for _ in range(self.unroll_for):
             for i, (gru, h) in enumerate(zip(self.grus, hs)):
@@ -409,19 +409,21 @@ if __name__ == "__main__":
         name="zoneout_lstm_stacked_100_100",
     )
 
+    unroll_for, num_grucell, batch_size, unit, feature_size, iteration, = [2, 1, 3, 2, 2, 2]
     record_v2(
-        GRUCellStacked(unroll_for=2, num_gru=1),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        GRUCellStacked(unroll_for=unroll_for, num_grucell=num_grucell),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(num_grucell)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="grucell_single",
     )
 
+    unroll_for, num_grucell, batch_size, unit, feature_size, iteration, = [2, 2, 3, 2, 2, 2]
     record_v2(
-        GRUCellStacked(unroll_for=2, num_gru=2),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        GRUCellStacked(unroll_for=unroll_for, num_grucell=num_grucell),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(num_grucell)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="grucell_stacked",
     )
 

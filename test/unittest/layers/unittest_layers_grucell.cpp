@@ -16,22 +16,33 @@
 #include <grucell.h>
 #include <layers_common_tests.h>
 
-auto semantic_grucell =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::GRUCellLayer>,
-                          nntrainer::GRUCellLayer::type,
-                          {"unit=1", "max_timestep=1", "timestep=0",
-                           "integrate_bias=false", "reset_after=true"},
-                          0, false, 1);
+auto semantic_grucell = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::GRUCellLayer>,
+  nntrainer::GRUCellLayer::type,
+  {"unit=1", "integrate_bias=false", "reset_after=true"}, 0, false, 2);
 
 INSTANTIATE_TEST_CASE_P(GRUCell, LayerSemantics,
                         ::testing::Values(semantic_grucell));
 
-auto grucell_single_step =
-  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::GRUCellLayer>,
-                           {"unit=5", "max_timestep=1", "timestep=0",
-                            "integrate_bias=true", "reset_after=false"},
-                           "3:1:1:7", "gru_single_step.nnlayergolden",
-                           LayerGoldenTestParamOptions::DEFAULT);
+auto grucell_single_step = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRUCellLayer>,
+  {"unit=5", "integrate_bias=true", "reset_after=false"}, "3:1:1:7,3:1:1:5",
+  "grucell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+
+auto grucell_reset_after_single_step = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRUCellLayer>,
+  {"unit=5", "integrate_bias=false", "reset_after=true"}, "3:1:1:7,3:1:1:5",
+  "grucell_reset_after_single_step.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto grucell_single_step_act = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::GRUCellLayer>,
+  {"unit=5", "integrate_bias=true", "reset_after=false",
+   "hidden_state_activation=sigmoid", "recurrent_activation=tanh"},
+  "3:1:1:7,3:1:1:5", "grucell_single_step_act.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(GRUCell, LayerGoldenTest,
-                        ::testing::Values(grucell_single_step));
+                        ::testing::Values(grucell_single_step,
+                                          grucell_reset_after_single_step,
+                                          grucell_single_step_act));
