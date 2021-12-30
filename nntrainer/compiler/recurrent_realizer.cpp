@@ -106,7 +106,8 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
   sequenced_return_conns(),
   recurrent_props(new PropTypes(
     std::vector<props::RecurrentInput>(), std::vector<props::RecurrentOutput>(),
-    std::vector<props::AsSequence>(), props::UnrollFor(1))) {
+    std::vector<props::AsSequence>(), props::UnrollFor(1),
+    std::vector<props::InputIsSequence>())) {
   auto left = loadProperties(properties, *recurrent_props);
 
   std::transform(input_conns.begin(), input_conns.end(),
@@ -132,7 +133,8 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
     }
   }
 
-  auto &[inputs, outputs, as_sequence, unroll_for] = *recurrent_props;
+  auto &[inputs, outputs, as_sequence, unroll_for, input_is_seq] =
+    *recurrent_props;
 
   NNTR_THROW_IF(inputs.empty() || inputs.size() != outputs.size(),
                 std::invalid_argument)
@@ -150,10 +152,19 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
                 std::invalid_argument)
     << "as_sequence property must be subset of end_layers";
 
-  std::unordered_set<std::string> check_seqs;
   for (auto &name : as_sequence) {
     sequenced_return_conns.emplace(name.get());
   };
+
+  sequenced_input =
+    std::unordered_set<std::string>(input_is_seq.begin(), input_is_seq.end());
+
+  for (auto &seq_input : sequenced_input) {
+    NNTR_THROW_IF(input_layers.count(seq_input) == 0, std::invalid_argument)
+      << seq_input
+      << " is not found inside input_layers, inputIsSequence argument must be "
+         "subset of inputs";
+  }
 
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "There is unparesed properties";
@@ -216,12 +227,16 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
       RemapRealizer input_mapper([this](std::string &id) {
         if (input_layers.count(id) == 0) {
           id += "/0";
+        } else if (sequenced_input.count(id) != 0) {
+          id += "/0";
         }
       });
 
       auto nodes = input_mapper.realize(reference_);
       for (auto &node : nodes) {
         propagateTimestep(node.get(), 0, max_time_idx);
+        /// #1744, quick fix, add shared_from to every node
+        node->setProperty({"shared_from=" + node->getName()});
       }
 
       return nodes;
@@ -264,7 +279,6 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
                                          recurrent_output.getName() + "/" +
                                            std::to_string(time_idx - 1));
       }
-
       /// 3. set shared_from
       new_node->setProperty({"shared_from=" + node->getName()});
       /// 4. if recurrent layer type set timestep property
