@@ -160,19 +160,21 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
     unsigned int total = t1.size();
     unsigned int weak_match = 0;
-    unsigned int strong_match = 0;
 
     for (unsigned int idx = 0; idx < total; idx++) {
       auto d1 = t1.getValue(idx);
       auto d2 = t2.getValue(idx);
+      auto float_eq = [](float a, float b) {
+        constexpr auto eps = 1e-6;
+        return std::abs(a - b) < eps;
+      };
       /** either both the values must be equal or 1 must be zero */
-      weak_match +=
-        std::min((d1 == d2) + (d1 == 0 && d2 != 0) + (d1 != 0 && d2 == 0), 1);
-      strong_match += (d1 == d2);
+      weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
+                               (d1 != 0 && float_eq(d2, 0)),
+                             1);
     }
 
-    return (weak_match == total) &
-           (strong_match >= (total * match_percentage) / 100);
+    return (weak_match == total);
   };
 
   auto compare_tensors = [&file, compare_percentage_tensors](
