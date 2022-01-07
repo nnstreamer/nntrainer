@@ -274,9 +274,18 @@ const Tensor &RunLayerContext::getInput(unsigned int idx) const {
  * @return Tensor& Reference to the input grad tensor
  */
 Tensor &RunLayerContext::getInputGrad(unsigned int idx) {
-  if (!inputs[idx]->hasGradient())
-    throw std::invalid_argument(
-      "Requesting gradient for a non-trainable tensor.");
+  if (!inputs[idx]->hasGradient()) {
+    //
+    // TODO: This is temporal fixes. We need to find way to handle
+    //       the getInputGrad for multiple inputs ( input 1: Input Layer,
+    //       input 2: Normal Input ). In this situation, if we enable
+    //       inPlaceOptimization, it will fail.
+    //
+    // throw std::invalid_argument(
+    //   "Requesting gradient for a non-trainable tensor.");
+    //
+    return Tensor(inputs[idx]->getDim());
+  }
   return inputs[idx]->getGradientRef();
 }
 
