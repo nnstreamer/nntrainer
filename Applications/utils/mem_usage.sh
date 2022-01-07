@@ -10,14 +10,34 @@
 
 "$@" &
 process_id=$!
+peak=0
+mem_peak=0
+log="\nPID - $process_id :"
+outlog=""
+count=0
+while true; do
+    if [ -d "/proc/$process_id" ]; then
+	output=`grep VmHWM /proc/$process_id/status`
+	IFS=' ' read -ra mem_str <<< "$output"
+	count=$((count + 1))
+	mem_usage=$((${mem_str[1]}))
+	outlog="$outlog$count $mem_usage kB\n"
+	let mem_peak='mem_usage > mem_peak ? mem_usage : mem_peak'
+	sleep 1s # configure the sleep time if the program does not run long enough
+    else
+	break
+    fi
+done
 
 if [ -d "/proc/$process_id" ]; then
-  sleep 30s # configure the sleep time if the program does not run long enough
-  output=`grep VmHWM /proc/$process_id/status`
-  IFS=' ' read -ra mem_str <<< "$output"
-  mem_usage=$((${mem_str[1]}))
+    kill -9 $process_id
 fi
-echo "Mem Usage: $mem_usage"
 
-kill -9 $process_id
+log="$log: $mem_peak kB"
+log="$log\n-------------------------------------\n"
+log="$log$outlog"
+
+echo -e "$log"
+
+
 
