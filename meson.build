@@ -155,8 +155,13 @@ if get_option('enable-logging')
   extra_defines += '-D__LOGGING__=1'
 endif
 
-if get_option('enable-test') # and get_option('platform') != 'android'
-  extra_defines += '-DENABLE_TEST=1'
+if get_option('enable-test')
+  if get_option('platform') != 'android'
+    extra_defines += '-DENABLE_TEST=1'
+  else
+    warning('"enable-test" is on but android build ignores the option as android build does not contain test suite working with this option')
+  endif
+
 endif
 
 if get_option('reduce-tolerance')
