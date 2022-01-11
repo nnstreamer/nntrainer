@@ -62,7 +62,7 @@ def _rand_like(shapes, scale=1, dtype=None):
 # @param label_dims dimensions to record including batch (list of tuple)
 # @param name golden name
 def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
-              input_dtype=None, input_label_reader=None, optimizer=None):
+              input_dtype=None, input_label_reader=None, input_label_reader_params=None, optimizer=None):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
     # Each iteration contains
@@ -79,7 +79,7 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
 
     def record_iteration(write_fn):
         if input_label_reader != None:
-            inputs, labels = input_label_reader(input_dims, label_dims)
+            inputs, labels = input_label_reader(input_dims, label_dims, input_label_reader_params=input_label_reader_params)
         else:
             inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
             labels = _rand_like(label_dims, dtype=float)

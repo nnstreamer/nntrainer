@@ -329,7 +329,7 @@ void GraphWatcher::initialize() {
   };
 
   if (nn->initialize()) {
-    throw std::invalid_argument("initiation failed");
+    throw std::invalid_argument("initialization failed");
   };
 
   if (nn->allocate()) {

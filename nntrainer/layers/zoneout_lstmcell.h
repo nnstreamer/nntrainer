@@ -172,6 +172,8 @@ private:
     INPUT = 0,
     INPUT_HIDDEN_STATE = 1,
     INPUT_CELL_STATE = 2,
+    INPUT_HIDDEN_STATE_ZONEOUT_MASK = 3, // only used in testmode
+    INPUT_CELL_STATE_ZONEOUT_MASK = 4,   // only used in testmode
     OUTPUT_HIDDEN_STATE = 0,
     OUTPUT_CELL_STATE = 1
   };
@@ -184,13 +186,11 @@ private:
    * HiddenStateZoneOutRate: zoneout rate for hidden_state
    * CellStateZoneOutRate: zoneout rate for cell_state
    * Test: property for test mode
-   * MaxTimestep: maximum timestep for zoneout lstmcell
-   * TimeStep: timestep for which lstm should operate
    *
    * */
   std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
              props::RecurrentActivation, HiddenStateZoneOutRate,
-             CellStateZoneOutRate, Test, props::MaxTimestep, props::Timestep>
+             CellStateZoneOutRate, Test>
     zoneout_lstmcell_props;
   std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
 

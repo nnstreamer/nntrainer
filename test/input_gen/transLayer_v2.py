@@ -56,20 +56,6 @@ def bn1d_translate(model):
     mu, var, _ = [(name, tensor.detach()) for name, tensor in model.named_buffers()]
     yield from [mu, var, gamma, beta]
 
-
-@register_for_((Zoneout))
-def zoneout_translate(model):
-    params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
-    hidden_state = ("hidden_state", torch.stack(model.hidden_state_zoneout_mask, dim=0))
-    cell_state = ("cell_state", torch.stack(model.cell_state_zoneout_mask, dim=0))
-
-    # [hidden, input] -> [input, hidden]
-    def transpose_(weight):
-        return (weight[0], weight[1].transpose(1, 0))
-
-    new_params = [transpose_(params[0]), transpose_(params[1]), params[2], params[3], hidden_state, cell_state]
-    yield from new_params
-
 @register_for_((torch.nn.LSTM))
 def lstm_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
@@ -84,8 +70,8 @@ def lstm_translate(model):
 
     yield from new_params
 
-@register_for_((torch.nn.RNNCell, torch.nn.LSTMCell))
-def rnn_lstm_translate(model):
+@register_for_((torch.nn.RNNCell, torch.nn.LSTMCell, Zoneout))
+def rnncell_lstmcell_zoneoutcell_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
     # [hidden, input] -> [input, hidden]
     def transpose_(weight):
