@@ -20,7 +20,6 @@
 #include <connection.h>
 #include <input_layer.h>
 #include <layer_node.h>
-#include <lstm.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <recurrent_realizer.h>
@@ -186,7 +185,6 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
   /** @todo add an interface to check if a layer supports a property */
   auto is_recurrent_type = [](LayerNode *node) {
     return node->getType() == RNNCellLayer::type ||
-           node->getType() == LSTMLayer::type ||
            node->getType() == ZoneoutLSTMCellLayer::type;
   };
 

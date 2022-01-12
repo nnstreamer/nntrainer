@@ -56,32 +56,31 @@ class RNNCellStacked(torch.nn.Module):
         return ret, loss
 
 class LSTMStacked(torch.nn.Module):
-    def __init__(self, unroll_for=2, num_lstm=1):
+    def __init__(self, num_lstm=1):
         super().__init__()
         self.input_size = self.hidden_size = 2
+        self.num_lstm = num_lstm
         self.lstms = torch.nn.ModuleList(
             [
-                torch.nn.LSTMCell(self.input_size, self.hidden_size, bias=True)
+                torch.nn.LSTM(self.input_size, self.hidden_size, batch_first=True)
+                # torch.nn.LSTM(self.input_size, self.hidden_size, num_layers=num_lstm, batch_first=True)
                 for _ in range(num_lstm)
             ]
         )
-        self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        hs = [torch.zeros_like(inputs[0]) for _ in self.lstms]
-        cs = [torch.zeros_like(inputs[0]) for _ in self.lstms]
         out = inputs[0]
-        ret = []
-        for _ in range(self.unroll_for):
-            for i, (lstm, h, c) in enumerate(zip(self.lstms, hs, cs)):
-                hs[i], cs[i] = lstm(out, (h, c))
-                out = hs[i]
-            ret.append(out)
+        states = inputs[1:]
+        # hs = [states[2 * i] for i in range(self.num_lstm)]
+        hs = [torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
+        # cs = [states[2 * i + 1] for i in range(self.num_lstm)]
+        cs = [torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
+        for i, (lstm, h, c) in enumerate(zip(self.lstms, hs, cs)):
+            out, (hs[i], cs[i]) = lstm(out, (h, c))
 
-        ret = torch.stack(ret, dim=1)
-        loss = self.loss(ret, labels[0])
-        return ret, loss
+        loss = self.loss(out, labels[0])
+        return out, loss
 
 class LSTMCellStacked(torch.nn.Module):
     def __init__(self, unroll_for=2, num_lstmcell=1):
@@ -89,7 +88,7 @@ class LSTMCellStacked(torch.nn.Module):
         self.input_size = self.hidden_size = 2
         self.lstmcells = torch.nn.ModuleList(
             [
-                torch.nn.LSTMCell(self.input_size, self.hidden_size, bias=True)
+                torch.nn.LSTMCell(self.input_size, self.hidden_size)
                 for _ in range(num_lstmcell)
             ]
         )
@@ -213,19 +212,23 @@ if __name__ == "__main__":
         name="rnncell_stacked",
     )
 
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration = [2, 1, 3, 2, 2, 2]
     record_v2(
-        LSTMStacked(unroll_for=2, num_lstm=1),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        LSTMStacked(num_lstm=num_lstm),
+        iteration=iteration,
+        input_dims=[(batch_size, unroll_for, feature_size)],
+        # input_dims=[(batch_size, unroll_for, feature_size)] + [(1, batch_size, unit) for _ in range(2 * num_lstm)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="lstm_single",
     )
 
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration = [2, 2, 3, 2, 2, 2]
     record_v2(
-        LSTMStacked(unroll_for=2, num_lstm=2),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        LSTMStacked(num_lstm=num_lstm),
+        iteration=iteration,
+        input_dims=[(batch_size, unroll_for, feature_size)],
+        # input_dims=[(batch_size, unroll_for, feature_size)] + [(1, batch_size, unit) for _ in range(2 * num_lstm)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="lstm_stacked",
     )
 
