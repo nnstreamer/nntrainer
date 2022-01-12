@@ -17,6 +17,7 @@
  * @brief	This is Neural Network Class
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Priyank Mohan Verma <p1.verma@samsung.com>
  * @bug		No known bugs except for NYI items
  *
  */
@@ -97,6 +98,8 @@ public:
   using FlatGraphType =
     std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
   using NetworkGraphType = nntrainer::NetworkGraph;
+  nntrainer::Tensor centroid_tensor; /** Tensor to store the centroid feature
+                                        vector of all classes*/
 
   /**
    * @brief     Constructor of NeuralNetwork Class
@@ -222,6 +225,23 @@ public:
   void save(const std::string &file_path,
             ml::train::ModelFormat format =
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
+
+  /**
+   * @brief     get centroid feature vector of class
+   * @retval    nntrainer::Tensort Centroid feature vector of simpleshot class
+   */
+
+  nntrainer::Tensor getCentroids();
+
+  /**
+   * @brief     Predict the class of validation set
+   * @param[in] earlier_classes number of earlier classes present
+   * @param[in] tot_classes number of total classes after addition of new
+   * classes
+   * @param[in] label_path of simpleshot classes (Label list of classes)
+   */
+
+  void predict(int earlier_classes, int tot_classes, std::string label_path);
 
   /**
    * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat

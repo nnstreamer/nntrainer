@@ -7,6 +7,7 @@
  * @see	   https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Priyank Mohan Verma <p1.verma@samsung.com>
  * @bug	   No known bugs except for NYI items
  * @brief  This is model interface for c++ API
  *
@@ -21,6 +22,8 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <tensor.h>
 
 #include <nntrainer-api-common.h>
 
@@ -128,6 +131,25 @@ public:
    */
   virtual void save(const std::string &file_path,
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
+
+  /**
+   * @brief     get centroid feature vector of class
+   * @retval    nntrainer::Tensor Centroid feature vector of simpleshot newly
+   * added classes
+   */
+
+  virtual nntrainer::Tensor getCentroids() = 0;
+
+  /**
+   * @brief     Predict the class of validation set
+   * @param[in] earlier_classes number of earlier classes present
+   * @param[in] tot_classes number of total classes after addition of new
+   * classes
+   * @param[in] label_path path of simpleshot classes or Label list of classes
+   */
+
+  virtual void predict(int earlier_classes, int tot_classes,
+                       std::string label_path) = 0;
 
   /**
    * @brief  load model with regard to the format
