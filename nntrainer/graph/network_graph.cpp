@@ -411,8 +411,11 @@ void NetworkGraph::setMaxExecutionOrder(bool skip_optimize) {
         std::max(max_exec_order, std::get<1>(ln->getExecutionOrder()));
 #endif
     } else {
+      /// FIXME below code need explanation
+      //   max_exec_order =
+      //   std::max(max_exec_order, std::get<0>(ln->getExecutionOrder()));
       max_exec_order =
-        std::max(max_exec_order, std::get<0>(ln->getExecutionOrder()));
+        std::max(max_exec_order, std::get<2>(ln->getExecutionOrder()));
     }
   }
 }
