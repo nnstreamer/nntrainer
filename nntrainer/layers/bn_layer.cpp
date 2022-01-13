@@ -128,7 +128,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    */
   wt_idx[BNParams::t_full] =
     context.requestTensor(in_dim, "tensor_full", Tensor::Initializer::NONE,
-                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */
@@ -140,7 +140,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    */
   wt_idx[BNParams::t_reduced] =
     context.requestTensor(dim, "tensor_reduced", Tensor::Initializer::NONE,
-                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+                          false, TensorLifespan::FORWARD_DERIV_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(
