@@ -12,6 +12,9 @@
  */
 
 #include <algorithm>
+#include <memory>
+#include <nntrainer_error.h>
+#include <stdexcept>
 #include <vector>
 
 #include <optimized_v1_planner.h>
@@ -41,6 +44,69 @@ struct MemoryRequest {
     size(s),
     offset(0) {}
 };
+
+/**
+ * @brief check if validate interval is overlapping in a very naive way.
+ *
+ * @param memory_validity validity
+ * @param memory_size  size
+ * @param memory_offset  offset
+ * @param memory_req  request
+ */
+[[maybe_unused]] static void validateIntervalOverlap(
+  const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
+  const std::vector<size_t> &memory_size,
+  const std::vector<size_t> &memory_offset, size_t memory_req) {
+  auto bits = std::make_unique<bool[]>(memory_req);
+
+  for (size_t i = 0; i < memory_req; ++i) {
+    bits[i] = 0;
+  }
+
+  auto exec_start =
+    std::min_element(memory_validity.begin(), memory_validity.end(),
+                     [](auto &a, auto &b) { return a.first < b.first; });
+
+  auto exec_end =
+    std::max_element(memory_validity.begin(), memory_validity.end(),
+                     [](auto &a, auto &b) { return a.second < b.second; });
+
+  auto set = [&](int offset, size_t size, int idx) {
+    for (unsigned int i = offset; i < size; ++i) {
+      NNTR_THROW_IF(bits[i], std::invalid_argument)
+        << " bits taken at i: " << i << " offset: " << offset
+        << " size: " << size << " idx: " << idx;
+      bits[i] = 1;
+    }
+  };
+
+  auto unset = [&](int offset, size_t size, int idx) {
+    for (unsigned int i = offset; i < size; ++i) {
+      NNTR_THROW_IF(!bits[i], std::invalid_argument)
+        << "double freeing bits at i: " << i << " offset: " << offset
+        << " size: " << size << " idx: " << idx;
+      bits[i] = 0;
+    }
+  };
+
+  for (unsigned int exec = exec_start->first; exec <= exec_end->second;
+       ++exec) {
+
+    for (unsigned int idx = 0; idx < memory_validity.size(); ++idx) {
+      auto &validity = memory_validity.at(idx);
+      auto &sz = memory_size.at(idx);
+      auto &offset = memory_offset.at(idx);
+      if (validity.first == exec) {
+        set(offset, sz, idx);
+      }
+      if (validity.second == exec) {
+        unset(offset, sz, idx);
+      }
+    }
+  }
+  // check if there is any dangling memory
+  set(0, memory_req, memory_validity.size());
+}
 
 /**
  * @copydoc MemoryPlanner::planLayout(
@@ -125,6 +191,9 @@ size_t OptimizedV1Planner::planLayout(
     memory_req = std::max(memory_req, req.offset + req.size);
     sorted_req.push_back(&req);
   }
+
+  //   validateIntervalOverlap(memory_validity, memory_size, memory_offset,
+  //   memory_req);
 
   return memory_req;
 }
