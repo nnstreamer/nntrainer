@@ -20,7 +20,6 @@
 #ifdef DEBUG
 #include <cassert>
 #endif
-
 #include <fcntl.h>
 #include <functional>
 #include <limits>
@@ -429,16 +428,16 @@ Manager::requestTensors(const GraphNode &node,
     std::vector<unsigned int> grad_exec_order;
 
     /** usage for tensors */
-    if (enum_class_logical_and<TensorLifespan>(
-          tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
+    if (enum_class_logical_and(tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
       var_exec_order.push_back(forwarding_order);
 
     /** usage for tensors gradient in backwarding */
-    if (enum_class_logical_and<TensorLifespan>(
-          tspan, TensorLifespan::BACKWARD_FUNC_LIFESPAN)) {
+    if (enum_class_logical_and(tspan, TensorLifespan::CALC_GRAD_LIFESPAN)) {
       var_exec_order.push_back(calcGradient_order);
       grad_exec_order.push_back(calcGradient_order);
+    }
 
+    if (enum_class_logical_and(tspan, TensorLifespan::CALC_DERIV_LIFESPAN)) {
       var_exec_order.push_back(calcDerivative_order);
       grad_exec_order.push_back(calcDerivative_order);
     }
