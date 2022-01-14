@@ -638,7 +638,7 @@ int NeuralNetwork::train_run() {
       checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
   }
 
-  train_log_file << "진행률 : 0%" << "\n";
+  train_log_file << "progress : 0%" << "\n";
   train_log_file.close();
 
 
@@ -735,8 +735,7 @@ int NeuralNetwork::train_run() {
     }
 
 
-      train_log_file << "진행률 : " << epoch_idx*100/getEpochs() << "%\n";
-      //train_log_file << "progress : " << epoch_idx << "/" << getEpochs() << "\n";
+      train_log_file << "progress : " << epoch_idx*100/getEpochs() << "%\n";
       train_log_file << "#" << epoch_idx << "/" << getEpochs() << " - Training Loss: " << stat.loss << "\n";
       train_log_file.close();
 
@@ -810,9 +809,7 @@ int NeuralNetwork::train_run() {
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});
 
-  //if (!save_train_log_path.empty()) {
-  //  train_log_file.close();
-  //}
+
   return status;
 }
 
