@@ -75,6 +75,8 @@ std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
 
 ReturnSequences::ReturnSequences(bool value) { set(value); }
 
+Bidirectional::Bidirectional(bool value) { set(value); }
+
 bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
 
 InputConnection::InputConnection() : nntrainer::Property<Connection>() {}

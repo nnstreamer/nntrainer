@@ -574,6 +574,21 @@ public:
 };
 
 /**
+ * @brief bidirectional property, used to make bidirectional layers
+ *
+ */
+class Bidirectional : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Bidirectional object
+   *
+   */
+  Bidirectional(bool value = false);
+  static constexpr const char *key = "bidirectional";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief Identifiers to locate a connection which should be returned as whole
  * used in recurrent realizer
  *
