@@ -175,6 +175,47 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
   return nn;
 }
 
+// static std::unique_ptr<NeuralNetwork> makeSingleBidirectionalLSTM() {
+//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+//   nn->setProperty({"batch_size=3"});
+
+//   auto outer_graph = makeGraph({
+//     {"input", {"name=input", "input_shape=1:2:2"}},
+//     {"lstm",
+//      {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
+//       "bidirectional=true"}},
+//     {"mse", {"name=loss", "input_layers=a1"}},
+//   });
+//   for (auto &node : outer_graph) {
+//     nn->addLayer(node);
+//   }
+
+//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
+//   0.1"})); return nn;
+// }
+
+// static std::unique_ptr<NeuralNetwork> makeStackedBidirectionalLSTM() {
+//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+//   nn->setProperty({"batch_size=3"});
+
+//   auto outer_graph = makeGraph({
+//     {"input", {"name=input", "input_shape=1:2:2"}},
+//     {"lstm",
+//      {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
+//       "bidirectional=true"}},
+//     {"lstm",
+//      {"name=a2", "unit=2", "integrate_bias=false", "return_sequences=true",
+//       "bidirectional=true"}},
+//     {"mse", {"name=loss"}},
+//   });
+//   for (auto &node : outer_graph) {
+//     nn->addLayer(node);
+//   }
+
+//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
+//   0.1"})); return nn;
+// }
+
 static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=3"});
@@ -526,6 +567,10 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::ALL_V2),
+    // mkModelTc_V2(makeSingleBidirectionalLSTM, "bidirectional_lstm_single",
+    //              ModelTestOption::ALL_V2),
+    // mkModelTc_V2(makeStackedBidirectionalLSTM, "bidirectional_lstm_stacked",
+    //              ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleLSTMCell, "lstmcell_single",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedLSTMCell, "lstmcell_stacked",

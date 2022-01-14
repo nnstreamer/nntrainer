@@ -56,15 +56,17 @@ class RNNCellStacked(torch.nn.Module):
         return ret, loss
 
 class LSTMStacked(torch.nn.Module):
-    def __init__(self, num_lstm=1):
+    def __init__(self, num_lstm=1, bidirectional=False):
         super().__init__()
         self.input_size = self.hidden_size = 2
         self.num_lstm = num_lstm
+        self.bidirectional=bidirectional
         self.lstms = torch.nn.ModuleList(
             [
-                torch.nn.LSTM(self.input_size, self.hidden_size, batch_first=True)
-                # torch.nn.LSTM(self.input_size, self.hidden_size, num_layers=num_lstm, batch_first=True)
-                for _ in range(num_lstm)
+                torch.nn.LSTM(self.input_size if self.bidirectional == False or i == 0 else 2 * self.input_size, self.hidden_size, batch_first=True, bidirectional=bidirectional)
+                # Intended comment
+                # torch.nn.LSTM(self.input_size if self.bidirectional == False or i == 0 else 2 * self.input_size, self.hidden_size, num_layers=num_lstm, batch_first=True, bidirectional=bidirectional)
+                for i in range(num_lstm)
             ]
         )
         self.loss = torch.nn.MSELoss()
@@ -73,12 +75,12 @@ class LSTMStacked(torch.nn.Module):
         out = inputs[0]
         states = inputs[1:]
         # hs = [states[2 * i] for i in range(self.num_lstm)]
-        hs = [torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
+        hs = [torch.zeros((2, 3, 2)) if self.bidirectional else torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
         # cs = [states[2 * i + 1] for i in range(self.num_lstm)]
-        cs = [torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
+        cs = [torch.zeros((2, 3, 2)) if self.bidirectional else torch.zeros((1, 3, 2)) for _ in range(self.num_lstm)]
         for i, (lstm, h, c) in enumerate(zip(self.lstms, hs, cs)):
             out, (hs[i], cs[i]) = lstm(out, (h, c))
-
+        
         loss = self.loss(out, labels[0])
         return out, loss
 
@@ -212,9 +214,9 @@ if __name__ == "__main__":
         name="rnncell_stacked",
     )
 
-    unroll_for, num_lstm, batch_size, unit, feature_size, iteration = [2, 1, 3, 2, 2, 2]
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration, bidirectional = [2, 1, 3, 2, 2, 2, False]
     record_v2(
-        LSTMStacked(num_lstm=num_lstm),
+        LSTMStacked(num_lstm=num_lstm, bidirectional=bidirectional),
         iteration=iteration,
         input_dims=[(batch_size, unroll_for, feature_size)],
         # input_dims=[(batch_size, unroll_for, feature_size)] + [(1, batch_size, unit) for _ in range(2 * num_lstm)],
@@ -222,14 +224,34 @@ if __name__ == "__main__":
         name="lstm_single",
     )
 
-    unroll_for, num_lstm, batch_size, unit, feature_size, iteration = [2, 2, 3, 2, 2, 2]
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration, bidirectional = [2, 2, 3, 2, 2, 2, False]
     record_v2(
-        LSTMStacked(num_lstm=num_lstm),
+        LSTMStacked(num_lstm=num_lstm, bidirectional=bidirectional),
         iteration=iteration,
         input_dims=[(batch_size, unroll_for, feature_size)],
         # input_dims=[(batch_size, unroll_for, feature_size)] + [(1, batch_size, unit) for _ in range(2 * num_lstm)],
         label_dims=[(batch_size, unroll_for, unit)],
         name="lstm_stacked",
+    )
+
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration, bidirectional = [2, 1, 3, 2, 2, 2, True]
+    record_v2(
+        LSTMStacked(num_lstm=num_lstm, bidirectional=bidirectional),
+        iteration=iteration,
+        input_dims=[(batch_size, unroll_for, feature_size)],
+        # input_dims=[(batch_size, unroll_for, feature_size)] + [(2, batch_size, unit) for _ in range(2 * num_lstm)],
+        label_dims=[(batch_size, unroll_for, 2 * unit)],
+        name="bidirectional_lstm_single",
+    )
+
+    unroll_for, num_lstm, batch_size, unit, feature_size, iteration, bidirectional = [2, 2, 3, 2, 2, 2, True]
+    record_v2(
+        LSTMStacked(num_lstm=num_lstm, bidirectional=bidirectional),
+        iteration=iteration,
+        input_dims=[(batch_size, unroll_for, feature_size)],
+        # input_dims=[(batch_size, unroll_for, feature_size)] + [(2, batch_size, unit) for _ in range(2 * num_lstm)],
+        label_dims=[(batch_size, unroll_for, 2 * unit)],
+        name="bidirectional_lstm_stacked",
     )
 
     unroll_for, num_lstmcell, state_num, batch_size, unit, feature_size, iteration = [2, 1, 2, 3, 2, 2, 2]
