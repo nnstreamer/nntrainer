@@ -25,11 +25,11 @@
  */
 
 #include "bitmap_helpers.h"
-#include "tensorflow/contrib/lite/interpreter.h"
-#include "tensorflow/contrib/lite/kernels/register.h"
-#include "tensorflow/contrib/lite/model.h"
-#include "tensorflow/contrib/lite/string_util.h"
-#include "tensorflow/contrib/lite/tools/gen_op_registration.h"
+#include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/kernels/register.h"
+#include "tensorflow/lite/model.h"
+#include "tensorflow/lite/string_util.h"
+#include "tensorflow/lite/tools/gen_op_registration.h"
 #include <cmath>
 #include <fstream>
 #include <iomanip>
