@@ -17,9 +17,9 @@
 
 #include <layer_devel.h>
 
-#include <tensorflow/contrib/lite/interpreter.h>
-#include <tensorflow/contrib/lite/kernels/register.h>
-#include <tensorflow/contrib/lite/model.h>
+#include <tensorflow/lite/interpreter.h>
+#include <tensorflow/lite/kernels/register.h>
+#include <tensorflow/lite/model.h>
 
 namespace nntrainer {
 
