@@ -144,7 +144,8 @@ void Manager::deallocateWeights() { weight_pool.deallocate(); }
 
 static Tensor *requestTensor_(const TensorSpecV2 &spec,
                               const GraphNode::ExecutionOrder &exec_order,
-                              const std::string &scope, TensorPool &tp) {
+                              const std::string &scope, TensorPool &tp,
+                              bool expose) {
   using RT = TensorSpecV2::RequestType;
   using LS = TensorLifespan;
   NNTR_THROW_IF(spec.request_type == RT::MAYBE_MODIFYING_VIEW,
@@ -155,6 +156,9 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
   auto [forward, calc_grad, calc_deriv] = exec_order;
 
   std::vector<unsigned> order = spec.additional_exec_order;
+  if (expose) {
+    order.push_back(TensorPool::PERSIST_END_ORDER);
+  }
 
   const auto name = scope + ":" + spec.name;
 
@@ -202,12 +206,12 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
     << "Currently, input and tensors group type is not yet implemented, use "
        "requestInputs() requestTensors() instead";
 
-  Tensor *var =
-    requestTensor_(spec.variable_spec, exec_order, scope, tensor_pool);
-  Tensor *grad =
-    spec.gradient_spec
-      ? requestTensor_(*spec.gradient_spec, exec_order, scope, tensor_pool)
-      : nullptr;
+  Tensor *var = requestTensor_(spec.variable_spec, exec_order, scope,
+                               tensor_pool, expose_var);
+  Tensor *grad = spec.gradient_spec
+                   ? requestTensor_(*spec.gradient_spec, exec_order, scope,
+                                    tensor_pool, expose_grad)
+                   : nullptr;
 
   /// @note as only supporting identify_as == TensorGroupType::output, only
   /// saves to outputs for now
@@ -347,10 +351,10 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  */
 std::vector<Weight *> Manager::requestWeights(
   const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
-  bool trainable, const std::vector<std::string> &shared_names,
-  const unsigned int max_exec_order) {
+  bool trainable, const std::vector<std::string> &shared_names) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
+
   std::vector<unsigned int> var_exec_order(
     {forwarding_order, calcGradient_order, calcDerivative_order});
   std::vector<unsigned int> default_grad_exec_order(
@@ -372,7 +376,7 @@ std::vector<Weight *> Manager::requestWeights(
      * applied to the weight.
      */
     if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
-      grad_exec_order.push_back(max_exec_order);
+      grad_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
 
     Tensor *var = nullptr, *grad = nullptr;
     bool is_dependent = !shared_names.empty();
@@ -529,9 +533,9 @@ Manager::requestInputs(const GraphNode &node,
 
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool),
+                     tensor_pool, false),
       requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool)));
+                     tensor_pool, false)));
   }
 
   ret.reserve(inputs_dim.size());
