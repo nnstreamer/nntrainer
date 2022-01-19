@@ -44,7 +44,9 @@ public:
     graph(),
     compiled(false),
     batch_size(0),
-    max_exec_order(0),
+    graph_exec_end(0),
+    backward_iter_end(nullptr),
+    forward_iter_end(nullptr),
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN) {}
 
@@ -344,7 +346,14 @@ private:
   GraphCore graph;             /** core graph object */
   bool compiled;               /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
-  unsigned int max_exec_order; /**< maximum execution order */
+  unsigned int graph_exec_end; /**< Inclusive, last execution order of the
+                                  given graph */
+  LayerNode
+    *backward_iter_end;        /**< inclusive end node of the valid backward
+                                  execution when initialized, nodes after this node
+                                  does not required backwarding thus making it noop */
+  LayerNode *forward_iter_end; /**< inclusive end node of the forward execution
+                                  when initialize */
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
@@ -464,11 +473,13 @@ private:
   InPlace canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
 
   /**
-   * @brief Set the Max Execution Order
+   * @brief compute optimized backward end. This function calculated the valid
+   * end of the graph backward, if memory_optimize is set, this returns begining
+   * of the backward.
    *
-   * @param skip_optimize Skip trying to optimize the max exec order
+   * @return end of the backward iter;
    */
-  void setMaxExecutionOrder(bool skip_optimize = false);
+  LayerNode *computeBackwardEnd();
 };
 
 } // namespace nntrainer
