@@ -27,6 +27,7 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
+#include <layer_node.h>
 #include <multiout_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
@@ -99,7 +100,7 @@ void NetworkGraph::setExecutionOrder() {
    * This set max execution order is used to extend gradient exec orders for
    * clipping.
    */
-  setMaxExecutionOrder(true);
+  graph_exec_end = std::get<2>((*(cbegin()))->getExecutionOrder());
 }
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
@@ -395,29 +396,40 @@ void NetworkGraph::backwarding(
   }
 }
 
-void NetworkGraph::setMaxExecutionOrder(bool skip_optimize) {
-  max_exec_order = 0;
-  if (!optimize_memory || skip_optimize)
-    max_exec_order = std::get<2>((*(cbegin()))->getExecutionOrder());
+LayerNode *NetworkGraph::computeBackwardEnd() {
+  int max_exec_order = -1;
+  LayerNode *node = nullptr;
+
+  if (!optimize_memory) {
+    return (*cbegin()).get();
+  }
+
   for (auto iter = getBackwardingBeginIter(); iter != getBackwardingEndIter();
        iter++) {
     auto &ln = *iter;
+    const auto &exec_order = ln->getExecutionOrder();
+    int cur_order = std::get<0>(exec_order);
     if (ln->needsCalcDerivative() || ln->needsCalcGradient()) {
 #ifdef ENABLE_TEST
-      max_exec_order =
-        std::max(max_exec_order, std::get<2>(ln->getExecutionOrder()));
+      cur_order = std::get<2>(exec_order);
 #else
-      max_exec_order =
-        std::max(max_exec_order, std::get<1>(ln->getExecutionOrder()));
+      cur_order = std::get<1>(exec_order);
 #endif
-    } else {
-      /// FIXME below code need explanation
-      //   max_exec_order =
-      //   std::max(max_exec_order, std::get<0>(ln->getExecutionOrder()));
-      max_exec_order =
-        std::max(max_exec_order, std::get<2>(ln->getExecutionOrder()));
+    }
+
+    NNTR_THROW_IF(max_exec_order == cur_order, std::invalid_argument)
+      << "layer node: " << ln->getName()
+      << " has duplicated max_exec_order, this should not happen, current "
+         "execution order: "
+      << max_exec_order;
+
+    if (max_exec_order < cur_order) {
+      max_exec_order = cur_order;
+      node = ln.get();
     }
   }
+
+  return node;
 }
 
 /**
@@ -440,7 +452,8 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * and pass that as the max_exec_order ensuring that all tensors with
      * usage less than the max_exec_order are allocated.
      */
-    tensor_manager->allocateTensors(max_exec_order);
+    tensor_manager->allocateTensors(
+      std::get<2>(backward_iter_end->getExecutionOrder()));
   }
 }
 
@@ -780,7 +793,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
                                    lnode->getTrainable(), shared_weight_names,
-                                   max_exec_order),
+                                   graph_exec_end),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    shared_tensor_names));
@@ -973,7 +986,8 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
   /** mark the nodes which will be backwarded during the graph operation */
   try {
     markNodesForBackwarding();
-    setMaxExecutionOrder();
+    backward_iter_end = computeBackwardEnd();
+    forward_iter_end = (*(cend() - 1)).get();
   } catch (std::exception &e) {
     ml_loge(
       "Backwarding required from layer which doesn't support backwarding: %s",
