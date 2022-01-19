@@ -154,7 +154,7 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 
   auto [forward, calc_grad, calc_deriv] = exec_order;
 
-  std::vector<unsigned> order;
+  std::vector<unsigned> order = spec.additional_exec_order;
 
   const auto name = scope + ":" + spec.name;
 
@@ -190,7 +190,8 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
                                  TensorGroupType identify_as,
                                  const GraphNode::ExecutionOrder &exec_order,
-                                 const std::string &scope) {
+                                 const std::string &scope, bool expose_var,
+                                 bool expose_grad) {
   NNTR_THROW_IF(identify_as == TensorGroupType::WEIGHT, std::invalid_argument)
     << "requestTensor with var grad spec cannot be identified as weights, use "
        "requestTensor with weight spec instead";
@@ -217,11 +218,13 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
 
 std::vector<Var_Grad *> Manager::requestTensors(
   const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
-  const GraphNode::ExecutionOrder &exec_order, const std::string &scope) {
+  const GraphNode::ExecutionOrder &exec_order, const std::string &scope,
+  bool expose_var, bool expose_grad) {
   std::vector<Var_Grad *> ret;
   ret.reserve(specs.size());
   for (auto &spec : specs) {
-    ret.push_back(requestTensor(spec, identify_as, exec_order, scope));
+    ret.push_back(requestTensor(spec, identify_as, exec_order, scope,
+                                expose_var, expose_grad));
   }
 
   return ret;
