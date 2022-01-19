@@ -70,6 +70,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   graph.topologicalSort();
 
   setExecutionOrder();
+  forward_iter_end = (*(cend() - 1)).get();
 
   inPlaceOptimize();
 
@@ -247,8 +248,10 @@ void NetworkGraph::markNodesForBackwarding() {
   }
 
   /** mark all the required nodes support backwarding */
-  for (auto const &node_name : must_support_backwarding)
-    LNODE(graph.getNode(node_name))->needsCalcDerivative(true);
+  for (auto const &node_name : must_support_backwarding) {
+    auto ln = LNODE(graph.getNode(node_name)).get();
+    ln->needsCalcDerivative(true);
+  }
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
@@ -733,14 +736,18 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       TensorSpecV2::RequestType::PLACEHOLDER;
   }
 
-  /// @todo switch to check if model inputs instead and add a new tensor life
-  /// span to represent from here to ~ max_fwd_exec_order, also this is only
-  /// needed for the inference mode
+  /// @note below needs to be enabled only for inference mode, but need decision
+  /// if we are going to separate inference initialization from train
+  /// initialization this might not worth optimize because in general output of
+  /// a neuralnet is very small
   if (lnode->getOutputConnections().size() == 0u) {
-    std::for_each(out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
-      spec.variable_spec.ls = TensorLifespan::MAX_LIFESPAN;
-    });
+    std::for_each(out_specs.begin(), out_specs.end(),
+                  [this](VarGradSpecV2 &spec) {
+                    spec.variable_spec.additional_exec_order.push_back(
+                      std::get<0>(forward_iter_end->getExecutionOrder()));
+                  });
   }
+
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
     out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
     lnode->getName());
@@ -987,7 +994,6 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
   try {
     markNodesForBackwarding();
     backward_iter_end = computeBackwardEnd();
-    forward_iter_end = (*(cend() - 1)).get();
   } catch (std::exception &e) {
     ml_loge(
       "Backwarding required from layer which doesn't support backwarding: %s",

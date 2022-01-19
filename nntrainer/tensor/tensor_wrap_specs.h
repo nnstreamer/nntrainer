@@ -125,6 +125,10 @@ struct TensorSpecV2 {
   /** ONLY USED FOR READ_ONLY_VIEW, MAYBE_MODIFYING_VIEW */
   unsigned int offset = 0u;   /**< tensor offset */
   std::string reference_name; /**< reference name */
+
+  /** ONLY FOR THE GRANULAR CONTROL OF LIFE OUTSIDE OF LAYER NODE */
+  /// @todo make this as an opaque information with PIMPL
+  std::vector<unsigned> additional_exec_order = {};
 };
 
 /**

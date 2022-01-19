@@ -407,12 +407,17 @@ public:
    * @param identify_as identify as tensor as a group
    * @param exec_order execution order to refer to
    * @param scope common scope to attach in front of current specification name
+   * @param expose_var expose variable tensor out of graph, when allocation,
+   * this tensor will be valid max_exec_order when allocation happens
+   * @param expose_grad expose variable tensor out of graph, this tensor will be
+   * valid max_exec_order when allocation happens
    * @return Tensor* tensor
    */
   Var_Grad *requestTensor(const VarGradSpecV2 &spec,
                           TensorGroupType identify_as,
                           const GraphNode::ExecutionOrder &exec_order,
-                          const std::string &scope = "");
+                          const std::string &scope = "",
+                          bool expose_var = false, bool expose_grad = false);
 
   /**
    * @brief request vector of tensors with variable + gradient specification
@@ -421,11 +426,17 @@ public:
    * @param identify_as identify as tensor as a group
    * @param exec_order execution order to refer to
    * @param scope common scope to attach in front of current specification name
+   * @param expose_var expose variable tensor out of graph, when
+   * allocation, this tensor will be valid max_exec_order when allocation
+   * happens
+   * @param expose_grad expose variable tensor out of graph, this tensor will be
+   * valid max_exec_order when allocation happens
    * @return Tensor* tensor
    */
   std::vector<Var_Grad *> requestTensors(
     const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
-    const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "");
+    const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "",
+    bool expose_var = false, bool expose_grad = false);
 
 private:
   /** @todo: merge this list to one */
