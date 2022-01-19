@@ -126,8 +126,14 @@ void TensorPool::finalize(const MemoryPlanner &planner,
 
     unsigned int validity_end = validity_start;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
-      if (details->exec_order[idx] <= end_order)
+      if (details->exec_order[idx] == PERSIST_END_ORDER) {
+        validity_end = end_order;
+        break;
+      }
+
+      if (details->exec_order[idx] <= end_order) {
         validity_end = std::max(validity_end, details->exec_order[idx]);
+      }
     }
 
     /**

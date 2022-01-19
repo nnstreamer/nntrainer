@@ -172,15 +172,13 @@ public:
    * @param trainable make the weight trainable if true
    * @param shared_names name to refer to when the weights are borrowed from the
    * original source. if not shared pass empty vector
-   * @param max_exec_order the maximum execution order
    *
    * @return created weights list
    */
   std::vector<Weight *>
   requestWeights(const GraphNode &node,
                  const std::vector<Weight::Spec> &weights_spec, bool trainable,
-                 const std::vector<std::string> &shared_names,
-                 const unsigned int max_exec_order);
+                 const std::vector<std::string> &shared_names);
 
   /**
    * @brief     Create tensors with the given spec

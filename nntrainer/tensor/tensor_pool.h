@@ -17,6 +17,7 @@
 #ifdef __cplusplus
 
 #include <functional>
+#include <limits>
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -35,6 +36,8 @@ namespace nntrainer {
 class TensorPool {
 
 public:
+  static constexpr unsigned PERSIST_END_ORDER =
+    std::numeric_limits<unsigned>::max();
   /**
    * @brief     Constructor of TensorPool
    */
