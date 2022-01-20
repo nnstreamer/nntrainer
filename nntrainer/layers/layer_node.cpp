@@ -420,10 +420,13 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
     << __func__ << " layer needs to be finalized first!";
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->isGradientLastAccess(i) && getTrainable()) {
         // @note read optimizer variables
-        for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
-          run_context->getWeightOptVar(i, j).read(file);
+        if (run_context->weightHasGradient(i)) {
+          for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
+               ++j) {
+            run_context->getWeightOptVar(i, j).read(file);
+          }
         }
       }
     }
@@ -440,12 +443,16 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
 void LayerNode::save(std::ofstream &file, bool opt_var) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
+
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->isGradientLastAccess(i) && getTrainable()) {
         // @note save optimizer variables
-        for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
-          run_context->getWeightOptVar(i, j).save(file);
+        if (run_context->weightHasGradient(i)) {
+          for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
+               ++j) {
+            run_context->getWeightOptVar(i, j).save(file);
+          }
         }
       }
     }
