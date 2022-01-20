@@ -572,14 +572,16 @@ public:
   /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
+   * @param bool read optimizer variables
    */
-  void read(std::ifstream &file);
+  void read(std::ifstream &file, bool opt_var = false);
 
   /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
+   * @param bool save optimizer variables
    */
-  void save(std::ofstream &file) const;
+  void save(std::ofstream &file, bool opt_var = false) const;
 
   /**
    * @brief     get loss for the layer

@@ -530,6 +530,10 @@ private:
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
+  bool loadedWeight; /**< Check if weight is loaded to prevent load twice */
+
+  uint64_t bin_file_pos; /**< save file position to load later*/
+
   RunStats validation; /** validation statistics of the model */
   RunStats training;   /** training statistics of the model */
   RunStats testing;    /** testing statistics of the model */
