@@ -638,9 +638,9 @@ int NeuralNetwork::train_run() {
       checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
   }
 
-  train_log_file << "progress : 0%" << "\n";
+  train_log_file << "progress : 0%"
+                 << "\n";
   train_log_file.close();
-
 
   auto const &outputs = model_graph.getOutputTensors();
   auto in_dims = model_graph.getInputDimension();
@@ -717,28 +717,25 @@ int NeuralNetwork::train_run() {
     stat.num_iterations++;
   };
 
-  auto train_epoch_end = [this](RunStats &stat,
-                                                 DataBuffer &buffer) {
+  auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
     stat.loss /= static_cast<float>(stat.num_iterations);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
       save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     }
 
-
     std::ofstream train_log_file;
     auto &save_train_log_path =
-          std::get<props::SaveTrainLogPath>(model_flex_props);
+      std::get<props::SaveTrainLogPath>(model_flex_props);
     if (!save_train_log_path.empty()) {
       train_log_file =
-      checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
+        checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
     }
 
-
-      train_log_file << "progress : " << epoch_idx*100/getEpochs() << "%\n";
-      train_log_file << "#" << epoch_idx << "/" << getEpochs() << " - Training Loss: " << stat.loss << "\n";
-      train_log_file.close();
-
+    train_log_file << "progress : " << epoch_idx * 100 / getEpochs() << "%\n";
+    train_log_file << "#" << epoch_idx << "/" << getEpochs()
+                   << " - Training Loss: " << stat.loss << "\n";
+    train_log_file.close();
 
     std::cout << "#" << epoch_idx << "/" << getEpochs()
               << " - Training Loss: " << stat.loss;
@@ -808,7 +805,6 @@ int NeuralNetwork::train_run() {
 
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});
-
 
   return status;
 }
