@@ -205,7 +205,11 @@ int NeuralNetwork::initialize() {
 
   initialized = true;
 
-  if (!load_path.empty()) {
+  // @note we need check loadedWeight for the case of multiple call of load to
+  // load weight. Only the weight needs to be loaded here. Becuase the buffer
+  // for the optimizer is not allocated yet.
+  // loadedWeight check is just for the duplicate load of weight.
+  if (!load_path.empty() && !loadedWeight) {
     load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   }
 
@@ -328,7 +332,7 @@ void NeuralNetwork::save(const std::string &file_path,
 
     opt->save(model_file);
 
-    if (opt->getType() == "adam") {
+    if (istrequal(opt->getType(), "adam")) {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            iter++) {
         (*iter)->save(model_file, true);
@@ -381,18 +385,22 @@ void NeuralNetwork::load(const std::string &file_path,
       }
       loadedWeight = true;
       bin_file_pos = model_file.tellg();
+      load_path = file_path;
+      return;
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
       /// read. so, after this line, additional read shouldn't be called
       model_file.seekg(bin_file_pos);
 
-      std::string opt_type;
-      opt_type = readString(model_file);
-      if (istrequal(opt_type, "adam") && istrequal(opt->getType(), "adam")) {
-        for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-             iter++) {
-          (*iter)->read(model_file, true);
+      if (istrequal(opt->getType(), "adam")) {
+        char opt_type[4];
+        model_file.read(opt_type, 4);
+        if (istrequal(opt_type, "adam")) {
+          for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+               iter++) {
+            (*iter)->read(model_file, true);
+          }
         }
       }
 
