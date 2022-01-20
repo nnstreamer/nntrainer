@@ -198,6 +198,12 @@ public:
   Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
 
   /**
+   * @brief Get number of optimizer variable
+   * @retval number of optimizer variable
+   */
+  int getNumOptVariable() { return opt_vars.size(); }
+
+  /**
    * @brief     check if weight regularizer type is l2norm
    * @return    bool is weight regrulatizer type is L2 Norm
    */
