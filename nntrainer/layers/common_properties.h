@@ -644,20 +644,20 @@ public:
 };
 
 /**
- * @brief WeightRegularizerConstant property, this defines how much regularize
+ * @brief BasicRegularizerConstant property, this defines how much regularize
  * the weight
  *
  */
-class WeightRegularizerConstant : public nntrainer::Property<float> {
+class BasicRegularizerConstant : public nntrainer::Property<float> {
 
 public:
   /**
-   * @brief Construct a new WeightRegularizerConstant object
+   * @brief Construct a new BasicRegularizerConstant object
    *
    */
-  WeightRegularizerConstant(float value = 1.0f);
+  BasicRegularizerConstant(float value = 1.0f);
   static constexpr const char *key =
-    "weight_regularizer_constant"; /**< unique key to access */
+    "basic_regularizer_constant";  /**< unique key to access */
   using prop_tag = float_prop_tag; /**< property type */
 
   /**
@@ -667,6 +667,56 @@ public:
    * @return bool true if valid
    */
   bool isValid(const float &value) const override;
+};
+
+/**
+ * @brief WeightRegularizerConstant property, this defines how much regularize
+ * the weight
+ *
+ */
+class WeightRegularizerConstant final : public BasicRegularizerConstant {
+
+public:
+  /**
+   * @brief Construct a new WeightRegularizerConstant object
+   *
+   */
+  WeightRegularizerConstant(float value = 1.0f);
+  static constexpr const char *key =
+    "weight_regularizer_constant"; /**< unique key to access */
+};
+
+/**
+ * @brief WeightDecay property, this defines how much to decay
+ * the weight
+ *
+ */
+class WeightDecay final : public BasicRegularizerConstant {
+
+public:
+  /**
+   * @brief Construct a new WeightDecay object
+   *
+   */
+  WeightDecay(float value = 0.0f);
+  static constexpr const char *key =
+    "weight_decay"; /**< unique key to access */
+};
+
+/**
+ * @brief BiasDecay property, this defines how much regularize
+ * the weight
+ *
+ */
+class BiasDecay final : public BasicRegularizerConstant {
+
+public:
+  /**
+   * @brief Construct a new BiasDecay object
+   *
+   */
+  BiasDecay(float value = 0.0f);
+  static constexpr const char *key = "bias_decay"; /**< unique key to access */
 };
 
 /**
@@ -887,27 +937,40 @@ struct RegularizerInfo {
 };
 
 /**
- * @brief WeightRegularizer Regularization Enumeration Information
+ * @brief BasicRegularizer Regularization Enumeration Information
  *
  */
-class WeightRegularizer final : public EnumProperty<RegularizerInfo> {
+class BasicRegularizer : public EnumProperty<RegularizerInfo> {
 public:
   /**
-   * @brief Construct a WeightRegularizer object
+   * @brief Construct a BasicRegularizer object
    */
-  WeightRegularizer(
-    nntrainer::WeightRegularizer value = nntrainer::WeightRegularizer::NONE);
+  BasicRegularizer(nntrainer::WeightRegularizer value);
   using prop_tag = enum_class_prop_tag;
-  static constexpr const char *key = "weight_regularizer";
+  static constexpr const char *key = "basic_regularizer";
 
   /**
-   * @brief WeightRegularizer validator
+   * @brief BasicRegularizer validator
    *
    * @param value nntrainer::WeightRegularizer to validate
    * @retval true if value is not nntrainer::WeightRegularizer::UNKNOWN
    * @retval false if value is nntrainer::WeightRegularizer::UNKNOWN
    */
   bool isValid(const nntrainer::WeightRegularizer &value) const override;
+};
+
+/**
+ * @brief WeightRegularizer Regularization Enumeration Information
+ *
+ */
+class WeightRegularizer final : public BasicRegularizer {
+public:
+  /**
+   * @brief Construct a WeightRegularizer object
+   */
+  WeightRegularizer(
+    nntrainer::WeightRegularizer value = nntrainer::WeightRegularizer::NONE);
+  static constexpr const char *key = "weight_regularizer";
 };
 
 /**

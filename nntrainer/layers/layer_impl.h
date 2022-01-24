@@ -35,6 +35,8 @@ namespace props {
 class WeightRegularizer;
 class WeightRegularizerConstant;
 class WeightInitializer;
+class WeightDecay;
+class BiasDecay;
 class BiasInitializer;
 class DisableBias;
 } // namespace props
@@ -83,9 +85,10 @@ public:
                         const ExportMethods &method) const override;
 
 protected:
-  std::unique_ptr<std::tuple<
-    props::WeightRegularizer, props::WeightRegularizerConstant,
-    props::WeightInitializer, props::BiasInitializer, props::DisableBias>>
+  std::unique_ptr<
+    std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
+               props::WeightInitializer, props::WeightDecay, props::BiasDecay,
+               props::BiasInitializer, props::DisableBias>>
     layer_impl_props; /**< layer_impl_props */
 };
 

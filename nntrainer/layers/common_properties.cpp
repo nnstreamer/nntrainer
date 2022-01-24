@@ -232,11 +232,14 @@ std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input,
   return {0, 0};
 }
 
-WeightRegularizerConstant::WeightRegularizerConstant(float value) {
-  set(value);
-}
+BasicRegularizerConstant::BasicRegularizerConstant(float value) { set(value); }
 
-bool WeightRegularizerConstant::isValid(const float &value) const {
+WeightRegularizerConstant::WeightRegularizerConstant(float value) :
+  BasicRegularizerConstant(value) {}
+WeightDecay::WeightDecay(float value) : BasicRegularizerConstant(value) {}
+BiasDecay::BiasDecay(float value) : BasicRegularizerConstant(value) {}
+
+bool BasicRegularizerConstant::isValid(const float &value) const {
   return value >= 0.0f;
 }
 
@@ -270,11 +273,14 @@ BNPARAMS_BETA_INIT::BNPARAMS_BETA_INIT(Tensor::Initializer value) {
   set(value);
 }
 
-WeightRegularizer::WeightRegularizer(nntrainer::WeightRegularizer value) {
+BasicRegularizer::BasicRegularizer(nntrainer::WeightRegularizer value) {
   set(value);
 }
 
-bool WeightRegularizer::isValid(
+WeightRegularizer::WeightRegularizer(nntrainer::WeightRegularizer value) :
+  BasicRegularizer(value) {}
+
+bool BasicRegularizer::isValid(
   const nntrainer::WeightRegularizer &value) const {
   return value != nntrainer::WeightRegularizer::UNKNOWN;
 }
