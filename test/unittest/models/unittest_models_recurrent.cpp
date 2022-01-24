@@ -77,7 +77,7 @@ IniWrapper fc_unroll_single__2(
   });
 
 std::unique_ptr<NeuralNetwork> makeFC() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=1"});
 
   auto outer_graph = makeGraph({
@@ -107,7 +107,7 @@ std::unique_ptr<NeuralNetwork> makeFC() {
 }
 
 std::unique_ptr<NeuralNetwork> makeFCClipped() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=1"});
 
   auto outer_graph = makeGraph({
@@ -138,7 +138,7 @@ std::unique_ptr<NeuralNetwork> makeFCClipped() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -156,7 +156,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -175,49 +175,49 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTM() {
   return nn;
 }
 
-// static std::unique_ptr<NeuralNetwork> makeSingleBidirectionalLSTM() {
-//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
-//   nn->setProperty({"batch_size=3"});
+static std::unique_ptr<NeuralNetwork> makeSingleBidirectionalLSTM() {
+  auto nn = std::make_unique<NeuralNetwork>();
+  nn->setProperty({"batch_size=3"});
 
-//   auto outer_graph = makeGraph({
-//     {"input", {"name=input", "input_shape=1:2:2"}},
-//     {"lstm",
-//      {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
-//       "bidirectional=true"}},
-//     {"mse", {"name=loss", "input_layers=a1"}},
-//   });
-//   for (auto &node : outer_graph) {
-//     nn->addLayer(node);
-//   }
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:2:2"}},
+    {"lstm",
+     {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
+      "bidirectional=true"}},
+    {"mse", {"name=loss"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
 
-//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
-//   0.1"})); return nn;
-// }
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
 
-// static std::unique_ptr<NeuralNetwork> makeStackedBidirectionalLSTM() {
-//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
-//   nn->setProperty({"batch_size=3"});
+static std::unique_ptr<NeuralNetwork> makeStackedBidirectionalLSTM() {
+  auto nn = std::make_unique<NeuralNetwork>();
+  nn->setProperty({"batch_size=3"});
 
-//   auto outer_graph = makeGraph({
-//     {"input", {"name=input", "input_shape=1:2:2"}},
-//     {"lstm",
-//      {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
-//       "bidirectional=true"}},
-//     {"lstm",
-//      {"name=a2", "unit=2", "integrate_bias=false", "return_sequences=true",
-//       "bidirectional=true"}},
-//     {"mse", {"name=loss"}},
-//   });
-//   for (auto &node : outer_graph) {
-//     nn->addLayer(node);
-//   }
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:2:2"}},
+    {"lstm",
+     {"name=a1", "unit=2", "integrate_bias=false", "return_sequences=true",
+      "bidirectional=true"}},
+    {"lstm",
+     {"name=a2", "unit=2", "integrate_bias=false", "return_sequences=true",
+      "bidirectional=true"}},
+    {"mse", {"name=loss"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
 
-//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
-//   0.1"})); return nn;
-// }
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
 
 static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -257,7 +257,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleLSTMCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -310,7 +310,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedLSTMCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=1"});
 
   auto outer_graph = makeGraph({
@@ -352,7 +352,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleZoneoutLSTMCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=1"});
 
   auto outer_graph = makeGraph({
@@ -410,7 +410,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -440,7 +440,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -472,7 +472,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -509,7 +509,7 @@ static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
 }
 
 static std::unique_ptr<NeuralNetwork> makeStackedGRUCell() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
 
   auto outer_graph = makeGraph({
@@ -567,10 +567,10 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::ALL_V2),
-    // mkModelTc_V2(makeSingleBidirectionalLSTM, "bidirectional_lstm_single",
-    //              ModelTestOption::ALL_V2),
-    // mkModelTc_V2(makeStackedBidirectionalLSTM, "bidirectional_lstm_stacked",
-    //              ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeSingleBidirectionalLSTM, "bidirectional_lstm_single",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedBidirectionalLSTM, "bidirectional_lstm_stacked",
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleLSTMCell, "lstmcell_single",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedLSTMCell, "lstmcell_stacked",

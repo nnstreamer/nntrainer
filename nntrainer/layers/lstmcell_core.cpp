@@ -17,7 +17,7 @@
 
 namespace nntrainer {
 
-void lstmcell_forwarding(const unsigned int unit, const unsigned int batch_size,
+void lstmcell_forwarding(const unsigned int batch_size, const unsigned int unit,
                          const bool disable_bias, const bool integrate_bias,
                          ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
                          const Tensor &input, const Tensor &prev_hidden_state,
@@ -59,13 +59,14 @@ void lstmcell_forwarding(const unsigned int unit, const unsigned int batch_size,
   hidden_state.multiply_i_strided(output_gate);
 }
 
-void lstmcell_calcDerivative(const Tensor &d_ifgo, const Tensor &weight_ih,
-                             Tensor &outgoing_derivative) {
-  d_ifgo.dot(weight_ih, outgoing_derivative, false, true);
+void lstmcell_calcDerivative(Tensor &outgoing_derivative,
+                             const Tensor &weight_ih, const Tensor &d_ifgo,
+                             const float alpha) {
+  d_ifgo.dot(weight_ih, outgoing_derivative, false, true, alpha);
 }
 
 void lstmcell_calcGradient(
-  const unsigned int unit, const unsigned int batch_size,
+  const unsigned int batch_size, const unsigned int unit,
   const bool disable_bias, const bool integrate_bias, ActiFunc &acti_func,
   ActiFunc &recurrent_acti_func, const Tensor &input,
   const Tensor &prev_hidden_state, Tensor &d_prev_hidden_state,
