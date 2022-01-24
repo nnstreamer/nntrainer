@@ -49,6 +49,8 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightRegularizerConstant>(*layer_impl_props);
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
+  auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
   auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
 
@@ -75,13 +77,14 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   TensorDim bias_dim(1, 1, 1, unit, 0b0001);
   TensorDim weight_dim(1, 1, in_dim.width(), unit, 0b0011);
 
-  weight_idx[FCParams::weight] =
-    context.requestWeight(weight_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight", true);
+  weight_idx[FCParams::weight] = context.requestWeight(
+    weight_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "weight", true);
 
   if (disable_bias.empty() || disable_bias.get() == false) {
-    weight_idx[FCParams::bias] = context.requestWeight(
-      bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+    weight_idx[FCParams::bias] =
+      context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                            1.0f, bias_decay, "bias", true);
   }
 }
 

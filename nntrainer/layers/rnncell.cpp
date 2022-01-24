@@ -60,6 +60,8 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightInitializer>(*layer_impl_props);
   const Tensor::Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props);
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
+  auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
@@ -96,32 +98,32 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
 
   // weight_ih_dim : [ 1, 1, feature_size, unit ]
   const TensorDim weight_ih_dim({feature_size, unit});
-  wt_idx[RNNCellParams::weight_ih] =
-    context.requestWeight(weight_ih_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_ih", true);
+  wt_idx[RNNCellParams::weight_ih] = context.requestWeight(
+    weight_ih_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "weight_ih", true);
   // weight_hh_dim : [ 1, 1, unit, unit ]
   const TensorDim weight_hh_dim({unit, unit});
-  wt_idx[RNNCellParams::weight_hh] =
-    context.requestWeight(weight_hh_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_hh", true);
+  wt_idx[RNNCellParams::weight_hh] = context.requestWeight(
+    weight_hh_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "weight_hh", true);
   if (!disable_bias) {
     if (integrate_bias) {
       // bias_h_dim : [ 1, 1, 1, unit ]
       const TensorDim bias_h_dim({unit});
-      wt_idx[RNNCellParams::bias_h] =
-        context.requestWeight(bias_h_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_h", true);
+      wt_idx[RNNCellParams::bias_h] = context.requestWeight(
+        bias_h_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, bias_decay,
+        "bias_h", true);
     } else {
       // bias_ih_dim : [ 1, 1, 1, unit ]
       const TensorDim bias_ih_dim({unit});
-      wt_idx[RNNCellParams::bias_ih] =
-        context.requestWeight(bias_ih_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_ih", true);
+      wt_idx[RNNCellParams::bias_ih] = context.requestWeight(
+        bias_ih_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
+        bias_decay, "bias_ih", true);
       // bias_hh_dim : [ 1, 1, 1, unit ]
       const TensorDim bias_hh_dim({unit});
-      wt_idx[RNNCellParams::bias_hh] =
-        context.requestWeight(bias_hh_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_hh", true);
+      wt_idx[RNNCellParams::bias_hh] = context.requestWeight(
+        bias_hh_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
+        bias_decay, "bias_hh", true);
     }
   }
 
