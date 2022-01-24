@@ -219,7 +219,7 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
 
   Tensor &ifgo = context.getTensor(wt_idx[LSTMCellParams::ifgo]);
 
-  lstmcell_forwarding(unit, batch_size, disable_bias, integrate_bias, acti_func,
+  lstmcell_forwarding(batch_size, unit, disable_bias, integrate_bias, acti_func,
                       recurrent_acti_func, input, prev_hidden_state,
                       prev_cell_state, hidden_state, cell_state, weight_ih,
                       weight_hh, bias_h, bias_ih, bias_hh, ifgo);
@@ -239,7 +239,7 @@ void LSTMCellLayer::calcDerivative(RunLayerContext &context) {
   Tensor &outgoing_derivative =
     context.getOutgoingDerivative(INOUT_INDEX::INPUT);
 
-  lstmcell_calcDerivative(d_ifgo, weight_ih, outgoing_derivative);
+  lstmcell_calcDerivative(outgoing_derivative, weight_ih, d_ifgo);
 }
 
 void LSTMCellLayer::calcGradient(RunLayerContext &context) {
@@ -317,7 +317,7 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   }
 
   lstmcell_calcGradient(
-    unit, batch_size, disable_bias, integrate_bias, acti_func,
+    batch_size, unit, disable_bias, integrate_bias, acti_func,
     recurrent_acti_func, input, prev_hidden_state, d_prev_hidden_state,
     prev_cell_state, d_prev_cell_state,
     dropout_rate > epsilon ? d_hidden_state_masked : d_hidden_state, cell_state,

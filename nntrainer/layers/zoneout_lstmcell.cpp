@@ -323,7 +323,7 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
       : empty;
 
   // Todo: pass lstm_cell_state as a argument at inference
-  lstmcell_forwarding(unit, batch_size, disable_bias, integrate_bias, acti_func,
+  lstmcell_forwarding(batch_size, unit, disable_bias, integrate_bias, acti_func,
                       recurrent_acti_func, input, prev_hidden_state,
                       prev_cell_state, hidden_state,
                       training && enable_cell_state_zoneout ? lstm_cell_state
@@ -388,7 +388,7 @@ void ZoneoutLSTMCellLayer::calcDerivative(RunLayerContext &context) {
     context.getWeight(wt_idx[ZoneoutLSTMParams::weight_ih]);
   const Tensor &d_ifgo = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::ifgo]);
 
-  lstmcell_calcDerivative(d_ifgo, weight_ih, outgoing_derivative);
+  lstmcell_calcDerivative(outgoing_derivative, weight_ih, d_ifgo);
 }
 
 void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
@@ -519,7 +519,7 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   }
 
   lstmcell_calcGradient(
-    unit, batch_size, disable_bias, integrate_bias, acti_func,
+    batch_size, unit, disable_bias, integrate_bias, acti_func,
     recurrent_acti_func, input, prev_hidden_state, d_prev_hidden_state,
     prev_cell_state, d_prev_cell_state,
     enable_hidden_state_zoneout ? d_hidden_state_masked : d_hidden_state,

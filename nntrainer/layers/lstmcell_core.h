@@ -22,8 +22,26 @@ namespace nntrainer {
 /**
  * @brief lstm cell forwarding implementation
  *
+ * @param batch_size batch size
+ * @param unit number of output neurons
+ * @param disable_bias whether to disable bias or not
+ * @param integrate_bias integrate bias_ih, bias_hh to bias_h
+ * @param acti_func activation function for memory cell, cell state
+ * @param recurrent_acti_func activation function for input/output/forget
+ * gate
+ * @param input input
+ * @param prev_hidden_state previous hidden state
+ * @param prev_cell_state previous cell state
+ * @param hidden_state hidden state
+ * @param cell_state cell state
+ * @param weight_ih weight for input to hidden
+ * @param weight_hh weight for hidden to hidden
+ * @param bias_h bias for input and hidden.
+ * @param bias_ih bias for input
+ * @param bias_hh bias for hidden
+ * @param ifgo input gate, forget gate, memory cell, output gate
  */
-void lstmcell_forwarding(const unsigned int unit, const unsigned int batch_size,
+void lstmcell_forwarding(const unsigned int batch_size, const unsigned int unit,
                          const bool disable_bias, const bool integrate_bias,
                          ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
                          const Tensor &input, const Tensor &prev_hidden_state,
@@ -36,16 +54,44 @@ void lstmcell_forwarding(const unsigned int unit, const unsigned int batch_size,
 /**
  * @brief lstm cell calculate derivative implementation
  *
+ * @param outgoing_derivative derivative for input
+ * @param weight_ih weight for input to hidden
+ * @param d_ifgo gradient for input gate, forget gate, memory cell, output gate
+ * @param alpha value to be scale outgoing_derivative
  */
-void lstmcell_calcDerivative(const Tensor &d_ifgo, const Tensor &weight_ih,
-                             Tensor &outgoing_derivative);
+void lstmcell_calcDerivative(Tensor &outgoing_derivative,
+                             const Tensor &weight_ih, const Tensor &d_ifgo,
+                             const float alpha = 0.0f);
 
 /**
  * @brief lstm cell calculate gradient implementation
  *
+ * @param batch_size batch size
+ * @param unit number of output neurons
+ * @param disable_bias whether to disable bias or not
+ * @param integrate_bias integrate bias_ih, bias_hh to bias_h
+ * @param acti_func activation function for memory cell, cell state
+ * @param recurrent_acti_func activation function for input/output/forget
+ * gate
+ * @param input input
+ * @param prev_hidden_state previous hidden state
+ * @param d_prev_hidden_state previous hidden state gradient
+ * @param prev_cell_state previous cell state
+ * @param d_prev_cell_state previous cell state gradient
+ * @param d_hidden_state hidden state gradient
+ * @param cell_state cell state
+ * @param d_cell_state cell state gradient
+ * @param d_weight_ih weight_ih(weight for input to hidden) gradient
+ * @param weight_hh weight for hidden to hidden
+ * @param d_weight_hh weight_hh(weight for hidden to hidden) gradient
+ * @param d_bias_h bias_h(bias for input and hidden) gradient
+ * @param d_bias_ih bias_ih(bias for input) gradient
+ * @param d_bias_hh bias_hh(bias for hidden) gradient
+ * @param ifgo input gate, forget gate, memory cell, output gate
+ * @param d_ifgo gradient for input gate, forget gate, memory cell, output gate
  */
 void lstmcell_calcGradient(
-  const unsigned int unit, const unsigned int batch_size,
+  const unsigned int batch_size, const unsigned int unit,
   const bool disable_bias, const bool integrate_bias, ActiFunc &acti_func,
   ActiFunc &recurrent_acti_func, const Tensor &input,
   const Tensor &prev_hidden_state, Tensor &d_prev_hidden_state,
