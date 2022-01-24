@@ -91,20 +91,22 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
+  auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
 
   TensorDim fc_w_dim = {query_dim.width(), unit};
-  wt_idx[AttentionParams::fc_w] =
-    context.requestWeight(fc_w_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "fc_w", true);
+  wt_idx[AttentionParams::fc_w] = context.requestWeight(
+    fc_w_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "fc_w", true);
   TensorDim fc_bias_dim = {unit};
-  wt_idx[AttentionParams::fc_bias] =
-    context.requestWeight(fc_bias_dim, bias_initializer, weight_regularizer,
-                          weight_regularizer_constant, "fc_bias", true);
+  wt_idx[AttentionParams::fc_bias] = context.requestWeight(
+    fc_bias_dim, bias_initializer, weight_regularizer,
+    weight_regularizer_constant, bias_decay, "fc_bias", true);
 
   TensorDim fc_proj_w_dim = {unit, 3 * mol_k};
-  wt_idx[AttentionParams::fc_proj_w] =
-    context.requestWeight(fc_proj_w_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "fc_proj_w", true);
+  wt_idx[AttentionParams::fc_proj_w] = context.requestWeight(
+    fc_proj_w_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "fc_proj_w", true);
 
   TensorDim fc_out_dim = query_dim;
   fc_out_dim.width(fc_w_dim.width());

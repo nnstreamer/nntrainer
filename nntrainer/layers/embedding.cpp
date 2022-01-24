@@ -47,6 +47,7 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightRegularizerConstant>(*layer_impl_props);
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
 
   unsigned int in_dim = std::get<props::InDim>(embedding_props);
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
@@ -62,9 +63,9 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   dim.width(out_dim);
   dim.batch(1);
 
-  weight_idx =
-    context.requestWeight(dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "Embedding", true);
+  weight_idx = context.requestWeight(
+    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    weight_decay, "Embedding", true);
 }
 
 void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {

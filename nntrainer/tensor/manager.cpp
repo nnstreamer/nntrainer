@@ -367,7 +367,7 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, clip_by_global_norm,
+    auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
            need_gradient, name] = weights_spec.at(i);
     auto grad_exec_order = default_grad_exec_order;
     /**
@@ -404,7 +404,7 @@ std::vector<Weight *> Manager::requestWeights(
     }
 
     weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad, w_reg, w_reg_const, is_dependent, clip_by_global_norm));
+      var, grad, w_reg, w_reg_const, decay, is_dependent, clip_by_global_norm));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),

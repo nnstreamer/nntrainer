@@ -128,9 +128,11 @@ public:
   unsigned int requestWeight(const TensorDim &dim,
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
-                             const std::string &name, bool trainable = true) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, clip_by_global_norm,
-                              trainable, prefix + ":" + name);
+                             const float decay, const std::string &name,
+                             bool trainable = true) {
+    weights_spec.emplace_back(dim, init, reg, reg_const, decay,
+                              clip_by_global_norm, trainable,
+                              prefix + ":" + name);
     return weights_spec.size() - 1;
   }
 

@@ -99,14 +99,17 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     }
   }
 
-  wt_idx[BNParams::mu] = context.requestWeight(
-    dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, "moving_mean", false);
-  wt_idx[BNParams::var] = context.requestWeight(
-    dim, bnparams_var, WeightRegularizer::NONE, 1.0f, "moving_variance", false);
+  wt_idx[BNParams::mu] =
+    context.requestWeight(dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, 0.0f,
+                          "moving_mean", false);
+  wt_idx[BNParams::var] =
+    context.requestWeight(dim, bnparams_var, WeightRegularizer::NONE, 1.0f,
+                          0.0f, "moving_variance", false);
+  // TODO: setup decay for gamma and beta
   wt_idx[BNParams::gamma] = context.requestWeight(
-    dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f, "gamma", true);
+    dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f, 0.0f, "gamma", true);
   wt_idx[BNParams::beta] = context.requestWeight(
-    dim, bnparams_beta, WeightRegularizer::NONE, 1.0f, "beta", true);
+    dim, bnparams_beta, WeightRegularizer::NONE, 1.0f, 0.0f, "beta", true);
 
   /**
    * caches the deviation -> input - avg(input)

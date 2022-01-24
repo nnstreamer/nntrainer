@@ -149,6 +149,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightRegularizer>(*layer_impl_props).get();
   const float weight_regularizer_constant =
     std::get<props::WeightRegularizerConstant>(*layer_impl_props).get();
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
+  auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
@@ -200,33 +202,31 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   const TensorDim weight_ih_dim({feature_size, NUM_GATE * unit});
   wt_idx[LSTMParams::weight_ih] =
     context.requestWeight(weight_ih_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_ih", true);
+                          weight_regularizer_constant, weight_decay, "weight_ih", true);
   // weight_hh ( hidden to hidden ) : [ 1, 1, unit, NUM_GATE * unit ] -> i,
   // f, g, o
   const TensorDim weight_hh_dim({unit, NUM_GATE * unit});
-  wt_idx[LSTMParams::weight_hh] =
-    context.requestWeight(weight_hh_dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "weight_hh", true);
+  wt_idx[LSTMParams::weight_hh] = context.requestWeight(
+    weight_hh_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "weight_hh", true);
   if (!disable_bias) {
     if (integrate_bias) {
       // bias_h ( input bias, hidden bias are integrate to 1 bias ) : [ 1,
       // 1, 1, NUM_GATE * unit ] -> i, f, g, o
       const TensorDim bias_h_dim({NUM_GATE * unit});
-      wt_idx[LSTMParams::bias_h] =
-        context.requestWeight(bias_h_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_h", true);
+      wt_idx[LSTMParams::bias_h] = context.requestWeight(
+        bias_h_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, bias_decay,
+        "bias_h", true);
     } else {
       // bias_ih ( input bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
       const TensorDim bias_ih_dim({NUM_GATE * unit});
       wt_idx[LSTMParams::bias_ih] =
         context.requestWeight(bias_ih_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_ih", true);
-      // bias_hh ( hidden bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g,
-      // o
-      const TensorDim bias_hh_dim({NUM_GATE * unit});
-      wt_idx[LSTMParams::bias_hh] =
-        context.requestWeight(bias_hh_dim, bias_initializer,
-                              WeightRegularizer::NONE, 1.0f, "bias_hh", true);
+                              WeightRegularizer::NONE, 1.0f, bias_decay, "bias_ih", true);
+      // bias_hh ( hidden bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
+      wt_idx[LSTMParams::bias_hh] = context.requestWeight(
+        bias_hh_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
+        bias_decay, "bias_hh", true);
     }
   }
 
