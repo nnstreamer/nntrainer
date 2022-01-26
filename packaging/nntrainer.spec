@@ -181,6 +181,16 @@ BuildRequires:  gstreamer-devel
 %description applications
 NNTrainer Examples for test purpose.
 
+# gcov
+%if 0%{?gcov:1}
+%package gcov
+Summary:         NNTrainer gcov
+Group:           Machine Learning/ML Framework
+
+%description gcov
+NNTrainer gcov object
+%endif
+
 %if 0%{?testcoverage}
 %package unittest-coverage
 Summary:	NNTrainer UnitTest Coverage Analysis Result
@@ -336,9 +346,9 @@ cp %{SOURCE1002} .
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 
-%if 0%{?testcoverage}
-CXXFLAGS="${CXXFLAGS} -fprofile-arcs -ftest-coverage"
-CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
+%if 0%{?testcoverage} || 0%{?gcov:1}
+export CFLAGS+=" -fprofile-arcs -ftest-coverage"
+export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
 %endif
 
 # Add backward competibility for tizen < 6
@@ -373,8 +383,18 @@ popd
 %endif #nnstreamer_filter
 %endif #unit_test
 
+%if 0%{?gcov:1}
+mkdir -p gcov-obj
+find . -name '*.gcno' -exec cp '{}' gcov-obj ';'
+%endif
+
 %install
 DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
+
+%if 0%{?gcov:1}
+mkdir -p %{buildroot}%{_datadir}/gcov/obj/%{name}
+install -m 0644 gcov-obj/* %{buildroot}%{_datadir}/gcov/obj/%{name}
+%endif
 
 %if 0%{?testcoverage}
 ##
@@ -532,6 +552,11 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/nntrainer/bin/applications/*
+
+%if 0%{?gcov:1}
+%files gcov
+%{_datadir}/gcov/obj/*
+%endif
 
 %if 0%{?testcoverage}
 %files unittest-coverage
