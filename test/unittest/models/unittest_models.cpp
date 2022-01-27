@@ -29,6 +29,7 @@ static std::string fc_base = "type = Fully_connected";
 static std::string red_mean_base = "type = reduce_mean";
 static IniSection sgd_base("optimizer", "Type = sgd");
 static IniSection constant_loss("loss", "type = constant_derivative");
+static IniSection act_base("activation", "Type = Activation");
 
 IniWrapper reduce_mean_last("reduce_mean_last",
                             {
@@ -39,6 +40,15 @@ IniWrapper reduce_mean_last("reduce_mean_last",
                               IniSection("red_mean") + red_mean_base + "axis=3",
                               constant_loss,
                             });
+
+IniWrapper fc_relu_decay(
+  "fc_relu_decay",
+  {nn_base + "Loss=mse | batch_size = 3", sgd_base + "learning_rate = 0.1",
+   IniSection("input") + "type=input" + "input_shape = 1:1:3",
+   IniSection("dense") + fc_base + "unit = 10" + "weight_decay=0.9",
+   IniSection("act") + act_base + "Activation = relu",
+   IniSection("dense_1") + fc_base + "unit = 2" + "bias_decay=0.9",
+   IniSection("act_1") + act_base + "Activation = sigmoid"});
 
 static std::unique_ptr<NeuralNetwork> makeMolAttention() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
@@ -96,6 +106,8 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeMolAttentionMasked, "mol_attention_masked",
                  ModelTestOption::COMPARE_RUN_V2),
+    mkModelIniTc(fc_relu_decay, DIM_UNUSED, NOT_USED_,
+                 ModelTestOption::COMPARE_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);

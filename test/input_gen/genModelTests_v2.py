@@ -72,6 +72,36 @@ class MolAttention(torch.nn.Module):
 
         return (output, kappa), loss
 
+class FCRelu(torch.nn.Module):
+    def __init__(self, decay=False):
+        super().__init__()
+        self.fc = torch.nn.Linear(3, 10)
+        self.fc1 = torch.nn.Linear(10, 2)
+        self.loss = torch.nn.MSELoss()
+        self.decay = decay
+
+    def forward(self, inputs, labels):
+        out = torch.relu(self.fc(inputs[0]))
+        out = torch.sigmoid(self.fc1(out))
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+    def getOptimizer(self):
+        if not self.decay:
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+        else:
+            decay_params = []
+            non_decay_params = []
+            for name, params in self.named_parameters():
+                if name == 'fc.weight' or name == 'fc1.bias':
+                    decay_params.append(params)
+                else:
+                    non_decay_params.append(params)
+            return torch.optim.SGD([
+                {'params': non_decay_params},
+                {'params': decay_params, 'weight_decay': 0.9}], lr=0.1)
+
+
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
@@ -99,4 +129,15 @@ if __name__ == "__main__":
         name="mol_attention",
     )
 
-    # inspect_file("mol_attention_masked.nnmodelgolden")
+    fc_relu_decay = FCRelu(decay=True)
+    record_v2(
+        fc_relu_decay,
+        iteration=2,
+        input_dims=[(3,3)],
+        input_dtype=[float],
+        label_dims=[(3,2)],
+        name="fc_relu_decay",
+        optimizer=fc_relu_decay.getOptimizer()
+    )
+
+    inspect_file("fc_relu_decay.nnmodelgolden")

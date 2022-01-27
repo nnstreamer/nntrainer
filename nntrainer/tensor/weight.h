@@ -295,9 +295,9 @@ private:
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
 
   /**
-   * @brief     Apply the gradient to the weight
+   * @brief     Apply the weight decay to the weight
    */
-  void applyWeightDecay() { var->add_i(*var.get(), -decay); }
+  void applyWeightDecay() { grad->add_i(*var.get(), decay); }
 };
 
 } // namespace nntrainer
