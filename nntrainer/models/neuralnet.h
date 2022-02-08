@@ -279,8 +279,8 @@ public:
    * @note The output memory must not be freed by the caller
    */
   std::vector<float *> inference(unsigned int batch,
-                                 std::vector<float *> &input,
-                                 std::vector<float *> &label) override;
+                                 const std::vector<float *> &input,
+                                 const std::vector<float *> &label) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
