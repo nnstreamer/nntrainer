@@ -121,7 +121,7 @@ public:
   virtual int initialize() = 0;
 
   /**
-   * @brief  load model states and training parameters from a file
+   * @brief  save model states and training parameters from a file
    * @param file_path file_path to save the model, if full path is not
    * given, it should be saved inside working directory
    * @param format format to save parameters
@@ -248,8 +248,8 @@ public:
    * @note The output memory must not be freed by the caller
    */
   virtual std::vector<float *> inference(unsigned int batch,
-                                         std::vector<float *> &input,
-                                         std::vector<float *> &label) = 0;
+                                         const std::vector<float *> &input,
+                                         const std::vector<float *> &label) = 0;
 
   /**
    * @brief     Summarize the model

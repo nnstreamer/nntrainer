@@ -553,9 +553,10 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
-std::vector<float *> NeuralNetwork::inference(unsigned int batch_size,
-                                              std::vector<float *> &input,
-                                              std::vector<float *> &label) {
+std::vector<float *>
+NeuralNetwork::inference(unsigned int batch_size,
+                         const std::vector<float *> &input,
+                         const std::vector<float *> &label) {
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
