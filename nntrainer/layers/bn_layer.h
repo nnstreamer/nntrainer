@@ -125,7 +125,7 @@ private:
   std::array<unsigned int, 9> wt_idx; /**< indices of the weights and tensors */
   std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT, props::BNPARAMS_VAR_INIT,
              props::BNPARAMS_BETA_INIT, props::BNPARAMS_GAMMA_INIT,
-             props::Momentum, props::Axis>
+             props::Momentum, props::Axis, props::WeightDecay, props::BiasDecay>
     bn_props;
 };
 
