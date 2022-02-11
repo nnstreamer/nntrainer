@@ -420,7 +420,8 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
     << __func__ << " layer needs to be finalized first!";
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->weightHasGradient(i) &&
+          run_context->isGradientLastAccess(i)) {
         // @note read optimizer variables
         for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
           run_context->getWeightOptVar(i, j).read(file);
@@ -430,7 +431,8 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
   } else {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->weightHasGradient(i) &&
+          run_context->isGradientLastAccess(i)) {
         run_context->getWeight(i).read(file);
       }
     }
@@ -442,7 +444,8 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
     << __func__ << " layer needs to be finalized first!";
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->weightHasGradient(i) &&
+          run_context->isGradientLastAccess(i)) {
         // @note save optimizer variables
         for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
           run_context->getWeightOptVar(i, j).save(file);
@@ -452,7 +455,8 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
   } else {
     // @note shared weights are only be saved at the first access
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->weightHasGradient(i) &&
+          run_context->isGradientLastAccess(i)) {
         run_context->getWeight(i).save(file);
       }
     }
