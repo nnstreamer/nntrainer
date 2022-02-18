@@ -234,7 +234,7 @@ public:
   }
 
   /**
-   * @brief     Calculate gradient from the regularizaiton of the weight
+   * @brief     Calculate gradient from the regularization of the weight
    */
   void calcRegularizationGradient() {
     if (isWeightRegularizerL2Norm())
@@ -242,14 +242,17 @@ public:
   }
 
   /**
-   * @brief     Apply the gradient to the weight
+   * @brief     Calculate gradient from the decay of the weight
    */
-  void applyGradient(double lr) {
+  void calcWeightDecayGradient() {
     if (isWeightDecay())
       applyWeightDecay();
-
-    var->add_i(*grad.get(), -lr);
   }
+
+  /**
+   * @brief     Apply the gradient to the weight
+   */
+  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
