@@ -115,7 +115,7 @@ private:
              props::RecurrentActivation, props::ReturnSequences,
              props::Bidirectional, props::DropOutRate, props::MaxTimestep>
     lstm_props;
-  std::array<unsigned int, 15> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 17> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh
