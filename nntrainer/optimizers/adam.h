@@ -63,6 +63,16 @@ public:
 };
 
 /**
+ * @brief load momentum
+ *
+ */
+class LoadVar : public Property<bool> {
+public:
+  static constexpr const char *key = "load_var"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;                /**< property type */
+};
+
+/**
  * @class   Adam optimizer class
  * @brief   Adam optimizer
  */
@@ -113,8 +123,13 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  /**
+   * @copydoc Optimizer::is_load_var()
+   */
+  bool is_load_var() { return std::get<LoadVar>(adam_props).get(); }
+
 private:
-  std::tuple<PropsB1, PropsB2, PropsEpsilon, TorchRef> adam_props;
+  std::tuple<PropsB1, PropsB2, PropsEpsilon, TorchRef, LoadVar> adam_props;
 };
 } /* namespace nntrainer */
 
