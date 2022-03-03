@@ -89,6 +89,11 @@ public:
   virtual void save(std::ofstream &file);
 
   /**
+   * @brief     get the option of loading optimizer variables
+   */
+  virtual bool is_load_var() { return false; };
+
+  /**
    * @brief     Get dimension of extra variables if the optimizer needs any.
    * @param dim Dimension of tensor to be added as a optimizer variable
    * @return    Vector of dimensions

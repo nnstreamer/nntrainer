@@ -333,7 +333,16 @@ void NeuralNetwork::save(const std::string &file_path,
       (*iter)->save(model_file);
     }
 
+    model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
+    model_file.write((char *)&iter, sizeof(iter));
+
     opt->save(model_file);
+    unsigned int write_op_var = 0;
+    if (istrequal(opt->getType(), "adam")) {
+      write_op_var = 1;
+    }
+
+    model_file.write((char *)&write_op_var, sizeof(write_op_var));
 
     if (istrequal(opt->getType(), "adam")) {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
@@ -342,12 +351,10 @@ void NeuralNetwork::save(const std::string &file_path,
       }
     }
 
-    model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
-    model_file.write((char *)&iter, sizeof(iter));
-
     model_file.close();
     break;
   }
+
   case ml::train::ModelFormat::MODEL_FORMAT_INI:
     saveModelIni(file_path);
     break;
@@ -396,21 +403,24 @@ void NeuralNetwork::load(const std::string &file_path,
       /// read. so, after this line, additional read shouldn't be called
       model_file.seekg(bin_file_pos);
 
-      if (istrequal(opt->getType(), "adam")) {
-        char opt_type[4];
-        model_file.read(opt_type, 4);
-        if (istrequal(opt_type, "adam")) {
-          for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-               iter++) {
-            (*iter)->read(model_file, true);
-          }
-        }
-      }
-
       checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
                   "[NeuralNetwork::readModel] failed to read epoch_idx");
       checkedRead(model_file, (char *)&iter, sizeof(iter),
                   "[NeuralNetwork::readModel] failed to read iteration");
+
+      opt->read(model_file);
+      unsigned int exist_op_var = 0;
+
+      checkedRead(model_file, (char *)&exist_op_var, sizeof(exist_op_var));
+
+      if (istrequal(opt->getType(), "adam") && exist_op_var) {
+        bool load_opt_var = opt->is_load_var();
+        for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+             iter++) {
+          (*iter)->read(model_file, true, load_opt_var);
+        }
+      }
+
     } catch (...) {
       std::cerr << "failed to read epoch idx, proceeding with default index\n";
     }

@@ -30,7 +30,19 @@ void Optimizer::setProperty(const std::vector<std::string> &values) {
 }
 
 void Optimizer::read(std::ifstream &file) {
-  std::string loaded_type = readString(file);
+  std::string loaded_type;
+  unsigned int opt_type = ml::train::OptimizerType::UNKNOWN;
+  checkedRead(file, (char *)&opt_type, sizeof(opt_type));
+  switch (opt_type) {
+  case ml::train::OptimizerType::ADAM:
+    loaded_type = "adam";
+    break;
+  case ml::train::OptimizerType::SGD:
+    loaded_type = "sgd";
+    break;
+  default:
+    break;
+  }
 
   if (loaded_type != getType()) {
     throw std::runtime_error(
@@ -38,6 +50,13 @@ void Optimizer::read(std::ifstream &file) {
   }
 }
 
-void Optimizer::save(std::ofstream &file) { writeString(file, getType()); }
+void Optimizer::save(std::ofstream &file) {
+  unsigned int opt_type = ml::train::OptimizerType::UNKNOWN;
+  if (istrequal(getType(), "adam"))
+    opt_type = ml::train::OptimizerType::ADAM;
+  if (istrequal(getType(), "sgd"))
+    opt_type = ml::train::OptimizerType::SGD;
+  file.write((char *)&opt_type, sizeof(opt_type));
+}
 
 } // namespace nntrainer
