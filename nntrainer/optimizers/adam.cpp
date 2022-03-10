@@ -22,16 +22,14 @@
 
 namespace nntrainer {
 
-Adam::Adam() :
-  adam_props(PropsB1(), PropsB2(), PropsEpsilon(), TorchRef(), LoadVar()) {
+Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon(), TorchRef()) {
   /** default properties */
   setProperty({"learning_rate=0.001"});
-  auto &[b1, b2, eps, torch_ref, load_mv] = adam_props;
+  auto &[b1, b2, eps, torch_ref] = adam_props;
   b1.set(0.9f);
   b2.set(0.999f);
   eps.set(1.0e-7f);
   torch_ref.set(false);
-  load_mv.set(true);
 }
 
 Adam::~Adam() {}
@@ -77,8 +75,8 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.
   unsigned int iteration = context.getIteration();
-  float biasCorrection1 = 1.0f - pow(beta1, iteration + 1);
-  float biasCorrection2 = 1.0f - pow(beta2, iteration + 1);
+  float biasCorrection1 = 1 - pow(beta1, iteration + 1);
+  float biasCorrection2 = 1 - pow(beta2, iteration + 1);
   Tensor &wm = context.getOptimizerVariable(AdamParams::wm);
   Tensor &wv = context.getOptimizerVariable(AdamParams::wv);
 
@@ -90,7 +88,7 @@ void Adam::applyGradient(RunOptimizerContext &context) {
 
   if (torch_ref) {
     Tensor denom = wv.apply(sqrtFloat);
-    denom.divide_i(sqrtDouble(biasCorrection2));
+    denom.divide_i(sqrtFloat(biasCorrection2));
     denom.add_i(epsilon);
     wm.divide(denom, x_grad);
 

@@ -415,7 +415,7 @@ void LayerNode::exportTo(Exporter &exporter,
   layer->exportTo(exporter, method);
 }
 
-void LayerNode::read(std::ifstream &file, bool opt_var, bool load_opt_var) {
+void LayerNode::read(std::ifstream &file, bool opt_var) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
   if (opt_var) {
@@ -425,12 +425,7 @@ void LayerNode::read(std::ifstream &file, bool opt_var, bool load_opt_var) {
         if (run_context->weightHasGradient(i)) {
           for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
                ++j) {
-            if (load_opt_var) {
-              run_context->getWeightOptVar(i, j).read(file);
-            } else {
-              file.seekg(run_context->getWeightOptVar(i, j).bytes(),
-                         std::ios::cur);
-            }
+            run_context->getWeightOptVar(i, j).read(file);
           }
         }
       }
