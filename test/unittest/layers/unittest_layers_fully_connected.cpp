@@ -31,7 +31,11 @@ auto fc_basic_single_batch = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=4"},
   "1:1:1:10", "fc_single_batch.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
+auto fc_basic_no_decay = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayer>,
+  {"unit=5", "weight_decay=0.0", "bias_decay=0.0"}, "3:1:1:10",
+  "fc_plain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(FullyConnected, LayerGoldenTest,
-                        ::testing::Values(fc_basic_plain,
-                                          fc_basic_single_batch));
+                        ::testing::Values(fc_basic_plain, fc_basic_single_batch,
+                                          fc_basic_no_decay));

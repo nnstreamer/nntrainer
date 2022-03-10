@@ -279,8 +279,8 @@ public:
    * @note The output memory must not be freed by the caller
    */
   std::vector<float *> inference(unsigned int batch,
-                                 std::vector<float *> &input,
-                                 std::vector<float *> &label) override;
+                                 const std::vector<float *> &input,
+                                 const std::vector<float *> &label) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -529,6 +529,10 @@ private:
   bool compiled; /**< Network is compiled */
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
+
+  bool loadedWeight; /**< Check if weight is loaded to prevent load twice */
+
+  uint64_t bin_file_pos; /**< save file position to load later*/
 
   RunStats validation; /** validation statistics of the model */
   RunStats training;   /** training statistics of the model */

@@ -20,7 +20,6 @@
 #ifdef DEBUG
 #include <cassert>
 #endif
-
 #include <fcntl.h>
 #include <functional>
 #include <limits>
@@ -145,7 +144,8 @@ void Manager::deallocateWeights() { weight_pool.deallocate(); }
 
 static Tensor *requestTensor_(const TensorSpecV2 &spec,
                               const GraphNode::ExecutionOrder &exec_order,
-                              const std::string &scope, TensorPool &tp) {
+                              const std::string &scope, TensorPool &tp,
+                              bool expose) {
   using RT = TensorSpecV2::RequestType;
   using LS = TensorLifespan;
   NNTR_THROW_IF(spec.request_type == RT::MAYBE_MODIFYING_VIEW,
@@ -155,7 +155,10 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 
   auto [forward, calc_grad, calc_deriv] = exec_order;
 
-  std::vector<unsigned> order;
+  std::vector<unsigned> order = spec.additional_exec_order;
+  if (expose) {
+    order.push_back(TensorPool::PERSIST_END_ORDER);
+  }
 
   const auto name = scope + ":" + spec.name;
 
@@ -191,7 +194,8 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
                                  TensorGroupType identify_as,
                                  const GraphNode::ExecutionOrder &exec_order,
-                                 const std::string &scope) {
+                                 const std::string &scope, bool expose_var,
+                                 bool expose_grad) {
   NNTR_THROW_IF(identify_as == TensorGroupType::WEIGHT, std::invalid_argument)
     << "requestTensor with var grad spec cannot be identified as weights, use "
        "requestTensor with weight spec instead";
@@ -202,12 +206,12 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
     << "Currently, input and tensors group type is not yet implemented, use "
        "requestInputs() requestTensors() instead";
 
-  Tensor *var =
-    requestTensor_(spec.variable_spec, exec_order, scope, tensor_pool);
-  Tensor *grad =
-    spec.gradient_spec
-      ? requestTensor_(*spec.gradient_spec, exec_order, scope, tensor_pool)
-      : nullptr;
+  Tensor *var = requestTensor_(spec.variable_spec, exec_order, scope,
+                               tensor_pool, expose_var);
+  Tensor *grad = spec.gradient_spec
+                   ? requestTensor_(*spec.gradient_spec, exec_order, scope,
+                                    tensor_pool, expose_grad)
+                   : nullptr;
 
   /// @note as only supporting identify_as == TensorGroupType::output, only
   /// saves to outputs for now
@@ -218,11 +222,13 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
 
 std::vector<Var_Grad *> Manager::requestTensors(
   const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
-  const GraphNode::ExecutionOrder &exec_order, const std::string &scope) {
+  const GraphNode::ExecutionOrder &exec_order, const std::string &scope,
+  bool expose_var, bool expose_grad) {
   std::vector<Var_Grad *> ret;
   ret.reserve(specs.size());
   for (auto &spec : specs) {
-    ret.push_back(requestTensor(spec, identify_as, exec_order, scope));
+    ret.push_back(requestTensor(spec, identify_as, exec_order, scope,
+                                expose_var, expose_grad));
   }
 
   return ret;
@@ -345,10 +351,10 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  */
 std::vector<Weight *> Manager::requestWeights(
   const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
-  bool trainable, const std::vector<std::string> &shared_names,
-  const unsigned int max_exec_order) {
+  bool trainable, const std::vector<std::string> &shared_names) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
+
   std::vector<unsigned int> var_exec_order(
     {forwarding_order, calcGradient_order, calcDerivative_order});
   std::vector<unsigned int> default_grad_exec_order(
@@ -361,7 +367,7 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, clip_by_global_norm,
+    auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
            need_gradient, name] = weights_spec.at(i);
     auto grad_exec_order = default_grad_exec_order;
     /**
@@ -370,7 +376,7 @@ std::vector<Weight *> Manager::requestWeights(
      * applied to the weight.
      */
     if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
-      grad_exec_order.push_back(max_exec_order);
+      grad_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
 
     Tensor *var = nullptr, *grad = nullptr;
     bool is_dependent = !shared_names.empty();
@@ -398,7 +404,7 @@ std::vector<Weight *> Manager::requestWeights(
     }
 
     weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad, w_reg, w_reg_const, is_dependent, clip_by_global_norm));
+      var, grad, w_reg, w_reg_const, decay, is_dependent, clip_by_global_norm));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
@@ -429,16 +435,16 @@ Manager::requestTensors(const GraphNode &node,
     std::vector<unsigned int> grad_exec_order;
 
     /** usage for tensors */
-    if (enum_class_logical_and<TensorLifespan>(
-          tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
+    if (enum_class_logical_and(tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
       var_exec_order.push_back(forwarding_order);
 
     /** usage for tensors gradient in backwarding */
-    if (enum_class_logical_and<TensorLifespan>(
-          tspan, TensorLifespan::BACKWARD_FUNC_LIFESPAN)) {
+    if (enum_class_logical_and(tspan, TensorLifespan::CALC_GRAD_LIFESPAN)) {
       var_exec_order.push_back(calcGradient_order);
       grad_exec_order.push_back(calcGradient_order);
+    }
 
+    if (enum_class_logical_and(tspan, TensorLifespan::CALC_DERIV_LIFESPAN)) {
       var_exec_order.push_back(calcDerivative_order);
       grad_exec_order.push_back(calcDerivative_order);
     }
@@ -527,9 +533,9 @@ Manager::requestInputs(const GraphNode &node,
 
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool),
+                     tensor_pool, false),
       requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool)));
+                     tensor_pool, false)));
   }
 
   ret.reserve(inputs_dim.size());

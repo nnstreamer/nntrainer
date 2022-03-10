@@ -265,6 +265,8 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightRegularizerConstant>(*layer_impl_props);
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
+  auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
+  auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
   auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
 
@@ -280,13 +282,14 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, dim, {stride[0], stride[1]});
 
-  wt_idx[ConvParams::weight] =
-    context.requestWeight(dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "filter", true);
+  wt_idx[ConvParams::weight] = context.requestWeight(
+    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    weight_decay, "filter", true);
 
   if (disable_bias.empty() || disable_bias.get() == false) {
-    wt_idx[ConvParams::bias] = context.requestWeight(
-      bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
+    wt_idx[ConvParams::bias] =
+      context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                            1.0f, bias_decay, "bias", true);
   }
 
   // this output_dim must be the same with dimension of hidden

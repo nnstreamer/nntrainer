@@ -106,16 +106,16 @@ private:
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * ReturnSequence: option for return sequence
+   * Bidirectional: option for bidirectional
    * DropOutRate: dropout rate
-   * MaxTimestep: maximum timestep for lstmcell
-   * TimeStep: timestep for which lstm should operate
+   * MaxTimestep: maximum timestep for lstm
    *
    * */
   std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
              props::RecurrentActivation, props::ReturnSequences,
-             props::DropOutRate, props::MaxTimestep, props::Timestep>
+             props::Bidirectional, props::DropOutRate, props::MaxTimestep>
     lstm_props;
-  std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 17> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh

@@ -66,8 +66,9 @@ void Exporter::saveTflResult(
 template <>
 void Exporter::saveTflResult(
   const std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
-                   props::WeightInitializer, props::BiasInitializer,
-                   props::DisableBias> &props,
+                   props::WeightInitializer, props::WeightDecay,
+                   props::BiasDecay, props::BiasInitializer, props::DisableBias>
+    &props,
   const LayerImpl *self) { /// layer impl has nothing to serialize so do nothing
 }
 

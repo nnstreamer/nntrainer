@@ -27,6 +27,7 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
+#include <layer_node.h>
 #include <multiout_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
@@ -69,6 +70,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   graph.topologicalSort();
 
   setExecutionOrder();
+  forward_iter_end = (*(cend() - 1)).get();
 
   inPlaceOptimize();
 
@@ -99,7 +101,7 @@ void NetworkGraph::setExecutionOrder() {
    * This set max execution order is used to extend gradient exec orders for
    * clipping.
    */
-  setMaxExecutionOrder(true);
+  graph_exec_end = std::get<2>((*(cbegin()))->getExecutionOrder());
 }
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
@@ -246,8 +248,10 @@ void NetworkGraph::markNodesForBackwarding() {
   }
 
   /** mark all the required nodes support backwarding */
-  for (auto const &node_name : must_support_backwarding)
-    LNODE(graph.getNode(node_name))->needsCalcDerivative(true);
+  for (auto const &node_name : must_support_backwarding) {
+    auto ln = LNODE(graph.getNode(node_name)).get();
+    ln->needsCalcDerivative(true);
+  }
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
@@ -395,26 +399,40 @@ void NetworkGraph::backwarding(
   }
 }
 
-void NetworkGraph::setMaxExecutionOrder(bool skip_optimize) {
-  max_exec_order = 0;
-  if (!optimize_memory || skip_optimize)
-    max_exec_order = std::get<2>((*(cbegin()))->getExecutionOrder());
+LayerNode *NetworkGraph::computeBackwardEnd() {
+  int max_exec_order = -1;
+  LayerNode *node = nullptr;
+
+  if (!optimize_memory) {
+    return (*cbegin()).get();
+  }
+
   for (auto iter = getBackwardingBeginIter(); iter != getBackwardingEndIter();
        iter++) {
     auto &ln = *iter;
+    const auto &exec_order = ln->getExecutionOrder();
+    int cur_order = std::get<0>(exec_order);
     if (ln->needsCalcDerivative() || ln->needsCalcGradient()) {
 #ifdef ENABLE_TEST
-      max_exec_order =
-        std::max(max_exec_order, std::get<2>(ln->getExecutionOrder()));
+      cur_order = std::get<2>(exec_order);
 #else
-      max_exec_order =
-        std::max(max_exec_order, std::get<1>(ln->getExecutionOrder()));
+      cur_order = std::get<1>(exec_order);
 #endif
-    } else {
-      max_exec_order =
-        std::max(max_exec_order, std::get<0>(ln->getExecutionOrder()));
+    }
+
+    NNTR_THROW_IF(max_exec_order == cur_order, std::invalid_argument)
+      << "layer node: " << ln->getName()
+      << " has duplicated max_exec_order, this should not happen, current "
+         "execution order: "
+      << max_exec_order;
+
+    if (max_exec_order < cur_order) {
+      max_exec_order = cur_order;
+      node = ln.get();
     }
   }
+
+  return node;
 }
 
 /**
@@ -437,7 +455,8 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * and pass that as the max_exec_order ensuring that all tensors with
      * usage less than the max_exec_order are allocated.
      */
-    tensor_manager->allocateTensors(max_exec_order);
+    tensor_manager->allocateTensors(
+      std::get<2>(backward_iter_end->getExecutionOrder()));
   }
 }
 
@@ -717,14 +736,18 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       TensorSpecV2::RequestType::PLACEHOLDER;
   }
 
-  /// @todo switch to check if model inputs instead and add a new tensor life
-  /// span to represent from here to ~ max_fwd_exec_order, also this is only
-  /// needed for the inference mode
+  /// @note below needs to be enabled only for inference mode, but need decision
+  /// if we are going to separate inference initialization from train
+  /// initialization this might not worth optimize because in general output of
+  /// a neuralnet is very small
   if (lnode->getOutputConnections().size() == 0u) {
-    std::for_each(out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
-      spec.variable_spec.ls = TensorLifespan::MAX_LIFESPAN;
-    });
+    std::for_each(out_specs.begin(), out_specs.end(),
+                  [this](VarGradSpecV2 &spec) {
+                    spec.variable_spec.additional_exec_order.push_back(
+                      std::get<0>(forward_iter_end->getExecutionOrder()));
+                  });
   }
+
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
     out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
     lnode->getName());
@@ -769,15 +792,14 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
-      shared_weight_names.emplace_back(std::get<6>(w_specs.at(i)));
+      shared_weight_names.emplace_back(std::get<7>(w_specs.at(i)));
     }
   }
 
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
-                                   lnode->getTrainable(), shared_weight_names,
-                                   max_exec_order),
+                                   lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    shared_tensor_names));
@@ -970,7 +992,7 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
   /** mark the nodes which will be backwarded during the graph operation */
   try {
     markNodesForBackwarding();
-    setMaxExecutionOrder();
+    backward_iter_end = computeBackwardEnd();
   } catch (std::exception &e) {
     ml_loge(
       "Backwarding required from layer which doesn't support backwarding: %s",

@@ -43,6 +43,7 @@ public:
     Var_Grad(),
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f),
+    decay(0.0f),
     clip_by_global_norm(0.0f) {}
 
   /**
@@ -60,8 +61,9 @@ public:
     const TensorDim &dim,
     const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, const float clip_by_global_norm = 0.0f,
-    bool ng = true, bool alloc_now = false, std::string name = "");
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "");
 
   /**
    * @brief Construct a new Weight object
@@ -73,10 +75,11 @@ public:
            std::get<1>(spec), // Tensor::Initializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
-           std::get<4>(spec), // MaxNorm for clipping
-           std::get<5>(spec), // need_gradient
+           std::get<4>(spec), // weight decay constant
+           std::get<5>(spec), // MaxNorm for clipping
+           std::get<6>(spec), // need_gradient
            alloc_now,
-           std::get<6>(spec) // Name
+           std::get<7>(spec) // Name
     ) {}
 
   /**
@@ -98,6 +101,7 @@ public:
     Var_Grad(v, g, n, is_dependent),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f),
+    decay(0.0f),
     clip_by_global_norm(0.0f) {}
 
   /**
@@ -109,11 +113,12 @@ public:
    * @param reg_const Constant multiplier for regularizer
    */
   explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
-                  const float reg_const, bool is_dependent = false,
-                  const float max_norm = 0.0f) :
+                  const float reg_const, const float decay,
+                  bool is_dependent = false, const float max_norm = 0.0f) :
     Var_Grad(v, g, is_dependent),
     regularizer(reg),
     regularizer_constant(reg_const),
+    decay(decay),
     clip_by_global_norm(max_norm) {}
 
   /**
@@ -128,6 +133,7 @@ public:
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.regularizer, rhs.regularizer);
     swap(lhs.regularizer_constant, rhs.regularizer_constant);
+    swap(lhs.decay, rhs.decay);
     swap(lhs.clip_by_global_norm, rhs.clip_by_global_norm);
     swap(lhs.opt_vars, rhs.opt_vars);
   }
@@ -198,12 +204,24 @@ public:
   Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
 
   /**
+   * @brief Get number of optimizer variable
+   * @retval number of optimizer variable
+   */
+  int getNumOptVariable() { return opt_vars.size(); }
+
+  /**
    * @brief     check if weight regularizer type is l2norm
    * @return    bool is weight regrulatizer type is L2 Norm
    */
   bool isWeightRegularizerL2Norm() {
     return regularizer == WeightRegularizer::L2NORM;
   }
+
+  /**
+   * @brief     check if weight decay is enabled
+   * @return    true if weight decay is enabled else false
+   */
+  bool isWeightDecay() { return decay > epsilon_decay; }
 
   /**
    * @brief     Get loss from the regularization of the weight
@@ -216,11 +234,19 @@ public:
   }
 
   /**
-   * @brief     Calculate gradient from the regularizaiton of the weight
+   * @brief     Calculate gradient from the regularization of the weight
    */
   void calcRegularizationGradient() {
     if (isWeightRegularizerL2Norm())
       grad->add_i(*var.get(), regularizer_constant);
+  }
+
+  /**
+   * @brief     Calculate gradient from the decay of the weight
+   */
+  void calcWeightDecayGradient() {
+    if (isWeightDecay())
+      applyWeightDecay();
   }
 
   /**
@@ -262,11 +288,19 @@ public:
 
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
+  static constexpr float epsilon_decay =
+    1e-8; /**< epsilon for zero comparison */
 
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */
+  float decay;                   /**< constant factor for the weight decay */
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
+
+  /**
+   * @brief     Apply the weight decay to the weight
+   */
+  void applyWeightDecay() { grad->add_i(*var.get(), decay); }
 };
 
 } // namespace nntrainer

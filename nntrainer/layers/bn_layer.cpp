@@ -50,7 +50,8 @@ BatchNormalizationLayer::BatchNormalizationLayer() :
   divider(0),
   bn_props(props::Epsilon(), props::BNPARAMS_MU_INIT(),
            props::BNPARAMS_VAR_INIT(), props::BNPARAMS_BETA_INIT(),
-           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis()) {
+           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis(),
+           props::WeightDecay(), props::BiasDecay()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -65,6 +66,8 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   auto &bnparams_var = std::get<props::BNPARAMS_VAR_INIT>(bn_props);
   auto &bnparams_beta = std::get<props::BNPARAMS_BETA_INIT>(bn_props);
   auto &bnparams_gamma = std::get<props::BNPARAMS_GAMMA_INIT>(bn_props);
+  auto &weight_decay = std::get<props::WeightDecay>(bn_props);
+  auto &bias_decay = std::get<props::BiasDecay>(bn_props);
 
   std::vector<TensorDim> output_dims(1);
 
@@ -99,14 +102,18 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     }
   }
 
-  wt_idx[BNParams::mu] = context.requestWeight(
-    dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, "moving_mean", false);
-  wt_idx[BNParams::var] = context.requestWeight(
-    dim, bnparams_var, WeightRegularizer::NONE, 1.0f, "moving_variance", false);
-  wt_idx[BNParams::gamma] = context.requestWeight(
-    dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f, "gamma", true);
-  wt_idx[BNParams::beta] = context.requestWeight(
-    dim, bnparams_beta, WeightRegularizer::NONE, 1.0f, "beta", true);
+  wt_idx[BNParams::mu] =
+    context.requestWeight(dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, 0.0f,
+                          "moving_mean", false);
+  wt_idx[BNParams::var] =
+    context.requestWeight(dim, bnparams_var, WeightRegularizer::NONE, 1.0f,
+                          0.0f, "moving_variance", false);
+  wt_idx[BNParams::gamma] =
+    context.requestWeight(dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f,
+                          weight_decay, "gamma", true);
+  wt_idx[BNParams::beta] =
+    context.requestWeight(dim, bnparams_beta, WeightRegularizer::NONE, 1.0f,
+                          bias_decay, "beta", true);
 
   /**
    * caches the deviation -> input - avg(input)
@@ -128,7 +135,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    */
   wt_idx[BNParams::t_full] =
     context.requestTensor(in_dim, "tensor_full", Tensor::Initializer::NONE,
-                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */
@@ -140,7 +147,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    */
   wt_idx[BNParams::t_reduced] =
     context.requestTensor(dim, "tensor_reduced", Tensor::Initializer::NONE,
-                          false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+                          false, TensorLifespan::FORWARD_DERIV_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(

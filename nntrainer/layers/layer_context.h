@@ -128,9 +128,11 @@ public:
   unsigned int requestWeight(const TensorDim &dim,
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
-                             const std::string &name, bool trainable = true) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, clip_by_global_norm,
-                              trainable, prefix + ":" + name);
+                             const float decay, const std::string &name,
+                             bool trainable = true) {
+    weights_spec.emplace_back(dim, init, reg, reg_const, decay,
+                              clip_by_global_norm, trainable,
+                              prefix + ":" + name);
     return weights_spec.size() - 1;
   }
 
@@ -363,6 +365,15 @@ public:
   Tensor &getWeightGrad(unsigned int idx) const;
 
   /**
+   * @brief Get the Weight Optimizer Variable tensor object
+   *
+   * @param idx Identifier of the weight
+   * @param jdx Identifier of the weight optimizer variable
+   * @return Tensor& Reference to the weight grad tensor
+   */
+  Tensor &getWeightOptVar(unsigned int idx, unsigned int jdx) const;
+
+  /**
    * @brief Get the Weight name
    *
    * @param idx Identifier of the weight
@@ -578,6 +589,14 @@ public:
    * @return unsigned int number of weight tensors
    */
   unsigned int getNumWeights() const { return weights.size(); }
+
+  /**
+   * @brief Get the Number of Weight Optimizer Variable tensor object
+   *
+   * @param idx Identifier of the weight
+   * @return unsigned int Number of the weight optimizer variable
+   */
+  unsigned int getNumWeightOptVar(unsigned int idx) const;
 
   /**
    * @brief Get the number of requested tensors objects

@@ -28,6 +28,7 @@
 
 #include <layer.h>
 #include <layer_devel.h>
+#include <lr_scheduler.h>
 #include <optimizer.h>
 
 #include <nntrainer_error.h>
@@ -263,7 +264,9 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer, nntrainer::Layer> factory_map;
+  FactoryMap<ml::train::Optimizer, nntrainer::Layer,
+             nntrainer::LearningRateScheduler>
+    factory_map;
   std::string working_path_base;
 
   template <typename Args, typename T> struct isSupportedHelper;
@@ -297,6 +300,14 @@ extern template const int AppContext::registerFactory<ml::train::Optimizer>(
 extern template const int AppContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
+
+/**
+ * @copydoc const int AppContext::registerFactory
+ */
+extern template const int
+AppContext::registerFactory<nntrainer::LearningRateScheduler>(
+  const FactoryType<nntrainer::LearningRateScheduler> factory,
+  const std::string &key, const int int_key);
 
 namespace plugin {}
 

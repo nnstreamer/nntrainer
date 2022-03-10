@@ -732,10 +732,10 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_set_dataset(model, dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
+  status = ml_train_model_compile(model, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2",
+  status = ml_train_model_run(model, "epochs=2", "batch_size=16",
                               "save_path=capi_tizen_model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 

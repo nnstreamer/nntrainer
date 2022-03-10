@@ -1,6 +1,16 @@
 and_conf = configuration_data()
 
-and_conf.set('MESON_CFLAGS', ' '.join(extra_defines))
+flags = []
+if get_option('debug')
+    flags += '-g'
+endif
+
+flags += '-O@0@'.format(get_option('optimization'))
+message('compile flags are:' + ' '.join(flags))
+
+flags = extra_defines + flags
+
+and_conf.set('MESON_CFLAGS', ' '.join(flags))
 and_conf.set('MESON_NNTRAINER_SRCS', ' '.join(nntrainer_sources))
 and_conf.set('MESON_NNTRAINER_INCS', ' '.join(nntrainer_inc_abs))
 and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src))

@@ -164,6 +164,34 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
 }
 
 /**
+ * @brief Get the Weight Optimizer Variable tensor object
+ *
+ * @param idx Identifier of the weight
+ * @param jdx Identifier of the optimizer variables
+ * @return Tensor& Reference to the weight optimizer variable tensor
+ */
+Tensor &RunLayerContext::getWeightOptVar(unsigned int idx,
+                                         unsigned int jdx) const {
+  if (!weights[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable weight.");
+  return weights[idx]->getOptimizerVariableRef(jdx);
+}
+
+/**
+ * @brief Get the Number of Weight Optimizer Variable tensor object
+ *
+ * @param idx Identifier of the weight
+ * @return int Number of the weight optimizer variable
+ */
+unsigned int RunLayerContext::getNumWeightOptVar(unsigned int idx) const {
+  if (!weights[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable weight.");
+  return weights[idx]->getNumOptVariable();
+}
+
+/**
  * @brief Get regularization loss for the weight
  *
  * @param idx Identifier of the weight
@@ -274,9 +302,11 @@ const Tensor &RunLayerContext::getInput(unsigned int idx) const {
  * @return Tensor& Reference to the input grad tensor
  */
 Tensor &RunLayerContext::getInputGrad(unsigned int idx) {
-  if (!inputs[idx]->hasGradient())
+  if (!inputs[idx]->hasGradient()) {
     throw std::invalid_argument(
       "Requesting gradient for a non-trainable tensor.");
+  }
+
   return inputs[idx]->getGradientRef();
 }
 

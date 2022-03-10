@@ -3,13 +3,16 @@ optimizer_sources = [
   'optimizer_devel.cpp',
   'optimizer_impl.cpp',
   'sgd.cpp',
-  'optimizer_context.cpp'
+  'optimizer_context.cpp',
+  'lr_scheduler_constant.cpp',
+  'lr_scheduler_exponential.cpp'
 ]
 
 optimizer_headers = [
   'optimizer_devel.h',
   'optimizer_impl.h',
-  'optimizer_context.h'
+  'optimizer_context.h',
+  'lr_scheduler.h'
 ]
 
 foreach s : optimizer_sources
