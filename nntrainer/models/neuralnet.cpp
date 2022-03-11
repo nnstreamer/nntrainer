@@ -71,8 +71,6 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  loadedWeight(false),
-  bin_file_pos(0),
   app_context(app_context_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
@@ -189,6 +187,8 @@ int NeuralNetwork::initialize() {
     std::get<props::TrainingBatchSize>(model_flex_props));
 
   // initialize optimizer and related variables
+  /// @todo: initialize should take a mode and check if mode is train but
+  /// optimizer is not given, make it as a hard error
   if (opt) {
     /** TODO: update request of optimizer to be of same format as
      * Layer::requestTensor */
@@ -205,11 +205,7 @@ int NeuralNetwork::initialize() {
 
   initialized = true;
 
-  // @note we need check loadedWeight for the case of multiple call of load to
-  // load weight. Only the weight needs to be loaded here. Becuase the buffer
-  // for the optimizer is not allocated yet.
-  // loadedWeight check is just for the duplicate load of weight.
-  if (!load_path.empty() && !loadedWeight) {
+  if (!load_path.empty()) {
     load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   }
 
@@ -328,14 +324,12 @@ void NeuralNetwork::save(const std::string &file_path,
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     auto model_file = checkedOpenStream<std::ofstream>(
-      file_path, std::ios::out | std::ios::binary);
+      file_path, std::ios::out | std::ios::binary | std::ios::trunc);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->save(model_file);
     }
-
-    opt->save(model_file);
-
-    if (istrequal(opt->getType(), "adam")) {
+    if (opt && istrequal(opt->getType(), "adam")) {
+      model_file.write("adam", 4);
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            iter++) {
         (*iter)->save(model_file, true);
@@ -381,22 +375,13 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
-    if (!loadedWeight) {
-      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-           iter++) {
-        (*iter)->read(model_file);
-      }
-      loadedWeight = true;
-      bin_file_pos = model_file.tellg();
-      load_path = file_path;
-      return;
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      (*iter)->read(model_file);
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
       /// read. so, after this line, additional read shouldn't be called
-      model_file.seekg(bin_file_pos);
-
-      if (istrequal(opt->getType(), "adam")) {
+      if (opt && istrequal(opt->getType(), "adam")) {
         char opt_type[4];
         model_file.read(opt_type, 4);
         if (istrequal(opt_type, "adam")) {
@@ -412,7 +397,8 @@ void NeuralNetwork::load(const std::string &file_path,
       checkedRead(model_file, (char *)&iter, sizeof(iter),
                   "[NeuralNetwork::readModel] failed to read iteration");
     } catch (...) {
-      std::cerr << "failed to read epoch idx, proceeding with default index\n";
+      std::cerr << "failed to read additional data like optimizer variable, "
+                   "iteration, proceeding with default\n";
     }
 
     ml_logi("read modelfile: %s", file_path.c_str());
@@ -644,11 +630,6 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
   status = allocate(ExecutionMode::TRAIN);
   NN_RETURN_STATUS();
 
-  // @note Need to be here to read the optimizer variables
-  if (!load_path.empty()) {
-    load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-  }
-
   status = train_run();
   NN_RETURN_STATUS();
 
@@ -668,9 +649,13 @@ int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
   if (!std::get<props::ContinueTrain>(model_flex_props)) {
-    epoch_idx = 0;
     iter = 0;
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      (*iter)->clearOptVar();
+    }
   }
+
+  epoch_idx = 0;
 
   auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
@@ -845,8 +830,6 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     swap(lhs.graph_representation, rhs.graph_representation);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
-    swap(lhs.loadedWeight, rhs.loadedWeight);
-    swap(lhs.bin_file_pos, rhs.bin_file_pos);
   }
 }
 
