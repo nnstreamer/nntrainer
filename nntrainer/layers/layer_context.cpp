@@ -172,9 +172,6 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
  */
 Tensor &RunLayerContext::getWeightOptVar(unsigned int idx,
                                          unsigned int jdx) const {
-  if (!weights[idx]->hasGradient())
-    throw std::invalid_argument(
-      "Requesting gradient for a non-trainable weight.");
   return weights[idx]->getOptimizerVariableRef(jdx);
 }
 
@@ -185,9 +182,6 @@ Tensor &RunLayerContext::getWeightOptVar(unsigned int idx,
  * @return int Number of the weight optimizer variable
  */
 unsigned int RunLayerContext::getNumWeightOptVar(unsigned int idx) const {
-  if (!weights[idx]->hasGradient())
-    throw std::invalid_argument(
-      "Requesting gradient for a non-trainable weight.");
   return weights[idx]->getNumOptVariable();
 }
 

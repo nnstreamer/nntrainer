@@ -584,6 +584,12 @@ public:
   void save(std::ofstream &file, bool opt_var = false) const;
 
   /**
+   * @brief clear optimizer variable to initial state
+   *
+   */
+  void clearOptVar();
+
+  /**
    * @brief     get loss for the layer
    * @return    loss of the layer
    */

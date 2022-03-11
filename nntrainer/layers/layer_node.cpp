@@ -421,12 +421,9 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
-        // @note read optimizer variables
-        if (run_context->weightHasGradient(i)) {
-          for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
-               ++j) {
-            run_context->getWeightOptVar(i, j).read(file);
-          }
+        /// @note read optimizer variables
+        for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
+          run_context->getWeightOptVar(i, j).read(file);
         }
       }
     }
@@ -461,6 +458,19 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i)) {
         run_context->getWeight(i).save(file);
+      }
+    }
+  }
+}
+
+void LayerNode::clearOptVar() {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+  for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+    if (run_context->isGradientLastAccess(i) && getTrainable()) {
+      /// @note read optimizer variables
+      for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
+        run_context->getWeightOptVar(i, j).initialize();
       }
     }
   }
@@ -624,7 +634,8 @@ void LayerNode::setBatch(unsigned int batch) {
  * @brief   If the current layer can support in-place
  */
 bool LayerNode::supportInPlace() const {
-  ///@note below is a quick fix, we need to have a guard that this shouldn't be
+  ///@note below is a quick fix, we need to have a guard that this shouldn't
+  /// be
   /// query until realizeProps has been finalized ( which means we will need
   /// another end point to fixate this property )
   if (getDistribute()) {

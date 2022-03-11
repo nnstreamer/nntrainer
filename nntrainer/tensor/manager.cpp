@@ -597,13 +597,15 @@ bool Manager::isSecondLastAccess(const std::string &name,
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
   const TensorLifespan &lifespan, Tensor::Initializer initializer) {
-  auto const &exec_order = weight_pool.getExecutionOrder(name);
+  auto const exec_order = weight_pool.getExecutionOrder(name);
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());
 
+  /// @note this is assuming weight optimizer variables is treated as weight, if
+  /// not, there is room to optimize below behavior
   for (unsigned int idx = 0; idx < dims.size(); idx++)
-    ret.push_back(tensor_pool.request(name + ":opt" + std::to_string(idx),
+    ret.push_back(weight_pool.request(name + ":opt" + std::to_string(idx),
                                       dims[idx], exec_order, lifespan,
                                       initializer));
 
