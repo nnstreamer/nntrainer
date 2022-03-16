@@ -39,7 +39,8 @@ warning_flags = [
   '-Wpointer-arith',
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
-  '-ftree-vectorize'
+  '-ftree-vectorize',
+  '-Wno-unused-variable'
 ]
 
 warning_c_flags = [
