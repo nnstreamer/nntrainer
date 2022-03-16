@@ -402,7 +402,7 @@ TEST(MemoryPool, get_memory_03_n) {
  */
 TEST(MemoryPool, get_memory_04_p) {
   nntrainer::MemoryPool pool;
-  void *mem;
+  void *mem = nullptr;
 
   auto idx = pool.requestMemory(1, 4, 5);
   EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));

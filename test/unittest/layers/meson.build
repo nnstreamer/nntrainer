@@ -5,6 +5,7 @@ layer_common_test_dependent_files = files('layers_dependent_common_tests.cpp')
 nntrainer_layer_common_standalone_tests_lib = shared_library(
   'nntrainer_layer_common_standalone_tests',
   'layers_standalone_common_tests.cpp',
+  cpp_args : '-Wno-maybe-uninitialized',
   dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
   include_directories: layer_common_test_inc
 )
@@ -17,6 +18,7 @@ nntrainer_layer_common_standalone_tests_dep = declare_dependency(
 nntrainer_layer_common_dependent_tests_lib = shared_library(
   'nntrainer_layer_common_dependent_tests',
   'layers_dependent_common_tests.cpp',
+  cpp_args : '-Wno-maybe-uninitialized',
   dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
   include_directories: layer_common_test_inc
 )
@@ -80,6 +82,7 @@ exe = executable(
   dependencies: [
     nntrainer_test_main_deps,
   ],
+  cpp_args : '-Wno-maybe-uninitialized',
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
