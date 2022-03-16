@@ -3,6 +3,7 @@ memory_test_inc = include_directories('./')
 nntrainer_memory_planner_tests_lib = static_library(
   'nntrainer_memory_planner_validation',
   'memory_planner_validate.cpp',
+  cpp_args : '-Wno-maybe-uninitialized',
   dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
   include_directories: memory_test_inc
 )
@@ -24,6 +25,7 @@ exe = executable(
   dependencies: [
     nntrainer_test_main_deps
   ],
+  cpp_args : '-Wno-maybe-uninitialized',
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
