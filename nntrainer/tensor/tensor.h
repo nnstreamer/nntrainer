@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <stdexcept>
 
 #include <tensor_dim.h>
 

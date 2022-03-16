@@ -12,6 +12,7 @@
 
 #include <numeric>
 #include <vector>
+#include <limits>
 
 #include <memory_pool.h>
 #include <nntrainer_error.h>
