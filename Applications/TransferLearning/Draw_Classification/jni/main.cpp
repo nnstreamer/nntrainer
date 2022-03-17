@@ -332,10 +332,21 @@ int testModel(const char *data_path, const char *model) {
   if (status != ML_ERROR_NONE)
     goto fail_sink_release;
 
-  ml_tensors_info_create(&in_info);
-  ml_tensors_info_set_count(in_info, 1);
-  ml_tensors_info_set_tensor_type(in_info, 0, ML_TENSOR_TYPE_FLOAT32);
-  ml_tensors_info_set_tensor_dimension(in_info, 0, in_dim);
+  status = ml_tensors_info_create(&in_info);
+  if (status != ML_ERROR_NONE)
+    goto fail_sink_release;
+
+  status = ml_tensors_info_set_count(in_info, 1);
+  if (status != ML_ERROR_NONE)
+    goto fail_info_release;
+
+  status = ml_tensors_info_set_tensor_type(in_info, 0, ML_TENSOR_TYPE_FLOAT32);
+  if (status != ML_ERROR_NONE)
+    goto fail_info_release;
+
+  status = ml_tensors_info_set_tensor_dimension(in_info, 0, in_dim);
+  if (status != ML_ERROR_NONE)
+    goto fail_info_release;
 
   for (int i = 0; i < TOTAL_TEST_SIZE; i++) {
     char *test_file_path;
