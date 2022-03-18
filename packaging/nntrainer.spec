@@ -365,7 +365,9 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
-      %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug}  build
+      %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
+      -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
+      build
 
 ninja -C build %{?_smp_mflags}
 

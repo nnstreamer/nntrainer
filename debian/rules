@@ -36,7 +36,9 @@ override_dh_auto_configure:
 		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
 		--includedir=include -Dinstall-app=true \
 		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) \
-		-Denable-debug=$(ENABLE_DEBUG) build
+		-Denable-debug=$(ENABLE_DEBUG) \
+		-Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
+		build
 
 override_dh_auto_build:
 	ninja -C build
