@@ -2,12 +2,12 @@ option('platform', type: 'combo', choices: ['none', 'tizen', 'yocto', 'android']
 option('enable-app', type: 'boolean', value: true)
 option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
-option('enable-capi', type: 'boolean', value: true)
+option('enable-capi', type: 'feature', value: 'auto')
 option('enable-ccapi', type: 'boolean', value: true)
 option('enable-test', type: 'boolean', value: true)
 option('enable-logging', type: 'boolean', value: true)
 option('enable-tizen-feature-check', type: 'boolean', value: true)
-option('enable-nnstreamer-backbone', type: 'boolean', value: true)
+option('enable-nnstreamer-backbone', type: 'boolean', value: false)
 option('enable-tflite-backbone', type: 'boolean', value: true)
 option('enable-profile', type: 'boolean', value: false)
 option('enable-debug', type: 'boolean', value: false)
@@ -15,9 +15,9 @@ option('enable-tflite-interpreter', type: 'boolean', value: true)
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',
-        description: 'backward compatible dependency name of capi-ml-inference')
+        description: 'backward compatible dependency name of capi-ml-inference. ignored if ml-api-support is disabled.')
 option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
-        description: 'backward compatible dependency name of capi-ml-common')
+        description: 'backward compatible dependency name of capi-ml-common. ignored if ml-api-support is disabled.')
 option('tizen-version-major', type: 'integer', min : 4, max : 9999, value: 9999) # 9999 means "not Tizen"
 option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
 

@@ -54,6 +54,7 @@ warning_c_flags = [
   '-Wno-error=varargs'
 ]
 
+
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
     add_project_arguments([extra_arg], language: 'c')
@@ -106,10 +107,30 @@ nntrainer_conf.set('EXEC_PREFIX', nntrainer_bindir)
 nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
 nntrainer_conf.set('PLUGIN_INSTALL_PREFIX', nntrainer_libdir / 'nntrainer')
 nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
-nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
 
 dummy_dep = dependency('', required: false)
 found_dummy_dep = declare_dependency() # dummy dep to use if found
+
+# if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.
+ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required : get_option('ml-api-support').enabled())
+nnstreamer_capi_dep = dummy_dep
+if (ml_api_common_dep.found())
+  nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
+  extra_defines += '-DML_API_COMMON=1'
+
+  nnstreamer_capi_dep = dependency(get_option('capi-ml-inference-actual'), required : true)
+  extra_defines += '-DNNSTREAMER_AVAILABLE=1'
+  # accessing this variable when dep_.not_found() remains hard error on purpose
+  supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
+  if not supported_nnstreamer_capi
+    extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
+    warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
+  endif
+else
+  nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
+  extra_defines += '-DML_API_COMMON=0'
+endif
+
 
 blas_dep = dummy_dep
 # Dependencies
@@ -202,22 +223,7 @@ if not iniparser_dep.found()
   endif
 endif
 
-nnstreamer_capi_dep = dependency(get_option('capi-ml-inference-actual'), required:false)
-if nnstreamer_capi_dep.found()
-  extra_defines += '-DNNSTREAMER_AVAILABLE=1'
-  # accessing this variable when dep_.not_found() remains hard error on purpose
-  supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
-  if not supported_nnstreamer_capi
-    extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
-    warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
-  endif
-endif
-
-ml_api_common_dep = dummy_dep
-
-if get_option('platform') != 'android'
-  ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required: true)
-else
+if get_option('platform') == 'android'
   message('preparing ml api')
   run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
   ml_api_common_root = meson.build_root() / 'ml-api-inference'
@@ -303,6 +309,8 @@ endforeach
 # Build nntrainer
 subdir('nntrainer')
 
+enable_capi = false
+enable_ccapi = false
 # Build api
 subdir('api')
 

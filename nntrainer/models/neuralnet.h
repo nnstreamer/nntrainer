@@ -39,7 +39,6 @@
 #include <dynamic_training_optimization.h>
 #include <execution_mode.h>
 #include <layer_node.h>
-#include <ml-api-common.h>
 #include <model_common_properties.h>
 #include <network_graph.h>
 #include <optimizer_devel.h>
@@ -47,6 +46,7 @@
 
 #include <model.h>
 #include <nntrainer-api-common.h>
+#include <nntrainer_error.h>
 
 namespace ml::train {
 class DataSet;
