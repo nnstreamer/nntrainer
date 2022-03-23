@@ -21,7 +21,6 @@
 #include <string>
 #include <vector>
 
-#include <ml-api-common.h>
 #include <nntrainer-api-common.h>
 
 namespace ml {
