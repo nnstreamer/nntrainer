@@ -39,7 +39,6 @@
 #endif
 
 #include <dataset.h>
-#include <ml-api-common.h>
 #include <model.h>
 
 #ifdef PROFILE
@@ -193,7 +192,7 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
     std::shuffle(data->idxes.begin(), data->idxes.end(), data->rng);
   }
 
-  return ML_ERROR_NONE;
+  return 0;
 }
 
 #if defined(APP_VALIDATE)

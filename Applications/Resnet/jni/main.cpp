@@ -238,12 +238,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
-  if (status != ML_ERROR_NONE) {
+  if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
 
   status = model->initialize();
-  if (status != ML_ERROR_NONE) {
+  if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
 
