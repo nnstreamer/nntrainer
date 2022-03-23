@@ -29,13 +29,13 @@ nntrainer_test_main_deps = [
   nntrainer_testutil_dep
 ]
 
-if get_option('enable-capi')
+if enable_capi
   subdir('tizen_capi')
-  subdir('unittest')
 endif
 
-if get_option('enable-ccapi')
+if enable_ccapi
   subdir('ccapi')
+  subdir('unittest')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
