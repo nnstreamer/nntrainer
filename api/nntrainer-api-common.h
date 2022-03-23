@@ -47,6 +47,7 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER = 17, /**< Backbone using NNStreamer
                                               (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_CENTROID_KNN = 18, /**< Centroid KNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CONV1D = 19, /**< Convolution 1D Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE = 301, /**< Preprocess translate
@@ -59,7 +60,13 @@ typedef enum {
                                        Sigmoid Loss Layer type (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX = 502, /**< Cross Entropy with
                                        Softmax Loss Layer type (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999                     /**< Unknown Layer */
+  ML_TRAIN_LAYER_TYPE_LSTMCELL = 601, /**< LSTM Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_GRUCELL = 602,  /**< GRU Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_RNNCELL = 603,  /**< RNN Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL =
+    604, /**< ZoneoutLSTM Cell Layer type (Since 7.0) */
+
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
 } ml_train_layer_type_e;
 
 /**
