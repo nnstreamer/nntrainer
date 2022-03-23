@@ -14,7 +14,9 @@
 
 #include <neuralnet.h>
 #include <nntrainer-api-common.h>
+#ifdef __TIZEN__
 #include <nntrainer_internal.h>
+#endif /* __TIZEN__ */
 
 #include <app_context.h>
 #include <ini_wrapper.h>

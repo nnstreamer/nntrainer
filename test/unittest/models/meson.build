@@ -16,8 +16,7 @@ exe = executable(
   test_target,
   include_directories: include_directories('.'),
   dependencies: [
-    nntrainer_test_main_deps,
-    nntrainer_capi_dep
+    nntrainer_test_main_deps, nntrainer_ccapi_dep
   ],
   install: get_option('enable-test'),
   install_dir: application_install_dir

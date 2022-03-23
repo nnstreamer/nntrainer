@@ -1,7 +1,11 @@
 unittest_nntrainer_deps = [
   nntrainer_test_deps,
-  nntrainer_capi_dep, # so that feature_state can be overridden
+  nntrainer_ccapi_dep
 ] # if unittest-wide dep is added, this is the place to add
+
+if get_option('platform') == 'tizen'
+  unittest_nntrainer_deps += [ nntrainer_capi_dep ] # so that feature_state can be overridden
+endif
 
 # test material need to be unzipped from "(project_home)/packaging/"
 unzip_target = [

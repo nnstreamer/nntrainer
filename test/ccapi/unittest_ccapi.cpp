@@ -16,10 +16,10 @@
 #include <dataset.h>
 #include <ini_wrapper.h>
 #include <layer.h>
-#include <ml-api-common.h>
 #include <model.h>
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
+#include <nntrainer_error.h>
 
 static const std::string getTestResPath(const std::string &file) {
   return getResPath(file, {"test"});
