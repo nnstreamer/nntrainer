@@ -13,7 +13,6 @@
 #ifndef __NNTRAINER_ERROR_H__
 #define __NNTRAINER_ERROR_H__
 
-#include <ml-api-common.h>
 #if defined(__TIZEN__)
 #include <tizen_error.h>
 #define ML_ERROR_BAD_ADDRESS TIZEN_ERROR_BAD_ADDRESS
@@ -35,6 +34,36 @@
 #define NNTR_THROW_IF_CLEANUP(pred, err, cleanup_func) \
   if ((pred))                                          \
     nntrainer::exception::ErrorNotification<err> { cleanup_func }
+
+#if ML_API_COMMON
+#include <ml-api-common.h>
+#else
+/**
+ @ref:
+ https://gitlab.freedesktop.org/dude/gst-plugins-base/commit/89095e7f91cfbfe625ec2522da49053f1f98baf8
+ */
+#if !defined(ESTRPIPE)
+#define ESTRPIPE EPIPE
+#endif /* !defined(ESTRPIPE) */
+
+#define _ERROR_UNKNOWN (-1073741824LL)
+#define TIZEN_ERROR_TIMED_OUT (TIZEN_ERROR_UNKNOWN + 1)
+#define TIZEN_ERROR_NOT_SUPPORTED (TIZEN_ERROR_UNKNOWN + 2)
+#define TIZEN_ERROR_PERMISSION_DENIED (-EACCES)
+#define TIZEN_ERROR_OUT_OF_MEMORY (-ENOMEM)
+typedef enum {
+  ML_ERROR_NONE = 0,                    /**< Success! */
+  ML_ERROR_INVALID_PARAMETER = -EINVAL, /**< Invalid parameter */
+  ML_ERROR_TRY_AGAIN =
+    -EAGAIN, /**< The pipeline is not ready, yet (not negotiated, yet) */
+  ML_ERROR_UNKNOWN = _ERROR_UNKNOWN,         /**< Unknown error */
+  ML_ERROR_TIMED_OUT = (_ERROR_UNKNOWN + 1), /**< Time out */
+  ML_ERROR_NOT_SUPPORTED =
+    (_ERROR_UNKNOWN + 2),               /**< The feature is not supported */
+  ML_ERROR_PERMISSION_DENIED = -EACCES, /**< Permission denied */
+  ML_ERROR_OUT_OF_MEMORY = -ENOMEM,     /**< Out of memory (Since 6.0) */
+} ml_error_e;
+#endif
 
 namespace nntrainer {
 

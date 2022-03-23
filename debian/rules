@@ -38,6 +38,10 @@ override_dh_auto_configure:
 		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) \
 		-Denable-debug=$(ENABLE_DEBUG) \
 		-Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
+                -Denable-nnstreamer-backbone=true \
+                -Dcapi-ml-common-actual=capi-ml-common \
+                -Dcapi-ml-inference-actual=capi-ml-inference \
+                -Denable-capi=enabled \
 		build
 
 override_dh_auto_build:
