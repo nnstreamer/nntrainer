@@ -35,7 +35,6 @@
 #include <time.h>
 
 #include <dataset.h>
-#include <ml-api-common.h>
 #include <model.h>
 
 #include <bitmap_helpers.h>
@@ -190,7 +189,7 @@ int getBatch(float **outVec, float **outLabel, bool *last, bool is_val) {
       dupl[i] = false;
     }
     *last = true;
-    return ML_ERROR_NONE;
+    return 0;
   }
 
   count = 0;
@@ -209,7 +208,7 @@ int getBatch(float **outVec, float **outLabel, bool *last, bool is_val) {
   }
 
   *last = false;
-  return ML_ERROR_NONE;
+  return 0;
 }
 
 /**

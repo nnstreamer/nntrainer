@@ -21,7 +21,6 @@
 #include <sstream>
 
 #include <dataset.h>
-#include <ml-api-common.h>
 #include <neuralnet.h>
 #include <tensor.h>
 
@@ -182,18 +181,18 @@ int main(int argc, char *argv[]) {
 
   try {
     auto status = NN.loadFromConfig(config);
-    if (status != ML_ERROR_NONE) {
+    if (status != 0) {
       std::cerr << "Error during loading" << std::endl;
       return 1;
     }
 
     status = NN.compile();
-    if (status != ML_ERROR_NONE) {
+    if (status != 0) {
       std::cerr << "Error during compile" << std::endl;
       return 1;
     }
     status = NN.initialize();
-    if (status != ML_ERROR_NONE) {
+    if (status != 0) {
       std::cerr << "Error during initialize" << std::endl;
       return 1;
     }
