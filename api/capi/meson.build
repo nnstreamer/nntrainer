@@ -9,7 +9,7 @@ capi_inc_abs = [
 capi_src = []
 capi_src += meson.current_source_dir() / 'src' / 'nntrainer.cpp'
 
-if not nnstreamer_capi_dep.found() and get_option('platform') != 'android'
+if not nnstreamer_capi_dep.found() and get_option('platform') == 'tizen'
   error('nnstreamer capi dependency not found for tizen')
 endif
 

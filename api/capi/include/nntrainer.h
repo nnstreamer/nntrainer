@@ -29,7 +29,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include <ml-api-common.h>
 #include <nnstreamer.h>
 #include <nntrainer-api-common.h>
 
