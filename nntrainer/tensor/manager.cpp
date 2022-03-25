@@ -186,8 +186,6 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
     throw std::logic_error("requestTensor_ should not reach here");
   }
 
-  throw std::logic_error("requestTensor_ should not reach here");
-
   return nullptr;
 }
 
