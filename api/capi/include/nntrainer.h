@@ -612,17 +612,19 @@ int ml_train_model_load(ml_train_model_h model, const char *file_path,
                         ml_train_model_format_e format);
 
 /**
- * @brief Get neural network layer from the model with the given name.
+ * @brief Gets neural network layer from the model with the given name.
  * @details Use this function to get already created Neural Network Layer. The
  * returned layer must not be deleted as it is owned by the model.
- * @since_tizen 6.x
- * @remark The modification through ml_trin_layer_set_property() after compiling
- * the model by calling `ml_train_model_compile()` strictly restricted.
+ * @since_tizen 7.0
+ * @remarks The modification through ml_trin_layer_set_property() after
+ * compiling the model by calling `ml_train_model_compile()` strictly
+ * restricted.
  * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] layer_name Name of the already created layer.
  * @param[out] layer The NNTrainer Layer handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
