@@ -318,8 +318,8 @@ CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference nntrainer
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -DML_API_COMMON=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions -DML_API_COMMON=1
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
