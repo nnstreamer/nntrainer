@@ -53,27 +53,27 @@ enum LayerType {
   LAYER_BACKBONE_NNSTREAMER =
     ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER, /**< Backbone using NNStreamer */
   LAYER_CENTROID_KNN =
-    ML_TRAIN_LAYER_TYPE_CENTROID_KNN, /**< Centroid KNN Layer */
-  LAYER_TIME_DIST,                    /**< Time Distributed Layer type */
+    ML_TRAIN_LAYER_TYPE_CENTROID_KNN,        /**< Centroid KNN Layer */
+  LAYER_CONV1D = ML_TRAIN_LAYER_TYPE_CONV1D, /**< Convolution 1D Layer type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE, /**< Preprocess translate Layer
                                                  type */
   LAYER_PREPROCESS_L2NORM =
-    ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM, /**< Preprocess l2norm Layer
-                                                 type */
-  LAYER_BACKBONE_TFLITE,                   /**< Backbone using TFLite */
-  LAYER_ATTENTION,                         /**< Attention Layer type */
-  LAYER_MOL_ATTENTION,                     /**< MoL Attention Layer type */
-  LAYER_CONV1D,                            /**< Convolution 1D Layer type */
-  LAYER_RESHAPE,                           /**< Reshape Layer type */
-  LAYER_RNNCELL,                           /**< RNN Cell Layer type */
-  LAYER_LSTMCELL,                          /**< LSTM Cell Layer type */
-  LAYER_ZONEOUT_LSTMCELL,                  /**< Zoneout LSTM Cell Layer type */
-  LAYER_GRUCELL,                           /**< GRU Cell Layer type */
-  LAYER_REDUCE_MEAN,                       /**< Reduce mean Layer type */
-  LAYER_IDENTITY,                          /**< Identity Layer type */
+    ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM, /**< Preprocess l2norm Layer type */
+  LAYER_LSTMCELL = ML_TRAIN_LAYER_TYPE_LSTMCELL, /**< LSTM Cell Layer type */
+  LAYER_GRUCELL = ML_TRAIN_LAYER_TYPE_GRUCELL,   /**< GRU Cell Layer type */
+  LAYER_RNNCELL = ML_TRAIN_LAYER_TYPE_RNNCELL,   /**< RNN Cell Layer type */
+  LAYER_ZONEOUT_LSTMCELL =
+    ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL, /**< Zoneout LSTM Cell Layer type */
+  LAYER_TIME_DIST,                       /**< Time Distributed Layer type */
+  LAYER_BACKBONE_TFLITE,                 /**< Backbone using TFLite */
+  LAYER_ATTENTION,                       /**< Attention Layer type */
+  LAYER_MOL_ATTENTION,                   /**< MoL Attention Layer type */
+  LAYER_RESHAPE,                         /**< Reshape Layer type */
+  LAYER_REDUCE_MEAN,                     /**< Reduce mean Layer type */
+  LAYER_IDENTITY,                        /**< Identity Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
