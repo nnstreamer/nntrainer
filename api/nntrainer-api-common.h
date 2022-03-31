@@ -48,25 +48,24 @@ typedef enum {
                                               (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_CENTROID_KNN = 18, /**< Centroid KNN Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_CONV1D = 19, /**< Convolution 1D Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_LSTMCELL = 20, /**< LSTM Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_GRUCELL = 21,  /**< GRU Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_RNNCELL = 22,  /**< RNN Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL =
+    23, /**< ZoneoutLSTM Cell Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE = 301, /**< Preprocess translate
-                                               Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM = 302, /**< Preprocess L2Normalization
-                                            Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
+    301, /**< Preprocess translate Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM =
+    302, /**< Preprocess L2Normalization Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_LOSS_MSE =
     500, /**< Mean Squared Error Loss Layer type (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SIGMOID = 501, /**< Cross Entropy with
                                        Sigmoid Loss Layer type (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX = 502, /**< Cross Entropy with
                                        Softmax Loss Layer type (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_LSTMCELL = 601, /**< LSTM Cell Layer type (Since 7.0) */
-  ML_TRAIN_LAYER_TYPE_GRUCELL = 602,  /**< GRU Cell Layer type (Since 7.0) */
-  ML_TRAIN_LAYER_TYPE_RNNCELL = 603,  /**< RNN Cell Layer type (Since 7.0) */
-  ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL =
-    604, /**< ZoneoutLSTM Cell Layer type (Since 7.0) */
-
-  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999                     /**< Unknown Layer */
 } ml_train_layer_type_e;
 
 /**
