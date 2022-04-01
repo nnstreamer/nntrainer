@@ -56,6 +56,8 @@ Even if NNtariner runs on device, it provides full functionalities to train mode
 * [Jihoon Lee](https://github.com/zhoonit)
 * [Hyeonseok Lee](https://github.com/lhs8928)
 * [Mete Ozay](https://github.com/meteozay)
+* [Hyunil Park](https://github.com/songgot)
+* [Jiho Chu](https://github.com/jihochu)
 
 ## Components
 
