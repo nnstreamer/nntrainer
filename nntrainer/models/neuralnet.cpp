@@ -329,7 +329,8 @@ void NeuralNetwork::save(const std::string &file_path,
       (*iter)->save(model_file);
     }
     if (opt && istrequal(opt->getType(), "adam")) {
-      model_file.write("adam", 4);
+      std::string adam = "adam";
+      model_file.write(adam.c_str(), adam.size());
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            iter++) {
         (*iter)->save(model_file, true);
@@ -382,8 +383,9 @@ void NeuralNetwork::load(const std::string &file_path,
       /// this is assuming that the failure is allowed at the end of the file
       /// read. so, after this line, additional read shouldn't be called
       if (opt && istrequal(opt->getType(), "adam")) {
-        char opt_type[4];
-        model_file.read(opt_type, 4);
+        std::string opt_type;
+        opt_type.resize(4);
+        model_file.read((char *)&opt_type[0], 4);
         if (istrequal(opt_type, "adam")) {
           for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
                iter++) {
