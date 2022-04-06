@@ -21,6 +21,7 @@
  */
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gtest/gtest.h>
+#include <string.h>
 
 #include <nntrainer.h>
 #include <nntrainer_internal.h>
@@ -509,7 +510,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
 }
 
 /**
- * @brief Neural Network Model add layer test
+ * @brief Neural Network Model Add layer test
  */
 TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   int status = ML_ERROR_NONE;
@@ -539,6 +540,133 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
 
   status = ml_train_layer_destroy(layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Get Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, getLayer_01_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h add_layer;
+  ml_train_layer_h get_layer;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&add_layer, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(add_layer, "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, add_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_layer(model, "inputlayer", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Get Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, getLayer_02_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h get_layer;
+
+  std::string default_name = "inputlayer", modified_name = "renamed_inputlayer";
+  char *default_summary, *modified_summary = nullptr;
+
+  ScopedIni s("getLayer_02_p", {model_base, inputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_model_get_summary(model, ML_TRAIN_SUMMARY_MODEL, &default_summary);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  std::string default_summary_str(default_summary);
+  EXPECT_NE(default_summary_str.find(default_name), std::string::npos);
+  free(default_summary);
+
+  status = ml_train_model_get_layer(model, default_name.c_str(), &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(get_layer,
+                                       ("name=" + modified_name).c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /// @todo check layer with layer property (#1875)
+  status = ml_train_model_get_summary(model, ML_TRAIN_SUMMARY_MODEL,
+                                      &modified_summary);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  std::string modified_summary_str(modified_summary);
+  EXPECT_NE(modified_summary_str.find(modified_name), std::string::npos);
+  free(modified_summary);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Get Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, getLayer_03_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h add_layer;
+  ml_train_layer_h get_layer;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&add_layer, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(add_layer, "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, add_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_layer(model, "unknwon", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Get Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h get_layer;
+
+  ScopedIni s("getLayer_04_n", {model_base, inputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(model, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_layer(model, "inputlayer", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NOT_SUPPORTED);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
