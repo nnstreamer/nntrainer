@@ -15,8 +15,14 @@ and_conf.set('MESON_NNTRAINER_SRCS', ' '.join(nntrainer_sources))
 and_conf.set('MESON_NNTRAINER_INCS', ' '.join(nntrainer_inc_abs))
 and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src))
 and_conf.set('MESON_CCAPI_NNTRAINER_INCS', ' '.join(ccapi_inc_abs))
-and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src))
-and_conf.set('MESON_CAPI_NNTRAINER_INCS', ' '.join(capi_inc_abs))
+
+if get_option('enable-capi').enabled()
+   and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src))
+   and_conf.set('MESON_CAPI_NNTRAINER_INCS', ' '.join(capi_inc_abs))
+else
+   and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join([]))
+   and_conf.set('MESON_CAPI_NNTRAINER_INCS', ' '.join([]))   
+endif
 
 if iniparser_dep.found()
   and_conf.set('MESON_INIPARSER_ROOT', iniparser_root)
