@@ -774,7 +774,7 @@ void LayerNode::printShapeInfo(std::ostream &out) {
 }
 
 void LayerNode::printMetric(std::ostream &out) {
-  out << "Layer loss value: " << getLoss();
+  out << "Layer loss value: " << getLoss() << "\n";
 }
 
 void LayerNode::print(std::ostream &out, unsigned int flags) {
@@ -799,6 +799,15 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
   if (flags & PRINT_PROP_META) {
     out << "======meta properties: " << std::endl;
     /** @todo print local and layer properties with node_exporter */
+    nntrainer::Exporter e;
+    getLayer()->exportTo(e, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    auto prop_meta =
+      e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+    if (prop_meta != nullptr) {
+      for (unsigned int i = 0; i < prop_meta->size(); ++i) {
+        out << (*prop_meta)[i].first << ": " << (*prop_meta)[i].second << "\n";
+      }
+    }
   }
 
   if (flags & PRINT_PROP) {

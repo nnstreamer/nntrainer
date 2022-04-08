@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -879,6 +880,10 @@ int NeuralNetwork::setDataBuffer(const DatasetModeType &mode,
 
 int NeuralNetwork::getLayer(const char *name,
                             std::shared_ptr<ml::train::Layer> *layer) {
+  if (compiled) {
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
   *layer = std::static_pointer_cast<ml::train::Layer>(
     model_graph.getLayerNode(std::string(name)));
   return ML_ERROR_NONE;
@@ -1017,13 +1022,96 @@ void NeuralNetwork::exportTo(Exporter &exporter,
 void NeuralNetwork::print(std::ostream &out, unsigned int flags,
                           LayerNode::PrintPreset layerPrintPreset) {
   if (flags & PRINT_INST_INFO) {
-    out << "===================";
-    printInstance(out, this);
+    /// @todo uncomment this after implement getProperty (#1875)
+    // out << "===================";
+    // printInstance(out, this);
   }
 
   if (flags & PRINT_GRAPH_INFO) {
-    out << "graph contains " << model_graph.size() << " operation nodes\n";
-    /// @todo print graph info
+    unsigned int total_col_size = 80;
+    std::vector<unsigned int> column_size = {20, 20, 20, 20};
+    auto print_graph_layer_info =
+      [column_size](std::ostream &out, std::vector<std::string> layer_info) {
+        auto trim_string = [](std::string str, unsigned int column_width) {
+          return str.size() < column_width ? str
+                                           : str.substr(0, column_width - 1);
+        };
+
+        for (unsigned int i = 0; i < column_size.size(); ++i) {
+          out << std::setw(column_size[i])
+              << trim_string(layer_info[i], column_size[i]);
+        }
+        out << "\n";
+      };
+
+    out << std::string(total_col_size, '=') << '\n';
+    print_graph_layer_info(
+      out, {"Layer name", "Layer type", "Input dimension", "Input layer"});
+    out << std::string(total_col_size, '=') << '\n';
+    if (compiled) {
+      props::GenericShape dim_property;
+
+      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+           iter++) {
+        std::string first_dim;
+        if (iter->getInputDimensions().empty()) {
+          first_dim = "";
+        } else {
+          dim_property.set(iter->getInputDimensions()[0]);
+          first_dim = to_string(dim_property);
+        }
+        const std::vector<std::string> &input_layer_names =
+          iter->getInputConnections();
+        std::string first_input_name =
+          input_layer_names.empty() ? "" : input_layer_names[0];
+        print_graph_layer_info(
+          out, {iter->getName(), iter->getType(), first_dim, first_input_name});
+        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+          dim_property.set(iter->getInputDimensions()[i]);
+          print_graph_layer_info(
+            out, {"", "", to_string(dim_property), input_layer_names[i]});
+        }
+        out << std::string(total_col_size,
+                           iter == model_graph.cend() - 1 ? '=' : '-')
+            << '\n';
+      }
+    } else {
+      auto &input_connection =
+        std::get<std::vector<props::InputConnection>>(model_props);
+      auto model_input = std::vector<Connection>(input_connection.begin(),
+                                                 input_connection.end());
+      auto is_actually_an_input_node =
+        [model_input](graph_const_iterator<LayerNode> node) {
+          return node->hasInputShapeProperty() or
+                 std::any_of(model_input.begin(), model_input.end(),
+                             [node](auto &conn) {
+                               return node->getName() == conn.getName();
+                             });
+        };
+
+      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+           iter++) {
+        const std::vector<std::string> &input_layer_names =
+          iter->getInputConnections();
+
+        /// @brief conntection information.
+        // Intended comment.
+        // std::string first_input_name =
+        //   input_layer_names.empty()
+        //     ? (is_actually_an_input_node(iter) || iter ==
+        //     model_graph.cbegin()
+        //          ? ""
+        //          : (iter - 1)->getName())
+        //     : input_layer_names[0];
+        print_graph_layer_info(out, {iter->getName(), iter->getType(), "", ""});
+        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+          print_graph_layer_info(out, {"", "", "", ""});
+        }
+        out << std::string(total_col_size,
+                           iter == model_graph.cend() - 1 ? '=' : '-')
+            << '\n';
+      }
+    }
   }
 
   if (flags & PRINT_PROP) {
