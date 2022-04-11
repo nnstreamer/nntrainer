@@ -376,13 +376,12 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
     auto fb_inputs = fbb.CreateVector(inputs);
     auto fb_outputs = fbb.CreateVector(outputs);
-    /// @todo: this will need to move to exporter
-    auto fb_options = tflite::CreateFullyConnectedOptions(fbb);
+    auto fb_options = node.getBuiltinOps(fbb);
 
     tflite::OperatorBuilder builder(fbb);
     builder.add_opcode_index(op_code);
     builder.add_builtin_options_type(node.getOptionType());
-    builder.add_builtin_options(fb_options.Union());
+    builder.add_builtin_options(fb_options);
     builder.add_inputs(fb_inputs);
     builder.add_outputs(fb_outputs);
     return builder.Finish();

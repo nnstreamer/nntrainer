@@ -154,6 +154,14 @@ public:
     return builtin_option_type;
   }
 
+  /**
+   * @brief Get the Op Options object
+   * @param f Flatbuffer Builder
+   * @retval const tflite::Offset<void>
+   */
+  flatbuffers::Offset<void>
+  getBuiltinOps(flatbuffers::FlatBufferBuilder &f) const;
+
 private:
   Variables inputs;  /**< input variables */
   Variables outputs; /**< output variables */

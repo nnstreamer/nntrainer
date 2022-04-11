@@ -78,6 +78,16 @@ void TfOpNode::finalize() {
   transform_if(weight_transform, weights);
 }
 
+flatbuffers::Offset<void>
+TfOpNode::getBuiltinOps(flatbuffers::FlatBufferBuilder &f) const {
+  switch (op_type) {
+  case tflite::BuiltinOperator_FULLY_CONNECTED:
+    return tflite::CreateFullyConnectedOptions(f).Union();
+  default:
+    return builtin_ops;
+  }
+}
+
 void TfOpNode::setBuiltinOptions(
   tflite::BuiltinOptions builtin_option_type_,
   const flatbuffers::Offset<void> &builtin_ops_) {
