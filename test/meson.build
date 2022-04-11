@@ -40,9 +40,11 @@ endif
 
 if get_option('enable-nnstreamer-tensor-filter')
   subdir('nnstreamer')
-  run_command('cp', '-lr',
+endif
+
+if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter')
+  run_command('cp','-lr',
     meson.current_source_dir() / 'test_models/',
     nntrainer_test_resdir
   )
-
 endif
