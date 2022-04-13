@@ -381,7 +381,7 @@ dynamic dimension size */
 
   unsigned int dim[MAXDIM]; /**< underlying dimension type */
   unsigned int len;         /**< number of elements */
-  unsigned int feature_len; /**< number of feature lements */
+  unsigned int feature_len; /**< number of feature elements */
 };
 
 /**

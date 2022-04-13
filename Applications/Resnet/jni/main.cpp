@@ -197,8 +197,8 @@ ModelHandle createResnet18() {
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                              {withKey("loss", "cross")});
 
-  for (auto layers : createResnet18Graph()) {
-    model->addLayer(layers);
+  for (auto layer : createResnet18Graph()) {
+    model->addLayer(layer);
   }
 
   return model;
@@ -299,12 +299,13 @@ int main(int argc, char *argv[]) {
          "[epoch] \n"
       << "when \"fake\" is given, original data size is assumed 512 for both "
          "train and validation\n";
-    return 1;
+    return EXIT_FAILURE;
   }
 
   auto start = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(start);
-  std::cout << "started computation at " << std::ctime(&start_time) << '\n';
+  std::cout << "started computation at " << std::ctime(&start_time)
+            << std::endl;
 
   std::string data_dir = argv[1];
   unsigned int batch_size = std::stoul(argv[2]);
@@ -312,7 +313,8 @@ int main(int argc, char *argv[]) {
   unsigned int epoch = std::stoul(argv[4]);
 
   std::cout << "data_dir: " << data_dir << ' ' << "batch_size: " << batch_size
-            << " data_split: " << data_split << " epoch: " << epoch << '\n';
+            << " data_split: " << data_split << " epoch: " << epoch
+            << std::endl;
 
   /// warning: the data loader will be destroyed at the end of this function,
   /// and passed as a pointer to the databuffer
@@ -324,19 +326,20 @@ int main(int argc, char *argv[]) {
     } else {
       user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "uncaught error while creating data generator! details: "
-              << e.what() << '\n';
-    return 1;
+              << e.what() << std::endl;
+    return EXIT_FAILURE;
   }
 
   auto &[train_user_data, valid_user_data] = user_datas;
 
   try {
     createAndRun(epoch, batch_size, train_user_data, valid_user_data);
-  } catch (std::exception &e) {
-    std::cerr << "uncaught error while running! details: " << e.what() << '\n';
-    return 1;
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what()
+              << std::endl;
+    return EXIT_FAILURE;
   }
   auto end = std::chrono::system_clock::now();
 
@@ -346,19 +349,19 @@ int main(int argc, char *argv[]) {
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
 
-  int status = 0;
+  int status = EXIT_SUCCESS;
 #if defined(ENABLE_TEST)
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing InitGoogleTest" << std::endl;
-    return 0;
+    std::cerr << "Error during InitGoogleTest" << std::endl;
+    return EXIT_FAILURE;
   }
 
   try {
     status = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TSETS()" << std::endl;
   }
 #endif
 
