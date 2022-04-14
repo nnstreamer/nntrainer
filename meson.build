@@ -130,8 +130,6 @@ else
   nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
   extra_defines += '-DML_API_COMMON=0'
 endif
-
-
 blas_dep = dummy_dep
 # Dependencies
 if get_option('enable-cublas')
@@ -140,18 +138,20 @@ endif
 
 if get_option('enable-blas')
   extra_defines += '-DUSE_BLAS=1'
-  if get_option('platform') == 'tizen' or get_option('platform') == 'yocto'
-    blas_dep = dependency('openblas')
-  elif get_option('platform') == 'android'
+
+  if get_option('platform') == 'android'
     message('preparing blas')
     run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
     blas_dep = found_dummy_dep
     blas_root = meson.build_root() / 'openblas'
   else
-    blas_dep = dependency('blas-openblas', required:false)
-    # for Ubuntu 20.04
-    if not blas_dep.found()
-      blas_dep = dependency('openblas')
+    blas_dep = dependency('openblas')
+  endif
+
+  if blas_dep.found()
+    if get_option('openblas-num-threads') > 0
+      extra_defines += '-DBLAS_NUM_THREADS=@0@'.format(get_option('openblas-num-threads'))
+      message('set openblas num threads=@0@'.format(get_option('openblas-num-threads')))
     endif
   endif
 endif
