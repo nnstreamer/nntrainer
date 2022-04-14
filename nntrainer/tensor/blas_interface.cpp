@@ -140,6 +140,9 @@ static unsigned int isamax_raw(const unsigned int N, const float *X,
 void saxpy(const unsigned int N, const float alpha, const float *X,
            const int incX, float *Y, const int incY) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   cblas_saxpy(N, alpha, X, incX, Y, incY);
 #else
   saxpy_raw(N, alpha, X, incX, Y, incY);
@@ -179,6 +182,9 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
   cudaMemcpy(C, d_C, size_C, cudaMemcpyDeviceToHost);
   cublasDestroy(handle);
 #elif defined USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   cblas_sgemm(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
               ldc);
 #else
@@ -190,6 +196,9 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int incY) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   cblas_scopy(N, X, incX, Y, incY);
 #else
   scopy_raw(N, X, incX, Y, incY);
@@ -198,6 +207,9 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 
 void sscal(const int N, const float alpha, float *X, const int incX) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   cblas_sscal(N, alpha, X, incX);
 #else
   sscal_raw(N, alpha, X, incX);
@@ -206,6 +218,9 @@ void sscal(const int N, const float alpha, float *X, const int incX) {
 
 float snrm2(const int N, const float *X, const int incX) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   return cblas_snrm2(N, X, incX);
 #else
   return snrm2_raw(N, X, incX);
@@ -215,6 +230,9 @@ float snrm2(const int N, const float *X, const int incX) {
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
            const float *Y, const unsigned int incY) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   return cblas_sdot(N, X, incX, Y, incY);
 #else
   return sdot_raw(N, X, incX, Y, incY);
@@ -226,6 +244,9 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
            const unsigned int lda, const float *X, const int incX,
            const float beta, float *Y, const int incY) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   return cblas_sgemv(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                      incY);
 #else
@@ -235,6 +256,9 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
 
 unsigned int isamax(const unsigned int N, const float *X, const int incX) {
 #ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
   return cblas_isamax(N, X, incX);
 #else
   return isamax_raw(N, X, incX);
