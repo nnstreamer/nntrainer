@@ -11,6 +11,7 @@
  * @bug No known bugs except for NYI items
  */
 #include <bn_realizer.h>
+#include <remap_realizer.h>
 #include <connection.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>

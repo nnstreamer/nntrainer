@@ -24,6 +24,7 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
+#include <bn_realizer.h>
 
 #include <compiler_test_util.h>
 #include <nntrainer_test_util.h>
@@ -808,4 +809,5 @@ TEST(BnRealizer, bn_realizer_p) {
   };
   BnRealizer r({});
   compileAndRealizeAndEqual(r, before, after);
+
 }
