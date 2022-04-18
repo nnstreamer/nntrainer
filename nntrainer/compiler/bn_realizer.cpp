@@ -21,21 +21,61 @@
 #include <unordered_map>
 
 namespace nntrainer {
+
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 BnRealizer::BnRealizer() {}
 
 BnRealizer::~BnRealizer() {}
 
 GraphRepresentation BnRealizer::realize(const GraphRepresentation &reference) {
   std::unordered_map<std::string, LayerNode *> existing_nodes;
+  std::vector<LayerNode *> bn_layers;
 
   std::transform(
     reference.begin(), reference.end(),
     std::inserter(existing_nodes, existing_nodes.end()),
     [](auto &node) { return std::pair(node->getName(), node.get()); });
 
-  // NYI
+  for (auto &node : reference) {
+    if (istrequal(node->getType(), "batch_normalization")) {
+      bn_layers.push_back(node.get());
+    }
+  }
 
-  return reference;
+  for (auto iter = bn_layers.begin(); iter != bn_layers.end(); ++iter) {
+    auto node = (*iter);
+    auto &input_name = node->getInputConnectionName(SINGLE_INOUT_IDX);
+    auto input_node = existing_nodes.at(input_name);
+
+    for (unsigned int i = 0; i < input_node->getNumOutputConnections(); ++i) {
+      if (istrequal(node->getName(),
+                    input_node->getOutputConnection(i)->getName())) {
+        input_node->setOutputConnection(
+          i, node->getOutputConnection(SINGLE_INOUT_IDX)->getName(),
+          SINGLE_INOUT_IDX);
+      }
+    }
+
+    auto &output_name = node->getOutputConnection(SINGLE_INOUT_IDX)->getName();
+    auto output_node = existing_nodes.at(output_name);
+
+    for (unsigned int i = 0; i < output_node->getNumInputConnections(); ++i) {
+      if (istrequal(node->getName(), output_node->getInputConnectionName(i))) {
+        output_node->setInputConnectionName(
+          i, node->getInputConnectionName(SINGLE_INOUT_IDX));
+      }
+    }
+  }
+
+  GraphRepresentation processed;
+  for (auto &node : reference) {
+    if (!istrequal(node->getType(), "batch_normalization")) {
+      processed.push_back(node);
+    }
+  }
+
+  return processed;
 }
 
 } // namespace nntrainer

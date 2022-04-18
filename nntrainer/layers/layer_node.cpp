@@ -223,9 +223,10 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   }
 
   auto &con = output_connections[nth];
-  NNTR_THROW_IF(con, std::invalid_argument)
-    << "cannot override connection, this slot is reserved for "
-    << con->toString();
+  // Should be override connection for the batch normalization realizer
+  // NNTR_THROW_IF(con, std::invalid_argument)
+  //   << "cannot override connection, this slot is reserved for "
+  //   << con->toString();
 
   con = std::make_unique<Connection>(name, index);
 }
