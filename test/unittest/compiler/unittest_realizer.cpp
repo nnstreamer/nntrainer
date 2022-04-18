@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <activation_realizer.h>
+#include <bn_realizer.h>
 #include <connection.h>
 #include <flatten_realizer.h>
 #include <input_realizer.h>
@@ -40,6 +41,15 @@ static void realizeAndEqual(GraphRealizer &realizer,
                             const std::vector<LayerRepresentation> &input,
                             const std::vector<LayerRepresentation> &expected) {
   auto processed = realizer.realize(makeGraph(input));
+  auto expected_graph = makeGraph(expected);
+  graphEqual(processed, expected_graph);
+}
+
+static void
+compileAndRealizeAndEqual(GraphRealizer &realizer,
+                          const std::vector<LayerRepresentation> &input,
+                          const std::vector<LayerRepresentation> &expected) {
+  auto processed = realizer.realize(makeGraph_V2(input));
   auto expected_graph = makeGraph(expected);
   graphEqual(processed, expected_graph);
 }
@@ -763,4 +773,39 @@ TEST(ActivationRealizer, activation_unknown_n) {
   };
 
   EXPECT_ANY_THROW(realizeAndEqual(ar, before, {}));
+}
+
+TEST(BnRealizer, bn_realizer_p) {
+  /// realization without identifying custom input
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=fc1"}},
+    {"batch_normalization",
+     {"name=bn1", "input_layers=fc1"}}, // auto connected to fc 1
+    {"activation",
+     {"name=ac1", "activation=relu",
+      "input_layers=bn1"}}, // auto connected to bn 1
+    {"fully_connected",
+     {"name=fc2", "input_layers=ac1"}}, // auto connected to ac 1
+    {"batch_normalization",
+     {"name=bn2", "input_layers=fc2"}}, // auto connected to fc 2
+    {"activation",
+     {"name=ac2", "activation=relu",
+      "input_layers=bn2"}}, // auto connected to fc 2
+    {"fully_connected",
+     {"name=fc3", "input_layers=ac2"}}, // auto connected to ac 2
+  };
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected", {"name=fc1"}},
+    {"activation",
+     {"name=ac1", "activation=relu",
+      "input_layers=fc1"}}, // auto connected to fc 1
+    {"fully_connected", {"name=fc2", "input_layers=ac1"}},
+    {"activation",
+     {"name=ac2", "activation=relu",
+      "input_layers=fc2"}}, // auto connected to fc 1
+    {"fully_connected",
+     {"name=fc3", "input_layers=ac2"}}, // auto connected to fc 3
+  };
+  BnRealizer r({});
+  compileAndRealizeAndEqual(r, before, after);
 }

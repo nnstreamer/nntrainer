@@ -218,6 +218,30 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   return graph_rep;
 }
 
+nntrainer::GraphRepresentation
+makeGraph_V2(const std::vector<LayerRepresentation> &layer_reps) {
+  static auto &ac = nntrainer::AppContext::Global();
+
+  nntrainer::GraphRepresentation graph_rep;
+  auto model_graph = nntrainer::NetworkGraph();
+  for (auto &layer_representation : layer_reps) {
+    std::shared_ptr<nntrainer::LayerNode> layer = nntrainer::createLayerNode(
+      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      layer_representation.second);
+    model_graph.addLayer(layer);
+  }
+  // compile with loss
+  model_graph.compile("mse");
+
+  for (auto &node : model_graph.getLayerNodes()) {
+    graph_rep.push_back(node);
+  }
+
+  // remove loss layer
+  graph_rep.pop_back();
+  return graph_rep;
+}
+
 void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
                            const std::string &error_msg) {
   unsigned int sz = 0;

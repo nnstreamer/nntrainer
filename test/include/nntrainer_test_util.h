@@ -208,6 +208,15 @@ nntrainer::GraphRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps);
 
 /**
+ * @brief make graph of a representation after compile
+ *
+ * @param layer_reps layer representation (pair of type, properties)
+ * @return nntrainer::GraphRepresentation synthesized graph representation
+ */
+nntrainer::GraphRepresentation
+makeGraph_V2(const std::vector<LayerRepresentation> &layer_reps);
+
+/**
  * @brief read tensor after reading tensor size
  *
  * @param t tensor to fill
