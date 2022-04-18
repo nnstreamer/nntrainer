@@ -8,6 +8,7 @@ compiler_sources = [
   'input_realizer.cpp',
   'previous_input_realizer.cpp',
   'multiout_realizer.cpp',
+  'bn_realizer.cpp',
 ]
 
 compiler_headers = []
