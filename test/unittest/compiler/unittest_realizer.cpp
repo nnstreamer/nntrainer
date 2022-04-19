@@ -24,7 +24,6 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
-#include <bn_realizer.h>
 
 #include <compiler_test_util.h>
 #include <nntrainer_test_util.h>
