@@ -1,6 +1,6 @@
 # NNtrainer
 
-[![Code Coverage](http://nnstreamer.mooo.com/nntrainer/ci/badge/codecoverage.svg)](http://nnstreamer.mooo.com/nntrainer/ci/gcov_html/index.html)
+[![Code Coverage](http://ci.nnstreamer.ai/nntrainer/ci/badge/codecoverage.svg)](http://ci.nnstreamer.ai/nntrainer/ci/gcov_html/index.html)
 ![GitHub repo size](https://img.shields.io/github/repo-size/nnstreamer/nntrainer)
 ![GitHub issues](https://img.shields.io/github/issues/nnstreamer/nntrainer)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/nnstreamer/nntrainer)
@@ -8,7 +8,7 @@
   <img alt="Coverity Scan Build Status"
        src="https://scan.coverity.com/projects/22512/badge.svg"/>
 </a>
-[![DailyBuild](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/daily_build_test_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/)
+[![DailyBuild](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/daily_build_test_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)
 
 NNtrainer is a Software Framework for training Neural Network models on devices.
 
@@ -27,16 +27,16 @@ Even if NNtariner runs on device, it provides full functionalities to train mode
 |     | [Tizen](http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/) | [Ubuntu](https://launchpad.net/~nnstreamer/+archive/ubuntu/ppa) | Android/NDK Build |
 | :-- | :--: | :--: | :--: |
 |     | 6.0M2 and later | 18.04 | 9/P |
-| arm | [![armv7l badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/tizen.armv7l_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/) | Available  | Ready |
-| arm64 |  [![aarch64 badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/tizen.aarch64_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/) | Available  | [![android badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/arm64_v8a_android_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/) |
-| x64 | [![x64 badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/tizen.x86_64_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/)  | [![ubuntu badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/ubuntu_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/)  | Ready  |
-| x86 | [![x86 badge](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/badge/tizen.i586_result_badge.svg)](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/)  | N/A  | N/A  |
+| arm | [![armv7l badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.armv7l_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) | Available  | Ready |
+| arm64 |  [![aarch64 badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.aarch64_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) | Available  | [![android badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/arm64_v8a_android_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) |
+| x64 | [![x64 badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.x86_64_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)  | [![ubuntu badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/ubuntu_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)  | Ready  |
+| x86 | [![x86 badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.i586_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)  | N/A  | N/A  |
 | Publish | [Tizen Repo](http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/) | [PPA](https://launchpad.net/~nnstreamer/+archive/ubuntu/ppa) |   |
 | API | C (Official) | C/C++ | C/C++  |
 
 - Ready: CI system ensures build-ability and unit-testing. Users may easily build and execute. However, we do not have automated release & deployment system for this instance.
 - Available: binary packages are released and deployed automatically and periodically along with CI tests.
-- [Daily Release](http://nnstreamer.mooo.com/nntrainer/ci/daily-build/build_result/)
+- [Daily Release](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)
 - SDK Support: Tizen Studio (6.0 M2+)
 
 ## Maintainer
