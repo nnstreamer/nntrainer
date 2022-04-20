@@ -35,18 +35,19 @@ public:
    * @brief Construct a new BN Realizer object
    *
    */
-  BnRealizer();
+  BnRealizer() = default;
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~BnRealizer();
+  ~BnRealizer() = default;
 
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
    * @note bn realizer removes batch normalization layers from
    * GraphRepresentation
+   * @param reference GraphRepresenstaion to be realized
    * @throw std::invalid_argument if graph is ill formed
    *
    */

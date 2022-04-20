@@ -24,10 +24,6 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-BnRealizer::BnRealizer() {}
-
-BnRealizer::~BnRealizer() {}
-
 GraphRepresentation BnRealizer::realize(const GraphRepresentation &reference) {
   std::unordered_map<std::string, LayerNode *> existing_nodes;
   std::vector<LayerNode *> bn_layers;

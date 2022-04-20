@@ -45,12 +45,15 @@ static void realizeAndEqual(GraphRealizer &realizer,
   graphEqual(processed, expected_graph);
 }
 
-static void
-compileAndRealizeAndEqual(GraphRealizer &realizer,
-                          const std::vector<LayerRepresentation> &input,
-                          const std::vector<LayerRepresentation> &expected) {
-  auto processed = realizer.realize(makeGraph_V2(input));
-  auto expected_graph = makeGraph(expected);
+static void compileAndRealizeAndEqual(
+  GraphRealizer &realizer,
+  std::vector<std::unique_ptr<GraphRealizer>> &realizers,
+  const std::vector<LayerRepresentation> &input,
+  const std::vector<LayerRepresentation> &expected) {
+  auto processed = realizer.realize(makeCompiledGraph(input, realizers));
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> defalute_realizers;
+  auto expected_graph = makeCompiledGraph(expected, realizers);
+
   graphEqual(processed, expected_graph);
 }
 
@@ -779,34 +782,55 @@ TEST(BnRealizer, bn_realizer_p) {
   /// realization without identifying custom input
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc1"}},
-    {"batch_normalization",
-     {"name=bn1", "input_layers=fc1"}}, // auto connected to fc 1
-    {"activation",
-     {"name=ac1", "activation=relu",
-      "input_layers=bn1"}}, // auto connected to bn 1
-    {"fully_connected",
-     {"name=fc2", "input_layers=ac1"}}, // auto connected to ac 1
-    {"batch_normalization",
-     {"name=bn2", "input_layers=fc2"}}, // auto connected to fc 2
-    {"activation",
-     {"name=ac2", "activation=relu",
-      "input_layers=bn2"}}, // auto connected to fc 2
-    {"fully_connected",
-     {"name=fc3", "input_layers=ac2"}}, // auto connected to ac 2
+    {"batch_normalization", {"name=bn1", "input_layers=fc1"}},
+    {"activation", {"name=ac1", "activation=relu", "input_layers=bn1"}},
+    {"fully_connected", {"name=fc2", "input_layers=ac1"}},
+    {"batch_normalization", {"name=bn2", "input_layers=fc2"}},
+    {"activation", {"name=ac2", "activation=relu", "input_layers=bn2"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
   };
   std::vector<LayerRepresentation> after = {
     {"fully_connected", {"name=fc1"}},
-    {"activation",
-     {"name=ac1", "activation=relu",
-      "input_layers=fc1"}}, // auto connected to fc 1
+    {"activation", {"name=ac1", "activation=relu", "input_layers=fc1"}},
     {"fully_connected", {"name=fc2", "input_layers=ac1"}},
-    {"activation",
-     {"name=ac2", "activation=relu",
-      "input_layers=fc2"}}, // auto connected to fc 1
-    {"fully_connected",
-     {"name=fc3", "input_layers=ac2"}}, // auto connected to fc 3
+    {"activation", {"name=ac2", "activation=relu", "input_layers=fc2"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
   };
-  BnRealizer r({});
-  compileAndRealizeAndEqual(r, before, after);
+  BnRealizer r;
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
+  compileAndRealizeAndEqual(r, realizers, before, after);
+}
 
+TEST(BnRealizer, bn_realizer_resblock_p) {
+  std::vector<LayerRepresentation> before = {
+    {"input", {"name=input0"}},
+    {"conv2d", {"name=conv0", "kernel_size=3,3", "input_layers=input0"}},
+    {"batch_normalization", {"name=first_bn", "input_layers=conv0"}},
+    {"activation", {"name=ac0", "activation=relu", "input_layers=first_bn"}},
+    {"conv2d", {"name=a1", "kernel_size=3,3", "input_layers=ac0"}},
+    {"batch_normalization", {"name=bn1", "input_layers=a1"}},
+    {"activation", {"name=ac1", "activation=relu", "input_layers=bn1"}},
+    {"conv2d", {"name=a2", "kernel_size=3,3", "input_layers=ac1"}},
+    {"conv2d", {"name=b1", "kernel_size=3,3", "input_layers=ac0"}},
+    {"addition", {"name=c1", "input_layers=a2,b1"}},
+    {"batch_normalization", {"name=bn2", "input_layers=c1"}},
+    {"activation", {"name=ac2", "activation=relu", "input_layers=bn2"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
+  };
+  std::vector<LayerRepresentation> after = {
+    {"input", {"name=input0"}},
+    {"conv2d", {"name=conv0", "kernel_size=3,3", "input_layers=input0"}},
+    {"activation", {"name=ac0", "activation=relu", "input_layers=conv0"}},
+    {"conv2d", {"name=a1", "kernel_size=3,3", "input_layers=ac0"}},
+    {"activation", {"name=ac1", "activation=relu", "input_layers=a1"}},
+    {"conv2d", {"name=a2", "kernel_size=3,3", "input_layers=ac1"}},
+    {"conv2d", {"name=b1", "kernel_size=3,3", "input_layers=ac0"}},
+    {"addition", {"name=c1", "input_layers=a2,b1"}},
+    {"activation", {"name=ac2", "activation=relu", "input_layers=c1"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
+  };
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
+  realizers.emplace_back(new nntrainer::MultioutRealizer());
+  BnRealizer r;
+  compileAndRealizeAndEqual(r, realizers, before, after);
 }

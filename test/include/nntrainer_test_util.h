@@ -36,6 +36,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <realizer.h>
 #include <tensor.h>
 
 /** tolerance is reduced for packaging, but CI runs at full tolerance */
@@ -211,10 +212,12 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps);
  * @brief make graph of a representation after compile
  *
  * @param layer_reps layer representation (pair of type, properties)
+ * @param realizers GraphRealizers to modify graph before compile
  * @return nntrainer::GraphRepresentation synthesized graph representation
  */
-nntrainer::GraphRepresentation
-makeGraph_V2(const std::vector<LayerRepresentation> &layer_reps);
+nntrainer::GraphRepresentation makeCompiledGraph(
+  const std::vector<LayerRepresentation> &layer_reps,
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers);
 
 /**
  * @brief read tensor after reading tensor size
