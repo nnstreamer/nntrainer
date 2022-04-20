@@ -26,6 +26,7 @@
 #include <climits>
 #include <iostream>
 #include <layer_node.h>
+#include <multiout_realizer.h>
 #include <nntrainer_error.h>
 #include <random>
 #include <regex>
@@ -218,27 +219,37 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   return graph_rep;
 }
 
-nntrainer::GraphRepresentation
-makeGraph_V2(const std::vector<LayerRepresentation> &layer_reps) {
+nntrainer::GraphRepresentation makeCompiledGraph(
+  const std::vector<LayerRepresentation> &layer_reps,
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers) {
   static auto &ac = nntrainer::AppContext::Global();
 
   nntrainer::GraphRepresentation graph_rep;
   auto model_graph = nntrainer::NetworkGraph();
+
   for (auto &layer_representation : layer_reps) {
     std::shared_ptr<nntrainer::LayerNode> layer = nntrainer::createLayerNode(
       ac.createObject<nntrainer::Layer>(layer_representation.first),
       layer_representation.second);
+    graph_rep.push_back(layer);
+  }
+
+  for (auto &realizer : realizers) {
+    graph_rep = realizer->realize(graph_rep);
+  }
+
+  for (auto &layer : graph_rep) {
     model_graph.addLayer(layer);
   }
-  // compile with loss
+
+  // Compile with loss
   model_graph.compile("mse");
 
+  graph_rep.clear();
   for (auto &node : model_graph.getLayerNodes()) {
     graph_rep.push_back(node);
   }
 
-  // remove loss layer
-  graph_rep.pop_back();
   return graph_rep;
 }
 
