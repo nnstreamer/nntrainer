@@ -16,7 +16,7 @@ TARGET=$1
 FILE_PREFIX=nnstreamer-lite-native
 ZIP_NAME_REGEX=${FILE_PREFIX}-*.zip
 ZIP_NAME=${FILE_PREFIX}.zip
-URL="http://nnstreamer.mooo.com/nnstreamer/ci/daily-build/build_result/latest/android"
+URL="http://ci.nnstreamer.ai/nnstreamer/ci/daily-build/build_result/latest/android"
 
 echo "PREPARING ml_api at ${TARGET}"
 
