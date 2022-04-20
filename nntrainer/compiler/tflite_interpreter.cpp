@@ -21,6 +21,7 @@
 
 #include <tf_schema_generated.h>
 
+#include <bn_realizer.h>
 #include <fc_layer.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
@@ -430,10 +431,15 @@ buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
 void TfliteInterpreter::serialize(const GraphRepresentation &representation,
                                   const std::string &out) {
   /// @todo check if graph is finalized & initialized and ready to serialize.
+
+  /// 0. remove batch normalization layer in GraphRepresentation
+  BnRealizer realizer({});
+  GraphRepresentation graph = realizer.realize(representation);
+
   /// 1. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;
 
-  auto opNodes = buildOpNodes(representation);
+  auto opNodes = buildOpNodes(graph);
   TfOpIdxMap map(opNodes); /// build TfOpIdxMap from opNodes
 
   auto opcodes = buildOperatorCodes(map, fbb);
