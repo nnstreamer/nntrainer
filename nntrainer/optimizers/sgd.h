@@ -34,17 +34,17 @@ public:
    * @copydoc Optimizer::getDefaultLearningRate()
    *
    */
-  double getDefaultLearningRate() const { return 0.0001; }
+  double getDefaultLearningRate() const override { return 0.0001; }
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
    */
-  void applyGradient(RunOptimizerContext &context);
+  void applyGradient(RunOptimizerContext &context) override;
 
   /**
    * @copydoc Optimizer::getType()
    */
-  const std::string getType() const { return SGD::type; }
+  const std::string getType() const override { return SGD::type; }
 
   /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)

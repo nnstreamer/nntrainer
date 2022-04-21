@@ -84,7 +84,7 @@ public:
    * @copydoc Optimizer::getDefaultLearningRate()
    *
    */
-  double getDefaultLearningRate() const { return 0.001; }
+  double getDefaultLearningRate() const override { return 0.001; }
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
@@ -115,7 +115,6 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
 private:
-
   std::tuple<PropsB1, PropsB2, PropsEpsilon, TorchRef> adam_props;
 
   /**
