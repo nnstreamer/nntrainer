@@ -84,7 +84,7 @@ public:
    * @copydoc Optimizer::getDefaultLearningRate()
    *
    */
-  double getDefaultLearningRate() const { return 0.001; }
+  double getDefaultLearningRate() const override { return 0.001; }
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
