@@ -251,10 +251,18 @@ public:
   /**
    * @brief     Run NeuralNetwork train
    * @param[in] values hyper parameters
+   * @param[in] stop_cb callback function to decide stop training or not
+   * ~~~~~
+   * @a user_data user_data to be used in stop_cb
+   * @a bool true if stop the training
+   * ~~~~~
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(const std::vector<std::string> &values = {}) override;
+  int train(const std::vector<std::string> &values = {},
+            std::function<bool(void *)> stop_cb = [](void *user_data) {
+              return false;
+            }) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -569,10 +577,13 @@ private:
 
   /**
    * @brief     Run NeuralNetwork train
+   * @param[in] stop_cb callback function to decide stop training or not
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train_run();
+  int train_run(std::function<bool(void *)> stop_cb = [](void *) {
+    return false;
+  });
 
   /**
    * @brief     Swap function for the class
