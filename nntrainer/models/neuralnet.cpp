@@ -613,7 +613,8 @@ int NeuralNetwork::deallocate() {
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::train(const std::vector<std::string> &values) {
+int NeuralNetwork::train(const std::vector<std::string> &values,
+                         std::function<bool(void *)> stop_cb) {
   int status = ML_ERROR_NONE;
 
   if (data_buffers[static_cast<int>(DatasetModeType::MODE_TRAIN)] == nullptr) {
@@ -635,7 +636,7 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
   status = allocate(ExecutionMode::TRAIN);
   NN_RETURN_STATUS();
 
-  status = train_run();
+  status = train_run(stop_cb);
   NN_RETURN_STATUS();
 
   /**
@@ -650,7 +651,7 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
 /**
  * @brief     Run NeuralNetwork train with callback function by user
  */
-int NeuralNetwork::train_run() {
+int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
   int status = ML_ERROR_NONE;
 
   if (!std::get<props::ContinueTrain>(model_flex_props)) {
@@ -739,16 +740,19 @@ int NeuralNetwork::train_run() {
     stat.num_iterations++;
   };
 
-  auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
+  auto train_epoch_end = [this, stop_cb](RunStats &stat, DataBuffer &buffer) {
     stat.loss /= static_cast<float>(stat.num_iterations);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
-    if (!save_path.empty()) {
-      save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    }
+    if (!stop_cb(nullptr)) {
+      if (!save_path.empty()) {
+        save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+      }
 
-    std::cout << "#" << epoch_idx << "/" << getEpochs()
-              << " - Training Loss: " << stat.loss;
-    ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(), stat.loss);
+      std::cout << "#" << epoch_idx << "/" << getEpochs()
+                << " - Training Loss: " << stat.loss;
+      ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(),
+              stat.loss);
+    }
   };
 
   auto eval_for_iteration = [this, batch_size](RunStats &stat,
@@ -796,7 +800,8 @@ int NeuralNetwork::train_run() {
   };
 
   auto epochs = getEpochs();
-  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
+  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs && !stop_cb(nullptr);
+       ++epoch_idx) {
     training = run_epoch(train_buffer.get(), true, train_for_iteration,
                          update_train_stat, train_epoch_end);
     if (valid_buffer) {
