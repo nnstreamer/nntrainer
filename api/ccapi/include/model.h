@@ -268,6 +268,12 @@ public:
                          ml_train_summary_type_e verbosity) = 0;
 
   /**
+   * @brief     Get current epoch_idx
+   * @retval    epoch_idx
+   */
+  virtual unsigned int getCurrentEpoch() = 0;
+
+  /**
    * @brief     Get Loss
    * @retval    loss value
    */

@@ -242,6 +242,12 @@ public:
   };
 
   /**
+   * @brief     get current epoch_idx
+   * @retval    current epoch_idx
+   */
+  unsigned int getCurrentEpoch() override { return epoch_idx; };
+
+  /**
    * @brief     Copy Neural Network
    * @param[in] from NeuralNetwork Object to copy
    * @retval    NeuralNewtork Object copyed
