@@ -655,13 +655,12 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
   int status = ML_ERROR_NONE;
 
   if (!std::get<props::ContinueTrain>(model_flex_props)) {
+    epoch_idx = 0;
     iter = 0;
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->clearOptVar();
     }
   }
-
-  epoch_idx = 0;
 
   auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
