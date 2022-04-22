@@ -435,6 +435,8 @@ int ml_train_model_get_summary(ml_train_model_h model,
 
   check_feature_state();
 
+  ML_TRAIN_VERIFY_VALID_HANDLE(model);
+
   if (summary == nullptr) {
     ml_loge("summary pointer is null");
     return ML_ERROR_INVALID_PARAMETER;
