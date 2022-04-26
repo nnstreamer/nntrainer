@@ -70,7 +70,9 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
 
   if (context.getNumInputs() != 3) {
     throw std::invalid_argument(
-      "Number of input is not 3. LSTMCell layer should takes 3 inputs");
+      "LSTMCell layer expects 3 inputs(one for the input and two for the "
+      "hidden/cell state) but got " +
+      std::to_string(context.getNumInputs()) + " input(s)");
   }
 
   // input_dim = [ batch_size, 1, 1, feature_size ]
