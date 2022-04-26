@@ -512,6 +512,31 @@ public:
   }
 
   /**
+   * @brief     Get weight data of the layer
+   * @retval    weight data of the layer
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  const std::vector<float *> getWeights() {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+
+    std::vector<float *> weights;
+    for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
+      weights.emplace_back(getWeight(idx).getData());
+    }
+    return weights;
+  }
+
+  /**
+   * @brief     Set weight data of the layer
+   * @note      Size of vector must be the same with number of weights.
+   * @note      layer needs to be finalized before called.
+   */
+  void setWeights(const std::vector<float *> weights);
+
+  /**
    * @brief Get the Input tensor object
    *
    * @param idx Identifier of the input

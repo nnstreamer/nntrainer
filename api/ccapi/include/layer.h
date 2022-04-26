@@ -164,6 +164,22 @@ public:
    * to keep the name unique to the model
    */
   virtual const std::string getName() const noexcept = 0;
+
+  /**
+   * @brief     Get weight data of the layer
+   * @retval    weight data of the layer
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  virtual const std::vector<float *> getWeights() = 0;
+
+  /**
+   * @brief     Set weight data of the layer
+   * @note      Size of vector must be the same with number of weights.
+   * @note      layer needs to be finalized before called.
+   */
+  virtual void setWeights(const std::vector<float *>) = 0;
 };
 
 /**
