@@ -161,8 +161,8 @@ public:
   GraphCore &copy(GraphCore &from) {
     node_list.resize(from.node_list.size());
     if (this != &from) {
-      // or (unsigned int i = 0; i < node_list.size(); i++)
-      //  node_list[i]->copy(from.node_list[i]);
+      //      for (unsigned int i = 0; i < node_list.size(); ++i)
+      //        node_list[i]->copy(from.node_list[i]);
     }
     return *this;
   }

@@ -188,6 +188,20 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
   }
 }
 
+void LayerNode::setWeights(const std::vector<float *> weights) {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+
+  NNTR_THROW_IF(getNumWeights() != weights.size(), std::runtime_error)
+    << __func__ << " Number of Weights dismatch!";
+
+  // Needs Deep copy
+  for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
+    Tensor &w = getWeight(idx);
+    std::copy(weights[idx], weights[idx] + w.size(), w.getData());
+  }
+}
+
 const unsigned LayerNode::getInputConnectionIndex(unsigned nth) const {
   auto &input_conns =
     std::get<std::vector<props::InputConnection>>(*layer_node_props);

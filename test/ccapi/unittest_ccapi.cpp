@@ -437,6 +437,205 @@ TEST(nntrainer_ccapi, save_ini_p) {
   model->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
 }
 
+TEST(nntrainer_ccapi, model_copy_01_p) {
+  std::unique_ptr<ml::train::Model> model;
+  std::unique_ptr<ml::train::Model> c_model;
+
+  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  ScopedIni s("ccapi_simple_ini",
+              {model_base + "batch_size = 16", optimizer, learning_rate,
+               dataset + "-BufferSize", inputlayer, outputlayer});
+  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+    ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+            ML_ERROR_NONE);
+
+  EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+
+  c_model = copyConfiguration(*model);
+
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+
+  EXPECT_EQ(c_model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(c_model->initialize(), ML_ERROR_NONE);
+
+  std::shared_ptr<ml::train::Layer> l;
+  std::shared_ptr<ml::train::Layer> c_l;
+
+  model->getLayer("inputlayer", &l);
+  c_model->getLayer("inputlayer", &c_l);
+
+  EXPECT_EQ(l->getName(), c_l->getName());
+  EXPECT_EQ(l->getType(), c_l->getType());
+}
+
+TEST(nntrainer_ccapi, model_copy_01_n) {
+  std::unique_ptr<ml::train::Model> model;
+  std::unique_ptr<ml::train::Model> c_model;
+
+  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  ScopedIni s("ccapi_simple_ini",
+              {model_base + "batch_size = 16", optimizer, learning_rate,
+               dataset + "-BufferSize", inputlayer, outputlayer});
+  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+    ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+            ML_ERROR_NONE);
+
+  EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+
+  // copyConfiguration is not allowed after finalize
+  EXPECT_THROW(copyConfiguration(*model), std::invalid_argument);
+}
+
+TEST(nntrainer_ccapi, model_copy_02_p) {
+
+  std::unique_ptr<ml::train::Model> model;
+  std::unique_ptr<ml::train::Model> c_model;
+  std::shared_ptr<ml::train::Layer> layer;
+  std::shared_ptr<ml::train::Layer> c_layer;
+  std::shared_ptr<ml::train::Optimizer> optimizer;
+  std::unique_ptr<ml::train::LearningRateScheduler> lrs;
+  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> c_dataset;
+
+  EXPECT_NO_THROW(model =
+                    ml::train::createModel(ml::train::ModelType::NEURAL_NET));
+
+  EXPECT_NO_THROW(
+    layer = ml::train::layer::Input(
+      {"name=input0", "input_shape=1:1:62720", "normalization=true"}));
+  EXPECT_NO_THROW(model->addLayer(layer));
+
+  EXPECT_NO_THROW(
+    layer = ml::train::layer::FullyConnected(
+      {"name=fc", "unit= 10", "activation=softmax", "bias_initializer=zeros",
+       "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+       "weight_initializer=xavier_uniform", "input_layers=input0"}));
+
+  EXPECT_NO_THROW(model->addLayer(layer));
+
+  EXPECT_NO_THROW(optimizer = ml::train::optimizer::Adam(
+                    {"beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
+
+  EXPECT_NO_THROW(
+    lrs = ml::train::optimizer::learning_rate::Exponential(
+      {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000"}));
+
+  EXPECT_NO_THROW(optimizer->setLearningRateScheduler(std::move(lrs)));
+  EXPECT_NO_THROW(model->setOptimizer(optimizer));
+
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(
+      ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+            ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+                                       getTestResPath("valSet.dat").c_str()));
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+            ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(model->setProperty(
+    {"loss=cross", "batch_size=16", "epochs=2", "save_path=model.bin"}));
+
+  c_model = copyConfiguration(*model);
+
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(model->train());
+
+  EXPECT_NO_THROW(
+    c_dataset = ml::train::createDataset(
+      ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
+
+  EXPECT_NO_THROW(c_dataset->setProperty({"buffer_size=10"}));
+
+  EXPECT_EQ(
+    c_model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+    ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(
+    c_dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+                                         getTestResPath("valSet.dat").c_str()));
+
+  EXPECT_NO_THROW(c_dataset->setProperty({"buffer_size=10"}));
+  EXPECT_EQ(
+    c_model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+    ML_ERROR_NONE);
+
+  EXPECT_EQ(c_model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(c_model->initialize(), ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(c_model->train());
+
+  std::shared_ptr<ml::train::Layer> l;
+  std::shared_ptr<ml::train::Layer> c_l;
+
+  model->getLayer("fc", &l);
+  c_model->getLayer("fc", &c_l);
+
+  EXPECT_EQ(l->getName(), c_l->getName());
+  EXPECT_EQ(l->getType(), c_l->getType());
+
+  std::vector<float *> l_weight;
+  std::vector<float *> cl_weight;
+
+  l_weight = l->getWeights();
+  cl_weight = c_l->getWeights();
+
+  EXPECT_EQ(l_weight.size(), cl_weight.size());
+
+  c_l->setWeights(l_weight);
+  cl_weight = c_l->getWeights();
+
+  for (unsigned int i = 0; i < 10; ++i) {
+    // Weight of Fully Connected Layer
+    EXPECT_EQ(cl_weight[0][i], l_weight[0][i]);
+    // Bias of Fully Connected Layer
+    EXPECT_EQ(cl_weight[1][i], l_weight[1][i]);
+  }
+
+  // Run after set the weights
+  EXPECT_NO_THROW(c_model->train());
+
+  std::vector<float *> one_weights;
+  float *w_one = new float[62720 * 10];
+  float *b_one = new float[10];
+  for (unsigned int i = 0; i < 62720 * 10; ++i)
+    w_one[i] = 1.0;
+  for (unsigned int i = 0; i < 10; ++i)
+    b_one[i] = 1.0;
+
+  one_weights.push_back(w_one);
+  one_weights.push_back(b_one);
+
+  c_model->getLayer("fc", &c_l);
+
+  c_l->setWeights(one_weights);
+  cl_weight = c_l->getWeights();
+
+  for (unsigned int i = 0; i < 62720 * 10; ++i)
+    EXPECT_EQ(cl_weight[0][i], 1.0);
+  for (unsigned int i = 0; i < 10; ++i)
+    EXPECT_EQ(cl_weight[1][i], 1.0);
+
+  // Run after set the weights again
+  EXPECT_NO_THROW(c_model->train());
+  delete w_one;
+  delete b_one;
+}
+
 /**
  * @brief Main gtest
  */

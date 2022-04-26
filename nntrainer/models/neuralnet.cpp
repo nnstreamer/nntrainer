@@ -59,6 +59,22 @@
 
 namespace nntrainer {
 
+NeuralNetwork::NeuralNetwork() :
+  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization()),
+  load_path(std::string()),
+  epoch_idx(0),
+  iter(0),
+  loss(0.0f),
+  data_buffers({nullptr, nullptr, nullptr}),
+  initialized(false),
+  compiled(false),
+  loadedFromConfig(false) {
+  app_context = AppContext(AppContext::Global());
+}
+
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
@@ -856,6 +872,22 @@ int NeuralNetwork::addLayer(NodeType layer) {
   return status;
 }
 
+NeuralNetwork &NeuralNetwork::copyConfiguration(NeuralNetwork &from) {
+  if (this != &from) {
+    model_props = from.model_props;
+    model_flex_props = from.model_flex_props;
+    loss = from.loss;
+    opt = from.opt;
+
+    NetworkGraph f_graph = from.getNetworkGraph();
+    for (auto &l_node : f_graph.getLayerNodes()) {
+      addLayer(static_cast<std::shared_ptr<ml::train::Layer>>(
+        l_node->cloneConfiguration()));
+    }
+  }
+  return *this;
+}
+
 NeuralNetwork::GraphType
 NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
                                  const std::string &output_layer) {
@@ -886,9 +918,12 @@ int NeuralNetwork::setDataBuffer(const DatasetModeType &mode,
 
 int NeuralNetwork::getLayer(const char *name,
                             std::shared_ptr<ml::train::Layer> *layer) {
-  if (compiled) {
-    return ML_ERROR_NOT_SUPPORTED;
-  }
+  // We provide the layer change through the api with user's responsibility.
+  //
+  // if (compiled) {
+  //   ml_loge("Cannot get compiled layer.");
+  //   return ML_ERROR_NOT_SUPPORTED;
+  // }
 
   *layer = std::static_pointer_cast<ml::train::Layer>(
     model_graph.getLayerNode(std::string(name)));

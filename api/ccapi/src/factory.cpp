@@ -75,6 +75,17 @@ std::unique_ptr<Model> createModel(ModelType type,
 }
 
 /**
+ * @brief creator by copying the configuration of other model
+ */
+std::unique_ptr<Model> copyConfiguration(Model &from) {
+  std::unique_ptr<nntrainer::NeuralNetwork> model =
+    std::make_unique<nntrainer::NeuralNetwork>();
+  nntrainer::NeuralNetwork &f = dynamic_cast<nntrainer::NeuralNetwork &>(from);
+  model->copyConfiguration(f);
+  return model;
+}
+
+/**
  * @brief Factory creator with constructor for dataset
  */
 std::unique_ptr<Dataset>

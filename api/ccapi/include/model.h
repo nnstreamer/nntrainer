@@ -298,6 +298,11 @@ public:
 std::unique_ptr<Model>
 createModel(ModelType type, const std::vector<std::string> &properties = {});
 
+/**
+ * @brief creator by copying the configuration of other model
+ */
+std::unique_ptr<Model> copyConfiguration(Model &from);
+
 } // namespace train
 } // namespace ml
 

@@ -101,7 +101,12 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()));
+  NeuralNetwork();
+
+  /**
+   * @brief     Constructor of NeuralNetwork Class
+   */
+  NeuralNetwork(AppContext app_context_);
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -251,8 +256,20 @@ public:
    * @brief     Copy Neural Network
    * @param[in] from NeuralNetwork Object to copy
    * @retval    NeuralNewtork Object copyed
+   * @todo Need to implement the copy of graph core
    */
   NeuralNetwork &copy(NeuralNetwork &from);
+
+  /**
+   * @brief     Copy Neural Network Configuration
+   * @param[in] from NeuralNetwork Object to copy
+   * @retval    NeuralNewtork Object copyed
+   * @note This does not copy the context of neural network model. It only
+   * copies the configuration of the network model. Therefore, it needs the
+   * compile and initialization to run the model. Also if you need the
+   * initialized the weight, load call is required.
+   */
+  NeuralNetwork &copyConfiguration(NeuralNetwork &from);
 
   /**
    * @brief     Run NeuralNetwork train

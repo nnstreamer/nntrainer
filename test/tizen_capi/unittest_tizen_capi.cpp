@@ -651,7 +651,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_03_n) {
 /**
  * @brief Neural Network Model Get Layer Test
  */
-TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
+TEST(nntrainer_capi_nnmodel, getLayer_04_p) {
   int status = ML_ERROR_NONE;
 
   ml_train_model_h model;
@@ -666,7 +666,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_get_layer(model, "inputlayer", &get_layer);
-  EXPECT_EQ(status, ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
