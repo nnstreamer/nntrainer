@@ -300,7 +300,9 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
 
   if (context.getNumInputs() != 2) {
     throw std::invalid_argument(
-      "Number of input is not 2. GRUCell layer takes should takes 2 input");
+      "GRUCell layer expects 2 inputs(one for the input and hidden state for "
+      "the other) but got " +
+      std::to_string(context.getNumInputs()) + " input(s)");
   }
 
   // input_dim = [ batch_size, 1, 1, feature_size ]

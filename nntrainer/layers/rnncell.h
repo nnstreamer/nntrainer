@@ -98,19 +98,23 @@ public:
   inline static const std::string type = "rnncell";
 
 private:
+  enum INOUT_INDEX {
+    INPUT = 0,
+    INPUT_HIDDEN_STATE = 1,
+    OUTPUT_HIDDEN_STATE = 0,
+  };
+
   /**
    * Unit: number of output neurons
+   * IntegrateBias: Integrate bias_ih, bias_hh to bias_h
    * HiddenStateActivation: activation type for hidden state. default is tanh
    * DropOutRate: dropout rate
-   * IntegrateBias: Integrate bias_ih, bias_hh to bias_h
-   * MaxTimestep: maximum timestep for rnncell
-   * TimeStep: timestep for which rnncell should operate
    *
    * */
-  std::tuple<props::Unit, props::HiddenStateActivation, props::DropOutRate,
-             props::IntegrateBias, props::MaxTimestep, props::Timestep>
+  std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
+             props::DropOutRate>
     rnncell_props;
-  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 6> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh
