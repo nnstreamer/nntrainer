@@ -325,7 +325,7 @@ void GraphWatcher::initialize() {
   }
 
   if (nn->compile()) {
-    throw std::invalid_argument("initiation failed");
+    throw std::invalid_argument("compilation failed");
   };
 
   if (nn->initialize()) {

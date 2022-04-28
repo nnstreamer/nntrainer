@@ -30,24 +30,24 @@ class FCUnroll(torch.nn.Module):
         return output, loss
 
 class RNNCellStacked(torch.nn.Module):
-    def __init__(self, unroll_for=1, num_rnn=1, input_size=1, hidden_size=1):
+    def __init__(self, unroll_for=2, num_rnncell=1, input_size=2, hidden_size=2):
         super().__init__()
-        self.rnns = torch.nn.ModuleList(
+        self.rnncells = torch.nn.ModuleList(
             [
                 torch.nn.RNNCell(input_size, hidden_size)
-                for _ in range(num_rnn)
+                for _ in range(num_rnncell)
             ]
         )
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        hs = [torch.zeros_like(inputs[0]) for _ in self.rnns]
         out = inputs[0]
+        hs = inputs[1:]
         ret = []
         for _ in range(self.unroll_for):
-            for i, rnn in enumerate(self.rnns):
-                hs[i] = rnn(out, hs[i])
+            for i, rnncell in enumerate(self.rnncells):
+                hs[i] = rnncell(out, hs[i])
                 out = hs[i]
             ret.append(out)
 
@@ -198,19 +198,22 @@ if __name__ == "__main__":
         clip=True
     )
 
+
+    unroll_for, num_rnncell, batch_size, unit, feature_size, iteration = [2, 1, 3, 2, 2, 2]
     record_v2(
-        RNNCellStacked(unroll_for=2, num_rnn=1, input_size=2, hidden_size=2),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        RNNCellStacked(unroll_for=unroll_for, num_rnncell=num_rnncell, input_size=feature_size, hidden_size=unit),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(num_rnncell)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="rnncell_single",
     )
 
+    unroll_for, num_rnncell, batch_size, unit, feature_size, iteration = [2, 2, 3, 2, 2, 2]
     record_v2(
-        RNNCellStacked(unroll_for=2, num_rnn=2, input_size=2, hidden_size=2),
-        iteration=2,
-        input_dims=[(3, 2)],
-        label_dims=[(3, 2, 2)],
+        RNNCellStacked(unroll_for=unroll_for, num_rnncell=num_rnncell, input_size=feature_size, hidden_size=unit),
+        iteration=iteration,
+        input_dims=[(batch_size, feature_size)] + [(batch_size, unit) for _ in range(num_rnncell)],
+        label_dims=[(batch_size, unroll_for, unit)],
         name="rnncell_stacked",
     )
 

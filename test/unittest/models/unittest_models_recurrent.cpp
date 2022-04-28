@@ -137,6 +137,88 @@ std::unique_ptr<NeuralNetwork> makeFCClipped() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=input_hidden_state", "input_shape=1:1:2"}},
+    /// here rnncell is being inserted
+    {"mse", {"name=loss", "input_layers=rnncell_scope/a1"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto rnncell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"rnncell",
+     {"name=a1", "unit=2", "integrate_bias=false",
+      "input_layers=dummy_0, dummy_1"}},
+  });
+
+  nn->addWithReferenceLayers(
+    rnncell, "rnncell_scope", {"input", "input_hidden_state"},
+    {"a1(0)", "a1(1)"}, {"a1"}, ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a1",
+      "recurrent_input=a1(0), a1(1)",
+      "recurrent_output=a1(0), a1(0)",
+    });
+
+  nn->setProperty({"input_layers=input, input_hidden_state"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_hidden_state", "input_shape=1:1:2"}},
+    {"input", {"name=a2_input_hidden_state", "input_shape=1:1:2"}},
+    /// here rnncells are being inserted
+    {"mse", {"name=loss", "input_layers=rnncell_scope/a2(0)"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto rnncell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"input", {"name=dummy_2", "input_shape=1"}},
+    {"rnncell",
+     {"name=a1", "unit=2", "integrate_bias=false",
+      "input_layers=dummy_0, dummy_1"}},
+    {"rnncell",
+     {"name=a2", "unit=2", "integrate_bias=false",
+      "input_layers=a1(0), dummy_2"}},
+  });
+
+  nn->addWithReferenceLayers(
+    rnncell, "rnncell_scope",
+    {"input", "a1_input_hidden_state", "a2_input_hidden_state"},
+    {"a1(0)", "a1(1)", "a2(1)"}, {"a2"},
+    ml::train::ReferenceLayersType::RECURRENT,
+    {
+      "unroll_for=2",
+      "as_sequence=a2",
+      "recurrent_input=a1(0), a1(1), a2(1)",
+      "recurrent_output=a2(0), a1(0), a2(0)",
+    });
+
+  nn->setProperty(
+    {"input_layers=input, a1_input_hidden_state, a2_input_hidden_state"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 static std::unique_ptr<NeuralNetwork> makeSingleLSTM() {
   auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
@@ -409,70 +491,6 @@ static std::unique_ptr<NeuralNetwork> makeStackedZoneoutLSTMCell() {
   return nn;
 }
 
-// static std::unique_ptr<NeuralNetwork> makeSingleRNNCell() {
-//   auto nn = std::make_unique<NeuralNetwork>();
-//   nn->setProperty({"batch_size=3"});
-
-//   auto outer_graph = makeGraph({
-//     {"input", {"name=input", "input_shape=1:1:2"}},
-//     /// here rnncell is being inserted
-//     {"mse", {"name=loss", "input_layers=rnncell_scope/a1"}},
-//   });
-//   for (auto &node : outer_graph) {
-//     nn->addLayer(node);
-//   }
-
-//   auto rnncell = makeGraph({
-//     {"rnncell", {"name=a1", "unit=2", "integrate_bias=false"}},
-//   });
-
-//   nn->addWithReferenceLayers(rnncell, "rnncell_scope", {"input"}, {"a1"},
-//                              {"a1"},
-//                              ml::train::ReferenceLayersType::RECURRENT,
-//                              {
-//                                "unroll_for=2",
-//                                "as_sequence=a1",
-//                                "recurrent_input=a1",
-//                                "recurrent_output=a1",
-//                              });
-
-//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
-//   0.1"})); return nn;
-// }
-
-// static std::unique_ptr<NeuralNetwork> makeStackedRNNCell() {
-//   auto nn = std::make_unique<NeuralNetwork>();
-//   nn->setProperty({"batch_size=3"});
-
-//   auto outer_graph = makeGraph({
-//     {"input", {"name=input", "input_shape=1:1:2"}},
-//     /// here rnncells are being inserted
-//     {"mse", {"name=loss", "input_layers=rnncell_scope/a2"}},
-//   });
-//   for (auto &node : outer_graph) {
-//     nn->addLayer(node);
-//   }
-
-//   auto rnncell = makeGraph({
-//     {"rnncell", {"name=a1", "unit=2", "integrate_bias=false"}},
-//     {"rnncell",
-//      {"name=a2", "unit=2", "integrate_bias=false", "input_layers=a1"}},
-//   });
-
-//   nn->addWithReferenceLayers(rnncell, "rnncell_scope", {"input"}, {"a1"},
-//                              {"a2"},
-//                              ml::train::ReferenceLayersType::RECURRENT,
-//                              {
-//                                "unroll_for=2",
-//                                "as_sequence=a2",
-//                                "recurrent_input=a1",
-//                                "recurrent_output=a2",
-//                              });
-
-//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
-//   0.1"})); return nn;
-// }
-
 static std::unique_ptr<NeuralNetwork> makeSingleGRUCell() {
   auto nn = std::make_unique<NeuralNetwork>();
   nn->setProperty({"batch_size=3"});
@@ -567,6 +585,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc_V2(makeFC, "fc_unroll_stacked", ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeFCClipped, "fc_unroll_stacked_clipped",
                  ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeSingleRNNCell, "rnncell_single", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedRNNCell, "rnncell_stacked",
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleLSTM, "lstm_single", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedLSTM, "lstm_stacked", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleBidirectionalLSTM, "bidirectional_lstm_single",
@@ -613,10 +634,6 @@ INSTANTIATE_TEST_CASE_P(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedZoneoutLSTMCell, "zoneout_lstm_stacked_100_100",
                  ModelTestOption::ALL_V2),
-    // mkModelTc_V2(makeSingleRNNCell, "rnncell_single__1",
-    //              ModelTestOption::ALL_V2),
-    // mkModelTc_V2(makeStackedRNNCell, "rnncell_stacked__1",
-    //              ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSingleGRUCell, "grucell_single", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedGRUCell, "grucell_stacked",
                  ModelTestOption::ALL_V2),
