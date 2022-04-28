@@ -214,8 +214,8 @@ class MultiOutLayer(IdentityTransLayer):
         return [layer(tf_output) for layer in self.stub_layers]
 
 ##
-# @brief Translayer for lstmcell layer
-class LSTMCellTransLayer(IdentityTransLayer):
+# @brief Translayer for rnncell/lstmcell layer
+class RNNCELL_LSTMCellTransLayer(IdentityTransLayer):
     def build(self, input_shape):
         if not self.built:
             self.tf_layer.build(input_shape[0])
@@ -283,8 +283,8 @@ def attach_trans_layer(layer):
     if isinstance(layer, CHANNEL_LAST_LAYERS):
         return ChannelLastTransLayer(layer)
 
-    if isinstance(layer, K.layers.LSTMCell):
-        return LSTMCellTransLayer(layer)
+    if isinstance(layer, (K.layers.SimpleRNNCell, K.layers.LSTMCell)):
+        return RNNCELL_LSTMCellTransLayer(layer)
 
     if isinstance(layer, K.layers.GRU):
         return GRUTransLayer(layer)

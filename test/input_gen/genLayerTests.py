@@ -96,6 +96,11 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(rnn, (3, 1, 7), "rnn_single_step")
 
+    unit, batch_size, unroll_for, feature_size= [1, 1, 1, 1]
+    rnncell = K.layers.SimpleRNNCell(units=unit,
+                         bias_initializer='glorot_uniform')
+    record_single(rnncell, [(batch_size, feature_size)] + [(batch_size, unit)], "rnncell_single_step", input_type='float')
+
     lstm = K.layers.LSTM(units=5,
                          recurrent_activation="sigmoid",
                          activation="tanh",
