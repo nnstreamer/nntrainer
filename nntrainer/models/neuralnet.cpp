@@ -63,7 +63,8 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization()),
+                   props::SaveBestPath(), props::SaveTrainLogPath(),
+                   props::MemoryOptimization()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -664,6 +665,18 @@ int NeuralNetwork::train_run() {
 
   auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
+  std::ofstream train_log_file;
+  auto &save_train_log_path =
+    std::get<props::SaveTrainLogPath>(model_flex_props);
+  if (!save_train_log_path.empty()) {
+    train_log_file =
+      checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
+  }
+
+  train_log_file << "progress : 0%"
+                 << "\n";
+  train_log_file.close();
+
   auto const &outputs = model_graph.getOutputTensors();
   auto in_dims = model_graph.getInputDimension();
   auto label_dims = model_graph.getOutputDimension();
@@ -745,6 +758,19 @@ int NeuralNetwork::train_run() {
     if (!save_path.empty()) {
       save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     }
+
+    std::ofstream train_log_file;
+    auto &save_train_log_path =
+      std::get<props::SaveTrainLogPath>(model_flex_props);
+    if (!save_train_log_path.empty()) {
+      train_log_file =
+        checkedOpenStream<std::ofstream>(save_train_log_path, std::ios::out);
+    }
+
+    train_log_file << "progress : " << epoch_idx * 100 / getEpochs() << "%\n";
+    train_log_file << "#" << epoch_idx << "/" << getEpochs()
+                   << " - Training Loss: " << stat.loss << "\n";
+    train_log_file.close();
 
     std::cout << "#" << epoch_idx << "/" << getEpochs()
               << " - Training Loss: " << stat.loss;
