@@ -242,8 +242,7 @@ nntrainer::GraphRepresentation makeCompiledGraph(
     model_graph.addLayer(layer);
   }
 
-  // Compile with loss
-  model_graph.compile("mse");
+  model_graph.compile("");
 
   graph_rep.clear();
   for (auto &node : model_graph.getLayerNodes()) {
