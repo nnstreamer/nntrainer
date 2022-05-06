@@ -451,7 +451,9 @@ int main(int argc, char *argv[]) {
   }
 
 #if defined(__TIZEN__)
-  set_feature_state(SUPPORTED);
+  set_feature_state(ML_FEATURE, SUPPORTED);
+  set_feature_state(ML_FEATURE_INFERENCE, SUPPORTED);
+  set_feature_state(ML_FEATURE_TRAINING, SUPPORTED);
 #endif
 
   const std::vector<std::string> args(argv + 1, argv + argc);
@@ -475,7 +477,9 @@ int main(int argc, char *argv[]) {
   } catch (...) {
     std::cerr << "Failed loading input images." << std::endl;
 #if defined(__TIZEN__)
-    set_feature_state(NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
 #endif
     return 1;
   }
@@ -486,7 +490,9 @@ int main(int argc, char *argv[]) {
   } catch (...) {
     std::cerr << "Failed train model\n";
 #if defined(__TIZEN__)
-    set_feature_state(NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
 #endif
     return 1;
   }
@@ -501,7 +507,9 @@ int main(int argc, char *argv[]) {
   } catch (...) {
     std::cerr << "Failed test model\n";
 #if defined(__TIZEN__)
-    set_feature_state(NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
 #endif
     return 1;
   }
@@ -511,7 +519,9 @@ int main(int argc, char *argv[]) {
   }
 
 #if defined(__TIZEN__)
-  set_feature_state(NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
 #endif
 
 #if defined(APP_VALIDATE)

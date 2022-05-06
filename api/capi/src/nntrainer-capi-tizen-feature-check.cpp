@@ -38,7 +38,7 @@ extern "C" {
  * @param state -1 NOT checked yet, 0 supported, 1 not supported
  * @return int 0 if success
  */
-int _ml_tizen_set_feature_state(int state);
+int _ml_tizen_set_feature_state(ml_feature_e feature, int state);
 #define ml_api_set_feature_state(...) _ml_tizen_set_feature_state(__VA_ARGS__)
 
 #elif (TIZENVERSION >= 6) && (TIZENVERSION < 9999)
@@ -49,7 +49,7 @@ int _ml_tizen_set_feature_state(int state);
  * @param state -1 NOT checked yet, 0 supported, 1 not supported
  * @return int 0 if success
  */
-int ml_tizen_set_feature_state(int state);
+int ml_tizen_set_feature_state(ml_feature_e feature, int state);
 #define ml_api_set_feature_state(...) ml_tizen_set_feature_state(__VA_ARGS__)
 
 #elif (TIZENVERSION <= 5)
@@ -82,10 +82,11 @@ static feature_info_s feature_info;
 /**
  * @brief Set the feature status of machine_learning.training.
  */
-void ml_train_tizen_set_feature_state(feature_state_t state) {
+void ml_train_tizen_set_feature_state(ml_feature_e feature,
+                                      feature_state_t state) {
   pthread_mutex_lock(&feature_info.mutex);
 
-  ml_api_set_feature_state((int)state);
+  ml_api_set_feature_state(feature, (int)state);
 
   /**
    * Update feature status
@@ -117,11 +118,11 @@ int ml_tizen_get_feature_enabled(void) {
     if (0 == ret) {
       if (false == ml_train_supported) {
         ml_loge("machine_learning.training NOT supported");
-        ml_train_tizen_set_feature_state(NOT_SUPPORTED);
+        ml_train_tizen_set_feature_state(ML_FEATURE_TRAINING, NOT_SUPPORTED);
         return ML_ERROR_NOT_SUPPORTED;
       }
 
-      ml_train_tizen_set_feature_state(SUPPORTED);
+      ml_train_tizen_set_feature_state(ML_FEATURE_TRAINING, SUPPORTED);
     } else {
       switch (ret) {
       case SYSTEM_INFO_ERROR_INVALID_PARAMETER:
