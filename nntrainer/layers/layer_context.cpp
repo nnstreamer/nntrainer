@@ -473,7 +473,7 @@ Tensor &RunLayerContext::getLabel(unsigned int idx) {
 bool RunLayerContext::readyToUse() const {
   /**
    * assumption:
-   * 1. there must be atleast 1 input
+   * 1. there must be at least 1 input
    * 2. the setter set everything at once
    */
   if (inputs.empty())

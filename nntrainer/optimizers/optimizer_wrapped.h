@@ -146,7 +146,7 @@ public:
    *
    * @return the learning rate scheduler object
    */
-  nntrainer::LearningRateScheduler *setLearningRateScheduler();
+  nntrainer::LearningRateScheduler *getLearningRateScheduler();
 
 private:
   std::unique_ptr<OptimizerCore> optimizer; /**< the underlying optimizer */

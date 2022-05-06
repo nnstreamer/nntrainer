@@ -58,7 +58,7 @@ public:
                              unsigned int end_time);
 
   /**
-   * @brief Planner the layout with memory planner
+   * @brief Plan the layout with memory planner
    *
    * @param planner The memory planner to be used for finalizing the layout
    *

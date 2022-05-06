@@ -474,8 +474,8 @@ private:
 
   /**
    * @brief compute optimized backward end. This function calculated the valid
-   * end of the graph backward, if memory_optimize is set, this returns begining
-   * of the backward.
+   * end of the graph backward, if memory_optimize is unset, this returns
+   * begining of the graph node.
    *
    * @return end of the backward iter;
    */

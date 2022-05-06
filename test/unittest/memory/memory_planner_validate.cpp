@@ -45,7 +45,6 @@ static bool validateNoOverlap(const std::vector<size_t> &memory_size,
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
     for (unsigned int mem = memory_offset[idx];
          mem < memory_offset[idx] + memory_size[idx]; mem++) {
-      EXPECT_FALSE(mem_overlap[mem]);
       if (mem_overlap[mem])
         return false;
       mem_overlap[mem] = true;
@@ -65,7 +64,9 @@ static bool validateNoOverlap(const std::vector<size_t> &memory_size,
 static bool validateAllOverlap(const std::vector<size_t> &memory_size,
                                const std::vector<size_t> &memory_offset) {
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
-    EXPECT_EQ(memory_offset[idx], memory_offset[0]);
+    if (memory_offset[idx] != memory_offset[0]) {
+      return false;
+    }
   }
 
   return true;
