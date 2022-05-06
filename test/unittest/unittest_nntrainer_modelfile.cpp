@@ -795,7 +795,9 @@ int main(int argc, char **argv) {
 
 #if defined(__TIZEN__)
   /** ignore tizen feature check while running the testcases */
-  set_feature_state(SUPPORTED);
+  set_feature_state(ML_FEATURE, SUPPORTED);
+  set_feature_state(ML_FEATURE_INFERENCE, SUPPORTED);
+  set_feature_state(ML_FEATURE_TRAINING, SUPPORTED);
 #endif
 
   try {
@@ -806,7 +808,9 @@ int main(int argc, char **argv) {
 
 #if defined(__TIZEN__)
   /** reset tizen feature check state */
-  set_feature_state(NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+  set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
 #endif
 
   return result;

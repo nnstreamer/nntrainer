@@ -31,13 +31,21 @@ protected:
    * @brief SetUp the test case
    *
    */
-  void SetUp() override { set_feature_state(SUPPORTED); }
+  void SetUp() override {
+    set_feature_state(ML_FEATURE, SUPPORTED);
+    set_feature_state(ML_FEATURE_INFERENCE, SUPPORTED);
+    set_feature_state(ML_FEATURE_TRAINING, SUPPORTED);
+  }
 
   /**
    * @brief TearDown the test case
    *
    */
-  void TearDown() override { set_feature_state(NOT_CHECKED_YET); }
+  void TearDown() override {
+    set_feature_state(ML_FEATURE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_INFERENCE, NOT_CHECKED_YET);
+    set_feature_state(ML_FEATURE_TRAINING, NOT_CHECKED_YET);
+  }
 };
 
 static int singleshot_case(ml_tensors_info_h in_info,

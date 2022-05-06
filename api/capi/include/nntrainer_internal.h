@@ -46,6 +46,15 @@
 #if defined(__TIZEN__)
 
 typedef enum {
+  ML_FEATURE = 0,
+  ML_FEATURE_INFERENCE,
+  ML_FEATURE_TRAINING,
+  ML_FEATURE_SERVICE,
+
+  ML_FEATURE_MAX
+} ml_feature_e;
+
+typedef enum {
   NOT_CHECKED_YET = -1,
   NOT_SUPPORTED = 0,
   SUPPORTED = 1
@@ -314,7 +323,8 @@ int ml_tizen_get_feature_enabled(void);
  * @brief Set the feature status of machine_learning.training.
  * This is only used for Unit test.
  */
-void ml_train_tizen_set_feature_state(feature_state_t state);
+void ml_train_tizen_set_feature_state(ml_feature_e feature,
+                                      feature_state_t state);
 #endif /* __TIZEN__ */
 
 #ifdef __cplusplus
