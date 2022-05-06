@@ -495,9 +495,10 @@ void LayerNode::clearOptVar() {
  * @brief     Finalize creating the layer node
  */
 InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
-  /** Create init context right before finalize */
   if (run_context)
-    throw std::runtime_error("Finalizing a layer which is already finalized");
+    throw std::runtime_error(
+      "Trying to finalizing a layer which is already finalized in layer: " +
+      getName());
 
   std::vector<TensorDim> actual_input_dims;
   auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
@@ -536,10 +537,6 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     << "than number of input connections, node name: " << getName()
     << " num input dims: " << input_dims.size()
     << " num connections: " << getNumInputConnections();
-
-  /** Create init context right before finalize */
-  if (run_context)
-    throw std::runtime_error("Finalizing a layer which is already finalized");
 
   /** manipulate layers if required */
   if (getType() != TimeDistLayer::type && getDistribute()) {

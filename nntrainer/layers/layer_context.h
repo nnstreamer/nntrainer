@@ -68,9 +68,9 @@ public:
   unsigned int getNumInputs() const { return input_dim.size(); }
 
   /**
-   * @brief Get the number of inputs for the layer
+   * @brief Get the number of requested outputs for the layer
    *
-   * @return unsigned int number of inputs
+   * @return unsigned int number of requested outputs
    */
   unsigned int getNumRequestedOutputs() const;
 

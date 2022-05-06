@@ -131,7 +131,7 @@ void OptimizerWrapped::setLearningRateScheduler(
   lr_sched = std::unique_ptr<nntrainer::LearningRateScheduler>(ptr);
 }
 
-nntrainer::LearningRateScheduler *OptimizerWrapped::setLearningRateScheduler() {
+nntrainer::LearningRateScheduler *OptimizerWrapped::getLearningRateScheduler() {
   return lr_sched.get();
 }
 

@@ -668,7 +668,7 @@ setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
   /** @todo for addition layer, variables are not shared but gradients are */
   /**
    * @todo for layers which support in-place, both variables and gradients
-   * will be be shared.
+   * will be shared.
    *
    * @todo add a check here is the layer being checked here can support
    * in-place or not
@@ -704,7 +704,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** In-Place optimizations */
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated input. This is neccesary for manager to know when this output
+   * allocated output. This is neccesary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
