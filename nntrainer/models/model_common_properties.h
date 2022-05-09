@@ -74,6 +74,17 @@ public:
 };
 
 /**
+ * @brief train log save path property
+ *
+ */
+class SaveTrainLogPath : public Property<std::string> {
+public:
+  static constexpr const char *key =
+    "save_train_log_path";       /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+};
+
+/**
  * @brief model batch size property
  *
  */
