@@ -110,6 +110,15 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   EXPECT_EQ(remove(out_file_path.c_str()), 0) << strerror(errno);
 }
 
+TEST_P(nntrainerInterpreterTest, deserialize_01_n) {
+  EXPECT_THROW(interpreter->deserialize(""), std::invalid_argument);
+}
+
+TEST_P(nntrainerInterpreterTest, deserialize_02_n) {
+  EXPECT_THROW(interpreter->deserialize("not_existing_file"),
+               std::invalid_argument);
+}
+
 auto fc0 = LayerRepresentation("fully_connected",
                                {"name=fc0", "unit=2", "input_shape=1:1:100"});
 auto fc1 = LayerRepresentation("fully_connected", {"name=fc1", "unit=2"});

@@ -359,7 +359,9 @@ TEST_F(nntrainer_InputLayer, setActivation_01_p) {
 TEST_F(nntrainer_InputLayer, setActivation_02_n) {
   int status = layer.setProperty({"activation=unknown"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
 
+TEST_F(nntrainer_InputLayer, setActivation_03_n) {
   status = layer.setProperty({"activation=random"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -408,6 +410,30 @@ TEST_F(nntrainer_PreprocessFlipLayer, set_property_01_n) {
  */
 TEST_F(nntrainer_PreprocessFlipLayer, set_property_02_n) {
   int status = layer.setProperty({"flip_direction=flip"});
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, set_property_03_n) {
+  int status = layer.setProperty({"flip_direction=horizontal&vertical"});
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, set_property_04_n) {
+  int status = layer.setProperty({"flip_direction=horizontal&&vertical"});
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, set_property_05_n) {
+  int status = layer.setProperty({"flip_direction=horizontal+vertical"});
   EXPECT_NE(status, ML_ERROR_NONE);
 }
 

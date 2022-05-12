@@ -37,69 +37,44 @@ TEST(NameProperty, setPropertyValid_p) {
   EXPECT_EQ(n.get(), "laye__r");
 }
 
-TEST(NameProperty, forbiddenString_01_n) {
+/**
+ * @brief NameTest
+ * @tparam std::string string which will be added as suffix to name
+ */
+class NameTest : public ::testing::TestWithParam<std::string> {
+public:
+  ~NameTest() {}
+
+  /**
+   * @brief SetUp test cases here
+   *
+   */
+  virtual void SetUp() { suffix = GetParam(); }
+
+  /**
+   * @brief do here if any memory needs to be released
+   *
+   */
+  virtual void TearDown() {}
+
+protected:
+  std::string suffix;
+};
+
+TEST_P(NameTest, forbiddenSuffix_n) {
   nntrainer::props::Name n;
-  EXPECT_THROW(n.set("layer "), std::invalid_argument);
+  EXPECT_THROW(n.set("name" + suffix), std::invalid_argument);
 }
 
-TEST(NameProperty, forbiddenString_02_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("layer layer"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_03_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set(" layer"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_04_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("layer,"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_05_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("lay,er"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_06_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("lay, er"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_07_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set(",layer"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_08_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("layer+"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_09_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("la+ yer"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_10_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("lay+er"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_11_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("+layer"), std::invalid_argument);
-}
-
-TEST(NameProperty, forbiddenString_12_n) {
-  nntrainer::props::Name n;
-  EXPECT_THROW(n.set("+ layer"), std::invalid_argument);
-}
+INSTANTIATE_TEST_CASE_P(ForbiddenSuffixTests, NameTest,
+                        ::testing::Values("!", "@", "#", "$", "%", "^", "&",
+                                          "*", "=", "+0", "(0)", "{0}", "[0]",
+                                          "<0>", ";", ":", ",", "?", " ",
+                                          " layer"));
 
 TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
   nntrainer::props::Name n;
-  EXPECT_THROW(n.set("+layer"), std::invalid_argument);
+  EXPECT_THROW(n.set("/layer"), std::invalid_argument);
 }
 
 TEST(InputConnection, setPropertyValid_p) {
@@ -172,6 +147,31 @@ TEST(InputConnection, invalidFormat_n_06) {
                std::invalid_argument);
 }
 
+TEST(DropOutRate, dropout_01_n) {
+  nntrainer::props::DropOutRate dropout;
+  EXPECT_THROW(dropout.set(-0.5), std::invalid_argument);
+}
+
+TEST(NumClass, numclass_01_n) {
+  nntrainer::props::NumClass numclass;
+  EXPECT_THROW(numclass.set(0), std::invalid_argument);
+}
+
+TEST(Momentum, momentum_01_n) {
+  nntrainer::props::Momentum momentum;
+  EXPECT_THROW(momentum.set(0), std::invalid_argument);
+}
+
+TEST(Momentum, momentum_02_n) {
+  nntrainer::props::Momentum momentum;
+  EXPECT_THROW(momentum.set(1), std::invalid_argument);
+}
+
+TEST(SplitDimension, split_dimension_01_n) {
+  nntrainer::props::SplitDimension split_dimension;
+  EXPECT_THROW(split_dimension.set(0), std::invalid_argument);
+}
+
 TEST(Padding2D, setPropertyValid_p) {
   nntrainer::props::Padding2D p;
   EXPECT_NO_THROW(p.set("same"));
@@ -231,6 +231,17 @@ TEST(Padding2D, given_padding_is_negative_01_n) {
 TEST(Padding2D, given_padding_is_negative_02_n) {
   nntrainer::props::Padding2D p;
   EXPECT_THROW(p.set("-1, 1"), std::invalid_argument);
+}
+
+TEST(BasicRegularizerConstant, basic_regularizer_constant_01_n) {
+  nntrainer::props::BasicRegularizerConstant basic_regularizer_constant;
+  EXPECT_THROW(basic_regularizer_constant.set(-1), std::invalid_argument);
+}
+
+TEST(BasicRegularizer, basic_regularizer_01_n) {
+  EXPECT_THROW(nntrainer::props::BasicRegularizer basic_regularizer(
+                 nntrainer::WeightRegularizer::UNKNOWN),
+               std::invalid_argument);
 }
 
 /**

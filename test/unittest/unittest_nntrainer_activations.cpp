@@ -53,6 +53,21 @@ TEST(nntrainer_activation, softmax_01_p) {
   }
 }
 
+TEST(nntrainer_activation, softmax_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  nntrainer::Tensor T(batch, channel, height, width);
+  nntrainer::Tensor Results(batch, channel, height, 2 * width);
+  nntrainer::Tensor Result = Results.getSharedDataTensor(
+    nntrainer::TensorDim(batch, channel, height, width), 0, false);
+
+  EXPECT_THROW(T.apply(nntrainer::ActiFunc::softmax, Result),
+               std::invalid_argument);
+}
+
 TEST(nntrainer_activation, softmax_prime_01_p) {
   int batch = 3;
   int channel = 1;
@@ -79,6 +94,31 @@ TEST(nntrainer_activation, softmax_prime_01_p) {
   for (int i = 0; i < batch * height * width; ++i) {
     EXPECT_NEAR(data[i], results[i % width], tolerance);
   }
+}
+
+TEST(nntrainer_activation, softmax_prime_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float results[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (i * (width) + k + 1));
+
+  nntrainer::Tensor softmax_result;
+  softmax_result = input.apply(nntrainer::ActiFunc::softmax, softmax_result);
+
+  float *data = softmax_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  nntrainer::Tensor softmax_prime_result(batch, channel, height, 2 * width);
+  nntrainer::Tensor softmax_prime_result_shared =
+    softmax_prime_result.getSharedDataTensor(
+      nntrainer::TensorDim(batch, channel, height, width), 0, false);
+  EXPECT_THROW(nntrainer::ActiFunc::softmaxPrime(softmax_result,
+                                                 softmax_prime_result_shared),
+               std::invalid_argument);
 }
 
 TEST(nntrainer_activation, sigmoid_01_p) {

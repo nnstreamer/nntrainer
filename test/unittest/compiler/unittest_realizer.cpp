@@ -19,6 +19,7 @@
 #include <flatten_realizer.h>
 #include <input_realizer.h>
 #include <multiout_realizer.h>
+#include <nntrainer_error.h>
 #include <previous_input_realizer.h>
 #include <realizer.h>
 #include <recurrent_realizer.h>
@@ -382,7 +383,48 @@ TEST(RecurrentRealizer, recurrent_multi_inout_multi_connection_end_p) {
   EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
-TEST(RemapRealizer, remap_p) {
+TEST(RemapRealizer, remap_01_n) {
+  std::function<void(std::string &, unsigned &)> remap_connection_function =
+    nullptr;
+
+  EXPECT_THROW(RemapRealizer r(remap_connection_function),
+               std::invalid_argument);
+}
+
+TEST(RemapRealizer, remap_02_n) {
+  std::function<void(std::string &)> remap_function = nullptr;
+
+  EXPECT_THROW(RemapRealizer r(remap_function), std::invalid_argument);
+}
+
+TEST(RemapRealizer, remap_03_n) {
+  auto model_graph = NetworkGraph();
+  LayerRepresentation input = {"input", {"name=layer1", "input_shape=1:1:1"}};
+
+  auto graph = makeGraph({input});
+  EXPECT_NO_THROW(model_graph.addLayer(graph[0]));
+  EXPECT_EQ(model_graph.compile("mse"), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model_graph.finalizeContext(graph[0], {}));
+
+  RemapRealizer r([](std::string &name) { name = "scoped/" + name; });
+  EXPECT_THROW(r.realize(graph), std::invalid_argument);
+}
+
+TEST(RemapRealizer, remap_04_n) {
+  auto model_graph = NetworkGraph();
+  LayerRepresentation input = {"input", {"name=layer1", "input_shape=1:1:1"}};
+
+  auto graph = makeGraph({input});
+  EXPECT_NO_THROW(model_graph.addLayer(graph[0]));
+  EXPECT_EQ(model_graph.compile("mse"), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model_graph.finalizeContext(graph[0], {}));
+
+  RemapRealizer r(
+    [](std::string &name, unsigned &_) { name = "scoped/" + name; });
+  EXPECT_THROW(r.realize(graph), std::invalid_argument);
+}
+
+TEST(RemapRealizer, remap_05_p) {
   LayerRepresentation input1 = {
     "fully_connected", {"name=layer1", "flatten=true", "input_layers=1,2"}};
 
@@ -501,6 +543,48 @@ TEST(SliceRealizer, slice_02_p) {
   SliceRealizer r({Connection("a1")}, {Connection("c1")});
 
   EXPECT_NO_THROW(realizeAndEqual(r, before, after));
+}
+
+TEST(SliceRealizer, slice_03_n) {
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a1", "input_layers=a2"}},
+    {"fully_connected", {"name=a2", "input_layers=a1"}},
+  };
+
+  std::vector<LayerRepresentation> after = {};
+
+  using C = Connection;
+  SliceRealizer r({}, {C("a2")});
+
+  EXPECT_THROW(realizeAndEqual(r, before, after), std::runtime_error);
+}
+
+TEST(SliceRealizer, slice_04_n) {
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a1", "input_layers=a2"}},
+    {"fully_connected", {"name=a2", "input_layers=a1"}},
+  };
+
+  std::vector<LayerRepresentation> after = {};
+
+  using C = Connection;
+  SliceRealizer r({C("a1")}, {});
+
+  EXPECT_THROW(realizeAndEqual(r, before, after), std::runtime_error);
+}
+
+TEST(SliceRealizer, slice_05_n) {
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a1"}},
+    {"fully_connected", {"name=a2", "input_layers=a1"}},
+  };
+
+  std::vector<LayerRepresentation> after = {};
+
+  using C = Connection;
+  SliceRealizer r({C("a2")}, {C("a1")});
+
+  EXPECT_THROW(realizeAndEqual(r, before, after), std::invalid_argument);
 }
 
 TEST(InputRealizer, input_p) {
