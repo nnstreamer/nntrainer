@@ -9,6 +9,7 @@ compiler_sources = [
   'previous_input_realizer.cpp',
   'multiout_realizer.cpp',
   'bn_realizer.cpp',
+  'loss_realizer.cpp',
 ]
 
 compiler_headers = []
