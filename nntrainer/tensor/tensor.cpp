@@ -886,6 +886,13 @@ void Tensor::apply_broadcast(
   Tensor &output) const {
   CREATE_IF_EMPTY_DIMS(output, dim);
 
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
   /// shortcut to cover when dimension matches
   /// note that buffer_size, the last stride is only used in v_func but it
   /// might be changed

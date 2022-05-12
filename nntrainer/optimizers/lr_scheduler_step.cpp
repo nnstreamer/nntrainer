@@ -48,9 +48,8 @@ void StepLearningRateScheduler::finalize() {
                  sorted_iterations.begin(),
                  [](auto const &val) { return val.get(); });
   std::sort(sorted_iterations.begin(), sorted_iterations.end());
-  std::unique(sorted_iterations.begin(), sorted_iterations.end());
-  NNTR_THROW_IF(iterations.size() != sorted_iterations.size(),
-                std::invalid_argument)
+  auto iter = std::unique(sorted_iterations.begin(), sorted_iterations.end());
+  NNTR_THROW_IF(iter != sorted_iterations.end(), std::invalid_argument)
     << "[StepLearningRateScheduler] step iterations should contain unique "
        "values";
   for (unsigned int idx = 0; idx < sorted_iterations.size(); idx++)

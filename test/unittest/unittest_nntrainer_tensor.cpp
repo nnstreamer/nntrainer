@@ -261,7 +261,7 @@ TEST(nntrainer_Tensor, multiply_i_02_p) {
   }
 }
 
-TEST(nntrainer_Tensor, multiply_i_01_n) {
+TEST(nntrainer_Tensor, multiply_i_03_n) {
   int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
@@ -277,7 +277,7 @@ TEST(nntrainer_Tensor, multiply_i_01_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_Tensor, multiply_i_broadcast_p_01) {
+TEST(nntrainer_Tensor, multiply_i_broadcast_01_p) {
   {
     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
     nntrainer::Tensor t = ranged(3, 2, 4, 5);
@@ -541,6 +541,83 @@ TEST(nntrainer_Tensor, multiply_03_n) {
   EXPECT_THROW({ input.multiply(test); }, std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, multiply_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
+  nntrainer::Tensor test(dim);
+
+  EXPECT_THROW(shared_input.multiply(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
+
+  EXPECT_THROW(input.multiply(shared_test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_06_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim, false);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.multiply(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_07_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim, false);
+
+  EXPECT_THROW(input.multiply(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_08_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
 TEST(nntrainer_Tensor, multiply_float_01_p) {
   int batch = 3;
   int channel = 1;
@@ -679,6 +756,83 @@ TEST(nntrainer_Tensor, divide_03_n) {
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
   EXPECT_THROW({ input.divide(test); }, std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
+  nntrainer::Tensor test(dim);
+
+  EXPECT_THROW(shared_input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
+
+  EXPECT_THROW(input.divide(shared_test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_06_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim, false);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_07_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim, false);
+
+  EXPECT_THROW(input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_08_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, divide_i_broadcast_01_p) {
@@ -1363,6 +1517,83 @@ TEST(nntrainer_Tensor, add_03_n) {
   EXPECT_THROW({ input.add(test); }, std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, add_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
+  nntrainer::Tensor test(dim);
+
+  EXPECT_THROW(shared_input.add(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
+
+  EXPECT_THROW(input.add(shared_test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_06_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim, false);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.add(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_07_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim, false);
+
+  EXPECT_THROW(input.add(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_08_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.add(test, output), std::invalid_argument);
+}
+
 TEST(nntrainer_Tensor, pow_01_p) {
 
   nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5);
@@ -1498,6 +1729,83 @@ TEST(nntrainer_Tensor, subtract_03_n) {
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
   EXPECT_THROW({ input.subtract(test); }, std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
+  nntrainer::Tensor test(dim);
+
+  EXPECT_THROW(shared_input.subtract(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, 2 * width);
+  nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
+
+  EXPECT_THROW(input.subtract(shared_test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_06_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim, false);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.subtract(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_07_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim, false);
+
+  EXPECT_THROW(input.subtract(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_08_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, subtract_float_01_p) {
@@ -3054,7 +3362,7 @@ TEST(nntrainer_Tensor, initialize_08_p) {
   EXPECT_EQ(golden, t);
 }
 
-TEST(nntrainer_Tensor, split_p) {
+TEST(nntrainer_Tensor, split_01_p) {
   {
     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
     nntrainer::Tensor t = ranged(3, 2, 4, 5);
@@ -3184,7 +3492,17 @@ TEST(nntrainer_Tensor, split_p) {
   }
 }
 
-TEST(nntrainer_Tensor, cat_p) {
+TEST(nntrainer_Tensor, split_02_n) {
+  nntrainer::Tensor t(1, 1, 1, 1);
+  EXPECT_THROW(t.split(0, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, split_03_n) {
+  nntrainer::Tensor t(3, 1, 1, 1);
+  EXPECT_THROW(t.split(2, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, cat_01_p) {
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
@@ -3279,6 +3597,16 @@ TEST(nntrainer_Tensor, cat_p) {
       21, 63, 64, 65, 42, 43, 22, 66, 67, 68, 44, 45, 23, 69, 70, 71, 46, 47};
     nntrainer::Tensor answer(ml::train::TensorDim{3, 2, 4, 6}, answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 3), answer);
+  }
+}
+
+TEST(nntrainer_Tensor, cat_02_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(2);
+    inputs.emplace_back(nntrainer::Tensor(2, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(2, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 2), std::invalid_argument);
   }
 }
 

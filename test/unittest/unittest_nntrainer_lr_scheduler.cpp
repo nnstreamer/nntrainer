@@ -81,8 +81,7 @@ TEST(lr_constant, prop_01_n) {
  */
 TEST(lr_constant, prop_02_n) {
   auto lr = createLRS("constant");
-
-  EXPECT_ANY_THROW(lr->setProperty({"random=1.0"}));
+  EXPECT_THROW(lr->setProperty({"unknown=unknown"}), std::invalid_argument);
 }
 
 /**
@@ -118,7 +117,6 @@ TEST(lr_constant, final_02_p) {
   auto lr = createLRS("constant");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
-  /** fails as learning rate property is not set */
   EXPECT_NO_THROW(lr->finalize());
 }
 
@@ -126,9 +124,8 @@ TEST(lr_constant, final_02_p) {
  * @brief test set and get learning rate
  *
  */
-TEST(lr_exponential, prop_01_n) {
+TEST(lr_exponential, get_learing_rate_01_n) {
   auto lr = createLRS("exponential");
-
   EXPECT_ANY_THROW(lr->getLearningRate(0));
 }
 
@@ -136,7 +133,7 @@ TEST(lr_exponential, prop_01_n) {
  * @brief test set and get learning rate
  *
  */
-TEST(lr_exponential, prop_02_n) {
+TEST(lr_exponential, get_learning_rate_02_p) {
   auto lr = createLRS("exponential");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
@@ -157,48 +154,150 @@ TEST(lr_exponential, prop_02_n) {
 }
 
 /**
- * @brief test set and get learning rate
+ * @brief test set property
+ *
+ */
+TEST(lr_exponential, prop_01_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_THROW(lr->setProperty({"decay_steps=0"}), std::invalid_argument);
+}
+
+/**
+ * @brief test set property
+ *
+ */
+TEST(lr_exponential, prop_02_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_THROW(lr->setProperty({"unknown=unknown"}), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_exponential, finalize_01_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"decay_rate=0.9"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_exponential, finalize_02_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_exponential, finalize_03_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+  EXPECT_NO_THROW(lr->setProperty({"decay_rate=0.9"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test set property
  *
  */
 TEST(lr_step, prop_01_n) {
   auto lr = createLRS("step");
-
-  EXPECT_ANY_THROW(lr->finalize());
+  EXPECT_THROW(lr->setProperty({"unknown=unknown"}), std::invalid_argument);
 }
 
 /**
- * @brief test set and get learning rate
+ * @brief test finalize
  *
  */
-TEST(lr_step, prop_02_n) {
+TEST(lr_step, finalize_01_n) {
   auto lr = createLRS("step");
 
-  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
-  EXPECT_ANY_THROW(lr->finalize());
-
-  EXPECT_NO_THROW(lr->setProperty({"iteration=1,2"}));
-  EXPECT_ANY_THROW(lr->finalize());
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
 }
 
 /**
- * @brief test set and get learning rate
+ * @brief test finalize
  *
  */
-TEST(lr_step, prop_03_n) {
+TEST(lr_step, finalize_02_n) {
   auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
-  EXPECT_ANY_THROW(lr->finalize());
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
 
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_step, finalize_03_n) {
+  auto lr = createLRS("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_step, finalize_04_n) {
+  auto lr = createLRS("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
   EXPECT_NO_THROW(lr->setProperty({"iteration=1,2"}));
-  EXPECT_ANY_THROW(lr->finalize());
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_step, finalize_05_n) {
+  auto lr = createLRS("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1,2"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_step, finalize_06_n) {
+  auto lr = createLRS("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01"}));
+  EXPECT_NO_THROW(lr->setProperty({"iteration=1,1"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief test finalize
+ *
+ */
+TEST(lr_step, finalize_07_n) {
+  auto lr = createLRS("step");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01"}));
+  EXPECT_NO_THROW(lr->setProperty({"iteration=2,1"}));
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
 }
 
 /**
  * @brief test set and get learning rate
  *
  */
-TEST(lr_step, prop_04_p) {
+TEST(lr_step, get_learning_rate_01_p) {
   auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1"}));
@@ -217,7 +316,7 @@ TEST(lr_step, prop_04_p) {
  * @brief test set and get learning rate
  *
  */
-TEST(lr_step, prop_05_p) {
+TEST(lr_step, get_learning_rate_02_p) {
   auto lr = createLRS("step");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01, 0.001"}));

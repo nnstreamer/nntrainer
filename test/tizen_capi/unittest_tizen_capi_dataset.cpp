@@ -23,62 +23,71 @@ static const std::string getTestResPath(const std::string &filename) {
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_01_n) {
+TEST(nntrainer_capi_dataset, create_with_file_01_n) {
+  int status;
+  status = ml_train_dataset_create_with_file(NULL, NULL, NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_file_02_n) {
   ml_train_dataset_h dataset = nullptr;
   int status;
   status = ml_train_dataset_create_with_file(&dataset, NULL, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(dataset);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_02_n) {
+TEST(nntrainer_capi_dataset, create_with_file_03_n) {
   ml_train_dataset_h dataset = nullptr;
   int status;
   status =
-    ml_train_dataset_create_with_file(&dataset, "nofile.txt", NULL, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(dataset);
+    ml_train_dataset_create_with_file(&dataset, "not_exist_file", NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_03_n) {
+TEST(nntrainer_capi_dataset, create_with_file_04_n) {
   ml_train_dataset_h dataset = nullptr;
   int status;
-  status = ml_train_dataset_create_with_generator(&dataset, NULL, NULL, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(dataset);
+  status = ml_train_dataset_create_with_file(
+    &dataset, NULL, getTestResPath("valSet.dat").c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_04_n) {
+TEST(nntrainer_capi_dataset, create_with_file_05_n) {
+  ml_train_dataset_h dataset = nullptr;
   int status;
-  status = ml_train_dataset_create_with_file(NULL, NULL, NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset, NULL, NULL, getTestResPath("testSet.dat").c_str());
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
 
-  status = ml_train_dataset_create_with_generator(NULL, NULL, NULL, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(NULL);
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_file_06_n) {
+  ml_train_dataset_h dataset = nullptr;
+  int status;
+  status = ml_train_dataset_create_with_file(
+    &dataset, NULL, getTestResPath("valSet.dat").c_str(),
+    getTestResPath("testSet.dat").c_str());
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_05_p) {
+TEST(nntrainer_capi_dataset, create_with_file_07_p) {
   ml_train_dataset_h dataset;
   int status;
   status = ml_train_dataset_create_with_file(
@@ -95,33 +104,67 @@ TEST(nntrainer_capi_dataset, create_destroy_05_p) {
 
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
-  status = ml_train_dataset_create(&dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status = ml_train_dataset_destroy(dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  dataset = nullptr;
-
-  status = ml_train_dataset_destroy(dataset);
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_generator_01_n) {
+  int status;
+  status = ml_train_dataset_create_with_generator(NULL, NULL, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_06_n) {
-  ml_train_dataset_h dataset = NULL;
+TEST(nntrainer_capi_dataset, create_with_generator_02_n) {
+  ml_train_dataset_h dataset = nullptr;
+  int status;
+  status = ml_train_dataset_create_with_generator(&dataset, NULL, NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_generator_03_n) {
+  ml_train_dataset_h dataset = nullptr;
   int status;
 
-  status = ml_train_dataset_destroy(dataset);
+  status =
+    ml_train_dataset_create_with_generator(&dataset, NULL, getSample, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_generator_04_n) {
+  ml_train_dataset_h dataset = nullptr;
+  int status;
+
+  status =
+    ml_train_dataset_create_with_generator(&dataset, NULL, NULL, getSample);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_with_generator_05_n) {
+  ml_train_dataset_h dataset = nullptr;
+  int status;
+
+  status = ml_train_dataset_create_with_generator(&dataset, NULL, getSample,
+                                                  getSample);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_08_p) {
+TEST(nntrainer_capi_dataset, create_with_generator_06_p) {
   ml_train_dataset_h dataset;
   int status;
   status =
@@ -135,6 +178,20 @@ TEST(nntrainer_capi_dataset, create_destroy_08_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Dataset Create Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, create_01_n) {
+  EXPECT_EQ(ml_train_dataset_create(NULL), ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, destroy_01_n) {
+  EXPECT_EQ(ml_train_dataset_destroy(NULL), ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
@@ -168,7 +225,16 @@ TEST(nntrainer_cpi_dataset, add_generator_01_p) {
 /**
  * @brief Neural Network Add Generator Test (negative test)
  */
-TEST(nntrainer_cpi_dataset, add_generator_null_callback_n) {
+TEST(nntrainer_cpi_dataset, add_generator_01_n) {
+  int status = ml_train_dataset_add_generator(NULL, ML_TRAIN_DATASET_MODE_TRAIN,
+                                              getSample, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Add Generator Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_generator_02_n) {
   ml_train_dataset_h dataset;
   int status = ml_train_dataset_create(&dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -184,16 +250,111 @@ TEST(nntrainer_cpi_dataset, add_generator_null_callback_n) {
 /**
  * @brief Neural Network Add Generator Test (negative test)
  */
-TEST(nntrainer_cpi_dataset, add_generator_null_handle_n) {
-  int status = ml_train_dataset_add_generator(NULL, ML_TRAIN_DATASET_MODE_TRAIN,
-                                              NULL, NULL);
+TEST(nntrainer_cpi_dataset, add_generator_03_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_VALID,
+                                          NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Add Generator Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_generator_04_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TEST,
+                                          NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Add file Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_file_01_n) {
+  int status =
+    ml_train_dataset_add_file(NULL, ML_TRAIN_DATASET_MODE_TRAIN, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Add file Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_file_02_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_TRAIN, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Add file Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_file_03_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_VALID, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Add file Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_file_04_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_TEST, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Add file Test (negative test)
+ */
+TEST(nntrainer_cpi_dataset, add_file_05_n) {
+  ml_train_dataset_h dataset;
+  int status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
+                                     "./not_existing_file");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
  * @brief Neural Network Add file Test (positive test)
  */
-TEST(nntrainer_cpi_dataset, add_file_01_p) {
+TEST(nntrainer_cpi_dataset, add_file_06_p) {
   ml_train_dataset_h dataset;
   int status = ml_train_dataset_create(&dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -216,47 +377,6 @@ TEST(nntrainer_cpi_dataset, add_file_01_p) {
 
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
- * @brief Neural Network Add file Test (negative test)
- */
-TEST(nntrainer_cpi_dataset, add_file_null_callback_n) {
-  ml_train_dataset_h dataset;
-  int status = ml_train_dataset_create(&dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status =
-    ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_TRAIN, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
- * @brief Neural Network Add file Test (negative test)
- */
-TEST(nntrainer_cpi_dataset, add_file_does_not_exist_n) {
-  ml_train_dataset_h dataset;
-  int status = ml_train_dataset_create(&dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status = ml_train_dataset_add_file(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
-                                     "./not_existing_file");
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_dataset_destroy(dataset);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
- * @brief Neural Network Add file Test (negative test)
- */
-TEST(nntrainer_cpi_dataset, add_file_null_handle_n) {
-  int status =
-    ml_train_dataset_add_file(NULL, ML_TRAIN_DATASET_MODE_TRAIN, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
@@ -382,6 +502,17 @@ TEST(nntrainer_capi_dataset, set_dataset_property_07_p) {
 /**
  * @brief Neural Network Dataset set Property Test (positive test)
  */
+TEST(nntrainer_capi_dataset, set_dataset_property_08_p) {
+  ml_train_dataset_h dataset = NULL;
+  int status = ML_ERROR_NONE;
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset set Property Test (positive test)
+ */
 TEST(nntrainer_capi_dataset, set_dataset_property_for_mode_01_p) {
   ml_train_dataset_h dataset;
   int status = ML_ERROR_NONE;
@@ -475,7 +606,7 @@ TEST(nntrainer_capi_dataset,
 }
 
 /**
- * @brief Neural Network Dataset Create / Destroy Test (positive test )
+ * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
 TEST(nntrainer_capi_dataset, set_dataset_01_p) {
   ml_train_model_h model;
@@ -497,7 +628,7 @@ TEST(nntrainer_capi_dataset, set_dataset_01_p) {
 }
 
 /**
- * @brief Neural Network Dataset Create / Destroy Test (positive test )
+ * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
 TEST(nntrainer_capi_dataset, set_dataset_02_p) {
   ml_train_model_h model;
