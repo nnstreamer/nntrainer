@@ -76,7 +76,7 @@ TEST(nntrainer_capi_dataset, create_destroy_04_n) {
 }
 
 /**
- * @brief Neural Network Dataset Create / Destroy Test (positive test )
+ * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
 TEST(nntrainer_capi_dataset, create_destroy_05_p) {
   ml_train_dataset_h dataset;
@@ -111,18 +111,17 @@ TEST(nntrainer_capi_dataset, create_destroy_05_p) {
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
 TEST(nntrainer_capi_dataset, create_destroy_06_n) {
+  ml_train_dataset_h dataset = NULL;
   int status;
-  status = ml_train_dataset_create(NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
-  status = ml_train_dataset_destroy(NULL);
+  status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
- * @brief Neural Network Dataset Create / Destroy Test (positive test )
+ * @brief Neural Network Dataset Create / Destroy Test (positive test)
  */
-TEST(nntrainer_capi_dataset, create_destroy_07_p) {
+TEST(nntrainer_capi_dataset, create_destroy_08_p) {
   ml_train_dataset_h dataset;
   int status;
   status =
@@ -139,7 +138,7 @@ TEST(nntrainer_capi_dataset, create_destroy_07_p) {
 }
 
 /**
- * @brief Neural Network Add Generator Test (positive test )
+ * @brief Neural Network Add Generator Test (positive test)
  */
 TEST(nntrainer_cpi_dataset, add_generator_01_p) {
   ml_train_dataset_h dataset;
@@ -192,7 +191,7 @@ TEST(nntrainer_cpi_dataset, add_generator_null_handle_n) {
 }
 
 /**
- * @brief Neural Network Add file Test (positive test )
+ * @brief Neural Network Add file Test (positive test)
  */
 TEST(nntrainer_cpi_dataset, add_file_01_p) {
   ml_train_dataset_h dataset;
@@ -261,7 +260,7 @@ TEST(nntrainer_cpi_dataset, add_file_null_handle_n) {
 }
 
 /**
- * @brief Neural Network Dataset set Property Test (positive test )
+ * @brief Neural Network Dataset set Property Test (positive test)
  */
 TEST(nntrainer_capi_dataset, set_dataset_property_01_p) {
   ml_train_dataset_h dataset;
@@ -279,7 +278,7 @@ TEST(nntrainer_capi_dataset, set_dataset_property_01_p) {
 }
 
 /**
- * @brief Neural Network Dataset set Property Test (positive test )
+ * @brief Neural Network Dataset set Property Test (positive test)
  */
 TEST(nntrainer_capi_dataset, set_dataset_property_02_p) {
   ml_train_dataset_h dataset;
@@ -297,9 +296,20 @@ TEST(nntrainer_capi_dataset, set_dataset_property_02_p) {
 }
 
 /**
- * @brief Neural Network Dataset set Property Test (negative test )
+ * @brief Neural Network Dataset set Property Test (negative test)
  */
 TEST(nntrainer_capi_dataset, set_dataset_property_03_n) {
+  ml_train_dataset_h dataset = NULL;
+  int status;
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Dataset set Property Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, set_dataset_property_04_n) {
   ml_train_dataset_h dataset;
   int status;
 
@@ -318,9 +328,9 @@ TEST(nntrainer_capi_dataset, set_dataset_property_03_n) {
 }
 
 /**
- * @brief Neural Network Dataset set Property Test (positive test )
+ * @brief Neural Network Dataset set Property Test (positive test)
  */
-TEST(nntrainer_capi_dataset, set_dataset_property_04_p) {
+TEST(nntrainer_capi_dataset, set_dataset_property_05_p) {
   ml_train_dataset_h dataset;
   int status = ML_ERROR_NONE;
 
@@ -377,6 +387,24 @@ TEST(nntrainer_capi_dataset, set_dataset_property_for_mode_01_p) {
 /**
  * @brief Neural Network Dataset set Property Test (negative test)
  */
+TEST(nntrainer_capi_dataset, set_dataset_property_for_mode_02_n) {
+  ml_train_dataset_h dataset;
+  int status = ML_ERROR_NONE;
+
+  status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property_for_mode(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=1", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Dataset set Property Test (negative test)
+ */
 TEST(nntrainer_capi_dataset,
      set_dataset_property_for_mode_does_not_exist_valid_n) {
   ml_train_dataset_h dataset;
@@ -414,26 +442,9 @@ TEST(nntrainer_capi_dataset,
 }
 
 /**
- * @brief Neural Network Dataset Create / Destroy Test (negative test )
- */
-TEST(nntrainer_capi_dataset, set_dataset_01_n) {
-  ml_train_model_h model;
-  int status;
-
-  status = ml_train_model_construct(&model);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status = ml_train_model_set_dataset(model, NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_train_model_destroy(model);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
  * @brief Neural Network Dataset Create / Destroy Test (positive test )
  */
-TEST(nntrainer_capi_dataset, set_dataset_02_p) {
+TEST(nntrainer_capi_dataset, set_dataset_01_p) {
   ml_train_model_h model;
   ml_train_dataset_h dataset;
   int status;
@@ -455,7 +466,7 @@ TEST(nntrainer_capi_dataset, set_dataset_02_p) {
 /**
  * @brief Neural Network Dataset Create / Destroy Test (positive test )
  */
-TEST(nntrainer_capi_dataset, set_dataset_03_p) {
+TEST(nntrainer_capi_dataset, set_dataset_02_p) {
   ml_train_model_h model;
   ml_train_dataset_h dataset1, dataset2;
   int status;
@@ -485,6 +496,23 @@ TEST(nntrainer_capi_dataset, set_dataset_03_p) {
 
   status = ml_train_dataset_destroy(dataset1);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Dataset Create / Destroy Test (negative test)
+ */
+TEST(nntrainer_capi_dataset, set_dataset_03_n) {
+  ml_train_model_h model;
+  int status;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_dataset(model, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);

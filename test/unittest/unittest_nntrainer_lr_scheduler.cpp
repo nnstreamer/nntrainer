@@ -55,6 +55,16 @@ TEST(lr_constant, ctor_initializer_03_n) {
 }
 
 /**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_04_n) {
+  EXPECT_THROW(nntrainer::createLearningRateScheduler<
+                 nntrainer::ConstantLearningRateScheduler>({"unknown"}),
+               std::invalid_argument);
+}
+
+/**
  * @brief test set and get learning rate
  *
  */
@@ -79,7 +89,17 @@ TEST(lr_constant, prop_02_n) {
  * @brief test set and get learning rate
  *
  */
-TEST(lr_constant, prop_03_p) {
+TEST(lr_constant, prop_03_n) {
+  auto lr = createLRS("constant");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01, 0.001"}));
+  EXPECT_NO_THROW(lr->finalize());
+}
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_constant, prop_04_p) {
   auto lr = createLRS("constant");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));
@@ -126,7 +146,17 @@ TEST(lr_exponential, prop_01_n) {
  * @brief test set and get learning rate
  *
  */
-TEST(lr_exponential, prop_02_p) {
+TEST(lr_exponential, prop_02_n) {
+  auto lr = createLRS("exponential");
+
+  EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0, 0.1, 0.01, 0.001"}));
+}
+
+/**
+ * @brief test set and get learning rate
+ *
+ */
+TEST(lr_exponential, prop_03_p) {
   auto lr = createLRS("exponential");
 
   EXPECT_NO_THROW(lr->setProperty({"learning_rate=1.0"}));

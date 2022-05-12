@@ -407,9 +407,6 @@ TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
   status = ml_train_model_add_layer(model, layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_destroy(layer);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -510,15 +507,54 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
 }
 
 /**
- * @brief Neural Network Model Add layer test
+ * @brief Neural Network Model Add Layer Test
  */
 TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layer = NULL;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layer);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Add Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_06_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layer = NULL;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(layer, "input_shape=1:1:6270",
+                                       "normalization=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Add layer test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_07_n) {
   int status = ML_ERROR_NONE;
 
   ml_train_model_h model = NULL;
   ml_train_layer_h layer = NULL;
 
-  ScopedIni s("capi_test_compile_01_p",
+  ScopedIni s("capi_test_addLayer_08_n",
               {model_base, optimizer, dataset, inputlayer, outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
@@ -622,7 +658,31 @@ TEST(nntrainer_capi_nnmodel, getLayer_02_p) {
 /**
  * @brief Neural Network Model Get Layer Test
  */
-TEST(nntrainer_capi_nnmodel, getLayer_03_n) {
+TEST(nntrainer_capi_nnmodel, getLayer_03_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h get_layer;
+
+  ScopedIni s("getLayer_03_p", {model_base, inputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(model, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_layer(model, "inputlayer", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Get Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
   int status = ML_ERROR_NONE;
 
   ml_train_model_h model;
@@ -641,7 +701,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_03_n) {
   status = ml_train_model_add_layer(model, add_layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_get_layer(model, "unknwon", &get_layer);
+  status = ml_train_model_get_layer(model, "unknown", &get_layer);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_destroy(model);
@@ -651,22 +711,38 @@ TEST(nntrainer_capi_nnmodel, getLayer_03_n) {
 /**
  * @brief Neural Network Model Get Layer Test
  */
-TEST(nntrainer_capi_nnmodel, getLayer_04_p) {
+TEST(nntrainer_capi_nnmodel, getLayer_05_n) {
   int status = ML_ERROR_NONE;
 
   ml_train_model_h model;
   ml_train_layer_h get_layer;
 
-  ScopedIni s("getLayer_04_n", {model_base, inputlayer});
+  std::string default_name = "inputlayer", modified_name = "renamed_inputlayer";
+  char *default_summary, *modified_summary = nullptr;
+
+  ScopedIni s("getLayer_02_p", {model_base, inputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_compile(model, NULL);
+  status =
+    ml_train_model_get_summary(model, ML_TRAIN_SUMMARY_MODEL, &default_summary);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_get_layer(model, "inputlayer", &get_layer);
+  std::string default_summary_str(default_summary);
+  EXPECT_NE(default_summary_str.find(default_name), std::string::npos);
+  free(default_summary);
+
+  status = ml_train_model_get_layer(model, default_name.c_str(), &get_layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(get_layer,
+                                       ("name=" + modified_name).c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  ///@todo need to fix bug (Unable to get renamed layer)
+  status = ml_train_model_get_layer(model, modified_name.c_str(), &get_layer);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -803,6 +879,118 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
 /**
  * @brief Neural Network Model Optimizer Test
  */
+TEST(nntrainer_capi_nnmodel, create_optimizer_04_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_optimizer_h optimizer;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, create_optimizer_05_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_optimizer_h optimizer = NULL;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_destroy(optimizer);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, create_optimizer_06_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_optimizer_h optimizer;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "invalid_property_key=invalid_property_value", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_optimizer_destroy(optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, create_optimizer_07_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                       "normalization=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
 TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   int status = ML_ERROR_NONE;
 
@@ -869,6 +1057,185 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
 
   /** Compare training statistics */
   nntrainer_capi_model_comp_metrics(model, 2.111340, 2.209510, 16.6667);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_file_02_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                "normalization=true", "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+    "weight_initializer=xavier_uniform", "name = fc1",
+    "input_layers=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_create_with_file(
+    &dataset, NULL, getTestResPath("valSet.dat").c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_file_03_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset = NULL;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                "normalization=true", "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+    "weight_initializer=xavier_uniform", "name = fc1",
+    "input_layers=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_create_with_file(
+    &dataset, NULL, getTestResPath("valSet.dat").c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_file_04_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                "normalization=true", "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+    "weight_initializer=xavier_uniform", "name = fc1",
+    "input_layers=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(),
+    getTestResPath("valSet.dat").c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_dataset_set_property(dataset, "invalid_key=invalid_value", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1050,6 +1417,125 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_generator_03_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                "normalization=true", "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+    "weight_initializer=xavier_uniform", "name=fc1", "input_layers=inputlayer",
+    NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
+
+  status = ml_train_dataset_create_with_generator(&dataset, NULL, NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_generator_04_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset = NULL;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
+                                "normalization=true", "name=inputlayer", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
+    "weight_initializer=xavier_uniform", "name=fc1", "input_layers=inputlayer",
+    NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 /**
  * @brief Neural Network Model Summary Test summary verbosity of tensor
  */
