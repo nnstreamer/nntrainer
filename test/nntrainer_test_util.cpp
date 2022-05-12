@@ -221,7 +221,8 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
 
 nntrainer::GraphRepresentation makeCompiledGraph(
   const std::vector<LayerRepresentation> &layer_reps,
-  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers) {
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers,
+  const std::string &loss_layer) {
   static auto &ac = nntrainer::AppContext::Global();
 
   nntrainer::GraphRepresentation graph_rep;
@@ -242,7 +243,7 @@ nntrainer::GraphRepresentation makeCompiledGraph(
     model_graph.addLayer(layer);
   }
 
-  model_graph.compile("");
+  model_graph.compile(loss_layer);
 
   graph_rep.clear();
   for (auto &node : model_graph.getLayerNodes()) {

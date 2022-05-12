@@ -18,6 +18,7 @@
 #include <connection.h>
 #include <flatten_realizer.h>
 #include <input_realizer.h>
+#include <loss_realizer.h>
 #include <multiout_realizer.h>
 #include <nntrainer_error.h>
 #include <previous_input_realizer.h>
@@ -920,4 +921,26 @@ TEST(BnRealizer, bn_realizer_resblock_p) {
   realizers.emplace_back(new nntrainer::MultioutRealizer());
   BnRealizer r;
   EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
+}
+
+TEST(LossRealizer, loss_realizer_p) {
+  /// realization without identifying custom input
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=fc1"}},
+    {"activation", {"name=ac1", "activation=relu", "input_layers=fc1"}},
+    {"fully_connected", {"name=fc2", "input_layers=ac1"}},
+    {"activation", {"name=ac2", "activation=relu", "input_layers=fc2"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
+    {"mse", {"name=loss", "input_layers=fc3"}},
+  };
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected", {"name=fc1"}},
+    {"activation", {"name=ac1", "activation=relu", "input_layers=fc1"}},
+    {"fully_connected", {"name=fc2", "input_layers=ac1"}},
+    {"activation", {"name=ac2", "activation=relu", "input_layers=fc2"}},
+    {"fully_connected", {"name=fc3", "input_layers=ac2"}},
+  };
+  LossRealizer r;
+  std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
+  compileAndRealizeAndEqual(r, realizers, before, after);
 }
