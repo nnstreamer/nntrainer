@@ -75,8 +75,6 @@ protected:
  *
  */
 TEST_P(nntrainerInterpreterTest, graphEqual) {
-  std::cout << "testing " << file_path << '\n';
-
   // int status = reference->compile("");
   // EXPECT_EQ(status, ML_ERROR_NONE);
   auto g = interpreter->deserialize(file_path);
@@ -89,7 +87,7 @@ TEST_P(nntrainerInterpreterTest, graphEqual) {
   /// 1. having same number of nodes
   /// 2. layer name is identical (this is too strict though)
   /// 3. attributes of layer is identical
-  graphEqual(g, reference);
+  EXPECT_NO_THROW(graphEqual(g, reference));
 }
 
 /**

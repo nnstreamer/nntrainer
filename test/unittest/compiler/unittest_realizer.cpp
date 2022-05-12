@@ -70,7 +70,7 @@ TEST(FlattenRealizer, flatten_p) {
     {"name=layer1/flatten_realized", "input_layers=layer1"},
   };
 
-  realizeAndEqual(fr, {input1}, {expected1, expected2});
+  EXPECT_NO_THROW(realizeAndEqual(fr, {input1}, {expected1, expected2}));
 }
 
 TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
@@ -107,7 +107,7 @@ TEST(RecurrentRealizer, recurrent_no_return_sequence_p) {
     {"identity", {"name=fc_out", "input_layers=fc_out/2"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RecurrentRealizer, recurrent_input_is_sequence_p) {
@@ -144,7 +144,7 @@ TEST(RecurrentRealizer, recurrent_input_is_sequence_p) {
     {"identity", {"name=fc_out", "input_layers=fc_out/2"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RecurrentRealizer, recurrent_return_sequence_single_p) {
@@ -182,7 +182,7 @@ TEST(RecurrentRealizer, recurrent_return_sequence_single_p) {
     {"identity", {"name=fc_out", "input_layers=fc_out/concat_0"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
@@ -246,7 +246,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_return_seq_p) {
     {"identity", {"name=fc_out", "input_layers=fc_out/concat_0"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_p) {
@@ -307,7 +307,7 @@ TEST(RecurrentRealizer, recurrent_multi_inout_using_connection_p) {
     {"identity", {"name=fc_out", "input_layers=fc_out/2"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RecurrentRealizer, recurrent_multi_inout_multi_connection_end_p) {
@@ -379,29 +379,32 @@ TEST(RecurrentRealizer, recurrent_multi_inout_multi_connection_end_p) {
     {"identity", {"name=split", "input_layers=split/2(0),split/concat_1"}},
   };
 
-  realizeAndEqual(r, before, expected);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, expected));
 }
 
 TEST(RemapRealizer, remap_p) {
-
-  RemapRealizer r([](std::string &name) { name = "scoped/" + name; });
-
   LayerRepresentation input1 = {
     "fully_connected", {"name=layer1", "flatten=true", "input_layers=1,2"}};
 
-  LayerRepresentation expected1 = {
-    "fully_connected",
-    {"name=scoped/layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
+  {
+    RemapRealizer r([](std::string &name) { name = "scoped/" + name; });
 
-  realizeAndEqual(r, {input1}, {expected1});
-  RemapRealizer r2(
-    [](std::string &name, unsigned &_) { name = "scoped/" + name; });
+    LayerRepresentation expected1 = {
+      "fully_connected",
+      {"name=scoped/layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
 
-  LayerRepresentation expected2 = {
-    "fully_connected",
-    {"name=layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
+    EXPECT_NO_THROW(realizeAndEqual(r, {input1}, {expected1}));
+  }
+  {
+    RemapRealizer r2(
+      [](std::string &name, unsigned &_) { name = "scoped/" + name; });
 
-  realizeAndEqual(r2, {input1}, {expected2});
+    LayerRepresentation expected2 = {
+      "fully_connected",
+      {"name=layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
+
+    EXPECT_NO_THROW(realizeAndEqual(r2, {input1}, {expected2}));
+  }
 }
 
 TEST(SliceRealizer, slice_01_p) {
@@ -463,7 +466,7 @@ TEST(SliceRealizer, slice_01_p) {
       C("d2"),
     });
 
-  realizeAndEqual(r, before, after);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, after));
 }
 
 TEST(SliceRealizer, slice_02_p) {
@@ -497,7 +500,7 @@ TEST(SliceRealizer, slice_02_p) {
 
   SliceRealizer r({Connection("a1")}, {Connection("c1")});
 
-  realizeAndEqual(r, before, after);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, after));
 }
 
 TEST(InputRealizer, input_p) {
@@ -527,7 +530,7 @@ TEST(InputRealizer, input_p) {
       C("in3(3)"),
       C("in4"),
     });
-  realizeAndEqual(r, before, after);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, after));
 }
 
 TEST(InputRealizer, input_start_num_not_match_n) {
@@ -620,7 +623,7 @@ TEST(PreviousInputRealizer, previous_p) {
       {"fully_connected", {"name=fc4", "input_layers=fc3"}},
     };
     PreviousInputRealizer r({});
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
   { /// realization identifying fc1, fc4 is input layer
     std::vector<LayerRepresentation> before = {
@@ -636,7 +639,7 @@ TEST(PreviousInputRealizer, previous_p) {
       {"fully_connected", {"name=fc4"}},
     };
     PreviousInputRealizer r({Connection("fc1"), Connection("fc4")});
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
   { /// intermediate node is auto input
     std::vector<LayerRepresentation> before = {
@@ -654,7 +657,7 @@ TEST(PreviousInputRealizer, previous_p) {
       {"fully_connected", {"name=fc4", "input_layers=fc3"}},
     };
     PreviousInputRealizer r({});
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
 }
 
@@ -687,7 +690,7 @@ TEST(MultioutRealizer, multiout_p) {
     };
 
     MultioutRealizer r;
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
 
   { // source has single output, all are referred multiple times
@@ -709,7 +712,7 @@ TEST(MultioutRealizer, multiout_p) {
     };
 
     MultioutRealizer r;
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
 
   { // source has single output, some are referred multiple times
@@ -728,7 +731,7 @@ TEST(MultioutRealizer, multiout_p) {
     };
 
     MultioutRealizer r;
-    realizeAndEqual(r, before, after);
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
 }
 
@@ -743,7 +746,7 @@ TEST(MultioutRealizer, multiout_clashing_name_n) {
 }
 
 TEST(ActivationRealizer, activation_p) {
-  ActivationRealizer ar;
+  ActivationRealizer r;
 
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=a"}},
@@ -761,11 +764,11 @@ TEST(ActivationRealizer, activation_p) {
      {"name=c/activation_realized", "input_layers=c", "activation=softmax"}},
   };
 
-  realizeAndEqual(ar, before, after);
+  EXPECT_NO_THROW(realizeAndEqual(r, before, after));
 }
 
 TEST(ActivationRealizer, activation_unknown_n) {
-  ActivationRealizer ar;
+  ActivationRealizer r;
 
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=a"}},
@@ -775,7 +778,7 @@ TEST(ActivationRealizer, activation_unknown_n) {
      {"name=c", "input_layers=b", "activation=unknown"}}, // unknown
   };
 
-  EXPECT_ANY_THROW(realizeAndEqual(ar, before, {}));
+  EXPECT_ANY_THROW(realizeAndEqual(r, before, {}));
 }
 
 TEST(BnRealizer, bn_realizer_p) {
@@ -798,7 +801,7 @@ TEST(BnRealizer, bn_realizer_p) {
   };
   BnRealizer r;
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
-  compileAndRealizeAndEqual(r, realizers, before, after);
+  EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
 }
 
 TEST(BnRealizer, bn_realizer_resblock_p) {
@@ -832,5 +835,5 @@ TEST(BnRealizer, bn_realizer_resblock_p) {
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
   realizers.emplace_back(new nntrainer::MultioutRealizer());
   BnRealizer r;
-  compileAndRealizeAndEqual(r, realizers, before, after);
+  EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
 }
