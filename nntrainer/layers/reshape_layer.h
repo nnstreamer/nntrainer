@@ -90,7 +90,7 @@ public:
 
   inline static const std::string type = "reshape";
 
-private:
+protected:
   std::tuple<props::TargetShape>
     reshape_props; /**< reshape properties : target_shape after reshape */
 };

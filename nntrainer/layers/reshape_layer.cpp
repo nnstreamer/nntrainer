@@ -34,8 +34,6 @@ void ReshapeLayer::finalize(InitLayerContext &context) {
       "Reshape layer must be provided with target shape");
   TensorDim out_dim = target_shape.get();
 
-  /** flatten sets the dimension to 1 to indicate to flatten the rest of the
-   * dimensions */
   if ((int)out_dim.getDataLen() == -1) {
     out_dim.height(1);
     out_dim.channel(1);
