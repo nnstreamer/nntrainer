@@ -43,7 +43,17 @@ TEST(nntrainer_Optimizer, create_01_p) {
 /**
  * @brief Optimizer create
  */
-TEST(nntrainer_Optimizer, setType_02_p) {
+TEST(nntrainer_Optimizer, create_02_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(
+    op = ac.createObject<nntrainer::Optimizer>("adam", {"unknown"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, setType_02_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("sgd", {}));
@@ -53,6 +63,16 @@ TEST(nntrainer_Optimizer, setType_02_p) {
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_03_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(op =
+                     ac.createObject<nntrainer::Optimizer>("sgd", {"unknown"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, setType_04_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_ANY_THROW(

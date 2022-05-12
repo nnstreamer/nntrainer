@@ -483,6 +483,17 @@ TEST(TensorPool, view_is_subset_p) {
   pool.deallocate();
 }
 
+TEST(TensorPool, view_is_subset_n) {
+  nntrainer::TensorPool pool;
+  // |-------- t1 -------|
+  // |-t2-|
+  //       |-t3-|
+  auto t1 = pool.request("t1", {10}, {0}, max_ls);
+  EXPECT_ANY_THROW(pool.view("t2", "unknown", {3}, {1}, max_ls));
+  EXPECT_ANY_THROW(pool.view("t3", "unknown", {3}, {1}, max_ls, 3));
+  pool.deallocate();
+}
+
 TEST(TensorPool, view_is_view_of_view_and_subset_p) {
   // |-------- t1-------|
   // |-t2-|(offset)
@@ -499,6 +510,17 @@ TEST(TensorPool, view_is_view_of_view_and_subset_p) {
   testSubset(t1, t2);
   testSubset(t1, t3);
   testNoOverlap(t2, t3);
+  pool.deallocate();
+}
+
+TEST(TensorPool, view_is_view_of_view_and_subset_n) {
+  nntrainer::TensorPool pool;
+  // |-------- t1 -------|
+  // |-t2-|
+  //       |-t3-|
+  auto t1 = pool.request("t1", {10}, {0}, max_ls);
+  auto t2 = pool.view("t2", "t1", {3}, {1}, max_ls);
+  EXPECT_ANY_THROW(pool.view("t3", "unknown", {3}, {1}, max_ls, 3));
   pool.deallocate();
 }
 

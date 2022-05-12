@@ -108,6 +108,15 @@ TEST(nntrainer_util_func, throw_status_invalid_argument_n) {
                std::invalid_argument);
 }
 
+TEST(nntrainer_util_func, throw_status_try_again_n) {
+  EXPECT_THROW(nntrainer::throw_status(ML_ERROR_TRY_AGAIN), std::runtime_error);
+}
+
+TEST(nntrainer_util_func, throw_status_not_supported_n) {
+  EXPECT_THROW(nntrainer::throw_status(ML_ERROR_NOT_SUPPORTED),
+               std::runtime_error);
+}
+
 TEST(nntrainer_util_func, throw_status_out_of_memory_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_OUT_OF_MEMORY), std::bad_alloc);
 }
