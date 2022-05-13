@@ -18,7 +18,9 @@ android-ndk-r21d-linux-x86_64.zip
 $ unzip android-ndk-r21d-linux-86_64.zip
 $ ls
 android-ndk-r21d
-$ export LD_LIBRARY_PATH = $LD_LIBRARY_PATH:${PWD}/android-ndk-r21d/
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/android-ndk-r21d/
+$ export PATH=$PATH:${PWD}/android-ndk-r21d/
+$ export ANDROID_NDK=${PWD}/android-ndk-r21d/
 ```
 
 ### Build NNTrainer with NDK-Build
@@ -60,7 +62,7 @@ $ mv libs ../
 
 ### Build NNTrainer Applications with NDK-Build
 Now you are ready to build nntrainer application in ${NNTRAINER_ROOT}/Applications
-If you want to build Application/LogisticRegration,
+If you want to build Application/LogisticRegression,
 
 ```bash
 $ cd ${NNTRAINER_ROOT}
@@ -85,3 +87,15 @@ Now you can find the execution binary of nntrainer_logistic.
 You can copy execution binary and nntrainer.so libraries in a proper place of your android device using ADB.
 
 Then you can run it using ADB shell.
+
+### Troubleshooting
+
+1. Check version of your ndk before executing the aboce commands.
+2. `ANDROID_NDK` not defined while bulding the particular application such as Logistic regression.
+
+```bash
+$ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
+Android.mk:7: *** ANDROID_NDK is not defined!.  Stop.
+
+```
+Fix: Check if the environment variable is loaded with `echo $ANDROID_NDK` and then define it using `export` 
