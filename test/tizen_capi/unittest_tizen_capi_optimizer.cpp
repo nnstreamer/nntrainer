@@ -140,6 +140,18 @@ TEST(nntrainer_capi_nnopt, setOptimizer_04_n) {
 }
 
 /**
+ * @brief Neural Network Optimizer Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnopt, setOptimizer_05_n) {
+  ml_train_optimizer_h handle = NULL;
+  int status;
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_optimizer_set_property(handle, "unknown=unknown", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

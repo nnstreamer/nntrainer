@@ -210,12 +210,26 @@ TEST(nntrainer_capi_nnlayer, setproperty_10_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   /**
    * Default to none activation if no activation is set.
-   * If activation is set which isnt available, then error.
+   * If activation is set which is not available, then error.
    */
   status = ml_train_layer_set_property(handle, "activation=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_11_n) {
+  ml_train_layer_h handle = nullptr;
+  int status;
+  /**
+   * Default to none activation if no activation is set.
+   * If activation is set which is not available, then error.
+   */
+  status = ml_train_layer_set_property(handle, "activation=0.0001", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /*** since tizen 6.5 ***/
