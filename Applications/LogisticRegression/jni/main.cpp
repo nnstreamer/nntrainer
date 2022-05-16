@@ -28,12 +28,11 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <layer.h>
+#include <model.h>
+#include <optimizer.h>
 #include <random>
 #include <sstream>
-
-#include <databuffer.h>
-#include <neuralnet.h>
-#include <tensor.h>
 
 std::string data_file;
 
@@ -50,23 +49,6 @@ const unsigned int total_val_data_size = 10;
 constexpr unsigned int SEED = 0;
 
 bool training = false;
-
-/**
- * @brief     step function
- * @param[in] x value to be distinguished
- * @retval 0.0 or 1.0
- */
-float stepFunction(float x) {
-  if (x > 0.5) {
-    return 1.0;
-  }
-
-  if (x < 0.5) {
-    return 0.0;
-  }
-
-  return x;
-}
 
 /**
  * @brief     get idth Data
@@ -161,64 +143,87 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
-  auto data_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                             getSample_train);
-
   /**
    * @brief     Create NN
    */
-  std::vector<std::vector<float>> inputVector, outputVector;
-  nntrainer::NeuralNetwork NN;
+  std::unique_ptr<ml::train::Model> model;
+  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   /**
    * @brief     Initialize NN with configuration file path
    */
 
   try {
-    NN.loadFromConfig(config);
-    NN.compile();
-    NN.initialize();
+    model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    model->compile();
+    model->initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;
   }
 
   if (training) {
-    NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN,
-                  std::move(data_train));
+    auto data_train = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, getSample_train);
+
+    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
+                      std::move(data_train));
 
     try {
-      NN.train({"save_path=" + weight_path});
+      model->train({"save_path=" + weight_path});
     } catch (...) {
       std::cerr << "Error during train" << std::endl;
       return 0;
     }
   } else {
     try {
-      NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+      model->load(weight_path);
     } catch (std::exception &e) {
       std::cerr << "Error during loading weights: " << e.what() << "\n";
       return 1;
     }
     std::ifstream dataFile(data_file);
     int cn = 0;
-    for (unsigned int j = 0; j < total_val_data_size; ++j) {
-      nntrainer::Tensor d;
-      std::vector<float> o;
-      std::vector<float> l;
-      o.resize(feature_size);
-      l.resize(1);
+    std::vector<float *> in;
+    std::vector<float *> l;
 
-      getData(dataFile, o.data(), l.data(), j);
+    auto step = [](const float result) {
+      if (result < 0.5) {
+        return 0;
+      } else
+        return 1;
+    };
+
+    for (unsigned int j = 0; j < total_val_data_size; ++j) {
+
+      float input[feature_size];
+      float label[1];
+
+      if (!getData(dataFile, input, label, j))
+        std::cout << "error dring read file " << std::endl;
 
       try {
-        float answer =
-          NN.forwarding({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}))},
-                        {MAKE_SHARED_TENSOR(nntrainer::Tensor({l}))})[0]
-            ->apply(stepFunction)
-            .getValue(0, 0, 0, 0);
-        std::cout << answer << " : " << l[0] << std::endl;
-        cn += answer == l[0];
+
+        std::vector<float *> answer;
+
+        in.push_back(input);
+        l.push_back(label);
+
+        answer = model->inference(1, in, l);
+
+        in.clear();
+        l.clear();
+
+        int c = step(answer[0][0]);
+
+        if (c == int(label[0])) {
+          cn++;
+          std::cout << answer[0][0] << " - " << c << " : " << label[0]
+                    << std::endl;
+        } else {
+          std::cout << " Something Wrong  " << answer[0][0] << " " << label[0]
+                    << std::endl;
+        }
       } catch (...) {
         std::cerr << "Error during forwarding the model" << std::endl;
         return -1;

@@ -246,11 +246,11 @@ INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
 INIPARSER_INCLUDES := $(INIPARSER_ROOT)/src
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
@@ -320,11 +320,11 @@ CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference nntrainer
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -DML_API_COMMON=1
+LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp -DML_API_COMMON=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions -DML_API_COMMON=1
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_MODULE        := capi-nntrainer
 LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
