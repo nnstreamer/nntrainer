@@ -41,7 +41,7 @@ void ExponentialLearningRateScheduler::setProperty(
 }
 
 void ExponentialLearningRateScheduler::exportTo(
-  Exporter &exporter, const ExportMethods &method) const {
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   ConstantLearningRateScheduler::exportTo(exporter, method);
   exporter.saveResult(lr_props, method, this);
 }

@@ -255,8 +255,8 @@ void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   deriv.sum(axes_to_reduce, dbeta);
 }
 
-void BatchNormalizationLayer::exportTo(Exporter &exporter,
-                                       const ExportMethods &method) const {
+void BatchNormalizationLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(bn_props, method, this);
 }
 

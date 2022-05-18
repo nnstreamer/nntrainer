@@ -75,7 +75,7 @@ void ActivationLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void ActivationLayer::exportTo(Exporter &exporter,
-                               const ExportMethods &method) const {
+                               const ml::train::ExportMethods &method) const {
   exporter.saveResult(*activation_props, method, this);
 }
 

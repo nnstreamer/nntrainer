@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <nntrainer-api-common.h>
+#include <common.h>
 
 #include <dataset.h>
 #include <layer.h>
@@ -290,6 +290,14 @@ public:
    * @retval    loss value
    */
   virtual float getValidationLoss() = 0;
+
+  /**
+   * @brief export the model according to given export method
+   * @param method export method
+   * @param file_path path to be serialized
+   */
+  virtual void exports(const ExportMethods &method,
+                       const std::string file_path) = 0;
 };
 
 /**

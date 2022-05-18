@@ -162,7 +162,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
 }
 
 void EmbeddingLayer::exportTo(Exporter &exporter,
-                              const ExportMethods &method) const {
+                              const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(embedding_props, method, this);
 }

@@ -25,7 +25,6 @@
 namespace nntrainer {
 
 class Exporter;
-enum class ExportMethods;
 
 /**
  * @class   Optimizer Base class for optimizers
@@ -64,8 +63,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
-  }
+  virtual void exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {}
 
   /**
    * @brief     finalize optimizer.

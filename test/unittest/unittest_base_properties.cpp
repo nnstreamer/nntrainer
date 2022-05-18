@@ -321,10 +321,10 @@ TEST(BasicProperty, valid_p) {
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
     nntrainer::Exporter e;
-    e.saveResult(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    e.saveResult(props, ml::train::ExportMethods::METHOD_STRINGVECTOR);
 
     auto result =
-      std::move(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
+      std::move(e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>());
 
     auto pair = std::pair<std::string, std::string>("num_banana", "1");
     EXPECT_EQ(result->at(0), pair);
@@ -335,9 +335,9 @@ TEST(BasicProperty, valid_p) {
       std::move(std::make_unique<nntrainer::FullyConnectedLayer>()));
     nntrainer::Exporter e;
     lnode.setProperty({"unit=1"});
-    lnode.exportTo(e, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    lnode.exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR);
 
-    auto result = e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+    auto result = e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
     auto pair1 = std::pair<std::string, std::string>("unit", "1");
     for (unsigned int i = 0; i < (*result).size(); ++i) {
       if (result->at(i).first == "unit") {
@@ -476,7 +476,7 @@ TEST(Exporter, invalidMethods_n) {
   auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
   nntrainer::Exporter e;
-  EXPECT_THROW(e.saveResult(props, nntrainer::ExportMethods::METHOD_UNDEFINED),
+  EXPECT_THROW(e.saveResult(props, ml::train::ExportMethods::METHOD_UNDEFINED),
                nntrainer::exception::not_supported);
 }
 
@@ -485,9 +485,9 @@ TEST(Exporter, notExported_n) {
 
   nntrainer::Exporter e;
   /// intended comment
-  // e.saveResult(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+  // e.saveResult(props, ml::train::ExportMethods::METHOD_STRINGVECTOR);
 
-  EXPECT_EQ(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+  EXPECT_EQ(e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>(),
             nullptr);
 }
 

@@ -50,6 +50,10 @@
 #include <slice_realizer.h>
 #include <util_func.h>
 
+#ifdef ENABLE_TFLITE_INTERPRETER
+#include <tflite_interpreter.h>
+#endif
+
 /**
  * @brief Internal enum values for nntrainer to summarize model accuracy & loss
  */
@@ -496,7 +500,8 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
 
   auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
   auto data_buffer_valid = [](const auto &buffer) {
-    return buffer && buffer->isSerializable(ExportMethods::METHOD_STRINGVECTOR);
+    return buffer && buffer->isSerializable(
+                       ml::train::ExportMethods::METHOD_STRINGVECTOR);
   };
 
   add_section_if_any("train_set", train_buffer, data_buffer_valid);
@@ -1055,7 +1060,7 @@ void NeuralNetwork::addWithReferenceLayers(
 }
 
 void NeuralNetwork::exportTo(Exporter &exporter,
-                             const ExportMethods &method) const {
+                             const ml::train::ExportMethods &method) const {
   exporter.saveResult(model_props, method, this);
   exporter.saveResult(model_flex_props, method, this);
 }
@@ -1190,5 +1195,25 @@ void NeuralNetwork::forEachLayer(
     auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
     fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
   };
+}
+
+void NeuralNetwork::exports(const ml::train::ExportMethods &method,
+                            const std::string file_path) {
+  switch (method) {
+  case ml::train::ExportMethods::METHOD_TFLITE: {
+    nntrainer::TfliteInterpreter interpreter;
+
+    /// We will call "serialize" method for the model which is already trained
+    /// or allocated. So, we need to call deallocateTensors first to make sure
+    /// `dealloc_weights == false`
+    model_graph.deallocateTensors();
+    model_graph.allocateTensors(ExecutionMode::INFERENCE);
+    interpreter.serialize(graph_representation, file_path);
+    model_graph.deallocateTensors();
+    break;
+  }
+  default:
+    throw std::runtime_error{"Unsupported export method"};
+  }
 }
 } /* namespace nntrainer */

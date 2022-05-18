@@ -246,7 +246,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void Pooling2DLayer::exportTo(Exporter &exporter,
-                              const ExportMethods &method) const {
+                              const ml::train::ExportMethods &method) const {
   exporter.saveResult(pooling2d_props, method, this);
 }
 

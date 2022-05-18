@@ -425,7 +425,7 @@ const std::vector<TensorDim> LayerNode::getOutputDimensions() const {
 }
 
 void LayerNode::exportTo(Exporter &exporter,
-                         const ExportMethods &method) const {
+                         const ml::train::ExportMethods &method) const {
   exporter.saveResult(*layer_node_props, method, this);
   layer->exportTo(exporter, method);
 }
@@ -762,10 +762,10 @@ std::unique_ptr<LayerNode> LayerNode::cloneConfiguration() {
   NNTR_THROW_IF(isFinalized(), std::invalid_argument)
     << "It is prohibited to clone configuration";
   Exporter e;
-  exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
+  exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR);
   e.saveResult(*layer_node_props_realization,
-               ExportMethods::METHOD_STRINGVECTOR, this);
-  auto props = e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
+               ml::train::ExportMethods::METHOD_STRINGVECTOR, this);
+  auto props = e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
 
   std::vector<std::string> key_val_props;
   key_val_props.reserve(props->size());
@@ -815,9 +815,9 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
     out << "======meta properties: " << std::endl;
     /** @todo print local and layer properties with node_exporter */
     nntrainer::Exporter e;
-    getLayer()->exportTo(e, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    getLayer()->exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR);
     auto prop_meta =
-      e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+      e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
     if (prop_meta != nullptr) {
       for (unsigned int i = 0; i < prop_meta->size(); ++i) {
         out << (*prop_meta)[i].first << ": " << (*prop_meta)[i].second << "\n";

@@ -80,7 +80,7 @@ void OptimizerWrapped::applyGradient(RunOptimizerContext &context) {
 }
 
 void OptimizerWrapped::exportTo(Exporter &exporter,
-                                const ExportMethods &method) const {
+                                const ml::train::ExportMethods &method) const {
   optimizer->exportTo(exporter, method);
   lr_sched->exportTo(exporter, method);
 }

@@ -82,6 +82,6 @@ FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 }
 
 void FuncDataProducer::exportTo(Exporter &exporter,
-                                const ExportMethods &method) const {}
+                                const ml::train::ExportMethods &method) const {}
 
 } // namespace nntrainer

@@ -132,8 +132,8 @@ void PreprocessTranslateLayer::calcDerivative(RunLayerContext &context) {
     "calcDerivative for preprocess layer is not supported");
 }
 
-void PreprocessTranslateLayer::exportTo(Exporter &exporter,
-                                        const ExportMethods &method) const {
+void PreprocessTranslateLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(preprocess_translate_props, method, this);
 }
 

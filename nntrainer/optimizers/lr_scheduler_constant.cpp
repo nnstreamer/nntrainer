@@ -38,7 +38,7 @@ void ConstantLearningRateScheduler::setProperty(
 }
 
 void ConstantLearningRateScheduler::exportTo(
-  Exporter &exporter, const ExportMethods &method) const {
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(lr_props, method, this);
 }
 

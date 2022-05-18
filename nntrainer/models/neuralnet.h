@@ -47,6 +47,7 @@
 #include <model.h>
 #include <nntrainer-api-common.h>
 #include <nntrainer_error.h>
+#include <node_exporter.h>
 
 namespace ml::train {
 class DataSet;
@@ -57,7 +58,6 @@ enum class DatasetModeType;
 namespace nntrainer {
 
 class Exporter;
-enum class ExportMethods;
 
 /**
  * @brief     Enumeration of Network Type
@@ -387,7 +387,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const;
 
   /**
    * @brief     get input dimension of neural network
@@ -518,6 +519,14 @@ public:
     const std::vector<std::string> &end_layers,
     ml::train::ReferenceLayersType type,
     const std::vector<std::string> &type_properties = {});
+
+  /**
+   * @brief     export the model according to given export method
+   * @param method export method
+   * @param file_path path to be serialized
+   */
+  void exports(const ml::train::ExportMethods &method,
+               const std::string file_path) override;
 
 private:
   using FlexiblePropTypes =

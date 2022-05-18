@@ -237,9 +237,9 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation) {
        iter++) {
     const auto &ln = *iter;
     Exporter e;
-    ln->exportTo(e, ExportMethods::METHOD_TFLITE);
+    ln->exportTo(e, ml::train::ExportMethods::METHOD_TFLITE);
 
-    nodes.emplace_back(e.getResult<ExportMethods::METHOD_TFLITE>());
+    nodes.emplace_back(e.getResult<ml::train::ExportMethods::METHOD_TFLITE>());
   }
 
   return nodes;

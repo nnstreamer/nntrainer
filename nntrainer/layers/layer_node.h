@@ -39,7 +39,6 @@ namespace nntrainer {
 class Layer;
 class Connection;
 class Exporter;
-enum class ExportMethods;
 
 namespace props {
 class Name;
@@ -280,7 +279,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const;
 
   /**
    * @brief Set the batch for the layer

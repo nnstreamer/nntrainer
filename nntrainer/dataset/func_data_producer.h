@@ -25,7 +25,6 @@ namespace nntrainer {
 
 class PropsUserData;
 class Exporter;
-enum class ExportMethods;
 
 using datagen_cb = ml::train::datagen_cb;
 
@@ -71,9 +70,11 @@ public:
                                    void *user_data = nullptr) override;
 
   /**
-   * @copydoc DataProducer::exportTo(Exporter &exporter, ExportMethods method)
+   * @copydoc DataProducer::exportTo(Exporter &exporter,
+   * ml::train::ExportMethods method)
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
 private:
   datagen_cb cb;

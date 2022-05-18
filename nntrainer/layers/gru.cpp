@@ -179,7 +179,8 @@ void GRULayer::setProperty(const std::vector<std::string> &values) {
   LayerImpl::setProperty(remain_props);
 }
 
-void GRULayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
+void GRULayer::exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(gru_props, method, this);
 }

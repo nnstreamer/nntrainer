@@ -161,7 +161,7 @@ void RNNCellLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void RNNCellLayer::exportTo(Exporter &exporter,
-                            const ExportMethods &method) const {
+                            const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(rnncell_props, method, this);
 }

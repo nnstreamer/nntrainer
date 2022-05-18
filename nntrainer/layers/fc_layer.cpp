@@ -88,8 +88,8 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   }
 }
 
-void FullyConnectedLayer::exportTo(Exporter &exporter,
-                                   const ExportMethods &method) const {
+void FullyConnectedLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(fc_props, method, this);
 }

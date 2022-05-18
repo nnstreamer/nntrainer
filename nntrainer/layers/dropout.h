@@ -67,10 +67,11 @@ public:
   void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
+   * method)
    */
   void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+                const ml::train::ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()

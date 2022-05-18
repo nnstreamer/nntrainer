@@ -74,9 +74,11 @@ public:
   bool supportBackwarding() const override { return true; };
 
   /**
-   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
+   * method)
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)

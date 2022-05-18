@@ -188,7 +188,7 @@ void ConcatLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void ConcatLayer::exportTo(Exporter &exporter,
-                           const ExportMethods &method) const {
+                           const ml::train::ExportMethods &method) const {
   Layer::exportTo(exporter, method);
   exporter.saveResult(concat_props, method, this);
 }

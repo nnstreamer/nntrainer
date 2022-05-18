@@ -41,7 +41,6 @@
 namespace nntrainer {
 
 class Exporter;
-enum class ExportMethods;
 
 /**
  * @brief     Aliasing from ccapi ml::train
@@ -143,7 +142,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const;
 
   /**
    * @brief check if given databuffer is exportable, this is needed because some
@@ -152,7 +152,7 @@ public:
    * @param method proposed method
    * @return bool true if serializable
    */
-  bool isSerializable(const ExportMethods &method) const;
+  bool isSerializable(const ml::train::ExportMethods &method) const;
 
 protected:
   std::shared_ptr<DataProducer> producer;

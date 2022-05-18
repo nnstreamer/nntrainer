@@ -146,7 +146,7 @@ void SplitLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void SplitLayer::exportTo(Exporter &exporter,
-                          const ExportMethods &method) const {
+                          const ml::train::ExportMethods &method) const {
   exporter.saveResult(split_props, method, this);
 }
 

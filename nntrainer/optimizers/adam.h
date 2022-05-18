@@ -102,10 +102,11 @@ public:
   std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim) override;
 
   /**
-   * @copydoc Optimizer::exportTo(Exporter &exporter, const ExportMethods&
-   * method)
+   * @copydoc Optimizer::exportTo(Exporter &exporter, const
+   * ml::train::ExportMethods& method)
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
   inline static const std::string type = "adam";
 

@@ -75,7 +75,7 @@ void ReduceMeanLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void ReduceMeanLayer::exportTo(Exporter &exporter,
-                               const ExportMethods &method) const {
+                               const ml::train::ExportMethods &method) const {
   exporter.saveResult(reduce_mean_props, method, this);
 }
 

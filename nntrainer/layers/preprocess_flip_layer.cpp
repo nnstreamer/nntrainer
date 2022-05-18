@@ -102,8 +102,8 @@ void PreprocessFlipLayer::calcDerivative(RunLayerContext &context) {
     "calcDerivative for preprocess layer is not supported");
 }
 
-void PreprocessFlipLayer::exportTo(Exporter &exporter,
-                                   const ExportMethods &method) const {
+void PreprocessFlipLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(preprocess_flip_props, method, this);
 }
 
