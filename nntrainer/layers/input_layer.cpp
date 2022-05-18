@@ -62,7 +62,7 @@ void InputLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void InputLayer::exportTo(Exporter &exporter,
-                          const ExportMethods &method) const {
+                          const ml::train::ExportMethods &method) const {
   exporter.saveResult(input_props, method, this);
 }
 

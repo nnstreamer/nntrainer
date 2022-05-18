@@ -48,7 +48,7 @@ void FlattenLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void FlattenLayer::exportTo(Exporter &exporter,
-                            const ExportMethods &method) const {
+                            const ml::train::ExportMethods &method) const {
   exporter.saveResult(reshape_props, method, this);
 }
 

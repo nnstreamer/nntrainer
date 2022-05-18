@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include <common.h>
+
 namespace ml::train {
 class Layer;
 }
@@ -36,8 +38,6 @@ namespace nntrainer {
 class InitLayerContext;
 class RunLayerContext;
 class Exporter;
-
-enum class ExportMethods;
 
 /**
  * @class   Layer Base class for layers
@@ -203,8 +203,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
-  }
+  virtual void exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {}
 
   /**
    * @brief Set the batch for the layer

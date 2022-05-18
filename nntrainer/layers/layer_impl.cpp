@@ -37,7 +37,7 @@ void LayerImpl::setProperty(const std::vector<std::string> &values) {
 }
 
 void LayerImpl::exportTo(Exporter &exporter,
-                         const ExportMethods &method) const {
+                         const ml::train::ExportMethods &method) const {
   exporter.saveResult(*layer_impl_props, method, this);
 }
 

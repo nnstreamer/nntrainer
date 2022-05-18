@@ -89,9 +89,9 @@ public:
                                    const Exportable &exportable) {
     IniSection s(section_name);
     Exporter e;
-    exportable.exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
+    exportable.exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR);
     const auto key_val_pairs =
-      e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
+      e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
 
     if (!key_val_pairs) {
       throw std::invalid_argument("returned pairs are nullptr!");

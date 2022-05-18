@@ -29,13 +29,13 @@ void graphEqual(const nntrainer::GraphRepresentation &lhs,
     nntrainer::Exporter lhs_export;
     nntrainer::Exporter rhs_export;
 
-    l.exportTo(lhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
-    r.exportTo(rhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    l.exportTo(lhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
+    r.exportTo(rhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
 
     /*** fixme, there is one caveat that order matters in this form */
     EXPECT_EQ(
-      *lhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
-      *rhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
+      *lhs_export.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>(),
+      *rhs_export.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>());
   };
 
   if (lhs.size() == rhs.size()) {

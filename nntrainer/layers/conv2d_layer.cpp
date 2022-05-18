@@ -502,7 +502,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
 }
 
 void Conv2DLayer::exportTo(Exporter &exporter,
-                           const ExportMethods &method) const {
+                           const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(conv_props, method, this);
 }

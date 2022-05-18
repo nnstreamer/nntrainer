@@ -110,8 +110,8 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
   return file_size / (sample_size * RawFileDataProducer::pixel_size);
 }
 
-void RawFileDataProducer::exportTo(Exporter &exporter,
-                                   const ExportMethods &method) const {
+void RawFileDataProducer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(*raw_file_props, method, this);
 }
 } // namespace nntrainer

@@ -230,15 +230,15 @@ const std::string DataBuffer::getType() const {
 }
 
 void DataBuffer::exportTo(Exporter &exporter,
-                          const ExportMethods &method) const {
+                          const ml::train::ExportMethods &method) const {
   if (producer) {
     producer->exportTo(exporter, method);
   }
   exporter.saveResult(*db_props, method, this);
 }
 
-bool DataBuffer::isSerializable(const ExportMethods &method) const {
-  if (method != ExportMethods::METHOD_STRINGVECTOR) {
+bool DataBuffer::isSerializable(const ml::train::ExportMethods &method) const {
+  if (method != ml::train::ExportMethods::METHOD_STRINGVECTOR) {
     return false;
   }
   if (!producer) {

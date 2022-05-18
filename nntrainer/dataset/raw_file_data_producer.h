@@ -86,9 +86,11 @@ public:
                     const std::vector<TensorDim> &label_dims) const override;
 
   /**
-   * @copydoc DataProducer::exportTo(Exporter &exporter, ExportMethods method)
+   * @copydoc DataProducer::exportTo(Exporter &exporter,
+   * ml::train::ExportMethods method)
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
 private:
   std::ifstream file;

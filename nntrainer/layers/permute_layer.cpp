@@ -82,7 +82,7 @@ void PermuteLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void PermuteLayer::exportTo(Exporter &exporter,
-                            const ExportMethods &method) const {
+                            const ml::train::ExportMethods &method) const {
   exporter.saveResult(std::forward_as_tuple(direction), method);
 }
 

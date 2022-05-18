@@ -39,7 +39,8 @@ std::vector<TensorDim> Adam::getOptimizerVariableDim(const TensorDim &dim) {
   return {dim, dim};
 }
 
-void Adam::exportTo(Exporter &exporter, const ExportMethods &method) const {
+void Adam::exportTo(Exporter &exporter,
+                    const ml::train::ExportMethods &method) const {
   exporter.saveResult(adam_props, method, this);
   Optimizer::exportTo(exporter, method);
 }

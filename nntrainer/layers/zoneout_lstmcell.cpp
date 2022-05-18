@@ -262,8 +262,8 @@ void ZoneoutLSTMCellLayer::setProperty(const std::vector<std::string> &values) {
   LayerImpl::setProperty(remain_props);
 }
 
-void ZoneoutLSTMCellLayer::exportTo(Exporter &exporter,
-                                    const ExportMethods &method) const {
+void ZoneoutLSTMCellLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(zoneout_lstmcell_props, method, this);
 }

@@ -131,7 +131,7 @@ void CentroidKNN::calcDerivative(nntrainer::RunLayerContext &context) {
 }
 
 void CentroidKNN::exportTo(nntrainer::Exporter &exporter,
-                           const nntrainer::ExportMethods &method) const {
+                           const ml::train::ExportMethods &method) const {
   exporter.saveResult(centroid_knn_props, method, this);
 }
 } // namespace nntrainer

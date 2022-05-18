@@ -154,7 +154,8 @@ void RNNLayer::setProperty(const std::vector<std::string> &values) {
   LayerImpl::setProperty(remain_props);
 }
 
-void RNNLayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
+void RNNLayer::exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(rnn_props, method, this);
 }

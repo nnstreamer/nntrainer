@@ -45,7 +45,7 @@ public:
   }
 
   void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {
+                const ml::train::ExportMethods &method) const override {
     LayerImpl::exportTo(exporter, method);
   }
 

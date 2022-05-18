@@ -66,8 +66,8 @@ void StepLearningRateScheduler::setProperty(
     << "[StepLearningRateScheduler] There are unparsed properties";
 }
 
-void StepLearningRateScheduler::exportTo(Exporter &exporter,
-                                         const ExportMethods &method) const {
+void StepLearningRateScheduler::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   exporter.saveResult(lr_props, method, this);
 }
 

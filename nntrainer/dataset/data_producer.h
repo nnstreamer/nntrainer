@@ -19,12 +19,12 @@
 #include <tuple>
 #include <vector>
 
+#include <common.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 namespace nntrainer {
 
 class Exporter;
-enum class ExportMethods;
 
 /**
  * @brief DataProducer interface used to abstract data provider
@@ -115,8 +115,8 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
-  }
+  virtual void exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {}
 
   /**
    * @brief denote if given producer is thread safe and can be parallelized.

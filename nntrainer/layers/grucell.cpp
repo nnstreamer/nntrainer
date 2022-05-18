@@ -392,7 +392,7 @@ void GRUCellLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void GRUCellLayer::exportTo(Exporter &exporter,
-                            const ExportMethods &method) const {
+                            const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(grucell_props, method, this);
 }

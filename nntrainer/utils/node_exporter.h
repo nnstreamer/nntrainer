@@ -20,6 +20,7 @@
 #include <vector>
 
 #include <base_properties.h>
+#include <common.h>
 #include <nntrainer_error.h>
 #include <util_func.h>
 
@@ -31,16 +32,6 @@ namespace nntrainer {
  */
 class TfOpNode;
 
-/**
- * @brief Defines Export Method to be called with
- *
- */
-enum class ExportMethods {
-  METHOD_STRINGVECTOR = 0, /**< export to a string vector */
-  METHOD_TFLITE = 1,       /**< epxort to tflite */
-  METHOD_UNDEFINED = 999,  /**< undefined */
-};
-
 namespace {
 
 /**
@@ -48,14 +39,16 @@ namespace {
  *
  * @tparam method returned when certain method is being called
  */
-template <ExportMethods method> struct return_type { using type = void; };
+template <ml::train::ExportMethods method> struct return_type {
+  using type = void;
+};
 
 /**
  * @brief meta function to check return type when the method is string vector
  *
  * @tparam specialized so not given
  */
-template <> struct return_type<ExportMethods::METHOD_STRINGVECTOR> {
+template <> struct return_type<ml::train::ExportMethods::METHOD_STRINGVECTOR> {
   using type = std::vector<std::pair<std::string, std::string>>;
 };
 
@@ -64,7 +57,7 @@ template <> struct return_type<ExportMethods::METHOD_STRINGVECTOR> {
  *
  * @tparam specialized so not given
  */
-template <> struct return_type<ExportMethods::METHOD_TFLITE> {
+template <> struct return_type<ml::train::ExportMethods::METHOD_TFLITE> {
   using type = TfOpNode;
 };
 
@@ -113,10 +106,11 @@ public:
    * @param self this pointer to the layer which is being exported
    */
   template <typename... Ts, typename NodeType = void>
-  void saveResult(const std::tuple<Ts...> &props, ExportMethods method,
+  void saveResult(const std::tuple<Ts...> &props,
+                  ml::train::ExportMethods method,
                   const NodeType *self = nullptr) {
     switch (method) {
-    case ExportMethods::METHOD_STRINGVECTOR: {
+    case ml::train::ExportMethods::METHOD_STRINGVECTOR: {
       createIfNull(stored_result);
 
       /**
@@ -134,10 +128,10 @@ public:
       };
       iterate_prop(callable, props);
     } break;
-    case ExportMethods::METHOD_TFLITE:
+    case ml::train::ExportMethods::METHOD_TFLITE:
       saveTflResult(props, self);
       break;
-    case ExportMethods::METHOD_UNDEFINED:
+    case ml::train::ExportMethods::METHOD_UNDEFINED:
     /// fall thorugh intended
     default:
       throw exception::not_supported("given method is not supported yet");
@@ -158,7 +152,7 @@ public:
    * @return std::unique_ptr<T> predefined return type according to the method.
    * @retval nullptr not exported
    */
-  template <ExportMethods methods,
+  template <ml::train::ExportMethods methods,
             typename T = typename return_type<methods>::type>
   std::unique_ptr<T> getResult();
 

@@ -440,7 +440,7 @@ void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
 }
 
 void MoLAttentionLayer::exportTo(Exporter &exporter,
-                                 const ExportMethods &method) const {
+                                 const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(mol_props, method, this);
 }

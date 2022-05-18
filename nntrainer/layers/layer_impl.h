@@ -41,8 +41,6 @@ class BiasInitializer;
 class DisableBias;
 } // namespace props
 
-enum class ExportMethods;
-
 /**
  * @class   An abstract class to ease developing a layer
  * @brief   An abstract class for all layers
@@ -79,10 +77,11 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) override;
 
   /**
-   * @copydoc Layer::exportTo(Exporter &exporter, const ExportMethods &methods)
+   * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
+   * &methods)
    */
   virtual void exportTo(Exporter &exporter,
-                        const ExportMethods &method) const override;
+                        const ml::train::ExportMethods &method) const override;
 
 protected:
   std::unique_ptr<

@@ -49,10 +49,11 @@ public:
 
   /**
    * @copydoc LearningRateScheduler::exportTo(Exporter &exporter, const
-   * ExportMethods& method)
+   * ml::train::ExportMethods& method)
    *
    */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc LearningRateScheduler::setProperty(const std::vector<std::string>
