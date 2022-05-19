@@ -21,8 +21,13 @@
 
 #include <base_properties.h>
 #include <common.h>
+#include <common_properties.h>
 #include <nntrainer_error.h>
 #include <util_func.h>
+
+#ifdef ENABLE_TFLITE_INTERPRETER
+#include <flatbuffers/flatbuffers.h>
+#endif
 
 namespace nntrainer {
 
@@ -88,6 +93,16 @@ public:
    *
    */
   Exporter();
+
+#ifdef ENABLE_TFLITE_INTERPRETER
+  /**
+   * @brief Construct a new Exporter object with flatbuffer builder
+   *
+   */
+  Exporter(flatbuffers::FlatBufferBuilder *fbb);
+
+  flatbuffers::FlatBufferBuilder *getFlatbufferBuilder() { return fbb; }
+#endif
 
   /**
    * @brief Destroy the Exporter object
@@ -169,7 +184,8 @@ private:
   void saveTflResult(const PropsType &props, const NodeType *self);
 
 #ifdef ENABLE_TFLITE_INTERPRETER
-  std::unique_ptr<TfOpNode> tf_node; /**< created node from the export */
+  std::unique_ptr<TfOpNode> tf_node;   /**< created node from the export */
+  flatbuffers::FlatBufferBuilder *fbb; /**< flatbuffer builder */
 #endif
 
   std::unique_ptr<std::vector<std::pair<std::string, std::string>>>
@@ -213,6 +229,7 @@ class SharedFrom;
 class InputConnection;
 class ClipGradByGlobalNorm;
 class DisableBias;
+class Activation;
 } // namespace props
 
 class LayerNode;
@@ -250,6 +267,74 @@ class FullyConnectedLayer;
 template <>
 void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
                              const FullyConnectedLayer *self);
+
+class ActivationLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(const std::tuple<props::Activation> &props,
+                             const ActivationLayer *self);
+
+class Conv2DLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::FilterSize, std::array<props::KernelSize, 2>,
+                   std::array<props::Stride, 2>, props::Padding2D> &props,
+  const Conv2DLayer *self);
+
+class InputLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::Normalization, props::Standardization> &props,
+  const InputLayer *self);
+
+class Pooling2DLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::PoolingType, std::vector<props::PoolSize>,
+                   std::array<props::Stride, 2>, props::Padding2D> &props,
+  const Pooling2DLayer *self);
+
+class ReshapeLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(const std::tuple<props::TargetShape> &props,
+                             const ReshapeLayer *self);
+
+class FlattenLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(const std::tuple<props::TargetShape> &props,
+                             const FlattenLayer *self);
+
+class AdditionLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(const std::tuple<> &props,
+                             const AdditionLayer *self);
 #endif
 
 /**

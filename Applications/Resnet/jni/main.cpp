@@ -195,7 +195,7 @@ std::vector<LayerHandle> createResnet18Graph() {
 /// @todo update createResnet18 to be more generic
 ModelHandle createResnet18() {
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "cross")});
+                                             {withKey("loss", "mse")});
 
   for (auto layer : createResnet18Graph()) {
     model->addLayer(layer);
@@ -258,6 +258,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                     std::move(dataset_valid));
 
   model->train();
+
+  model->exports(ml::train::ExportMethods::METHOD_TFLITE, "resnet_test.tflite");
+
 #if defined(ENABLE_TEST)
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();

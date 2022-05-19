@@ -64,6 +64,13 @@ public:
   void setWeightTransformFn(TransformFn fn);
 
   /**
+   * @brief Set the Input Transform Fn object
+   *
+   * @param fn fn will be called before get
+   */
+  void setInputTransformFn(TransformFn fn);
+
+  /**
    * @brief Set the Op Type object
    *
    * @param op_type_ operation type
@@ -139,6 +146,13 @@ public:
   bool isOutputNode() const { return is_output; }
 
   /**
+   * @brief check if this op node is virtual node
+   *
+   * virtual node is a node that will not be exported
+   */
+  bool isVirtualNode() const { return is_virtual; }
+
+  /**
    * @brief Get the Op Type object
    *
    * @return const tflite::BuiltinOperator
@@ -159,19 +173,65 @@ public:
    * @param f Flatbuffer Builder
    * @retval const tflite::Offset<void>
    */
-  flatbuffers::Offset<void>
-  getBuiltinOps(flatbuffers::FlatBufferBuilder &f) const;
+  flatbuffers::Offset<void> getBuiltinOps() const;
+
+  /**
+   * @brief Get input nodes
+   *
+   * @return const std::vector<TfOpNode *> &input_nodes
+   */
+  const std::vector<TfOpNode *> &getInputNodes() const { return input_nodes; }
+
+  /**
+   * @brief Set arity
+   *
+   * @param value value to set
+   */
+  void arity(size_t value) { input_nodes.resize(value); }
+
+  /**
+   * @brief Get arity
+   *
+   * @return const unsigned input_nodes.size()
+   */
+  const unsigned arity() const { return input_nodes.size(); }
+
+  /**
+   * @brief Set n-th argument of the node
+   *
+   * @param index argument index to set
+   * @param node the node to be argument
+   */
+  void setArg(size_t index, TfOpNode *node) { input_nodes.at(index) = node; }
+
+  /**
+   * @brief Get n-th argument of the node
+   *
+   * @return TfOpNode *input_nodes.at(index)
+   */
+  TfOpNode *arg(size_t index) const { return input_nodes.at(index); }
 
 private:
-  Variables inputs;  /**< input variables */
-  Variables outputs; /**< output variables */
-  Variables weights; /**< weight variables */
+  Variables inputs;                    /**< input variables */
+  Variables outputs;                   /**< output variables */
+  Variables weights;                   /**< weight variables */
+  std::vector<TfOpNode *> input_nodes; /**< input nodes */
 
   TransformFn weight_transform; /**< weight transforms */
+  /**
+   * Q) Why do we need input transform?
+   * A) To transfrom the nntrainer input data format(NCHW) to tflite
+   *format(NHWC)
+   **/
+  TransformFn input_transform; /**< input transforms */
 
-  bool is_input;  /**< true if given input is input; */
-  bool is_output; /**< true if given output is output; */
+  bool is_input;   /**< true if given input is input; */
+  bool is_output;  /**< true if given output is output; */
+  bool is_virtual; /**< true if given node is virtual; */
 
+  /// @todo change to shared_ptr or unique_ptr
+  /// why? the addresses of existing tensors in the vector could become invalid
+  /// due to memory reallocation
   std::vector<Tensor>
     node_owned_variable; /**< when node should be transformed it's own type, it
                           * needs to be owned by someone, so @a TfOpNode owns

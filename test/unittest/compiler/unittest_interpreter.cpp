@@ -136,15 +136,17 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
 
   nntrainer::TfliteInterpreter interpreter;
 
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=1:1:1"});
+
   auto fc0_zeroed = LayerRepresentation(
-    "fully_connected", {"name=fc0", "unit=2", "input_shape=1:1:1",
+    "fully_connected", {"name=fc0", "unit=2", "input_layers=in0",
                         "bias_initializer=ones", "weight_initializer=ones"});
 
   auto fc1_zeroed = LayerRepresentation(
     "fully_connected", {"name=fc1", "unit=2", "bias_initializer=ones",
                         "weight_initializer=ones", "input_layers=fc0"});
 
-  auto g = makeGraph({fc0_zeroed, fc1_zeroed});
+  auto g = makeGraph({input0, fc0_zeroed, fc1_zeroed});
 
   nntrainer::NetworkGraph ng;
 
@@ -170,6 +172,82 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
 
   nntrainer::Tensor in(nntrainer::TensorDim({1, 1, 1, 1}));
   in.setValue(2.0f);
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 2, 1}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 2, 1}));
+  ans.setValue(7.0f);
+
+  EXPECT_EQ(out, ans);
+
+  if (remove("test.tflite")) {
+    std::cerr << "remove ini "
+              << "test.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
+
+  nntrainer::TfliteInterpreter interpreter;
+
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=1:1:1"});
+
+  auto averagepool0 = LayerRepresentation(
+    "pooling2d", {"name=averagepool0", "input_layers=in0", "pooling=average",
+                  "pool_size=1,1", "stride=1,1", "padding=valid"});
+
+  auto reshape0 =
+    LayerRepresentation("reshape", {"name=reshape0", "target_shape=1:1:1",
+                                    "input_layers=averagepool0"});
+
+  auto fc0 = LayerRepresentation(
+    "fully_connected", {"name=fc0", "unit=2", "input_layers=reshape0",
+                        "bias_initializer=ones", "weight_initializer=ones"});
+
+  auto softmax0 = LayerRepresentation(
+    "activation", {"name=softmax0", "activation=softmax", "input_layers=fc0"});
+
+  auto g = makeGraph({input0, averagepool0, reshape0, fc0, softmax0});
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+  interpreter.serialize(g, "part_of_resnet.tflite");
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("part_of_resnet.tflite");
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 1, 2, 2}));
+  in.setValue(2.0f);
   nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 2}));
 
   auto in_indices = tf_interpreter->inputs();
@@ -188,13 +266,13 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
 
   nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 2}));
-  ans.setValue(7.0f);
+  ans.setValue(0.5f);
 
   EXPECT_EQ(out, ans);
 
-  if (remove("test.tflite")) {
+  if (remove("part_of_resnet.tflite")) {
     std::cerr << "remove ini "
-              << "test.tflite"
+              << "part_of_resnet.tflite"
               << "failed, reason: " << strerror(errno);
   }
 }
