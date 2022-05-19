@@ -13,7 +13,9 @@
 
 #include <algorithm>
 #include <fstream>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -24,9 +26,11 @@
 #include <bn_realizer.h>
 #include <fc_layer.h>
 #include <layer_node.h>
+#include <loss_realizer.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <tensor.h>
+#include <tf_schema_generated.h>
 #include <tflite_opnode.h>
 
 static constexpr const char *FUNC_TAG = "[TFLITE INTERPRETER] ";
@@ -54,6 +58,27 @@ void builder2file(const flatbuffers::FlatBufferBuilder &builder,
     << FUNC_TAG << "failed to open, reason: " << strerror(errno);
   os.write((char *)builder.GetBufferPointer(), builder.GetSize());
   os.close();
+}
+
+/**
+ * @brief get predecessor nodes
+ *
+ * @param node the node from which to get predecessor nodes
+ * @note virtual nodes are ignored
+ */
+std::vector<const TfOpNode *> getPredNodes(const TfOpNode &node) {
+  std::vector<const TfOpNode *> predNodes;
+
+  for (auto input : node.getInputNodes()) {
+    const TfOpNode *pred = input;
+    while (pred->isVirtualNode()) {
+      /// Assume that virtual nodes have single input
+      assert(pred->arity() == 1);
+      pred = pred->arg(0);
+    }
+    predNodes.push_back(pred);
+  }
+  return predNodes;
 }
 
 using TfOpNodes = std::vector<std::unique_ptr<TfOpNode>>;
@@ -158,36 +183,74 @@ public:
     buffer_map.addDataWhenNotFound(
       empty_buffer, {0, empty_buffer}); /// this represents empty buffer
 
-    auto &variable_map = getIndexMap<const float *, const Tensor *>();
-    auto update_variables = [&variable_map,
-                             &buffer_map](const TfOpNode::Variables &variables,
-                                          bool update_buffer) {
+    auto update_buffer_map = [&buffer_map](const TfOpNode::Variables &variables,
+                                           bool dynamic) {
       for (auto &variable : variables) {
         const float *buf = variable->getData();
-        variable_map.addDataWhenNotFound(buf, variable);
-        if (update_buffer) {
-          buffer_map.addDataWhenNotFound(buf, {variable->bytes(), buf});
-        }
+        assert(buf != nullptr);
+        auto byte_size = dynamic ? 0 : variable->bytes();
+        buffer_map.addDataWhenNotFound(buf, {byte_size, buf});
       }
     };
 
-    for (auto &op_node : nodes) {
-      update_opcode(op_node->getOpType());
-      update_variables(op_node->getInputs(), false);
-      update_variables(op_node->getWeights(), true);
-      update_variables(op_node->getOutputs(), false);
-    }
-
-    auto update_model_io_to =
-      [&variable_map](const TfOpNode::Variables &variables,
-                      std::vector<int> &v) {
+    auto register_tensors =
+      [&tensors = this->tensors](const TfOpNode::Variables &variables) {
         for (auto &variable : variables) {
-          auto index = variable_map.getIndex(variable->getData());
-          v.push_back(index);
+          auto tensor_it = std::find(tensors.begin(), tensors.end(), variable);
+          if (tensor_it == tensors.end()) {
+            tensors.push_back(variable);
+          }
         }
       };
 
     for (auto &op_node : nodes) {
+      if (op_node->isVirtualNode())
+        continue;
+      update_opcode(op_node->getOpType());
+
+      if (op_node->isInputNode()) {
+        /**
+         * Q) Why only register graph input tensor?
+         *
+         * A) the tflite needs only one tensor between nodes. Therefore,
+         *basically, no inputs are considered except graph input that doesn't
+         *have FROM node.
+         **/
+        register_tensors(op_node->getInputs());
+        /**
+         * Q) Why only update second input of the input node?
+         *
+         * A) 1. graph input nodes should be Transpose operator to change data
+         *format from NCHW to NHWC.
+         *    2. Transpose operator has two inputs - input to be
+         *transposed(input[0]), 1d permute vector(input[1])
+         *    3. input[0] has nullptr data pointer, which can't be added to
+         *buffer_map. But, input[0] should have its own buffer and it will be
+         *considered when the tflite buffers are built.
+         **/
+        assert(op_node->getInputs()[0]->getData() == nullptr);
+        update_buffer_map({op_node->getInputs()[1]}, false);
+      }
+      register_tensors(op_node->getWeights());
+      update_buffer_map(op_node->getWeights(), false);
+
+      register_tensors(op_node->getOutputs());
+      update_buffer_map(op_node->getOutputs(), true);
+    }
+
+    auto update_model_io_to = [this](const TfOpNode::Variables &variables,
+                                     std::vector<int> &v) {
+      for (auto &variable : variables) {
+        if (variable->getName().find("nntrainer_internal_perm") !=
+            std::string::npos)
+          continue;
+        v.push_back(this->getTensorIndex(variable));
+      }
+    };
+
+    for (auto &op_node : nodes) {
+      if (op_node->isVirtualNode())
+        continue;
       if (op_node->isInputNode()) {
         update_model_io_to(op_node->getInputs(), inputs);
       }
@@ -213,33 +276,70 @@ public:
 
   const std::vector<int> &getOutputs() const { return outputs; }
 
+  const std::vector<const Tensor *> &getTensors() const { return tensors; }
+
+  std::ptrdiff_t getTensorIndex(const Tensor *tensor) const {
+    auto tensor_it = std::find(tensors.begin(), tensors.end(), tensor);
+    NNTR_THROW_IF(tensor_it == tensors.cend(), std::invalid_argument)
+      << FUNC_TAG << "Cannot find index for tensor: " << tensor->getName();
+    return std::distance(tensors.begin(), tensor_it);
+  }
+
 private:
   float empty_buffer[0]; /**< reserved unintialized tensor points to this
                             buffer */
 
   std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map
                                                               */
-             BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map
+             BidirectionalIndexMap<tflite::BuiltinOperator>> /**< opcode map
                                                               */
-             BidirectionalIndexMap<const float *, const Tensor *>> /**< tensor
-                                                                      map */
     maps;
 
   std::vector<int> inputs;
   std::vector<int> outputs;
+  /// since it is used as a tensor index, the order is important
+  std::vector<const Tensor *> tensors;
 };
 
-TfOpNodes buildOpNodes(const GraphRepresentation &representation) {
+TfOpNodes buildOpNodes(const GraphRepresentation &representation,
+                       flatbuffers::FlatBufferBuilder &fbb) {
   TfOpNodes nodes;
+  /// @todo TfOpNode needs to have LayerNode pointer
+  std::map<TfOpNode *, const LayerNode *> tf_to_layer;
+  std::map<const LayerNode *, TfOpNode *> layer_to_tf;
   /// @todo, look ahead of layers to get nodes that can be fused
   /// we will need to have a dedicated builder
   for (auto iter = representation.cbegin(); iter != representation.cend();
        iter++) {
     const auto &ln = *iter;
-    Exporter e;
+    Exporter e(&fbb);
     ln->exportTo(e, ml::train::ExportMethods::METHOD_TFLITE);
 
     nodes.emplace_back(e.getResult<ml::train::ExportMethods::METHOD_TFLITE>());
+    tf_to_layer.insert({nodes.back().get(), ln.get()});
+    layer_to_tf.insert({ln.get(), nodes.back().get()});
+  }
+
+  /// set arity of TfOpNodes
+  for (auto &n : nodes) {
+    auto tf_node = n.get();
+    auto layer_node = tf_to_layer.find(tf_node)->second;
+    auto layer_node_inputs = layer_node->getInputConnections();
+
+    /// assume that the TfOpNode and the LayerNode have a one-to-one
+    /// relationship
+    tf_node->arity(layer_node_inputs.size());
+    for (size_t index = 0; index < layer_node_inputs.size(); index++) {
+      auto input_layer_name = layer_node_inputs[index];
+      auto input_layer_node =
+        std::find_if(
+          representation.begin(), representation.end(),
+          [&input_layer_name](std::shared_ptr<nntrainer::LayerNode> node) {
+            return istrequal(node.get()->getName(), input_layer_name);
+          })
+          ->get();
+      tf_node->setArg(index, layer_to_tf.find(input_layer_node)->second);
+    }
   }
 
   return nodes;
@@ -266,6 +366,11 @@ buildBuffers(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
 
   std::transform(buffers.begin(), buffers.end(), std::back_inserter(fb_buffers),
                  create_buffer_offset);
+
+  // add input buffer
+  for (unsigned index = 0; index < map.getInputs().size(); index++) {
+    fb_buffers.push_back(create_buffer_offset({0, nullptr}));
+  }
   return fbb.CreateVector(fb_buffers);
 }
 
@@ -298,14 +403,15 @@ flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
 buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   /// @todo: the actual (suqeezed) tensor dimension must be known before
   /// coming here. For now, it is directly guessed for the fc layer
-  const auto &variables =
-    map.getIndexMap<const float *, const Tensor *>().getData();
+  const auto &variables = map.getTensors();
   const auto &buffer_map = map.getIndexMap<const float *, TfOpIdxMap::Buffer>();
+  auto graph_input_offset = map.getInputs().size() - 1;
 
   std::vector<flatbuffers::Offset<tflite::Tensor>> fb_tensors;
   fb_tensors.reserve(variables.size());
 
-  auto create_tensor = [&fbb, &buffer_map](const Tensor *var) {
+  auto create_tensor = [&fbb, &buffer_map,
+                        &graph_input_offset](const Tensor *var) {
     auto dim = var->getDim();
     bool need_shape_signature = dim.is_dynamic();
     std::vector<int32_t> eff_dim = dim.getEffectiveDimension();
@@ -320,18 +426,22 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
     /// change this var->getName when tensor have it's own name
     auto name = fbb.CreateString("nntrainer_converted" + var->getName());
 
-    unsigned int buffer_idx = 1;
-    try {
-      buffer_idx = buffer_map.getIndex(var->getData());
-    } catch (...) {
-      /// @todo change the logic to not rely on throw
-      /// do nothing
-    }
+    /// only graph inputs have nullptr data pointer.
+    unsigned int buffer_idx =
+      var->getData() == nullptr
+        ? buffer_map.getData().size() - graph_input_offset--
+        : buffer_map.getIndex(var->getData());
 
     tflite::TensorBuilder builder(fbb);
     builder.add_name(name);
     builder.add_buffer(buffer_idx);
-    builder.add_type(tflite::TensorType_FLOAT32);
+    /// @todo support more data types
+    /// @note this is workaround because nntrainer tensor allows only float
+    /// dtype
+    if (var->getName().find("nntrainer_internal_perm") != std::string::npos) {
+      builder.add_type(tflite::TensorType_INT32);
+    } else
+      builder.add_type(tflite::TensorType_FLOAT32);
     builder.add_shape(shape);
     if (need_shape_signature) {
       builder.add_shape_signature(shape_sig);
@@ -351,14 +461,12 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
   /// this lambda maps variables to list of indexes in the map
   auto variables_to_idx_vector = [&map](const TfOpNode::Variables &v) {
-    auto &variable_map = map.getIndexMap<const float *, const Tensor *>();
     std::vector<int> idx_vector;
     idx_vector.reserve(v.size());
 
-    std::transform(v.begin(), v.end(), std::back_inserter(idx_vector),
-                   [&variable_map](const Tensor *variable) {
-                     return variable_map.getIndex(variable->getData());
-                   });
+    std::transform(
+      v.begin(), v.end(), std::back_inserter(idx_vector),
+      [&map](const Tensor *variable) { return map.getTensorIndex(variable); });
     return idx_vector;
   };
 
@@ -367,7 +475,39 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
     auto &index_map = map.getIndexMap<tflite::BuiltinOperator>();
 
     auto op_code = index_map.getIndex(node.getOpType());
-    auto inputs = variables_to_idx_vector(node.getInputs());
+    std::vector<int> inputs;
+    if (node.isInputNode()) {
+      inputs = variables_to_idx_vector(node.getInputs());
+    } else {
+      /**
+       *  Q) Why find a tensor that shares a buffer with input tensor?
+       *
+       *  A) the tflite needs only one tensor between nodes. Therefore,
+       *basically, output tensors are used for tflite tensor that shares its
+       *buffer with input's
+       **/
+      TfOpNode::Variables input_tensors;
+      for (auto parent_node : getPredNodes(node)) {
+        for (auto parent_out : parent_node->getOutputs()) {
+          for (auto in : node.getInputs()) {
+            /// second condition is a workaround
+            /// Transpose op output tensor originally had nullptr data pointer
+            /// but it has been allocated (parent_out->getData()). But, the
+            /// buffer that shared its buffer hasn't so it has still nullptr
+            /// (in->getData()).
+            /// @todo remove this workaround
+            if (parent_out->getData() == in->getData() ||
+                (in->getData() == nullptr && parent_out->getData())) {
+              if (std::find(input_tensors.begin(), input_tensors.end(),
+                            parent_out) != input_tensors.end())
+                continue;
+              input_tensors.push_back(parent_out);
+            }
+          }
+        }
+      }
+      inputs = variables_to_idx_vector(input_tensors);
+    }
     auto weights = variables_to_idx_vector(node.getWeights());
 
     /// weights are part of input in tflite
@@ -377,7 +517,7 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
     auto fb_inputs = fbb.CreateVector(inputs);
     auto fb_outputs = fbb.CreateVector(outputs);
-    auto fb_options = node.getBuiltinOps(fbb);
+    auto fb_options = node.getBuiltinOps();
 
     tflite::OperatorBuilder builder(fbb);
     builder.add_opcode_index(op_code);
@@ -392,6 +532,8 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
   v.reserve(nodes.size());
 
   for (auto &node : nodes) {
+    if (node->isVirtualNode())
+      continue;
     auto op = create_operator(*node);
     v.push_back(op);
   }
@@ -436,10 +578,14 @@ void TfliteInterpreter::serialize(const GraphRepresentation &representation,
   BnRealizer realizer({});
   GraphRepresentation graph = realizer.realize(representation);
 
-  /// 1. The graph must have weights, input dims, output dims set
+  /// 1. remove loss layer in GraphRepresentation
+  LossRealizer loss_realizer({});
+  graph = loss_realizer.realize(graph);
+
+  /// 2. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;
 
-  auto opNodes = buildOpNodes(graph);
+  auto opNodes = buildOpNodes(graph, fbb);
   TfOpIdxMap map(opNodes); /// build TfOpIdxMap from opNodes
 
   auto opcodes = buildOperatorCodes(map, fbb);
