@@ -1,3 +1,4 @@
+/usr/include/nntrainer/common.h
 /usr/include/nntrainer/model.h
 /usr/include/nntrainer/layer.h
 /usr/include/nntrainer/optimizer.h

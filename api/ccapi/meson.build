@@ -10,6 +10,7 @@ ccapi_src = []
 ccapi_src += meson.current_source_dir() / 'src' / 'factory.cpp'
 
 ccapi_headers = []
+ccapi_headers += meson.current_source_dir() / 'include' / 'common.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'dataset.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'layer.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'model.h'
