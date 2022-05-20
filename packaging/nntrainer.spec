@@ -523,6 +523,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libccapi-nntrainer.so
 
 %files -n ccapi-machine-learning-training-devel
+%{_includedir}/nntrainer/common.h
 %{_includedir}/nntrainer/model.h
 %{_includedir}/nntrainer/layer.h
 %{_includedir}/nntrainer/optimizer.h
