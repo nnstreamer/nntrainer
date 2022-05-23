@@ -327,8 +327,8 @@ loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
                    std::string key, value;
                    int status = getKeyValue(property, key, value);
                    NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
-                     << "parsing property failed, original format: "
-                     << property;
+                     << "parsing property failed, original format: \""
+                     << property << "\"";
                    return std::make_pair(key, value);
                  });
 
