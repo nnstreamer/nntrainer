@@ -334,6 +334,27 @@ int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
  * 9")
  */
 int ml_train_model_compile_with_single_param(ml_train_model_h model,
+                                             const char *single_param);
+
+/**
+ * @brief Trains the neural network model with params.
+ * @details Use this function to train the compiled neural network model with
+ * the passed training hyperparameters. This function will return once the
+ * training, along with requested validation and testing, is completed.
+ * @since_tizen 7.0
+ * @param[in] model The NNTrainer model handle.
+ * @param[in] single_param Hyperparameters for train model.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_model_run_with_single_param(model, "epochs=2 | batch_size=16")
+ */
+int ml_train_model_run_with_single_param(ml_train_model_h model,
+                                         const char *single_param);
 
 #if defined(__TIZEN__)
 /**
