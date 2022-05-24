@@ -151,6 +151,25 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
 /**
  * @brief Neural Network Model Compile Test
  */
+TEST(nntrainer_capi_nnmodel, compile_with_single_param_01_p) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("capi_test_compile_with_single_param_01_p",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status =
+    ml_train_model_compile_with_single_param(handle, "loss=cross|epochs=2");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Compile Test
+ */
 TEST(nntrainer_capi_nnmodel, construct_conf_01_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
@@ -328,6 +347,62 @@ TEST(nntrainer_capi_nnmodel, compile_06_n) {
 }
 
 /**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_with_single_param_01_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("capi_test_compile_with_single_param_01_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status =
+    ml_train_model_compile_with_single_param(handle, "loss=cross epochs=2");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_with_single_param_02_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("capi_test_compile_with_single_param_02_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status =
+    ml_train_model_compile_with_single_param(handle, "loss=cross,epochs=2");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_with_single_param_03_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("capi_test_compile_with_single_param_02_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status =
+    ml_train_model_compile_with_single_param(handle, "loss=cross!epochs=2");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+/**
  * @brief Neural Network Model Train Test
  */
 TEST(nntrainer_capi_nnmodel, train_01_p) {
@@ -348,7 +423,35 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(handle, 4.330389, 3.6865699, 10.4167);
+  nntrainer_capi_model_comp_metrics(handle, 3.911289, 2.933979, 10.4167);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_single_param_01_p) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s(
+    "capi_test_train_with_single_param_01_p",
+    {model_base, optimizer, dataset + "-BufferSize", inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_model_run_with_single_param(handle, "epochs=2|batch_size=16");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Compare training statistics */
+  nntrainer_capi_model_comp_metrics(handle, 3.67021, 3.26736, 10.4167);
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -379,6 +482,81 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_run(handle, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_single_param_01_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s(
+    "capi_test_train_with_single_param_01_n",
+    {model_base, optimizer, dataset + "-BufferSize", inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_run_with_single_param(
+    handle, "epochs=2 batch_size=16 save_path=capi_tizen_model.bin");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_single_param_02_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s(
+    "capi_test_train_with_single_param_02_n",
+    {model_base, optimizer, dataset + "-BufferSize", inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_run_with_single_param(
+    handle, "epochs=2,batch_size=16,save_path=capi_tizen_model.bin");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_single_param_03_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s(
+    "capi_test_train_with_single_param_02_n",
+    {model_base, optimizer, dataset + "-BufferSize", inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_run_with_single_param(
+    handle, "epochs=2!batch_size=16!save_path=capi_tizen_model.bin");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -924,7 +1102,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.111340, 2.209510, 16.6667);
+  nntrainer_capi_model_comp_metrics(model, 2.182019, 2.223670, 22.9167);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1008,7 +1186,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.2063899, 1.983489, 64.583297);
+  nntrainer_capi_model_comp_metrics(model, 2.17419004, 1.94411003, 66.66670227);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);

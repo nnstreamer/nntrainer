@@ -321,17 +321,16 @@ int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
  * any modification to the properties of model or layers/dataset/optimizer in
  * the model will be restricted. Further, addition of layers or changing the
  * optimizer/dataset of the model will not be permitted.
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_model_compile_with_single_param(model, "loss=cross|batch_size=9")
  * @param[in] model The NNTrainer model handle.
  * @param[in] single_param hyperparameters for compiling the model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @details API to solve va_list issue of Dllimport of C# interop.
- * The input format of single_param must be 'key = value' format, and it
- * received as shown in the example below. delimiter is '|'. e.g)
- * ml_train_model_compile_with_single_param(model, "loss = cross`batch_size =
- * 9")
  */
 int ml_train_model_compile_with_single_param(ml_train_model_h model,
                                              const char *single_param);
@@ -342,16 +341,16 @@ int ml_train_model_compile_with_single_param(ml_train_model_h model,
  * the passed training hyperparameters. This function will return once the
  * training, along with requested validation and testing, is completed.
  * @since_tizen 7.0
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_model_run_with_single_param(model, "epochs=2|batch_size=16")
  * @param[in] model The NNTrainer model handle.
  * @param[in] single_param Hyperparameters for train model.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * API to solve va_list issue of Dllimport of C# interop.
- * The input format of single_param must be 'key = value' format, and it
- * received as shown in the example below. delimiter is '|'. e.g)
- * ml_train_model_run_with_single_param(model, "epochs=2 | batch_size=16")
  */
 int ml_train_model_run_with_single_param(ml_train_model_h model,
                                          const char *single_param);
