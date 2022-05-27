@@ -120,6 +120,24 @@ public:
   float getLoss() override;
 
   /**
+   * @brief returns compilation state of a network
+   * @retval initialized value
+   */
+  bool getCompiled() const override { return compiled; }
+
+  /**
+   * @brief returns initialization state of a network
+   * @retval initialized value
+   */
+  bool getInitialized() const override { return initialized; }
+
+  /**
+   * @brief returns loadedFromConfig state of a network
+   * @retval loadedFromConfig value
+   */
+  bool getLoadedFromConfig() const override { return loadedFromConfig; }
+
+  /**
    * @brief     Get Loss from the previous epoch of training data
    * @retval    loss value
    */

@@ -280,6 +280,24 @@ public:
   virtual float getLoss() = 0;
 
   /**
+   * @brief returns compilation state of a network
+   * @retval initialized value
+   */
+  virtual bool getCompiled() const = 0;
+
+  /**
+   * @brief returns initialization state of a network
+   * @retval initialized value
+   */
+  virtual bool getInitialized() const = 0;
+
+  /**
+   * @brief returns loadedFromConfig state of a network
+   * @retval loadedFromConfig value
+   */
+  virtual bool getLoadedFromConfig() const = 0;
+
+  /**
    * @brief     Get Loss from the previous epoch of training data
    * @retval    loss value
    */
