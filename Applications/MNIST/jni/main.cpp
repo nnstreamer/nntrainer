@@ -222,8 +222,9 @@ int main(int argc, char *argv[]) {
   }
 
 #ifdef PROFILE
-  nntrainer::profile::GenericProfileListener listener(
-    &nntrainer::profile::Profiler::Global());
+  auto listener =
+    std::make_shared<nntrainer::profile::GenericProfileListener>();
+  nntrainer::profile::Profiler::Global().subscribe(listener);
 #endif
 
   const std::vector<std::string> args(argv + 1, argv + argc);
@@ -301,7 +302,7 @@ int main(int argc, char *argv[]) {
   }
 
 #ifdef PROFILE
-  std::cout << listener;
+  std::cout << *listener;
 #endif
 
 #if defined(APP_VALIDATE)

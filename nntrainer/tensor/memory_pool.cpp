@@ -10,12 +10,13 @@
  * @brief  This is Memory Pool Class
  */
 
+#include <limits>
 #include <numeric>
 #include <vector>
-#include <limits>
 
 #include <memory_pool.h>
 #include <nntrainer_error.h>
+#include <profiler.h>
 
 namespace nntrainer {
 
@@ -90,6 +91,14 @@ void MemoryPool::allocate() {
   if (mem_pool == nullptr)
     throw std::runtime_error(
       "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+
+#ifdef PROFILE
+  static long long seq = 0;
+
+  std::string msg("MemoryPool #");
+  msg.append(std::to_string(seq++));
+  PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
+#endif
 }
 
 /**
@@ -108,8 +117,10 @@ void *MemoryPool::getMemory(unsigned int idx) {
  *
  */
 void MemoryPool::deallocate() {
-  if (mem_pool != nullptr)
+  if (mem_pool != nullptr) {
     free(mem_pool);
+    PROFILE_MEM_DEALLOC(mem_pool);
+  }
 
   mem_pool = nullptr;
 }
