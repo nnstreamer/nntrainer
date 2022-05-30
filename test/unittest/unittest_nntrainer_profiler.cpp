@@ -10,6 +10,7 @@
  * @bug    No known bugs except for NYI items
  *
  */
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -20,165 +21,199 @@
 
 using namespace nntrainer::profile;
 
+/**
+ * @brief Mock class for profile listener test
+ *
+ */
 class MockProfileListener : public ProfileListener {
 public:
-  MockProfileListener(Profiler *profiler, std::vector<int> events = {}) :
-    ProfileListener(profiler, events),
-    hit(false){};
-
-  ~MockProfileListener(){};
-
-  void onNotify(const int event,
-                const std::chrono::microseconds &value) override {
-    hit = true;
+  MockProfileListener() :
+    ProfileListener(), time_event_cnt(0), memory_alloc(0) {
+    ON_CALL(*this, notify)
+      .WillByDefault(
+        [&](PROFILE_EVENT event, const std::shared_ptr<ProfileEventData> data) {
+          switch (event) {
+          case EVENT_TIME_START:
+          case EVENT_TIME_END:
+            time_event_cnt++;
+            last = data->duration;
+            break;
+          case EVENT_MEM_ALLOC:
+          case EVENT_MEM_DEALLOC:
+            this->memory_alloc = data->total_alloc_size;
+            break;
+          }
+        });
   }
 
-  void reset(const int event) override { hit = false; }
+  ~MockProfileListener() {}
+
+  void reset(const int event, const std::string &str) override {
+    time_event_cnt = 0;
+    memory_alloc = 0;
+  }
 
   virtual void report(std::ostream &out) const override {
-    out << (hit ? "hit" : "no hit");
+    out << time_event_cnt << " " << memory_alloc;
   }
 
   const std::chrono::microseconds result(const int event) override {
-    return std::chrono::microseconds();
+    return last;
   };
 
+  MOCK_METHOD(void, notify,
+              (PROFILE_EVENT event,
+               const std::shared_ptr<ProfileEventData> data));
+
 private:
-  bool hit; /**< check if onNotify has been called */
+  int time_event_cnt;  /**< time event count */
+  size_t memory_alloc; /**< allocated memory size */
+  std::chrono::microseconds last; /** last event duration */
 };
 
-TEST(GenericProfileListener, listenerBasicScenario_p) {
+class ProfileTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    listener = std::make_shared<MockProfileListener>();
+    profiler = std::make_shared<Profiler>();
+  }
 
-  GenericProfileListener listener{nullptr};
+  std::shared_ptr<MockProfileListener> listener;
+  std::shared_ptr<Profiler> profiler;
+};
 
-  /// assuming library-side code is calling onNotify
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{10});
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{100});
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{50});
 
-  auto result = listener.result(EVENT::NN_FORWARD);
-  EXPECT_EQ(result, std::chrono::microseconds{50});
+TEST_F(ProfileTest, subscribe_01_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
 
-  std::cout << listener;
+  EXPECT_THROW(profiler->subscribe(nullptr), std::invalid_argument);
 }
 
-TEST(GenericProfileListener, noResultButQueryResult_n) {
-  GenericProfileListener listener{nullptr};
-  EXPECT_THROW(listener.result(EVENT::NN_FORWARD), std::invalid_argument);
+TEST_F(ProfileTest, subscribe_02_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
+
+  EXPECT_THROW(profiler->subscribe(nullptr, {1}), std::invalid_argument);
 }
 
-TEST(Profiler, profilePositiveTests_p) {
-  /// Initiate and run Profile
-  Profiler prof;
+TEST_F(ProfileTest, subscribe_03_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
 
-  /// subscribe listener
-  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
-  std::unique_ptr<ProfileListener> event_listener(
-    new MockProfileListener{&prof, {EVENT::NN_FORWARD}});
+  EXPECT_NO_THROW(profiler->subscribe(listener));
+}
 
-  /// measure
-  prof.start(EVENT::NN_FORWARD);
-  prof.end(EVENT::NN_FORWARD);
+TEST_F(ProfileTest, notify_01_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(3);
+
+  EXPECT_NO_THROW(profiler->subscribe(listener));
+
+  auto data1 =
+    std::make_shared<ProfileEventData>(1, 0, "", std::chrono::microseconds{10});
+  listener->notify(PROFILE_EVENT::EVENT_TIME_START, data1);
+
+  auto data2 = std::make_shared<ProfileEventData>(
+    1, 0, "", std::chrono::microseconds{100});
+  listener->notify(PROFILE_EVENT::EVENT_TIME_END, data2);
+
+  auto data3 = std::make_shared<ProfileEventData>(
+    1, 0, "", std::chrono::microseconds{150});
+  listener->notify(PROFILE_EVENT::EVENT_TIME_END, data3);
+
+  auto result = listener->result(1);
+  EXPECT_EQ(result, std::chrono::microseconds{150});
+
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "3 0");
+}
+
+TEST_F(ProfileTest, start_01_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
+
+  EXPECT_THROW(profiler->start(1), std::invalid_argument);
+}
+
+TEST_F(ProfileTest, end_01_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
+
+  EXPECT_THROW(profiler->end(1), std::invalid_argument);
+}
+
+TEST_F(ProfileTest, timeTest_01_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(2);
+
+  int nn_forward = profiler->registerTimeItem("nn_forward");
+
+  EXPECT_NO_THROW(profiler->subscribe(listener, {nn_forward}));
+
+  profiler->start(nn_forward);
+  profiler->end(nn_forward);
+
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "2 0");
+}
+
+TEST_F(ProfileTest, timeTest_02_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(0);
+
+  int nn_forward = profiler->registerTimeItem("nn_forward");
+
+  EXPECT_THROW(profiler->start(2), std::invalid_argument);
+  EXPECT_THROW(profiler->start(2), std::invalid_argument);
+
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "0 0");
+}
+
+TEST_F(ProfileTest, timeTest_01_n) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(2);
+
+  int nn_forward = profiler->registerTimeItem("nn_forward");
+
+  EXPECT_NO_THROW(profiler->subscribe(listener, {nn_forward}));
+
+  profiler->start(nn_forward);
+  profiler->end(nn_forward);
+
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "2 0");
+}
+
+TEST_F(ProfileTest, memoryTestAlloc_01_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(testing::AtLeast(1));
+  profiler->subscribe(listener);
+
+  profiler->alloc((void *)0x1, (size_t)10, "");
+
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "0 10");
+}
+
+TEST_F(ProfileTest, memoryTestDealloc_01_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_))
+    .Times(testing::AtLeast(1));
+  profiler->subscribe(listener);
+
+  profiler->alloc((void *)0x1, (size_t)10, "");
+  profiler->dealloc((void *)0x1);
 
   /// Check if notified on all profiler listener
-  {
-    std::stringstream ss;
-    all_listener->report(ss);
-    EXPECT_EQ(ss.str(), "hit");
-  }
-
-  /// Check if notified on event profiler listener
-  {
-    std::stringstream ss;
-    event_listener->report(ss);
-    EXPECT_EQ(ss.str(), "hit");
-  }
-
-  /// measure that are not registered for event listener
-  all_listener->reset(EVENT::NN_FORWARD);
-  event_listener->reset(EVENT::NN_FORWARD);
-  prof.start(-1);
-  prof.end(-1);
-
-  /// Check if notified on event profiler does not hit
-  {
-    std::stringstream ss;
-    event_listener->report(ss);
-    EXPECT_EQ(ss.str(), "no hit");
-  }
-
-  /// register a event key to profiler and check event to str
-  {
-    int key = prof.registerEvent("hello_world");
-    EXPECT_LT(key, 0);
-    EXPECT_EQ(prof.eventToStr(key), "hello_world");
-  }
-
-  /// unsubscribe event_listener
-  event_listener->reset(EVENT::NN_FORWARD);
-  prof.unsubscribe(event_listener.get());
-  prof.start(EVENT::NN_FORWARD);
-  prof.end(EVENT::NN_FORWARD);
-
-  {
-    std::stringstream ss;
-    event_listener->report(ss);
-    EXPECT_EQ(ss.str(), "no hit");
-  }
-}
-
-TEST(Profiler, cannotStartTwice_n) {
-  Profiler prof;
-  prof.start(EVENT::NN_FORWARD);
-
-#ifdef DEBUG
-  EXPECT_THROW(prof.start(EVENT::NN_FORWARD), std::invalid_argument);
-#endif
-}
-
-TEST(Profiler, endThatNeverStarted_n) {
-  Profiler prof;
-#ifdef DEBUG
-  EXPECT_THROW(prof.end(EVENT::NN_FORWARD), std::invalid_argument);
-#endif
-}
-
-TEST(Profiler, cannotEndTwice_n) {
-  Profiler prof;
-  prof.start(EVENT::NN_FORWARD);
-  prof.end(EVENT::NN_FORWARD);
-
-#ifdef DEBUG
-  EXPECT_THROW(prof.end(EVENT::NN_FORWARD), std::invalid_argument);
-#endif
-}
-
-TEST(Profiler, subscribeNullListener_n) {
-  Profiler prof;
-
-  EXPECT_THROW(prof.subscribe(nullptr), std::invalid_argument);
-}
-
-TEST(Profiler, subscribeNullListener2_n) {
-  Profiler prof;
-
-  EXPECT_THROW(prof.subscribe(nullptr, {EVENT::NN_FORWARD}),
-               std::invalid_argument);
-}
-
-TEST(Profiler, subscribeAllTwice_n) {
-  Profiler prof;
-  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
-
-  EXPECT_THROW(prof.subscribe(all_listener.get()), std::invalid_argument);
-}
-
-TEST(Profiler, subscribePartialTwice_n) {
-  Profiler prof;
-  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
-
-  EXPECT_THROW(prof.subscribe(all_listener.get(), {EVENT::NN_FORWARD}),
-               std::invalid_argument);
+  std::stringstream ss;
+  listener->report(ss);
+  EXPECT_EQ(ss.str(), "0 0");
 }
 
 /**
