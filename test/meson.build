@@ -17,6 +17,7 @@ nntrainer_testutil_dep = declare_dependency(
 )
 
 nntrainer_test_deps = [
+  gmock_dep,
   gtest_dep,
   nntrainer_dep,
   nntrainer_testutil_dep
@@ -24,6 +25,7 @@ nntrainer_test_deps = [
 
 # this is depedency is for the gtest with main included
 nntrainer_test_main_deps = [
+  gmock_dep,
   gtest_main_dep,
   nntrainer_dep,
   nntrainer_testutil_dep

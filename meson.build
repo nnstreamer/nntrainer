@@ -262,6 +262,7 @@ if get_option('enable-tflite-interpreter')
   extra_defines += '-DENABLE_TFLITE_INTERPRETER=1'
 endif
 
+gmock_dep = dependency('gmock', static: true, required: false)
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
 gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
