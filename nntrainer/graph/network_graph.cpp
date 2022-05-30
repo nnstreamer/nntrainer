@@ -332,9 +332,9 @@ void NetworkGraph::applyGradients(
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
-    START_PROFILE(profile_keys.at(ln->getType()));
+    PROFILE_TIME_START(profile_keys.at(ln->getType()));
     ln->forwarding(training);
-    END_PROFILE(profile_keys.at(ln->getType()));
+    PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
   sharedConstTensors out;
@@ -371,9 +371,9 @@ void NetworkGraph::backwarding(
 
   for (auto iter = iter_begin; iter != iter_end; iter++) {
     auto &ln = *iter;
-    START_PROFILE(profile_keys.at(ln->getType()));
+    PROFILE_TIME_START(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);
-    END_PROFILE(profile_keys.at(ln->getType()));
+    PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
   /** perform clipping of the gradients by global norm if any */
@@ -828,7 +828,7 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
 
     if (profile_keys.find(lnode->getType()) == profile_keys.end()) {
       int event_key = 0;
-      REGISTER_EVENT(lnode->getType(), event_key);
+      PROFILE_TIME_REGISTER_EVENT(event_key, lnode->getType());
       profile_keys[lnode->getType()] = event_key;
     }
 

@@ -558,9 +558,11 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
 
   allocate(ExecutionMode::INFERENCE);
 
-  START_PROFILE(profile::NN_FORWARD);
+  int nn_foward;
+  PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
+  PROFILE_TIME_START(nn_foward);
   out = forwarding(X, label, false);
-  END_PROFILE(profile::NN_FORWARD);
+  PROFILE_TIME_END(nn_foward);
 
   if (free_mem)
     /**

@@ -11,9 +11,11 @@
  *
  */
 #include <algorithm>
+#include <atomic>
 #include <iomanip>
 #include <map>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <tuple>
 
@@ -24,69 +26,76 @@
 namespace nntrainer {
 namespace profile {
 
-ProfileListener::ProfileListener(Profiler *profiler_, std::vector<int> events) :
-  profiler(profiler_) {
-  if (profiler != nullptr) {
-    profiler->subscribe(this, events);
-  }
-}
-
-ProfileListener::~ProfileListener() noexcept {
-  if (profiler != nullptr) {
-    try {
-      profiler->unsubscribe(this);
-    } catch (...) {
-      ml_logw("unsubscribing profiler failed may cause undefined error");
-    }
-  }
-}
-
-void GenericProfileListener::onNotify(const int event,
-                                      const std::chrono::microseconds &value) {
-
-  time_iter = time_taken.find(event);
+void GenericProfileListener::onNotifyTimeEvent(
+  PROFILE_EVENT event, const int time_item, const std::string &str,
+  const std::chrono::microseconds &duration) {
+  auto time_iter = time_taken.find(time_item);
 
   if (time_iter == time_taken.end()) {
-    reset(event); // this sets time_iter to current, note that this is a side
-                  // effect of reset()
+    reset(time_item, str);
+    time_iter = time_taken.find(time_item);
   }
+
   auto &cnt_ = std::get<GenericProfileListener::CNT>(time_iter->second);
   cnt_++;
 
-  if (warmups >= cnt_) {
+  if (warmups >= cnt_)
     return;
-  }
 
   auto &cur_ = std::get<GenericProfileListener::CUR>(time_iter->second);
   auto &min_ = std::get<GenericProfileListener::MIN>(time_iter->second);
   auto &max_ = std::get<GenericProfileListener::MAX>(time_iter->second);
   auto &sum_ = std::get<GenericProfileListener::SUM>(time_iter->second);
 
-  cur_ = value;
-  min_ = std::min(min_, value);
-  max_ = std::max(max_, value);
-  sum_ += value;
+  cur_ = duration;
+  min_ = std::min(min_, duration);
+  max_ = std::max(max_, duration);
+  sum_ += duration;
 }
 
-void GenericProfileListener::reset(const int event) {
-  time_iter =
-    time_taken
-      .insert({event, std::make_tuple(std::chrono::microseconds{0},
-                                      std::chrono::microseconds::max(),
-                                      std::chrono::microseconds::min(),
-                                      std::chrono::microseconds{0}, int{0})})
-      .first;
+void GenericProfileListener::onNotifyMemoryEvent(
+  PROFILE_EVENT event, const size_t total_alloc_size, const std::string &str,
+  const std::chrono::microseconds &duration) {
+  mem_taken.emplace_back(event, total_alloc_size, str, duration);
+}
+
+void GenericProfileListener::notify(
+  PROFILE_EVENT event, const std::shared_ptr<ProfileEventData> data) {
+  switch (event) {
+  case EVENT_TIME_START:
+    /* ignore start time. we only consider duration of item */
+    break;
+  case EVENT_TIME_END:
+    onNotifyTimeEvent(event, data->time_item, data->event_str, data->duration);
+    break;
+  case EVENT_MEM_ALLOC:
+  case EVENT_MEM_DEALLOC:
+    onNotifyMemoryEvent(event, data->total_alloc_size, data->event_str,
+                        data->duration);
+    break;
+  default:
+    throw std::runtime_error("Invalid PROFILE_EVENT");
+    break;
+  }
+}
+
+void GenericProfileListener::reset(const int time_item,
+                                   const std::string &name) {
+  time_taken[time_item] = std::make_tuple(
+    std::chrono::microseconds{0}, std::chrono::microseconds::max(),
+    std::chrono::microseconds::min(), std::chrono::microseconds{0}, int{0});
+  names[time_item] = name;
 }
 
 const std::chrono::microseconds
-GenericProfileListener::result(const int event) {
-  auto iter = time_taken.find(event);
+GenericProfileListener::result(const int time_item) {
+  auto iter = time_taken.find(time_item);
 
   if (iter == time_taken.end() ||
       std::get<GenericProfileListener::CNT>(iter->second) == 0) {
     std::stringstream ss;
-    ss << "event has never recorded" << profiler->eventToStr(event);
-    throw std::invalid_argument("event has never recorded");
+    ss << "time_item has never recorded: " << names[time_item];
+    throw std::invalid_argument("time_item has never recorded");
   }
 
   return std::get<GenericProfileListener::CUR>(iter->second);
@@ -95,17 +104,20 @@ GenericProfileListener::result(const int event) {
 void GenericProfileListener::report(std::ostream &out) const {
   std::vector<unsigned int> column_size = {20, 23, 23, 23, 23, 23};
 
-  for (auto &entry : time_taken) {
-    auto title = profiler->eventToStr(entry.first);
+  for (auto &[item, time] : time_taken) {
+    auto title = names.find(item);
+#ifdef DEBUG
+    if (title == names.end())
+      throw std::runtime_error("Couldn't find name. it's already removed.");
+#endif
     column_size[0] =
-      std::max(column_size[0], static_cast<unsigned int>(title.size()));
+      std::max(column_size[0], static_cast<unsigned int>(title->second.size()));
   }
   auto total_col_size =
     std::accumulate(column_size.begin(), column_size.end(), 0);
 
-  if (warmups != 0) {
+  if (warmups != 0)
     out << "warm up: " << warmups << '\n';
-  }
 
   auto end = std::chrono::steady_clock::now();
   auto duration =
@@ -129,17 +141,21 @@ void GenericProfileListener::report(std::ostream &out) const {
   std::map<int, std::function<void(std::ostream & out)>> ordered_report;
 
   /// calculate metrics while skipping warmups
-  for (auto &entry : time_taken) {
+  for (auto &time : time_taken) {
     auto func = [&](std::ostream &out_) {
-      auto &cnt_ = std::get<GenericProfileListener::CNT>(entry.second);
-      auto &min_ = std::get<GenericProfileListener::MIN>(entry.second);
-      auto &max_ = std::get<GenericProfileListener::MAX>(entry.second);
-      auto &sum_ = std::get<GenericProfileListener::SUM>(entry.second);
+      auto &cnt_ = std::get<GenericProfileListener::CNT>(time.second);
+      auto &min_ = std::get<GenericProfileListener::MIN>(time.second);
+      auto &max_ = std::get<GenericProfileListener::MAX>(time.second);
+      auto &sum_ = std::get<GenericProfileListener::SUM>(time.second);
 
-      auto title = profiler->eventToStr(entry.first);
+      auto title = names.find(time.first);
+#ifdef DEBUG
+      if (title == names.end())
+        throw std::runtime_error("Couldn't find name. it's already removed.");
+#endif
 
       if (warmups >= cnt_) {
-        out_ << std::left << std::setw(total_col_size) << title
+        out_ << std::left << std::setw(total_col_size) << title->second
              << "less data then warmup\n";
         out_
           << std::right; // Restore outputstream adjustflag to standard stream
@@ -149,7 +165,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       out_.setf(std::ios::fixed);
       out_.precision(2);
       // clang-format off
-      out_ << std::setw(column_size[0]) << title
+      out_ << std::setw(column_size[0]) << title->second
           << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
           << std::setw(column_size[2]) << min_.count()
           << std::setw(column_size[3]) << max_.count()
@@ -158,12 +174,48 @@ void GenericProfileListener::report(std::ostream &out) const {
       // clang-format on
       out_.unsetf(std::ios::fixed);
     };
-    ordered_report[-entry.first] = func;
+    ordered_report[-time.first] = func;
   }
 
-  for (auto &entry : ordered_report) {
+  for (auto &entry : ordered_report)
     entry.second(out);
+
+  ordered_report.clear();
+
+  out << std::string(total_col_size, '=') << '\n';
+  out << "\n\n";
+  /// creating header
+  // clang-format off
+  out << std::setw(column_size[0]) << "event"
+      << std::setw(column_size[1]) << "current size"
+      << std::setw(column_size[2]) << "info"
+      << std::setw(column_size[3]) << "dur" << '\n';
+  // clang-format on
+  out << std::string(total_col_size, '=') << '\n';
+
+  int order = 0;
+  for (auto &mem : mem_taken) {
+    auto func = [&](std::ostream &out_) {
+      auto &event = std::get<PROFILE_EVENT>(mem);
+      auto &size = std::get<size_t>(mem);
+      auto &info = std::get<std::string>(mem);
+      auto &dur = std::get<std::chrono::microseconds>(mem);
+
+      out_.setf(std::ios::fixed);
+      out_.precision(2);
+      // clang-format off
+      out_ << std::setw(column_size[0]) << ((event == EVENT_MEM_ALLOC) ? "ALLOC" : "DEALLOC")
+          << std::setw(column_size[1]) << size
+          << std::setw(column_size[2]) << info
+          << std::setw(column_size[3]) << dur.count() << '\n';
+      // clang-format on
+      out_.unsetf(std::ios::fixed);
+    };
+    ordered_report[order++] = func;
   }
+
+  for (auto &entry : ordered_report)
+    entry.second(out);
 }
 
 Profiler &Profiler::Global() {
@@ -171,126 +223,141 @@ Profiler &Profiler::Global() {
   return instance;
 }
 
-void Profiler::start(const int &event) {
+void Profiler::start(const int item) {
 #ifdef DEBUG
   /// @todo: consider race condition
-  auto iter = start_time.find(event);
-  if (iter != start_time.end()) {
+  if (time_item_times.find(item) != time_item_times.end())
     throw std::invalid_argument("profiler has already started");
-  }
 #endif
 
-  start_time[event] = std::chrono::steady_clock::now();
+  auto name = time_item_names.find(item);
+  if (name == time_item_names.end())
+    throw std::invalid_argument("the item is not registered");
+
+  time_item_times[item] = std::chrono::steady_clock::now();
+
+  auto data = std::make_shared<ProfileEventData>(item, 0, name->second,
+                                                 std::chrono::microseconds(0));
+  notifyListeners(EVENT_TIME_START, data);
 }
 
-void Profiler::end(const int &event) {
+void Profiler::end(const int item) {
   /// @todo: consider race condition
   auto end = std::chrono::steady_clock::now();
-  auto iter = start_time.find(event);
 
 #ifdef DEBUG
-  if (iter == start_time.end()) {
-    throw std::invalid_argument("profiler hasn't started with the event");
-  }
+  if (time_item_times.find(item) == time_item_times.end())
+    throw std::invalid_argument("profiler hasn't started with the item");
 #endif
 
+  auto name = time_item_names.find(item);
+  if (name == time_item_names.end())
+    throw std::invalid_argument("the item is not registered");
+
+  auto start = time_item_times[item];
   auto duration =
-    std::chrono::duration_cast<std::chrono::microseconds>(end - iter->second);
-  notify(event, duration);
+    std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  auto data =
+    std::make_shared<ProfileEventData>(item, 0, name->second, duration);
 
-#ifdef DEBUG
-  start_time.erase(iter);
-#endif
+  notifyListeners(EVENT_TIME_END, data);
+
+  time_item_times.erase(item);
 }
 
-void Profiler::notify(const int &event,
-                      const std::chrono::microseconds &value) {
-  std::lock_guard<std::mutex> lk(subscription_mutex);
-  for (auto &listener : all_event_listeners) {
-    listener->onNotify(event, value);
-  }
+void Profiler::notifyListeners(PROFILE_EVENT event,
+                               const std::shared_ptr<ProfileEventData> data) {
+  std::lock_guard<std::mutex> lock(listeners_mutex);
 
-  auto &items = event_listeners[event];
+  for (auto &l : time_item_listeners[data->time_item])
+    l->notify(event, data);
 
-  for (auto &listner : items) {
-    listner->onNotify(event, value);
-  }
+  for (auto &l : listeners)
+    l->notify(event, data);
 }
 
-void Profiler::subscribe(ProfileListener *listener,
-                         const std::vector<int> &events) {
+void Profiler::subscribe(std::shared_ptr<ProfileListener> listener,
+                         const std::set<int> &time_items) {
   if (listener == nullptr) {
     throw std::invalid_argument("listener is null!");
   }
 
-  {
-    std::lock_guard<std::mutex> lk(subscription_mutex);
-    if (all_registered_listeners.count(listener) == 1) {
-      throw std::invalid_argument(
-        "listener is already registered, please unsubscribe before subscribe ");
-    }
-
-    all_registered_listeners.insert(listener);
-
-    if (events.empty()) {
-      all_event_listeners.insert(listener);
-      return;
-    }
-
-    for (auto event : events) {
-      auto iter = event_listeners.find(event);
-      if (iter == event_listeners.end()) {
-        event_listeners[event] = std::unordered_set<ProfileListener *>{};
-      }
-      event_listeners[event].insert(listener);
-    }
+  std::lock_guard<std::mutex> lock(listeners_mutex);
+  if (time_items.empty()) {
+    listeners.insert(listener);
+  } else {
+    for (auto item : time_items)
+      time_item_listeners[item].insert(listener);
   }
 }
 
-void Profiler::unsubscribe(ProfileListener *listener) {
-  std::lock_guard<std::mutex> lk(subscription_mutex);
-  all_registered_listeners.erase(listener);
-  all_event_listeners.erase(listener);
+void Profiler::unsubscribe(std::shared_ptr<ProfileListener> listener) {
+  std::lock_guard<std::mutex> lock(listeners_mutex);
+  listeners.erase(listener);
 
-  for (auto &it : event_listeners) {
-    it.second.erase(listener);
+  for (auto &[item, listeners] : time_item_listeners) {
+    auto found = listeners.find(listener);
+    if (found != listeners.end())
+      listeners.erase(found);
   }
 }
 
-std::string Profiler::eventToStr(const int event) {
+int Profiler::registerTimeItem(const std::string &name) {
+  std::lock_guard<std::mutex> lock(registr_mutex);
 
-  /// reserved event
-  if (event >= 0) {
-    switch (event) {
-    case EVENT::NN_FORWARD:
-      return "nn_forward";
-    }
-  }
-  /// custom events
-  else if (event < 0) {
-    std::lock_guard<std::mutex> lk(event_registration_mutex);
-    int actual_idx = -event - 1;
+  int item = time_item_names.size() + 1;
 
-    if (actual_idx > static_cast<int>(custom_events.size()) - 1) {
-      std::stringstream ss;
-      ss << "undef(" << event << ')';
-      return ss.str();
-    }
-    return custom_events[actual_idx];
-  }
+  time_item_names[item] = name;
+  time_item_listeners[item] = std::set<std::shared_ptr<ProfileListener>>();
 
-  throw std::logic_error("control should not reach here");
+  ml_logd("[Profiler] Event registered, time item name: %s key: %d",
+          name.c_str(), item);
+
+  return item;
 }
 
-int Profiler::registerEvent(const std::string &name) {
-  std::lock_guard<std::mutex> lk(event_registration_mutex);
-  custom_events.push_back(name);
-  int key = -custom_events.size();
+void Profiler::alloc(const void *ptr, size_t size, const std::string &str) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
 
-  ml_logd("[Profiler] Event registered, event name: %s event key: %d",
-          name.c_str(), key);
+#ifdef DEBUG
+  auto found = allocates.find(ptr);
+  if (found != allocates.end())
+    throw std::invalid_argument("memory profiler is already allocated");
+#endif
 
-  return key;
+  allocates[ptr] = std::tuple<size_t, timepoint, std::string>(
+    size, std::chrono::steady_clock::now(), str);
+
+  total_size += size;
+
+  auto data = std::make_shared<ProfileEventData>(0, total_size.load(), str,
+                                                 std::chrono::microseconds(0));
+  notifyListeners(EVENT_MEM_ALLOC, data);
+}
+
+void Profiler::dealloc(const void *ptr) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
+
+  auto end = std::chrono::steady_clock::now();
+  auto found = allocates.find(ptr);
+
+#ifdef DEBUG
+  if (found == allocates.end())
+    throw std::invalid_argument("memory profiler didn't allocated");
+#endif
+
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+    end - std::get<timepoint>(found->second));
+
+  total_size -= std::get<size_t>(found->second);
+
+  auto str = std::get<std::string>(found->second);
+  auto data =
+    std::make_shared<ProfileEventData>(0, total_size.load(), str, duration);
+
+  notifyListeners(EVENT_MEM_DEALLOC, data);
+
+  allocates.erase(found);
 }
 
 } // namespace profile

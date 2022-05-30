@@ -577,9 +577,11 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   };
 #endif
 
-  REGISTER_EVENT(profile_name(FORWARD_SUFFIX), forward_event_key);
-  REGISTER_EVENT(profile_name(CALC_DERIV_SUFFIX), calc_deriv_event_key);
-  REGISTER_EVENT(profile_name(CALC_GRAD_SUFFIX), calc_grad_event_key);
+  PROFILE_TIME_REGISTER_EVENT(forward_event_key, profile_name(FORWARD_SUFFIX));
+  PROFILE_TIME_REGISTER_EVENT(calc_deriv_event_key,
+                              profile_name(CALC_DERIV_SUFFIX));
+  PROFILE_TIME_REGISTER_EVENT(calc_grad_event_key,
+                              profile_name(CALC_GRAD_SUFFIX));
 
   return init_context;
 }
@@ -589,9 +591,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
  */
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
-  START_PROFILE(forward_event_key);
+  PROFILE_TIME_START(forward_event_key);
   layer->forwarding(*run_context, training);
-  END_PROFILE(forward_event_key);
+  PROFILE_TIME_END(forward_event_key);
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
@@ -608,9 +610,9 @@ void LayerNode::forwarding(bool training) {
  * @brief     calc the derivative to be passed to the previous layer
  */
 void LayerNode::calcDerivative() {
-  START_PROFILE(calc_deriv_event_key);
+  PROFILE_TIME_START(calc_deriv_event_key);
   layer->calcDerivative(*run_context);
-  END_PROFILE(calc_deriv_event_key);
+  PROFILE_TIME_END(calc_deriv_event_key);
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
@@ -623,10 +625,10 @@ void LayerNode::calcDerivative() {
  * @brief     Calculate the derivative of a layer
  */
 void LayerNode::calcGradient() {
-  START_PROFILE(calc_grad_event_key);
+  PROFILE_TIME_START(calc_grad_event_key);
   if (needs_calc_gradient)
     layer->calcGradient(*run_context);
-  END_PROFILE(calc_grad_event_key);
+  PROFILE_TIME_END(calc_grad_event_key);
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
