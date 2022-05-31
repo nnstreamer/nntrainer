@@ -26,7 +26,6 @@
 #include <remap_realizer.h>
 #include <rnncell.h>
 #include <util_func.h>
-#include <zoneout_lstmcell.h>
 
 namespace nntrainer {
 
@@ -172,29 +171,6 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
   }
 }
 
-/**
- * @brief if node is of recurrent type, set time step and max time step
- *
- * @param node node
- * @param time_step time step
- * @param max_time_step max time step
- */
-static void propagateTimestep(LayerNode *node, unsigned int time_step,
-                              unsigned int max_time_step) {
-
-  /** @todo add an interface to check if a layer supports a property */
-  auto is_recurrent_type = [](LayerNode *node) {
-    return node->getType() == ZoneoutLSTMCellLayer::type;
-  };
-
-  if (is_recurrent_type(node)) {
-    node->setProperty({"max_timestep=" + std::to_string(max_time_step),
-                       "timestep=" + std::to_string(time_step)});
-  }
-
-  return;
-}
-
 RecurrentRealizer::RecurrentRealizer(
   const char *ini_path, const std::vector<std::string> &external_input_layers) {
   /// @todo delegate to RecurrentRealizer(
@@ -229,7 +205,6 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
       auto nodes = input_mapper.realize(reference_);
       for (auto &node : nodes) {
-        propagateTimestep(node.get(), 0, max_time_idx);
         /// #1744, quick fix, add shared_from to every node
         node->setProperty({"shared_from=" + node->getName()});
       }
@@ -276,8 +251,6 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
       }
       /// 3. set shared_from
       new_node->setProperty({"shared_from=" + node->getName()});
-      /// 4. if recurrent layer type set timestep property
-      propagateTimestep(new_node.get(), time_idx, max_time_idx);
 
       step.push_back(std::move(new_node));
     }
