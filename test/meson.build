@@ -40,7 +40,9 @@ if enable_ccapi
   subdir('unittest')
 endif
 
-if get_option('enable-nnstreamer-tensor-filter')
+nnstreamer_test_dep = dependency('nnstreamer-test-devel', required: false)
+
+if get_option('enable-nnstreamer-tensor-filter') and nnstreamer_test_dep.found()
   subdir('nnstreamer')
 endif
 
