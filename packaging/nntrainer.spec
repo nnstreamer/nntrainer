@@ -46,6 +46,10 @@
 
 %endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
+%if 0%{tizen_version_major}%{tizen_version_minor} < 65
+BuildRequires: flatbuffers-devel
+%endif
+
 Name:		nntrainer
 Summary:	Software framework for training neural networks
 Version:	0.3.0
@@ -120,7 +124,9 @@ BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
 
 %if 0%{?unit_test}
+%if 0%{tizen_version_major}%{tizen_version_minor} > 60
 BuildRequires:	nnstreamer-test-devel
+%endif
 BuildRequires:	gst-plugins-good-extra
 BuildRequires:	python
 %endif #unit_test
@@ -168,7 +174,9 @@ Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow2-lite
-BuildRequires:  nnstreamer-test-devel
+%if 0%{tizen_version_major}%{tizen_version_minor} > 60
+BuildRequires:	nnstreamer-test-devel
+%endif
 BuildRequires:	nnstreamer-tensorflow2-lite
 BuildRequires:	tensorflow2-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
