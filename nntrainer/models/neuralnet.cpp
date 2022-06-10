@@ -236,7 +236,9 @@ int NeuralNetwork::initialize() {
 /**
  * @brief     free layers
  */
-NeuralNetwork::~NeuralNetwork() = default;
+NeuralNetwork::~NeuralNetwork() {
+  model_graph.deallocateTensors(true);
+}
 
 /**
  * @brief     forward propagation using layers object which has layer
