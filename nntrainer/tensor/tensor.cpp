@@ -1379,6 +1379,11 @@ Tensor Tensor::zoneout_mask(float zoneout) {
 }
 
 void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
+  if (dim != opposite.dim) {
+    throw std::invalid_argument(
+      "[Tensor::zoneout_mask] opposite dimension does not match");
+  }
+
   opposite.setRandBernoulli(zoneout);
   float *data = getData();
   float *opposite_data = opposite.getData();
