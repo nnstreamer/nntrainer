@@ -2247,22 +2247,26 @@ TEST(nntrainer_Tensor, average_multiple_axes_01_n) {
 TEST(nntrainer_Tensor, dot_01_n) {
   nntrainer::Tensor input(2, 3, 4, 5);
   nntrainer::Tensor m(1, 3, 4, 5);
-  EXPECT_THROW(nntrainer::Tensor result = input.dot(m),
-               nntrainer::exception::not_supported);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, dot_02_n) {
   nntrainer::Tensor input(2, 3, 4, 5);
   nntrainer::Tensor m(1, 3, 4, 5);
   EXPECT_THROW(nntrainer::Tensor result = input.dot(m, true),
-               nntrainer::exception::not_supported);
+               std::runtime_error);
 }
 
-TEST(nntrainer_Tensor, dot_03_n) {
+TEST(nntrainer_Tensor, dot_02_p) {
+  nntrainer::Tensor input(2, 3, 4, 5);
+  nntrainer::Tensor m(1, 3, 4, 5);
+  EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, false, true));
+}
+
+TEST(nntrainer_Tensor, dot_03_p) {
   nntrainer::Tensor input(1, 3, 4, 5);
   nntrainer::Tensor m(1, 3, 4, 5);
-  EXPECT_THROW(nntrainer::Tensor result = input.dot(m, true),
-               nntrainer::exception::not_supported);
+  EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, true));
 }
 
 TEST(nntrainer_Tensor, dot_04_n) {

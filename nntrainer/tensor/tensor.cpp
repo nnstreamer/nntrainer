@@ -1176,10 +1176,12 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous. Cannot dot product.";
 
-  if (m.dim.rank() > 2) {
-    throw exception::not_supported("Error: support only for rank of dot "
-                                   "matrix <= 2");
-  }
+  // Comment out with intension to support the calculation wrt. batch and height
+  // direction. It supposes to have this->dim as [ BxCxH,W ] and m.dim is
+  // [BxCxH,W] as well if (m.dim.rank() > 2) {
+  //   throw exception::not_supported("Error: support only for rank of dot "
+  //                                  "matrix <= 2");
+  // }
 
   // Comment out with intension to support the calculation wrt. batch and height
   // direction of this tensor. It is OK as long as m is 2D
