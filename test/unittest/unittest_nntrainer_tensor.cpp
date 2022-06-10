@@ -3610,6 +3610,132 @@ TEST(nntrainer_Tensor, cat_02_n) {
   }
 }
 
+TEST(nntrainer_Tensor, zoneout_mask_01_n) {
+  const float zoneout_rate = 0.3f;
+  nntrainer::Tensor t(10, 10, 10, 10);
+  nntrainer::Tensor opposite(20, 20, 20, 20);
+  EXPECT_THROW(t.zoneout_mask(opposite, zoneout_rate), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, zoneout_mask_02_p) {
+  const float zoneout_rate = 0.3f;
+  nntrainer::Tensor t(10, 10, 10, 10);
+  nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
+  constexpr float epsilon = 1e-3;
+
+  EXPECT_EQ(t.size(), opposite.size());
+
+  auto is_near = [epsilon](float val1, float val2) {
+    return val2 - epsilon < val1 && val1 < val2 + epsilon;
+  };
+
+  for (unsigned int i = 0; i < opposite.size(); ++i) {
+    if (is_near(opposite.getValue(i), 0.0f)) {
+      EXPECT_NEAR(t.getValue(i), 1.0f, epsilon);
+    } else if (is_near(opposite.getValue(i), 1.0f)) {
+      EXPECT_NEAR(t.getValue(i), 0.0f, epsilon);
+    } else {
+      FAIL() << "This should not be happen";
+    }
+  }
+}
+
+TEST(nntrainer_Tensor, zoneout_mask_03_p) {
+  const float zoneout_rate = 0.3f;
+  nntrainer::Tensor t(10, 10, 100, 100);
+  nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
+  constexpr float epsilon = 1e-3;
+
+  auto is_near = [epsilon](float val1, float val2) {
+    return val2 - epsilon < val1 && val1 < val2 + epsilon;
+  };
+  auto percentage = [](unsigned int dividend, unsigned int divisor) {
+    return (float)dividend / (float)divisor;
+  };
+
+  {
+    unsigned int zeros = 0;
+    unsigned int ones = 0;
+    for (unsigned int i = 0; i < opposite.size(); ++i) {
+      if (is_near(opposite.getValue(i), 0.0f)) {
+        ++zeros;
+      } else if (is_near(opposite.getValue(i), 1.0f)) {
+        ++ones;
+      } else {
+        FAIL() << "This should not be happen";
+      }
+    }
+    EXPECT_NEAR(percentage(zeros, opposite.size()), 1.0f - zoneout_rate,
+                epsilon);
+
+    // main test
+    EXPECT_NEAR(percentage(ones, opposite.size()), zoneout_rate, epsilon);
+  }
+
+  {
+    unsigned int zeros = 0;
+    unsigned int ones = 0;
+    for (unsigned int i = 0; i < t.size(); ++i) {
+      if (is_near(t.getValue(i), 0.0f)) {
+        ++zeros;
+      } else if (is_near(t.getValue(i), 1.0f)) {
+        ++ones;
+      } else {
+        FAIL() << "This should not be happen";
+      }
+    }
+    EXPECT_NEAR(percentage(zeros, t.size()), zoneout_rate, epsilon);
+
+    // main test
+    EXPECT_NEAR(percentage(ones, t.size()), 1.0f - zoneout_rate, epsilon);
+  }
+}
+
+TEST(nntrainer_Tensor, zoneout_mask_04_n) {
+  const float zoneout_rate = 0.3f;
+  nntrainer::Tensor t(10, 10, 100, 100);
+  nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
+  constexpr float epsilon = 1e-3;
+
+  auto is_near = [epsilon](float val1, float val2) {
+    return val2 - epsilon < val1 && val1 < val2 + epsilon;
+  };
+  auto percentage = [](unsigned int dividend, unsigned int divisor) {
+    return (float)dividend / (float)divisor;
+  };
+
+  {
+    unsigned int zeros = 0;
+    unsigned int ones = 0;
+    for (unsigned int i = 0; i < opposite.size(); ++i) {
+      if (is_near(opposite.getValue(i), 0.0f)) {
+        ++zeros;
+      } else if (is_near(opposite.getValue(i), 1.0f)) {
+        ++ones;
+      } else {
+        FAIL() << "This should not be happen";
+      }
+    }
+    EXPECT_FALSE(
+      is_near(percentage(ones, opposite.size()), 1.0f - zoneout_rate));
+  }
+
+  {
+    unsigned int zeros = 0;
+    unsigned int ones = 0;
+    for (unsigned int i = 0; i < t.size(); ++i) {
+      if (is_near(t.getValue(i), 0.0f)) {
+        ++zeros;
+      } else if (is_near(t.getValue(i), 1.0f)) {
+        ++ones;
+      } else {
+        FAIL() << "This should not be happen";
+      }
+    }
+    EXPECT_FALSE(is_near(percentage(ones, t.size()), zoneout_rate));
+  }
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
