@@ -18,6 +18,7 @@ NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a So
 
 Even if NNtariner runs on device, it provides full functionalities to train models and also utilizes limited device resources efficiently. NNTrainer is able to train various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression, Reinforcement Learning algorithms, Recurrent network and more. We also provide examples for various tasks such as Few-shot learning, ResNet, VGG, Product Rating and more will be added. All of these were tested on Samsung Galaxy smart phone with Android and PC (Ubuntu 18.04/20.04).
 
+[ NNTraner: Light-Weight On-Device Training Framework ](https://arxiv.org/pdf/2206.04688.pdf), arXiv, 2022 <br />
 [ NNTrainer: Towards the on-device learning for personalization ](https://www.youtube.com/watch?v=HWiV7WbIM3E), Samsung Software Developer Conference 2021 (Korean) <br />
 [ NNTrainer: Personalize neural networks on devices! ](https://www.youtube.com/watch?v=HKKowY78P1A), Samsung Developer Conference 2021 <br />
 [ NNTrainer: "On-device learning" ](https://www.youtube.com/embed/Jy_auavraKg?start=4035&end=4080), Samsung AI Forum 2021
@@ -58,6 +59,9 @@ Even if NNtariner runs on device, it provides full functionalities to train mode
 * [Mete Ozay](https://github.com/meteozay)
 * [Hyunil Park](https://github.com/songgot)
 * [Jiho Chu](https://github.com/jihochu)
+* [Yelin Jeong](https://github.com/niley7464)
+* [Donghak Park](https://github.com/DonghakPark)
+
 
 ## Components
 
@@ -72,6 +76,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | pooling2d | Pooling2DLayer |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooling |
  | flatten | FlattenLayer | Flatten layer |
  | fully_connected | FullyConnectedLayer | Fully connected layer |
+ | pooling2D | Pooling2DLayer | Pooling 2D layer |
  | input | InputLayer | Input Layer.  This is not always required. |
  | batch_normalization | BatchNormalizationLayer | Batch normalization layer |
  | activation | ActivaitonLayer | Set by layer property |
@@ -91,9 +96,12 @@ This component defines layers which consist of a neural network model. Layers ha
  | dropout | DropOutLayer | Dropout Layer |
  | embedding | EmbeddingLayer | Embedding Layer |
  | rnn | RNNLayer | Recurrent Layer |
+ | rnncell | RNNCellLayer | Recurrent Cell Layer |
  | gru | GRULayer | Gated Recurrent Unit Layer |
+ | grucell | GRUCellLayer | Gated Recurrent Unit Cell Layer |
  | lstm | LSTMLayer | Long Short-Term Memory Layer |
  | lstmcell | LSTMCellLayer | Long Short-Term Memory Cell Layer |
+ | zoneoutlstmcell | ZoneoutLSTMCellLayer | Zoneout Long Short-Term Memory Cell Layer |
  | time_dist | TimeDistLayer | Time distributed Layer |
 
 ### Supported Optimizers
