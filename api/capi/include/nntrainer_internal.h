@@ -355,6 +355,25 @@ int ml_train_model_compile_with_single_param(ml_train_model_h model,
 int ml_train_model_run_with_single_param(ml_train_model_h model,
                                          const char *single_param);
 
+/**
+ * @brief Sets the neural network layer Property with single param.
+ * @details Use this function to set neural network layer Property.
+ * @since_tizen 7.0
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_layer_set_property_with_single_param(layer,
+ * "unit=10|activation=softmax")
+ * @param[in] layer The NNTrainer layer handle.
+ * @param[in] single_param Property values.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_layer_set_property_with_single_param(ml_train_layer_h layer,
+                                                  const char *single_param);
+
 #if defined(__TIZEN__)
 /**
  * @brief Checks whether machine_learning.training feature is enabled or not.

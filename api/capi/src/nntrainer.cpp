@@ -739,6 +739,13 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   return status;
 }
 
+int ml_train_layer_set_property_with_single_param(ml_train_layer_h layer,
+                                                  const char *single_param) {
+  ML_TRAIN_VERIFY_VALID_HANDLE(layer);
+
+  return ml_train_layer_set_property(layer, single_param, NULL);
+}
+
 int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
                               ml_train_optimizer_type_e type) {
   int status = ML_ERROR_NONE;
