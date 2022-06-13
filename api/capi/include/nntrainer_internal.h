@@ -314,7 +314,7 @@ int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
                                 const char *output_layer_names[]);
 
 /**
- * @brief Compiles and finalizes the neural network model with the params.
+ * @brief Compiles and finalizes the neural network model with single param.
  * @details Use this function to initialize neural network model. Various
  * @since_tizen 7.0
  * hyperparameter before compile the model can be set. Once compiled,
@@ -336,7 +336,7 @@ int ml_train_model_compile_with_single_param(ml_train_model_h model,
                                              const char *single_param);
 
 /**
- * @brief Trains the neural network model with params.
+ * @brief Trains the neural network model with single param.
  * @details Use this function to train the compiled neural network model with
  * the passed training hyperparameters. This function will return once the
  * training, along with requested validation and testing, is completed.
