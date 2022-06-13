@@ -290,25 +290,25 @@ int ml_train_model_construct_with_conf(const char *model_conf,
   return status;
 }
 
-static std::vector<std::string> split_param(std::string single_param,
-                                            char delimiter) {
-  std::vector<std::string> param_list;
-  std::stringstream sstream(single_param);
-  std::string param;
-
-  while (std::getline(sstream, param, delimiter))
-    param_list.push_back(param);
-  return param_list;
-}
-
-static int nntrainer_model_compile(ml_train_model_h model,
-                                   std::vector<std::string> &param_list) {
+int ml_train_model_compile(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
+  const char *data;
   ml_train_model *nnmodel;
   returnable f;
   std::shared_ptr<ml::train::Model> m;
 
+  check_feature_state();
+
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, model);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+  va_end(arguments);
 
   {
     ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
@@ -317,7 +317,7 @@ static int nntrainer_model_compile(ml_train_model_h model,
   }
 
   f = [&]() {
-    m->setProperty(param_list);
+    m->setProperty(arg_list);
     return ML_ERROR_NONE;
   };
   status = nntrainer_exception_boundary(f);
@@ -339,68 +339,9 @@ static int nntrainer_model_compile(ml_train_model_h model,
 
 int ml_train_model_compile_with_single_param(ml_train_model_h model,
                                              const char *single_param) {
-  std::vector<std::string> param_list;
-
-  check_feature_state();
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
-  if (single_param)
-    param_list = split_param(single_param, '|');
-
-  return nntrainer_model_compile(model, param_list);
-}
-
-int ml_train_model_compile(ml_train_model_h model, ...) {
-  int status = ML_ERROR_NONE;
-  const char *data;
-
-  check_feature_state();
-  ML_TRAIN_VERIFY_VALID_HANDLE(model);
-
-  std::vector<std::string> arg_list;
-  va_list arguments;
-  va_start(arguments, model);
-
-  while ((data = va_arg(arguments, const char *))) {
-    arg_list.push_back(data);
-  }
-  va_end(arguments);
-
-  return nntrainer_model_compile(model, arg_list);
-}
-
-static int nntrainer_model_run(ml_train_model_h model,
-                               std::vector<std::string> &param_list) {
-  int status = ML_ERROR_NONE;
-  ml_train_model *nnmodel;
-  std::shared_ptr<ml::train::Model> m;
-
-  ML_TRAIN_VERIFY_VALID_HANDLE(model);
-
-  {
-    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
-    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
-    m = nnmodel->model;
-  }
-
-  returnable f = [&]() { return m->train(param_list); };
-  status = nntrainer_exception_boundary(f);
-
-  return status;
-}
-
-int ml_train_model_run_with_single_param(ml_train_model_h model,
-                                         const char *single_param) {
-
-  std::vector<std::string> param_list;
-
-  check_feature_state();
-  ML_TRAIN_VERIFY_VALID_HANDLE(model);
-
-  if (single_param)
-    param_list = split_param(single_param, '|');
-
-  return nntrainer_model_run(model, param_list);
+  return ml_train_model_compile(model, single_param, NULL);
 }
 
 int ml_train_model_run(ml_train_model_h model, ...) {
@@ -423,7 +364,23 @@ int ml_train_model_run(ml_train_model_h model, ...) {
 
   va_end(arguments);
 
-  return nntrainer_model_run(model, arg_list);
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+    m = nnmodel->model;
+  }
+
+  returnable f = [&]() { return m->train(arg_list); };
+  status = nntrainer_exception_boundary(f);
+
+  return status;
+}
+
+int ml_train_model_run_with_single_param(ml_train_model_h model,
+                                         const char *single_param) {
+  ML_TRAIN_VERIFY_VALID_HANDLE(model);
+
+  return ml_train_model_run(model, single_param, NULL);
 }
 
 int ml_train_model_destroy(ml_train_model_h model) {
