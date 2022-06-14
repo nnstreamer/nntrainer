@@ -232,6 +232,54 @@ TEST(nntrainer_capi_nnlayer, setproperty_11_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
+/**
+ * @brief Neural Network Layer Set Property Test (positive test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_01_p) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle, "input_shape=1:1:6270 | normalization=true | standardization=true");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negative test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_02_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle, "input_shape=1:1:6270, normalization=true, standardization=true");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negative test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_03_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle, "input_shape=1:1:6270 ! normalization=true ! standardization=true");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 /*** since tizen 6.5 ***/
 
 /**
