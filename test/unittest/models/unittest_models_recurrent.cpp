@@ -573,6 +573,40 @@ static std::unique_ptr<NeuralNetwork> makeStackedGRUCell() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeStackedGRUCellFC() {
+  auto nn = std::make_unique<NeuralNetwork>();
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=1:1:2"}},
+    {"input", {"name=a1_input_hidden_state", "input_shape=1:1:2"}},
+    /// here grucells are being inserted
+    {"mse", {"name=loss", "input_layers=grucell_scope/fc(0)"}},
+  });
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  auto grucell = makeGraph({
+    {"input", {"name=dummy_0", "input_shape=1"}},
+    {"input", {"name=dummy_1", "input_shape=1"}},
+    {"grucell",
+     {"name=a1", "unit=2", "integrate_bias=false", "reset_after=true",
+      "input_layers=dummy_0, dummy_1"}},
+    {"fully_connected", {"name=fc", "unit=2", "input_layers=a1(0)"}},
+  });
+
+  nn->addWithReferenceLayers(
+    grucell, "grucell_scope", {"input", "a1_input_hidden_state"},
+    {"a1(0)", "a1(1)"}, {"fc"}, ml::train::ReferenceLayersType::RECURRENT,
+    {"unroll_for=2", "as_sequence=fc", "recurrent_input=a1(0), a1(1)",
+     "recurrent_output=fc(0), a1(0)", "dynamic_time_seq=true"});
+
+  nn->setProperty({"input_layers=input, a1_input_hidden_state"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 INSTANTIATE_TEST_CASE_P(
   recurrentModels, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -637,6 +671,7 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc_V2(makeSingleGRUCell, "grucell_single", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedGRUCell, "grucell_stacked",
                  ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeStackedGRUCellFC, "grucell_fc", ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);

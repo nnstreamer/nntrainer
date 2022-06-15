@@ -46,6 +46,22 @@ public:
 UnrollFor::UnrollFor(const unsigned &value) { set(value); }
 
 /**
+ * @brief dynamic time sequence property, use this to set and check if dynamic
+ * time sequence is enabled.
+ *
+ */
+class DynamicTimeSequence final : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new DynamicTimeSequence object
+   *
+   */
+  DynamicTimeSequence(bool val = true) : nntrainer::Property<bool>(val) {}
+  static constexpr const char *key = "dynamic_time_seq";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief Property for recurrent inputs
  *
  */
@@ -105,7 +121,7 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
   recurrent_props(new PropTypes(
     std::vector<props::RecurrentInput>(), std::vector<props::RecurrentOutput>(),
     std::vector<props::AsSequence>(), props::UnrollFor(1),
-    std::vector<props::InputIsSequence>())) {
+    std::vector<props::InputIsSequence>(), props::DynamicTimeSequence(false))) {
   auto left = loadProperties(properties, *recurrent_props);
 
   std::transform(input_conns.begin(), input_conns.end(),
@@ -131,8 +147,8 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
     }
   }
 
-  auto &[inputs, outputs, as_sequence, unroll_for, input_is_seq] =
-    *recurrent_props;
+  auto &[inputs, outputs, as_sequence, unroll_for, input_is_seq,
+         dynamic_time_seq] = *recurrent_props;
 
   NNTR_THROW_IF(inputs.empty() || inputs.size() != outputs.size(),
                 std::invalid_argument)

@@ -33,6 +33,7 @@ class InputIsSequence;
 class OutputLayer;
 class RecurrentInput;
 class RecurrentOutput;
+class DynamicTimeSequence;
 } // namespace props
 
 /**
@@ -87,10 +88,11 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
-  using PropTypes = std::tuple<std::vector<props::RecurrentInput>,
-                               std::vector<props::RecurrentOutput>,
-                               std::vector<props::AsSequence>, props::UnrollFor,
-                               std::vector<props::InputIsSequence>>;
+  using PropTypes =
+    std::tuple<std::vector<props::RecurrentInput>,
+               std::vector<props::RecurrentOutput>,
+               std::vector<props::AsSequence>, props::UnrollFor,
+               std::vector<props::InputIsSequence>, props::DynamicTimeSequence>;
 
   std::unordered_set<std::string> input_layers; /**< external input layers */
   std::unordered_set<std::string>
