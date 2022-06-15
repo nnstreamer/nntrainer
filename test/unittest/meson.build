@@ -16,6 +16,7 @@ unzip_target = [
   ['unittest_layers_v2.tar.gz', 'unittest_layers'],
   ['unittest_models.tar.gz', 'unittest_models'],
   ['unittest_models_v2.tar.gz', 'unittest_models'],
+  ['unittest_models_v3.tar.gz', 'unittest_models'],
   ['unittest_models_multiout.tar.gz', 'unittest_models'],
 ]
 
