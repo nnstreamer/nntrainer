@@ -8,7 +8,7 @@ Network model consists of two convolution layer, two pooling layer, one flatten 
 ![MNIST Model](/docs/images/mnist_model.png?raw=true)
 
 ### MNIST Data Set and DataBuffer
-In order to make training short, we use subset of full mnist dataset, 100 images per class and save it into file named ```mnist_trainingSet.dat```. The input image size is 784 (28x28) and the label is an one-hot vector for classifying 10 digits. The ith image feature and label data must be at ```i x ((784 x sizeof(float) + label(10 x sizeof(float))``` byte position.
+In order to make training short, we use subset of full mnist dataset, 100 images per class and save it into file named ```mnist_trainingSet.dat```. The input image size is 784 (28x28) and the label is an one-hot vector for classifying 10 digits. The i<sup>th</sup> image feature and label data must be at ```i x ((784 x sizeof(float) + label(10 x sizeof(float))``` byte position.
 
 ``` bash
 ...
