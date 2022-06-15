@@ -46,10 +46,6 @@
 
 %endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
-%if 0%{tizen_version_major}%{tizen_version_minor} < 65
-BuildRequires: flatbuffers-devel
-%endif
-
 Name:		nntrainer
 Summary:	Software framework for training neural networks
 Version:	0.3.0
@@ -73,6 +69,7 @@ BuildRequires:	iniparser-devel >= 4.1
 BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
+BuildRequires:	flatbuffers-devel
 
 BuildRequires:	%{capi_machine_learning_common}-devel
 BuildRequires:	%{capi_machine_learning_inference}-devel
