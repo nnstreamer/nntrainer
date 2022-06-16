@@ -831,6 +831,13 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   return status;
 }
 
+int ml_train_optimizer_set_property_with_single_param(
+  ml_train_optimizer_h optimizer, const char *single_param) {
+  ML_TRAIN_VERIFY_VALID_HANDLE(optimizer);
+
+  return ml_train_optimizer_set_property(optimizer, single_param, NULL);
+}
+
 int ml_train_dataset_create(ml_train_dataset_h *dataset) {
   return ml_train_dataset_create(dataset, ml::train::DatasetType::UNKNOWN,
                                  nullptr, nullptr, nullptr);
