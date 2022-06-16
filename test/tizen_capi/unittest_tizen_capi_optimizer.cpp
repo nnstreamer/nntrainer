@@ -152,6 +152,51 @@ TEST(nntrainer_capi_nnopt, setOptimizer_05_n) {
 }
 
 /**
+ * @brief Neural Network Optimizer Set Property Test (positive test)
+ */
+TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_06_p) {
+  ml_train_optimizer_h handle;
+  int status;
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_optimizer_set_property_with_single_param(
+    handle, "beta1=0.002 | beta2=0.001 | epsilon=1e-7");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_optimizer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Optimizer Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_07_n) {
+  ml_train_optimizer_h handle;
+  int status;
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_optimizer_set_property_with_single_param(
+    handle, "beta1=0.002, beta2=0.001, epsilon=1e-7");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_optimizer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Optimizer Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_08_n) {
+  ml_train_optimizer_h handle;
+  int status;
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_optimizer_set_property_with_single_param(
+    handle, "beta1=0.002 ! beta2=0.001 ! epsilon=1e-7");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_optimizer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
