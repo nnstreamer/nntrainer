@@ -40,6 +40,7 @@
 
 #include <dataset.h>
 #include <model.h>
+#include <optimizer.h>
 
 #ifdef PROFILE
 #include <profiler.h> // disable including this in android as profiler is not exposed yet to devel header
@@ -197,8 +198,8 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
 
 #if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 2.5698349);
-  EXPECT_FLOAT_EQ(validation_loss, 2.5551746);
+  EXPECT_FLOAT_EQ(training_loss, 2.586082);
+  EXPECT_FLOAT_EQ(validation_loss, 2.5753405);
 }
 #endif
 
@@ -253,7 +254,7 @@ int main(int argc, char *argv[]) {
                                   train_user_data.get());
     dataset_val = createDataset(ml::train::DatasetType::GENERATOR, getSample,
                                 valid_user_data.get());
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;
   }
@@ -265,8 +266,22 @@ int main(int argc, char *argv[]) {
      */
     model = createModel(ml::train::ModelType::NEURAL_NET);
     model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error during loadFromConfig " << e.what() << std::endl;
+    return 1;
+  }
+
+  try {
+    auto optimizer = ml::train::createOptimizer("adam");
+    auto lr_scheduler = ml::train::createLearningRateScheduler("step");
+
+    lr_scheduler->setProperty(
+      {"learning_rate=0.0001, 0.00009, 0.00007, 0.00005"});
+    lr_scheduler->setProperty({"iteration=4, 6, 15"});
+    optimizer->setLearningRateScheduler(std::move(lr_scheduler));
+    model->setOptimizer(std::move(optimizer));
+  } catch (const std::exception &e) {
+    std::cerr << "Error during set optimizer " << e.what() << std::endl;
     return 1;
   }
 
@@ -275,7 +290,7 @@ int main(int argc, char *argv[]) {
     model->initialize();
     model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
     model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error during init " << e.what() << std::endl;
     return 1;
   }
@@ -296,7 +311,7 @@ int main(int argc, char *argv[]) {
     model->train();
     training_loss = model->getTrainingLoss();
     validation_loss = model->getValidationLoss();
-  } catch (std::exception &e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error during train " << e.what() << std::endl;
     return 0;
   }
