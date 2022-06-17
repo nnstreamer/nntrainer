@@ -70,17 +70,6 @@ TEST(nntrainer_capi_nnopt, create_delete_04_n) {
 }
 
 /**
- * @brief Neural Network Optimizer Create / Delete Test (negative test)
- */
-TEST(nntrainer_capi_nnopt, create_delete_05_n) {
-  ml_train_optimizer_h handle;
-  int status;
-
-  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
  * @brief Neural Network Optimizer set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnopt, setOptimizer_01_p) {

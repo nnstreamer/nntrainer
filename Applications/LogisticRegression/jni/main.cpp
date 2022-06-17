@@ -147,7 +147,12 @@ int main(int argc, char *argv[]) {
    * @brief     Create NN
    */
   std::unique_ptr<ml::train::Model> model;
-  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  try {
+    model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  } catch (const std::exception &e) {
+    std::cerr << "Error during create model: " << e.what() << "\n";
+    return 1;
+  }
 
   /**
    * @brief     Initialize NN with configuration file path
@@ -155,30 +160,53 @@ int main(int argc, char *argv[]) {
 
   try {
     model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
+  } catch (const std::exception &e) {
+    std::cerr << "Error during load: " << e.what() << "\n";
+    return 1;
+  }
+
+  try {
     model->compile();
+  } catch (const std::exception &e) {
+    std::cerr << "Error during compile: " << e.what() << "\n";
+    return 1;
+  }
+
+  try {
     model->initialize();
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
-    return 0;
+  } catch (const std::exception &e) {
+    std::cerr << "Error during initialize: " << e.what() << "\n";
+    return 1;
   }
 
   if (training) {
-    auto data_train = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, getSample_train);
+    std::unique_ptr<ml::train::Dataset> data_train;
+    try {
+      data_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                            getSample_train);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during create dataset: " << e.what() << "\n";
+      return 1;
+    }
 
-    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
-                      std::move(data_train));
+    try {
+      model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
+                        std::move(data_train));
+    } catch (const std::exception &e) {
+      std::cerr << "Error during set dataset: " << e.what() << "\n";
+      return 1;
+    }
 
     try {
       model->train({"save_path=" + weight_path});
-    } catch (...) {
-      std::cerr << "Error during train" << std::endl;
-      return 0;
+    } catch (const std::exception &e) {
+      std::cerr << "Error during train: " << e.what() << "\n";
+      return 1;
     }
   } else {
     try {
       model->load(weight_path);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       std::cerr << "Error during loading weights: " << e.what() << "\n";
       return 1;
     }
@@ -224,8 +252,8 @@ int main(int argc, char *argv[]) {
           std::cout << " Something Wrong  " << answer[0][0] << " " << label[0]
                     << std::endl;
         }
-      } catch (...) {
-        std::cerr << "Error during forwarding the model" << std::endl;
+      } catch (const std::exception &e) {
+        std::cerr << "Error during forwarding the model: " << e.what() << "\n";
         return -1;
       }
     }
