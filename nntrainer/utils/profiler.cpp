@@ -163,7 +163,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       }
 
       out_.setf(std::ios::fixed);
-      out_.precision(2);
+      std::streamsize default_precision = out_.precision(2);
       // clang-format off
       out_ << std::setw(column_size[0]) << title->second
           << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
@@ -172,6 +172,7 @@ void GenericProfileListener::report(std::ostream &out) const {
           << std::setw(column_size[4]) << sum_.count()
           << std::setw(column_size[5]) << sum_.count() / (double)duration.count() * 100 << '\n';
       // clang-format on
+      out_.precision(default_precision);
       out_.unsetf(std::ios::fixed);
     };
     ordered_report[-time.first] = func;
