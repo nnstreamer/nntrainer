@@ -203,13 +203,14 @@ void GenericProfileListener::report(std::ostream &out) const {
       auto &dur = std::get<std::chrono::microseconds>(mem);
 
       out_.setf(std::ios::fixed);
-      out_.precision(2);
+      std::streamsize default_precision = out_.precision(2);
       // clang-format off
       out_ << std::setw(column_size[0]) << ((event == EVENT_MEM_ALLOC) ? "ALLOC" : "DEALLOC")
           << std::setw(column_size[1]) << size
           << std::setw(column_size[2]) << info
           << std::setw(column_size[3]) << dur.count() << '\n';
       // clang-format on
+      out_.precision(default_precision);
       out_.unsetf(std::ios::fixed);
     };
     ordered_report[order++] = func;

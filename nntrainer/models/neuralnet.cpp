@@ -1203,6 +1203,7 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
                             const std::string file_path) {
   switch (method) {
   case ml::train::ExportMethods::METHOD_TFLITE: {
+#ifdef ENABLE_TFLITE_INTERPRETER
     nntrainer::TfliteInterpreter interpreter;
 
     /// We will call "serialize" method for the model which is already trained
@@ -1212,6 +1213,11 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     model_graph.allocateTensors(ExecutionMode::INFERENCE);
     interpreter.serialize(graph_representation, file_path);
     model_graph.deallocateTensors();
+#else
+    throw std::runtime_error{
+      "Export methods METHOD_TFLITE is not supported. Please enable tflite "
+      "interpreter by set ENABLE_TFLITE_INTERPRETER=1"};
+#endif
     break;
   }
   default:
