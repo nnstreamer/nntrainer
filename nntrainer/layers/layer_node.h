@@ -518,7 +518,7 @@ public:
    * of vector is zero
    * @note      layer needs to be finalized before called.
    */
-  const std::vector<float *> getWeights() {
+  const std::vector<float *> getWeights() override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -534,7 +534,7 @@ public:
    * @note      Size of vector must be the same with number of weights.
    * @note      layer needs to be finalized before called.
    */
-  void setWeights(const std::vector<float *> weights);
+  void setWeights(const std::vector<float *> weights) override;
 
   /**
    * @brief Get the Input tensor object
