@@ -47,8 +47,6 @@ else
   error('ml api common dep is needed for the android build')
 endif
 
-
-
 configure_file(input: 'Android.mk.in', output: 'Android.mk',
   configuration: and_conf
 )
@@ -62,19 +60,15 @@ configure_file(input: 'Application.mk', output: 'Application.mk',
 # below is list of file that meson acknowledges this is the output of custom target so that
 # this has to be installed by meson
 outputs= [
-  'libc++_shared.so',
-  'libcapi-nntrainer.so',
-  'libccapi-nntrainer.so',
-  'libnntrainer.so'
+  'arm64-v8a'
 ]
 
 
 ndk_build = find_program('ndk-build', required : true)
 
 ndk_args = {
-  'TARGET_OUT': meson.current_build_dir(),
+  'NDK_LIBS_OUT': meson.current_build_dir(),
 }
-
 num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
 message('num processor are: ' + num_threads)
 
