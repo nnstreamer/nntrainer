@@ -375,7 +375,7 @@ int ml_train_layer_set_property_with_single_param(ml_train_layer_h layer,
                                                   const char *single_param);
 
 /**
- * @brief Sets the neural network optimizer property with singgle param.
+ * @brief Sets the neural network optimizer property with single param.
  * @details Use this function to set neural network optimizer property.
  * @since_tizen 7.0
  * API to solve va_list issue of Dllimport of C# interop.
@@ -392,6 +392,27 @@ int ml_train_layer_set_property_with_single_param(ml_train_layer_h layer,
  */
 int ml_train_optimizer_set_property_with_single_param(
   ml_train_optimizer_h optimizer, const char *single_param);
+
+/**
+ * @brief Sets the neural network dataset property with single param.
+ * @details Use this function to set dataset property for a specific mode.
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_dataset_set_property_for_mode_with_single_param(dataset,
+ * ML_TRAIN_DATASET_MODE_TEST, "key1=value2 | key1=value2");
+ * @since_tizen 7.0
+ * @param[in] dataset The NNTrainer dataset handle.
+ * @param[in] mode The mode to set the property.
+ * @param[in] single_param Property values.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_set_property_for_mode_with_single_param(
+  ml_train_dataset_h dataset, ml_train_dataset_mode_e mode,
+  const char *single_param);
 
 #if defined(__TIZEN__)
 /**
