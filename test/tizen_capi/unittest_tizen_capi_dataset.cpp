@@ -567,6 +567,61 @@ TEST(nntrainer_capi_dataset, set_dataset_property_for_mode_02_n) {
 }
 
 /**
+ * @brief Neural Network Dataset set Property Test (positive test)
+ */
+TEST(nntrainer_capi_dataset,
+     set_dataset_property_for_mode_with_single_param_03_p) {
+  ml_train_dataset_h dataset;
+  int status = ML_ERROR_NONE;
+
+  status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
+                                          getSample, &train_data);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_dataset_set_property_for_mode_with_single_param(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_VALID,
+                                          getSample, &valid_data);
+  status = ml_train_dataset_set_property_for_mode_with_single_param(
+    dataset, ML_TRAIN_DATASET_MODE_VALID, "buffer_size=1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TEST,
+                                          getSample, &train_data);
+  status = ml_train_dataset_set_property_for_mode_with_single_param(
+    dataset, ML_TRAIN_DATASET_MODE_TEST, "buffer_size=1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Dataset set Property Test (negative test)
+ */
+TEST(nntrainer_capi_dataset,
+     set_dataset_property_for_mode_with_single_param_04_n) {
+  ml_train_dataset_h dataset;
+  int status = ML_ERROR_NONE;
+
+  status = ml_train_dataset_create(&dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property_for_mode_with_single_param(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=1");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Neural Network Dataset set Property Test (negative test)
  */
 TEST(nntrainer_capi_dataset,
