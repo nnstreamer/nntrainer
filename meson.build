@@ -81,7 +81,7 @@ if get_option('platform') != 'android'
 else
   nntrainer_prefix = meson.build_root() / 'android_build_result'
   # @todo arch has to be option
-  nntrainer_libdir = nntrainer_prefix / 'lib' / 'arm64-v8a'
+  nntrainer_libdir = nntrainer_prefix / 'lib'
   nntrainer_includedir = nntrainer_prefix / 'include' / 'nntrainer'
   nntrainer_bindir = nntrainer_prefix / 'bin'
   nntrainer_confdir = nntrainer_prefix / 'conf'
