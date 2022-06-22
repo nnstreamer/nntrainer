@@ -1019,6 +1019,15 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
   return status != ML_ERROR_NONE ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
 }
 
+int ml_train_dataset_set_property_for_mode_with_single_param(
+  ml_train_dataset_h dataset, ml_train_dataset_mode_e mode,
+  const char *single_param) {
+  ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
+
+  return ml_train_dataset_set_property_for_mode(dataset, mode, single_param,
+                                                NULL);
+}
+
 int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
