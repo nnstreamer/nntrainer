@@ -39,14 +39,6 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := app_utils
-LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
-APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
-
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
@@ -58,10 +50,10 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_vgg
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
-LOCAL_SRC_FILES := main.cpp
+LOCAL_SRC_FILES := main.cpp cifar_dataloader.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer app_utils ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)

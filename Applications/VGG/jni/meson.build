@@ -1,7 +1,8 @@
 build_root = meson.build_root()
 res_path = meson.current_source_dir() / '..' / 'res'
 mnist_sources = [
-  'main.cpp'
+  'main.cpp',
+  'cifar_dataloader.cpp'
 ]
 if get_option('platform') == 'tizen'
   if not gtest_dep.found()
