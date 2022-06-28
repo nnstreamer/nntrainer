@@ -63,9 +63,9 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
     pool_size.emplace_back(props::PoolSize(in_dim.width()));
   }
 
-  padding =
-    std::get<props::Padding2D>(pooling2d_props)
-      .compute(in_dim, {pool_size[0], pool_size[1]}, {stride[0], stride[1]});
+  padding = std::get<props::Padding2D>(pooling2d_props)
+              .compute(in_dim, {pool_size[0], pool_size[1]},
+                       {stride[0], stride[1]}, {1, 1});
 
   auto [pt, pb, pl, pr] = padding;
 

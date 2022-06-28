@@ -79,6 +79,14 @@ if __name__ == "__main__":
     record_single(conv, (1, 2, 5, 5), "conv2d_sb_1x1_kernel")
     record_single(conv, (3, 2, 5, 5), "conv2d_mb_1x1_kernel")
 
+    conv = K.layers.Conv2D(2, 3, dilation_rate=(2, 2))
+    record_single(conv, (1, 3, 11, 11), "conv2d_sb_dilation")
+    record_single(conv, (3, 3, 11, 11), "conv2d_mb_dilation")
+
+    conv = K.layers.Conv2D(2, 3, padding="same", dilation_rate=(2, 2))
+    record_single(conv, (1, 3, 11, 11), "conv2d_sb_same_dilation")
+    record_single(conv, (3, 3, 11, 11), "conv2d_mb_same_dilation")
+
     # use float data to generate input here
     attention = K.layers.Attention()
     record_single(attention, [(1, 5, 7), (1, 3, 7)],
@@ -237,6 +245,14 @@ if __name__ == "__main__":
     conv = K.layers.Conv1D(3, 1, strides=2)
     record_single(conv, (1, 2, 1, 5), "conv1d_sb_1x1_kernel")
     record_single(conv, (3, 2, 1, 5), "conv1d_mb_1x1_kernel")
+
+    conv = K.layers.Conv1D(2, 3, dilation_rate=2)
+    record_single(conv, (1, 3, 1, 11), "conv1d_sb_dilation")
+    record_single(conv, (3, 3, 1, 11), "conv1d_mb_dilation")
+
+    conv = K.layers.Conv1D(2, 3, padding="same", dilation_rate=2)
+    record_single(conv, (1, 3, 1, 11), "conv1d_sb_same_dilation")
+    record_single(conv, (3, 3, 1, 11), "conv1d_mb_same_dilation")
 
     concat = K.layers.Concatenate(axis=3)
     record_single(concat, [(2,3,3,2), (2, 3, 3, 3)], "concat_dim3")

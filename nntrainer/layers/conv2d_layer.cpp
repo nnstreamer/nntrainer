@@ -52,7 +52,7 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
 static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<unsigned, 4> &padding,
                    const std::array<props::Stride, CONV2D_DIM> &mstride,
-                   const std::array<unsigned, CONV2D_DIM> &dilation,
+                   const std::array<props::Dilation, CONV2D_DIM> &dilation,
                    Tensor &image) {
   auto [pt, pb, pl, pr] = padding;
 
@@ -129,7 +129,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
 static void im2col(const Tensor &in, const TensorDim &kdim,
                    const std::array<unsigned int, 4> &padding,
                    const std::array<props::Stride, CONV2D_DIM> &mstride,
-                   const std::array<unsigned int, CONV2D_DIM> &dilation,
+                   const std::array<props::Dilation, CONV2D_DIM> &dilation,
                    Tensor &out) {
   /// for channel last mode, this is deprecated for now, leaving here on
   /// purpose.
@@ -248,7 +248,8 @@ Conv2DLayer::Conv2DLayer(
   LayerImpl(),
   padding(padding_),
   conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_DIM>(),
-             std::array<props::Stride, CONV2D_DIM>(), props::Padding2D()) {
+             std::array<props::Stride, CONV2D_DIM>(), props::Padding2D(),
+             std::array<props::Dilation, CONV2D_DIM>()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -274,17 +275,20 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto &kernel_size =
     std::get<std::array<props::KernelSize, CONV2D_DIM>>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
-  TensorDim dim =
+  TensorDim kernel_dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
 
   padding = std::get<props::Padding2D>(conv_props)
-              .compute(in_dim, dim, {stride[0], stride[1]});
+              .compute(in_dim, kernel_dim, {stride[0], stride[1]},
+                       {dilation[0], dilation[1]});
 
   wt_idx[ConvParams::weight] = context.requestWeight(
-    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    weight_decay, "filter", true);
+    kernel_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "filter", true);
 
   if (disable_bias.empty() || disable_bias.get() == false) {
     wt_idx[ConvParams::bias] =
@@ -296,11 +300,14 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
   unsigned int eff_in_width = in_dim.width() + padding[2] + padding[3];
 
+  unsigned int eff_k_height = (kernel_size[0] - 1) * dilation[0] + 1;
+  unsigned int eff_k_width = (kernel_size[1] - 1) * dilation[1] + 1;
+
   TensorDim out_dim;
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
-  out_dim.height((eff_in_height - kernel_size[0]) / stride[0] + 1);
-  out_dim.width((eff_in_width - kernel_size[1]) / stride[1] + 1);
+  out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
+  out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
   context.setOutputDimensions({out_dim});
 
   if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
@@ -328,7 +335,7 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
    * which will be expensive.
    */
   wt_idx[ConvParams::inter_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, dim), "inter_result",
+    calcCol2ImOutputDim(out_dim, kernel_dim), "inter_result",
     Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
 }
 
@@ -337,6 +344,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -406,7 +415,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
-    im2col(in_sub, filter_dim, padding, stride, {1, 1}, im2col_result);
+    im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
     filter_kernel.dot(im2col_result, out, false, true);
   }
 
@@ -424,6 +433,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
@@ -447,7 +458,7 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
     deriv_sub.reshape({filter_size, derivative.width() * derivative.height()});
 
     filter_kernel.dot(deriv_sub, col2im_result, true, false);
-    col2im(col2im_result, filter_dim, padding, stride, {1, 1}, in_deriv_sub);
+    col2im(col2im_result, filter_dim, padding, stride, dilation, in_deriv_sub);
   }
 
   filter_kernel.reshape(filter_dim);
@@ -456,6 +467,8 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
 void Conv2DLayer::calcGradient(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -489,7 +502,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
      * expense of memory. In this case, memory of im2col_result must be saved
      * for the whole batch. try this while benchmarking.
      */
-    im2col(in_sub, filter_dim, padding, stride, {1, 1}, im2col_result);
+    im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
     deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
   }
 
