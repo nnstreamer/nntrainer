@@ -32,7 +32,7 @@ Conv1DLayer::Conv1DLayer(const std::array<unsigned int, 2> &padding_) :
   LayerImpl(),
   padding(padding_),
   conv_props(props::FilterSize(), props::KernelSize(), props::Stride(),
-             props::Padding2D()) {
+             props::Padding2D(), props::Dilation()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
   conv2d_layer = std::make_unique<Conv2DLayer>();
 }
@@ -65,6 +65,9 @@ void Conv1DLayer::finalize(InitLayerContext &context) {
                   std::to_string(std::get<props::Stride>(conv_props).get()));
   setPropertyKV(props::Padding2D::key,
                 std::get<props::Padding2D>(conv_props).get());
+  setPropertyKV(props::Dilation::key,
+                "1," +
+                  std::to_string(std::get<props::Dilation>(conv_props).get()));
 
   conv2d_layer->finalize(context);
 }

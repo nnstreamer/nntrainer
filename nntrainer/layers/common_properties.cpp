@@ -105,6 +105,8 @@ PoolSize::PoolSize(unsigned int value) { set(value); }
 
 Stride::Stride(unsigned int value) { set(value); }
 
+Dilation::Dilation(unsigned int value) { set(value); }
+
 /**
  * @brief unsigned integer property, internally used to parse padding values
  *
@@ -141,7 +143,8 @@ bool Padding2D::isValid(const std::string &v) const {
 
 std::array<unsigned int, 4>
 Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
-                   const std::array<unsigned int, 2> &strides) {
+                   const std::array<unsigned int, 2> &strides,
+                   const std::array<unsigned int, 2> &dilation) {
   auto &padding_repr = get(); /// padding representation
 
   if (istrequal(padding_repr, "valid")) {
@@ -152,21 +155,19 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
   /// possible. otherwise pad_all_side / 2 is allocated to top | left and rest
   /// are assigned to the other side
   if (istrequal(padding_repr, "same")) {
-    /// @note if we start to consider dilation, this calculation has to tuned
-    /// accordingly.
-
     auto calculate_padding = [](unsigned input_, unsigned kernel_,
-                                unsigned stride) {
+                                unsigned stride, unsigned dilation) {
       /// ceil(input / stride)
+      unsigned int eff_kernel = (kernel_ - 1) * dilation + 1;
       auto out = (input_ + stride - 1) / stride;
-      auto req_input = (out - 1) * stride + kernel_;
+      auto req_input = (out - 1) * stride + eff_kernel;
       return req_input >= input_ ? req_input - input_ : 0;
     };
 
+    auto pad_vertical = calculate_padding(input.height(), kernel.height(),
+                                          strides[0], dilation[0]);
     auto pad_horizontal =
-      calculate_padding(input.width(), kernel.width(), strides[1]);
-    auto pad_vertical =
-      calculate_padding(input.height(), kernel.height(), strides[0]);
+      calculate_padding(input.width(), kernel.width(), strides[1], dilation[1]);
 
     auto pad_top = pad_vertical / 2;
     auto pad_left = pad_horizontal / 2;

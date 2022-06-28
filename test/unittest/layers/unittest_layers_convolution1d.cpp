@@ -139,13 +139,55 @@ auto conv1d_mb_1x1_kernel =
                            "3:2:1:5", "conv1d_mb_1x1_kernel.nnlayergolden",
                            LayerGoldenTestParamOptions::DEFAULT);
 
+auto conv1d_sb_dilation =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::Conv1DLayer>,
+                           {
+                             "filters=2",
+                             "kernel_size=3",
+                             "dilation=2",
+                           },
+                           "1:3:1:11", "conv1d_sb_dilation.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
+
+auto conv1d_mb_dilation =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::Conv1DLayer>,
+                           {
+                             "filters=2",
+                             "kernel_size=3",
+                             "dilation=2",
+                           },
+                           "3:3:1:11", "conv1d_mb_dilation.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
+
+auto conv1d_sb_same_dilation =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::Conv1DLayer>,
+                           {
+                             "filters=2",
+                             "kernel_size=3",
+                             "padding=same",
+                             "dilation=2",
+                           },
+                           "1:3:1:11", "conv1d_sb_same_dilation.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
+
+auto conv1d_mb_same_dilation =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::Conv1DLayer>,
+                           {
+                             "filters=2",
+                             "kernel_size=3",
+                             "padding=same",
+                             "dilation=2",
+                           },
+                           "3:3:1:11", "conv1d_mb_same_dilation.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT);
+
 GTEST_PARAMETER_TEST(
   Convolution1D, LayerGoldenTest,
-  ::testing::Values(conv1d_sb_minimum, conv1d_mb_minimum, conv1d_sb_same_remain,
-                    conv1d_mb_same_remain, conv1d_sb_same_uneven_remain_1,
-                    conv1d_sb_same_uneven_remain_2,
-                    conv1d_mb_same_uneven_remain_1,
-                    conv1d_mb_same_uneven_remain_2, conv1d_sb_valid_drop_last,
-                    conv1d_mb_valid_drop_last, conv1d_sb_no_overlap,
-                    conv1d_mb_no_overlap, conv1d_sb_1x1_kernel,
-                    conv1d_mb_1x1_kernel));
+  ::testing::Values(
+    conv1d_sb_minimum, conv1d_mb_minimum, conv1d_sb_same_remain,
+    conv1d_mb_same_remain, conv1d_sb_same_uneven_remain_1,
+    conv1d_sb_same_uneven_remain_2, conv1d_mb_same_uneven_remain_1,
+    conv1d_mb_same_uneven_remain_2, conv1d_sb_valid_drop_last,
+    conv1d_mb_valid_drop_last, conv1d_sb_no_overlap, conv1d_mb_no_overlap,
+    conv1d_sb_1x1_kernel, conv1d_mb_1x1_kernel, conv1d_sb_dilation,
+    conv1d_mb_dilation, conv1d_sb_same_dilation, conv1d_mb_same_dilation));

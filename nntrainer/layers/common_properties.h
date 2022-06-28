@@ -359,6 +359,22 @@ public:
 };
 
 /**
+ * @brief Dilation property, dilation indicates how many space will be inserted
+ * between kernel element
+ *
+ */
+class Dilation : public nntrainer::PositiveIntegerProperty {
+public:
+  /**
+   * @brief Construct a new Dilation object with a default value 1
+   *
+   */
+  Dilation(unsigned int value = 1);
+  static constexpr const char *key = "dilation"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                /**< property type */
+};
+
+/**
  * @brief Padding2D property, this is used to calculate padding2D
  * @details Padding2D is saved as a string. Upon calling Padding2D::compute,
  * returns std::vector<unsigned int> which has computed padding2Ds, below
@@ -393,7 +409,8 @@ public:
    */
   std::array<unsigned int, 4>
   compute(const TensorDim &input, const TensorDim &kernel,
-          const std::array<unsigned int, 2> &strides);
+          const std::array<unsigned int, 2> &strides,
+          const std::array<unsigned int, 2> &dilation);
 };
 
 /**

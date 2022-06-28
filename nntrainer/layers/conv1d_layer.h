@@ -101,7 +101,7 @@ public:
 private:
   std::array<unsigned int, 2> padding;
   std::tuple<props::FilterSize, props::KernelSize, props::Stride,
-             props::Padding2D>
+             props::Padding2D, props::Dilation>
     conv_props;
 
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
