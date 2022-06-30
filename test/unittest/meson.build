@@ -51,7 +51,9 @@ test_target = [
 ]
 
 if get_option('enable-profile')
-  test_target += [['unittest_nntrainer_profiler', []]]
+  if gmock_dep.version().version_compare('>=1.10.0')
+    test_target += [['unittest_nntrainer_profiler', []]]
+  endif
 endif
 
 foreach target: test_target
