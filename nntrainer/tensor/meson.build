@@ -9,6 +9,7 @@ tensor_sources = [
   'weight.cpp',
   'basic_planner.cpp',
   'memory_pool.cpp',
+  'swap_device.cpp',
   'tensor_pool.cpp',
   'optimized_v1_planner.cpp'
 ]
