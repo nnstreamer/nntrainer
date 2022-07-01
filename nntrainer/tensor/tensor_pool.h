@@ -328,7 +328,7 @@ private:
   std::vector<RequestSpec> pool; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
     name_map;          /**< indexing of requested tensors */
-  MemoryPool mem_pool; /**< memory pool for the tensors */
+  MemoryPool mem_pool;  /**< memory pool for the tensors */
 
   /**
    * @brief     Check if the lifespan leads to long term valitidy
