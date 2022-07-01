@@ -36,9 +36,9 @@ auto semantic_activation_none = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
   nntrainer::ActivationLayer::type, {"activation=none"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Activation, LayerSemantics,
-                        ::testing::Values(semantic_activation_relu,
-                                          semantic_activation_sigmoid,
-                                          semantic_activation_softmax,
-                                          semantic_activation_tanh,
-                                          semantic_activation_none));
+GTEST_PARAMETER_TEST(Activation, LayerSemantics,
+                     ::testing::Values(semantic_activation_relu,
+                                       semantic_activation_sigmoid,
+                                       semantic_activation_softmax,
+                                       semantic_activation_tanh,
+                                       semantic_activation_none));

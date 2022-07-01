@@ -20,8 +20,8 @@ auto semantic_conv1d = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>, nntrainer::Conv1DLayer::type,
   {"filters=1", "kernel_size=1", "padding=1"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Convolution1D, LayerSemantics,
-                        ::testing::Values(semantic_conv1d));
+GTEST_PARAMETER_TEST(Convolution1D, LayerSemantics,
+                     ::testing::Values(semantic_conv1d));
 
 auto conv1d_sb_minimum = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
@@ -139,7 +139,7 @@ auto conv1d_mb_1x1_kernel =
                            "3:2:1:5", "conv1d_mb_1x1_kernel.nnlayergolden",
                            LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   Convolution1D, LayerGoldenTest,
   ::testing::Values(conv1d_sb_minimum, conv1d_mb_minimum, conv1d_sb_same_remain,
                     conv1d_mb_same_remain, conv1d_sb_same_uneven_remain_1,

@@ -20,8 +20,8 @@ auto semantic_dropout =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::DropOutLayer>,
                           nntrainer::DropOutLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Dropout, LayerSemantics,
-                        ::testing::Values(semantic_dropout));
+GTEST_PARAMETER_TEST(Dropout, LayerSemantics,
+                     ::testing::Values(semantic_dropout));
 
 auto dropout_inference_option =
   LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
@@ -48,8 +48,7 @@ auto dropout_100_training = LayerGoldenTestParamType(
   "2:3:2:3", "dropout_100_training.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(Dropout, LayerGoldenTest,
-                        ::testing::Values(dropout_20_training,
-                                          dropout_0_training,
-                                          dropout_100_training,
-                                          dropout_20_inference));
+GTEST_PARAMETER_TEST(Dropout, LayerGoldenTest,
+                     ::testing::Values(dropout_20_training, dropout_0_training,
+                                       dropout_100_training,
+                                       dropout_20_inference));

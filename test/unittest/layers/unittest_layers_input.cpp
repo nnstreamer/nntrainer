@@ -20,5 +20,4 @@ auto semantic_input =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::InputLayer>,
                           nntrainer::InputLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Input, LayerSemantics,
-                        ::testing::Values(semantic_input));
+GTEST_PARAMETER_TEST(Input, LayerSemantics, ::testing::Values(semantic_input));

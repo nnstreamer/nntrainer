@@ -21,8 +21,8 @@ auto semantic_fc = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>,
   nntrainer::FullyConnectedLayer::type, {"unit=1"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(FullyConnected, LayerSemantics,
-                        ::testing::Values(semantic_fc));
+GTEST_PARAMETER_TEST(FullyConnected, LayerSemantics,
+                     ::testing::Values(semantic_fc));
 
 auto fc_basic_plain = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},
@@ -36,6 +36,6 @@ auto fc_basic_no_decay = LayerGoldenTestParamType(
   {"unit=5", "weight_decay=0.0", "bias_decay=0.0"}, "3:1:1:10",
   "fc_plain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(FullyConnected, LayerGoldenTest,
-                        ::testing::Values(fc_basic_plain, fc_basic_single_batch,
-                                          fc_basic_no_decay));
+GTEST_PARAMETER_TEST(FullyConnected, LayerGoldenTest,
+                     ::testing::Values(fc_basic_plain, fc_basic_single_batch,
+                                       fc_basic_no_decay));

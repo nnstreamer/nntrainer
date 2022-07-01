@@ -1,4 +1,4 @@
-layer_common_test_inc = include_directories('./')
+layer_common_test_inc = [ include_directories('./', '../../include') ]
 layer_common_test_standalone_files = files('layers_standalone_common_tests.cpp')
 layer_common_test_dependent_files = files('layers_dependent_common_tests.cpp')
 

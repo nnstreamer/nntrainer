@@ -35,8 +35,7 @@ auto semantic_loss_cross = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropyLossLayer>,
   nntrainer::CrossEntropyLossLayer::type, {}, 0, true, 1);
 
-INSTANTIATE_TEST_CASE_P(LossCross, LayerSemantics,
-                        ::testing::Values(semantic_loss_cross,
-                                          semantic_loss_mse,
-                                          semantic_loss_cross_softmax,
-                                          semantic_loss_cross_sigmoid));
+GTEST_PARAMETER_TEST(LossCross, LayerSemantics,
+                     ::testing::Values(semantic_loss_cross, semantic_loss_mse,
+                                       semantic_loss_cross_softmax,
+                                       semantic_loss_cross_sigmoid));

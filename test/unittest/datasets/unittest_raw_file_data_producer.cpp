@@ -53,5 +53,5 @@ auto batch_too_big = DataProducerSemanticsParamType(
   {{50000, 1, 1, 10}}, nullptr,
   DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
-INSTANTIATE_TEST_CASE_P(RawFile, DataProducerSemantics,
-                        ::testing::Values(training_set, valSet, testSet));
+GTEST_PARAMETER_TEST(RawFile, DataProducerSemantics,
+                     ::testing::Values(training_set, valSet, testSet));

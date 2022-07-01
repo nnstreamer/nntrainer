@@ -13,6 +13,7 @@
 
 #include <common_properties.h>
 #include <connection.h>
+#include <nntrainer_test_util.h>
 #include <tensor_dim.h>
 
 #include <array>
@@ -66,11 +67,10 @@ TEST_P(NameTest, forbiddenSuffix_n) {
   EXPECT_THROW(n.set("name" + suffix), std::invalid_argument);
 }
 
-INSTANTIATE_TEST_CASE_P(ForbiddenSuffixTests, NameTest,
-                        ::testing::Values("!", "@", "#", "$", "%", "^", "&",
-                                          "*", "=", "+0", "(0)", "{0}", "[0]",
-                                          "<0>", ";", ":", ",", "?", " ",
-                                          " layer"));
+GTEST_PARAMETER_TEST(ForbiddenSuffixTests, NameTest,
+                     ::testing::Values("!", "@", "#", "$", "%", "^", "&", "*",
+                                       "=", "+0", "(0)", "{0}", "[0]", "<0>",
+                                       ";", ":", ",", "?", " ", " layer"));
 
 TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
   nntrainer::props::Name n;

@@ -607,7 +607,7 @@ static std::unique_ptr<NeuralNetwork> makeStackedGRUCellFC() {
   return nn;
 }
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   recurrentModels, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelIniTc(fc_unroll_single, DIM_UNUSED, NOT_USED_,

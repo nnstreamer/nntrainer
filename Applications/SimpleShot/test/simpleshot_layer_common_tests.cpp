@@ -34,11 +34,11 @@ auto semantic_activation_centering = LayerSemanticsParamType(
    "conv4_60classes_feature_vector.bin"},
   0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(L2NormLayer, LayerSemantics,
-                        ::testing::Values(semantic_activation_l2norm));
+GTEST_PARAMETER_TEST(L2NormLayer, LayerSemantics,
+                     ::testing::Values(semantic_activation_l2norm));
 
-INSTANTIATE_TEST_CASE_P(CentroidKNN, LayerSemantics,
-                        ::testing::Values(semantic_activation_centroid_knn));
+GTEST_PARAMETER_TEST(CentroidKNN, LayerSemantics,
+                     ::testing::Values(semantic_activation_centroid_knn));
 
-INSTANTIATE_TEST_CASE_P(CenteringLayer, LayerSemantics,
-                        ::testing::Values(semantic_activation_centering));
+GTEST_PARAMETER_TEST(CenteringLayer, LayerSemantics,
+                     ::testing::Values(semantic_activation_centering));

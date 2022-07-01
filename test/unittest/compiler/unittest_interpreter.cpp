@@ -210,7 +210,7 @@ mkTc(nntrainer::GraphRepresentation graph, const char *file,
 }
 
 // clang-format off
-INSTANTIATE_TEST_CASE_P(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
+GTEST_PARAMETER_TEST(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
                         ::testing::Values(
   mkTc(makeGraph({fc0, flatten}), "simple_fc.ini", ini_interpreter),
   mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)

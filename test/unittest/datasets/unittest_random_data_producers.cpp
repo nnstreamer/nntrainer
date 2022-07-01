@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include <data_producer_common_tests.h>
+#include <nntrainer_test_util.h>
 #include <random_data_producers.h>
 
 DataProducerValidatorType random_onehot_validator(float min, float max) {
@@ -70,7 +71,7 @@ auto random_onehot_invalid_label_shape = DataProducerSemanticsParamType(
   {{1, 1, 2, 10}}, nullptr,
   DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   RandomOneHot, DataProducerSemantics,
   ::testing::Values(random_onehot_success_one_batch,
                     random_onehot_success_multi_batch_will_be_ignored,

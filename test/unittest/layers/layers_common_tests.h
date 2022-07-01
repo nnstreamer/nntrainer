@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <layer_devel.h>
+#include <nntrainer_test_util.h>
 
 typedef enum {
   AVAILABLE_FROM_APP_CONTEXT =

@@ -20,8 +20,8 @@ auto semantic_attention =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AttentionLayer>,
                           nntrainer::AttentionLayer::type, {}, 0, false, 2);
 
-INSTANTIATE_TEST_CASE_P(Attention, LayerSemantics,
-                        ::testing::Values(semantic_attention));
+GTEST_PARAMETER_TEST(Attention, LayerSemantics,
+                     ::testing::Values(semantic_attention));
 
 auto attention_shared_kv = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "1:1:5:7,1:1:3:7",
@@ -37,7 +37,7 @@ auto attention_batched = LayerGoldenTestParamType(
   "2:1:5:7,2:1:3:7,2:1:3:7", "attention_batched.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(Attention, LayerGoldenTest,
-                        ::testing::Values(attention_shared_kv,
-                                          attention_shared_kv_batched,
-                                          attention_batched));
+GTEST_PARAMETER_TEST(Attention, LayerGoldenTest,
+                     ::testing::Values(attention_shared_kv,
+                                       attention_shared_kv_batched,
+                                       attention_batched));

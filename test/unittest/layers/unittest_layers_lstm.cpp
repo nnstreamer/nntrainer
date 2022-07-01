@@ -20,7 +20,7 @@ auto semantic_lstm =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::LSTMLayer>,
                           nntrainer::LSTMLayer::type, {"unit=1"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(LSTM, LayerSemantics, ::testing::Values(semantic_lstm));
+GTEST_PARAMETER_TEST(LSTM, LayerSemantics, ::testing::Values(semantic_lstm));
 
 auto lstm_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
@@ -56,9 +56,9 @@ auto lstm_multi_step_seq_act = LayerGoldenTestParamType(
   "3:1:4:7", "lstm_multi_step_seq_act.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(LSTM, LayerGoldenTest,
-                        ::testing::Values(lstm_single_step, lstm_multi_step,
-                                          lstm_single_step_seq,
-                                          lstm_multi_step_seq,
-                                          lstm_multi_step_seq_act_orig,
-                                          lstm_multi_step_seq_act));
+GTEST_PARAMETER_TEST(LSTM, LayerGoldenTest,
+                     ::testing::Values(lstm_single_step, lstm_multi_step,
+                                       lstm_single_step_seq,
+                                       lstm_multi_step_seq,
+                                       lstm_multi_step_seq_act_orig,
+                                       lstm_multi_step_seq_act));
