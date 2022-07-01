@@ -19,13 +19,13 @@
 #include <layers_common_tests.h>
 #include <mae_loss.h>
 
-INSTANTIATE_TEST_CASE_P(
-  MaeLossLayer, LayerPluginCommonTest,
-  ::testing::Values(std::make_tuple("libmae_loss_layer.so", "mae_loss")));
+GTEST_PARAMETER_TEST(MaeLossLayer, LayerPluginCommonTest,
+                     ::testing::Values(std::make_tuple("libmae_loss_layer.so",
+                                                       "mae_loss")));
 
 auto semantic_mae =
   LayerSemanticsParamType(nntrainer::createLayer<custom::MaeLossLayer>,
                           custom::MaeLossLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(MaeLossLayer, LayerSemantics,
-                        ::testing::Values(semantic_mae));
+GTEST_PARAMETER_TEST(MaeLossLayer, LayerSemantics,
+                     ::testing::Values(semantic_mae));

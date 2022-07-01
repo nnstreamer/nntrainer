@@ -20,8 +20,8 @@ auto semantic_bn = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>,
   nntrainer::BatchNormalizationLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerSemantics,
-                        ::testing::Values(semantic_bn));
+GTEST_PARAMETER_TEST(BatchNormalization, LayerSemantics,
+                     ::testing::Values(semantic_bn));
 
 auto bn_inference_option = LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
                            LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
@@ -43,8 +43,8 @@ auto bn_basic_width_inference = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
   "bn_width_inference.nnlayergolden", bn_inference_option);
 
-INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerGoldenTest,
-                        ::testing::Values(bn_basic_channels_training,
-                                          bn_basic_channels_inference,
-                                          bn_basic_width_training,
-                                          bn_basic_width_inference));
+GTEST_PARAMETER_TEST(BatchNormalization, LayerGoldenTest,
+                     ::testing::Values(bn_basic_channels_training,
+                                       bn_basic_channels_inference,
+                                       bn_basic_width_training,
+                                       bn_basic_width_inference));

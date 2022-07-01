@@ -19,13 +19,13 @@
 #include <layers_common_tests.h>
 #include <rnnt_loss.h>
 
-INSTANTIATE_TEST_CASE_P(
-  RNNTLossLayer, LayerPluginCommonTest,
-  ::testing::Values(std::make_tuple("librnnt_loss_layer.so", "rnnt_loss")));
+GTEST_PARAMETER_TEST(RNNTLossLayer, LayerPluginCommonTest,
+                     ::testing::Values(std::make_tuple("librnnt_loss_layer.so",
+                                                       "rnnt_loss")));
 
 auto semantic_rnnt =
   LayerSemanticsParamType(nntrainer::createLayer<custom::RNNTLossLayer>,
                           custom::RNNTLossLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(RNNTLossLayer, LayerSemantics,
-                        ::testing::Values(semantic_rnnt));
+GTEST_PARAMETER_TEST(RNNTLossLayer, LayerSemantics,
+                     ::testing::Values(semantic_rnnt));

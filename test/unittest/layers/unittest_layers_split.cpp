@@ -20,5 +20,4 @@ auto semantic_split =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::SplitLayer>,
                           nntrainer::SplitLayer::type, {"axis=3"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Split, LayerSemantics,
-                        ::testing::Values(semantic_split));
+GTEST_PARAMETER_TEST(Split, LayerSemantics, ::testing::Values(semantic_split));

@@ -351,7 +351,7 @@ mkIniTc(const char *name, const nntrainer::IniWrapper::Sections vec, int flag) {
 /// which sums up to 6 * 2 = 12 positive tests and 9 * 2 + (6 + 9) * 3 = 63
 /// negative tests
 // clang-format off
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   nntrainerIniAutoTests_p, nntrainerIniTest, ::testing::Values(
   /**< positive: basic valid scenarios (2 positive and 3 negative cases) */
      mkIniTc("basic_p", {nw_base_mse, adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
@@ -391,7 +391,7 @@ INSTANTIATE_TEST_CASE_P(
  return std::get<0>(info.param);
 });
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   nntrainerIniAutoTests_n, nntrainerIniTest, ::testing::Values(
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
     mkIniTc("cross_with_relu_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),

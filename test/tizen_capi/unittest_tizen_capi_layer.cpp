@@ -327,7 +327,7 @@ mkTc(ml_train_layer_type_e type, const std::vector<const char *> &vec,
   return std::make_tuple(type, vec, success);
 }
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   CapiPropertyTest, nntrainerCapiLayerTester,
   ::testing::Values(
     mkTc(ML_TRAIN_LAYER_TYPE_BN,

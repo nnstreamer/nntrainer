@@ -20,7 +20,7 @@ auto semantic_gru = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::GRULayer>, nntrainer::GRULayer::type,
   {"unit=1", "integrate_bias=true", "reset_after=false"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(GRU, LayerSemantics, ::testing::Values(semantic_gru));
+GTEST_PARAMETER_TEST(GRU, LayerSemantics, ::testing::Values(semantic_gru));
 
 auto gru_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRULayer>,
@@ -101,7 +101,7 @@ auto gru_reset_after_multi_step_seq_act = LayerGoldenTestParamType(
   "3:1:4:7", "gru_reset_after_multi_step_seq_act.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   GRU, LayerGoldenTest,
   ::testing::Values(gru_single_step, gru_multi_step, gru_single_step_seq,
                     gru_multi_step_seq, gru_multi_step_seq_act_orig,

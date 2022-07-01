@@ -21,5 +21,5 @@ auto semantic_translate = LayerSemanticsParamType(
   nntrainer::PreprocessTranslateLayer::type, {"random_translate=0.1"}, 0, false,
   1);
 
-INSTANTIATE_TEST_CASE_P(PreprocessTranslate, LayerSemantics,
-                        ::testing::Values(semantic_translate));
+GTEST_PARAMETER_TEST(PreprocessTranslate, LayerSemantics,
+                     ::testing::Values(semantic_translate));

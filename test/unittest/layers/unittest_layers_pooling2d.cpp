@@ -34,8 +34,8 @@ auto semantic_pooling2d_global_max = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Pooling2DLayer>,
   nntrainer::Pooling2DLayer::type, {"pooling=global_max"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Pooling2DMax, LayerSemantics,
-                        ::testing::Values(semantic_pooling2d_max,
-                                          semantic_pooling2d_avg,
-                                          semantic_pooling2d_global_max,
-                                          semantic_pooling2d_global_avg));
+GTEST_PARAMETER_TEST(Pooling2DMax, LayerSemantics,
+                     ::testing::Values(semantic_pooling2d_max,
+                                       semantic_pooling2d_avg,
+                                       semantic_pooling2d_global_max,
+                                       semantic_pooling2d_global_avg));

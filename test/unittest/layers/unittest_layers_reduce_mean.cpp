@@ -24,6 +24,6 @@ auto semantic_reduce_mean = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ReduceMeanLayer>,
   nntrainer::ReduceMeanLayer::type, {"axis=1"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(ReduceMean, LayerSemantics,
-                        ::testing::Values(semantic_reduce_mean,
-                                          semantic_reduce_mean_all));
+GTEST_PARAMETER_TEST(ReduceMean, LayerSemantics,
+                     ::testing::Values(semantic_reduce_mean,
+                                       semantic_reduce_mean_all));

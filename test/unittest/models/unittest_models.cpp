@@ -97,7 +97,7 @@ static std::unique_ptr<NeuralNetwork> makeMolAttentionMasked() {
   return nn;
 }
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelIniTc(reduce_mean_last, DIM_UNUSED, NOT_USED_,

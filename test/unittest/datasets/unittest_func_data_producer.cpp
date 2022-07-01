@@ -16,6 +16,13 @@
 #include <func_data_producer.h>
 #include <tensor.h>
 
+/** Gtest compatibility for parameterize google test API  */
+#ifdef GTEST_BACKPORT
+#define GTEST_PARAMETER_TEST INSTANTIATE_TEST_CASE_P
+#else
+#define GTEST_PARAMETER_TEST INSTANTIATE_TEST_SUITE_P
+#endif
+
 namespace {
 std::vector<nntrainer::TensorDim> input_shapes = {{1, 2, 4, 5}, {1, 2, 3, 4}};
 std::vector<nntrainer::TensorDim> label_shapes = {{1, 1, 1, 10}, {1, 1, 1, 2}};
@@ -111,6 +118,5 @@ auto func_nullptr = DataProducerSemanticsParamType(
   createNullSampleProducer, {}, input_shapes, label_shapes, nullptr,
   DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
-INSTANTIATE_TEST_CASE_P(Func, DataProducerSemantics,
-                        ::testing::Values(func_success, func_error,
-                                          func_nullptr));
+GTEST_PARAMETER_TEST(Func, DataProducerSemantics,
+                     ::testing::Values(func_success, func_error, func_nullptr));

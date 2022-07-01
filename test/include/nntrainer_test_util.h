@@ -52,6 +52,13 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
+/** Gtest compatibility for parameterize google test API  */
+#ifdef GTEST_BACKPORT
+#define GTEST_PARAMETER_TEST INSTANTIATE_TEST_CASE_P
+#else
+#define GTEST_PARAMETER_TEST INSTANTIATE_TEST_SUITE_P
+#endif
+
 /**
  * @brief This class wraps IniWrapper. This generates real ini file when
  * construct, and remove real ini file when destroy

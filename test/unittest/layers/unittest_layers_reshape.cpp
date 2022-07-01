@@ -20,5 +20,5 @@ auto semantic_reshape = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ReshapeLayer>,
   nntrainer::ReshapeLayer::type, {"target_shape=-1"}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Reshape, LayerSemantics,
-                        ::testing::Values(semantic_reshape));
+GTEST_PARAMETER_TEST(Reshape, LayerSemantics,
+                     ::testing::Values(semantic_reshape));

@@ -55,10 +55,9 @@ public:
 
 auto semantic_tc = LayerSemanticsParamType(nntrainer::createLayer<MockLayer>,
                                            MockLayer::type, {}, 0, false, 1);
-INSTANTIATE_TEST_CASE_P(LayerImpl, LayerSemantics,
-                        ::testing::Values(semantic_tc));
+GTEST_PARAMETER_TEST(LayerImpl, LayerSemantics, ::testing::Values(semantic_tc));
 
-// INSTANTIATE_TEST_CASE_P(
+// GTEST_PARAMETER_TEST(
 //   LayerImpl, LayerGoldenTest,
 //   ::testing::Values(
 //     "test") /**< format of type, properties, num_batch, golden file name */);

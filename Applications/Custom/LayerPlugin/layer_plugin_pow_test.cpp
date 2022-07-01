@@ -19,13 +19,12 @@
 #include <layers_common_tests.h>
 #include <pow.h>
 
-INSTANTIATE_TEST_CASE_P(PowLayer, LayerPluginCommonTest,
-                        ::testing::Values(std::make_tuple("libpow_layer.so",
-                                                          "pow")));
+GTEST_PARAMETER_TEST(PowLayer, LayerPluginCommonTest,
+                     ::testing::Values(std::make_tuple("libpow_layer.so",
+                                                       "pow")));
 
 auto semantic_pow =
   LayerSemanticsParamType(nntrainer::createLayer<custom::PowLayer>,
                           custom::PowLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(PowLayer, LayerSemantics,
-                        ::testing::Values(semantic_pow));
+GTEST_PARAMETER_TEST(PowLayer, LayerSemantics, ::testing::Values(semantic_pow));

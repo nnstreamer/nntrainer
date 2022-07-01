@@ -20,5 +20,5 @@ auto semantic_flatten =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::FlattenLayer>,
                           nntrainer::FlattenLayer::type, {}, 0, false, 1);
 
-INSTANTIATE_TEST_CASE_P(Flatten, LayerSemantics,
-                        ::testing::Values(semantic_flatten));
+GTEST_PARAMETER_TEST(Flatten, LayerSemantics,
+                     ::testing::Values(semantic_flatten));

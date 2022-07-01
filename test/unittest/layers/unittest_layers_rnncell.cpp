@@ -20,13 +20,13 @@ auto semantic_rnncell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::RNNCellLayer>,
   nntrainer::RNNCellLayer::type, {"unit=1"}, 0, false, 2);
 
-INSTANTIATE_TEST_CASE_P(RNNCell, LayerSemantics,
-                        ::testing::Values(semantic_rnncell));
+GTEST_PARAMETER_TEST(RNNCell, LayerSemantics,
+                     ::testing::Values(semantic_rnncell));
 
 auto rnncell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::RNNCellLayer>,
   {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5",
   "rnncell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(RNNCell, LayerGoldenTest,
-                        ::testing::Values(rnncell_single_step));
+GTEST_PARAMETER_TEST(RNNCell, LayerGoldenTest,
+                     ::testing::Values(rnncell_single_step));

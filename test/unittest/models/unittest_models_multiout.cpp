@@ -173,7 +173,7 @@ static std::unique_ptr<NeuralNetwork> split_and_join_dangle() {
   return nn;
 }
 
-INSTANTIATE_TEST_CASE_P(
+GTEST_PARAMETER_TEST(
   multiInoutModels, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelTc_V2(split_and_join, "split_and_join", ModelTestOption::ALL_V2),

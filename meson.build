@@ -177,8 +177,16 @@ if get_option('enable-logging')
   extra_defines += '-D__LOGGING__=1'
 endif
 
+gmock_dep = dependency('gmock', static: true, main: false, required: false)
+gtest_dep = dependency('gtest', static: true, main: false, required: false)
+gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
+
+
 if get_option('enable-test') # and get_option('platform') != 'android'
   extra_defines += '-DENABLE_TEST=1'
+  if gtest_dep.version().version_compare('<1.10.0')
+     extra_defines += '-DGTEST_BACKPORT=1'
+  endif
 endif
 
 if get_option('reduce-tolerance')
@@ -261,10 +269,6 @@ endif
 if get_option('enable-tflite-interpreter')
   extra_defines += '-DENABLE_TFLITE_INTERPRETER=1'
 endif
-
-gmock_dep = dependency('gmock', static: true, main: false, required: false)
-gtest_dep = dependency('gtest', static: true, main: false, required: false)
-gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 opencv_dep = dummy_dep
 

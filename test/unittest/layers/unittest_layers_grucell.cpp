@@ -21,8 +21,8 @@ auto semantic_grucell = LayerSemanticsParamType(
   nntrainer::GRUCellLayer::type,
   {"unit=1", "integrate_bias=false", "reset_after=true"}, 0, false, 2);
 
-INSTANTIATE_TEST_CASE_P(GRUCell, LayerSemantics,
-                        ::testing::Values(semantic_grucell));
+GTEST_PARAMETER_TEST(GRUCell, LayerSemantics,
+                     ::testing::Values(semantic_grucell));
 
 auto grucell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRUCellLayer>,
@@ -42,7 +42,7 @@ auto grucell_single_step_act = LayerGoldenTestParamType(
   "3:1:1:7,3:1:1:5", "grucell_single_step_act.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
-INSTANTIATE_TEST_CASE_P(GRUCell, LayerGoldenTest,
-                        ::testing::Values(grucell_single_step,
-                                          grucell_reset_after_single_step,
-                                          grucell_single_step_act));
+GTEST_PARAMETER_TEST(GRUCell, LayerGoldenTest,
+                     ::testing::Values(grucell_single_step,
+                                       grucell_reset_after_single_step,
+                                       grucell_single_step_act));

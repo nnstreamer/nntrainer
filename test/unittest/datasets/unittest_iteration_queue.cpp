@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <future>
+#include <nntrainer_test_util.h>
 #include <thread>
 #include <tuple>
 #include <vector>
@@ -568,11 +569,11 @@ IterQueueTestParamType single_slot_single_batch = {
   {{1, 2, 4, 5}, {1, 4, 5, 7}} /** input_dims*/,
   {{1, 1, 1, 8}, {1, 1, 1, 2}} /** label_dims */};
 
-INSTANTIATE_TEST_CASE_P(IterQueue, IterQueueScenarios,
-                        ::testing::Values(multi_slot_multi_batch,
-                                          single_slot_multi_batch,
-                                          multi_slot_single_batch,
-                                          single_slot_single_batch));
+GTEST_PARAMETER_TEST(IterQueue, IterQueueScenarios,
+                     ::testing::Values(multi_slot_multi_batch,
+                                       single_slot_multi_batch,
+                                       multi_slot_single_batch,
+                                       single_slot_single_batch));
 
 TEST(IterQueue, constructEmptySlots_n) {
   EXPECT_ANY_THROW(nntrainer::IterationQueue(0, {{1}}, {{1}}));

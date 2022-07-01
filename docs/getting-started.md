@@ -15,7 +15,7 @@ The following dependencies are needed to compile/build/run.
 * libiniparser
 * libjsoncpp >=0.6.0 ( if you wand to use open AI )
 * libcurl3 >=7.47 ( if you wand to use open AI )
-* libgtest ( for testing )
+* libgtest >=1.10 ( for testing )
 
 ## Install via PPA repository (Debian/Ubuntu)
 
