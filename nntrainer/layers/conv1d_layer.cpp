@@ -28,11 +28,10 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-Conv1DLayer::Conv1DLayer(const std::array<unsigned int, 2> &padding_) :
+Conv1DLayer::Conv1DLayer() :
   LayerImpl(),
-  padding(padding_),
   conv_props(props::FilterSize(), props::KernelSize(), props::Stride(),
-             props::Padding2D(), props::Dilation()) {
+             props::Padding1D(), props::Dilation()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
   conv2d_layer = std::make_unique<Conv2DLayer>();
 }
@@ -48,6 +47,18 @@ void Conv1DLayer::finalize(InitLayerContext &context) {
     throw std::invalid_argument("Conv1D layer requires input with height 1");
   }
 
+  const TensorDim &in_dim = context.getInputDimensions()[0];
+  const unsigned int kernel_size =
+    std::get<props::KernelSize>(conv_props).get();
+  const unsigned int stride = std::get<props::Stride>(conv_props).get();
+  const unsigned int dilation = std::get<props::Dilation>(conv_props).get();
+
+  const std::array<unsigned int, 2> padding =
+    std::get<props::Padding1D>(conv_props)
+      .compute(in_dim, kernel_size, stride, dilation);
+  const std::string padding_str =
+    "0,0," + std::to_string(padding[0]) + "," + std::to_string(padding[1]);
+
   /** set the given properties as key value pair */
   auto setPropertyKV = [this](const std::string &key,
                               const std::string &value) {
@@ -57,17 +68,10 @@ void Conv1DLayer::finalize(InitLayerContext &context) {
 
   setPropertyKV(props::FilterSize::key,
                 std::to_string(std::get<props::FilterSize>(conv_props).get()));
-  setPropertyKV(
-    props::KernelSize::key,
-    "1," + std::to_string(std::get<props::KernelSize>(conv_props).get()));
-  setPropertyKV(props::Stride::key,
-                "1," +
-                  std::to_string(std::get<props::Stride>(conv_props).get()));
-  setPropertyKV(props::Padding2D::key,
-                std::get<props::Padding2D>(conv_props).get());
-  setPropertyKV(props::Dilation::key,
-                "1," +
-                  std::to_string(std::get<props::Dilation>(conv_props).get()));
+  setPropertyKV(props::KernelSize::key, "1," + std::to_string(kernel_size));
+  setPropertyKV(props::Stride::key, "1," + std::to_string(stride));
+  setPropertyKV(props::Padding2D::key, padding_str);
+  setPropertyKV(props::Dilation::key, "1," + std::to_string(dilation));
 
   conv2d_layer->finalize(context);
 }

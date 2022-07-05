@@ -420,6 +420,7 @@ public:
  * formats are accepted valid
  * 1. "same" (case insensitive literal string)
  * 2. "valid" (case insensitive literal string)
+ * 2. "causal" (case insensitive literal string)
  * 3. "padding1d_all", eg) padding=1
  * 4. "padding1d_left, padding1d_right" eg) padding=1,1
  *
@@ -445,8 +446,9 @@ public:
    * @return std::array<unsigned int, 4> list of unsigned padding
    */
   std::array<unsigned int, 2> compute(const TensorDim &input,
-                                      const TensorDim &kernel,
-                                      const unsigned int &strides);
+                                      const unsigned int &kernel,
+                                      const unsigned int &stride,
+                                      const unsigned int &dilation);
 };
 
 /**

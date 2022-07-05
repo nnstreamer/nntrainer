@@ -32,7 +32,7 @@ public:
   /**
    * @brief     Constructor of Conv 1D Layer
    */
-  Conv1DLayer(const std::array<unsigned int, 2> &padding_ = {0, 0});
+  Conv1DLayer();
 
   /**
    * @brief     Destructor of Conv 1D Layer
@@ -99,9 +99,8 @@ public:
   inline static const std::string type = "conv1d";
 
 private:
-  std::array<unsigned int, 2> padding;
   std::tuple<props::FilterSize, props::KernelSize, props::Stride,
-             props::Padding2D, props::Dilation>
+             props::Padding1D, props::Dilation>
     conv_props;
 
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
