@@ -254,6 +254,14 @@ if __name__ == "__main__":
     record_single(conv, (1, 3, 1, 11), "conv1d_sb_same_dilation")
     record_single(conv, (3, 3, 1, 11), "conv1d_mb_same_dilation")
 
+    conv = K.layers.Conv1D(3, 2, padding="causal")
+    record_single(conv, (1, 1, 1, 4), "conv1d_sb_causal")
+    record_single(conv, (3, 1, 1, 4), "conv1d_mb_causal")
+
+    conv = K.layers.Conv1D(3, 2, padding="causal", dilation_rate=2)
+    record_single(conv, (1, 1, 1, 4), "conv1d_sb_causal_dilation")
+    record_single(conv, (3, 1, 1, 4), "conv1d_mb_causal_dilation")
+
     concat = K.layers.Concatenate(axis=3)
     record_single(concat, [(2,3,3,2), (2, 3, 3, 3)], "concat_dim3")
 

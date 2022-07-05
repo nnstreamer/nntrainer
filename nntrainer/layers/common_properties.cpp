@@ -189,23 +189,21 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
   case 4:
     return {paddings[0], paddings[1], paddings[2], paddings[3]};
   default:
-    throw std::logic_error("[padding] should not reach here");
+    throw std::logic_error("[Padding2D] should not reach here");
   }
-
-  throw std::logic_error("[padding] should not reach here");
 }
 
 bool Padding1D::isValid(const std::string &v) const {
 
-  /// case 1, 2: padding has string literal
-  if (istrequal(v, "valid") || istrequal(v, "same")) {
+  /// case 1, 2, 3: padding has string literal
+  if (istrequal(v, "valid") || istrequal(v, "same") || istrequal(v, "causal")) {
     return true;
   }
 
   std::vector<props::Padding_> paddings;
   from_string(v, paddings);
 
-  /// case 3, 4: padding has a sequence of unsigned integer
+  /// case 4, 5: padding has a sequence of unsigned integer
   if (paddings.size() == 1 || paddings.size() == 2) {
     /// check if every padding is non-negative integer
     for (const auto &padding : paddings) {
@@ -220,17 +218,50 @@ bool Padding1D::isValid(const std::string &v) const {
   return false;
 }
 
-std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input,
-                                               const TensorDim &kernel,
-                                               const unsigned int &strides) {
+std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input_dim,
+                                               const unsigned int &kernel,
+                                               const unsigned int &stride,
+                                               const unsigned int &dilation) {
   auto &padding_repr = get(); /// padding representation
+
+  auto calculate_padding = [](unsigned input, unsigned kernel, unsigned stride,
+                              unsigned dilation) {
+    /// ceil(input / stride)
+    unsigned int eff_kernel = (kernel - 1) * dilation + 1;
+    auto out = (input + stride - 1) / stride;
+    auto req_input = (out - 1) * stride + eff_kernel;
+    return req_input >= input ? req_input - input : 0;
+  };
 
   if (istrequal(padding_repr, "valid")) {
     return {0, 0};
+  } else if (istrequal(padding_repr, "same")) {
+
+    auto pad_horizontal =
+      calculate_padding(input_dim.width(), kernel, stride, dilation);
+
+    auto pad_left = pad_horizontal / 2;
+
+    return {pad_left, pad_horizontal - pad_left};
+  } else if (istrequal(padding_repr, "causal")) {
+    auto pad_horizontal =
+      calculate_padding(input_dim.width(), kernel, stride, dilation);
+    return {pad_horizontal, 0};
   }
 
-  // NYI
-  return {0, 0};
+  /// case 4, 5: padding has a sequence of unsigned integer
+  std::vector<props::Padding_> paddings_;
+  from_string(padding_repr, paddings_);
+  std::vector<unsigned int> paddings(paddings_.begin(), paddings_.end());
+
+  switch (paddings.size()) {
+  case 1:
+    return {paddings[0], paddings[0]};
+  case 2:
+    return {paddings[0], paddings[1]};
+  default:
+    throw std::logic_error("[Padding1D] should not reach here");
+  }
 }
 
 BasicRegularizerConstant::BasicRegularizerConstant(float value) { set(value); }
