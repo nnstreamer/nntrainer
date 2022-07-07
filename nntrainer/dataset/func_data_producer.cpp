@@ -19,20 +19,9 @@
 
 namespace nntrainer {
 
-/**
- * @brief User data props
- *
- */
-class PropsUserData final : public Property<void *> {
-public:
-  static constexpr const char *key = "user_data";
-  PropsUserData(void *user_data) { set(user_data); }
-  using prop_tag = ptr_prop_tag;
-};
-
 FuncDataProducer::FuncDataProducer(datagen_cb datagen_cb, void *user_data_) :
   cb(datagen_cb),
-  user_data_prop(new PropsUserData(user_data_)) {}
+  user_data_prop(new props::PropsUserData(user_data_)) {}
 
 FuncDataProducer::~FuncDataProducer() {}
 

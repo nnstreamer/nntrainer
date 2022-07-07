@@ -1167,6 +1167,17 @@ public:
   using prop_tag = uint_prop_tag;                   /**< property type */
 };
 
+/**
+ * @brief User data props
+ *
+ */
+class PropsUserData final : public Property<void *> {
+public:
+  PropsUserData(void *user_data);
+  static constexpr const char *key = "user_data";
+  using prop_tag = ptr_prop_tag;
+};
+
 } // namespace props
 } // namespace nntrainer
 

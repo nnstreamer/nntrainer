@@ -20,6 +20,7 @@
 #include <conv2d_layer.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
+#include <nntr_threads.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -451,16 +452,12 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   /// filter_kernel^T X derivaitive  -> column matrix
   /// col2im(column matrix) to reconstruct the original image
 
-  unsigned int num_threads = NNTR_NUM_THREADS;
-
-  if (num_threads > derivative.batch())
-    num_threads = 1;
-
-  if (num_threads > 1) {
+  if (NNTR_NUM_THREADS > 1) {
     auto dowork = [&](size_t s, size_t e, void *user_data) {
+      Tensor result =
+        Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+
       for (size_t b = s; b < e; ++b) {
-        Tensor result =
-          Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
         Tensor deriv_sub = derivative.getBatchSlice(b, 1);
         Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
         deriv_sub.reshape(
@@ -470,22 +467,9 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
       }
     };
 
-    size_t start = 0;
-    size_t end = derivative.batch();
-    size_t chunk = (end - start + (num_threads - 1)) / num_threads;
+    auto workers = ParallelBatch(dowork, derivative.batch(), nullptr);
 
-    std::vector<std::thread> workers;
-
-    for (unsigned int i = 0; i < num_threads; ++i) {
-      size_t s = start + i * chunk;
-      size_t e = s + chunk;
-      if (e > end)
-        e = end;
-      workers.push_back(std::thread(dowork, s, e, nullptr));
-    }
-
-    for (unsigned int i = 0; i < num_threads; ++i)
-      workers[i].join();
+    workers.run();
 
   } else {
 
@@ -499,7 +483,8 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
         {filter_size, derivative.width() * derivative.height()});
 
       filter_kernel.dot(deriv_sub, col2im_result, true, false);
-      col2im(col2im_result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      col2im(col2im_result, filter_dim, padding, stride, dilation,
+             in_deriv_sub);
     }
   }
 

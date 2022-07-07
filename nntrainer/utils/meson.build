@@ -3,13 +3,16 @@ util_sources = [
   'profiler.cpp',
   'ini_wrapper.cpp',
   'node_exporter.cpp',
-  'base_properties.cpp'
+  'base_properties.cpp',
+  'nntr_threads.cpp'
 ]
 
 util_headers = [
   'base_properties.h',
   'node_exporter.h',
   'util_func.h',
+  'profiler.h',
+  'nntr_threads.h'
 ]
 
 foreach s : util_sources
