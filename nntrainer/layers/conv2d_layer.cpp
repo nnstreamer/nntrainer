@@ -25,6 +25,7 @@
 #include <node_exporter.h>
 #include <profiler.h>
 #include <tensor_dim.h>
+#include <thread>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -449,16 +450,57 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   /// for each batch
   /// filter_kernel^T X derivaitive  -> column matrix
   /// col2im(column matrix) to reconstruct the original image
-  Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::inter_result]);
-  col2im_result.reshape(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
 
-  for (unsigned int b = 0; b < derivative.batch(); ++b) {
-    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
-    Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
-    deriv_sub.reshape({filter_size, derivative.width() * derivative.height()});
+  unsigned int num_threads = NNTR_NUM_THREADS;
 
-    filter_kernel.dot(deriv_sub, col2im_result, true, false);
-    col2im(col2im_result, filter_dim, padding, stride, dilation, in_deriv_sub);
+  if (num_threads > derivative.batch())
+    num_threads = 1;
+
+  if (num_threads > 1) {
+    auto dowork = [&](size_t s, size_t e, void *user_data) {
+      for (size_t b = s; b < e; ++b) {
+        Tensor result =
+          Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+        Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+        Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
+        deriv_sub.reshape(
+          {filter_size, derivative.width() * derivative.height()});
+        filter_kernel.dot(deriv_sub, result, true, false);
+        col2im(result, filter_dim, padding, stride, {1, 1}, in_deriv_sub);
+      }
+    };
+
+    size_t start = 0;
+    size_t end = derivative.batch();
+    size_t chunk = (end - start + (num_threads - 1)) / num_threads;
+
+    std::vector<std::thread> workers;
+
+    for (unsigned int i = 0; i < num_threads; ++i) {
+      size_t s = start + i * chunk;
+      size_t e = s + chunk;
+      if (e > end)
+        e = end;
+      workers.push_back(std::thread(dowork, s, e, nullptr));
+    }
+
+    for (unsigned int i = 0; i < num_threads; ++i)
+      workers[i].join();
+
+  } else {
+
+    Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::inter_result]);
+    col2im_result.reshape(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+
+    for (unsigned int b = 0; b < derivative.batch(); ++b) {
+      Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+      Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
+      deriv_sub.reshape(
+        {filter_size, derivative.width() * derivative.height()});
+
+      filter_kernel.dot(deriv_sub, col2im_result, true, false);
+      col2im(col2im_result, filter_dim, padding, stride, dilation, in_deriv_sub);
+    }
   }
 
   filter_kernel.reshape(filter_dim);
