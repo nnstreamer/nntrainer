@@ -13,8 +13,8 @@
 #ifndef __FUNC_DATA_PRODUCER_H__
 #define __FUNC_DATA_PRODUCER_H__
 
+#include <common_properties.h>
 #include <data_producer.h>
-
 #include <dataset.h>
 
 #include <memory>
@@ -23,7 +23,6 @@
 
 namespace nntrainer {
 
-class PropsUserData;
 class Exporter;
 
 using datagen_cb = ml::train::datagen_cb;
@@ -78,7 +77,7 @@ public:
 
 private:
   datagen_cb cb;
-  std::unique_ptr<PropsUserData> user_data_prop;
+  std::unique_ptr<props::PropsUserData> user_data_prop;
 };
 
 } // namespace nntrainer

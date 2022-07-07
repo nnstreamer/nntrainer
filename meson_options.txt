@@ -21,8 +21,8 @@ option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
 option('tizen-version-major', type: 'integer', min : 4, max : 9999, value: 9999) # 9999 means "not Tizen"
 option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
 option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
-#This is for the multi-threading in nntrainer. ( multi-threading along batch direction )
-option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 2)
+#This is for the multi-threading in nntrainer
+option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
 
 # test related option
 option('reduce-tolerance', type: 'boolean', value: true)

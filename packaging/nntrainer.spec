@@ -479,6 +479,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/common_properties.h
 %{_includedir}/nntrainer/base_properties.h
 %{_includedir}/nntrainer/node_exporter.h
+%{_includedir}/nntrainer/nntr_threads.h
+%{_includedir}/nntrainer/profiler.h
 # tensor headers
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/tensor_wrap_specs.h

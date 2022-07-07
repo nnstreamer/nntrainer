@@ -240,6 +240,8 @@ WeightRegularizerConstant::WeightRegularizerConstant(float value) :
 WeightDecay::WeightDecay(float value) : BasicRegularizerConstant(value) {}
 BiasDecay::BiasDecay(float value) : BasicRegularizerConstant(value) {}
 
+PropsUserData::PropsUserData(void *user_data) { set(user_data); }
+
 bool BasicRegularizerConstant::isValid(const float &value) const {
   return value >= 0.0f;
 }

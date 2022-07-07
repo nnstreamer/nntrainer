@@ -4,6 +4,8 @@
 /usr/include/nntrainer/common_properties.h
 /usr/include/nntrainer/base_properties.h
 /usr/include/nntrainer/node_exporter.h
+/usr/include/nntrainer/profiler.h
+/usr/include/nntrainer/nntr_threads.h
 # tensor headers
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
