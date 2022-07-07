@@ -398,7 +398,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
   filter_kernel.reshape(filter_dim_squeezed);
 
-  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
   /**
    * @todo im2col_result lifespan can be epoch and then setZero can be done
    * just once at the start of training then every iteration
@@ -406,19 +405,32 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
    * @todo even better, allocate in_sub with pad, and set stride for in_sub
    * appropriately
    */
+  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
+  im2col_result.setZero();
+
   /**
    * Below sets the pad area values to zero
    * it is faster to do this way than seting selective area to zero
    */
-  im2col_result.setZero();
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor out = hidden_.getBatchSlice(b, 1);
-    out.reshape({filter_size, out_dim.width() * out_dim.height()});
+  auto forwarding_job = [&](unsigned int s, unsigned int e, void *user_data) {
+    Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
+    result.setZero();
+    for (unsigned int b = s; b < e; ++b) {
+      Tensor out = hidden_.getBatchSlice(b, 1);
+      out.reshape({filter_size, out_dim.width() * out_dim.height()});
+      Tensor in_sub = input_.getBatchSlice(b, 1);
 
-    Tensor in_sub = input_.getBatchSlice(b, 1);
+      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      filter_kernel.dot(result, out, false, true);
+    }
+  };
 
-    im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
-    filter_kernel.dot(im2col_result, out, false, true);
+  auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    forwarding_job(0, in_dim.batch(), nullptr);
   }
 
   filter_kernel.reshape(filter_dim);
@@ -452,40 +464,28 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   /// filter_kernel^T X derivaitive  -> column matrix
   /// col2im(column matrix) to reconstruct the original image
 
-  if (NNTR_NUM_THREADS > 1) {
-    auto dowork = [&](size_t s, size_t e, void *user_data) {
-      Tensor result =
-        Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+  auto compute_derivative = [&](unsigned int s, unsigned int e,
+                                void *user_data) {
+    Tensor result =
+      Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
 
-      for (size_t b = s; b < e; ++b) {
-        Tensor deriv_sub = derivative.getBatchSlice(b, 1);
-        Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
-        deriv_sub.reshape(
-          {filter_size, derivative.width() * derivative.height()});
-        filter_kernel.dot(deriv_sub, result, true, false);
-        col2im(result, filter_dim, padding, stride, {1, 1}, in_deriv_sub);
-      }
-    };
-
-    auto workers = ParallelBatch(dowork, derivative.batch(), nullptr);
-
-    workers.run();
-
-  } else {
-
-    Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::inter_result]);
-    col2im_result.reshape(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
-
-    for (unsigned int b = 0; b < derivative.batch(); ++b) {
+    for (unsigned int b = s; b < e; ++b) {
       Tensor deriv_sub = derivative.getBatchSlice(b, 1);
       Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
-
-      filter_kernel.dot(deriv_sub, col2im_result, true, false);
-      col2im(col2im_result, filter_dim, padding, stride, dilation,
-             in_deriv_sub);
+      filter_kernel.dot(deriv_sub, result, true, false);
+      col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
     }
+  };
+
+  auto workers = ParallelBatch(compute_derivative, derivative.batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+
+  } else {
+    compute_derivative(0, derivative.batch(), nullptr);
   }
 
   filter_kernel.reshape(filter_dim);

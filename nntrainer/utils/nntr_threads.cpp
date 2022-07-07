@@ -10,13 +10,14 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <algorithm>
 #include <nntr_threads.h>
 
 namespace nntrainer {
 
-ParallelBatch::ParallelBatch(threaded_cb threaded_cb, unsigned int batch_size,
+ParallelBatch::ParallelBatch(threaded_cb threaded_cb_, unsigned int batch_size,
                              void *user_data_) :
-  cb(threaded_cb),
+  cb(threaded_cb_),
   batch(batch_size),
   num_workers(NNTR_NUM_THREADS > batch ? 1 : NNTR_NUM_THREADS),
   user_data_prop(new props::PropsUserData(user_data_)) {}
@@ -38,8 +39,8 @@ void ParallelBatch::run() {
     workers.push_back(std::thread(cb, s, e, user_data_prop->get()));
   }
 
-  for (unsigned int i = 0; i < num_workers; ++i)
-    workers[i].join();
+  std::for_each(workers.begin(), workers.end(),
+                std::mem_fn(&std::thread::join));
 }
 
 } // namespace nntrainer
