@@ -156,6 +156,9 @@ if get_option('enable-blas')
   endif
 endif
 
+extra_defines += '-DNNTR_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
+message('set nntrainer num threads=@0@'.format(get_option('nntr-num-threads')))
+
 openmp_dep = dummy_dep
 if get_option('enable-openmp')
   openmp_dep = dependency('openmp')
