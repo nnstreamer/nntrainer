@@ -3,7 +3,7 @@ res_path = meson.current_source_dir() / '..' / 'res'
 run_command('cp', '-lr', res_path, nntr_app_resdir / 'KNN')
 
 knn_sources = [
-  'main_sample.cpp'
+  'main.cpp'
 ]
 
 knn_inc = include_directories('.')

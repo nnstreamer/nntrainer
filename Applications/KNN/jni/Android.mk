@@ -75,7 +75,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := knn_sample
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
-LOCAL_SRC_FILES := main_sample.cpp
+LOCAL_SRC_FILES := main.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer app_utils
 
