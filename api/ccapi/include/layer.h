@@ -81,6 +81,7 @@ enum LayerType {
   LAYER_BACKBONE_TFLITE,          /**< Backbone using TFLite */
   LAYER_ATTENTION,                /**< Attention Layer type */
   LAYER_MOL_ATTENTION,            /**< MoL Attention Layer type */
+  LAYER_MULTI_HEAD_ATTENTION,     /**< Multi Head Attention Layer type */
   LAYER_RESHAPE,                  /**< Reshape Layer type */
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
   LAYER_IDENTITY,                 /**< Identity Layer type */
