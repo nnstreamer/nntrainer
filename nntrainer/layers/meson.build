@@ -7,6 +7,7 @@ layer_sources = [
   'addition_layer.cpp',
   'attention_layer.cpp',
   'mol_attention_layer.cpp',
+  'multi_head_attention_layer.cpp',
   'concat_layer.cpp',
   'bn_layer.cpp',
   'conv2d_layer.cpp',

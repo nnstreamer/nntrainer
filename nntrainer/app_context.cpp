@@ -56,6 +56,7 @@
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
+#include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
@@ -284,6 +285,9 @@ static void add_default_object(AppContext &ac) {
                      AttentionLayer::type, LayerType::LAYER_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
                      MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
+  ac.registerFactory(nntrainer::createLayer<MultiHeadAttentionLayer>,
+                     MultiHeadAttentionLayer::type,
+                     LayerType::LAYER_MULTI_HEAD_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
                      ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
   ac.registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,

@@ -1118,6 +1118,119 @@ public:
 };
 
 /**
+ * @brief NumHeads property, NumHeads is number of head in multi head attention
+ *
+ */
+class NumHeads : public PositiveIntegerProperty {
+public:
+  /**
+   * @brief Construct a new NumHeads object with default value 1
+   *
+   */
+  NumHeads(unsigned int value = 1);
+  static constexpr const char *key = "num_heads"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                 /**< property type */
+};
+
+/**
+ * @brief ProjectedKeyDim property, projected key dim per head in multi head
+ * attention
+ * @details Correspond with key_dim of tensorflow
+ *
+ */
+class ProjectedKeyDim : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "projected_key_dim";          /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
+/**
+ * @brief ProjectedValueDim property, projected value dim per head in multi head
+ * attention
+ * @details Correspond with value_dim of tensorflow
+ *
+ */
+class ProjectedValueDim : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "projected_value_dim";        /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
+/**
+ * @brief OutputShape property, output shape of multi head
+ * attention
+ * @details Correspond with output_shape of tensorflow
+ *
+ */
+class OutputShape : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "output_shape";               /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
+/**
+ * @brief ProvideAttentionMask, attention mask is provided or not
+ *
+ */
+class ProvideAttentionMask : public Property<bool> {
+public:
+  /**
+   * @brief Construct a new ProvideAttentionMask object
+   *
+   */
+  ProvideAttentionMask(bool val = false);
+  static constexpr const char *key =
+    "provide_attention_mask";     /**< unique key to access */
+  using prop_tag = bool_prop_tag; /**< property type */
+};
+
+/**
+ * @brief ReturnAttentionWeight, return attention weight
+ * @details Default value("") won't return attention weight.
+ *          "before"/"after" will return attention weight before/after applying
+ * dropout
+ * @note Correspond with return_attention_scores of tensorflow and Correspond
+ *       with need_weights of torch
+ *
+ */
+class ReturnAttentionWeight : public Property<std::string> {
+public:
+  static constexpr const char *key =
+    "return_attention_weight";   /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+
+  /**
+   * @brief Construct a new ReturnAttentionWeight object
+   *
+   */
+  ReturnAttentionWeight(const std::string &value = "");
+
+  /**
+   * @brief ReturnAttentionWeight validator
+   *
+   * @param value string to validate
+   * @retval true if it is one of "", "before", "after"
+   * @retval false for others
+   */
+  bool isValid(const std::string &value) const override;
+};
+
+/**
+ * @brief AverageAttentionWeight, average attention weight
+ * @details Correspond with average_attn_weights of torch
+ *
+ */
+class AverageAttentionWeight : public Property<bool> {
+public:
+  static constexpr const char *key =
+    "average_attention_weight";   /**< unique key to access */
+  using prop_tag = bool_prop_tag; /**< property type */
+};
+
+/**
  * @brief properties for getting the clipping value to clip the gradient by norm
  *
  */
