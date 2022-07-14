@@ -41,18 +41,25 @@ int getBatch_train(float **inVec, float **inLabel, bool *last,
 The model configuration is in ```res/mnist.ini```. ADAM optimizer is used and the trained model is going to be saved in ```./model.bin```.
 
 ``` bash
-# Model Section : Model
+# Network Section : Network
+
 [Model]
-Type = NeuralNetwork	    # Network Type NeuralNetwork
-Learning_rate = 1e-4 	    # Learning Rate
-Epochs = 1500		        # Epochs
-Optimizer = adam 	        # Optimizer : adam (Adamtive Moment Estimation)
-Loss = cross  		        # Loss function : cross ( for cross entropy )
-Save_Path = "model.bin"  	# model path to save / read
-batch_size = 32		        # batch size
-beta1 = 0.9 		        # beta 1 for adam
-beta2 = 0.999	            # beta 2 for adam
-epsilon = 1e-7	            # epsilon for adam
+Type = NeuralNetwork                # Network Type : Regression, KNN, NeuralNetwork
+Epochs = 1500                       # Epochs
+Loss = cross                        # Loss function : mse (mean squared error)
+                                    # cross ( for cross entropy )
+# Save_Path = "mnist_model.bin"     # model path to save / read
+batch_size = 32                     # batch size
+
+[Optimizer]
+Type = adam
+beta1 = 0.9                         # beta 1 for adam
+beta2 = 0.999                       # beta 2 for adam
+epsilon = 1e-7                      # epsilon for adam
+
+[LearningRateScheduler]
+type=constant
+Learning_rate = 1e-4                # Learning Rate
 
 # Layer Section : Name
 [inputlayer]
@@ -62,6 +69,7 @@ Input_Shape = 1:28:28
 # Layer Section : Name
 [conv2d_c1_layer]
 Type = conv2d
+input_layers = inputlayer
 kernel_size = 5,5
 bias_initializer=zeros
 Activation=sigmoid
@@ -72,6 +80,7 @@ padding = 0,0
 
 [pooling2d_p1]
 Type=pooling2d
+input_layers = conv2d_c1_layer
 pool_size = 2,2
 stride =2,2
 padding = 0,0
@@ -79,6 +88,7 @@ pooling = average
 
 [conv2d_c2_layer]
 Type = conv2d
+input_layers = pooling2d_p1
 kernel_size = 5,5
 bias_initializer=zeros
 Activation=sigmoid
@@ -89,6 +99,7 @@ padding = 0,0
 
 [pooling2d_p2]
 Type=pooling2d
+input_layers = conv2d_c2_layer
 pool_size = 2,2
 stride =2,2
 padding = 0,0
@@ -96,13 +107,15 @@ pooling = average
 
 [flatten]
 Type=flatten
+input_layers = pooling2d_p2
 
 [outputlayer]
 Type = fully_connected
-Unit = 10
+input_layers=flatten
+Unit = 10                           # Output Layer Dimension ( = Weight Width )
 weight_initializer = xavier_uniform
 bias_initializer = zeros
-Activation = softmax
+Activation = softmax                # activation : sigmoid, softmax
 
 ```
 
