@@ -710,10 +710,175 @@ void MultiHeadAttentionLayer::calcDerivative(RunLayerContext &context) {
   if (!context.getTrainable()) {
     calcCommonDerivative(context);
   }
+
+  const unsigned int num_heads =
+    std::get<props::NumHeads>(multi_head_attention_props).get();
+  const unsigned int projected_key_dim_prop =
+    std::get<props::ProjectedKeyDim>(multi_head_attention_props).get();
+  const unsigned int projected_value_dim_prop =
+    std::get<props::ProjectedValueDim>(multi_head_attention_props).get();
+
+  const unsigned int projected_query_dim_prop = projected_key_dim_prop;
+
+  Tensor &query = context.getInput(INOUT_INDEX::QUERY);
+  Tensor &d_query = context.getOutgoingDerivative(INOUT_INDEX::QUERY);
+  Tensor &key = context.getInput(INOUT_INDEX::KEY);
+  Tensor &d_key = context.getOutgoingDerivative(INOUT_INDEX::KEY);
+  Tensor &value = context.getInput(INOUT_INDEX::VALUE);
+  Tensor &d_value = context.getOutgoingDerivative(INOUT_INDEX::VALUE);
+  /** d_mask will be calculated in calcCommonDerivative */
+
+  Tensor &query_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::query_fc_weight]);
+  Tensor &key_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::key_fc_weight]);
+  Tensor &value_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::value_fc_weight]);
+
+  Tensor &d_projected_query =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_query]);
+  Tensor &d_projected_key =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_key]);
+  Tensor &d_projected_value =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_value]);
+
+  const TensorDim query_dim = query.getDim();
+  const unsigned int batch_size = query_dim.batch();
+  const unsigned int query_height = query_dim.height();
+  const unsigned int query_width = query_dim.width();
+  const TensorDim key_dim = key.getDim();
+  const unsigned int key_height = key_dim.height();
+  const unsigned int input_key_width_size = key_dim.width();
+  const TensorDim value_dim = value.getDim();
+  const unsigned int value_height = value_dim.height();
+  const unsigned int input_value_width_size = value_dim.width();
+
+  d_query.dot_deriv_wrt_1(query_fc_weight, d_projected_query);
+  d_key.dot_deriv_wrt_1(key_fc_weight, d_projected_key);
+  d_value.dot_deriv_wrt_1(value_fc_weight, d_projected_value, false, false);
 }
 
 void MultiHeadAttentionLayer::calcGradient(RunLayerContext &context) {
   calcCommonDerivative(context);
+
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+
+  const unsigned int num_heads =
+    std::get<props::NumHeads>(multi_head_attention_props).get();
+  const unsigned int projected_key_dim_prop =
+    std::get<props::ProjectedKeyDim>(multi_head_attention_props).get();
+  const unsigned int projected_value_dim_prop =
+    std::get<props::ProjectedValueDim>(multi_head_attention_props).get();
+  const unsigned int output_shape =
+    std::get<props::OutputShape>(multi_head_attention_props).get();
+
+  const unsigned int projected_query_dim_prop = projected_key_dim_prop;
+
+  Tensor &query = context.getInput(INOUT_INDEX::QUERY);
+  Tensor &key = context.getInput(INOUT_INDEX::KEY);
+  Tensor &value = context.getInput(INOUT_INDEX::VALUE);
+  const Tensor &incoming_derivative =
+    context.getIncomingDerivative(INOUT_INDEX::OUTPUT);
+
+  Tensor &d_query_fc_weight =
+    context.getWeightGrad(weight_idx[AttentionParams::query_fc_weight]);
+  Tensor &d_key_fc_weight =
+    context.getWeightGrad(weight_idx[AttentionParams::key_fc_weight]);
+  Tensor &d_value_fc_weight =
+    context.getWeightGrad(weight_idx[AttentionParams::value_fc_weight]);
+  Tensor &d_fc_weight =
+    context.getWeightGrad(weight_idx[AttentionParams::fc_weight]);
+
+  Tensor empty_tensor;
+  Tensor &d_query_fc_bias =
+    disable_bias
+      ? empty_tensor
+      : context.getWeightGrad(weight_idx[AttentionParams::query_fc_bias]);
+  Tensor &d_key_fc_bias =
+    disable_bias
+      ? empty_tensor
+      : context.getWeightGrad(weight_idx[AttentionParams::key_fc_bias]);
+  Tensor &d_value_fc_bias =
+    disable_bias
+      ? empty_tensor
+      : context.getWeightGrad(weight_idx[AttentionParams::value_fc_bias]);
+  Tensor &d_fc_bias =
+    disable_bias ? empty_tensor
+                 : context.getWeightGrad(weight_idx[AttentionParams::fc_bias]);
+
+  Tensor &d_projected_query =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_query]);
+  Tensor &d_projected_key =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_key]);
+  Tensor &d_projected_value =
+    context.getTensorGrad(weight_idx[AttentionParams::projected_value]);
+
+  Tensor &attention_output =
+    context.getTensor(weight_idx[AttentionParams::attention_output]);
+
+  const TensorDim query_dim = query.getDim();
+  const unsigned int batch_size = query_dim.batch();
+  const unsigned int query_height = query_dim.height();
+  const unsigned int query_width = query_dim.width();
+  const TensorDim key_dim = key.getDim();
+  const unsigned int key_height = key_dim.height();
+  const unsigned int input_key_width_size = key_dim.width();
+  const TensorDim value_dim = value.getDim();
+  const unsigned int value_height = value_dim.height();
+  const unsigned int input_value_width_size = value_dim.width();
+
+  attention_output.dot_deriv_wrt_2(
+    d_fc_weight, incoming_derivative, false, false,
+    !context.isGradientFirstAccess(weight_idx[AttentionParams::fc_weight]));
+
+  if (!disable_bias) {
+    Tensor incoming_derivative_ = incoming_derivative;
+    incoming_derivative_.reshape(
+      TensorDim({batch_size * query_height, 1, 1, output_shape}));
+    incoming_derivative_.sum(
+      0, d_fc_bias, 1,
+      !context.isGradientFirstAccess(weight_idx[AttentionParams::fc_bias]));
+  }
+
+  query.dot_deriv_wrt_2(d_query_fc_weight, d_projected_query, false, false,
+                        !context.isGradientFirstAccess(
+                          weight_idx[AttentionParams::query_fc_weight]));
+  if (!disable_bias) {
+    d_projected_query.reshape(TensorDim(
+      {batch_size * query_height, 1, 1, num_heads * projected_query_dim_prop}));
+    d_projected_query.sum(0, d_query_fc_bias, 1,
+                          !context.isGradientFirstAccess(
+                            weight_idx[AttentionParams::query_fc_bias]));
+    d_projected_query.reshape(TensorDim(
+      {batch_size, 1, query_height, num_heads * projected_query_dim_prop}));
+  }
+
+  key.dot_deriv_wrt_2(
+    d_key_fc_weight, d_projected_key, false, false,
+    !context.isGradientFirstAccess(weight_idx[AttentionParams::key_fc_weight]));
+  if (!disable_bias) {
+    d_projected_key.reshape(TensorDim(
+      {batch_size * key_height, 1, 1, num_heads * projected_key_dim_prop}));
+    d_projected_key.sum(
+      0, d_key_fc_bias, 1,
+      !context.isGradientFirstAccess(weight_idx[AttentionParams::key_fc_bias]));
+    d_projected_key.reshape(TensorDim(
+      {batch_size, 1, key_height, num_heads * projected_key_dim_prop}));
+  }
+
+  value.dot_deriv_wrt_2(d_value_fc_weight, d_projected_value, false, false,
+                        !context.isGradientFirstAccess(
+                          weight_idx[AttentionParams::value_fc_weight]));
+  if (!disable_bias) {
+    d_projected_value.reshape(TensorDim(
+      {batch_size * value_height, 1, 1, num_heads * projected_value_dim_prop}));
+    d_projected_value.sum(0, d_value_fc_bias, 1,
+                          !context.isGradientFirstAccess(
+                            weight_idx[AttentionParams::value_fc_bias]));
+    d_projected_value.reshape(TensorDim(
+      {batch_size, 1, value_height, num_heads * projected_value_dim_prop}));
+  }
 }
 
 void MultiHeadAttentionLayer::setProperty(
