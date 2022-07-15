@@ -115,6 +115,45 @@ def gru_translate(model):
 
     yield from new_params
 
+@register_for_((torch.nn.MultiheadAttention))
+def multi_head_attention_translate(model):
+    def transpose_(weight):
+        return (weight[0], weight[1].transpose(1, 0))
+
+    params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
+
+    getParamByName = lambda name: list(filter(lambda param: param[0] == name, params))[0]
+
+    if model._qkv_same_embed_dim:
+        in_proj_weight = getParamByName('in_proj_weight')
+        w_q, w_k, w_v = in_proj_weight[1].chunk(3)
+        q_proj_weight = ('q_proj_weight', w_q)
+        k_proj_weight = ('k_proj_weight', w_k)
+        v_proj_weight = ('v_proj_weight', w_v)
+    else:
+        q_proj_weight = getParamByName('q_proj_weight')
+        k_proj_weight = getParamByName('k_proj_weight')
+        v_proj_weight = getParamByName('v_proj_weight')
+
+    if model.in_proj_bias is not None:
+        in_proj_bias = getParamByName('in_proj_bias')
+        w_q, w_k, w_v = in_proj_bias[1].chunk(3)
+        q_proj_bias = ('q_proj_bias', w_q)
+        k_proj_bias = ('k_proj_bias', w_k)
+        v_proj_bias = ('v_proj_bias', w_v)
+
+    out_proj_weight = getParamByName('out_proj.weight')
+
+    if model.in_proj_bias is not None:
+        out_proj_bias = getParamByName('out_proj.bias')
+
+    if model.in_proj_bias is None:
+        new_params = [transpose_(q_proj_weight), transpose_(k_proj_weight), transpose_(v_proj_weight), transpose_(out_proj_weight)]
+    else:
+        new_params = [transpose_(q_proj_weight), q_proj_bias, transpose_(k_proj_weight), k_proj_bias, transpose_(v_proj_weight), v_proj_bias, transpose_(out_proj_weight), out_proj_bias]
+
+    yield from new_params
+
 def translate(model):
     for child in model.children():
         for registered_classes, fn in handler_book:

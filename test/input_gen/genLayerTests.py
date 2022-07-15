@@ -98,6 +98,21 @@ if __name__ == "__main__":
     record_single(attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
                  "attention_batched", {}, input_type='float')
 
+    # use float data to generate input here
+    multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3)
+    record_single(multi_head_attention, [(1, 5, 7), (1, 3, 7), (1, 3, 7)],
+                 "multi_head_attention_single_batch", {}, input_type='float')
+    record_single(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
+                 "multi_head_attention", {}, input_type='float')
+    record_single(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
+                 "multi_head_attention_return_attention_scores", {"return_attention_scores":True}, input_type='float')
+    multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3, value_dim=5)
+    record_single(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
+                 "multi_head_attention_value_dim", {}, input_type='float')
+    multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3, output_shape=5)
+    record_single(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
+                 "multi_head_attention_output_shape", {}, input_type='float')
+
     rnn = K.layers.SimpleRNN(units=5,
                          activation="tanh",
                          return_sequences=False,
