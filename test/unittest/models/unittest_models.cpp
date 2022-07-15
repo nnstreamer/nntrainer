@@ -97,6 +97,134 @@ static std::unique_ptr<NeuralNetwork> makeMolAttentionMasked() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork>
+makeMultiHeadAttention_disable_need_weights() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input_0", "input_shape=1:3:6"}},
+    {"input", {"name=input_1", "input_shape=1:2:6"}},
+    {"input", {"name=input_2", "input_shape=1:2:6"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention", "input_layers=input_0, input_1, input_2",
+      "disable_bias=true", "num_heads=2"}},
+    {"mse", {"name=loss", "input_layers=multi_head_attention"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  nn->setProperty({"input_layers=input_0, input_1, input_2"});
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeMultiHeadAttention() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input_0", "input_shape=1:3:6"}},
+    {"input", {"name=input_1", "input_shape=1:2:6"}},
+    {"input", {"name=input_2", "input_shape=1:2:6"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention", "input_layers=input_0, input_1, input_2",
+      "num_heads=2", "return_attention_weight=after"}},
+    {"mse", {"name=loss1", "input_layers=multi_head_attention(0)"}},
+    {"mse", {"name=loss2", "input_layers=multi_head_attention(1)"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  nn->setProperty(
+    {"input_layers=input_0, input_1, input_2", "label_layers=loss1, loss2"});
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeMultiHeadAttention_kdim_vdim() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input_0", "input_shape=1:3:6"}},
+    {"input", {"name=input_1", "input_shape=1:2:4"}},
+    {"input", {"name=input_2", "input_shape=1:2:5"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention", "input_layers=input_0, input_1, input_2",
+      "num_heads=2", "return_attention_weight=after"}},
+    {"mse", {"name=loss1", "input_layers=multi_head_attention(0)"}},
+    {"mse", {"name=loss2", "input_layers=multi_head_attention(1)"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  nn->setProperty(
+    {"input_layers=input_0, input_1, input_2", "label_layers=loss1, loss2"});
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeMultiHeadAttention_float_attn_mask() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input_0", "input_shape=1:3:6"}},
+    {"input", {"name=input_1", "input_shape=1:2:6"}},
+    {"input", {"name=input_2", "input_shape=1:2:6"}},
+    {"input", {"name=input_3", "input_shape=2:3:2"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention",
+      "input_layers=input_0, input_1, input_2, input_3", "num_heads=2",
+      "return_attention_weight=after"}},
+    {"mse", {"name=loss1", "input_layers=multi_head_attention(0)"}},
+    {"mse", {"name=loss2", "input_layers=multi_head_attention(1)"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  nn->setProperty({"input_layers=input_0, input_1, input_2, input_3",
+                   "label_layers=loss1, loss2"});
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeMultiHeadAttention_self_attention() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input_0", "input_shape=1:3:6"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention", "input_layers=input_0, input_0, input_0",
+      "num_heads=2", "return_attention_weight=after"}},
+    {"mse", {"name=loss1", "input_layers=multi_head_attention(0)"}},
+    {"mse", {"name=loss2", "input_layers=multi_head_attention(1)"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  nn->setProperty({"input_layers=input_0", "label_layers=loss1, loss2"});
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -106,6 +234,23 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeMolAttentionMasked, "mol_attention_masked",
                  ModelTestOption::COMPARE_RUN_V2),
+    mkModelTc_V2(makeMultiHeadAttention_disable_need_weights,
+                 "multi_head_attention_disable_need_weights",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeMultiHeadAttention, "multi_head_attention",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeMultiHeadAttention_kdim_vdim,
+                 "multi_head_attention_kdim_vdim", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeMultiHeadAttention_float_attn_mask,
+                 "multi_head_attention_float_attn_mask",
+                 ModelTestOption::ALL_V2),
+    /** @todo:change model if bool type tensor is supported */
+    mkModelTc_V2(makeMultiHeadAttention_float_attn_mask,
+                 "multi_head_attention_pseudo_bool_attn_mask",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeMultiHeadAttention_self_attention,
+                 "multi_head_attention_self_attention",
+                 ModelTestOption::ALL_V2),
     mkModelIniTc(fc_relu_decay, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
   }),

@@ -227,7 +227,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
   for (size_t i = 0; i < len; ++i) {
     /** not checking sign change is intentional to avoid float calculation
      * errors around 0 */
-    if (std::isnan(data[i]) || std::isnan(rdata[i]) ||
+    if ((std::isnan(data[i]) && !std::isnan(rdata[i])) ||
+        (!std::isnan(data[i]) && std::isnan(rdata[i])) ||
         std::fabs(data[i] - rdata[i]) > epsilon)
       return false;
   }

@@ -257,7 +257,6 @@ class GRUCellTransLayer(IdentityTransLayer):
         input = inputs[0]
         states = inputs[1:]
         output, states = self.tf_layer.call(input, states)
-        # print(output)
         return output
 
     def to_nntr_weights(self, tensorOrList):
@@ -270,6 +269,23 @@ class GRUCellTransLayer(IdentityTransLayer):
 
     def to_nntr_trainable_weights(self, tensorOrList):
         return self.to_nntr_weights(tensorOrList)
+
+class MultiHeadAttentionTransLayer(IdentityTransLayer):
+    def build(self, input_shape):
+        if not self.built:
+            query = tf.random.normal(input_shape[0])
+            key = tf.random.normal(input_shape[1]) if len(input_shape) == 3 else None
+            value = tf.random.normal(input_shape[2 if len(input_shape) == 3 else 1])
+            self.tf_layer(query, value, key)
+
+    ##
+    # @brief call function
+    # @param inputs input with nntrainer layout
+    def call(self, inputs, provide_attention_mask=False, return_attention_scores=False):
+        inputs, mask = (inputs[:-1], inputs[-1]) if provide_attention_mask else (inputs, None)
+        query, key, value = (inputs[0], inputs[1], inputs[2]) if len(inputs) == 3 else (inputs[0], None, inputs[1])
+        output = self.tf_layer.call(query, value, key, mask, return_attention_scores=return_attention_scores)
+        return [output[0], output[1]] if return_attention_scores else output
 
 ##
 # @brief A factory function to attach translayer to existing layer
@@ -291,5 +307,8 @@ def attach_trans_layer(layer):
 
     if isinstance(layer, K.layers.GRUCell):
         return GRUCellTransLayer(layer)
+
+    if isinstance(layer, K.layers.MultiHeadAttention):
+        return MultiHeadAttentionTransLayer(layer)
 
     return layer

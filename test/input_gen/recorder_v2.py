@@ -79,18 +79,19 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
 
     def record_iteration(write_fn):
         if input_label_reader != None:
-            inputs, labels = input_label_reader(input_dims, label_dims)
+            inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
         else:
             inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
             labels = _rand_like(label_dims, dtype=float)
         write_fn(inputs)
         write_fn(labels)
         write_fn(list(t for _, t in params_translated(model)))
-        output, loss = model(inputs, labels)
+        output, *losses = model(inputs, labels)
         write_fn(output)
 
         optimizer.zero_grad()
-        loss.backward()
+        for loss in losses:
+            loss.backward()
         if clip:
             norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 0.0001)
         optimizer.step()
