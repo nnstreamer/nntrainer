@@ -516,21 +516,62 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   TensorDim out_dim_squeezed{filter_size,
                              derivative.width() * derivative.height()};
 
-  /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
-  /// so delK = dy x column_matrix ^ T;
-  for (unsigned int b = 0; b < input_.batch(); ++b) {
-    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
-    deriv_sub.reshape(out_dim_squeezed);
+  auto workers = ParallelBatch(input_.batch());
 
-    Tensor in_sub = input_.getBatchSlice(b, 1);
+  if (workers.getNumWorkers() > 1) {
 
-    /**
-     * @todo this result can be cached from the forward iteration at the
-     * expense of memory. In this case, memory of im2col_result must be saved
-     * for the whole batch. try this while benchmarking.
-     */
-    im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
-    deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
+    TensorDim delK_ext = filter_dim_squeezed;
+    delK_ext.batch(input_.batch());
+
+    Tensor delK_par = Tensor(delK_ext);
+    delK_par.setZero();
+
+    auto calc_grad_job = [&](unsigned int s, unsigned int e, void *user_data) {
+      Tensor result = Tensor(im2col_result.getDim());
+      result.setZero();
+      for (unsigned int b = s; b < e; ++b) {
+        Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+        Tensor delK_sub = delK_par.getBatchSlice(b, 1);
+        deriv_sub.reshape(out_dim_squeezed);
+
+        Tensor in_sub = input_.getBatchSlice(b, 1);
+
+        /**
+         * @todo this result can be cached from the forward iteration at the
+         * expense of memory. In this case, memory of im2col_result must be
+         * saved for the whole batch. try this while benchmarking.
+         */
+        im2col(in_sub, filter_dim, padding, stride, dilation, result);
+        deriv_sub.dot(result, delK_sub, false, false);
+      }
+    };
+
+    workers.setCallback(calc_grad_job, nullptr);
+
+    workers.run();
+
+    for (unsigned int b = 0; b < input_.batch(); ++b) {
+      Tensor delK_sub = delK_par.getBatchSlice(b, 1);
+      delK.add_i(delK_sub);
+    }
+
+  } else {
+    /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
+    /// so delK = dy x column_matrix ^ T;
+    for (unsigned int b = 0; b < input_.batch(); ++b) {
+      Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+      deriv_sub.reshape(out_dim_squeezed);
+
+      Tensor in_sub = input_.getBatchSlice(b, 1);
+
+      /**
+       * @todo this result can be cached from the forward iteration at the
+       * expense of memory. In this case, memory of im2col_result must be saved
+       * for the whole batch. try this while benchmarking.
+       */
+      im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
+      deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
+    }
   }
 
   delK.reshape(filter_dim);
