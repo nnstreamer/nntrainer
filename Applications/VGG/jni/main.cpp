@@ -106,43 +106,80 @@ int main(int argc, char *argv[]) {
 
   auto &[train_user_data, valid_user_data] = user_datas;
 
-  auto dataset_train = ml::train::createDataset(
-    ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
-  auto dataset_valid = ml::train::createDataset(
-    ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
+  std::unique_ptr<ml::train::Dataset> dataset_train;
+  try {
+    dataset_train = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+  } catch (const std::exception &e) {
+    std::cerr << "Error during create train dataset: " << e.what() << std::endl;
+    return 1;
+  }
+
+  std::unique_ptr<ml::train::Dataset> dataset_valid;
+  try {
+    dataset_valid = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
+  } catch (const std::exception &e) {
+    std::cerr << "Error during create valid dataset: " << e.what() << std::endl;
+    return 1;
+  }
 
   /**
    * @brief     Neural Network Create & Initialization
    */
 
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  ModelHandle model;
+  try {
+    model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  } catch (const std::exception &e) {
+    std::cerr << "Error during create model: " << e.what() << std::endl;
+    return 1;
+  }
 
   try {
     model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
-  } catch (...) {
-    std::cerr << "Error during loadFromConfig" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "Error during loadFromConfig: " << e.what() << std::endl;
     return 1;
   }
 
   try {
     model->compile();
+  } catch (const std::exception &e) {
+    std::cerr << "Error during compile: " << e.what() << std::endl;
+    return 1;
+  }
+
+  try {
     model->initialize();
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "Error during ininitialize: " << e.what() << std::endl;
     return 1;
   }
 
   try {
     model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                       std::move(dataset_train));
+  } catch (const std::exception &e) {
+    std::cerr << "Error during set train dataset: " << e.what() << std::endl;
+    return 1;
+  }
+
+  try {
     model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                       std::move(dataset_valid));
+  } catch (const std::exception &e) {
+    std::cerr << "Error during set valid dataset: " << e.what() << std::endl;
+    return 1;
+  }
+
+  try {
     model->train();
     training_loss = model->getTrainingLoss();
     validation_loss = model->getValidationLoss();
     last_batch_loss = model->getLoss();
-  } catch (...) {
-    std::cerr << "Error during train" << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "Error during train: " << e.what() << std::endl;
     return 1;
   }
 

@@ -189,10 +189,8 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
   case 4:
     return {paddings[0], paddings[1], paddings[2], paddings[3]};
   default:
-    throw std::logic_error("[padding] should not reach here");
+    throw std::logic_error("[Padding2D] should not reach here");
   }
-
-  throw std::logic_error("[padding] should not reach here");
 }
 
 bool Padding1D::isValid(const std::string &v) const {
