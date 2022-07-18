@@ -15,6 +15,12 @@
 
 namespace nntrainer {
 
+ParallelBatch::ParallelBatch(unsigned int batch_size) :
+  cb(nullptr),
+  batch(batch_size),
+  num_workers(NNTR_NUM_THREADS > batch ? 1 : NNTR_NUM_THREADS),
+  user_data_prop(new props::PropsUserData(nullptr)){};
+
 ParallelBatch::ParallelBatch(threaded_cb threaded_cb_, unsigned int batch_size,
                              void *user_data_) :
   cb(threaded_cb_),
@@ -25,6 +31,10 @@ ParallelBatch::ParallelBatch(threaded_cb threaded_cb_, unsigned int batch_size,
 ParallelBatch::~ParallelBatch() {}
 
 void ParallelBatch::run() {
+
+  if (!cb) {
+    throw std::invalid_argument("nntrainer threads: callback is not defined");
+  }
 
   unsigned int start = 0;
   unsigned int end = batch;
@@ -41,6 +51,11 @@ void ParallelBatch::run() {
 
   std::for_each(workers.begin(), workers.end(),
                 std::mem_fn(&std::thread::join));
+}
+
+void ParallelBatch::setCallback(threaded_cb threaded_cb_, void *user_data_) {
+  cb = threaded_cb_;
+  user_data_prop = std::make_unique<props::PropsUserData>(user_data_);
 }
 
 } // namespace nntrainer

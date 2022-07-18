@@ -34,6 +34,14 @@ class ParallelBatch {
 public:
   /**
    * @brief Construct a new ParallelBatch object
+   * @param unsigned int total number of batch
+   *
+   */
+
+  ParallelBatch(unsigned int batch);
+
+  /**
+   * @brief Construct a new ParallelBatch object
    * @param threaded_cb the function run in thread
    * @param unsigned int total number of batch
    * @param void* user data for the threaded callback function
@@ -52,6 +60,13 @@ public:
    *
    */
   void run();
+
+  /**
+   * @brief set the thread callback function
+   * @param Threadedcb the function run in thread
+   * @param void* user data for the threaded callback function
+   */
+  void setCallback(threaded_cb t_cb, void *user_data);
 
   /**
    * @brief return the number of workders
