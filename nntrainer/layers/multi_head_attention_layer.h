@@ -101,27 +101,14 @@ public:
 
   inline static const std::string type = "multi_head_attention";
 
-protected:
-  /**
-   * @brief     Finalize the multi head attention layer with the given context
-   * @param[in] context InitLayerContext
-   *
-   * @note This function provides the basic finalize details which can be shared
-   * with derived classes as well
-   */
-  void finalizeCommon(InitLayerContext &context);
-
 private:
   std::tuple<props::NumHeads, props::ProjectedKeyDim, props::ProjectedValueDim,
              props::OutputShape, props::DropOutRate,
-             props::ProvideAttentionMask, props::ReturnAttentionWeight,
-             props::AverageAttentionWeight>
+             props::ReturnAttentionWeight, props::AverageAttentionWeight>
     multi_head_attention_props; /**< multi_head_attention layer properties */
 
   ActiFunc sm; /** softmax activation operation */
-  std::array<unsigned int, 6>
-    inout_idx; /**< indices of the inputs and outputs */
-  std::array<unsigned int, 25>
+  std::array<unsigned int, 16>
     weight_idx; /**< indices of the weights and tensors */
 
   /**
