@@ -133,6 +133,14 @@ public:
   Manager() : enable_optimizations(true) {}
 
   /**
+   * @brief     Constructor of Manager
+   */
+  Manager(bool enable_swap) :
+    weight_pool(enable_swap, "weight_pool"),
+    tensor_pool(enable_swap, "tensor_pool"),
+    enable_optimizations(true) {}
+
+  /**
    * @brief Construct a new Manager object (deleted)
    *
    */
@@ -435,6 +443,18 @@ public:
     const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
     const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "",
     bool expose_var = false, bool expose_grad = false);
+
+  /**
+   * @brief flush cache data
+   */
+  void flushCache();
+
+  /**
+   * @brief flush cache data except the order
+   *
+   * @param order except execution order
+   */
+  void flushCacheExcept(unsigned int order);
 
 private:
   /** @todo: merge this list to one */

@@ -126,6 +126,23 @@ public:
   MemoryOptimization(bool value = true);
 };
 
+/**
+ * @brief cache size property
+ *
+ */
+class MemorySwap : public Property<bool> {
+public:
+  static constexpr const char *key = "memory_swap"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;                   /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to false
+   */
+  MemorySwap(bool value = false);
+};
+
 } // namespace nntrainer::props
 
 #endif

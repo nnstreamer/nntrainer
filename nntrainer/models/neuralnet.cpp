@@ -67,7 +67,8 @@ NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization()),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -83,7 +84,8 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization()),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -156,7 +158,9 @@ int NeuralNetwork::compile() {
     graph_representation = realizer->realize(graph_representation);
   }
 
-  model_graph = NetworkGraph();
+  bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
+  model_graph = NetworkGraph(memory_swap);
+
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
   for (auto &node : graph_representation) {
@@ -292,6 +296,8 @@ void NeuralNetwork::backwarding(int iteration) {
      * 3. applyGradientsOnLastAccess
      */
 
+    model_graph.flushCacheExcept(std::get<1>(node->getExecutionOrder()));
+
     bool apply_gradient = true;
     /** If gradient optimization mode, then calculate gradient first */
     if (dynamic_training_opt.isGradientMode())
@@ -314,6 +320,8 @@ void NeuralNetwork::backwarding(int iteration) {
      */
     if (!dynamic_training_opt.isGradientMode() && apply_gradient)
       node->calcGradient();
+
+    model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
 
     if (node->needsCalcDerivative())
       node->calcDerivative();
@@ -754,6 +762,8 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
 
   auto train_for_iteration = [this, stop_cb](RunStats &stat,
                                              DataBuffer &buffer) {
+    model_graph.flushCache();
+
     forwarding(true);
     backwarding(iter++);
 

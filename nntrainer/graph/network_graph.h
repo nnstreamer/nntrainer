@@ -51,6 +51,20 @@ public:
     exec_mode(ExecutionMode::TRAIN) {}
 
   /**
+   * @brief     Constructor of NeuralNetwork Graph Class
+   */
+  NetworkGraph(bool enable_swap) :
+    tensor_manager(std::make_shared<Manager>(enable_swap)),
+    graph(),
+    compiled(false),
+    batch_size(0),
+    graph_exec_end(0),
+    backward_iter_end(nullptr),
+    forward_iter_end(nullptr),
+    optimize_memory(true),
+    exec_mode(ExecutionMode::TRAIN) {}
+
+  /**
    * @brief   Destructor of the NeuralNetwork Graph class
    *
    */
@@ -152,7 +166,7 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(bool training = false) const;
+  sharedConstTensors forwarding(bool training = false);
 
   /**
    * @brief     backwarding the network graph
@@ -337,6 +351,19 @@ public:
    * @note this tensor list is analogous to the label list
    */
   std::vector<Tensor> getOutputTensors() const;
+
+  /**
+   * @brief Flush data to the device
+   *
+   */
+  void flushCache();
+
+  /**
+   * @brief Flush data to the device except order
+   *
+   * @param order except execution order
+   */
+  void flushCacheExcept(const unsigned int order);
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
