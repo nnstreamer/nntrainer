@@ -29,4 +29,6 @@ ContinueTrain::ContinueTrain(bool value) { set(value); }
 
 MemoryOptimization::MemoryOptimization(bool value) { set(value); }
 
+MemorySwap::MemorySwap(bool value) { set(value); }
+
 } // namespace nntrainer::props

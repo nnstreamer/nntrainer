@@ -622,6 +622,16 @@ Manager::getWeights(const std::function<bool(const Weight *)> &condition) {
   return conditional_weights;
 }
 
+void Manager::flushCache() {
+  weight_pool.flushCache();
+  tensor_pool.flushCache();
+}
+
+void Manager::flushCacheExcept(unsigned int order) {
+  weight_pool.flushCacheExcept(order);
+  tensor_pool.flushCacheExcept(order);
+}
+
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations)

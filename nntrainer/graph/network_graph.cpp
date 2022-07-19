@@ -329,11 +329,16 @@ void NetworkGraph::applyGradients(
   }
 }
 
-sharedConstTensors NetworkGraph::forwarding(bool training) const {
+sharedConstTensors NetworkGraph::forwarding(bool training) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
+
+    auto f = std::get<0>(ln->getExecutionOrder());
+    flushCacheExcept(f);
+
     ln->forwarding(training);
+
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
@@ -1066,6 +1071,10 @@ std::vector<Tensor> NetworkGraph::getOutputTensors() const {
 
   return output_tensors;
 }
+
+void NetworkGraph::flushCache() { tensor_manager->flushCache(); }
+
+void NetworkGraph::flushCacheExcept(unsigned int order) { tensor_manager->flushCacheExcept(order); }
 
 void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
