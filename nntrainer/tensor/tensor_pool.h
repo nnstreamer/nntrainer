@@ -23,7 +23,7 @@
 #include <variant>
 #include <vector>
 
-#include <memory_pool.h>
+#include <cache_pool.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
@@ -41,7 +41,17 @@ public:
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool() : mem_pool() {}
+  TensorPool() : mem_pool(std::make_unique<MemoryPool>()) {}
+
+  /**
+   * @brief     Constructor of TensorPool
+   */
+  TensorPool(bool enable_swap, const std::string &name = std::string()) {
+    if (enable_swap)
+      mem_pool = std::make_unique<CachePool>(name);
+    else
+      mem_pool = std::make_unique<MemoryPool>();
+  }
 
   /**
    * @brief     Destructor of TensorPool
@@ -87,21 +97,21 @@ public:
    *
    * @return The real memory requirement with this strategy in bytes
    */
-  size_t size() { return mem_pool.size(); }
+  size_t size() { return mem_pool->size(); }
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
    * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemoryRequirement() { return mem_pool.minMemoryRequirement(); }
+  size_t minMemoryRequirement() { return mem_pool->minMemoryRequirement(); }
 
   /**
    * @brief Is the tensor pool allocated
    *
    * @return true if the tensors are allocated, else false
    */
-  bool isAllocated() const { return mem_pool.isAllocated(); }
+  bool isAllocated() const { return mem_pool->isAllocated(); }
 
   /**
    * @brief Get the tensor of the given name
@@ -233,6 +243,20 @@ public:
   void reidentifySource(const std::string &dest, const std::string &new_src,
                         unsigned int offset);
 
+  /**
+   * @brief flush cache data
+   *
+   */
+  void flushCache();
+
+  /**
+   * @brief flush cache data except order
+   *
+   * @param order except execution order
+   *
+   */
+  void flushCacheExcept(unsigned int order);
+
 private:
   /**
    * @brief Source tensor detailed specification
@@ -328,7 +352,7 @@ private:
   std::vector<RequestSpec> pool; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
     name_map;          /**< indexing of requested tensors */
-  MemoryPool mem_pool;  /**< memory pool for the tensors */
+  std::unique_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
 
   /**
    * @brief     Check if the lifespan leads to long term valitidy
