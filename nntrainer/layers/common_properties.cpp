@@ -330,16 +330,9 @@ void GenericShape::set(const TensorDim &value) {
 
 NumHeads::NumHeads(unsigned int value) { set(value); }
 
-ProvideAttentionMask::ProvideAttentionMask(bool value) { set(value); }
-
-ReturnAttentionWeight::ReturnAttentionWeight(const std::string &value) {
+ReturnAttentionWeight::ReturnAttentionWeight(
+  ReturnAttentionWeightInfo::Enum value) {
   set(value);
-}
-bool ReturnAttentionWeight::isValid(const std::string &value) const {
-  if (value == "" || value == "before" || value == "after") {
-    return true;
-  }
-  return false;
 }
 
 } // namespace props

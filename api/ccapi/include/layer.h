@@ -60,6 +60,12 @@ enum LayerType {
   LAYER_RNNCELL = ML_TRAIN_LAYER_TYPE_RNNCELL,   /**< RNN Cell Layer type */
   LAYER_ZONEOUT_LSTMCELL =
     ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL, /**< Zoneout LSTM Cell Layer type */
+  LAYER_ATTENTION = ML_TRAIN_LAYER_TYPE_ATTENTION, /**< Attention Layer type */
+  LAYER_MOL_ATTENTION =
+    ML_TRAIN_LAYER_TYPE_MOL_ATTENTION, /**< MoL Attention Layer type */
+  LAYER_MULTI_HEAD_ATTENTION =
+    ML_TRAIN_LAYER_TYPE_MULTI_HEAD_ATTENTION, /**< Multi Head Attention Layer
+                                                 type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -79,9 +85,6 @@ enum LayerType {
                                                      */
   LAYER_TIME_DIST,                /**< Time Distributed Layer type */
   LAYER_BACKBONE_TFLITE,          /**< Backbone using TFLite */
-  LAYER_ATTENTION,                /**< Attention Layer type */
-  LAYER_MOL_ATTENTION,            /**< MoL Attention Layer type */
-  LAYER_MULTI_HEAD_ATTENTION,     /**< Multi Head Attention Layer type */
   LAYER_RESHAPE,                  /**< Reshape Layer type */
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
   LAYER_IDENTITY,                 /**< Identity Layer type */
@@ -415,6 +418,22 @@ CentroidKNN(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Attention(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_ATTENTION, properties);
+}
+
+/**
+ * @brief Helper function to create MoL Attention Layer
+ */
+inline std::unique_ptr<Layer>
+MoLAttention(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_MOL_ATTENTION, properties);
+}
+
+/**
+ * @brief Helper function to create Multi Head Attention Layer
+ */
+inline std::unique_ptr<Layer>
+MultiHeadAttention(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_MULTI_HEAD_ATTENTION, properties);
 }
 
 /**

@@ -1172,50 +1172,37 @@ public:
 };
 
 /**
- * @brief ProvideAttentionMask, attention mask is provided or not
- *
+ * @brief Enumeration of return attention weight
  */
-class ProvideAttentionMask : public Property<bool> {
-public:
-  /**
-   * @brief Construct a new ProvideAttentionMask object
-   *
-   */
-  ProvideAttentionMask(bool val = false);
-  static constexpr const char *key =
-    "provide_attention_mask";     /**< unique key to access */
-  using prop_tag = bool_prop_tag; /**< property type */
+struct ReturnAttentionWeightInfo {
+  enum class Enum { none, before, after };
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::none, Enum::before, Enum::after};
+
+  static constexpr const char *EnumStr[] = {"none", "before", "after"};
 };
 
 /**
  * @brief ReturnAttentionWeight, return attention weight
- * @details Default value("") won't return attention weight.
+ * @details "none" won't return attention weight.
  *          "before"/"after" will return attention weight before/after applying
  * dropout
  * @note Correspond with return_attention_scores of tensorflow and Correspond
  *       with need_weights of torch
  *
  */
-class ReturnAttentionWeight : public Property<std::string> {
+class ReturnAttentionWeight : public EnumProperty<ReturnAttentionWeightInfo> {
 public:
   static constexpr const char *key =
-    "return_attention_weight";   /**< unique key to access */
-  using prop_tag = str_prop_tag; /**< property type */
+    "return_attention_weight";          /**< unique key to access */
+  using prop_tag = enum_class_prop_tag; /**< property type */
 
   /**
    * @brief Construct a new ReturnAttentionWeight object
    *
    */
-  ReturnAttentionWeight(const std::string &value = "");
-
-  /**
-   * @brief ReturnAttentionWeight validator
-   *
-   * @param value string to validate
-   * @retval true if it is one of "", "before", "after"
-   * @retval false for others
-   */
-  bool isValid(const std::string &value) const override;
+  ReturnAttentionWeight(ReturnAttentionWeightInfo::Enum value =
+                          ReturnAttentionWeightInfo::Enum::none);
 };
 
 /**
