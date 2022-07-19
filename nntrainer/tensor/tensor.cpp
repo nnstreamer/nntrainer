@@ -154,14 +154,15 @@ void Tensor::allocate() {
 
   if (src_tensor) {
     /// allocate data based on the source tensor
-    data = std::shared_ptr<float>(src_tensor->tensor()->data,
-                                  src_tensor->tensor()->data.get() +
-                                    src_tensor->offset());
+    data = src_tensor->tensor()->data;
+    offset = src_tensor->tensor()->offset + src_tensor->offset();
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    data = std::shared_ptr<float>(new float[dim.getDataLen()],
-                                  std::default_delete<float[]>());
+    auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
+    data = std::shared_ptr<MemoryData<float>>(
+      mem_data, [](auto *mem_data) { delete[] mem_data->getAddr(); delete mem_data; });
+    offset = 0;
     initialize();
   }
 }
@@ -182,26 +183,9 @@ Tensor Tensor::Map(float *buf, unsigned int bytes, const TensorDim &d,
   tmp.dim = d;
   tmp.strides = d.computeStrides();
   /// Tensor does not own the memory
-  tmp.data = std::shared_ptr<float>(buf + offset, [](void *) {});
-
-  return tmp;
-}
-
-Tensor Tensor::Map(std::shared_ptr<float> buf, unsigned int size,
-                   const TensorDim &d, int offset) {
-  if (d.getDataLen() == 0 || buf == nullptr) {
-    throw std::invalid_argument(
-      "[Tensor::Map] empty tensor dim is not allowed");
-  }
-
-  if (d.getDataLen() * sizeof(float) + offset > size) {
-    throw std::invalid_argument(
-      "Creating shared tensor of size bigger than tensor memory.");
-  }
-
-  Tensor tmp;
-  tmp.dim = d;
-  tmp.data = std::shared_ptr<float>(buf, buf.get() + offset);
+  tmp.data = std::shared_ptr<MemoryData<float>>(new MemoryData<float>(buf),
+                                                [](void *) {});
+  tmp.offset = offset;
 
   return tmp;
 }
@@ -316,6 +300,8 @@ void Tensor::initialize() {
   default:
     break;
   }
+
+  putData();
 }
 
 Tensor::Tensor(
@@ -331,8 +317,10 @@ Tensor::Tensor(
   dim.height(d[0][0].size());
   dim.width(d[0][0][0].size());
   strides = dim.computeStrides();
-  data = std::shared_ptr<float>(new float[dim.getDataLen()],
-                                std::default_delete<float[]>());
+  auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
+  data = std::shared_ptr<MemoryData<float>>(
+    mem_data, [](auto *mem_data) { delete[] mem_data->getAddr(); });
+  offset = 0;
   contiguous = true;
   initializer = Initializer::NONE;
 
@@ -1612,6 +1600,7 @@ void Tensor::save(std::ostream &file) {
 
   checkedWrite(file, (char *)getData(), bytes(),
                "[Tensor::save] operation failed");
+  putData();
 }
 
 void Tensor::read(std::ifstream &file) {
@@ -1620,6 +1609,7 @@ void Tensor::read(std::ifstream &file) {
 
   checkedRead(file, (char *)getData(), bytes(),
               "[Tensor::read] operation failed");
+  putData();
 }
 
 /**

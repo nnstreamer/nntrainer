@@ -19,11 +19,69 @@
 #ifndef __MEMORY_POOL_H__
 #define __MEMORY_POOL_H__
 
+#include <functional>
+#include <memory>
+#include <memory_planner.h>
 #include <vector>
 
-#include <memory_planner.h>
-
 namespace nntrainer {
+
+using MemoryDataValidateCallback = std::function<void(unsigned int)>;
+
+template <typename T = float> class MemoryData {
+public:
+  /**
+   * @brief  Constructor of Memory Data
+   * @param[in] addr Memory data
+   */
+  explicit MemoryData(T *addr) :
+    valid(true), id(0), address(addr), validate_cb([](unsigned int) {}), invalidate_cb([](unsigned int) {}) {}
+
+  /**
+   * @brief  Constructor of Memory Data
+   * @param[in] mem_id validate callback.
+   * @param[in] v_cb validate callback.
+   * @param[in] i_cb invalidate callback.
+   */
+  explicit MemoryData(unsigned int mem_id, MemoryDataValidateCallback v_cb, MemoryDataValidateCallback i_cb) :
+    valid(false), id(mem_id), address(nullptr), validate_cb(v_cb), invalidate_cb(i_cb) {}
+
+  /**
+   * @brief  Deleted constructor of Memory Data
+   */
+  explicit MemoryData() = delete;
+  explicit MemoryData(MemoryDataValidateCallback v_cb, MemoryDataValidateCallback i_cb) = delete;
+  explicit MemoryData(T *addr, MemoryDataValidateCallback v_cb, MemoryDataValidateCallback i_cb) = delete;
+
+  /**
+   * @brief  Destructor of Memory Data
+   */
+  virtual ~MemoryData() = default;
+
+  void setAddr(T *addr) { address = addr; }
+  T *getAddr() const { return address; }
+
+  void validate() {
+    if (valid)
+      return;
+    validate_cb(id);
+  }
+
+  void invalidate() {
+    if (!valid)
+      return;
+    invalidate_cb(id);
+  }
+
+  void setValid(bool v) { valid = v; }
+
+private:
+  bool valid;
+  unsigned int id;
+  T *address;
+  MemoryDataValidateCallback validate_cb;
+  MemoryDataValidateCallback invalidate_cb;
+};
 
 /**
  * @class   MemoryPool
@@ -54,8 +112,9 @@ public:
    * @note start_time is inclusive, but end_time is exclusive
    * @note The value of the return token starts from 1.
    */
-  unsigned int requestMemory(size_t bytes, unsigned int start_time,
-                             unsigned int end_time);
+  virtual unsigned int requestMemory(size_t bytes, unsigned int start_time,
+                                     unsigned int end_time,
+                                     std::vector<unsigned int> exec_order = std::vector<unsigned int>());
 
   /**
    * @brief Plan the layout with memory planner
@@ -78,7 +137,7 @@ public:
    * @brief Do the allocation of memory
    *
    */
-  void allocate();
+  virtual void allocate();
 
   /**
    * @brief Get the allocated memory
@@ -89,13 +148,13 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  void *getMemory(unsigned int idx);
+  virtual std::shared_ptr<MemoryData<float>> getMemory(unsigned int idx);
 
   /**
    * @brief Free all the allocated memory
    *
    */
-  void deallocate();
+  virtual void deallocate();
 
   /**
    * @brief Get the maximum real memory requirement
@@ -122,7 +181,14 @@ public:
    *
    * @return true if the memory is allocated, else false
    */
-  bool isAllocated() const;
+  virtual bool isAllocated() const;
+
+protected:
+  std::vector<size_t> &getMemoryOffset() { return memory_offset; }
+  std::vector<size_t> &getMemorySize() { return memory_size; }
+  std::vector<std::vector<unsigned int>> &getMemoryExecOrder() {
+    return memory_exec_order;
+  }
 
 private:
   /**
@@ -170,6 +236,8 @@ private:
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
+  std::vector<std::vector<unsigned int>>
+    memory_exec_order; /**< execution order for the requested memory */
 
   void *mem_pool;   /**< memory pool allocated at once */
   size_t pool_size; /**< memory requirement for this pool */

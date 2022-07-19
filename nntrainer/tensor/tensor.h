@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <memory_pool.h>
 #include <tensor_dim.h>
 
 #ifdef DEBUG
@@ -81,6 +82,7 @@ public:
     initializer(Initializer::NONE),
     name(name_),
     data(nullptr),
+    offset(0),
     src_tensor() {}
 
   /**
@@ -195,20 +197,6 @@ public:
   static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
                     int offset = 0);
 
-  /**
-   * @brief Construct a new Tensor object from a buffer
-   * This will shared the buf
-   *
-   * @param buf buffer
-   * @param size buffer size in bytes
-   * @param d tensor dim
-   * @param offset offset to be used
-   * @return Tensor object
-   * @throws std::invalid_argument if buf is null
-   */
-  static Tensor Map(std::shared_ptr<float> buf, unsigned int size,
-                    const TensorDim &d, int offset = 0);
-
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
     std::swap(lhs.strides, rhs.strides);
@@ -239,7 +227,10 @@ public:
    * @brief    Deallocate memory for this tensor
    * @note     This will not necessary free the memory as tensors share memory
    */
-  void deallocate() { data = nullptr; }
+  void deallocate() {
+    data = nullptr;
+    offset = 0;
+  }
 
   /**
    * @brief    Check if the tensor has memory allocated/assigned/associated
@@ -951,7 +942,7 @@ public:
    */
   void setValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value) noexcept {
-    data.get()[getIndex(batch, c, h, w)] = value;
+    getData()[getIndex(batch, c, h, w)] = value;
   }
 
   /**
@@ -966,7 +957,7 @@ public:
   void addValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value, float beta) noexcept {
     auto const &idx = getIndex(batch, c, h, w);
-    data.get()[idx] = value + data.get()[idx] * beta;
+    getData()[idx] = value + getData()[idx] * beta;
   }
 
   /**
@@ -978,7 +969,7 @@ public:
    * are supported.
    */
   void setValueInt(unsigned int offset, int value) noexcept {
-    int *data_int = (int *)data.get();
+    int *data_int = (int *)getData();
     data_int[offset] = value;
   }
 
@@ -1203,15 +1194,48 @@ public:
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
-  template <typename T = float> T *getData() { return (T *)data.get(); }
+  template <typename T = float> T *getData() {
+    if (!data)
+      return nullptr;
+
+    data->validate();
+    return (T *)((float *)data->getAddr() + offset);
+  }
 
   /**
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
   template <typename T = float> const T *getData() const {
-    return (T *)data.get();
+    if (!data)
+      return nullptr;
+
+    data->validate();
+    return (T *)((float *)data->getAddr() + offset);
   }
+
+  /**
+   * @brief     put data of Tensor
+   *
+   * @note      It is only effective when memory_swap is used
+   */
+  void putData() const {
+    if (!data)
+      return;
+
+    data->invalidate();
+  }
+
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  template <typename T = float>
+  const std::shared_ptr<MemoryData<T>> getMemoryData() const {
+    return data;
+  }
+
+  unsigned int getOffset() const { return offset; }
 
   /**
    * @brief     i data index
@@ -1309,13 +1333,16 @@ public:
    * @param buf the memory buffer
    * @param init intialize the buffer
    */
-  void setData(const void *buf, bool init = false) {
+  void setData(const std::shared_ptr<MemoryData<float>> buf,
+               unsigned int off = 0, bool init = false) {
     if (buf) {
-      data = std::shared_ptr<float>((float *)buf, [](void *) {});
+      data = buf;
+      offset = off;
       if (init)
         initialize();
     } else {
       data = nullptr;
+      offset = 0;
     }
   }
 
@@ -1335,7 +1362,8 @@ private:
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
 
-  std::shared_ptr<float> data;
+  std::shared_ptr<MemoryData<float>> data;
+  unsigned int offset;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source

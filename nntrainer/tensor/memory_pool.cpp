@@ -16,6 +16,7 @@
 
 #include <memory_pool.h>
 #include <nntrainer_error.h>
+#include <nntrainer_log.h>
 #include <profiler.h>
 
 namespace nntrainer {
@@ -25,7 +26,8 @@ namespace nntrainer {
  * @note start_time is inclusive, but end_time is exclusive
  */
 unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
-                                       unsigned int end_time) {
+                                       unsigned int end_time,
+                                       std::vector<unsigned int> exec_order) {
   if (bytes == 0)
     throw std::invalid_argument("Requesting memory of 0 size");
 
@@ -39,6 +41,7 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
 
   memory_size.push_back(bytes);
   memory_validity.push_back({start_time, end_time});
+  memory_exec_order.push_back(exec_order);
 
   /** invalidate min_pool_size if already there */
   min_pool_size = 0;
@@ -105,11 +108,14 @@ void MemoryPool::allocate() {
  * @brief Get the allocated memory
  *
  */
-void *MemoryPool::getMemory(unsigned int idx) {
+std::shared_ptr<MemoryData<float>> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  return static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  auto mem_data = std::make_shared<MemoryData<float>>((float *)ptr);
+
+  return mem_data;
 }
 
 /**

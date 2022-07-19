@@ -102,7 +102,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
  */
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
-  mem_pool.clear();
+  mem_pool->clear();
   unsigned int bytes_requested = 0;
   for (auto &spec : pool) {
     auto details = std::get_if<SourceDetails>(&spec.details);
@@ -154,8 +154,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    details->token = mem_pool.requestMemory(spec.tensor->bytes(),
-                                            validity_start, validity_end + 1);
+    details->token = mem_pool->requestMemory(spec.tensor->bytes(),
+                                             validity_start, validity_end + 1,
+                                             details->exec_order);
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
@@ -166,7 +167,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
 
   /** 4. finalizeLayout for the memory pool. */
   if (bytes_requested > 0) {
-    double efficiency = mem_pool.planLayout(planner);
+    double efficiency = mem_pool->planLayout(planner);
     ml_logd("Memory layout efficiency = %lf", efficiency);
   }
 }
@@ -187,7 +188,7 @@ void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
 void TensorPool::allocate() {
   if (minMemoryRequirement() == 0)
     return;
-  mem_pool.allocate();
+  mem_pool->allocate();
 
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
@@ -195,7 +196,7 @@ void TensorPool::allocate() {
     if (!details || details->token == 0) {
       continue;
     }
-    spec.tensor->setData(mem_pool.getMemory(details->token), true);
+    spec.tensor->setData(mem_pool->getMemory(details->token), 0, true);
     syncDependents(spec);
   }
 }
@@ -204,7 +205,7 @@ void TensorPool::allocate() {
  * @brief Deallocate memory for all the managed tensors
  */
 void TensorPool::deallocate() {
-  mem_pool.deallocate();
+  mem_pool->deallocate();
 
   /** nullify the data pointers for the tensors */
   for (auto &spec : pool) {
@@ -255,7 +256,9 @@ void TensorPool::syncDependents(const RequestSpec &spec) {
   for (auto &dep : dependents) {
     auto &dep_spec = pool.at(dep);
     auto offset = std::get<DependentDetails>(dep_spec.details).offset;
-    dep_spec.tensor->setData(spec.tensor->getData() + offset);
+
+    dep_spec.tensor->setData(spec.tensor->getMemoryData(),
+                             spec.tensor->getOffset() + offset);
   }
 }
 
@@ -300,7 +303,7 @@ void TensorPool::fillPlaceholder(const std::string &name, const Tensor &t) {
     << "Error: setting external tensor of smaller size for "
     << spec.tensor->getName() << "(maybe view of " << name << ")";
 
-  spec.tensor->setData(t.getData());
+  spec.tensor->setData(t.getMemoryData(), t.getOffset());
   syncDependents(spec);
 }
 
@@ -405,6 +408,16 @@ bool TensorPool::isTensorLongTerm(const TensorLifespan &lifespan) {
   default:
     return false;
   }
+}
+
+void TensorPool::flushCache() {
+  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+    pool->flush();
+}
+
+void TensorPool::flushCacheExcept(unsigned int order) {
+  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+    pool->flushExcept(order);
 }
 
 } // namespace nntrainer
