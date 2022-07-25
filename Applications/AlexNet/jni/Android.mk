@@ -11,19 +11,19 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../..
 endif
 
-ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
+ ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/dataset \
 	$(NNTRAINER_ROOT)/nntrainer/models \
+	$(NNTRAINER_ROOT)/nntrainer/graph \
 	$(NNTRAINER_ROOT)/nntrainer/layers \
 	$(NNTRAINER_ROOT)/nntrainer/compiler \
-	$(NNTRAINER_ROOT)/nntrainer/graph \
 	$(NNTRAINER_ROOT)/nntrainer/optimizers \
 	$(NNTRAINER_ROOT)/nntrainer/tensor \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
-	${ML_API_COMMON_INCLUDES}
+	${ML_API_COMMON_INCLUDES} 
 
 LOCAL_MODULE := nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libnntrainer.so
@@ -49,7 +49,7 @@ LOCAL_CFLAGS += -pthread -fexceptions -fopenmp
 LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := nntrainer_resnet
+LOCAL_MODULE := nntrainer_alexnet
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
 LOCAL_SRC_FILES := main.cpp $(CIFARDIR)/cifar_dataloader.cpp

@@ -1,7 +1,7 @@
 nntr_app_resdir = nntrainer_resdir / 'app'
 run_command('mkdir', '-p', nntr_app_resdir)
 
-subdir('utils/jni')
+subdir('utils')
 subdir('KNN/jni')
 subdir('LogisticRegression/jni')
 if enable_ccapi
@@ -16,8 +16,7 @@ if enable_capi
 endif
 subdir('Custom')
 subdir('ProductRatings/jni')
-
+subdir('AlexNet/jni')
 if get_option('enable-tflite-backbone')
   subdir('SimpleShot')
 endif
-

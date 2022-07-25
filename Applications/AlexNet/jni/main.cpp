@@ -3,11 +3,12 @@
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   main.cpp
- * @date   05 Oct 2020
+ * @date   25 Jul 2022
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug	   No known bugs except for NYI items
- * @brief  This is VGG Example with
+ * @brief  This is AlexNet Example with CIFAR100
  *
  */
 
@@ -73,9 +74,9 @@ createRealDataGenerator(const std::string &directory, unsigned int batch_size,
                         unsigned int data_split) {
 
   UserDataType train_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/vgg_trainingSet.dat", batch_size, 1));
+    directory + "/alex_trainingSet.dat", batch_size, 1));
   UserDataType valid_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/vgg_valSet.dat", batch_size, 1));
+    directory + "/alex_valSet.dat", batch_size, 1));
 
   return {std::move(train_data), std::move(valid_data)};
 }
@@ -83,7 +84,7 @@ createRealDataGenerator(const std::string &directory, unsigned int batch_size,
 int main(int argc, char *argv[]) {
 
   if (argc < 3) {
-    std::cout << "./nntrainer_vgg vgg.ini resource\n";
+    std::cout << "./nntrainer_alex alex.ini resource\n";
     exit(-1);
   }
 

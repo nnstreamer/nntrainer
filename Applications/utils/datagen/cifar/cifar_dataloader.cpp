@@ -17,7 +17,7 @@
 #include <nntrainer_error.h>
 #include <random>
 
-namespace nntrainer::resnet {
+namespace nntrainer::util {
 
 namespace {
 
@@ -141,7 +141,7 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
   auto fill_one_sample = [this](float *input_, float *label_, int index) {
     NNTR_THROW_IF(!file.good(), std::invalid_argument)
       << "file is not good, reason: " << std::strerror(errno);
-    file.seekg(index * Cifar100DataLoader::SampleSize + 1, std::ios_base::beg);
+    file.seekg(index * Cifar100DataLoader::SampleSize, std::ios_base::beg);
 
     uint8_t current_label;
     file.read(reinterpret_cast<char *>(&current_label), sizeof(uint8_t));
@@ -166,4 +166,4 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
   }
 }
 
-} // namespace nntrainer::resnet
+} // namespace nntrainer::util

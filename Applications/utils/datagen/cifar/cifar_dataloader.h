@@ -16,19 +16,17 @@
 #include <string>
 #include <vector>
 
-namespace nntrainer::vgg {
+namespace nntrainer::util {
 
 using TensorDim = ml::train::TensorDim;
 
 /**
  * @brief DataLoader interface used to load cifar data
- *
  */
 class DataLoader {
 public:
   /**
    * @brief Destroy the Data Loader object
-   *
    */
   virtual ~DataLoader() {}
 
@@ -42,6 +40,9 @@ public:
    * @param[out] last  optional property to set when the epoch has finished
    */
   virtual void next(float **input, float **label, bool *last) = 0;
+
+protected:
+  std::mt19937 rng;
 };
 
 /**
@@ -62,7 +63,6 @@ public:
 
   /**
    * @brief Destroy the Random Data Loader object
-   *
    */
   ~RandomDataLoader() {}
 
@@ -78,14 +78,12 @@ private:
   std::vector<TensorDim> input_shapes;
   std::vector<TensorDim> output_shapes;
 
-  std::mt19937 rng;
   std::uniform_int_distribution<int> input_dist;
   std::uniform_int_distribution<int> label_dist;
 };
 
 /**
  * @brief Cifar100DataLoader class
- *
  */
 class Cifar100DataLoader final : public DataLoader {
 public:
@@ -101,7 +99,6 @@ public:
 
   /**
    * @brief Destroy the Cifar100 Data Loader object
-   *
    */
   ~Cifar100DataLoader() {}
 
@@ -120,9 +117,8 @@ private:
   unsigned int current_iteration;
   unsigned int iteration_per_epoch;
 
-  std::mt19937 rng;
   std::ifstream file;
   std::vector<unsigned int> idxes; /**< index information for one epoch */
 };
 
-} // namespace nntrainer::vgg
+} // namespace nntrainer::util

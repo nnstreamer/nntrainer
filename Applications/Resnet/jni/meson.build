@@ -1,6 +1,6 @@
 resnet_sources = [
   'main.cpp',
-  'cifar_dataloader.cpp'
+  cifar_path / 'cifar_dataloader.cpp'
 ]
 
 resnet_dependencies = [app_utils_dep,
@@ -15,7 +15,7 @@ endif
 
 e = executable('nntrainer_resnet18',
   resnet_sources,
-  include_directories: '.',
+  include_directories: [include_directories('.'), cifar_include_dir],
   dependencies: resnet_dependencies,
   install: get_option('install-app'),
   install_dir: application_install_dir
