@@ -31,7 +31,7 @@
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
-using UserDataType = std::unique_ptr<nntrainer::resnet::DataLoader>;
+using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
 
 /** cache loss values post training for test */
 float training_loss = 0.0;
@@ -205,14 +205,14 @@ ModelHandle createResnet18() {
 }
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::resnet::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
 
   data->next(input, label, last);
   return 0;
 }
 
 int validData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::resnet::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
 
   data->next(input, label, last);
   return 0;
@@ -270,10 +270,10 @@ createFakeDataGenerator(unsigned int batch_size,
                         unsigned int data_split) {
   constexpr unsigned int simulated_data_size = 512;
 
-  UserDataType train_data(new nntrainer::resnet::RandomDataLoader(
+  UserDataType train_data(new nntrainer::util::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
-  UserDataType valid_data(new nntrainer::resnet::RandomDataLoader(
+  UserDataType valid_data(new nntrainer::util::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
 
@@ -284,9 +284,9 @@ std::array<UserDataType, 2>
 createRealDataGenerator(const std::string &directory, unsigned int batch_size,
                         unsigned int data_split) {
 
-  UserDataType train_data(new nntrainer::resnet::Cifar100DataLoader(
+  UserDataType train_data(new nntrainer::util::Cifar100DataLoader(
     directory + "/train.bin", batch_size, data_split));
-  UserDataType valid_data(new nntrainer::resnet::Cifar100DataLoader(
+  UserDataType valid_data(new nntrainer::util::Cifar100DataLoader(
     directory + "/test.bin", batch_size, data_split));
 
   return {std::move(train_data), std::move(valid_data)};
