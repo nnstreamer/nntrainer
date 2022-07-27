@@ -49,6 +49,7 @@
 #include <grucell.h>
 #include <identity_layer.h>
 #include <input_layer.h>
+#include <layer_normalization_layer.h>
 #include <lr_scheduler_constant.h>
 #include <lr_scheduler_exponential.h>
 #include <lr_scheduler_step.h>
@@ -241,6 +242,9 @@ static void add_default_object(AppContext &ac) {
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
                      BatchNormalizationLayer::type, LayerType::LAYER_BN);
+  ac.registerFactory(nntrainer::createLayer<LayerNormalizationLayer>,
+                     LayerNormalizationLayer::type,
+                     LayerType::LAYER_LAYER_NORMALIZATION);
   ac.registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
                      LayerType::LAYER_CONV2D);
   ac.registerFactory(nntrainer::createLayer<Conv1DLayer>, Conv1DLayer::type,

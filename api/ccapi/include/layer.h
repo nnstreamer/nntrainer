@@ -66,9 +66,11 @@ enum LayerType {
   LAYER_MULTI_HEAD_ATTENTION =
     ML_TRAIN_LAYER_TYPE_MULTI_HEAD_ATTENTION, /**< Multi Head Attention Layer
                                                  type */
-  LAYER_POSITIONAL_ENCODING =
-    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
+  LAYER_LAYER_NORMALIZATION =
+    ML_TRAIN_LAYER_TYPE_LAYER_NORMALIZATION, /**< Layer Normalization Layer type
                                               */
+  LAYER_POSITIONAL_ENCODING =
+    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -245,6 +247,14 @@ FullyConnected(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 BatchNormalization(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_BN, properties);
+}
+
+/**
+ * @brief Helper function to create layer normalization layer
+ */
+inline std::unique_ptr<Layer>
+LayerNormalization(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LAYER_NORMALIZATION, properties);
 }
 
 /**
