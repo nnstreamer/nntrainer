@@ -181,6 +181,30 @@ class BatchNormTransLayer(IdentityTransLayer):
         assert len(x) == 4
         return [x[2], x[3], x[0], x[1]]
 
+##
+# @brief Translayer for layer normalization layer
+class LayerNormTransLayer(IdentityTransLayer):
+    def build(self, input_shape):
+        if self.built:
+            return
+
+        if len(input_shape) > 3:
+            self.tf_layer = ChannelLastTransLayer(self.tf_layer)
+
+        super().build(input_shape)
+
+    def to_nntr_trainable_weights(self, weights):
+        return self.to_nntr_weights(weights)
+
+    def to_nntr_weights(self, weights):
+        axis = self.tf_layer.tf_layer.axis
+        # Assumes that batch is not included in axis.
+        # check channel is in axis. If it is permute weight.
+        if 3 in axis:
+            perm = [i for i in range(len(axis))]
+            perm = [perm[-1]] + perm[:-1]
+            return [tf.transpose(weight, perm=perm) for weight in weights]
+        return weights
 
 ##
 # @brief Multiout wrapper layer, this class separate gradient
@@ -295,6 +319,11 @@ def attach_trans_layer(layer):
         (K.layers.BatchNormalization),
     ):
         return BatchNormTransLayer(layer)
+
+    if isinstance(layer,
+        (K.layers.LayerNormalization),
+    ):
+        return LayerNormTransLayer(layer)
 
     if isinstance(layer, CHANNEL_LAST_LAYERS):
         return ChannelLastTransLayer(layer)
