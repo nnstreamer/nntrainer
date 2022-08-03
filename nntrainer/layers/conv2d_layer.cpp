@@ -412,7 +412,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
    * Below sets the pad area values to zero
    * it is faster to do this way than seting selective area to zero
    */
-  auto forwarding_job = [&](unsigned int s, unsigned int e, void *user_data) {
+  auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                            void *user_data) {
     Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
     result.setZero();
     for (unsigned int b = s; b < e; ++b) {
@@ -430,7 +431,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   if (workers.getNumWorkers() > 1) {
     workers.run();
   } else {
-    forwarding_job(0, in_dim.batch(), nullptr);
+    forwarding_job(0, in_dim.batch(), 0, nullptr);
   }
 
   filter_kernel.reshape(filter_dim);
@@ -465,7 +466,7 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   /// col2im(column matrix) to reconstruct the original image
 
   auto compute_derivative = [&](unsigned int s, unsigned int e,
-                                void *user_data) {
+                                unsigned int pid, void *user_data) {
     Tensor result =
       Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
 
@@ -483,9 +484,8 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
 
   if (workers.getNumWorkers() > 1) {
     workers.run();
-
   } else {
-    compute_derivative(0, derivative.batch(), nullptr);
+    compute_derivative(0, derivative.batch(), 0, nullptr);
   }
 
   filter_kernel.reshape(filter_dim);
@@ -526,7 +526,8 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
     Tensor delK_par = Tensor(delK_ext);
     delK_par.setZero();
 
-    auto calc_grad_job = [&](unsigned int s, unsigned int e, void *user_data) {
+    auto calc_grad_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                             void *user_data) {
       Tensor result = Tensor(im2col_result.getDim());
       result.setZero();
       for (unsigned int b = s; b < e; ++b) {

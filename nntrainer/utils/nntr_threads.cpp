@@ -46,7 +46,7 @@ void ParallelBatch::run() {
     unsigned int e = s + chunk;
     if (e > end)
       e = end;
-    workers.push_back(std::thread(cb, s, e, user_data_prop->get()));
+    workers.push_back(std::thread(cb, s, e, i, user_data_prop->get()));
   }
 
   std::for_each(workers.begin(), workers.end(),
