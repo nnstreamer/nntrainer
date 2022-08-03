@@ -20,7 +20,8 @@
 #include <nntrainer_error.h>
 #include <util_func.h>
 
-typedef void (*loop_cb)(unsigned int start, unsigned int end, void *user_data);
+typedef void (*loop_cb)(unsigned int start, unsigned int end, unsigned int pid,
+                        void *user_data);
 
 typedef std::function<std::remove_pointer<loop_cb>::type> threaded_cb;
 
