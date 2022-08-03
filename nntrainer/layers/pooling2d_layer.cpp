@@ -16,6 +16,7 @@
 
 #include <common_properties.h>
 #include <layer_context.h>
+#include <nntr_threads.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -136,11 +137,22 @@ void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
 
   const TensorDim &in_dim = input_.getDim();
 
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor in_sub = input_.getBatchSlice(b, 1);
-    Tensor result = hidden_.getBatchSlice(b, 1);
-    Tensor helper = pool_helper.getBatchSlice(b, 1);
-    pooling2d(in_sub, training, result, helper, b);
+  auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                            void *user_data) {
+    for (unsigned int b = s; b < e; ++b) {
+      Tensor in_sub = input_.getBatchSlice(b, 1);
+      Tensor result = hidden_.getBatchSlice(b, 1);
+      Tensor helper = pool_helper.getBatchSlice(b, 1);
+      pooling2d(in_sub, training, result, helper, b);
+    }
+  };
+
+  auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    forwarding_job(0, in_dim.batch(), 0, nullptr);
   }
 }
 
