@@ -29,12 +29,13 @@ You have to use clang-format with the given [.clang-format](https://github.com/n
 
 - **api**: API definitions and implementations
     - **capi**: C-APIs (Tizen and others)
+    - **ccapi**: C++-APIs
+- **Applications**: Examples for NNtrainer
 - **debian**: Debian/Ubuntu packaging files
 - **docs**: Documentations
-- **nntrainer**: All core NNTrainer codes are located here
-- **nnstreamer**: NNStreamer sub-filter codes for NNTrainer
 - **jni**: Android/Java build scripts.
-- **Applications**: Examples for NNtrainer
+- **nnstreamer**: NNStreamer sub-filter codes for NNTrainer
+- **nntrainer**: All core NNTrainer codes are located here
 - **packaging**: Tizen RPM build scripts. OpenSUSE/Redhat Linux may reuse this.
 - **test**: Unit test cases. We have GTEST test cases. There are subdirectories, which are groups of unit test cases.
 - **tools**: Various developmental tools and scripts of NNTrainer.

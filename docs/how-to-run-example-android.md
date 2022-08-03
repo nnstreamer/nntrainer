@@ -4,12 +4,12 @@ title: How to run examples - Android
 
 # How to run examples - Android
 
-### Install NDK-Build
+## Install NDK-Build
 
 Prepare NDK tool chain to build.
 Download the ndk tool chain from official site of android which is https://developer.android.com/ndk/downloads
 
-Choose the ndk package which is proper to you platform. In this guide, we use Linux 64-bit(x86). We choose latest version (currently r21d).
+Choose the ndk package which is proper to your platform. In this guide, we use Linux 64-bit(x86). We choose latest version (currently r21d).
 Once the download is finished, decompress the package and set the library path properly. You can also set the LD_LIBRARAY_PATH in bashrc.
 
 ```bash
@@ -23,44 +23,67 @@ $ export PATH=$PATH:${PWD}/android-ndk-r21d/
 $ export ANDROID_NDK=${PWD}/android-ndk-r21d/
 ```
 
-### Build NNTrainer with NDK-Build
+## Build NNTrainer with NDK-Build
 Once you install NDK package, you can build the nntrainer.so for android as below.
 Currently, the APP_ABI is set arm64-v8a. If you want to use armeabi-v7a, you have to change in Application.mk file.
+There is 2 way to build nntrainer for android
+
+### Build using shell script
 
 ```bash
 $ ls
-api                 CONTRIBUTING.md  index.md  MAINTAINERS.md     nnstreamer       packaging
-Applications        debian           jni       meson.build        nntrainer        README.md
-CODE_OF_CONDUCT.md  docs             LICENSE   meson_options.txt  nntrainer.pc.in  test
+api                 CONTRIBUTING.md  index.md  MAINTAINERS.md     nnstreamer        nntrainer.pc.in  RELEASE.md
+Applications        debian           jni       meson.build        nntrainer         packaging        test
+CODE_OF_CONDUCT.md  docs             LICENSE   meson_options.txt  nntrainer.ini.in  README.md        tools
 $
-$ export NNTRAINER_ROOT=${PWD}
-$
-$ cd ./jni
-Android.mk      prepare_iniparser.sh  prepare_tflite.sh
-Application.mk  prepare_openblas.sh
-$ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
-Android.mk:19: INIPARSER_ROOT is not defined!
-Android.mk:20: INIPARSER SRC is going to be downloaded!
-Cloning into 'iniparser'...
-~/nntrainer_new/jni ~/nntrainer_new/jni PREPARING ini parser at . ~/nntrainer_new/jni
-Android.mk:35: BUILDING TFLITE BACKBONE !
-Android.mk:40: TENSORFLOW_ROOT is not defined!
-Android.mk:41: TENSORFLOW SRC is going to be downloaded!
-PREPARING TENSORFLOW 1.13.1 at . ~/nntrainer_new/jni ~/nntrainer_new/jni [TENSORFLOW-LITE] Download tensorflow-1.13.1 [TENSORFLOW-LITE] Finish downloading tensorflow-1.13.1 [TENSORFLOW-LITE] untar tensorflow-1.13.1 ~/nntrainer_new/jni
-[arm64-v8a] Compile++      : nntrainer <= tflite_layer.cpp
-In file included from ././../nntrainer/layers/tflite_layer.cpp:15:
-In file included from ./../nntrainer/layers/tflite_layer.h:18:
-In file included from ./../nntrainer/layers/layer_internal.h:31:
-...
-$ ls
-Android.mk      iniparser  obj                   prepare_openblas.sh  tensorflow-1.13.1
-Application.mk  libs       prepare_iniparser.sh  prepare_tflite.sh
-$ ls libs/arm64-v8a
-libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnntrainer.so
-$ mv libs ../
+$ ./tools/package_android.sh
+$ ls builddir/android_build_result
+Android.mk  conf  examples  include  lib
+$ ls builddir/android_build_result/libs/arm64-v8a
+libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnnstreamer-native.so  libnntrainer.so
 ```
 
-### Build NNTrainer Applications with NDK-Build
+### Build using meson
+
+```bash
+$ ls
+api                 CONTRIBUTING.md  index.md  MAINTAINERS.md     nnstreamer        nntrainer.pc.in  RELEASE.md
+Applications        debian           jni       meson.build        nntrainer         packaging        test
+CODE_OF_CONDUCT.md  docs             LICENSE   meson_options.txt  nntrainer.ini.in  README.md        tools
+$ meson build -Dplatform=android
+The Meson build system
+Version: 0.53.2
+Source dir: /home/hs89lee/workspace/git/nntrainer
+Build dir: /home/hs89lee/workspace/git/nntrainer/build
+Build type: native build
+Project name: nntrainer
+Project version: 0.3.0
+C compiler for the host machine: cc (gcc 9.4.0 "cc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0")
+C linker for the host machine: cc ld.bfd 2.34
+C++ compiler for the host machine: c++ (gcc 9.4.0 "c++ (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0")
+...
+$ ninja -C build
+ninja: Entering directory 'build'
+[2/2] Generating ndk-build with a custom command.
+[arm64-v8a] Prebuilt       : libc++_shared.so <= <NDK>/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/
+[arm64-v8a] Prebuilt       : libnnstreamer-native.so <= /home/hs89lee/workspace/git/nntrainer/build/ml-api-inference/lib/arm64-v8a/
+[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
+[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
+...
+$ pushd build/jni
+$ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
+[arm64-v8a] Prebuilt       : libc++_shared.so <= <NDK>/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/
+[arm64-v8a] Prebuilt       : libnnstreamer-native.so <= /home/hs89lee/workspace/git/nntrainer/build/ml-api-inference/lib/arm64-v8a/
+[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
+[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= previous_input_realizer.cpp
+...
+$ popd
+$ ls build/jni/libs/arm64-v8a
+libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnnstreamer-native.so  libnntrainer.so
+```
+
+## Build NNTrainer Applications with NDK-Build
 Now you are ready to build nntrainer application in ${NNTRAINER_ROOT}/Applications
 If you want to build Application/LogisticRegression,
 
@@ -89,7 +112,7 @@ You can copy execution binary and nntrainer.so libraries in a proper place of yo
 Then you can run it using ADB shell.
 
 
-### Troubleshooting
+## Troubleshooting
 
 1. Check version of your ndk before executing the above commands.
 2. `ANDROID_NDK` not defined while bulding the particular application such as Logistic regression.

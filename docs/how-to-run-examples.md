@@ -8,7 +8,7 @@ title: How to run examples
 
 ### Use PPA
 
-If you don't want to build build binaries, you can directly download from PPA with daily releases.
+If you don't want to build binaries, you can directly download from PPA with daily releases.
 
 ```bash
 sudo add-apt-repository ppa:nnstreamer/ppa
