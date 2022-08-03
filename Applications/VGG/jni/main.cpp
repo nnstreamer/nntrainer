@@ -20,6 +20,7 @@
 
 #include <cifar_dataloader.h>
 #include <model.h>
+#include <profiler.h>
 
 /**
  * @brief     Data size for each category
@@ -86,6 +87,13 @@ int main(int argc, char *argv[]) {
     std::cout << "./nntrainer_vgg vgg.ini resource\n";
     exit(-1);
   }
+
+  std::shared_ptr<nntrainer::profile::GenericProfileListener> listener;
+
+#ifdef PROFILE
+  listener = std::make_shared<nntrainer::profile::GenericProfileListener>();
+#endif
+  PROFILE_BEGIN(listener);
 
   seed = time(NULL);
   srand(seed);
@@ -182,6 +190,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during train: " << e.what() << std::endl;
     return 1;
   }
+
+  PROFILE_END(listener);
 
   return 0;
 }

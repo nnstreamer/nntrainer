@@ -33,7 +33,8 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_TIME_REGISTER_EVENT(event_key, event_str)
 #define PROFILE_MEM_ALLOC(ptr, size, str)
 #define PROFILE_MEM_DEALLOC(ptr)
-
+#define PROFILE_BEGIN(listener)
+#define PROFILE_END(listener)
 #else /** PROFILE */
 
 #define PROFILE_TIME_START(event_key) \
@@ -53,6 +54,16 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 
 #define PROFILE_MEM_DEALLOC(ptr) \
   nntrainer::profile::Profiler::Global().dealloc(ptr)
+
+#define PROFILE_BEGIN(listener)                                 \
+  do {                                                          \
+    nntrainer::profile::Profiler::Global().subscribe(listener); \
+  } while (0)
+
+#define PROFILE_END(listener) \
+  do {                        \
+    std::cout << *listener;   \
+  } while (0)
 
 #endif /** PROFILE */
 
