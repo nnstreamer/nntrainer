@@ -87,7 +87,6 @@ int main(int argc, char *argv[]) {
     std::cout << "./nntrainer_vgg vgg.ini resource\n";
     exit(-1);
   }
-
   std::shared_ptr<nntrainer::profile::GenericProfileListener> listener;
 
 #ifdef PROFILE
