@@ -15,6 +15,10 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
+#ifdef USE_BLAS
+#include <cblas.h>
+#endif
+
 namespace nntrainer {
 
 void lstmcell_forwarding(const unsigned int batch_size, const unsigned int unit,
@@ -125,8 +129,47 @@ void lstmcell_calcGradient(
     }
   }
 
-  input.dot(d_ifgo, d_weight_ih, true, false, 1.0f);
-  prev_hidden_state.dot(d_ifgo, d_weight_hh, true, false, 1.0f);
+  if (input.batch() != 1) {
+    input.dot(d_ifgo, d_weight_ih, true, false, 1.0f);
+  } else {
+    for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
+      unsigned int out_width = d_weight_ih.width();
+      float in_ih = input.getValue(i);
+
+      float *d_weight_ih_address = d_weight_ih.getAddress(i * out_width);
+
+      float *d_ifgo_address = d_ifgo.getData();
+#ifdef USE_BLAS
+      cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address, 1);
+#else
+      for (unsigned int j = 0; j < out_width; ++j) {
+        d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
+      }
+#endif
+    }
+  }
+
+  if (prev_hidden_state.batch() != 1) {
+    prev_hidden_state.dot(d_ifgo, d_weight_hh, true, false, 1.0f);
+  } else {
+    for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
+      unsigned int out_width = d_weight_hh.width();
+      float in_hh = prev_hidden_state.getValue(i);
+
+      float *d_weight_hh_address = d_weight_hh.getAddress(i * out_width);
+
+      float *d_ifgo_address = d_ifgo.getData();
+
+#ifdef USE_CBLAS
+      cblas_saxpy(out_width, in_hh, d_ifgo_address, 1, d_weight_hh_address, 1);
+#else
+      for (unsigned int j = 0; j < out_width; ++j) {
+        d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
+      }
+#endif
+    }
+  }
+
   d_ifgo.dot(weight_hh, d_prev_hidden_state, false, true);
 }
 
