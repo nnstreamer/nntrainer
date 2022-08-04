@@ -149,6 +149,7 @@ void LSTMCore::calcGradientLSTM(
       float *d_weight_ih_address = d_weight_ih.getAddress(i * out_width);
 
       float *d_ifgo_address = d_ifgo.getData();
+
 #ifdef USE_BLAS
       cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address, 1);
 #else
