@@ -23,6 +23,11 @@ tensor_headers = [
   'tensor_wrap_specs.h'
 ]
 
+if get_option('enable-neon')
+   tensor_sources += 'blas_neon.cpp'
+   tensor_headers += 'blas_neon.h'
+endif
+
 foreach s : tensor_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach

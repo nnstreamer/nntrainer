@@ -30,10 +30,13 @@
 #include <functional>
 #include <memory>
 #include <stdexcept>
-#include <vector>
 
 #include <memory_data.h>
 #include <tensor_dim.h>
+#include <vector>
+
+// commented out intentionally
+// #include <cblas.h>
 
 #ifdef DEBUG
 #define EXCEPT_WHEN_DEBUG
@@ -761,6 +764,13 @@ public:
    */
   Tensor &sum(unsigned int axis, Tensor &output, float alpha = 1.0,
               float beta = 0.0) const;
+
+  // leave it intentionally
+  // void sgemv_(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int
+  // M,
+  //          const unsigned int N, const float alpha, const float *A,
+  //          const unsigned int lda, const float *X, const int incX,
+  // 	      const float beta, float *Y, const int incY, const int type);
 
   /**
    * @brief sum all the Tensor by multiple axes

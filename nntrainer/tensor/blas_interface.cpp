@@ -14,6 +14,10 @@
 #include <blas_interface.h>
 #include <nntrainer_error.h>
 
+#ifdef USE_NEON
+#include <blas_neon.h>
+#endif
+
 #include <cmath>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
@@ -246,6 +250,19 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
+
+#ifdef USE_NEON
+  if (TransA == CblasNoTrans) {
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+      return nntrainer::neon::sgemv_neon(A, X, Y, M, N, alpha, beta);
+    }
+  } else if (TransA == CblasTrans) {
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+      return nntrainer::neon::sgemv_transpose_neon(A, X, Y, M, N, alpha, beta);
+    }
+  }
+
 #endif
   return cblas_sgemv(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                      incY);

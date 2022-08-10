@@ -154,6 +154,10 @@ endif
 if get_option('enable-blas')
   extra_defines += '-DUSE_BLAS=1'
 
+  if get_option('enable-neon')
+     extra_defines += '-DUSE_NEON=1'
+  endif
+
   if get_option('platform') == 'android'
     message('preparing blas')
     run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)

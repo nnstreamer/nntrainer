@@ -37,6 +37,8 @@
 #include <stdio.h>
 
 #include <blas_interface.h>
+// leave it intentionally
+//#include <blas_neon.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -946,6 +948,32 @@ Tensor Tensor::sum_by_batch() const {
 
   return ret;
 }
+
+// leave it intentionally
+// void Tensor::sgemv_(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned
+// int M,
+//            const unsigned int N, const float alpha, const float *A,
+//            const unsigned int lda, const float *X, const int incX,
+// 		    const float beta, float *Y, const int incY, const int type){
+
+//   if (type == 1) {
+//     if (TransA == CblasNoTrans) {
+//       if (incX == 1 && incY == 1 && (M % 16 == 0 || M % 8 ==0 || M % 4 == 0))
+//       {
+// 	std::cout << "sgemv_neon -------- " << std::endl;
+//         return nntrainer::neon::sgemv_neon(A, X, Y, M, N, alpha, beta);
+//       }
+//     } else if (TransA == CblasTrans) {
+//       if (incX == 1 && incY == 1 && (M % 16 == 0 || M % 8 ==0 || M % 4 == 0))
+//       {
+// 	std::cout << "sgemv_transpose_neon -------- " << std::endl;
+// 	return nntrainer::neon::sgemv_transpose_neon(A, X, Y, M, N, alpha, beta);
+//       }
+//     }
+//   }
+
+//   return sgemv(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
+// }
 
 /**
  * @brief Calculate sum according to the axis.
