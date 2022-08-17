@@ -48,6 +48,35 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
                           uint32_t rows, uint32_t cols, float alpha,
                           float beta);
 
+/**
+ * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta);
+
+/**
+ * @brief     transposed sgemv computation with neon
+ *            Y = alpha*transpose(A)*X
+ * + beta*Y
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                               uint32_t rows, uint32_t cols, float alpha,
+                               float beta);
+
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */

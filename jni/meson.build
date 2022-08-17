@@ -5,6 +5,10 @@ if get_option('debug')
     flags += '-g'
 endif
 
+if get_option('enable-fp16')
+   flags += '-march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp'
+endif
+
 flags += '-O@0@'.format(get_option('optimization'))
 message('compile flags are:' + ' '.join(flags))
 
