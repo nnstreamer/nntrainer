@@ -822,8 +822,11 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
   };
 
   auto epochs = getEpochs();
-  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs && !stop_cb(nullptr);
-       ++epoch_idx) {
+  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
+    if (stop_cb(nullptr)) {
+      --epoch_idx;
+      break;
+    }
     training = run_epoch(train_buffer.get(), true, train_for_iteration,
                          update_train_stat, train_epoch_end);
     if (valid_buffer) {
