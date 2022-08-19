@@ -49,12 +49,7 @@ Normalization::Normalization(bool value) { set(value); }
 
 Standardization::Standardization(bool value) { set(value); }
 
-bool DropOutRate::isValid(const float &v) const {
-  if (v < 0.0)
-    return false;
-  else
-    return true;
-}
+bool DropOutRate::isValid(const float &v) const { return v >= 0.0; }
 
 void RandomTranslate::set(const float &value) {
   Property<float>::set(std::abs(value));
