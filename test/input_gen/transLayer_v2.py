@@ -56,6 +56,10 @@ def bn1d_translate(model):
     mu, var, _ = [(name, tensor.detach()) for name, tensor in model.named_buffers()]
     yield from [mu, var, gamma, beta]
 
+@register_for_(torch.nn.LayerNorm)
+def layer_normalization_translate(model):
+    gamma, beta = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
+    yield from [gamma, beta]
 
 @register_for_((Zoneout))
 def zoneout_translate(model):
@@ -153,6 +157,36 @@ def multi_head_attention_translate(model):
         new_params = [transpose_(q_proj_weight), q_proj_bias, transpose_(k_proj_weight), k_proj_bias, transpose_(v_proj_weight), v_proj_bias, transpose_(out_proj_weight), out_proj_bias]
 
     yield from new_params
+
+@register_for_(torch.nn.TransformerEncoderLayer)
+def transformer_encoder_translate(model):
+    self_attn, linear1, dropout1, linear2, norm1, norm2, dropout2, dropout3 = [child for name, child in model.named_children()]
+    modules = [self_attn, norm1, linear1, linear2, norm2]
+    ret = []
+
+    for module in modules:
+        for registered_classes, fn in handler_book:
+            if isinstance(module, registered_classes):
+                module = fn(module)
+                module = list((n, t) for n, t in module)
+                ret += module
+                break
+    yield from ret
+
+@register_for_(torch.nn.TransformerDecoderLayer)
+def transformer_decoder_translate(model):
+    self_attn, multihead_attn, linear1, dropout1, linear2, norm1, norm2, norm3, dropout2, dropout3, dropout4 = [child for name, child in model.named_children()]
+    modules = [self_attn, norm1, multihead_attn, norm2, linear1, linear2, norm3]
+    ret = []
+
+    for module in modules:
+        for registered_classes, fn in handler_book:
+            if isinstance(module, registered_classes):
+                module = fn(module)
+                module = list((n, t) for n, t in module)
+                ret += module
+                break
+    yield from ret
 
 def translate(model):
     for child in model.children():
