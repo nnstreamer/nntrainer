@@ -139,6 +139,125 @@ class PositionalEncoding(torch.nn.Module):
         loss = self.loss(output[0], labels[0])
         return output, loss
 
+# class for test transformer encoder layer
+class TransformerEncoderLayer(torch.nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward, provide_attention_mask=False):
+        super(TransformerEncoderLayer, self).__init__()
+        self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout=0.0, batch_first=True)
+        self.loss = torch.nn.MSELoss()
+        # indicate attention mask will be given or not
+        self.provide_attention_mask = provide_attention_mask
+
+    def forward(self, inputs, labels):
+        inputs, attn_mask = (inputs[0], inputs[-1]) if self.provide_attention_mask else (inputs[0], None)
+        output = self.encoder_layer(inputs, attn_mask)
+
+        loss = self.loss(output, labels[0])
+
+        return output, loss
+
+    def input_label_reader(input_dims, label_dims, input_dtypes):
+        input_dim, *left_dim = input_dims
+        input_dtype, *left_dtype = input_dtypes
+        if left_dim != []:
+            mask_dim = left_dim[0]
+            mask_dtype = left_dtype[0]
+            if mask_dtype == bool:
+                # Since nntrainer does not support bool type tensor yet, convert mask to float type
+                # todo: return bool type mask tensor
+                mask = torch.randn(mask_dim) > 0.5
+                new_attn_mask = torch.zeros_like(mask, dtype=torch.float32)
+                new_attn_mask.masked_fill_(mask, float("-inf"))
+                mask = [new_attn_mask]
+            elif mask_dtype == int:
+                mask = [torch.randint(0, 1, mask_dim, torch.int32)]
+            else:
+                mask = _rand_like([mask_dim], -1e9, mask_dtype)
+        else:
+            mask = []
+        inputs = _rand_like([input_dim], dtype=input_dtype if input_dtype is not None else float) + mask
+        labels = _rand_like(label_dims, dtype=float)
+        return inputs, labels
+
+# class for test transformer decoder layer
+class TransformerDecoderLayer(torch.nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward, provide_attention_mask=False):
+        super(TransformerDecoderLayer, self).__init__()
+        self.decoder_layer = torch.nn.TransformerDecoderLayer(d_model, nhead, dim_feedforward, dropout=0.0, batch_first=True)
+        self.loss = torch.nn.MSELoss()
+        # indicate attention mask will be given or not
+        self.provide_attention_mask = provide_attention_mask
+
+    def forward(self, inputs, labels):
+        tgt, memory, tgt_mask, memory_mask = (inputs[0], inputs[1], inputs[-2], inputs[-1]) if self.provide_attention_mask else (inputs[0], inputs[1], None, None)
+        output = self.decoder_layer(tgt, memory, tgt_mask, memory_mask)
+
+        loss = self.loss(output, labels[0])
+
+        return output, loss
+
+    def input_label_reader(input_dims, label_dims, input_dtypes):
+        tgt_dim, memory_dim, *mask_dims = input_dims
+        tgt_dtype, memory_dtype, *mask_dtypes = input_dtypes
+        if mask_dims != []:
+            if mask_dtypes[0] == bool:
+                # Since nntrainer does not support bool type tensor yet, convert mask to float type
+                # todo: return bool type mask tensor
+                masks = [torch.randn(dim) > 0.5 for dim in mask_dims]
+                new_attn_masks = [torch.zeros_like(mask, dtype=torch.float32) for mask in masks]
+                for mask, new_attn_mask in zip(masks, new_attn_masks):
+                    new_attn_mask.masked_fill_(mask, float("-inf"))
+                masks = new_attn_masks
+            elif mask_dtypes[0] == int:
+                masks = [torch.randint(0, 1, mask_dim, torch.int32) for mask_dim in mask_dims]
+            else:
+                masks = _rand_like(mask_dims, -1e9, mask_dtypes)
+        else:
+            masks = []
+        inputs = _rand_like([tgt_dim, memory_dim], dtype=[tgt_dtype, memory_dtype] if tgt_dtype is not None and memory_dtype is not None else float) + masks
+        labels = _rand_like(label_dims, dtype=float)
+        return inputs, labels
+
+# class for test transformer.
+# Transformer in this class consist of transformer encoder and transformer decoder
+class Transformer(torch.nn.Module):
+    def __init__(self, d_model, nhead, num_encoder_layers, num_decoder_layers, dim_feedforward, provide_attention_mask=False):
+        super(Transformer, self).__init__()
+        self.transformer = torch.nn.Transformer(d_model, nhead, num_encoder_layers, num_decoder_layers, dim_feedforward, dropout=0.0, batch_first=True)
+        self.loss = torch.nn.MSELoss()
+        # indicate attention mask will be given or not
+        self.provide_attention_mask = provide_attention_mask
+
+    def forward(self, inputs, labels):
+        src, tgt, src_mask, tgt_mask, memory_mask = (inputs[0], inputs[1], inputs[-3], inputs[-2], inputs[-1]) if self.provide_attention_mask else (inputs[0], inputs[1], None, None, None)
+        output = self.transformer(src, tgt, src_mask, tgt_mask, memory_mask)
+
+        loss = self.loss(output, labels[0])
+
+        return output, loss
+
+    def input_label_reader(input_dims, label_dims, input_dtypes):
+        src_dim, tgt_dim, *mask_dims = input_dims
+        src_dtype, tgt_dtype, *mask_dtypes = input_dtypes
+        if mask_dims != []:
+            if mask_dtypes[0] == bool:
+                # Since nntrainer does not support bool type tensor yet, convert mask to float type
+                # todo: return bool type mask tensor
+                masks = [torch.randn(dim) > 0.5 for dim in mask_dims]
+                new_attn_masks = [torch.zeros_like(mask, dtype=torch.float32) for mask in masks]
+                for mask, new_attn_mask in zip(masks, new_attn_masks):
+                    new_attn_mask.masked_fill_(mask, float("-inf"))
+                masks = new_attn_masks
+            elif mask_dtypes[0] == int:
+                masks = [torch.randint(0, 1, mask_dim, torch.int32) for mask_dim in mask_dims]
+            else:
+                masks = _rand_like(mask_dims, -1e9, mask_dtypes)
+        else:
+            masks = []
+        inputs = _rand_like([src_dim, tgt_dim], dtype=[src_dtype, tgt_dtype] if src_dtype is not None and tgt_dtype is not None else float) + masks
+        labels = _rand_like(label_dims, dtype=float)
+        return inputs, labels
+
 class FCRelu(torch.nn.Module):
     def __init__(self, decay=False):
         super().__init__()
@@ -259,6 +378,102 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(3,5,6)],
         name="positional_encoding",
+    )
+
+    record_v2(
+        TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7),
+        iteration=2,
+        input_dims=[(3,5,6)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float],
+        name="transformer_encoder_layer",
+    )
+
+    record_v2(
+        TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (6,5,5)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float, float],
+        input_label_reader=TransformerEncoderLayer.input_label_reader,
+        name="transformer_encoder_layer_float_attn_mask",
+    )
+
+    record_v2(
+        TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (6,5,5)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float, bool],
+        input_label_reader=TransformerEncoderLayer.input_label_reader,
+        name="transformer_encoder_layer_pseudo_bool_attn_mask",
+    )
+
+    record_v2(
+        TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float, float],
+        name="transformer_decoder_layer",
+    )
+
+    record_v2(
+        TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,5,4)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float, float, float, float],
+        input_label_reader=TransformerDecoderLayer.input_label_reader,
+        name="transformer_decoder_layer_float_attn_mask",
+    )
+
+    record_v2(
+        TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,5,4)],
+        label_dims=[(3,5,6)],
+        input_dtype=[float, float, bool, bool],
+        input_label_reader=TransformerDecoderLayer.input_label_reader,
+        name="transformer_decoder_layer_pseudo_bool_attn_mask",
+    )
+
+    record_v2(
+        Transformer(d_model=6, nhead=2, num_encoder_layers=1, num_decoder_layers=1, dim_feedforward=7),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,4,6)],
+        input_dtype=[float, float],
+        name="transformer_single",
+    )
+
+    record_v2(
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,4,6)],
+        input_dtype=[float, float],
+        name="transformer_stack",
+    )
+
+    record_v2(
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,4,4), (6,4,5)],
+        label_dims=[(3,4,6)],
+        input_dtype=[float, float, float, float, float],
+        input_label_reader=Transformer.input_label_reader,
+        name="transformer_float_attn_mask",
+    )
+
+    record_v2(
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7, provide_attention_mask=True),
+        iteration=2,
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,4,4), (6,4,5)],
+        label_dims=[(3,4,6)],
+        input_dtype=[float, float, bool, bool, bool],
+        input_label_reader=Transformer.input_label_reader,
+        name="transformer_pseudo_bool_attn_mask",
     )
 
     fc_relu_decay = FCRelu(decay=True)
