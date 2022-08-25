@@ -204,6 +204,7 @@ int NeuralNetwork::initialize() {
   unsigned int n_layers = (unsigned int)model_graph.size();
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
+  PROFILE_MEM_ANNOTATE("Initialize");
 
   auto &input_conn_prop =
     std::get<std::vector<props::InputConnection>>(model_props);
@@ -309,6 +310,7 @@ void NeuralNetwork::backwarding(int iteration,
      */
 
     model_graph.flushCacheExcept(std::get<1>(node->getExecutionOrder()));
+    PROFILE_MEM_ANNOTATE("CalcGradient: " + node->getName());
 
     bool apply_gradient = true;
     /** If gradient optimization mode, then calculate gradient first */
@@ -334,6 +336,7 @@ void NeuralNetwork::backwarding(int iteration,
       node->calcGradient();
 
     model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
+    PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
 
     if (stop_cb(nullptr)) {
       return;
@@ -864,6 +867,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
             stat.loss);
   };
 
+  PROFILE_MEM_ANNOTATE("TRAIN START");
   auto epochs = getEpochs();
   ml_logd("[NNTrainer] Starts training. Current epoch: %d. Total epochs: %d.",
           epoch_idx + 1, getEpochs());
@@ -880,6 +884,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
     }
     std::cout << '\n';
   }
+  PROFILE_MEM_ANNOTATE("TRAIN END");
 
   if (test_buffer) {
     std::cout << "Evaluation with test data...\n";

@@ -335,6 +335,7 @@ NetworkGraph::forwarding(bool training,
   for (auto iter = cbegin(); iter != cend() && !stop_cb(nullptr); iter++) {
     auto const &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + ln->getName());
 
     auto f = std::get<0>(ln->getExecutionOrder());
     flushCacheExcept(f);
