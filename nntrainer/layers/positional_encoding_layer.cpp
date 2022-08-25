@@ -27,6 +27,7 @@ enum PositionalEncodingParams {
 };
 
 PositionalEncodingLayer::PositionalEncodingLayer() :
+  isPEcalculated(false),
   positional_encoding_props(props::MaxTimestep()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }

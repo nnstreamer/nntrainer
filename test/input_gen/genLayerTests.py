@@ -42,6 +42,33 @@ def inspect_file(file_name):
             print("size: ", sz)
             print(np.fromfile(f, dtype="float32", count=sz))
 
+class PositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, position, d_model):
+        super(PositionalEncoding, self).__init__()
+        self.position = position
+        self.d_model = d_model
+
+    def get_angles(self, pos, i, d_model):
+        angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
+        return pos * angle_rates
+
+    def build(self, input_shape):
+        angle_rads = self.get_angles(np.arange(self.position)[:, np.newaxis],
+                        np.arange(self.d_model)[np.newaxis, :], self.d_model)
+
+        # apply sin to even indices in the array; 2i
+        angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+
+        # apply cos to odd indices in the array; 2i+1
+        angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+
+        self.pos_encoding = angle_rads[np.newaxis, ...]
+
+        self.pos_encoding = tf.cast(self.pos_encoding, dtype=tf.float32)
+
+    def call(self, inputs):
+        inputs += self.pos_encoding[:, :tf.shape(inputs[0])[-2], :]
+        return inputs
 
 if __name__ == "__main__":
     fc = K.layers.Dense(5)
@@ -285,6 +312,10 @@ if __name__ == "__main__":
 
     concat = K.layers.Concatenate(axis=1)
     record_single(concat, [(2,2,3,3), (2, 3, 3, 3)], "concat_dim1")
+
+    positional_encoding = PositionalEncoding(10, 6)
+    record_single(positional_encoding, [(3, 1, 7, 6)], "positional_encoding_partial")
+    record_single(positional_encoding, [(3, 1, 10, 6)], "positional_encoding")
 
 inspect_file("dropout_20_training.nnlayergolden")
 

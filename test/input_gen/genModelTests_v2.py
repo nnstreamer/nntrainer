@@ -8,6 +8,7 @@
 # @brief Generate model tcs
 # @author Parichay Kapoor <pk.kapoor@samsung.com>
 
+import math
 from recorder_v2 import record_v2, inspect_file, _rand_like
 import torch
 
@@ -119,6 +120,25 @@ class MultiHeadAttention(torch.nn.Module):
         labels = _rand_like(label_dims, dtype=float)
         return inputs, labels
 
+class PositionalEncoding(torch.nn.Module):
+    def __init__(self, d_model: int, max_len):
+        super().__init__()
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+        self.multi_head_attention = torch.nn.MultiheadAttention(d_model, 2, batch_first=True)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        output = inputs[0]
+        output += self.pe[:,:output.size(1),:]
+        output = self.multi_head_attention(output, output, output)
+        loss = self.loss(output[0], labels[0])
+        return output, loss
+
 class FCRelu(torch.nn.Module):
     def __init__(self, decay=False):
         super().__init__()
@@ -147,7 +167,6 @@ class FCRelu(torch.nn.Module):
             return torch.optim.SGD([
                 {'params': non_decay_params},
                 {'params': decay_params, 'weight_decay': 0.9}], lr=0.1)
-
 
 if __name__ == "__main__":
     record_v2(
@@ -231,6 +250,15 @@ if __name__ == "__main__":
         label_dims=[(3,3,6), (3,3,3)],
         input_dtype=[float],
         name="multi_head_attention_self_attention",
+    )
+
+    record_v2(
+        PositionalEncoding(d_model=6, max_len=7),
+        iteration=1,
+        input_dims=[(3,5,6)],
+        input_dtype=[float],
+        label_dims=[(3,5,6)],
+        name="positional_encoding",
     )
 
     fc_relu_decay = FCRelu(decay=True)

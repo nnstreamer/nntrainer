@@ -225,6 +225,30 @@ static std::unique_ptr<NeuralNetwork> makeMultiHeadAttention_self_attention() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makePositionalEncoding() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=3"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=input", "input_shape=5:1:6"}},
+    {"reshape", {"name=reshape", "target_shape=1:5:6"}},
+    {"positional_encoding", {"name=positional_encoding", "max_timestep=7"}},
+    {"multi_head_attention",
+     {"name=multi_head_attention",
+      "input_layers=positional_encoding, positional_encoding, "
+      "positional_encoding",
+      "num_heads=2"}},
+    {"mse", {"name=loss", "input_layers=multi_head_attention(0)"}},
+  });
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -250,6 +274,8 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMultiHeadAttention_self_attention,
                  "multi_head_attention_self_attention",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makePositionalEncoding, "positional_encoding",
                  ModelTestOption::ALL_V2),
     mkModelIniTc(fc_relu_decay, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
