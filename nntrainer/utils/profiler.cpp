@@ -54,9 +54,16 @@ void GenericProfileListener::onNotifyTimeEvent(
 }
 
 void GenericProfileListener::onNotifyMemoryEvent(
-  PROFILE_EVENT event, const size_t total_alloc_size, const std::string &str,
-  const std::chrono::microseconds &duration) {
-  mem_taken.emplace_back(event, total_alloc_size, str, duration);
+  PROFILE_EVENT event, const size_t alloc_current, const size_t alloc_total,
+  const std::string &str, const std::chrono::microseconds &duration) {
+
+  if (event != EVENT_MEM_ANNOTATE) {
+    mem_max = std::max(mem_max, alloc_total);
+    mem_sum += alloc_total;
+    mem_average = mem_sum / ++mem_count;
+  }
+
+  mem_taken.emplace_back(event, alloc_current, alloc_total, str, duration);
 }
 
 void GenericProfileListener::notify(
@@ -70,8 +77,9 @@ void GenericProfileListener::notify(
     break;
   case EVENT_MEM_ALLOC:
   case EVENT_MEM_DEALLOC:
-    onNotifyMemoryEvent(event, data->total_alloc_size, data->event_str,
-                        data->duration);
+  case EVENT_MEM_ANNOTATE:
+    onNotifyMemoryEvent(event, data->alloc_current, data->alloc_total,
+                        data->event_str, data->duration);
     break;
   default:
     throw std::runtime_error("Invalid PROFILE_EVENT");
@@ -188,9 +196,11 @@ void GenericProfileListener::report(std::ostream &out) const {
   /// creating header
   // clang-format off
   out << std::setw(column_size[0]) << "event"
-      << std::setw(column_size[1]) << "current size"
-      << std::setw(column_size[2]) << "info"
-      << std::setw(column_size[3]) << "dur" << '\n';
+      << std::setw(column_size[1]) << "size"
+      << std::setw(column_size[2]) << "total"
+      << std::setw(column_size[2]) << ""
+      << std::setw(column_size[3]) << "info"
+      << std::setw(column_size[4]) << "dur" << '\n';
   // clang-format on
   out << std::string(total_col_size, '=') << '\n';
 
@@ -198,17 +208,21 @@ void GenericProfileListener::report(std::ostream &out) const {
   for (auto &mem : mem_taken) {
     auto func = [&](std::ostream &out_) {
       auto &event = std::get<PROFILE_EVENT>(mem);
-      auto &size = std::get<size_t>(mem);
+      auto &cur = std::get<1>(mem);
+      auto &total = std::get<2>(mem);
       auto &info = std::get<std::string>(mem);
       auto &dur = std::get<std::chrono::microseconds>(mem);
 
       out_.setf(std::ios::fixed);
       std::streamsize default_precision = out_.precision(2);
       // clang-format off
-      out_ << std::setw(column_size[0]) << ((event == EVENT_MEM_ALLOC) ? "ALLOC" : "DEALLOC")
-          << std::setw(column_size[1]) << size
-          << std::setw(column_size[2]) << info
-          << std::setw(column_size[3]) << dur.count() << '\n';
+      out_ << std::setw(column_size[0]) << ((event == EVENT_MEM_ALLOC) ? "ALLOC" :
+                                            (event == EVENT_MEM_DEALLOC) ? "DEALLOC" : "")
+          << std::setw(column_size[1]) << ((event != EVENT_MEM_ANNOTATE) ? std::to_string(cur) : "")
+          << std::setw(column_size[2]) << ((event != EVENT_MEM_ANNOTATE) ? std::to_string(total) : "")
+          << std::setw(column_size[3]) << ((event == EVENT_MEM_ANNOTATE) ? "\n" + info : "")
+          << std::setw(column_size[3]) << ((event != EVENT_MEM_ANNOTATE) ? info : "")
+          << std::setw(column_size[4]) << ((event == EVENT_MEM_DEALLOC) ? std::to_string(dur.count()) : "") << '\n';
       // clang-format on
       out_.precision(default_precision);
       out_.unsetf(std::ios::fixed);
@@ -218,6 +232,9 @@ void GenericProfileListener::report(std::ostream &out) const {
 
   for (auto &entry : ordered_report)
     entry.second(out);
+
+  out << "Max Memory Size = " << mem_max << std::endl;
+  out << "Average Memory Size = " << mem_average << std::endl;
 }
 
 Profiler &Profiler::Global() {
@@ -238,7 +255,7 @@ void Profiler::start(const int item) {
 
   time_item_times[item] = std::chrono::steady_clock::now();
 
-  auto data = std::make_shared<ProfileEventData>(item, 0, name->second,
+  auto data = std::make_shared<ProfileEventData>(item, 0, 0, name->second,
                                                  std::chrono::microseconds(0));
   notifyListeners(EVENT_TIME_START, data);
 }
@@ -260,7 +277,7 @@ void Profiler::end(const int item) {
   auto duration =
     std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   auto data =
-    std::make_shared<ProfileEventData>(item, 0, name->second, duration);
+    std::make_shared<ProfileEventData>(item, 0, 0, name->second, duration);
 
   notifyListeners(EVENT_TIME_END, data);
 
@@ -332,8 +349,8 @@ void Profiler::alloc(const void *ptr, size_t size, const std::string &str) {
 
   total_size += size;
 
-  auto data = std::make_shared<ProfileEventData>(0, total_size.load(), str,
-                                                 std::chrono::microseconds(0));
+  auto data = std::make_shared<ProfileEventData>(
+    0, size, total_size.load(), str, std::chrono::microseconds(0));
   notifyListeners(EVENT_MEM_ALLOC, data);
 }
 
@@ -355,11 +372,20 @@ void Profiler::dealloc(const void *ptr) {
 
   auto str = std::get<std::string>(found->second);
   auto data =
-    std::make_shared<ProfileEventData>(0, total_size.load(), str, duration);
+    std::make_shared<ProfileEventData>(0, 0, total_size.load(), str, duration);
 
   notifyListeners(EVENT_MEM_DEALLOC, data);
 
   allocates.erase(found);
+}
+
+void Profiler::annotate(const std::string &str) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
+
+  auto data = std::make_shared<ProfileEventData>(0, 0, 0, str,
+                                                 std::chrono::microseconds(0));
+
+  notifyListeners(EVENT_MEM_ANNOTATE, data);
 }
 
 } // namespace profile
