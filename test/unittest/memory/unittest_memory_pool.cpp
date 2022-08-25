@@ -373,7 +373,7 @@ TEST(MemoryPool, get_memory_03_n) {
  */
 TEST(MemoryPool, get_memory_04_p) {
   nntrainer::MemoryPool pool;
-  void *mem = nullptr;
+  std::shared_ptr<nntrainer::MemoryData<float>> mem;
 
   auto idx = pool.requestMemory(1, 4, 5);
   EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
@@ -422,7 +422,7 @@ TEST_P(MemoryPlannerValidate, validate_memory_full_overlap) {
 
   std::vector<unsigned int> tokens(MEM_QUANT);
   std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<void *> ptrs(MEM_QUANT);
+  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
 
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
     memory_size[idx] = dist(rng);
@@ -442,12 +442,12 @@ TEST_P(MemoryPlannerValidate, validate_memory_full_overlap) {
 
   /** write data to memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx], idx, memory_size[idx]);
+    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
 
   /** verify data in memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
     std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx], &golden[0], memory_size[idx]);
+    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
   }
 
   pool.deallocate();
@@ -464,7 +464,7 @@ TEST_P(MemoryPlannerValidate, validate_memory_no_overlap) {
 
   std::vector<unsigned int> tokens(MEM_QUANT);
   std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<void *> ptrs(MEM_QUANT);
+  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
 
   unsigned int prev_idx = 0;
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
@@ -491,12 +491,12 @@ TEST_P(MemoryPlannerValidate, validate_memory_no_overlap) {
 
   /** write data to memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx], idx, memory_size[idx]);
+    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
 
   /** verify data in memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
     std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx], &golden[0], memory_size[idx]);
+    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
   }
 
   pool.deallocate();
@@ -514,7 +514,7 @@ TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
 
   std::vector<unsigned int> tokens(MEM_QUANT);
   std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<void *> ptrs(MEM_QUANT);
+  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
 
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
     memory_size[idx] = dist(rng);
@@ -541,12 +541,12 @@ TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
 
   /** write data to memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx], idx, memory_size[idx]);
+    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
 
   /** verify data in memory */
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
     std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx], &golden[0], memory_size[idx]);
+    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
   }
 
   pool.deallocate();
