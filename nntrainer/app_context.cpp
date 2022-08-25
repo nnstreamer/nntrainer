@@ -63,6 +63,7 @@
 #include <plugged_layer.h>
 #include <plugged_optimizer.h>
 #include <pooling2d_layer.h>
+#include <positional_encoding_layer.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
@@ -290,6 +291,9 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MULTI_HEAD_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
                      ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
+  ac.registerFactory(nntrainer::createLayer<PositionalEncodingLayer>,
+                     PositionalEncodingLayer::type,
+                     LayerType::LAYER_POSITIONAL_ENCODING);
   ac.registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,
                      LayerType::LAYER_IDENTITY);
 
