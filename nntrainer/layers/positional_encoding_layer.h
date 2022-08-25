@@ -94,10 +94,10 @@ public:
   inline static const std::string type = "positional_encoding";
 
 private:
-  std::tuple<props::MaxTimestep> positional_encoding_props;
-  std::array<unsigned int, 1> weight_idx;
   bool isPEcalculated; // bool value to check positional encoding is already
                        // calculated
+  std::tuple<props::MaxTimestep> positional_encoding_props;
+  std::array<unsigned int, 1> weight_idx;
 
   /**
    * @brief calculate positional encoding

@@ -436,7 +436,6 @@ def record_single(layer, input_shape, test_name, call_args={}, input_type='int')
             if not isinstance(tensors, list):
                 tensors = [tensors]
             for tensor in tensors:
-                print(tf.size(tensor))
                 writer(tf.size(tensor), tensor)
 
         ## @todo inputs outputs derivatives can be more than one
