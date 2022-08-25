@@ -41,6 +41,7 @@ layer_sources = [
   'layer_context.cpp',
   'reshape_layer.cpp',
   'reduce_mean_layer.cpp',
+  'positional_encoding_layer.cpp',
   'identity_layer.cpp'
 ]
 

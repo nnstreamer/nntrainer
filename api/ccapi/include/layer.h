@@ -66,6 +66,9 @@ enum LayerType {
   LAYER_MULTI_HEAD_ATTENTION =
     ML_TRAIN_LAYER_TYPE_MULTI_HEAD_ATTENTION, /**< Multi Head Attention Layer
                                                  type */
+  LAYER_POSITIONAL_ENCODING =
+    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
+                                              */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -434,6 +437,14 @@ MoLAttention(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 MultiHeadAttention(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_MULTI_HEAD_ATTENTION, properties);
+}
+
+/**
+ * @brief Helper function to create Positional Encoding Layer
+ */
+inline std::unique_ptr<Layer>
+PositionalEncoding(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_POSITIONAL_ENCODING, properties);
 }
 
 /**
