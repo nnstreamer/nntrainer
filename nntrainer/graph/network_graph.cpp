@@ -333,6 +333,7 @@ sharedConstTensors NetworkGraph::forwarding(bool training) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + ln->getName());
 
     auto f = std::get<0>(ln->getExecutionOrder());
     flushCacheExcept(f);
@@ -1074,7 +1075,9 @@ std::vector<Tensor> NetworkGraph::getOutputTensors() const {
 
 void NetworkGraph::flushCache() { tensor_manager->flushCache(); }
 
-void NetworkGraph::flushCacheExcept(unsigned int order) { tensor_manager->flushCacheExcept(order); }
+void NetworkGraph::flushCacheExcept(unsigned int order) {
+  tensor_manager->flushCacheExcept(order);
+}
 
 void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
