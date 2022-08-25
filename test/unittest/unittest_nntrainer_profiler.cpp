@@ -28,7 +28,9 @@ using namespace nntrainer::profile;
 class MockProfileListener : public ProfileListener {
 public:
   MockProfileListener() :
-    ProfileListener(), time_event_cnt(0), memory_alloc(0) {
+    ProfileListener(),
+    time_event_cnt(0),
+    memory_alloc(0) {
     ON_CALL(*this, notify)
       .WillByDefault(
         [&](PROFILE_EVENT event, const std::shared_ptr<ProfileEventData> data) {
@@ -40,7 +42,9 @@ public:
             break;
           case EVENT_MEM_ALLOC:
           case EVENT_MEM_DEALLOC:
-            this->memory_alloc = data->total_alloc_size;
+            this->memory_alloc = data->alloc_total;
+            break;
+          default:
             break;
           }
         });
@@ -61,18 +65,24 @@ public:
     return last;
   };
 
+  /**
+   * @brief mock method for notify
+   */
   MOCK_METHOD(void, notify,
               (PROFILE_EVENT event,
                const std::shared_ptr<ProfileEventData> data));
 
 private:
-  int time_event_cnt;  /**< time event count */
-  size_t memory_alloc; /**< allocated memory size */
+  int time_event_cnt;             /**< time event count */
+  size_t memory_alloc;            /**< allocated memory size */
   std::chrono::microseconds last; /** last event duration */
 };
 
+/**
+ * @brief Test class for ProfileTest
+ */
 class ProfileTest : public ::testing::Test {
- protected:
+protected:
   void SetUp() override {
     listener = std::make_shared<MockProfileListener>();
     profiler = std::make_shared<Profiler>();
@@ -82,44 +92,39 @@ class ProfileTest : public ::testing::Test {
   std::shared_ptr<Profiler> profiler;
 };
 
-
 TEST_F(ProfileTest, subscribe_01_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   EXPECT_THROW(profiler->subscribe(nullptr), std::invalid_argument);
 }
 
 TEST_F(ProfileTest, subscribe_02_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   EXPECT_THROW(profiler->subscribe(nullptr, {1}), std::invalid_argument);
 }
 
 TEST_F(ProfileTest, subscribe_03_p) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   EXPECT_NO_THROW(profiler->subscribe(listener));
 }
 
 TEST_F(ProfileTest, notify_01_p) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(3);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(3);
 
   EXPECT_NO_THROW(profiler->subscribe(listener));
 
-  auto data1 =
-    std::make_shared<ProfileEventData>(1, 0, "", std::chrono::microseconds{10});
+  auto data1 = std::make_shared<ProfileEventData>(
+    1, 0, 0, "", std::chrono::microseconds{10});
   listener->notify(PROFILE_EVENT::EVENT_TIME_START, data1);
 
   auto data2 = std::make_shared<ProfileEventData>(
-    1, 0, "", std::chrono::microseconds{100});
+    1, 0, 0, "", std::chrono::microseconds{100});
   listener->notify(PROFILE_EVENT::EVENT_TIME_END, data2);
 
   auto data3 = std::make_shared<ProfileEventData>(
-    1, 0, "", std::chrono::microseconds{150});
+    1, 0, 0, "", std::chrono::microseconds{150});
   listener->notify(PROFILE_EVENT::EVENT_TIME_END, data3);
 
   auto result = listener->result(1);
@@ -131,22 +136,19 @@ TEST_F(ProfileTest, notify_01_p) {
 }
 
 TEST_F(ProfileTest, start_01_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   EXPECT_THROW(profiler->start(1), std::invalid_argument);
 }
 
 TEST_F(ProfileTest, end_01_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   EXPECT_THROW(profiler->end(1), std::invalid_argument);
 }
 
 TEST_F(ProfileTest, timeTest_01_p) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(2);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(2);
 
   int nn_forward = profiler->registerTimeItem("nn_forward");
 
@@ -161,8 +163,7 @@ TEST_F(ProfileTest, timeTest_01_p) {
 }
 
 TEST_F(ProfileTest, timeTest_02_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(0);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
 
   int nn_forward = profiler->registerTimeItem("nn_forward");
 
@@ -175,8 +176,7 @@ TEST_F(ProfileTest, timeTest_02_n) {
 }
 
 TEST_F(ProfileTest, timeTest_01_n) {
-  EXPECT_CALL(*listener, notify(testing::_, testing::_))
-    .Times(2);
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(2);
 
   int nn_forward = profiler->registerTimeItem("nn_forward");
 

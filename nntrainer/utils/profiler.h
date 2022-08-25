@@ -35,6 +35,8 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_MEM_DEALLOC(ptr)
 #define PROFILE_BEGIN(listener)
 #define PROFILE_END(listener)
+#define PROFILE_MEM_ANNOTATE(str)
+
 #else /** PROFILE */
 
 #define PROFILE_TIME_START(event_key) \
@@ -65,6 +67,9 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
     std::cout << *listener;   \
   } while (0)
 
+#define PROFILE_MEM_ANNOTATE(str) \
+  nntrainer::profile::Profiler::Global().annotate(str)
+
 #endif /** PROFILE */
 
 namespace nntrainer {
@@ -76,6 +81,7 @@ enum PROFILE_EVENT {
   EVENT_TIME_END = 1,
   EVENT_MEM_ALLOC = 2,
   EVENT_MEM_DEALLOC = 3,
+  EVENT_MEM_ANNOTATE = 4,
 };
 
 /**
@@ -88,18 +94,22 @@ public:
    * @brief Construct a new ProfileEventData struct
    *
    */
-  ProfileEventData(int item, size_t size, std::string str,
+  ProfileEventData(int item, size_t cur, size_t total, std::string str,
                    std::chrono::microseconds dur) :
     time_item(item),
-    total_alloc_size(size),
+    alloc_current(cur),
+    alloc_total(total),
     event_str(str),
     duration(dur) {}
 
   /* for time profile */
   int time_item;
 
-  /* for memory profile */
-  size_t total_alloc_size;
+  /* current allocation size */
+  size_t alloc_current;
+
+  /* total allocation size */
+  size_t alloc_total;
 
   /* common data */
   std::string event_str;
@@ -172,7 +182,11 @@ public:
   explicit GenericProfileListener(int warmups_ = 0) :
     ProfileListener(),
     start_time(std::chrono::steady_clock::now()),
-    warmups(warmups_) {}
+    warmups(warmups_),
+    mem_max(0),
+    mem_sum(0),
+    mem_average(0),
+    mem_count(0) {}
 
   /**
    * @brief Destroy the Generic Profile Listener object
@@ -217,8 +231,8 @@ private:
    * @brief Called when memory event occurs
    *
    */
-  void onNotifyMemoryEvent(PROFILE_EVENT event, const size_t total_alloc_size,
-                           const std::string &str,
+  void onNotifyMemoryEvent(PROFILE_EVENT event, const size_t alloc_current,
+                           const size_t alloc_total, const std::string &str,
                            const std::chrono::microseconds &duration);
 
   std::chrono::time_point<std::chrono::steady_clock> start_time;
@@ -237,9 +251,13 @@ private:
                                      unsigned int /** CNT */>>
     time_taken;
 
-  std::list<
-    std::tuple<PROFILE_EVENT, size_t, std::string, std::chrono::microseconds>>
-    mem_taken;
+  std::list<std::tuple<PROFILE_EVENT, size_t, size_t, std::string,
+                       std::chrono::microseconds>>
+    mem_taken;        /**< taken memory information */
+  size_t mem_max;     /**< memory max size */
+  size_t mem_sum;     /**< memory sum */
+  size_t mem_average; /**< memory average */
+  size_t mem_count;   /**< memory count */
 
   std::unordered_map<int, std::string> names;
 };
@@ -311,6 +329,13 @@ public:
    * @param ptr de-allocated memory pointer
    */
   void dealloc(const void *ptr);
+
+  /**
+   * @brief add annotation on memory profile data
+   *
+   * @param str annotate message
+   */
+  void annotate(const std::string &str);
 
   /**
    * @brief subscribe a listener to the profiler
