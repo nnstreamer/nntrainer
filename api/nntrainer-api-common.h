@@ -53,6 +53,15 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_RNNCELL = 22,  /**< RNN Cell Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL =
     23, /**< ZoneoutLSTM Cell Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_ATTENTION = 24, /**< Attention Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_MOL_ATTENTION =
+    25, /**< MoL Attention Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_MULTI_HEAD_ATTENTION =
+    26, /**< Multi Head Attention Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_LAYER_NORMALIZATION =
+    27, /**< Layer Normalization Layer type (Since 7.0) */
+  ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING =
+    28, /**< Positional Encoding Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
