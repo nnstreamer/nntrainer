@@ -21,7 +21,7 @@ Sample ```test.txt``` is like below.
 ```
 
 
-This exmaple uses the ```DataBufferFromCallback``` to get the training data and configuration model is in ```res/LogisticRegression.ini```
+This example uses the ```DataBufferFromCallback``` to get the training data and configuration model is in ```res/LogisticRegression.ini```
 
 ```
 # Model Section : Model
@@ -29,7 +29,7 @@ This exmaple uses the ```DataBufferFromCallback``` to get the training data and 
 Type = Regression	    # Network Type : Regression, KNN, NeuralNetwork
 Learning_rate = 0.001 	# Learning Rate
 Epochs = 500		    # Epochs
-Optimizer = sgd		    # Optimizer : sgd (stochastic gradien decent),
+Optimizer = sgd		    # Optimizer : sgd (stochastic gradient decent),
 Loss = cross    	    #                       cross ( cross entropy )
 Save_Path = "model.bin" # model path to save / read
 batch_size = 16		    # batch size

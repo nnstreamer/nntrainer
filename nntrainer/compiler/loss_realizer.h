@@ -40,7 +40,7 @@ public:
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
    * @note loss realizer removes loss layers from GraphRepresentation
-   * @param reference GraphRepresenstaion to be realized
+   * @param reference GraphRepresentation to be realized
    *
    */
   GraphRepresentation realize(const GraphRepresentation &reference) override;

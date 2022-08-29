@@ -4,7 +4,7 @@
  *
  * @file remap_realizer.h
  * @date 12 October 2021
- * @brief NNTrainer graph realizer which realizes identifer to a new identifier
+ * @brief NNTrainer graph realizer which realizes identifier to a new identifier
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
@@ -45,7 +45,7 @@ public:
    * @brief Construct a new Remap Realizer object (identifier mode)
    *
    * @param remap_function remap function, with this constructor, all
-   * identifiers whereever it is used will be remapped
+   * identifiers wherever it is used will be remapped
    */
   RemapRealizer(
     std::function<void(std::string & /**< identifier */)> remap_function);

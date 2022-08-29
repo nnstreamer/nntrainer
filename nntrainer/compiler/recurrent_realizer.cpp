@@ -181,7 +181,7 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
   }
 
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
-    << "There is unparesed properties";
+    << "There is unparsed properties";
 
   for (unsigned i = 0, sz = inputs.size(); i < sz; ++i) {
     recurrent_info.emplace(inputs.at(i).get(), outputs.at(i).get());
