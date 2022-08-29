@@ -60,6 +60,12 @@ enum LayerType {
   LAYER_RNNCELL = ML_TRAIN_LAYER_TYPE_RNNCELL,   /**< RNN Cell Layer type */
   LAYER_ZONEOUT_LSTMCELL =
     ML_TRAIN_LAYER_TYPE_ZONEOUTLSTMCELL, /**< Zoneout LSTM Cell Layer type */
+  LAYER_ATTENTION = ML_TRAIN_LAYER_TYPE_ATTENTION, /**< Attention Layer type */
+  LAYER_MOL_ATTENTION =
+    ML_TRAIN_LAYER_TYPE_MOL_ATTENTION, /**< MoL Attention Layer type */
+  LAYER_MULTI_HEAD_ATTENTION =
+    ML_TRAIN_LAYER_TYPE_MULTI_HEAD_ATTENTION, /**< Multi Head Attention Layer
+                                                 type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -79,9 +85,6 @@ enum LayerType {
                                                      */
   LAYER_TIME_DIST,                /**< Time Distributed Layer type */
   LAYER_BACKBONE_TFLITE,          /**< Backbone using TFLite */
-  LAYER_ATTENTION,                /**< Attention Layer type */
-  LAYER_MOL_ATTENTION,            /**< MoL Attention Layer type */
-  LAYER_MULTI_HEAD_ATTENTION,     /**< Multi Head Attention Layer type */
   LAYER_RESHAPE,                  /**< Reshape Layer type */
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
   LAYER_IDENTITY,                 /**< Identity Layer type */
