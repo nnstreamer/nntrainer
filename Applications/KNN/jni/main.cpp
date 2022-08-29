@@ -12,7 +12,7 @@
  *              Inputs : Three Categories ( Happy, Sad, Soso ) with
  *                       5 pictures for each category
  *              Feature Extractor : ssd_mobilenet_v2_coco_feature.tflite
- *                                  ( modified to use feature extracter )
+ *                                  ( modified to use feature extractor )
  *              Classifier : KNN
  */
 #include "bitmap_helpers.h"
@@ -42,7 +42,7 @@
 #define TOTAL_TEST_SIZE 8
 
 /**
- * @brief     Calculate Euclidien Distance
+ * @brief     Calculate Euclidean Distance
  * @param[in] out Features for every picture of categories
  * @param[in] test Feature data of test case
  * @retval    category index ( nearest category index : 1-NN)
@@ -76,7 +76,7 @@ int KNN(float out[3][5][128], float *test) {
 }
 
 /**
- * @brief     Get Feature from tflite & run foword & back propatation
+ * @brief     Get Feature from tflite & run forward & back propagation
  *            Calculate 1-NN
  * @param[in]  arg 1 : resource path
  */
@@ -101,12 +101,12 @@ int main(int argc, char *argv[]) {
     tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
   if (!model) {
-    printf("Failed to mmap mdoel\n");
+    printf("Failed to mmap model\n");
     exit(0);
   }
 
   /**
-   * @brief     Extract Features & genearte feature list to compare
+   * @brief     Extract Features & generate feature list to compare
    */
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
                                          &wanted_channels);
 
       if (interpreter->AllocateTensors() != kTfLiteOk) {
-        std::cout << "Failed to allocate tnesors!" << std::endl;
+        std::cout << "Failed to allocate tensors!" << std::endl;
         return -2;
       }
 
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                                        &wanted_channels);
 
     if (interpreter->AllocateTensors() != kTfLiteOk) {
-      std::cout << "Failed to allocate tnesors!" << std::endl;
+      std::cout << "Failed to allocate tensors!" << std::endl;
       return -2;
     }
 

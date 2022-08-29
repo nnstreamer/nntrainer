@@ -13,7 +13,7 @@
  * appropriate compiler and interpreter
  * For example, if istream would be from a a.tflite file,
  *
- * GraphRepresentaion g;
+ * GraphRepresentation g;
  * GraphCompiler * compiler = new NNTrainerCPUCompiler;
  *
  * ExecutableGraph eg = compiler->compile(g);

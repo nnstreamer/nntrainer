@@ -15,7 +15,7 @@
  interpreter
  * For example, if istream would be from a a.tflite file,
  *
- * GraphRepresentaion g;
+ * GraphRepresentation g;
  * GraphInterpreter * interpreter = new TfliteInterpreter;
  *
  * std::ifstream f = std::open("a.tflite");
