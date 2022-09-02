@@ -108,12 +108,14 @@ void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
   auto weight_transform = [](std::vector<const Tensor *> &weights) {
     std::vector<Tensor> new_weights;
     new_weights.reserve(weights.size());
-    new_weights.push_back(weights[0]->transpose("0:2:1"));
+
+    new_weights.push_back(weights[0]->transpose("0:2:1", true));
     new_weights.push_back(*weights[1]);
+
     return new_weights;
   };
-  tf_node->setWeightTransformFn(weight_transform);
 
+  tf_node->setWeightTransformFn(weight_transform);
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
   auto options = tflite::CreateFullyConnectedOptions(*fbb).Union();
   tf_node->setBuiltinOptions(tflite::BuiltinOptions_FullyConnectedOptions,

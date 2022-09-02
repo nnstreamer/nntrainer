@@ -675,19 +675,23 @@ public:
                                   float beta = 0.0f) const;
 
   /**
-   * @brief     Transpose Tensor
-   * @param[in] direction to transpose ex) 0:2:1
-   * @retval    Calculated Tensor
+   * @brief Transpose Tensor
+   *
+   * @param direction to transpose ex) 0:2:1
+   * @param is_FC if layer == FC only transpose shape and clone data
+   * @return Tensor
    */
-  Tensor transpose(const std::string &direction) const;
+  Tensor transpose(const std::string &direction, bool is_FC = false) const;
 
   /**
    * @brief Transpose Tensor
    * @param direction to transpose ex) 0:2:1
    * @param[out] Tensor to save to, dimension is always reshaped.
+   * @param is_FC if layer == FC only transpose shape and clone data
    * @retval Tensor& reference to the out
    */
-  Tensor &transpose(const std::string &direction, Tensor &out) const;
+  Tensor &transpose(const std::string &direction, Tensor &out,
+                    bool is_FC = false) const;
 
   /**
    * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
