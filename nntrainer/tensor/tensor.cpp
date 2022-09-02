@@ -1268,13 +1268,14 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
   return result;
 }
 
-Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
+Tensor &Tensor::transpose(const std::string &direction, Tensor &out,
+                          bool is_FC) const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous. Cannot transpose.";
 
   if (out.getData() == getData()) {
     Tensor tmp = clone();
-    return tmp.transpose(direction, out);
+    return tmp.transpose(direction, out, is_FC);
   }
 
   unsigned int SL, SI, SJ, SK;
@@ -1282,6 +1283,11 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
   float *outptr;
 
   out.reshape(dim.transpose(direction));
+
+  if (is_FC) {
+    out.copyData(clone());
+    return out;
+  }
 
   int indexI = direction[0] - '0';
   int indexJ = direction[2] - '0';
@@ -1318,9 +1324,9 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
   return out;
 }
 
-Tensor Tensor::transpose(const std::string &direction) const {
+Tensor Tensor::transpose(const std::string &direction, bool is_FC) const {
   Tensor result(dim);
-  transpose(direction, result);
+  transpose(direction, result, is_FC);
   return result;
 }
 

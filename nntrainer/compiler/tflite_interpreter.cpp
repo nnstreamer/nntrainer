@@ -9,14 +9,14 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <tflite_interpreter.h>
-
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <tflite_interpreter.h>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -304,20 +304,71 @@ private:
 TfOpNodes buildOpNodes(const GraphRepresentation &representation,
                        flatbuffers::FlatBufferBuilder &fbb) {
   TfOpNodes nodes;
+
   /// @todo TfOpNode needs to have LayerNode pointer
   std::map<TfOpNode *, const LayerNode *> tf_to_layer;
   std::map<const LayerNode *, TfOpNode *> layer_to_tf;
+
   /// @todo, look ahead of layers to get nodes that can be fused
   /// we will need to have a dedicated builder
   for (auto iter = representation.cbegin(); iter != representation.cend();
        iter++) {
     const auto &ln = *iter;
+
     Exporter e(&fbb);
     ln->exportTo(e, ml::train::ExportMethods::METHOD_TFLITE);
 
     nodes.emplace_back(e.getResult<ml::train::ExportMethods::METHOD_TFLITE>());
     tf_to_layer.insert({nodes.back().get(), ln.get()});
     layer_to_tf.insert({ln.get(), nodes.back().get()});
+  }
+
+  int node_count = 0;
+  for (auto &n : nodes) {
+    auto tf_node = n.get();
+
+    auto now_node_type = tf_node->getOptionType();
+    if (now_node_type ==
+        tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions) {
+
+      if (node_count != 0) {
+
+        auto previous_input_shape =
+          nodes.at(node_count - 1).get()->getInputs()[0];
+
+        const unsigned int UNIT = tf_node->getOutputs()[0]->height();
+        const unsigned int CHANNEL = previous_input_shape->channel();
+        const unsigned int HEIGHT = previous_input_shape->height();
+        const unsigned int WIDTH = previous_input_shape->width();
+        const unsigned int UNITLEN = (CHANNEL * WIDTH * HEIGHT);
+
+        auto weight_data = tf_node->getWeights()[0]->getData();
+        auto *ptr = const_cast<float *>(weight_data);
+
+        std::vector<float> old_value_list;
+
+        for (unsigned int i = 0; i < (UNIT * CHANNEL * HEIGHT * WIDTH); i++) {
+          old_value_list.push_back(weight_data[i]);
+        }
+
+        for (unsigned int u = 0; u < UNIT; u++) {
+          for (unsigned int h = 0; h < HEIGHT; h++) {
+            for (unsigned int w = 0; w < WIDTH; w++) {
+              for (unsigned int c = 0; c < CHANNEL; c++) {
+
+                int next_position = (u * CHANNEL * HEIGHT * WIDTH) +
+                                    c * (HEIGHT * WIDTH) + h * WIDTH + w;
+                int now_position = (u * CHANNEL * HEIGHT * WIDTH) +
+                                   h * (WIDTH * CHANNEL) + w * CHANNEL + c;
+
+                ptr[now_position] = old_value_list[next_position];
+              }
+            }
+          }
+        }
+      }
+    }
+    node_count++;
   }
 
   /// set arity of TfOpNodes

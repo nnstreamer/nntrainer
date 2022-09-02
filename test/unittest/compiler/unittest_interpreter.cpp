@@ -7,6 +7,7 @@
  * @brief interpreter test
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -16,12 +17,14 @@
 
 #include <app_context.h>
 #include <execution_mode.h>
+#include <flatten_realizer.h>
 #include <ini_interpreter.h>
 #include <interpreter.h>
 #include <layer.h>
 #include <layer_node.h>
 #include <network_graph.h>
 #include <node_exporter.h>
+#include <realizer.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -44,7 +47,7 @@ auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
  * @brief nntrainer Interpreter Test setup
  *
  * @note Proposing an evolutional path of current test
- * 1. A reference graph vs given paramter
+ * 1. A reference graph vs given paramater
  * 2. A reference graph vs list of models
  * 3. A reference graph vs (pick two models) a -> b -> a graph, b -> a -> b
  * graph
@@ -294,3 +297,110 @@ GTEST_PARAMETER_TEST(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
   mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)
 ));
 // clang-format on
+
+/**
+ * @brief Fully Connected Layer weights transpose(NCHW -> NHWC) unittest
+ *
+ */
+
+TEST(nntrainerInterpreterTflite, simple_flatten) {
+
+  nntrainer::TfliteInterpreter interpreter;
+  nntrainer::FlattenRealizer fr;
+
+  auto input0 = LayerRepresentation(
+    "input", {"name=in0", "input_shape=3:2:4", "flatten=true"});
+
+  auto fc0_zeroed = LayerRepresentation(
+    "fully_connected", {"name=fc0", "unit=1", "input_layers=in0",
+                        "bias_initializer=ones", "weight_initializer=ones"});
+
+  auto g = fr.realize(makeGraph({input0, fc0_zeroed}));
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+
+  unsigned int UNIT = 1;
+  unsigned int HEIGHT = 2;
+  unsigned int WIDTH = 4;
+  unsigned int CHANNEL = 3;
+
+  auto weight_data = ng.getLayerNode("fc0")->getWeight(0).getData();
+  auto *ptr = const_cast<float *>(weight_data);
+
+  // Set initial Weights
+  int count = 0;
+  for (unsigned int h = 0; h < HEIGHT; h++) {
+    for (unsigned int w = 0; w < WIDTH; w++) {
+      for (unsigned int c = 0; c < CHANNEL; c++) {
+        for (unsigned int u = 0; u < UNIT; u++) {
+          int now_position = (u * (CHANNEL * WIDTH * HEIGHT)) +
+                             h * (WIDTH * CHANNEL) + w * CHANNEL + c;
+
+          ptr[count] = now_position;
+          count += 1;
+        }
+      }
+    }
+  }
+
+  interpreter.serialize(g, "FC_weight_test.tflite");
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("FC_weight_test.tflite");
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 2, 4}));
+
+  count = 0;
+  // Set Tensor with (1,3,4,2)(NCHW) Shape
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 2; h++) {
+      for (int w = 0; w < 4; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 1}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 1}));
+  ans.setValue(4325);
+  EXPECT_EQ(out, ans);
+
+  if (remove("FC_weight_test.tflite")) {
+    std::cerr << "remove ini "
+              << "FC_weight_test.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
