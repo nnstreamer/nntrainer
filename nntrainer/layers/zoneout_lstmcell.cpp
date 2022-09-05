@@ -93,10 +93,8 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props).get();
 
-  if (context.getNumInputs() != 3) {
-    throw std::invalid_argument(
-      "Number of input is not 3. ZoneoutLSTMCellLayer should takes 3 inputs");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 3, std::invalid_argument)
+    << "Number of input is not 3. ZoneoutLSTMCellLayer should takes 3 inputs";
 
   // input_dim = [ batch_size, 1, 1, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[INOUT_INDEX::INPUT];

@@ -87,9 +87,8 @@ void GRULayer::finalize(InitLayerContext &context) {
   const float dropout_rate = std::get<props::DropOutRate>(gru_props).get();
   const bool integrate_bias = std::get<props::IntegrateBias>(gru_props).get();
 
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("GRU layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "GRU layer takes only one input";
 
   // input_dim = [ batch, 1, time_iteration, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[0];

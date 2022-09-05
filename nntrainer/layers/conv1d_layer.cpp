@@ -39,13 +39,12 @@ Conv1DLayer::Conv1DLayer() :
 Conv1DLayer::~Conv1DLayer() {}
 
 void Conv1DLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Convolution layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Convolution layer takes only one input";
 
-  if (context.getInputDimensions()[SINGLE_INOUT_IDX].height() != 1) {
-    throw std::invalid_argument("Conv1D layer requires input with height 1");
-  }
+  NNTR_THROW_IF(context.getInputDimensions()[SINGLE_INOUT_IDX].height() != 1,
+                std::invalid_argument)
+    << "Conv1D layer requires input with height 1";
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
   const unsigned int kernel_size =

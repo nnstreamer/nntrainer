@@ -92,26 +92,26 @@ void TfLiteLayer::finalize(InitLayerContext &context) {
 
   model = tflite::FlatBufferModel::BuildFromFile(
     std::get<PropsTflModelPath>(*tfl_layer_props).get().c_str());
-  if (!model)
-    throw std::invalid_argument("Failed to build tflite model");
+  NNTR_THROW_IF(!model, std::invalid_argument)
+    << "Failed to build tflite model";
 
   tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
-  if (!interpreter)
-    throw std::invalid_argument("Failed to build tflite interpreter");
+  NNTR_THROW_IF(!interpreter, std::invalid_argument)
+    << "Failed to build tflite interpreter";
 
-  if (interpreter->AllocateTensors() != kTfLiteOk)
-    throw std::runtime_error("Failed to allocate tensors!");
+  NNTR_THROW_IF(interpreter->AllocateTensors() != kTfLiteOk, std::runtime_error)
+    << "Failed to allocate tensors!";
 
   std::vector<TensorDim> dims;
   setDimensions(interpreter->inputs(), dims, false);
   const std::vector<TensorDim> &input_dims = context.getInputDimensions();
 
-  if (dims.size() != input_dims.size())
-    throw std::invalid_argument("Provided number of input dimensions mismatch");
+  NNTR_THROW_IF(dims.size() != input_dims.size(), std::invalid_argument)
+    << "Provided number of input dimensions mismatch";
 
   for (size_t idx = 0; idx < dims.size(); idx++) {
-    if (dims[idx] != input_dims[idx])
-      throw std::invalid_argument("Input dimensions mismatch");
+    NNTR_THROW_IF(dims[idx] != input_dims[idx], std::invalid_argument)
+      << "Input dimensions mismatch";
   }
 
   std::vector<TensorDim> output_dims;

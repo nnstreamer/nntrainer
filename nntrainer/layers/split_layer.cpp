@@ -29,10 +29,8 @@ SplitLayer::SplitLayer() :
   split_props(props::SplitDimension()) {}
 
 void SplitLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument(
-      "Error: only a single input is supported with split layer");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Error: only a single input is supported with split layer";
 
   unsigned int split_dimension = std::get<props::SplitDimension>(split_props);
 
@@ -44,9 +42,10 @@ void SplitLayer::finalize(InitLayerContext &context) {
    * 3. axis = 3, output_dim = [b,c,h,1], num_outputs = w
    */
   const TensorDim &in_dim = context.getInputDimensions()[0];
-  if (in_dim.getTensorDim(split_dimension) != context.getNumRequestedOutputs())
-    throw std::invalid_argument(
-      "Split dimension cannot be split into given number of outputs");
+  NNTR_THROW_IF(in_dim.getTensorDim(split_dimension) !=
+                  context.getNumRequestedOutputs(),
+                std::invalid_argument)
+    << "Split dimension cannot be split into given number of outputs";
 
   TensorDim d = in_dim;
   d.setTensorDim(split_dimension, 1);

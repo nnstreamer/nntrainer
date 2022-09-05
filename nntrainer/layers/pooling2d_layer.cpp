@@ -36,10 +36,8 @@ Pooling2DLayer::Pooling2DLayer(
   pool_helper_idx(0) {}
 
 void Pooling2DLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument(
-      "[Pooling2D] pooling layer only takes one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "[Pooling2D] pooling layer only takes one input";
 
   const TensorDim &in_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   TensorDim out_dim;
@@ -72,33 +70,27 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
 
   if (pooling_type == props::PoolingTypeInfo::Enum::global_max ||
       pooling_type == props::PoolingTypeInfo::Enum::global_average) {
-    if (pt + pb + pl + pr != 0) {
-      throw std::invalid_argument(
-        "[Pooling2D] global_max, global_average does not accept padding");
-    }
+    NNTR_THROW_IF(pt + pb + pl + pr != 0, std::invalid_argument)
+      << "[Pooling2D] global_max, global_average does not accept padding";
 
-    if (stride[0] != 1 || stride[1] != 1) {
-      throw std::invalid_argument(
-        "[Pooling2D] global_max, global_average does not accept stride");
-    }
+    NNTR_THROW_IF(stride[0] != 1 || stride[1] != 1, std::invalid_argument)
+      << "[Pooling2D] global_max, global_average does not accept stride";
   }
 
   unsigned int eff_in_height = in_dim.height() + pt + pb;
   unsigned int eff_in_width = in_dim.width() + pl + pr;
 
-  if (eff_in_height < pool_size[0] || eff_in_width < pool_size[1]) {
-    throw std::invalid_argument(
-      "[Pooling2D] Failed to initialize: in size + padding is smaller "
-      "than effective kernel");
-  }
+  NNTR_THROW_IF(eff_in_height < pool_size[0] || eff_in_width < pool_size[1],
+                std::invalid_argument)
+    << "[Pooling2D] Failed to initialize: in size + padding is smaller than "
+       "effective kernel";
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  if (eff_in_height - pt - pool_size[0] > IM ||
-      eff_in_width - pl - pool_size[1] > IM) {
-    throw std::invalid_argument(
-      "[Pooling2D] Failed to initialize: Calculated patch end is over int max");
-  }
+  NNTR_THROW_IF(eff_in_height - pt - pool_size[0] > IM ||
+                  eff_in_width - pl - pool_size[1] > IM,
+                std::invalid_argument)
+    << "[Pooling2D] Failed to initialize: Calculated patch end is over int max";
 
   out_dim.batch(in_dim.batch());
   out_dim.channel(in_dim.channel());

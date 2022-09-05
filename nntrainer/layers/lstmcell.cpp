@@ -68,36 +68,33 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
     std::get<props::RecurrentActivation>(lstmcell_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(lstmcell_props).get();
 
-  if (context.getNumInputs() != 3) {
-    throw std::invalid_argument(
-      "LSTMCell layer expects 3 inputs(one for the input and two for the "
-      "hidden/cell state) but got " +
-      std::to_string(context.getNumInputs()) + " input(s)");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 3, std::invalid_argument)
+    << "LSTMCell layer expects 3 inputs(one for the input and two for the "
+       "hidden/cell state) but got " +
+         std::to_string(context.getNumInputs()) + " input(s)";
 
   // input_dim = [ batch_size, 1, 1, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[INOUT_INDEX::INPUT];
-  if (input_dim.channel() != 1 || input_dim.height() != 1) {
-    throw std::invalid_argument(
-      "Input must be single time dimension for LSTMCell (shape should be "
-      "[batch_size, 1, 1, feature_size])");
-  }
+  NNTR_THROW_IF(input_dim.channel() != 1 || input_dim.height() != 1,
+                std::invalid_argument)
+    << "Input must be single time dimension for LSTMCell (shape should be "
+       "[batch_size, 1, 1, feature_size])";
   // input_hidden_state_dim = [ batch, 1, 1, unit ]
   const TensorDim &input_hidden_state_dim =
     context.getInputDimensions()[INOUT_INDEX::INPUT_HIDDEN_STATE];
-  if (input_hidden_state_dim.channel() != 1 ||
-      input_hidden_state_dim.height() != 1) {
-    throw std::invalid_argument("Input hidden state's dimension should be "
-                                "[batch, 1, 1, unit] for LSTMCell");
-  }
+  NNTR_THROW_IF(input_hidden_state_dim.channel() != 1 ||
+                  input_hidden_state_dim.height() != 1,
+                std::invalid_argument)
+    << "Input hidden state's dimension should be [batch, 1, 1, unit] for "
+       "LSTMCell";
   // input_cell_state_dim = [ batch, 1, 1, unit ]
   const TensorDim &input_cell_state_dim =
     context.getInputDimensions()[INOUT_INDEX::INPUT_CELL_STATE];
-  if (input_cell_state_dim.channel() != 1 ||
-      input_cell_state_dim.height() != 1) {
-    throw std::invalid_argument("Input cell state's dimension should be "
-                                "[batch, 1, 1, unit] for LSTMCell");
-  }
+  NNTR_THROW_IF(input_cell_state_dim.channel() != 1 ||
+                  input_cell_state_dim.height() != 1,
+                std::invalid_argument)
+    << "Input cell state's dimension should be [batch, 1, 1, unit] for "
+       "LSTMCell";
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();
 

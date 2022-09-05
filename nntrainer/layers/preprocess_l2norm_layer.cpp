@@ -27,14 +27,12 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void PreprocessL2NormLayer::finalize(InitLayerContext &context) {
   const auto &input_dim = context.getInputDimensions()[0];
-  if (context.getNumInputs() != 1)
-    throw std::invalid_argument(
-      "l2norm layer is designed for a single input only");
-  if (input_dim.channel() != 1 || input_dim.height() != 1) {
-    throw std::invalid_argument(
-      "l2norm layer is designed for channel and height is 1 for now, "
-      "please check");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "l2norm layer is designed for a single input only";
+  NNTR_THROW_IF(input_dim.channel() != 1 || input_dim.height() != 1,
+                std::invalid_argument)
+    << "l2norm layer is designed for channel and height is 1 for now, please "
+       "check";
 
   context.setOutputDimensions(context.getInputDimensions());
 }

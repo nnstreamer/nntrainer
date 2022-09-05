@@ -298,28 +298,25 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
     std::get<props::RecurrentActivation>(grucell_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(grucell_props).get();
 
-  if (context.getNumInputs() != 2) {
-    throw std::invalid_argument(
-      "GRUCell layer expects 2 inputs(one for the input and hidden state for "
-      "the other) but got " +
-      std::to_string(context.getNumInputs()) + " input(s)");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 2, std::invalid_argument)
+    << "GRUCell layer expects 2 inputs(one for the input and hidden state for "
+       "the other) but got " +
+         std::to_string(context.getNumInputs()) + " input(s)";
 
   // input_dim = [ batch_size, 1, 1, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[0];
-  if (input_dim.channel() != 1 && input_dim.height() != 1) {
-    throw std::invalid_argument(
-      "Input must be single time dimension for GRUCell(shape should be "
-      "[batch_size, 1, 1, feature_size]");
-  }
+  NNTR_THROW_IF(input_dim.channel() != 1 && input_dim.height() != 1,
+                std::invalid_argument)
+    << "Input must be single time dimension for GRUCell(shape should be "
+       "[batch_size, 1, 1, feature_size]";
   // input_hidden_state_dim = [ batch_size, 1, 1, unit ]
   const TensorDim &input_hidden_state_dim =
     context.getInputDimensions()[INOUT_INDEX::INPUT_HIDDEN_STATE];
-  if (input_hidden_state_dim.channel() != 1 ||
-      input_hidden_state_dim.height() != 1) {
-    throw std::invalid_argument("Input hidden state's dimension should be "
-                                "[batch, 1, 1, unit] for GRUCell");
-  }
+  NNTR_THROW_IF(input_hidden_state_dim.channel() != 1 ||
+                  input_hidden_state_dim.height() != 1,
+                std::invalid_argument)
+    << "Input hidden state's dimension should be [batch, 1, 1, unit] for "
+       "GRUCell";
 
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();

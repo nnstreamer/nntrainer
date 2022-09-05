@@ -56,9 +56,8 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
 
   auto unit = std::get<props::Unit>(fc_props).get();
 
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Fully connected layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Fully connected layer takes only one input";
 
   std::vector<TensorDim> output_dims(1);
 
