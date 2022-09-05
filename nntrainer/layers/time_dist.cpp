@@ -104,9 +104,8 @@ Tensor TimeDistLayer::transposeTensor(Tensor &m) {
 }
 
 void TimeDistLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Time distributed layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Time distributed layer takes only one input";
 
   if (!dist_layer) {
     throw std::invalid_argument("distributed layer is not set properly");

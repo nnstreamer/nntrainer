@@ -22,16 +22,14 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void ReshapeLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Reshape only supports 1 input for now");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Reshape only supports 1 input for now";
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
   auto &target_shape = std::get<props::TargetShape>(reshape_props);
-  if (target_shape.empty())
-    throw std::invalid_argument(
-      "Reshape layer must be provided with target shape");
+  NNTR_THROW_IF(target_shape.empty(), std::invalid_argument)
+    << "Reshape layer must be provided with target shape";
   TensorDim out_dim = target_shape.get();
 
   if ((int)out_dim.getDataLen() == -1) {

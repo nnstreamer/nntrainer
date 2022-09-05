@@ -54,10 +54,9 @@ void ConcatLayer::finalize(InitLayerContext &context) {
     for (unsigned int i = 0; i < ml::train::TensorDim::getNumDim(); ++i) {
       if (i == concat_dimension)
         continue;
-      if (input_dim_0[i] != dim[i])
-        throw std::runtime_error("Error: concat layer requires same "
-                                 "shape from all input layers along "
-                                 "non-concat dimension");
+      NNTR_THROW_IF(input_dim_0[i] != dim[i], std::runtime_error)
+        << "Error: concat layer requires same shape from all input layers "
+           "along non-concat dimension";
     }
     concat_dim_val += dim[concat_dimension];
   }

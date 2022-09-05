@@ -256,9 +256,8 @@ Conv2DLayer::Conv2DLayer(
 }
 
 void Conv2DLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Convolution layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Convolution layer takes only one input";
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
@@ -312,19 +311,17 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
   context.setOutputDimensions({out_dim});
 
-  if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
-    throw std::invalid_argument(
-      "Failed to initialize: in size + padding is smaller than effective "
-      "kernel");
-  }
+  NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
+                std::invalid_argument)
+    << "Failed to initialize: in size + padding is smaller than effective "
+       "kernel";
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  if (eff_in_height - padding[0] - kernel_size[0] > IM ||
-      eff_in_width - padding[2] - kernel_size[1] > IM) {
-    throw std::invalid_argument(
-      "Failed to initialize: Calculated patch end is over int max");
-  }
+  NNTR_THROW_IF(eff_in_height - padding[0] - kernel_size[0] > IM ||
+                  eff_in_width - padding[2] - kernel_size[1] > IM,
+                std::invalid_argument)
+    << "Failed to initialize: Calculated patch end is over int max";
 
   /**
    * @note: although col2im and im2col dims are different, the size of their

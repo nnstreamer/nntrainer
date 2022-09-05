@@ -42,9 +42,8 @@ void PreprocessTranslateLayer::finalize(InitLayerContext &context) {
 
   // Made for 3 channel input
   if (random_translate > epsilon) {
-    if (input_dim_0.channel() > 3)
-      throw exception::not_supported(
-        "Preprocess translate layer not supported for over 3 channels");
+    NNTR_THROW_IF(input_dim_0.channel() > 3, std::invalid_argument)
+      << "Preprocess translate layer not supported for over 3 channels";
     translate_dist = std::uniform_real_distribution<float>(-random_translate,
                                                            random_translate);
 

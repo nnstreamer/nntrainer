@@ -70,9 +70,8 @@ void RNNLayer::finalize(InitLayerContext &context) {
   const float dropout_rate = std::get<props::DropOutRate>(rnn_props).get();
   const bool integrate_bias = std::get<props::IntegrateBias>(rnn_props).get();
 
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("RNN layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "RNN layer takes only one input";
 
   // input_dim = [ batch, 1, time_iteration, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];

@@ -57,10 +57,8 @@ BatchNormalizationLayer::BatchNormalizationLayer() :
 
 /// @todo add multiple axis support
 void BatchNormalizationLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument(
-      "Only one input is allowed for batch normalization layer");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Only one input is allowed for batch normalization layer";
 
   auto &bnparams_mu = std::get<props::BNPARAMS_MU_INIT>(bn_props);
   auto &bnparams_var = std::get<props::BNPARAMS_VAR_INIT>(bn_props);

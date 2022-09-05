@@ -21,9 +21,8 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void ReduceMeanLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Reduce mean only supports 1 input for now");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Reduce mean only supports 1 input for now";
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
   TensorDim out_dim = in_dim;

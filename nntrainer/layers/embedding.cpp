@@ -31,15 +31,12 @@ EmbeddingLayer::EmbeddingLayer() :
   weight_idx(std::numeric_limits<unsigned>::max()) {}
 
 void EmbeddingLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("Embedding layer takes only one input");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
+    << "Embedding layer takes only one input";
 
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
-  if (input_dim.channel() != 1) {
-    throw std::invalid_argument(
-      "Embedding layer takes only one for channel size");
-  }
+  NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
+    << "Embedding layer takes only one for channel size";
 
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);

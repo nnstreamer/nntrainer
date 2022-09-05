@@ -73,28 +73,25 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
     std::get<props::HiddenStateActivation>(rnncell_props).get();
   const float dropout_rate = std::get<props::DropOutRate>(rnncell_props).get();
 
-  if (context.getNumInputs() != 2) {
-    throw std::invalid_argument(
-      "RNNCell layer expects 2 inputs(one for the input and hidden state for "
-      "the other) but got " +
-      std::to_string(context.getNumInputs()) + " input(s)");
-  }
+  NNTR_THROW_IF(context.getNumInputs() != 2, std::invalid_argument)
+    << "RNNCell layer expects 2 inputs(one for the input and hidden state for "
+       "the other) but got " +
+         std::to_string(context.getNumInputs()) + " input(s)";
 
   // input_dim = [ batch, 1, 1, feature_size ]
   const TensorDim &input_dim = context.getInputDimensions()[INOUT_INDEX::INPUT];
-  if (input_dim.channel() != 1 || input_dim.height() != 1) {
-    throw std::invalid_argument(
-      "Input must be single time dimension for RNNCell (shape should be "
-      "[batch_size, 1, 1, feature_size])");
-  }
+  NNTR_THROW_IF(input_dim.channel() != 1 || input_dim.height() != 1,
+                std::invalid_argument)
+    << "Input must be single time dimension for RNNCell (shape should be "
+       "[batch_size, 1, 1, feature_size])";
   // input_hidden_state_dim = [ batch, 1, 1, unit ]
   const TensorDim &input_hidden_state_dim =
     context.getInputDimensions()[INOUT_INDEX::INPUT_HIDDEN_STATE];
-  if (input_hidden_state_dim.channel() != 1 ||
-      input_hidden_state_dim.height() != 1) {
-    throw std::invalid_argument("Input hidden state's dimension should be "
-                                "[batch, 1, 1, unit] for RNNCell");
-  }
+  NNTR_THROW_IF(input_hidden_state_dim.channel() != 1 ||
+                  input_hidden_state_dim.height() != 1,
+                std::invalid_argument)
+    << "Input hidden state's dimension should be [batch, 1, 1, unit] for "
+       "RNNCell";
 
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();

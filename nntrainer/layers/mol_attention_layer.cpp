@@ -55,8 +55,9 @@ enum AttentionParams {
 };
 
 void MoLAttentionLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() < 3 || context.getNumInputs() > 4)
-    throw std::runtime_error("MoL Attention layer needs 3-4 inputs.");
+  NNTR_THROW_IF(context.getNumInputs() < 3 || context.getNumInputs() > 4,
+                std::invalid_argument)
+    << "MoL Attention layer needs 3-4 inputs.";
 
   auto const &all_dims = context.getInputDimensions();
   auto const &query_dim = all_dims[AttentionParams::query];
