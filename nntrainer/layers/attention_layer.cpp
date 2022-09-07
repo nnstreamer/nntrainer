@@ -18,7 +18,7 @@
 
 namespace nntrainer {
 
-AttentionLayer::AttentionLayer() {
+AttentionLayer::AttentionLayer() : sm(ActivationType::ACT_SOFTMAX) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -26,7 +26,7 @@ AttentionLayer::~AttentionLayer() {}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum AttentionParams { query = 0, value = 1, key = 2, score, weights };
+enum AttentionParams { query = 0, value = 1, key = 2, weights };
 
 void AttentionLayer::finalizeCommon(InitLayerContext &context) {
   if (context.getNumInputs() < 2 || context.getNumInputs() > 3)
@@ -55,8 +55,6 @@ void AttentionLayer::finalizeCommon(InitLayerContext &context) {
 void AttentionLayer::finalize(InitLayerContext &context) {
   finalizeCommon(context);
 
-  sm.setActiFunc(ActivationType::ACT_SOFTMAX);
-
   auto const &all_dims = context.getInputDimensions();
   auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
@@ -66,10 +64,6 @@ void AttentionLayer::finalize(InitLayerContext &context) {
   wt_idx[AttentionParams::weights] =
     context.requestTensor(weights_dim, "weights", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
-
-  wt_idx[AttentionParams::score] =
-    context.requestTensor(weights_dim, "score", Tensor::Initializer::NONE,
-                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   context.setOutputDimensions({query_dim});
 }
@@ -81,11 +75,10 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
 
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
-  Tensor &score = context.getTensor(wt_idx[AttentionParams::score]);
 
-  query.dotBatched(key, score, false, true); /** dot 1 */
-  sm.run_fn(score, weights);                 /** softmax */
-  weights.dotBatched(value, output);         /** dot 2 */
+  query.dotBatched(key, weights, false, true); /** dot 1 */
+  sm.run_fn(weights, weights);                 /** softmax */
+  weights.dotBatched(value, output);           /** dot 2 */
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
@@ -111,12 +104,11 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
   weights.dot_batched_deriv_wrt_2(dvalue, derivative);
 
   /** derivative for softmax */
-  Tensor dscore;
-  sm.run_prime_fn(weights, dscore, dweight);
+  sm.run_prime_fn(weights, dweight, dweight);
 
   /** derivative for dot 1 */
-  dquery.dot_batched_deriv_wrt_1(key, dscore, false, true);
-  query.dot_batched_deriv_wrt_2(dkey, dscore, false, true,
+  dquery.dot_batched_deriv_wrt_1(key, dweight, false, true);
+  query.dot_batched_deriv_wrt_2(dkey, dweight, false, true,
                                 context.getNumInputs() == 2);
 }
 
@@ -129,7 +121,6 @@ void AttentionLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void AttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
-  context.updateTensor(wt_idx[AttentionParams::score], batch);
   context.updateTensor(wt_idx[AttentionParams::weights], batch);
 }
 

@@ -27,6 +27,7 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
     props::NumHeads(), props::ProjectedKeyDim(), props::ProjectedValueDim(),
     props::OutputShape(), props::DropOutRate(), props::ReturnAttentionWeight(),
     props::AverageAttentionWeight()),
+  sm(ActivationType::ACT_SOFTMAX),
   epsilon(1e-3) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
@@ -56,8 +57,6 @@ enum AttentionParams {
   projected_query,
   projected_key,
   projected_value,
-  attention_score,
-  d_attention_score,
   /** intended comment for later use of attention_mask */
   // attention_mask,
   attention_weight,
@@ -258,15 +257,6 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     projected_value_dim, "projected_value", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
-  /** tensor for attention score */
-  TensorDim attention_score_dim(
-    {batch_size, num_heads, query_height, key_height});
-  weight_idx[AttentionParams::attention_score] = context.requestTensor(
-    attention_score_dim, "attention_score", Tensor::Initializer::NONE, false,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  weight_idx[AttentionParams::d_attention_score] = context.requestTensor(
-    attention_score_dim, "d_attention_score", Tensor::Initializer::NONE, false,
-    TensorLifespan::BACKWARD_FUNC_LIFESPAN);
   if (provide_attention_mask) {
     /** Intended comment for bool type mask */
     // TensorDim attention_mask_dim(
@@ -376,8 +366,6 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   Tensor &projected_value =
     context.getTensor(weight_idx[AttentionParams::projected_value]);
 
-  Tensor &attention_score =
-    context.getTensor(weight_idx[AttentionParams::attention_score]);
   Tensor &attention_weight =
     context.getTensor(weight_idx[AttentionParams::attention_weight]);
   Tensor &attention_output =
@@ -431,16 +419,14 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   projected_value.reshape(TensorDim(
     {batch_size * num_heads, 1, value_height, projected_value_dim_prop}));
 
-  attention_score.reshape(
-    TensorDim({batch_size * num_heads, 1, query_height, key_height}));
   attention_weight.reshape(
     TensorDim({batch_size * num_heads, 1, query_height, key_height}));
   attention_output.reshape(TensorDim(
     {batch_size * num_heads, 1, query_height, projected_value_dim_prop}));
 
   /** scaled dot product attention */
-  projected_query.dotBatched(projected_key, attention_score, false, true);
-  attention_score.multiply_i(1 / sqrt((float)projected_query_dim_prop));
+  projected_query.dotBatched(projected_key, attention_weight, false, true);
+  attention_weight.multiply_i(1 / sqrt((float)projected_query_dim_prop));
 
   if (provide_attention_mask) {
     // Tensor &attention_mask =
@@ -456,16 +442,16 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
     //   attention_mask.multiply_i(-1e9);
     // }
     // attention_mask.multiply_i(mask);
-    // attention_score.add_i(attention_mask);
+    // attention_weight.add_i(attention_mask);
 
-    attention_score.reshape(
+    attention_weight.reshape(
       TensorDim({batch_size, num_heads, query_height, key_height}));
-    attention_score.add_i(mask);
-    attention_score.reshape(
+    attention_weight.add_i(mask);
+    attention_weight.reshape(
       TensorDim({batch_size * num_heads, 1, query_height, key_height}));
   }
 
-  sm.run_fn(attention_score, attention_weight);
+  sm.run_fn(attention_weight, attention_weight);
 
   if (return_attention_weight ==
       props::ReturnAttentionWeightInfo::Enum::before) {
@@ -520,8 +506,6 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   projected_value.reshape(TensorDim(
     {batch_size, 1, value_height, num_heads * projected_value_dim_prop}));
 
-  attention_score.reshape(
-    TensorDim({batch_size, num_heads, query_height, key_height}));
   attention_weight.reshape(
     TensorDim({batch_size, num_heads, query_height, key_height}));
   attention_output.reshape(TensorDim(
@@ -577,8 +561,6 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   Tensor &d_projected_value =
     context.getTensorGrad(weight_idx[AttentionParams::projected_value]);
 
-  Tensor &d_attention_score =
-    context.getTensor(weight_idx[AttentionParams::d_attention_score]);
   Tensor &attention_weight =
     context.getTensor(weight_idx[AttentionParams::attention_weight]);
   Tensor &d_attention_weight =
@@ -621,8 +603,6 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   d_projected_value.reshape(TensorDim(
     {batch_size * num_heads, 1, value_height, projected_value_dim_prop}));
 
-  d_attention_score.reshape(
-    TensorDim({batch_size * num_heads, 1, query_height, key_height}));
   attention_weight.reshape(
     TensorDim({batch_size * num_heads, 1, query_height, key_height}));
   d_attention_weight.reshape(
@@ -652,17 +632,17 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
     d_attention_weight.add_i(d_ret_attention_weight);
   }
 
-  sm.run_prime_fn(attention_weight, d_attention_score, d_attention_weight);
+  sm.run_prime_fn(attention_weight, d_attention_weight, d_attention_weight);
   if (provide_attention_mask) {
     Tensor &d_mask = context.getOutgoingDerivative(INOUT_INDEX::MASK);
-    d_mask.copyData(d_attention_score);
+    d_mask.copyData(d_attention_weight);
   }
-  d_attention_score.multiply_i(
+  d_attention_weight.multiply_i(
     1 / sqrt((float)projected_query_dim_prop)); /** scale */
 
-  d_projected_query.dot_batched_deriv_wrt_1(projected_key, d_attention_score,
+  d_projected_query.dot_batched_deriv_wrt_1(projected_key, d_attention_weight,
                                             false, true);
-  projected_query.dot_batched_deriv_wrt_2(d_projected_key, d_attention_score,
+  projected_query.dot_batched_deriv_wrt_2(d_projected_key, d_attention_weight,
                                           false, true);
 
   d_projected_query.reshape(
@@ -696,8 +676,6 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   d_projected_value.reshape(TensorDim(
     {batch_size * value_height, 1, 1, num_heads * projected_value_dim_prop}));
 
-  d_attention_score.reshape(
-    TensorDim({batch_size, num_heads, query_height, key_height}));
   attention_weight.reshape(
     TensorDim({batch_size, num_heads, query_height, key_height}));
   d_attention_weight.reshape(
@@ -895,8 +873,6 @@ void MultiHeadAttentionLayer::setBatch(RunLayerContext &context,
   context.updateTensor(weight_idx[AttentionParams::projected_query], batch);
   context.updateTensor(weight_idx[AttentionParams::projected_key], batch);
   context.updateTensor(weight_idx[AttentionParams::projected_value], batch);
-  context.updateTensor(weight_idx[AttentionParams::attention_score], batch);
-  context.updateTensor(weight_idx[AttentionParams::d_attention_score], batch);
   context.updateTensor(weight_idx[AttentionParams::attention_weight], batch);
   if (dropout_rate > epsilon) {
     context.updateTensor(weight_idx[AttentionParams::dropout_mask], batch);
