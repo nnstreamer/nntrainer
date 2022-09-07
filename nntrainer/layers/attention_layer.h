@@ -104,7 +104,7 @@ protected:
 
 private:
   ActiFunc sm;                        /** softmax activation operation */
-  std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
+  std::array<unsigned int, 4> wt_idx; /**< indices of the weights and tensors */
 };
 
 } // namespace nntrainer

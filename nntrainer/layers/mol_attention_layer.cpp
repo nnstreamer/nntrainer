@@ -51,7 +51,6 @@ enum AttentionParams {
   u_neg_div,
   u_pos_div,
   dstate,
-  updated_state
 };
 
 void MoLAttentionLayer::finalize(InitLayerContext &context) {
@@ -113,7 +112,7 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   fc_out_dim.width(fc_w_dim.width());
   wt_idx[AttentionParams::fc_out] =
     context.requestTensor(fc_out_dim, "fc_out", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   wt_idx[AttentionParams::fc_tanh] =
     context.requestTensor(fc_out_dim, "fc_tanh", Tensor::Initializer::NONE,
@@ -363,7 +362,6 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &fc_w = context.getWeight(wt_idx[AttentionParams::fc_w]);
   Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &fc_out = context.getTensor(wt_idx[AttentionParams::fc_out]);
   Tensor &fc_tanh = context.getTensor(wt_idx[AttentionParams::fc_tanh]);
   Tensor &dfc_proj_out =
     context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
@@ -376,7 +374,7 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
   else
     dstate.copyData(dstate_local);
 
-  Tensor dfc_tanh = Tensor(fc_out.getDim());
+  Tensor dfc_tanh = Tensor(fc_tanh.getDim());
   dfc_tanh.dot_deriv_wrt_1(fc_proj_w, dfc_proj_out, false, false);
 
   Tensor dfc_out;
@@ -393,7 +391,6 @@ void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
   Tensor &dfc_bias = context.getWeightGrad(wt_idx[AttentionParams::fc_bias]);
   Tensor &dfc_proj_w =
     context.getWeightGrad(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &fc_out = context.getTensor(wt_idx[AttentionParams::fc_out]);
   Tensor &fc_tanh = context.getTensor(wt_idx[AttentionParams::fc_tanh]);
   Tensor &dfc_proj_out =
     context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
@@ -401,7 +398,7 @@ void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
   if (!helper_exec)
     calcDerivativeHelper(context, dstate);
 
-  Tensor dfc_tanh = Tensor(fc_out.getDim());
+  Tensor dfc_tanh = Tensor(fc_tanh.getDim());
   fc_tanh.dot_deriv_wrt_2(
     dfc_proj_w, dfc_proj_out, false, false,
     !context.isGradientFirstAccess(wt_idx[AttentionParams::fc_proj_w]));

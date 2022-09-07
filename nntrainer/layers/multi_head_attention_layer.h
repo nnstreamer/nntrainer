@@ -108,7 +108,7 @@ private:
     multi_head_attention_props; /**< multi_head_attention layer properties */
 
   ActiFunc sm; /** softmax activation operation */
-  std::array<unsigned int, 16>
+  std::array<unsigned int, 14>
     weight_idx; /**< indices of the weights and tensors */
 
   /**
