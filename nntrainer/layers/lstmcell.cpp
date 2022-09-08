@@ -13,7 +13,6 @@
 
 #include <layer_context.h>
 #include <lstmcell.h>
-#include <lstmcell_core.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -30,15 +29,7 @@ enum LSTMCellParams {
   dropout_mask
 };
 
-LSTMCellLayer::LSTMCellLayer() :
-  LayerImpl(),
-  lstmcell_props(props::Unit(), props::IntegrateBias(),
-                 props::HiddenStateActivation() = ActivationType::ACT_TANH,
-                 props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
-                 props::DropOutRate()),
-  acti_func(ActivationType::ACT_NONE, true),
-  recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {
+LSTMCellLayer::LSTMCellLayer() : lstmcell_props(props::DropOutRate()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -56,16 +47,17 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  NNTR_THROW_IF(std::get<props::Unit>(lstmcell_props).empty(),
+  NNTR_THROW_IF(std::get<props::Unit>(lstmcore_props).empty(),
                 std::invalid_argument)
     << "unit property missing for lstmcell layer";
-  const unsigned int unit = std::get<props::Unit>(lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
   const ActivationType hidden_state_activation_type =
-    std::get<props::HiddenStateActivation>(lstmcell_props).get();
+    std::get<props::HiddenStateActivation>(lstmcore_props).get();
   const ActivationType recurrent_activation_type =
-    std::get<props::RecurrentActivation>(lstmcell_props).get();
+    std::get<props::RecurrentActivation>(lstmcore_props).get();
+
   const float dropout_rate = std::get<props::DropOutRate>(lstmcell_props).get();
 
   NNTR_THROW_IF(context.getNumInputs() != 3, std::invalid_argument)
@@ -173,12 +165,12 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
 void LSTMCellLayer::setProperty(const std::vector<std::string> &values) {
   const std::vector<std::string> &remain_props =
     loadProperties(values, lstmcell_props);
-  LayerImpl::setProperty(remain_props);
+  LSTMCore::setProperty(remain_props);
 }
 
 void LSTMCellLayer::exportTo(Exporter &exporter,
                              const ml::train::ExportMethods &method) const {
-  LayerImpl::exportTo(exporter, method);
+  LSTMCore::exportTo(exporter, method);
   exporter.saveResult(lstmcell_props, method, this);
 }
 
@@ -186,10 +178,11 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(lstmcell_props).get();
-  const float dropout_rate = std::get<props::DropOutRate>(lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
+  const float dropout_rate = std::get<props::DropOutRate>(lstmcell_props).get();
 
   const Tensor &input = context.getInput(INOUT_INDEX::INPUT);
   const Tensor &prev_hidden_state =
@@ -218,10 +211,10 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
 
   Tensor &ifgo = context.getTensor(wt_idx[LSTMCellParams::ifgo]);
 
-  lstmcell_forwarding(batch_size, unit, disable_bias, integrate_bias, acti_func,
-                      recurrent_acti_func, input, prev_hidden_state,
-                      prev_cell_state, hidden_state, cell_state, weight_ih,
-                      weight_hh, bias_h, bias_ih, bias_hh, ifgo);
+  forwardLSTM(batch_size, unit, disable_bias, integrate_bias, acti_func,
+              recurrent_acti_func, input, prev_hidden_state, prev_cell_state,
+              hidden_state, cell_state, weight_ih, weight_hh, bias_h, bias_ih,
+              bias_hh, ifgo);
 
   if (dropout_rate > epsilon && training) {
     Tensor &dropout_mask =
@@ -238,16 +231,17 @@ void LSTMCellLayer::calcDerivative(RunLayerContext &context) {
   Tensor &outgoing_derivative =
     context.getOutgoingDerivative(INOUT_INDEX::INPUT);
 
-  lstmcell_calcDerivative(outgoing_derivative, weight_ih, d_ifgo);
+  calcDerivativeLSTM(outgoing_derivative, weight_ih, d_ifgo);
 }
 
 void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
   const float dropout_rate = std::get<props::DropOutRate>(lstmcell_props);
 
   const Tensor &input = context.getInput(INOUT_INDEX::INPUT);
@@ -315,13 +309,13 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     d_hidden_state.multiply(dropout_mask, d_hidden_state_masked);
   }
 
-  lstmcell_calcGradient(
-    batch_size, unit, disable_bias, integrate_bias, acti_func,
-    recurrent_acti_func, input, prev_hidden_state, d_prev_hidden_state,
-    prev_cell_state, d_prev_cell_state,
-    dropout_rate > epsilon ? d_hidden_state_masked : d_hidden_state, cell_state,
-    d_cell_state, d_weight_ih, weight_hh, d_weight_hh, d_bias_h, d_bias_ih,
-    d_bias_hh, ifgo, d_ifgo);
+  calcGradientLSTM(batch_size, unit, disable_bias, integrate_bias, acti_func,
+                   recurrent_acti_func, input, prev_hidden_state,
+                   d_prev_hidden_state, prev_cell_state, d_prev_cell_state,
+                   dropout_rate > epsilon ? d_hidden_state_masked
+                                          : d_hidden_state,
+                   cell_state, d_cell_state, d_weight_ih, weight_hh,
+                   d_weight_hh, d_bias_h, d_bias_ih, d_bias_hh, ifgo, d_ifgo);
 }
 
 void LSTMCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {

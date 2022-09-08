@@ -34,16 +34,8 @@ enum ZoneoutLSTMParams {
 };
 
 ZoneoutLSTMCellLayer::ZoneoutLSTMCellLayer() :
-  LayerImpl(),
-  zoneout_lstmcell_props(
-    props::Unit(), props::IntegrateBias(),
-    props::HiddenStateActivation() = ActivationType::ACT_TANH,
-    props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
-    HiddenStateZoneOutRate(), CellStateZoneOutRate(), Test(),
-    props::MaxTimestep(), props::Timestep()),
-  acti_func(ActivationType::ACT_NONE, true),
-  recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {
+  zoneout_lstmcell_props(HiddenStateZoneOutRate(), CellStateZoneOutRate(),
+                         Test(), props::MaxTimestep(), props::Timestep()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -79,16 +71,17 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  NNTR_THROW_IF(std::get<props::Unit>(zoneout_lstmcell_props).empty(),
+  NNTR_THROW_IF(std::get<props::Unit>(lstmcore_props).empty(),
                 std::invalid_argument)
     << "unit property missing for zoneout_lstmcell layer";
-  const unsigned int unit = std::get<props::Unit>(zoneout_lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(zoneout_lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
   const ActivationType hidden_state_activation_type =
-    std::get<props::HiddenStateActivation>(zoneout_lstmcell_props).get();
+    std::get<props::HiddenStateActivation>(lstmcore_props).get();
   const ActivationType recurrent_activation_type =
-    std::get<props::RecurrentActivation>(zoneout_lstmcell_props).get();
+    std::get<props::RecurrentActivation>(lstmcore_props).get();
+
   const bool test = std::get<Test>(zoneout_lstmcell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props).get();
@@ -241,12 +234,12 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
 void ZoneoutLSTMCellLayer::setProperty(const std::vector<std::string> &values) {
   const std::vector<std::string> &remain_props =
     loadProperties(values, zoneout_lstmcell_props);
-  LayerImpl::setProperty(remain_props);
+  LSTMCore::setProperty(remain_props);
 }
 
 void ZoneoutLSTMCellLayer::exportTo(
   Exporter &exporter, const ml::train::ExportMethods &method) const {
-  LayerImpl::exportTo(exporter, method);
+  LSTMCore::exportTo(exporter, method);
   exporter.saveResult(zoneout_lstmcell_props, method, this);
 }
 
@@ -254,9 +247,10 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(zoneout_lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(zoneout_lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
   const float hidden_state_zoneout_rate =
     std::get<HiddenStateZoneOutRate>(zoneout_lstmcell_props).get();
   const float cell_state_zoneout_rate =
@@ -299,10 +293,10 @@ void ZoneoutLSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &lstm_cell_state =
     context.getTensor(wt_idx[ZoneoutLSTMParams::lstm_cell_state]);
 
-  lstmcell_forwarding(batch_size, unit, disable_bias, integrate_bias, acti_func,
-                      recurrent_acti_func, input, prev_hidden_state,
-                      prev_cell_state, hidden_state, lstm_cell_state, weight_ih,
-                      weight_hh, bias_h, bias_ih, bias_hh, ifgo);
+  forwardLSTM(batch_size, unit, disable_bias, integrate_bias, acti_func,
+              recurrent_acti_func, input, prev_hidden_state, prev_cell_state,
+              hidden_state, lstm_cell_state, weight_ih, weight_hh, bias_h,
+              bias_ih, bias_hh, ifgo);
 
   if (training) {
     Tensor &hs_zoneout_mask =
@@ -355,16 +349,17 @@ void ZoneoutLSTMCellLayer::calcDerivative(RunLayerContext &context) {
     context.getWeight(wt_idx[ZoneoutLSTMParams::weight_ih]);
   const Tensor &d_ifgo = context.getTensorGrad(wt_idx[ZoneoutLSTMParams::ifgo]);
 
-  lstmcell_calcDerivative(outgoing_derivative, weight_ih, d_ifgo);
+  calcDerivativeLSTM(outgoing_derivative, weight_ih, d_ifgo);
 }
 
 void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(zoneout_lstmcell_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
   const bool integrate_bias =
-    std::get<props::IntegrateBias>(zoneout_lstmcell_props).get();
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
   const bool test = std::get<Test>(zoneout_lstmcell_props).get();
   const unsigned int max_timestep =
     std::get<props::MaxTimestep>(zoneout_lstmcell_props).get();
@@ -467,12 +462,12 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
                         d_prev_cell_state_residual);
   d_cell_state.multiply(cell_state_zoneout_mask, d_lstm_cell_state);
 
-  lstmcell_calcGradient(
-    batch_size, unit, disable_bias, integrate_bias, acti_func,
-    recurrent_acti_func, input, prev_hidden_state, d_prev_hidden_state,
-    prev_cell_state, d_prev_cell_state, d_hidden_state_masked, lstm_cell_state,
-    d_lstm_cell_state, d_weight_ih, weight_hh, d_weight_hh, d_bias_h, d_bias_ih,
-    d_bias_hh, ifgo, d_ifgo);
+  calcGradientLSTM(batch_size, unit, disable_bias, integrate_bias, acti_func,
+                   recurrent_acti_func, input, prev_hidden_state,
+                   d_prev_hidden_state, prev_cell_state, d_prev_cell_state,
+                   d_hidden_state_masked, lstm_cell_state, d_lstm_cell_state,
+                   d_weight_ih, weight_hh, d_weight_hh, d_bias_h, d_bias_ih,
+                   d_bias_hh, ifgo, d_ifgo);
 
   d_prev_hidden_state.add_i(d_prev_hidden_state_residual);
   d_prev_cell_state.add_i(d_prev_cell_state_residual);

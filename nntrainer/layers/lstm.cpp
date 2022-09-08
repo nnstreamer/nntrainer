@@ -13,7 +13,6 @@
 
 #include <layer_context.h>
 #include <lstm.h>
-#include <lstmcell_core.h>
 #include <nntr_threads.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -43,35 +42,7 @@ enum LSTMParams {
   dropout_mask
 };
 
-/**
- * @brief run lstm fowarding for batch_first input
- *
- * @param NUM_GATE Number of gate which is 4 for lstm
- * @param batch_size batch size
- * @param feature_size feature size
- * @param disable_bias whether to disable bias or not
- * @param unit number of output neurons
- * @param integrate_bias integrate bias_ih, bias_hh to bias_h
- * @param acti_func activation function for memory cell, cell state
- * @param recurrent_acti_func activation function for input/output/forget
- * gate
- * @param enable_dropout whether to apply dropout
- * @param dropout_rate dropout rate
- * @param max_timestep maximum timestep for lstm
- * @param reverse indicate forward/backward direction for input in bidirectional
- * lstm
- * @param input_ input
- * @param weight_ih weight for input to hidden
- * @param weight_hh weight for hidden to hidden
- * @param bias_h bias for input and hidden.
- * @param bias_ih bias for input
- * @param bias_hh bias for hidden
- * @param hidden_state_ hidden state
- * @param cell_state_ cell state
- * @param ifgo_ input gate, forget gate, memory cell, output gate
- * @param mask_ dropout mask
- */
-static void batch_first_forwarding(
+void LSTMLayer::forwardingBatchFirstLSTM(
   unsigned int NUM_GATE, const unsigned int batch_size,
   const unsigned int feature_size, const bool disable_bias,
   const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
@@ -118,10 +89,10 @@ static void batch_first_forwarding(
         {NUM_GATE * unit},
         (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
 
-      lstmcell_forwarding(1, unit, disable_bias, integrate_bias, acti_func,
-                          recurrent_acti_func, input, prev_hidden_state,
-                          prev_cell_state, hidden_state, cell_state, weight_ih,
-                          weight_hh, bias_h, bias_ih, bias_hh, ifgo);
+      forwardLSTM(1, unit, disable_bias, integrate_bias, acti_func,
+                  recurrent_acti_func, input, prev_hidden_state,
+                  prev_cell_state, hidden_state, cell_state, weight_ih,
+                  weight_hh, bias_h, bias_ih, bias_hh, ifgo);
 
       if (enable_dropout) {
         Tensor mask_sample = mask_.getBatchSlice(batch, 1);
@@ -133,42 +104,7 @@ static void batch_first_forwarding(
   }
 }
 
-/**
- * @brief calculate lstm gradient for batch_first input
- *
- * @param NUM_GATE Number of gate which is 4 for lstm
- * @param batch_size batch size
- * @param feature_size feature size
- * @param disable_bias whether to disable bias or not
- * @param unit number of output neurons
- * @param integrate_bias integrate bias_ih, bias_hh to bias_h
- * @param acti_func activation function for memory cell, cell state
- * @param recurrent_acti_func activation function for input/output/forget
- * gate
- * @param return_sequences return sequeces
- * @param bidirectional bidirectional lstm
- * @param enable_dropout whether to apply dropout
- * @param dropout_rate dropout rate
- * @param max_timestep maximum timestep for lstm
- * @param reverse indicate forward/backward direction for input in bidirectional
- * lstm
- * @param input_ input
- * @param incoming_derivative derivative for output which is incoming derivative
- * @param d_weight_ih weight_ih(weight for input to hidden) gradient
- * @param weight_hh weight for hidden to hidden
- * @param d_weight_hh weight_hh(weight for hidden to hidden) gradient
- * @param d_bias_h bias_h(bias for input and hidden) gradient
- * @param d_bias_ih bias_ih(bias for input) gradient
- * @param d_bias_hh bias_hh(bias for hidden) gradient
- * @param hidden_state_ hidden state
- * @param d_hidden_state_ hidden state gradient
- * @param cell_state_ cell state
- * @param d_cell_state_ cell state gradient
- * @param ifgo_ input gate, forget gate, memory cell, output gate
- * @param d_ifgo_ gradient for input gate, forget gate, memory cell, output gate
- * @param mask_ dropout mask
- */
-void batch_first_calcGradient(
+void LSTMLayer::calcGradientBatchFirstLSTM(
   unsigned int NUM_GATE, const unsigned int batch_size,
   const unsigned int feature_size, const bool disable_bias,
   const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
@@ -327,7 +263,7 @@ void batch_first_calcGradient(
           // already have precalculated values from incomming derivatives
           Tensor d_prev_hidden_state_temp;
 
-          lstmcell_calcGradient(
+          calcGradientLSTM(
             1, unit, disable_bias, integrate_bias, acti_func,
             recurrent_acti_func, input, prev_hidden_state,
             d_prev_hidden_state_temp, prev_cell_state, d_prev_cell_state,
@@ -423,12 +359,12 @@ void batch_first_calcGradient(
         // already have precalculated values from incomming derivatives
         Tensor d_prev_hidden_state_temp;
 
-        lstmcell_calcGradient(1, unit, disable_bias, integrate_bias, acti_func,
-                              recurrent_acti_func, input, prev_hidden_state,
-                              d_prev_hidden_state_temp, prev_cell_state,
-                              d_prev_cell_state, d_hidden_state, cell_state,
-                              d_cell_state, d_weight_ih, weight_hh, d_weight_hh,
-                              d_bias_h, d_bias_ih, d_bias_hh, ifgo, d_ifgo);
+        calcGradientLSTM(1, unit, disable_bias, integrate_bias, acti_func,
+                         recurrent_acti_func, input, prev_hidden_state,
+                         d_prev_hidden_state_temp, prev_cell_state,
+                         d_prev_cell_state, d_hidden_state, cell_state,
+                         d_cell_state, d_weight_ih, weight_hh, d_weight_hh,
+                         d_bias_h, d_bias_ih, d_bias_hh, ifgo, d_ifgo);
         d_prev_hidden_state.add_i(d_prev_hidden_state_temp);
       }
     }
@@ -436,15 +372,9 @@ void batch_first_calcGradient(
 }
 
 LSTMLayer::LSTMLayer() :
-  LayerImpl(),
-  lstm_props(props::Unit(), props::IntegrateBias(),
-             props::HiddenStateActivation() = ActivationType::ACT_TANH,
-             props::RecurrentActivation() = ActivationType::ACT_SIGMOID,
-             props::ReturnSequences(), props::Bidirectional(),
-             props::DropOutRate(), props::MaxTimestep()),
-  acti_func(ActivationType::ACT_NONE, true),
-  recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {
+  LSTMCore(),
+  lstm_props(props::ReturnSequences(), props::Bidirectional(),
+             props::DropOutRate(), props::MaxTimestep()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -462,15 +392,17 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  NNTR_THROW_IF(std::get<props::Unit>(lstm_props).empty(),
+  NNTR_THROW_IF(std::get<props::Unit>(lstmcore_props).empty(),
                 std::invalid_argument)
     << "unit property missing for lstm layer";
-  const unsigned int unit = std::get<props::Unit>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcore_props).get();
   const ActivationType hidden_state_activation_type =
-    std::get<props::HiddenStateActivation>(lstm_props).get();
+    std::get<props::HiddenStateActivation>(lstmcore_props).get();
   const ActivationType recurrent_activation_type =
-    std::get<props::RecurrentActivation>(lstm_props).get();
+    std::get<props::RecurrentActivation>(lstmcore_props).get();
+
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
@@ -631,12 +563,12 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 void LSTMLayer::setProperty(const std::vector<std::string> &values) {
   const std::vector<std::string> &remain_props =
     loadProperties(values, lstm_props);
-  LayerImpl::setProperty(remain_props);
+  LSTMCore::setProperty(remain_props);
 }
 
 void LSTMLayer::exportTo(Exporter &exporter,
                          const ml::train::ExportMethods &method) const {
-  LayerImpl::exportTo(exporter, method);
+  LSTMCore::exportTo(exporter, method);
   exporter.saveResult(lstm_props, method, this);
 }
 
@@ -644,8 +576,10 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
@@ -683,11 +617,11 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
                    ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
                    : empty;
 
-  batch_first_forwarding(NUM_GATE, batch_size, feature_size, disable_bias, unit,
-                         integrate_bias, acti_func, recurrent_acti_func,
-                         enable_dropout, dropout_rate, max_timestep, false,
-                         input, weight_ih, weight_hh, bias_h, bias_ih, bias_hh,
-                         hidden_state, cell_state, ifgo, mask);
+  forwardingBatchFirstLSTM(NUM_GATE, batch_size, feature_size, disable_bias,
+                           unit, integrate_bias, acti_func, recurrent_acti_func,
+                           enable_dropout, dropout_rate, max_timestep, false,
+                           input, weight_ih, weight_hh, bias_h, bias_ih,
+                           bias_hh, hidden_state, cell_state, ifgo, mask);
 
   if (bidirectional) {
     const Tensor &reverse_weight_ih =
@@ -713,7 +647,7 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
       context.getTensor(wt_idx[LSTMParams::reverse_cell_state]);
     Tensor &reverse_ifgo = context.getTensor(wt_idx[LSTMParams::reverse_ifgo]);
 
-    batch_first_forwarding(
+    forwardingBatchFirstLSTM(
       NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
       acti_func, recurrent_acti_func, enable_dropout, dropout_rate,
       max_timestep, true, input, reverse_weight_ih, reverse_weight_hh,
@@ -759,7 +693,7 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
   const Tensor &d_ifgos = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
 
-  lstmcell_calcDerivative(outgoing_derivative, weight_ih, d_ifgos);
+  calcDerivativeLSTM(outgoing_derivative, weight_ih, d_ifgos);
 
   if (bidirectional) {
     const Tensor &reverse_weight_ih =
@@ -767,8 +701,8 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
     const Tensor &reverse_d_ifgos =
       context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo]);
 
-    lstmcell_calcDerivative(outgoing_derivative, reverse_weight_ih,
-                            reverse_d_ifgos, 1.0f);
+    calcDerivativeLSTM(outgoing_derivative, reverse_weight_ih, reverse_d_ifgos,
+                       1.0f);
   }
 }
 
@@ -776,8 +710,10 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
-  const unsigned int unit = std::get<props::Unit>(lstm_props).get();
-  const bool integrate_bias = std::get<props::IntegrateBias>(lstm_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+
   const bool return_sequences =
     std::get<props::ReturnSequences>(lstm_props).get();
   const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
@@ -822,7 +758,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
                          ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
                          : empty;
 
-  batch_first_calcGradient(
+  calcGradientBatchFirstLSTM(
     NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
     acti_func, recurrent_acti_func, return_sequences, bidirectional,
     enable_dropout, dropout_rate, max_timestep, false, input,
@@ -864,7 +800,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     Tensor &reverse_d_ifgo =
       context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo]);
 
-    batch_first_calcGradient(
+    calcGradientBatchFirstLSTM(
       NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
       acti_func, recurrent_acti_func, return_sequences, bidirectional,
       enable_dropout, dropout_rate, max_timestep, true, input,
