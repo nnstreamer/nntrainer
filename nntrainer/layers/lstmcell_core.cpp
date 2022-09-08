@@ -4,7 +4,7 @@
  *
  * @file   lstmcell_core.cpp
  * @date   25 November 2021
- * @brief  These are lstm core functions.
+ * @brief  This is lstm core class.
  * @see    https://github.com/nnstreamer/nntrainer
  * @author hyeonseok lee <hs89.lee@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -21,15 +21,25 @@
 
 namespace nntrainer {
 
-void lstmcell_forwarding(const unsigned int batch_size, const unsigned int unit,
-                         const bool disable_bias, const bool integrate_bias,
-                         ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
-                         const Tensor &input, const Tensor &prev_hidden_state,
-                         const Tensor &prev_cell_state, Tensor &hidden_state,
-                         Tensor &cell_state, const Tensor &weight_ih,
-                         const Tensor &weight_hh, const Tensor &bias_h,
-                         const Tensor &bias_ih, const Tensor &bias_hh,
-                         Tensor &ifgo) {
+LSTMCore::LSTMCore() :
+  LayerImpl(),
+  lstmcore_props(props::Unit(), props::IntegrateBias(),
+                 props::HiddenStateActivation() = ActivationType::ACT_TANH,
+                 props::RecurrentActivation() = ActivationType::ACT_SIGMOID),
+  acti_func(ActivationType::ACT_NONE, true),
+  recurrent_acti_func(ActivationType::ACT_NONE, true),
+  epsilon(1e-3) {}
+
+void LSTMCore::forwardLSTM(const unsigned int batch_size,
+                           const unsigned int unit, const bool disable_bias,
+                           const bool integrate_bias, ActiFunc &acti_func,
+                           ActiFunc &recurrent_acti_func, const Tensor &input,
+                           const Tensor &prev_hidden_state,
+                           const Tensor &prev_cell_state, Tensor &hidden_state,
+                           Tensor &cell_state, const Tensor &weight_ih,
+                           const Tensor &weight_hh, const Tensor &bias_h,
+                           const Tensor &bias_ih, const Tensor &bias_hh,
+                           Tensor &ifgo) {
   input.dot(weight_ih, ifgo);
   prev_hidden_state.dot(weight_hh, ifgo, false, false, 1.0);
   if (!disable_bias) {
@@ -63,13 +73,13 @@ void lstmcell_forwarding(const unsigned int batch_size, const unsigned int unit,
   hidden_state.multiply_i_strided(output_gate);
 }
 
-void lstmcell_calcDerivative(Tensor &outgoing_derivative,
-                             const Tensor &weight_ih, const Tensor &d_ifgo,
-                             const float alpha) {
+void LSTMCore::calcDerivativeLSTM(Tensor &outgoing_derivative,
+                                  const Tensor &weight_ih, const Tensor &d_ifgo,
+                                  const float alpha) {
   d_ifgo.dot(weight_ih, outgoing_derivative, false, true, alpha);
 }
 
-void lstmcell_calcGradient(
+void LSTMCore::calcGradientLSTM(
   const unsigned int batch_size, const unsigned int unit,
   const bool disable_bias, const bool integrate_bias, ActiFunc &acti_func,
   ActiFunc &recurrent_acti_func, const Tensor &input,
@@ -171,6 +181,18 @@ void lstmcell_calcGradient(
   }
 
   d_ifgo.dot(weight_hh, d_prev_hidden_state, false, true);
+}
+
+void LSTMCore::setProperty(const std::vector<std::string> &values) {
+  const std::vector<std::string> &remain_props =
+    loadProperties(values, lstmcore_props);
+  LayerImpl::setProperty(remain_props);
+}
+
+void LSTMCore::exportTo(Exporter &exporter,
+                        const ml::train::ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(lstmcore_props, method, this);
 }
 
 } // namespace nntrainer

@@ -19,7 +19,6 @@
 
 #include <acti_func.h>
 #include <common_properties.h>
-#include <layer_impl.h>
 #include <lstmcell_core.h>
 
 namespace nntrainer {
@@ -28,7 +27,7 @@ namespace nntrainer {
  * @class   ZoneoutLSTMCellLayer
  * @brief   ZoneoutLSTMCellLayer
  */
-class ZoneoutLSTMCellLayer : public LayerImpl {
+class ZoneoutLSTMCellLayer : public LSTMCore {
 public:
   /**
    * @brief HiddenStateZoneOutRate property, this defines zone out rate for
@@ -178,11 +177,10 @@ private:
     OUTPUT_CELL_STATE = 1
   };
 
+  /** common properties like Unit, IntegrateBias, HiddenStateActivation and
+   * RecurrentActivation are in lstmcore_props */
+
   /**
-   * Unit: number of output neurons
-   * IntegrateBias: integrate bias_ih, bias_hh to bias_h
-   * HiddenStateActivation: activation type for hidden state. default is tanh
-   * RecurrentActivation: activation type for recurrent. default is sigmoid
    * HiddenStateZoneOutRate: zoneout rate for hidden_state
    * CellStateZoneOutRate: zoneout rate for cell_state
    * Test: property for test mode
@@ -190,26 +188,10 @@ private:
    * TimeStep: timestep for which lstm should operate
    *
    * */
-  std::tuple<props::Unit, props::IntegrateBias, props::HiddenStateActivation,
-             props::RecurrentActivation, HiddenStateZoneOutRate,
-             CellStateZoneOutRate, Test, props::MaxTimestep, props::Timestep>
+  std::tuple<HiddenStateZoneOutRate, CellStateZoneOutRate, Test,
+             props::MaxTimestep, props::Timestep>
     zoneout_lstmcell_props;
   std::array<unsigned int, 9> wt_idx; /**< indices of the weights */
-
-  /**
-   * @brief     activation function for h_t : default is tanh
-   */
-  ActiFunc acti_func;
-
-  /**
-   * @brief     activation function for recurrent : default is sigmoid
-   */
-  ActiFunc recurrent_acti_func;
-
-  /**
-   * @brief     Protect overflow
-   */
-  float epsilon;
 };
 } // namespace nntrainer
 
