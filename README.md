@@ -79,6 +79,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | pooling2D | Pooling2DLayer | Pooling 2D layer |
  | input | InputLayer | Input Layer.  This is not always required. |
  | batch_normalization | BatchNormalizationLayer | Batch normalization layer |
+ | layer_normalization | LayerNormalizationLayer | Layer normalization layer |
  | activation | ActivaitonLayer | Set by layer property |
  | addition | AdditionLayer | Add input input layers |
  | attention | AttentionLayer | Attenstion layer |
@@ -95,6 +96,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | split | SplitLayer | Split layer |
  | dropout | DropOutLayer | Dropout Layer |
  | embedding | EmbeddingLayer | Embedding Layer |
+ | positional_encoding | PositionalEncodingLayer | Positional Encoding Layer |
  | rnn | RNNLayer | Recurrent Layer |
  | rnncell | RNNCellLayer | Recurrent Cell Layer |
  | gru | GRULayer | Gated Recurrent Unit Layer |
@@ -103,6 +105,8 @@ This component defines layers which consist of a neural network model. Layers ha
  | lstmcell | LSTMCellLayer | Long Short-Term Memory Cell Layer |
  | zoneoutlstmcell | ZoneoutLSTMCellLayer | Zoneout Long Short-Term Memory Cell Layer |
  | time_dist | TimeDistLayer | Time distributed Layer |
+ | multi_head_attention | MultiHeadAttentionLayer | Multi Head Attention Layer |
+
 
 ### Supported Optimizers
 
@@ -112,6 +116,12 @@ NNTrainer Provides
  |:-------:|:---:|:---:|
  | sgd | Stochastic Gradient Decent | - |
  | adam | Adaptive Moment Estimation | - |
+
+ | Keyword | Leanring Rate | Description |
+ |:-------:|:---:|:---:|
+ | exponential | exponential learning rate decay | - |
+ | constant | constant learning rate | - |
+ | step | step learning rate | - |
 
 ### Supported Loss Functions
 
@@ -123,6 +133,7 @@ NNTrainer provides
  | cross_softmax | CrossEntropySoftmaxLossLayer | Cross entropy softmax loss layer |
  | constant_derivative | ConstantDerivativeLossLayer | Constant derivative loss layer |
  | mse | MSELossLayer | Mean square error loss layer |
+ | kld | KLDLossLayer | Kullback-Leibler Divergence loss layer |
 
 ### Supported Activation Functions
 
@@ -134,9 +145,6 @@ NNTrainer provides
  | sigmoid | sigmoid function | set as layer property |
  | relu | relu function | set as layer propery |
  | softmax | softmax function | set as layer propery |
- | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
- | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_param & type |
- | learnig_rate_decay | learning rate decay | need to set step |
 
 ### Tensor
 
@@ -159,8 +167,7 @@ NNTrainer provides
  | Keyword | Loss Name | Description |
  |:-------:|:---:|:---|
  | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
- | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_constant & type |
- | learnig_rate_decay | learning rate decay | need to set step |
+ | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_param & type |
 
 ### APIs
 Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. [C++ APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/ccapi/include) are also provided for other platform. Java & C# APIs will be provided soon.
