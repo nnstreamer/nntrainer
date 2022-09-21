@@ -437,8 +437,8 @@ GTEST_PARAMETER_TEST(
 /**
  * @brief Ini file unittest with backbone with wrong file
  */
-TEST(nntrainerIniTest, backbone_n_01) {
-  ScopedIni s{"backbone_n1", {nw_base_cross, adam, backbone_random}};
+TEST(nntrainerIniTest, backbone_01_n) {
+  ScopedIni s{"backbone_01_n", {nw_base_cross, adam, backbone_random}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
@@ -447,9 +447,9 @@ TEST(nntrainerIniTest, backbone_n_01) {
 /**
  * @brief Ini file unittest with backbone with empty backbone
  */
-TEST(nntrainerIniTest, backbone_n_02) {
+TEST(nntrainerIniTest, backbone_02_n) {
   ScopedIni b{"base", {nw_base_cross}};
-  ScopedIni s{"backbone_n2", {nw_base_cross, adam, backbone_valid}};
+  ScopedIni s{"backbone_02_n", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
@@ -458,9 +458,9 @@ TEST(nntrainerIniTest, backbone_n_02) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, backbone_p_03) {
+TEST(nntrainerIniTest, backbone_03_p) {
   ScopedIni b{"base", {nw_base_cross, batch_normal}};
-  ScopedIni s{"backbone_p3", {nw_base_cross, adam, backbone_valid}};
+  ScopedIni s{"backbone_03_p", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -469,9 +469,9 @@ TEST(nntrainerIniTest, backbone_p_03) {
 /**
  * @brief Ini file unittest with backbone without model parameters
  */
-TEST(nntrainerIniTest, backbone_p_04) {
+TEST(nntrainerIniTest, backbone_04_p) {
   ScopedIni b{"base", {flatten, conv2d}};
-  ScopedIni s{"backbone_p4", {nw_base_cross, adam, backbone_valid}};
+  ScopedIni s{"backbone_04_p", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -480,7 +480,7 @@ TEST(nntrainerIniTest, backbone_p_04) {
 /**
  * @brief Ini file unittest matching model with and without backbone
  */
-TEST(nntrainerIniTest, backbone_p_05) {
+TEST(nntrainerIniTest, backbone_05_p) {
 
   /** Create a backbone.ini */
   ScopedIni b("base", {nw_base_cross, conv2d});
@@ -546,9 +546,9 @@ TEST(nntrainerIniTest, backbone_p_05) {
 /**
  * @brief Ini file unittest matching model with and without trainable
  */
-TEST(nntrainerIniTest, backbone_p_06) {
+TEST(nntrainerIniTest, backbone_06_p) {
   ScopedIni b("base", {flatten, conv2d});
-  ScopedIni s("backbone_p6", {nw_base_cross, adam, backbone_valid});
+  ScopedIni s("backbone_06_p", {nw_base_cross, adam, backbone_valid});
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -562,9 +562,9 @@ TEST(nntrainerIniTest, backbone_p_06) {
 /**
  * @brief Ini file unittest matching model with and without trainable
  */
-TEST(nntrainerIniTest, backbone_p_07) {
+TEST(nntrainerIniTest, backbone_07_p) {
   ScopedIni b("base", {conv2d});
-  ScopedIni s("backbone_p7",
+  ScopedIni s("backbone_07_p",
               {nw_base_mse, adam, backbone_notrain, backbone_train});
   nntrainer::NeuralNetwork NN;
 
@@ -579,8 +579,8 @@ TEST(nntrainerIniTest, backbone_p_07) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, backbone_n_08) {
-  ScopedIni s("backbone_n8", {nw_base_mse, adam, backbone_random_external});
+TEST(nntrainerIniTest, backbone_08_n) {
+  ScopedIni s("backbone_08_n", {nw_base_mse, adam, backbone_random_external});
 
   nntrainer::NeuralNetwork NN;
 
@@ -596,8 +596,8 @@ TEST(nntrainerIniTest, backbone_n_08) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, backbone_p_09) {
-  ScopedIni s("backbone_p9",
+TEST(nntrainerIniTest, backbone_09_p) {
+  ScopedIni s("backbone_09_p",
               {nw_base_mse + "-batch_size", adam, backbone_valid_external});
   nntrainer::NeuralNetwork NN;
 
@@ -614,17 +614,18 @@ TEST(nntrainerIniTest, backbone_p_09) {
  * @brief Ini file unittest with backbone
  * @note Input shape is provided in model file
  */
-TEST(nntrainerIniTest, backbone_n_15) {
+TEST(nntrainerIniTest, backbone_15_n) {
   ScopedIni base("base", {conv2d, conv2d});
 
-  ScopedIni full("backbone_n15_scaled", {nw_base_mse, adam, backbone_valid});
+  ScopedIni full("backbone_15_n_scaled", {nw_base_mse, adam, backbone_valid});
 
   nntrainer::NeuralNetwork NN_scaled, NN_full;
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_THROW(NN_full.initialize(), std::invalid_argument);
 
-  ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, adam, backbone_scaled});
+  ScopedIni scaled("backbone_15_n_scaled",
+                   {nw_base_mse, adam, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
@@ -634,13 +635,13 @@ TEST(nntrainerIniTest, backbone_n_15) {
  * @brief Ini file unittest with backbone
  * @note Input shape is striped from backbone and not provided in model file
  */
-TEST(nntrainerIniTest, backbone_p_17) {
+TEST(nntrainerIniTest, backbone_17_p) {
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
   ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
 
   ScopedIni full(
-    "backbone_p17_full",
+    "backbone_17_p_full",
     {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
@@ -648,7 +649,7 @@ TEST(nntrainerIniTest, backbone_p_17) {
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
   ScopedIni scaled(
-    "backbone_p17_scaled",
+    "backbone_17_p_scaled",
     {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
@@ -660,12 +661,12 @@ TEST(nntrainerIniTest, backbone_p_17) {
  * @brief Ini file unittest with backbone
  * @note Multi Output layer name not found, epmty backbone
  */
-TEST(nntrainerIniTest, backbone_n_18) {
+TEST(nntrainerIniTest, backbone_18_n) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
                           flatten + "input_layers=conv2d"});
-  ScopedIni backbone("Backbone_n18",
+  ScopedIni backbone("Backbone_18_n",
                      {nw_base_mse, adam, input,
                       backbone_valid_inout + "input_layers=inputlayer"});
 
@@ -677,13 +678,13 @@ TEST(nntrainerIniTest, backbone_n_18) {
  * @brief Ini file unittest with backbone
  * @note Input layer name not found, epmty backbone
  */
-TEST(nntrainerIniTest, backbone_n_19) {
+TEST(nntrainerIniTest, backbone_19_n) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
                           batch_normal + "input_layers=conv2d"});
 
-  ScopedIni backbone("backbone_n19",
+  ScopedIni backbone("backbone_19_n",
                      {nw_base_mse, adam, input,
                       backbone_valid_inout + "input_layers=inputlayer"});
 
@@ -695,14 +696,14 @@ TEST(nntrainerIniTest, backbone_n_19) {
  * @brief Ini file unittest with backbone
  * @note input and output layer specified are found
  */
-TEST(nntrainerIniTest, backbone_p_20) {
+TEST(nntrainerIniTest, backbone_20_p) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base",
                  {input2d, conv2d + "input_layers=inputlayer",
                   flatten + "input_layers=conv2d", out + "input_layers=flat"});
 
-  ScopedIni backbone("backbone_p20",
+  ScopedIni backbone("backbone_20_p",
                      {nw_base_mse, adam, input,
                       backbone_valid_inout + "input_layers=inputlayer"});
 
@@ -767,9 +768,9 @@ TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
 /**
  * @brief Ini file unittest with distributed layer
  */
-TEST(nntrainerIniTest, distribute_p_01) {
+TEST(nntrainerIniTest, distribute_01_p) {
   ScopedIni s{
-    "distribute_p1",
+    "distribute_01_p",
     {nw_base_cross, adam,
      input + "-Activation" + "-Input_Shape" + "Input_Shape = 3:1:10:10",
      out + "distribute=true"}};
