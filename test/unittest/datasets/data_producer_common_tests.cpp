@@ -60,7 +60,7 @@ void DataProducerSemantics::SetUp() {
   }
 }
 
-TEST_P(DataProducerSemantics, finalize_pn) {
+TEST_P(DataProducerSemantics, finalize_p_n) {
   if (result == DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE) {
     EXPECT_ANY_THROW(producer->finalize(input_dims, label_dims));
   } else {
@@ -68,7 +68,7 @@ TEST_P(DataProducerSemantics, finalize_pn) {
   }
 }
 
-TEST_P(DataProducerSemantics, error_once_or_not_pn) {
+TEST_P(DataProducerSemantics, error_once_or_not_p_n) {
   if (result == DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE) {
     return; // skip this test
   }
@@ -85,7 +85,7 @@ TEST_P(DataProducerSemantics, error_once_or_not_pn) {
   }
 }
 
-TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_pn) {
+TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_p_n) {
   if (result != DataProducerSemanticsExpectedResult::SUCCESS) {
     return; // skip this test
   }
