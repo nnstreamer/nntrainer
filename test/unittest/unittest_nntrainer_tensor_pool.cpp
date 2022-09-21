@@ -32,7 +32,7 @@ TEST(TensorPool, create_destroy) { EXPECT_NO_THROW(nntrainer::TensorPool()); }
 /**
  * @brief request empty tensor
  */
-TEST(TensorPool, request_mem_01_n) {
+TEST(TensorPool, request_01_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_THROW(pool.request("abc", nntrainer::TensorDim(), {},
@@ -43,7 +43,7 @@ TEST(TensorPool, request_mem_01_n) {
 /**
  * @brief request empty name
  */
-TEST(TensorPool, request_mem_02_n) {
+TEST(TensorPool, request_02_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_THROW(pool.request("", nntrainer::TensorDim({1}), {},
@@ -52,22 +52,9 @@ TEST(TensorPool, request_mem_02_n) {
 }
 
 /**
- * @brief request tensor
- */
-TEST(TensorPool, request_mem_03_p) {
-  nntrainer::TensorPool pool;
-  nntrainer::Tensor *t;
-
-  EXPECT_NO_THROW(t = pool.request("abc", nntrainer::TensorDim({1}), {},
-                                   nntrainer::TensorLifespan::UNMANAGED));
-  EXPECT_NE(t, nullptr);
-  EXPECT_FALSE(t->isAllocated());
-}
-
-/**
  * @brief request already allocated tensor
  */
-TEST(TensorPool, request_mem_04_n) {
+TEST(TensorPool, request_03_n) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
@@ -79,9 +66,104 @@ TEST(TensorPool, request_mem_04_n) {
 }
 
 /**
+ * @brief request tensor
+ */
+TEST(TensorPool, request_04_p) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t;
+
+  EXPECT_NO_THROW(t = pool.request("abc", nntrainer::TensorDim({1}), {},
+                                   nntrainer::TensorLifespan::UNMANAGED));
+  EXPECT_NE(t, nullptr);
+  EXPECT_FALSE(t->isAllocated());
+}
+
+/**
+ * @brief request bigger size for view
+ */
+TEST(TensorPool, view_01_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::UNMANAGED));
+
+  EXPECT_THROW(pool.view("abc1", "abc", nntrainer::TensorDim({2}), {},
+                         nntrainer::TensorLifespan::UNMANAGED),
+               std::invalid_argument);
+}
+
+/**
+ * @brief request view non existing tensor
+ */
+TEST(TensorPool, view_02_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::UNMANAGED));
+
+  EXPECT_ANY_THROW(pool.view("abc1", "not_exist", nntrainer::TensorDim({1}), {},
+                             nntrainer::TensorLifespan::UNMANAGED));
+}
+
+/**
+ * @brief request with clashing name
+ */
+TEST(TensorPool, view_03_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::UNMANAGED));
+
+  EXPECT_THROW(pool.view("abc", "abc", nntrainer::TensorDim({1}), {},
+                         nntrainer::TensorLifespan::UNMANAGED),
+               std::invalid_argument);
+}
+
+/**
+ * @brief view with empty tensor
+ */
+TEST(TensorPool, view_04_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::UNMANAGED));
+
+  EXPECT_THROW(pool.view("abc1", "abc", nntrainer::TensorDim({}), {},
+                         nntrainer::TensorLifespan::UNMANAGED),
+               std::invalid_argument);
+}
+
+/**
+ * @brief view with empty name
+ */
+TEST(TensorPool, view_05_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::UNMANAGED));
+
+  EXPECT_THROW(pool.view("", "abc", nntrainer::TensorDim({1}), {},
+                         nntrainer::TensorLifespan::UNMANAGED),
+               std::invalid_argument);
+}
+
+/**
+ * @brief request view of managed tensor
+ */
+TEST(TensorPool, view_06_n) {
+  nntrainer::TensorPool pool;
+
+  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
+                               nntrainer::TensorLifespan::MAX_LIFESPAN));
+  EXPECT_THROW(pool.view("abc1", "abc", nntrainer::TensorDim({1}), {},
+                         nntrainer::TensorLifespan::UNMANAGED),
+               std::invalid_argument);
+}
+
+/**
  * @brief request already allocated tensor
  */
-TEST(TensorPool, request_mem_05_p) {
+TEST(TensorPool, view_07_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1, *t2;
 
@@ -99,36 +181,9 @@ TEST(TensorPool, request_mem_05_p) {
 }
 
 /**
- * @brief request bigger size for view
- */
-TEST(TensorPool, request_mem_06_n) {
-  nntrainer::TensorPool pool;
-
-  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
-                               nntrainer::TensorLifespan::UNMANAGED));
-
-  EXPECT_THROW(pool.view("abc1", "abc", nntrainer::TensorDim({2}), {},
-                         nntrainer::TensorLifespan::UNMANAGED),
-               std::invalid_argument);
-}
-
-/**
- * @brief request non existing tensor
- */
-TEST(TensorPool, request_mem_07_n) {
-  nntrainer::TensorPool pool;
-
-  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
-                               nntrainer::TensorLifespan::UNMANAGED));
-
-  EXPECT_ANY_THROW(pool.view("abc1", "not_exist", nntrainer::TensorDim({1}), {},
-                             nntrainer::TensorLifespan::UNMANAGED));
-}
-
-/**
  * @brief request try extending lifespan of unmanaged
  */
-TEST(TensorPool, request_mem_08_p) {
+TEST(TensorPool, view_08_p) {
   nntrainer::TensorPool pool;
   nntrainer::Tensor *t1, *t2;
 
@@ -153,20 +208,6 @@ TEST(TensorPool, request_mem_08_p) {
 }
 
 /**
- * @brief request clashing name
- */
-TEST(TensorPool, request_mem_09_n) {
-  nntrainer::TensorPool pool;
-
-  EXPECT_NO_THROW(pool.request("abc", nntrainer::TensorDim({1}), {},
-                               nntrainer::TensorLifespan::UNMANAGED));
-
-  EXPECT_THROW(pool.view("abc", "abc", nntrainer::TensorDim({1}), {},
-                         nntrainer::TensorLifespan::UNMANAGED),
-               std::invalid_argument);
-}
-
-/**
  * @brief set batch
  */
 TEST(TensorPool, set_batch_01_p) {
@@ -184,7 +225,7 @@ TEST(TensorPool, set_batch_01_p) {
 }
 
 /**
- * @brief set batch
+ * @brief set batch for not exist tensor
  */
 TEST(TensorPool, set_batch_02_n) {
   nntrainer::TensorPool pool;
@@ -197,6 +238,24 @@ TEST(TensorPool, set_batch_02_n) {
 
   EXPECT_THROW(pool.setBatchSize("not_exist", 10), std::invalid_argument);
   EXPECT_EQ(t1->batch(), 1u);
+}
+
+/**
+ * @brief set batch for allocated tensor
+ */
+TEST(TensorPool, set_batch_03_n) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1;
+  nntrainer::BasicPlanner basic_planner;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("abc", nntrainer::TensorDim({1}), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_NO_THROW(pool.finalize(basic_planner, 0, 1));
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_THROW(pool.setBatchSize("abc", 10), std::invalid_argument);
 }
 
 /**

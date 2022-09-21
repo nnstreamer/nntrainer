@@ -65,6 +65,11 @@ TEST(DataBuffer, fetchIteration_p) {
   }
 }
 
+TEST(DataBuffer, fetchWithoutProducer_n) {
+  nntrainer::DataBuffer db(nullptr);
+  EXPECT_THROW(db.fetch(), std::runtime_error);
+}
+
 TEST(DataBuffer, fetchWithoutStart_n) {
   std::unique_ptr<nntrainer::DataProducer> prod =
     std::make_unique<nntrainer::RandomDataOneHotProducer>();

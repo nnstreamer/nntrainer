@@ -57,16 +57,29 @@ TEST(MemoryPool, request_mem_03_n) {
 }
 
 /**
+ * @brief request memory after allocate
+ */
+TEST(MemoryPool, request_mem_04_n) {
+  nntrainer::MemoryPool pool;
+
+  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
+  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_THROW(pool.requestMemory(1, 5, 6), std::invalid_argument);
+}
+
+/**
  * @brief request memory
  */
-TEST(MemoryPool, request_mem_04_p) {
+TEST(MemoryPool, request_mem_05_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
 }
 
 /**
- * @brief plan layout
+ * @brief plan layout without reqeustMemory
  */
 TEST(MemoryPool, plan_layout_01_n) {
   nntrainer::MemoryPool pool;
@@ -75,13 +88,16 @@ TEST(MemoryPool, plan_layout_01_n) {
 }
 
 /**
- * @brief plan layout
+ * @brief plan layout after allocate
  */
-TEST(MemoryPool, plan_layout_02_p) {
+TEST(MemoryPool, plan_layout_02_n) {
   nntrainer::MemoryPool pool;
 
-  pool.requestMemory(1, 4, 5);
+  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
   EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_THROW(pool.planLayout(nntrainer::BasicPlanner()), std::runtime_error);
 }
 
 /**
@@ -106,49 +122,41 @@ TEST(MemoryPool, deallocate_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_NO_THROW(pool.deallocate());
+
+  pool.requestMemory(1, 4, 5);
+  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_NO_THROW(pool.deallocate());
 }
 
 /**
- * @brief allocate
+ * @brief allocate without requestMemory
  */
 TEST(MemoryPool, allocate_01_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.allocate(), std::runtime_error);
-
-  pool.requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
-  EXPECT_EQ(1u, pool.size());
-
-  EXPECT_NO_THROW(pool.allocate());
-
-  EXPECT_NO_THROW(pool.deallocate());
 }
 
 /**
- * @brief allocate
+ * @brief allocate without planLayout
  */
-TEST(MemoryPool, allocate_02_p) {
+TEST(MemoryPool, allocate_02_n) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
-  EXPECT_EQ(1u, pool.size());
-
-  EXPECT_NO_THROW(pool.allocate());
-
-  EXPECT_NO_THROW(pool.deallocate());
+  EXPECT_THROW(pool.allocate(), std::runtime_error);
 }
 
 /**
- * @brief allocate
+ * @brief allocate aftrer allocate
  */
 TEST(MemoryPool, allocate_03_n) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
   EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
-  EXPECT_EQ(1u, pool.size());
 
   EXPECT_NO_THROW(pool.allocate());
 
@@ -160,7 +168,7 @@ TEST(MemoryPool, allocate_03_n) {
 /**
  * @brief allocate
  */
-TEST(MemoryPool, allocate_04_n) {
+TEST(MemoryPool, allocate_04_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(3, 4, 5);
@@ -183,23 +191,6 @@ TEST(MemoryPool, size_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_EQ(pool.size(), 0u);
-}
-
-/**
- * @brief size of the pool
- */
-TEST(MemoryPool, size_02_p) {
-  nntrainer::MemoryPool pool;
-
-  pool.requestMemory(1, 4, 5);
-  EXPECT_EQ(pool.size(), 0u);
-}
-
-/**
- * @brief size of the pool
- */
-TEST(MemoryPool, size_03_p) {
-  nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
   EXPECT_EQ(pool.size(), 0u);
@@ -220,26 +211,6 @@ TEST(MemoryPool, min_mem_req_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_EQ(pool.minMemoryRequirement(), 0u);
-}
-
-/**
- * @brief min requirement
- */
-TEST(MemoryPool, min_mem_req_02_p) {
-  nntrainer::MemoryPool pool;
-
-  pool.requestMemory(1, 4, 5);
-  EXPECT_EQ(pool.minMemoryRequirement(), 1u);
-
-  pool.planLayout(nntrainer::BasicPlanner());
-  EXPECT_EQ(pool.minMemoryRequirement(), 1u);
-}
-
-/**
- * @brief min requirement
- */
-TEST(MemoryPool, min_mem_req_03_p) {
-  nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
   EXPECT_EQ(pool.minMemoryRequirement(), 1u);
@@ -278,7 +249,7 @@ TEST(MemoryPool, min_mem_req_03_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_04_p) {
+TEST(MemoryPool, min_mem_req_02_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -305,7 +276,7 @@ TEST(MemoryPool, min_mem_req_04_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_05_p) {
+TEST(MemoryPool, min_mem_req_03_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -332,7 +303,7 @@ TEST(MemoryPool, min_mem_req_05_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_06_p) {
+TEST(MemoryPool, min_mem_req_04_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -412,6 +383,32 @@ TEST(MemoryPool, get_memory_04_p) {
   EXPECT_NE(mem, nullptr);
 
   EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief clear after allocate
+ */
+TEST(MemoryPool, clear_01_n) {
+  nntrainer::MemoryPool pool;
+
+  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
+  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_THROW(pool.clear(), std::invalid_argument);
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief clear
+ */
+TEST(MemoryPool, clear_02_p) {
+  nntrainer::MemoryPool pool;
+
+  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
+  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
+
+  EXPECT_NO_THROW(pool.clear());
 }
 
 /**
