@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_models_v2.cpp
+ * @file unittest_models.cpp
  * @date 25 Nov 2021
  * @brief unittest models for v2 version
  * @see	https://github.com/nnstreamer/nntrainer

@@ -42,7 +42,7 @@ using LayerSemanticsParamType =
 /**
  * @brief LayerSemantics
  * @note  This test suite includes
- * @see   layers_common_test.cpp for details
+ * @see   layers_[standalone|dependent]_common_test.cpp for details
  * 1. Layer Creation
  * 2. SetProperties
  * 3. Semantics of Layer (eg) finalize twice is prohibited)
