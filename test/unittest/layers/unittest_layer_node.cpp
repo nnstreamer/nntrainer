@@ -289,7 +289,7 @@ TEST(nntrainer_LayerNode, setWeights_02_n) {
                       nntrainer::Tensor::Initializer::XAVIER_UNIFORM,
                       nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, 0.0f,
                       true, false, "weight");
-  float *float_ptr[2];
+  float *float_ptr[2] = {nullptr, nullptr};
   const std::vector<float *> new_weights({float_ptr[0], float_ptr[1]});
   nntrainer::Var_Grad input = nntrainer::Var_Grad(
     nntrainer::TensorDim({1, 1, 1, 1}), nntrainer::Tensor::Initializer::NONE,
