@@ -91,6 +91,6 @@ exe = executable(
 )
 
 # @todo delete v2 once migration is done
-test('unittest_layers_v2', exe,
-  args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_layers_v2')
+test('unittest_layers', exe,
+  args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_layers')
 )

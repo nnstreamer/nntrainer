@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_pooling.cpp
+ * @file simpleshot_layer_common_tests.cpp
  * @date 13 July 2021
  * @brief Simpleshot Layers Test
  * @see	https://github.com/nnstreamer/nntrainer

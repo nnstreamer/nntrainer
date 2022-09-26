@@ -13,7 +13,6 @@ unzip_target = [
   ['valset.tar.gz', ''],
   ['testset.tar.gz', ''],
   ['unittest_layers.tar.gz', 'unittest_layers'],
-  ['unittest_layers_v2.tar.gz', 'unittest_layers'],
   ['unittest_models.tar.gz', 'unittest_models'],
   ['unittest_models_v2.tar.gz', 'unittest_models'],
   ['unittest_models_v3.tar.gz', 'unittest_models'],
@@ -34,7 +33,6 @@ run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
 test_target = [
   ['unittest_nntrainer_activations', []],
   ['unittest_nntrainer_internal', []],
-  # ['unittest_nntrainer_layers', []],
   ['unittest_nntrainer_lazy_tensor', []],
   ['unittest_nntrainer_tensor', []],
   ['unittest_util_func', []],
