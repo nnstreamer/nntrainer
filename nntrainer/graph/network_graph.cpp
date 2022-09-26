@@ -699,7 +699,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
-   * allocated input. This is neccesary for manager to know when this input
+   * allocated output. This is necessary for manager to know when this output
    * node is going to be used.
    */
   std::vector<std::string> input_names;
@@ -713,7 +713,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** In-Place optimizations */
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated output. This is neccesary for manager to know when this output
+   * allocated output. This is necessary for manager to know when this output
    * node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();

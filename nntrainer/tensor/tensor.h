@@ -681,7 +681,7 @@ public:
    * @param is_FC if layer == FC only transpose shape and clone data
    * @return Tensor
    */
-  Tensor transpose(const std::string &direction, bool is_FC = false) const;
+  Tensor transpose(const std::string &direction) const;
 
   /**
    * @brief Transpose Tensor
@@ -690,8 +690,7 @@ public:
    * @param is_FC if layer == FC only transpose shape and clone data
    * @retval Tensor& reference to the out
    */
-  Tensor &transpose(const std::string &direction, Tensor &out,
-                    bool is_FC = false) const;
+  Tensor &transpose(const std::string &direction, Tensor &out) const;
 
   /**
    * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
@@ -1177,7 +1176,7 @@ public:
    * memory smaller. Caller must handle this in their own end.
    *
    * @note      If this tensor is re-allocated, then the memory might not be
-   * immediately freed as the tensor already dependeing on this tensor also
+   * immediately freed as the tensor already depending on this tensor also
    * share the same memory. So, the peak memory consumption in worst case can
    * reach the total memory requirements of a model with old batchsize and the
    * new batch size. It is recommended to first deallocate all the tensors,
