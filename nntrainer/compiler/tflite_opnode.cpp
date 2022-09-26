@@ -14,6 +14,7 @@
 
 #include <layer_context.h>
 #include <layer_node.h>
+#include <memory.h>
 
 namespace nntrainer {
 
@@ -24,6 +25,7 @@ TfOpNode::TfOpNode() :
   weight_transform(nullptr),
   is_input(false),
   is_output(false),
+  need_reorder_weight(false),
   node_owned_variable(),
   /// @todo distinguish between uninitialized and ADD operator.
   op_type(tflite::BuiltinOperator_ADD),
@@ -111,6 +113,64 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
 void TfOpNode::setWeightTransformFn(TransformFn fn) { weight_transform = fn; }
 
 void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
+
+void TfOpNode::weightReorder(unsigned int node_count) {
+  if (need_reorder_weight == false) {
+    return;
+  }
+
+  auto previous_input_shape = input_nodes[0]->getInputs()[0];
+
+  const unsigned int UNIT = outputs[0]->height();
+  const unsigned int CHANNEL = previous_input_shape->channel();
+  const unsigned int HEIGHT = previous_input_shape->height();
+  const unsigned int WIDTH = previous_input_shape->width();
+
+  auto weight_data = weights[0]->getData();
+  auto *ptr = const_cast<float *>(weight_data);
+
+  std::vector<float> old_value_list;
+  old_value_list.reserve((UNIT * CHANNEL * HEIGHT * WIDTH));
+  memcpy(&old_value_list[0], &ptr[0],
+         sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
+
+  for (unsigned int h = 0; h < HEIGHT; h++) {
+    for (unsigned int w = 0; w < WIDTH; w++) {
+      for (unsigned int c = 0; c < CHANNEL; c++) {
+
+        unsigned int now_position = h * (WIDTH * CHANNEL) + w * CHANNEL + c;
+        unsigned int next_position = c * (HEIGHT * WIDTH) + h * WIDTH + w;
+
+        memcpy(&ptr[now_position * UNIT], &old_value_list[next_position * UNIT],
+               sizeof(float) * UNIT);
+      }
+    }
+  }
+
+  auto weight_transform_fn = [](std::vector<const Tensor *> &weights) {
+    std::vector<Tensor> new_weights;
+    new_weights.reserve(weights.size());
+    new_weights.push_back(weights[0]->transpose("0:2:1"));
+    new_weights.push_back(*weights[1]);
+    return new_weights;
+  };
+
+  setWeightTransformFn(weight_transform_fn);
+
+  auto transform_if = [this](TransformFn &fn, Variables &v) {
+    if (fn) {
+      auto result = fn(v);
+      v.resize(result.size());
+      node_owned_variable.insert(node_owned_variable.end(), result.begin(),
+                                 result.end());
+      std::transform(node_owned_variable.end() - result.size(),
+                     node_owned_variable.end(), v.begin(),
+                     [](Tensor &t) { return &t; });
+    }
+  };
+
+  transform_if(weight_transform, weights);
+}
 
 void TfOpNode::finalize() {
   auto transform_if = [this](TransformFn &fn, Variables &v) {

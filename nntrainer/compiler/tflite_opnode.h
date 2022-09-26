@@ -43,7 +43,7 @@ public:
   TfOpNode();
 
   /**
-   * @brief finalize tf op node will be transfored to required variables
+   * @brief finalize tf op node will be transformed to required variables
    * in this phase, weights are merged into inputs
    *
    */
@@ -86,6 +86,19 @@ public:
    */
   void setBuiltinOptions(tflite::BuiltinOptions builtin_option_type_,
                          const flatbuffers::Offset<void> &builtin_ops_);
+
+  /**
+   * @brief Set the Need Reorder Weight object
+   *
+   */
+  void setNeedReorderWeight() { need_reorder_weight = true; }
+
+  /**
+   * @brief Reorder Weight in case of NCHW --> NHWC
+   *
+   * @param node_count
+   */
+  void weightReorder(unsigned int node_count);
 
   /**
    * @brief Get the Inputs object
@@ -151,6 +164,14 @@ public:
    * virtual node is a node that will not be exported
    */
   bool isVirtualNode() const { return is_virtual; }
+
+  /**
+   * @brief check if this layer need to reorder
+   *
+   * @return true
+   * @return false
+   */
+  bool isNeedReorder() const { return need_reorder_weight; }
 
   /**
    * @brief Get the Op Type object
@@ -220,14 +241,15 @@ private:
   TransformFn weight_transform; /**< weight transforms */
   /**
    * Q) Why do we need input transform?
-   * A) To transfrom the nntrainer input data format(NCHW) to tflite
+   * A) To transform the nntrainer input data format(NCHW) to tflite
    *format(NHWC)
    **/
   TransformFn input_transform; /**< input transforms */
 
-  bool is_input;   /**< true if given input is input; */
-  bool is_output;  /**< true if given output is output; */
-  bool is_virtual; /**< true if given node is virtual; */
+  bool is_input;            /**< true if given input is input; */
+  bool is_output;           /**< true if given output is output; */
+  bool is_virtual;          /**< true if given node is virtual; */
+  bool need_reorder_weight; /**< true if given node need to reorder weight; */
 
   /// @todo change to shared_ptr or unique_ptr
   /// why? the addresses of existing tensors in the vector could become invalid

@@ -234,7 +234,7 @@ bool MemoryPool::validateOverlap() {
 }
 
 /**
- * @brief Get sorted permuation for the memory requests
+ * @brief Get sorted permutation for the memory requests
  *
  * @details Performs sorting based on the memory overlap using memory offset
  * as the start and the memory offset + memory size as the end of the interval.

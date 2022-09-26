@@ -192,7 +192,7 @@ public:
    * @brief     Create tensors with the given spec
    *
    * @param node Graph node to extract node identifiers/info
-   * @param tensors_spec Specficiation for the tensors
+   * @param tensors_spec Specification for the tensors
    * @param shared_names if tensor is shared, name is needed
    *
    * @return created tensors list
@@ -206,7 +206,7 @@ public:
    * @brief     Create tensors with the given spec
    *
    * @param node Graph node to extract node identifiers/info
-   * @param tensors_spec Specficiation for the tensors
+   * @param tensors_spec Specification for the tensors
    *
    * @return created tensors list
    */
@@ -219,7 +219,7 @@ public:
    * @brief     Create tensors with the given spec
    *
    * @param node Graph node to extract node identifiers/info
-   * @param inputs_dim Specficiation for the tensors
+   * @param inputs_dim Specification for the tensors
    * @param outputs_name Name of the already requested output tensors
    *
    * @return created tensors list

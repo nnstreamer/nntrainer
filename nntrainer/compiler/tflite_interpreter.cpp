@@ -286,7 +286,7 @@ public:
   }
 
 private:
-  float empty_buffer[0]; /**< reserved unintialized tensor points to this
+  float empty_buffer[0]; /**< reserved uninitialized tensor points to this
                             buffer */
 
   std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map
@@ -327,47 +327,12 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
   for (auto &n : nodes) {
     auto tf_node = n.get();
 
-    auto now_node_type = tf_node->getOptionType();
-    if (now_node_type ==
-        tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions) {
-
-      if (node_count != 0) {
-
-        auto previous_input_shape =
-          nodes.at(node_count - 1).get()->getInputs()[0];
-
-        const unsigned int UNIT = tf_node->getOutputs()[0]->height();
-        const unsigned int CHANNEL = previous_input_shape->channel();
-        const unsigned int HEIGHT = previous_input_shape->height();
-        const unsigned int WIDTH = previous_input_shape->width();
-        const unsigned int UNITLEN = (CHANNEL * WIDTH * HEIGHT);
-
-        auto weight_data = tf_node->getWeights()[0]->getData();
-        auto *ptr = const_cast<float *>(weight_data);
-
-        std::vector<float> old_value_list;
-
-        for (unsigned int i = 0; i < (UNIT * CHANNEL * HEIGHT * WIDTH); i++) {
-          old_value_list.push_back(weight_data[i]);
-        }
-
-        for (unsigned int u = 0; u < UNIT; u++) {
-          for (unsigned int h = 0; h < HEIGHT; h++) {
-            for (unsigned int w = 0; w < WIDTH; w++) {
-              for (unsigned int c = 0; c < CHANNEL; c++) {
-
-                int next_position = (u * CHANNEL * HEIGHT * WIDTH) +
-                                    c * (HEIGHT * WIDTH) + h * WIDTH + w;
-                int now_position = (u * CHANNEL * HEIGHT * WIDTH) +
-                                   h * (WIDTH * CHANNEL) + w * CHANNEL + c;
-
-                ptr[now_position] = old_value_list[next_position];
-              }
-            }
-          }
-        }
-      }
+    if (tf_node->getOptionType() ==
+          tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions &&
+        node_count != 0) {
+      tf_node->setNeedReorderWeight();
     }
+
     node_count++;
   }
 
@@ -391,6 +356,17 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
           ->get();
       tf_node->setArg(index, layer_to_tf.find(input_layer_node)->second);
     }
+  }
+
+  node_count = 0;
+  for (auto &n : nodes) {
+    auto tf_node = n.get();
+
+    if (tf_node->isNeedReorder()) {
+      tf_node->weightReorder(node_count);
+    }
+
+    node_count++;
   }
 
   return nodes;

@@ -352,12 +352,17 @@ TEST(nntrainerInterpreterTflite, simple_flatten) {
   }
 
   interpreter.serialize(g, "FC_weight_test.tflite");
+
+  auto weight_data2 = ng.getLayerNode("fc0")->getWeight(0).getData();
+  auto *ptr2 = const_cast<float *>(weight_data2);
+
   ng.deallocateTensors();
 
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> tf_interpreter;
   std::unique_ptr<tflite::FlatBufferModel> model =
     tflite::FlatBufferModel::BuildFromFile("FC_weight_test.tflite");
+
   EXPECT_NE(model, nullptr);
   tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
   EXPECT_NE(tf_interpreter, nullptr);
@@ -401,6 +406,303 @@ TEST(nntrainerInterpreterTflite, simple_flatten) {
   if (remove("FC_weight_test.tflite")) {
     std::cerr << "remove ini "
               << "FC_weight_test.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+TEST(nntrainerInterpreterTflite, simple_flatten2) {
+
+  nntrainer::TfliteInterpreter interpreter;
+  nntrainer::FlattenRealizer fr;
+
+  auto input0 = LayerRepresentation(
+    "input", {"name=in0", "input_shape=3:2:4", "flatten=true"});
+
+  auto fc0_zeroed = LayerRepresentation(
+    "fully_connected", {"name=fc0", "unit=4", "input_layers=in0",
+                        "bias_initializer=ones", "weight_initializer=ones"});
+
+  auto g = fr.realize(makeGraph({input0, fc0_zeroed}));
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+
+  unsigned int UNIT = 4;
+  unsigned int HEIGHT = 2;
+  unsigned int WIDTH = 4;
+  unsigned int CHANNEL = 3;
+
+  auto weight_data = ng.getLayerNode("fc0")->getWeight(0).getData();
+  auto *ptr = const_cast<float *>(weight_data);
+
+  // Set initial Weights
+  int count = 0;
+  int now_weights_value = 0;
+
+  for (unsigned int h = 0; h < HEIGHT; h++) {
+    for (unsigned int w = 0; w < WIDTH; w++) {
+      for (unsigned int c = 0; c < CHANNEL; c++) {
+        for (unsigned int u = 0; u < UNIT; u++) {
+
+          ptr[count] = now_weights_value;
+          count += 1;
+        }
+        now_weights_value++;
+      }
+    }
+  }
+
+  interpreter.serialize(g, "FC_weight_test2.tflite");
+
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("FC_weight_test2.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 2, 4}));
+
+  count = 0;
+  // Set Tensor with (1,3,4,2)(NCHW) Shape
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 2; h++) {
+      for (int w = 0; w < 4; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 4, 1}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 4, 1}));
+  ans.setValue(4325);
+  EXPECT_EQ(out, ans);
+
+  if (remove("FC_weight_test2.tflite")) {
+    std::cerr << "remove ini "
+              << "FC_weight_test2.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+TEST(nntrainerInterpreterTflite, simple_flatten3) {
+
+  nntrainer::TfliteInterpreter interpreter;
+  nntrainer::FlattenRealizer fr;
+
+  auto input0 = LayerRepresentation(
+    "input", {"name=in0", "input_shape=3:2:4", "flatten=true"});
+
+  auto fc0_zeroed = LayerRepresentation(
+    "fully_connected", {"name=fc0", "unit=4", "input_layers=in0",
+                        "bias_initializer=ones", "weight_initializer=ones"});
+
+  auto fc1_zeroed = LayerRepresentation(
+    "fully_connected", {"name=fc1", "unit=1", "input_layers=fc0",
+                        "bias_initializer=ones", "weight_initializer=ones"});
+
+  auto g = fr.realize(makeGraph({input0, fc0_zeroed, fc1_zeroed}));
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+
+  unsigned int UNIT = 4;
+  unsigned int HEIGHT = 2;
+  unsigned int WIDTH = 4;
+  unsigned int CHANNEL = 3;
+
+  auto weight_data = ng.getLayerNode("fc0")->getWeight(0).getData();
+  auto *ptr = const_cast<float *>(weight_data);
+
+  // Set initial Weights
+  int count = 0;
+  int now_weights_value = 0;
+
+  for (unsigned int h = 0; h < HEIGHT; h++) {
+    for (unsigned int w = 0; w < WIDTH; w++) {
+      for (unsigned int c = 0; c < CHANNEL; c++) {
+        for (unsigned int u = 0; u < UNIT; u++) {
+
+          ptr[count] = now_weights_value;
+          count += 1;
+        }
+        now_weights_value++;
+      }
+    }
+  }
+
+  interpreter.serialize(g, "./FC_weight_test3.tflite");
+
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("./FC_weight_test3.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 2, 4}));
+
+  count = 0;
+  // Set Tensor with (1,3,4,2)(NCHW) Shape
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 2; h++) {
+      for (int w = 0; w < 4; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 1}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 1}));
+  ans.setValue(17301);
+  EXPECT_EQ(out, ans);
+
+  if (remove("FC_weight_test3.tflite")) {
+    std::cerr << "remove ini "
+              << "FC_weight_test3.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+/**
+ * @brief Construct a new TEST object
+ *
+ */
+TEST(nntrainerInterpreterTflite, flatten_test) {
+
+  nntrainer::TfliteInterpreter interpreter;
+  nntrainer::FlattenRealizer fr;
+
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=3:2:4"});
+
+  auto flat = LayerRepresentation("flatten", {"name=flat", "input_layers=in0"});
+
+  auto g = fr.realize(makeGraph({input0, flat}));
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+  interpreter.serialize(g, "flatten_test.tflite");
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("flatten_test.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 2, 4}));
+
+  int count = 0;
+
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 2; h++) {
+      for (int w = 0; w < 4; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 24}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 24}));
+  int ans_array[24] = {0, 8,  16, 1, 9,  17, 2, 10, 18, 3, 11, 19,
+                       4, 12, 20, 5, 13, 21, 6, 14, 22, 7, 15, 23};
+  for (int i = 0; i < 24; i++) {
+    ans.setValue(0, 0, 0, i, ans_array[i]);
+  }
+  EXPECT_EQ(out, ans);
+
+  if (remove("flatten_test.tflite")) {
+    std::cerr << "remove ini "
+              << "flatten_test.tflite"
               << "failed, reason: " << strerror(errno);
   }
 }
