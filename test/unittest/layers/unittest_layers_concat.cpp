@@ -16,9 +16,9 @@
 #include <concat_layer.h>
 #include <layers_common_tests.h>
 
-auto semantic_concat =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::ConcatLayer>,
-                          nntrainer::ConcatLayer::type, {}, 0, false, 1);
+auto semantic_concat = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::ConcatLayer>, nntrainer::ConcatLayer::type,
+  {}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Concat, LayerSemantics,
                      ::testing::Values(semantic_concat));

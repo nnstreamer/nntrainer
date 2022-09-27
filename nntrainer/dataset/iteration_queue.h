@@ -27,6 +27,7 @@
 #include <nntrainer_log.h>
 #include <tensor.h>
 #include <tensor_dim.h>
+
 namespace nntrainer {
 
 /**
@@ -201,8 +202,8 @@ public:
    * @brief Construct a new Iteration Queue object
    * @note  input_dimension and label_dimension should include the batch, if
    * IterationQueue::batch() is zero, it means it's invalid
-   * @param num_slots number of slots this batch queue will allocate, it should
-   * be buffersize/batchsize
+   * @param num_slots number of slots this iteration queue will allocate, it
+   * should be buffersize/batchsize
    * @param input_dims input dimensions
    * @param label_dims label dimensions
    */
@@ -219,7 +220,7 @@ public:
   /**
    * @brief request empty sample from the queue.
    * @note User must check if ScopedView actually has a value by calling
-   * copedView::isEmpty()
+   * ScopedView::isEmpty()
    * @return ScopedView<Sample> sample view. ScopedView::isEmpty() == true
    * if there is no more data coming. Destroying the returned object will
    * signal the queue that the sample is filled.
@@ -229,7 +230,7 @@ public:
   /**
    * @brief request filled iteration from the queue.
    * @note User must check if ScopedView actually has a value by calling
-   * copedView::isEmpty()
+   * ScopedView::isEmpty()
    * @return ScopedView<Iteration> Ieration view. ScopedView::isEmpty() == true
    * if there is no more data coming. Destroying the returned object will
    * signal the queue that the sample is done using.

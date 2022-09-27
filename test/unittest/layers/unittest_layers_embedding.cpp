@@ -18,7 +18,8 @@
 
 auto semantic_embedding = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::EmbeddingLayer>,
-  nntrainer::EmbeddingLayer::type, {"out_dim=1", "in_dim=1"}, 0, false, 1);
+  nntrainer::EmbeddingLayer::type, {"out_dim=1", "in_dim=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Embedding, LayerSemantics,
                      ::testing::Values(semantic_embedding));

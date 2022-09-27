@@ -22,11 +22,7 @@ constexpr unsigned SAMPLE_TRIES = 10;
 TEST_P(LayerSemantics, createFromAppContext_pn) {
   auto &ac = nntrainer::AppContext::Global();
   if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
-    try {
-      ac.createObject<nntrainer::Layer>(expected_type);
-    } catch (...) {
-      ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
-    }
+    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
   }
 
   EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),

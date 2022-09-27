@@ -18,7 +18,8 @@
 
 auto semantic_mol_attention = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::MoLAttentionLayer>,
-  nntrainer::MoLAttentionLayer::type, {"unit=5", "mol_k=1"}, 0, false, 3);
+  nntrainer::MoLAttentionLayer::type, {"unit=5", "mol_k=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 3);
 
 GTEST_PARAMETER_TEST(MoLAttention, LayerSemantics,
                      ::testing::Values(semantic_mol_attention));

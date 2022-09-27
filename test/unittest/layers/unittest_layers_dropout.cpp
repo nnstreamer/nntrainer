@@ -16,9 +16,10 @@
 #include <dropout.h>
 #include <layers_common_tests.h>
 
-auto semantic_dropout =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::DropOutLayer>,
-                          nntrainer::DropOutLayer::type, {}, 0, false, 1);
+auto semantic_dropout = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::DropOutLayer>,
+  nntrainer::DropOutLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Dropout, LayerSemantics,
                      ::testing::Values(semantic_dropout));

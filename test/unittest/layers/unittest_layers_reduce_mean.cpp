@@ -16,13 +16,15 @@
 #include <layers_common_tests.h>
 #include <reduce_mean_layer.h>
 
-auto semantic_reduce_mean_all =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::ReduceMeanLayer>,
-                          nntrainer::ReduceMeanLayer::type, {}, 0, false, 1);
+auto semantic_reduce_mean_all = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::ReduceMeanLayer>,
+  nntrainer::ReduceMeanLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 auto semantic_reduce_mean = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ReduceMeanLayer>,
-  nntrainer::ReduceMeanLayer::type, {"axis=1"}, 0, false, 1);
+  nntrainer::ReduceMeanLayer::type, {"axis=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(ReduceMean, LayerSemantics,
                      ::testing::Values(semantic_reduce_mean,

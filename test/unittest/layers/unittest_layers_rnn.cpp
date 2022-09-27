@@ -16,9 +16,10 @@
 #include <layers_common_tests.h>
 #include <rnn.h>
 
-auto semantic_rnn =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::RNNLayer>,
-                          nntrainer::RNNLayer::type, {"unit=1"}, 0, false, 1);
+auto semantic_rnn = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::RNNLayer>, nntrainer::RNNLayer::type,
+  {"unit=1"}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false,
+  1);
 
 GTEST_PARAMETER_TEST(RNN, LayerSemantics, ::testing::Values(semantic_rnn));
 

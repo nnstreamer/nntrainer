@@ -18,7 +18,8 @@
 
 auto semantic_bn = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>,
-  nntrainer::BatchNormalizationLayer::type, {}, 0, false, 1);
+  nntrainer::BatchNormalizationLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(BatchNormalization, LayerSemantics,
                      ::testing::Values(semantic_bn));

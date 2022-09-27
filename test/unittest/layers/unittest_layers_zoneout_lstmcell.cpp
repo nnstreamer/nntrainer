@@ -19,8 +19,8 @@
 auto semantic_zoneout_lstmcell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
   nntrainer::LSTMCellLayer::type,
-  {"unit=1", "hidden_state_zoneout_rate=0.1", "cell_state_zoneout_rate=0.0"}, 0,
-  false, 3);
+  {"unit=1", "hidden_state_zoneout_rate=0.1", "cell_state_zoneout_rate=0.0"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 3);
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerSemantics,
                         ::testing::Values(semantic_zoneout_lstmcell));

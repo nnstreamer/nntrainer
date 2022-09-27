@@ -18,7 +18,8 @@
 
 auto semantic_flip = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::PreprocessFlipLayer>,
-  nntrainer::PreprocessFlipLayer::type, {}, 0, false, 1);
+  nntrainer::PreprocessFlipLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(PreprocessFlip, LayerSemantics,
                      ::testing::Values(semantic_flip));

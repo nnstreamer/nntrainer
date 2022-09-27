@@ -16,9 +16,10 @@
 #include <layers_common_tests.h>
 #include <multiout_layer.h>
 
-auto semantic_output =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::MultiOutLayer>,
-                          nntrainer::MultiOutLayer::type, {}, 0, false, 1);
+auto semantic_output = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::MultiOutLayer>,
+  nntrainer::MultiOutLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Output, LayerSemantics,
                      ::testing::Values(semantic_output));

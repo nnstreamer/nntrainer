@@ -46,7 +46,7 @@ namespace nntrainer {
  * @brief Props containing buffer size value
  *
  */
-class PropsBufferSize : public Property<unsigned int> {
+class PropsBufferSize : public nntrainer::PositiveIntegerProperty {
 public:
   /**
    * @brief Construct a new props min object with a default value
@@ -54,7 +54,6 @@ public:
    * @param value default value
    */
   PropsBufferSize(unsigned int value = 1) { set(value); }
-  bool isValid(const unsigned int &v) const override { return v > 0; }
   static constexpr const char *key = "buffer_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                   /**< property type */
 };

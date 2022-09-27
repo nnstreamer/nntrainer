@@ -18,7 +18,8 @@
 
 auto semantic_conv1d = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>, nntrainer::Conv1DLayer::type,
-  {"filters=1", "kernel_size=1", "padding=1"}, 0, false, 1);
+  {"filters=1", "kernel_size=1", "padding=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Convolution1D, LayerSemantics,
                      ::testing::Values(semantic_conv1d));

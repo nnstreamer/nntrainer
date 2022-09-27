@@ -18,7 +18,8 @@
 
 auto semantic_layer_normalization = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>,
-  nntrainer::LayerNormalizationLayer::type, {"axis=1"}, 0, false, 1);
+  nntrainer::LayerNormalizationLayer::type, {"axis=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(LayerNormalization, LayerSemantics,
                      ::testing::Values(semantic_layer_normalization));

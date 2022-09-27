@@ -16,9 +16,10 @@
 #include <layers_common_tests.h>
 #include <lstm.h>
 
-auto semantic_lstm =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::LSTMLayer>,
-                          nntrainer::LSTMLayer::type, {"unit=1"}, 0, false, 1);
+auto semantic_lstm = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::LSTMLayer>, nntrainer::LSTMLayer::type,
+  {"unit=1"}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false,
+  1);
 
 GTEST_PARAMETER_TEST(LSTM, LayerSemantics, ::testing::Values(semantic_lstm));
 

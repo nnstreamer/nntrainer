@@ -16,9 +16,10 @@
 #include <flatten_layer.h>
 #include <layers_common_tests.h>
 
-auto semantic_flatten =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::FlattenLayer>,
-                          nntrainer::FlattenLayer::type, {}, 0, false, 1);
+auto semantic_flatten = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::FlattenLayer>,
+  nntrainer::FlattenLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Flatten, LayerSemantics,
                      ::testing::Values(semantic_flatten));
