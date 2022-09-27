@@ -18,7 +18,8 @@
 
 auto semantic_lstmcell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
-  nntrainer::LSTMCellLayer::type, {"unit=1"}, 0, false, 3);
+  nntrainer::LSTMCellLayer::type, {"unit=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 3);
 
 GTEST_PARAMETER_TEST(LSTMCell, LayerSemantics,
                      ::testing::Values(semantic_lstmcell));

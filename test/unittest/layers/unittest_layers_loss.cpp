@@ -21,15 +21,18 @@
 
 auto semantic_loss_cross_sigmoid = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropySigmoidLossLayer>,
-  nntrainer::CrossEntropySigmoidLossLayer::type, {}, 0, false, 1);
+  nntrainer::CrossEntropySigmoidLossLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 auto semantic_loss_cross_softmax = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropySoftmaxLossLayer>,
-  nntrainer::CrossEntropySoftmaxLossLayer::type, {}, 0, false, 1);
+  nntrainer::CrossEntropySoftmaxLossLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-auto semantic_loss_mse =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::MSELossLayer>,
-                          nntrainer::MSELossLayer::type, {}, 0, false, 1);
+auto semantic_loss_mse = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::MSELossLayer>,
+  nntrainer::MSELossLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 auto semantic_loss_cross = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropyLossLayer>,

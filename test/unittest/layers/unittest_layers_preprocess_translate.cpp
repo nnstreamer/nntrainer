@@ -18,8 +18,8 @@
 
 auto semantic_translate = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::PreprocessTranslateLayer>,
-  nntrainer::PreprocessTranslateLayer::type, {"random_translate=0.1"}, 0, false,
-  1);
+  nntrainer::PreprocessTranslateLayer::type, {"random_translate=0.1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(PreprocessTranslate, LayerSemantics,
                      ::testing::Values(semantic_translate));

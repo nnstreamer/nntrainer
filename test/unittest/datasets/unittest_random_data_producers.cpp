@@ -18,11 +18,12 @@
 #include <random_data_producers.h>
 
 DataProducerValidatorType random_onehot_validator(float min, float max) {
+  const float EPSILON = 1e-7;
   /// input validator: every value is in range of min, max
-  auto input_valid = [min, max](const nntrainer::Tensor &t) {
+  auto input_valid = [min, max, EPSILON](const nntrainer::Tensor &t) {
     auto data = t.getData();
     for (unsigned int i = 0; i < t.size(); ++i) {
-      if (*data < min || max < *data) {
+      if (*data < min - EPSILON || max + EPSILON < *data) {
         return false;
       }
       data++;
@@ -31,9 +32,9 @@ DataProducerValidatorType random_onehot_validator(float min, float max) {
   };
 
   /// label validator: sum of all is equal to batch
-  auto label_valid = [](const nntrainer::Tensor &t) {
+  auto label_valid = [EPSILON](const nntrainer::Tensor &t) {
     /// @todo better to check batch by batch
-    return fabs(t.batch() - t.sum({0, 1, 2, 3}).getValue(0, 0, 0, 0) < 1e-7);
+    return fabs(t.batch() - t.sum({0, 1, 2, 3}).getValue(0, 0, 0, 0)) < EPSILON;
   };
 
   auto f = [input_valid,

@@ -18,7 +18,8 @@
 
 auto semantic_tflite = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::TfLiteLayer>, nntrainer::TfLiteLayer::type,
-  {"model_path=../test/test_models/models/add.tflite"}, 0, false, 1);
+  {"model_path=../test/test_models/models/add.tflite"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(TfLite, LayerSemantics,
                      ::testing::Values(semantic_tflite));

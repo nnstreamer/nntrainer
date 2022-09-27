@@ -19,7 +19,8 @@
 auto semantic_grucell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::GRUCellLayer>,
   nntrainer::GRUCellLayer::type,
-  {"unit=1", "integrate_bias=false", "reset_after=true"}, 0, false, 2);
+  {"unit=1", "integrate_bias=false", "reset_after=true"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
 GTEST_PARAMETER_TEST(GRUCell, LayerSemantics,
                      ::testing::Values(semantic_grucell));

@@ -18,7 +18,8 @@
 
 auto semantic_permute = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::PermuteLayer>,
-  nntrainer::PermuteLayer::type, {"direction=3,2,1"}, 0, false, 1);
+  nntrainer::PermuteLayer::type, {"direction=3,2,1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Permute, LayerSemantics,
                      ::testing::Values(semantic_permute));

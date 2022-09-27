@@ -16,9 +16,9 @@
 #include <input_layer.h>
 #include <layers_common_tests.h>
 
-auto semantic_input =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::InputLayer>,
-                          nntrainer::InputLayer::type, {}, 0, false, 1);
+auto semantic_input = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::InputLayer>, nntrainer::InputLayer::type,
+  {}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Input, LayerSemantics, ::testing::Values(semantic_input));
 

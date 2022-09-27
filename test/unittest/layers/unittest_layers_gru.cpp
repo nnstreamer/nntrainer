@@ -18,7 +18,8 @@
 
 auto semantic_gru = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::GRULayer>, nntrainer::GRULayer::type,
-  {"unit=1", "integrate_bias=true", "reset_after=false"}, 0, false, 1);
+  {"unit=1", "integrate_bias=true", "reset_after=false"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(GRU, LayerSemantics, ::testing::Values(semantic_gru));
 

@@ -71,6 +71,6 @@ TEST(DataSample, constructOutOfBatch_n) {
   auto iter = nntrainer::Iteration({{3, 1, 1, 1}, {3, 1, 1, 2}},
                                    {{3, 1, 1, 10}, {3, 2, 4, 5}});
 
-  EXPECT_ANY_THROW(nntrainer::Sample(iter, 3));
-  EXPECT_ANY_THROW(nntrainer::Sample(iter, 4));
+  EXPECT_THROW(nntrainer::Sample(iter, 3), std::invalid_argument);
+  EXPECT_THROW(nntrainer::Sample(iter, 4), std::invalid_argument);
 }

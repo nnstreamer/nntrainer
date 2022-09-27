@@ -16,9 +16,10 @@
 #include <attention_layer.h>
 #include <layers_common_tests.h>
 
-auto semantic_attention =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AttentionLayer>,
-                          nntrainer::AttentionLayer::type, {}, 0, false, 2);
+auto semantic_attention = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>,
+  nntrainer::AttentionLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
 GTEST_PARAMETER_TEST(Attention, LayerSemantics,
                      ::testing::Values(semantic_attention));

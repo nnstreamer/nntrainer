@@ -19,7 +19,8 @@
 
 auto semantic_positional_encoding = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
-  nntrainer::PositionalEncodingLayer::type, {"max_timestep=10"}, 0, false, 1);
+  nntrainer::PositionalEncodingLayer::type, {"max_timestep=10"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerSemantics,
                         ::testing::Values(semantic_positional_encoding));

@@ -19,12 +19,14 @@
 auto semantic_multi_head_attention = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   nntrainer::MultiHeadAttentionLayer::type,
-  {"num_heads=1", "projected_key_dim=1"}, 0, false, 3);
+  {"num_heads=1", "projected_key_dim=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 3);
 
 auto semantic_multi_head_attention_with_mask = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   nntrainer::MultiHeadAttentionLayer::type,
-  {"num_heads=1", "projected_key_dim=1"}, 0, false, 4);
+  {"num_heads=1", "projected_key_dim=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 4);
 
 GTEST_PARAMETER_TEST(
   MultiHeadAttention, LayerSemantics,

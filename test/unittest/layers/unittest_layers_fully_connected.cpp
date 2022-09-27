@@ -19,7 +19,8 @@
 
 auto semantic_fc = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>,
-  nntrainer::FullyConnectedLayer::type, {"unit=1"}, 0, false, 1);
+  nntrainer::FullyConnectedLayer::type, {"unit=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(FullyConnected, LayerSemantics,
                      ::testing::Values(semantic_fc));

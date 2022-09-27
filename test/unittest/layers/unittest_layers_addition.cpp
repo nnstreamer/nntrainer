@@ -16,13 +16,15 @@
 #include <addition_layer.h>
 #include <layers_common_tests.h>
 
-auto semantic_addition =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AdditionLayer>,
-                          nntrainer::AdditionLayer::type, {}, 0, false, 1);
+auto semantic_addition = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::AdditionLayer>,
+  nntrainer::AdditionLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-auto semantic_addition_multi =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AdditionLayer>,
-                          nntrainer::AdditionLayer::type, {}, 0, false, 2);
+auto semantic_addition_multi = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::AdditionLayer>,
+  nntrainer::AdditionLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
 GTEST_PARAMETER_TEST(Addition, LayerSemantics,
                      ::testing::Values(semantic_addition,

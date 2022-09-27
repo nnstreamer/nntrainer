@@ -18,7 +18,8 @@
 
 auto semantic_rnncell = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::RNNCellLayer>,
-  nntrainer::RNNCellLayer::type, {"unit=1"}, 0, false, 2);
+  nntrainer::RNNCellLayer::type, {"unit=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
 GTEST_PARAMETER_TEST(RNNCell, LayerSemantics,
                      ::testing::Values(semantic_rnncell));
