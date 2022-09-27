@@ -39,3 +39,11 @@ GTEST_PARAMETER_TEST(Pooling2DMax, LayerSemantics,
                                        semantic_pooling2d_avg,
                                        semantic_pooling2d_global_max,
                                        semantic_pooling2d_global_avg));
+
+auto pooling2d_prop = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::Pooling2DLayer>,
+  nntrainer::Pooling2DLayer::type, {"pool_size="},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
+GTEST_PARAMETER_TEST(Pooling2DMax, LayerPropertySemantics,
+                     ::testing::Values(pooling2d_prop));

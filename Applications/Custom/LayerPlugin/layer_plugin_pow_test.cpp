@@ -27,4 +27,21 @@ auto semantic_pow =
   LayerSemanticsParamType(nntrainer::createLayer<custom::PowLayer>,
                           custom::PowLayer::type, {}, 0, false, 1);
 
-GTEST_PARAMETER_TEST(PowLayer, LayerSemantics, ::testing::Values(semantic_pow));
+auto semantic_pow_exponent = LayerSemanticsParamType(
+  nntrainer::createLayer<custom::PowLayer>, custom::PowLayer::type,
+  {"exponent=2.0"}, 0, false, 1);
+
+GTEST_PARAMETER_TEST(PowLayer, LayerSemantics,
+                     ::testing::Values(semantic_pow, semantic_pow_exponent));
+
+auto semantic_pow_exp =
+  LayerSemanticsParamType(nntrainer::createLayer<custom::PowLayer>,
+                          custom::PowLayer::type, {"exp=2.0"}, 0, false, 1);
+
+auto semantic_pow_exponential = LayerSemanticsParamType(
+  nntrainer::createLayer<custom::PowLayer>, custom::PowLayer::type,
+  {"exponential=2.0"}, 0, false, 1);
+
+GTEST_PARAMETER_TEST(PowLayer, LayerPropertySemantics,
+                     ::testing::Values(semantic_pow_exp,
+                                       semantic_pow_exponential));

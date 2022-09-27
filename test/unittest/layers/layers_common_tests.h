@@ -84,6 +84,12 @@ protected:
   unsigned int num_inputs;
 };
 
+/**
+ * @brief LayerPropertySemantics
+ * @details Inherit LayerSemantics to solely test negative property cases
+ */
+class LayerPropertySemantics : public LayerSemantics {};
+
 typedef enum {
   SKIP_CALC_GRAD = 1 << 0,  /**< skip calculating gradient and compare */
   SKIP_CALC_DERIV = 1 << 1, /**< skip calculating derivative and compare */
