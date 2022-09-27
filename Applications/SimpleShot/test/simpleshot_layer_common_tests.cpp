@@ -42,3 +42,11 @@ GTEST_PARAMETER_TEST(CentroidKNN, LayerSemantics,
 
 GTEST_PARAMETER_TEST(CenteringLayer, LayerSemantics,
                      ::testing::Values(semantic_activation_centering));
+
+auto semantic_activation_centroid_knn_prop_n = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::CentroidKNN>, nntrainer::CentroidKNN::type,
+  {"class_num=1"}, 0, false, 1);
+
+GTEST_PARAMETER_TEST(
+  Input, LayerPropertySemantics,
+  ::testing::Values(semantic_activation_centroid_knn_prop_n));

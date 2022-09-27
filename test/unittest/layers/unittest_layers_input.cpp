@@ -21,3 +21,11 @@ auto semantic_input =
                           nntrainer::InputLayer::type, {}, 0, false, 1);
 
 GTEST_PARAMETER_TEST(Input, LayerSemantics, ::testing::Values(semantic_input));
+
+auto input_prop_n = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::InputLayer>, nntrainer::InputLayer::type,
+  {"input_shape=0:3:2:1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
+GTEST_PARAMETER_TEST(Input, LayerPropertySemantics,
+                     ::testing::Values(input_prop_n));

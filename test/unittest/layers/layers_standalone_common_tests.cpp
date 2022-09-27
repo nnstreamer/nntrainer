@@ -34,8 +34,18 @@ TEST_P(LayerSemantics, DISABLED_setPropertiesValidWithInvalid_n) {
   EXPECT_EQ(1, 1); /**< no assert tc from TCM, this is disabled test */
 }
 
-TEST_P(LayerSemantics, DISABLED_setPropertiesValidInvalidOnly_n) {
-  EXPECT_EQ(1, 1); /**< no assert tc from TCM, this is disabled test */
+TEST_P(LayerPropertySemantics, setPropertiesValidInvalidOnly_n) {
+  EXPECT_THROW(layer->setProperty(valid_properties), std::invalid_argument);
+}
+
+TEST_P(LayerSemantics, gettersValidate_p) {
+  std::string type;
+
+  EXPECT_NO_THROW(type = layer->getType());
+  EXPECT_GT(type.size(), size_t(0));
+  EXPECT_NO_THROW(layer->supportInPlace());
+  EXPECT_NO_THROW(layer->requireLabel());
+  EXPECT_NO_THROW(layer->supportBackwarding());
 }
 
 TEST_P(LayerSemantics, finalizeValidate_p) {
@@ -61,19 +71,6 @@ TEST_P(LayerSemantics, finalizeValidate_p) {
     EXPECT_THROW(layer->finalize(init_context),
                  nntrainer::exception::not_supported);
   }
-}
-
-TEST_P(LayerSemantics, getTypeValidate_p) {
-  std::string type;
-
-  EXPECT_NO_THROW(type = layer->getType());
-  EXPECT_GT(type.size(), size_t(0));
-}
-
-TEST_P(LayerSemantics, gettersValidate_p) {
-  EXPECT_NO_THROW(layer->supportInPlace());
-  EXPECT_NO_THROW(layer->requireLabel());
-  EXPECT_NO_THROW(layer->supportBackwarding());
 }
 
 TEST_P(LayerSemantics, setBatchValidate_p) {

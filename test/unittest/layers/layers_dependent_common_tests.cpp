@@ -33,6 +33,11 @@ TEST_P(LayerSemantics, createFromAppContext_pn) {
             expected_type);
 }
 
+TEST_P(LayerPropertySemantics, setPropertiesInvalid_n) {
+  auto lnode = nntrainer::createLayerNode(expected_type);
+  EXPECT_THROW(layer->setProperty({valid_properties}), std::invalid_argument);
+}
+
 TEST_P(LayerSemantics, setPropertiesInvalid_n) {
   auto lnode = nntrainer::createLayerNode(expected_type);
   /** must not crash */
