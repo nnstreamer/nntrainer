@@ -168,20 +168,26 @@ public:
    */
   virtual void flushExcept(unsigned int order);
 
-private:
+  /**
+   * @brief Clear the memory pool
+   *
+   */
+  virtual void clear();
+
+protected:
   /**
    * @brief validate cache element
    *
    * @param cache element id
    */
-  void validate(unsigned int id);
+  virtual void validate(unsigned int id);
 
   /**
    * @brief invalidate cache element
    *
    * @param cache element id
    */
-  void invalidate(unsigned int id);
+  virtual void invalidate(unsigned int id);
 
   std::shared_ptr<SwapDevice> swap_device; /**< swap device */
   std::map<unsigned int, std::shared_ptr<CacheElem>>
