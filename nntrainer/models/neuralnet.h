@@ -268,7 +268,7 @@ public:
    * @brief     get current epoch_idx
    * @retval    current epoch_idx
    */
-  unsigned int getCurrentEpoch() override { return epoch_idx; };
+  unsigned int getCurrentEpoch() override;
 
   /**
    * @brief     Copy Neural Network
