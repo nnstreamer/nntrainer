@@ -11,8 +11,10 @@
  *
  */
 
+#include "memory_pool.h"
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <vector>
 
 #include <cache_pool.h>
@@ -38,6 +40,7 @@ void CacheElem::swapOut() {
   std::lock_guard<std::mutex> lock(device_mutex);
   void *buf = (void *)mem_data->getAddr();
   device->putBuffer(buf);
+  mem_data->setAddr(nullptr);
   mem_data->setValid(false);
   active = false;
 
@@ -64,12 +67,12 @@ CachePool::~CachePool() {
 }
 
 void CachePool::allocate() {
-  if (swap_device->isOperating())
-    deallocate();
+  NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
+    << "Cache pool is already allocated";
 
   size_t pool_size = size();
 
-  NNTR_THROW_IF(pool_size == 0, std::invalid_argument)
+  NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
 
   NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
@@ -142,6 +145,12 @@ void CachePool::flushExcept(unsigned int order) {
     }
     return false;
   });
+}
+
+void CachePool::clear() {
+	flush();
+	deallocate();
+	MemoryPool::clear();
 }
 
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }

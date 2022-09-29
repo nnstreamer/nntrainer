@@ -119,7 +119,7 @@ public:
    * @brief Clear the memory pool
    *
    */
-  void clear();
+  virtual void clear();
 
   /**
    * @brief Is the memory pool allocated
@@ -196,6 +196,7 @@ private:
     memory_exec_order; /**< execution order for the requested memory */
 
   void *mem_pool;   /**< memory pool allocated at once */
+
   size_t pool_size; /**< memory requirement for this pool */
 
   size_t min_pool_size; /**< minimum theoretical memory requirement */
