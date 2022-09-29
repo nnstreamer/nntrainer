@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2022 Jiho Chu <jiho.chu@samsung.com>
  *
  * @file unittest_memory_pool.cpp
  * @date 11 August 2021
@@ -11,28 +12,41 @@
  */
 
 #include <cstring>
+#include <memory>
 #include <random>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include <basic_planner.h>
-#include <memory_planner_validate.h>
+#include <cache_pool.h>
 #include <memory_pool.h>
+#include <nntrainer_test_util.h>
 
-constexpr unsigned int MEM_BYTES = 128;
-constexpr unsigned int MEM_QUANT = 100;
-constexpr unsigned int INTERVAL_SIZE = 5;
+/**
+ * @brief MemoryPool Test Class
+ */
+class MemoryPoolTest
+  : public ::testing::TestWithParam<std::shared_ptr<nntrainer::MemoryPool>> {
+public:
+  void SetUp(void) { pool = GetParam(); }
+
+  void TearDown(void) { EXPECT_NO_THROW(pool->clear()); }
+
+  std::shared_ptr<nntrainer::MemoryPool> pool;
+};
 
 /**
  * @brief creation and destruction
  */
-TEST(MemoryPool, create_destroy) { EXPECT_NO_THROW(nntrainer::MemoryPool()); }
+TEST_P(MemoryPoolTest, create_destroy) {
+  EXPECT_NO_THROW(nntrainer::MemoryPool());
+}
 
 /**
  * @brief request 0 sized memory
  */
-TEST(MemoryPool, request_mem_01_n) {
+TEST_P(MemoryPoolTest, request_mem_01_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.requestMemory(0, 1, 2), std::invalid_argument);
@@ -41,7 +55,7 @@ TEST(MemoryPool, request_mem_01_n) {
 /**
  * @brief request memory when starts after it ends
  */
-TEST(MemoryPool, request_mem_02_n) {
+TEST_P(MemoryPoolTest, request_mem_02_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.requestMemory(1, 3, 2), std::invalid_argument);
@@ -50,7 +64,7 @@ TEST(MemoryPool, request_mem_02_n) {
 /**
  * @brief request memory with 0 valid time
  */
-TEST(MemoryPool, request_mem_03_n) {
+TEST_P(MemoryPoolTest, request_mem_03_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.requestMemory(1, 4, 4), std::invalid_argument);
@@ -72,7 +86,7 @@ TEST(MemoryPool, request_mem_04_n) {
 /**
  * @brief request memory
  */
-TEST(MemoryPool, request_mem_05_p) {
+TEST_P(MemoryPoolTest, request_mem_04_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
@@ -81,7 +95,7 @@ TEST(MemoryPool, request_mem_05_p) {
 /**
  * @brief plan layout without reqeustMemory
  */
-TEST(MemoryPool, plan_layout_01_n) {
+TEST_P(MemoryPoolTest, plan_layout_01_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.planLayout(nntrainer::BasicPlanner()), std::runtime_error);
@@ -90,7 +104,7 @@ TEST(MemoryPool, plan_layout_01_n) {
 /**
  * @brief plan layout after allocate
  */
-TEST(MemoryPool, plan_layout_02_n) {
+TEST_P(MemoryPoolTest, plan_layout_02_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
@@ -103,7 +117,7 @@ TEST(MemoryPool, plan_layout_02_n) {
 /**
  * @brief plan layout
  */
-TEST(MemoryPool, plan_layout_03_p) {
+TEST_P(MemoryPoolTest, plan_layout_03_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
@@ -118,7 +132,7 @@ TEST(MemoryPool, plan_layout_03_p) {
 /**
  * @brief deallocate
  */
-TEST(MemoryPool, deallocate_01_p) {
+TEST_P(MemoryPoolTest, deallocate_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_NO_THROW(pool.deallocate());
@@ -133,7 +147,7 @@ TEST(MemoryPool, deallocate_01_p) {
 /**
  * @brief allocate without requestMemory
  */
-TEST(MemoryPool, allocate_01_n) {
+TEST_P(MemoryPoolTest, allocate_01_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.allocate(), std::runtime_error);
@@ -142,7 +156,7 @@ TEST(MemoryPool, allocate_01_n) {
 /**
  * @brief allocate without planLayout
  */
-TEST(MemoryPool, allocate_02_n) {
+TEST_P(MemoryPoolTest, allocate_02_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
@@ -152,7 +166,7 @@ TEST(MemoryPool, allocate_02_n) {
 /**
  * @brief allocate aftrer allocate
  */
-TEST(MemoryPool, allocate_03_n) {
+TEST_P(MemoryPoolTest, allocate_03_n) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
@@ -168,7 +182,7 @@ TEST(MemoryPool, allocate_03_n) {
 /**
  * @brief allocate
  */
-TEST(MemoryPool, allocate_04_p) {
+TEST_P(MemoryPoolTest, allocate_04_n) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(3, 4, 5);
@@ -187,10 +201,27 @@ TEST(MemoryPool, allocate_04_p) {
 /**
  * @brief size of the pool
  */
-TEST(MemoryPool, size_01_p) {
+TEST_P(MemoryPoolTest, size_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_EQ(pool.size(), 0u);
+}
+
+/**
+ * @brief size of the pool
+ */
+TEST_P(MemoryPoolTest, size_02_p) {
+  nntrainer::MemoryPool pool;
+
+  pool.requestMemory(1, 4, 5);
+  EXPECT_EQ(pool.size(), 0u);
+}
+
+/**
+ * @brief size of the pool
+ */
+TEST_P(MemoryPoolTest, size_03_p) {
+  nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
   EXPECT_EQ(pool.size(), 0u);
@@ -207,10 +238,30 @@ TEST(MemoryPool, size_01_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_01_p) {
+TEST_P(MemoryPoolTest, min_mem_req_01_p) {
   nntrainer::MemoryPool pool;
 
   EXPECT_EQ(pool.minMemoryRequirement(), 0u);
+}
+
+/**
+ * @brief min requirement
+ */
+TEST_P(MemoryPoolTest, min_mem_req_02_p) {
+  nntrainer::MemoryPool pool;
+
+  pool.requestMemory(1, 4, 5);
+  EXPECT_EQ(pool.minMemoryRequirement(), 1u);
+
+  pool.planLayout(nntrainer::BasicPlanner());
+  EXPECT_EQ(pool.minMemoryRequirement(), 1u);
+}
+
+/**
+ * @brief min requirement
+ */
+TEST_P(MemoryPoolTest, min_mem_req_03_p) {
+  nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 4, 5);
   EXPECT_EQ(pool.minMemoryRequirement(), 1u);
@@ -249,7 +300,7 @@ TEST(MemoryPool, min_mem_req_01_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_02_p) {
+TEST_P(MemoryPoolTest, min_mem_req_04_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -276,7 +327,7 @@ TEST(MemoryPool, min_mem_req_02_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_03_p) {
+TEST_P(MemoryPoolTest, min_mem_req_05_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -303,7 +354,7 @@ TEST(MemoryPool, min_mem_req_03_p) {
 /**
  * @brief min requirement
  */
-TEST(MemoryPool, min_mem_req_04_p) {
+TEST_P(MemoryPoolTest, min_mem_req_06_p) {
   nntrainer::MemoryPool pool;
 
   pool.requestMemory(1, 5, 10);
@@ -337,7 +388,7 @@ TEST(MemoryPool, min_mem_req_04_p) {
 /**
  * @brief get memory
  */
-TEST(MemoryPool, get_memory_01_n) {
+TEST_P(MemoryPoolTest, get_memory_01_n) {
   nntrainer::MemoryPool pool;
 
   EXPECT_THROW(pool.getMemory(1), std::invalid_argument);
@@ -346,7 +397,7 @@ TEST(MemoryPool, get_memory_01_n) {
 /**
  * @brief get memory
  */
-TEST(MemoryPool, get_memory_02_n) {
+TEST_P(MemoryPoolTest, get_memory_02_n) {
   nntrainer::MemoryPool pool;
 
   auto idx = pool.requestMemory(1, 4, 5);
@@ -356,7 +407,7 @@ TEST(MemoryPool, get_memory_02_n) {
 /**
  * @brief get memory
  */
-TEST(MemoryPool, get_memory_03_n) {
+TEST_P(MemoryPoolTest, get_memory_03_n) {
   nntrainer::MemoryPool pool;
 
   auto idx = pool.requestMemory(1, 4, 5);
@@ -371,7 +422,7 @@ TEST(MemoryPool, get_memory_03_n) {
 /**
  * @brief get memory
  */
-TEST(MemoryPool, get_memory_04_p) {
+TEST_P(MemoryPoolTest, get_memory_04_p) {
   nntrainer::MemoryPool pool;
   std::shared_ptr<nntrainer::MemoryData<float>> mem;
 
@@ -385,169 +436,7 @@ TEST(MemoryPool, get_memory_04_p) {
   EXPECT_NO_THROW(pool.deallocate());
 }
 
-/**
- * @brief clear after allocate
- */
-TEST(MemoryPool, clear_01_n) {
-  nntrainer::MemoryPool pool;
-
-  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
-  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
-  EXPECT_NO_THROW(pool.allocate());
-
-  EXPECT_THROW(pool.clear(), std::invalid_argument);
-  EXPECT_NO_THROW(pool.deallocate());
-}
-
-/**
- * @brief clear
- */
-TEST(MemoryPool, clear_02_p) {
-  nntrainer::MemoryPool pool;
-
-  EXPECT_NO_THROW(pool.requestMemory(1, 4, 5));
-  EXPECT_NO_THROW(pool.planLayout(nntrainer::BasicPlanner()));
-
-  EXPECT_NO_THROW(pool.clear());
-}
-
-/**
- * @brief validate memory full overlap
- */
-TEST_P(MemoryPlannerValidate, validate_memory_full_overlap) {
-  nntrainer::MemoryPool pool;
-  std::mt19937 rng;
-  std::uniform_int_distribution<size_t> dist(1, MEM_BYTES);
-  std::uniform_int_distribution<unsigned int> dist_interval(1, INTERVAL_SIZE);
-
-  std::vector<unsigned int> tokens(MEM_QUANT);
-  std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
-
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    memory_size[idx] = dist(rng);
-    unsigned int start = 1;
-    unsigned int end = start + dist_interval(rng);
-    EXPECT_NO_THROW(tokens[idx] =
-                      pool.requestMemory(memory_size[idx], start, end));
-  }
-
-  EXPECT_NO_THROW(pool.planLayout(*planner.get()));
-  EXPECT_EQ(pool.size(),
-            std::accumulate(memory_size.begin(), memory_size.end(), 0u));
-  EXPECT_NO_THROW(pool.allocate());
-
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    EXPECT_NO_THROW(ptrs[idx] = pool.getMemory(tokens[idx]));
-
-  /** write data to memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
-
-  /** verify data in memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
-  }
-
-  pool.deallocate();
-}
-
-/**
- * @brief validate memory no overlap
- */
-TEST_P(MemoryPlannerValidate, validate_memory_no_overlap) {
-  nntrainer::MemoryPool pool;
-  std::mt19937 rng;
-  std::uniform_int_distribution<size_t> dist(1, MEM_BYTES);
-  std::uniform_int_distribution<unsigned int> dist_interval(1, INTERVAL_SIZE);
-
-  std::vector<unsigned int> tokens(MEM_QUANT);
-  std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
-
-  unsigned int prev_idx = 0;
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    memory_size[idx] = dist(rng);
-    unsigned int start = prev_idx;
-    unsigned int end = start + dist_interval(rng);
-    EXPECT_NO_THROW(tokens[idx] =
-                      pool.requestMemory(memory_size[idx], start, end));
-    prev_idx = end;
-  }
-
-  EXPECT_NO_THROW(pool.planLayout(*planner.get()));
-  if (planner->getType() == nntrainer::BasicPlanner::type) {
-    EXPECT_EQ(pool.size(),
-              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
-  } else {
-    EXPECT_EQ(pool.size(),
-              *std::max_element(memory_size.begin(), memory_size.end()));
-  }
-  EXPECT_NO_THROW(pool.allocate());
-
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    EXPECT_NO_THROW(ptrs[idx] = pool.getMemory(tokens[idx]));
-
-  /** write data to memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
-
-  /** verify data in memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
-  }
-
-  pool.deallocate();
-}
-
-/**
- * @brief validate memory partial overlap
- */
-TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
-  nntrainer::MemoryPool pool;
-  std::mt19937 rng;
-  std::uniform_int_distribution<size_t> dist(1, MEM_BYTES);
-  std::uniform_int_distribution<unsigned int> dist_interval(1, INTERVAL_SIZE);
-  std::uniform_int_distribution<unsigned int> dist_interval_start(1, 100);
-
-  std::vector<unsigned int> tokens(MEM_QUANT);
-  std::vector<size_t> memory_size(MEM_QUANT);
-  std::vector<std::shared_ptr<nntrainer::MemoryData<float>>> ptrs(MEM_QUANT);
-
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    memory_size[idx] = dist(rng);
-    unsigned int start = dist_interval_start(rng);
-    unsigned int end = start + dist_interval(rng);
-    EXPECT_NO_THROW(tokens[idx] =
-                      pool.requestMemory(memory_size[idx], start, end));
-  }
-
-  EXPECT_NO_THROW(pool.planLayout(*planner.get()));
-  if (planner->getType() == nntrainer::BasicPlanner::type) {
-    EXPECT_EQ(pool.size(),
-              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
-  } else {
-    EXPECT_GE(pool.size(),
-              *std::max_element(memory_size.begin(), memory_size.end()));
-    EXPECT_LE(pool.size(),
-              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
-  }
-  EXPECT_NO_THROW(pool.allocate());
-
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    EXPECT_NO_THROW(ptrs[idx] = pool.getMemory(tokens[idx]));
-
-  /** write data to memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
-    memset(ptrs[idx]->getAddr(), idx, memory_size[idx]);
-
-  /** verify data in memory */
-  for (unsigned int idx = 0; idx < MEM_QUANT; idx++) {
-    std::vector<unsigned char> golden(memory_size[idx], idx);
-    memcmp(ptrs[idx]->getAddr(), &golden[0], memory_size[idx]);
-  }
-
-  pool.deallocate();
-}
+GTEST_PARAMETER_TEST(
+  MemoryPool, MemoryPoolTest,
+  ::testing::Values(std::make_shared<nntrainer::MemoryPool>(),
+                    std::make_shared<nntrainer::CachePool>("tmp pool")));
