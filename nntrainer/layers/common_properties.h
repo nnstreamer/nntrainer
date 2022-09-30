@@ -434,8 +434,8 @@ public:
   Padding1D(const std::string &value = "valid") :
     nntrainer::Property<std::string>(value) {} /**< default value if any */
   bool isValid(const std::string &v) const override;
-  static constexpr const char *key = "padding1d"; /**< unique key to access */
-  using prop_tag = str_prop_tag;                  /**< property type */
+  static constexpr const char *key = "padding"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                /**< property type */
 
   /**
    * @brief compute actual padding1d from the underlying data
