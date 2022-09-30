@@ -18,7 +18,7 @@
 
 auto semantic_conv1d = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>, nntrainer::Conv1DLayer::type,
-  {"filters=1", "kernel_size=1", "padding1d=1"}, 0, false, 1);
+  {"filters=1", "kernel_size=1", "padding=1"}, 0, false, 1);
 
 GTEST_PARAMETER_TEST(Convolution1D, LayerSemantics,
                      ::testing::Values(semantic_conv1d));
@@ -35,12 +35,12 @@ auto conv1d_mb_minimum = LayerGoldenTestParamType(
 
 auto conv1d_sb_same_remain = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=2", "kernel_size=3", "padding1d=same"}, "1:1:1:4",
+  {"filters=2", "kernel_size=3", "padding=same"}, "1:1:1:4",
   "conv1d_sb_same_remain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto conv1d_mb_same_remain = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=2", "kernel_size=3", "padding1d=same"}, "3:1:1:4",
+  {"filters=2", "kernel_size=3", "padding=same"}, "3:1:1:4",
   "conv1d_mb_same_remain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto conv1d_sb_same_uneven_remain_1 = LayerGoldenTestParamType(
@@ -49,7 +49,7 @@ auto conv1d_sb_same_uneven_remain_1 = LayerGoldenTestParamType(
     "filters=2",
     "kernel_size=3",
     "stride=2",
-    "padding1d=same",
+    "padding=same",
   },
   "1:3:1:4", "conv1d_sb_same_uneven_remain.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
@@ -60,7 +60,7 @@ auto conv1d_sb_same_uneven_remain_2 = LayerGoldenTestParamType(
     "filters=2",
     "kernel_size=3",
     "stride=2",
-    "padding1d=0,1",
+    "padding=0,1",
   },
   "1:3:1:4", "conv1d_sb_same_uneven_remain.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
@@ -71,7 +71,7 @@ auto conv1d_mb_same_uneven_remain_1 = LayerGoldenTestParamType(
     "filters=2",
     "kernel_size=3",
     "stride=2",
-    "padding1d=same",
+    "padding=same",
   },
   "3:3:1:4", "conv1d_mb_same_uneven_remain.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
@@ -82,7 +82,7 @@ auto conv1d_mb_same_uneven_remain_2 = LayerGoldenTestParamType(
     "filters=2",
     "kernel_size=3",
     "stride=2",
-    "padding1d=0,1",
+    "padding=0,1",
   },
   "3:3:1:4", "conv1d_mb_same_uneven_remain.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
@@ -93,7 +93,7 @@ auto conv1d_sb_valid_drop_last =
                              "filters=2",
                              "kernel_size=3",
                              "stride=2",
-                             "padding1d=valid",
+                             "padding=valid",
                            },
                            "1:3:1:7", "conv1d_sb_valid_drop_last.nnlayergolden",
                            LayerGoldenTestParamOptions::DEFAULT);
@@ -104,7 +104,7 @@ auto conv1d_mb_valid_drop_last =
                              "filters=2",
                              "kernel_size=3",
                              "stride=2",
-                             "padding1d=valid",
+                             "padding=valid",
                            },
                            "3:3:1:7", "conv1d_mb_valid_drop_last.nnlayergolden",
                            LayerGoldenTestParamOptions::DEFAULT);
@@ -126,12 +126,12 @@ auto conv1d_mb_no_overlap =
 
 auto conv1d_sb_causal = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=3", "kernel_size=2", "padding1d=causal"}, "1:1:1:4",
+  {"filters=3", "kernel_size=2", "padding=causal"}, "1:1:1:4",
   "conv1d_sb_causal.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto conv1d_mb_causal = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=3", "kernel_size=2", "padding1d=causal"}, "3:1:1:4",
+  {"filters=3", "kernel_size=2", "padding=causal"}, "3:1:1:4",
   "conv1d_mb_causal.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
 
 auto conv1d_sb_1x1_kernel = LayerGoldenTestParamType(
@@ -174,7 +174,7 @@ auto conv1d_sb_same_dilation =
                            {
                              "filters=2",
                              "kernel_size=3",
-                             "padding1d=same",
+                             "padding=same",
                              "dilation=2",
                            },
                            "1:3:1:11", "conv1d_sb_same_dilation.nnlayergolden",
@@ -185,7 +185,7 @@ auto conv1d_mb_same_dilation =
                            {
                              "filters=2",
                              "kernel_size=3",
-                             "padding1d=same",
+                             "padding=same",
                              "dilation=2",
                            },
                            "3:3:1:11", "conv1d_mb_same_dilation.nnlayergolden",
@@ -193,13 +193,13 @@ auto conv1d_mb_same_dilation =
 
 auto conv1d_sb_causal_dilation = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=3", "kernel_size=2", "padding1d=causal", "dilation=2"}, "1:1:1:4",
+  {"filters=3", "kernel_size=2", "padding=causal", "dilation=2"}, "1:1:1:4",
   "conv1d_sb_causal_dilation.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
 auto conv1d_mb_causal_dilation = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::Conv1DLayer>,
-  {"filters=3", "kernel_size=2", "padding1d=causal", "dilation=2"}, "3:1:1:4",
+  {"filters=3", "kernel_size=2", "padding=causal", "dilation=2"}, "3:1:1:4",
   "conv1d_mb_causal_dilation.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
