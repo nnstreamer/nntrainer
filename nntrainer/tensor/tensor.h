@@ -29,8 +29,8 @@
 #include <array>
 #include <functional>
 #include <memory>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 #include <tensor_dim.h>
 
@@ -1403,7 +1403,7 @@ private:
    *
    * @param buf buffer to copy from
    */
-  void copy(const float *buf) noexcept;
+  void copy(const float *buf);
 
   /**
    * @brief Update destination tensor to share memory with source tensor
