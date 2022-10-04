@@ -1496,7 +1496,7 @@ std::ostream &operator<<(std::ostream &out, Tensor const &m) {
   return out;
 }
 
-void Tensor::copy(const float *buf) noexcept {
+void Tensor::copy(const float *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << "Tensor is not contiguous, cannot copy.";
 

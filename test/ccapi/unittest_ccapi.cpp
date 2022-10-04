@@ -632,8 +632,8 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
 
   // Run after set the weights again
   EXPECT_NO_THROW(c_model->train());
-  delete w_one;
-  delete b_one;
+  delete[] w_one;
+  delete[] b_one;
 }
 
 /**
