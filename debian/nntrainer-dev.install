@@ -7,6 +7,7 @@
 /usr/include/nntrainer/profiler.h
 /usr/include/nntrainer/nntr_threads.h
 # tensor headers
+/usr/include/nntrainer/memory_data.h
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
 # todo: update dataset headers

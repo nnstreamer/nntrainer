@@ -482,6 +482,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/nntr_threads.h
 %{_includedir}/nntrainer/profiler.h
 # tensor headers
+%{_includedir}/nntrainer/memory_data.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/tensor_wrap_specs.h
 # @todo: update dataset headers

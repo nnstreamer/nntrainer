@@ -32,7 +32,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <memory_pool.h>
+#include <memory_data.h>
 #include <tensor_dim.h>
 
 #ifdef DEBUG
@@ -1235,6 +1235,9 @@ public:
     return data;
   }
 
+  /**
+   * @brief     return offset
+   */
   unsigned int getOffset() const { return offset; }
 
   /**
