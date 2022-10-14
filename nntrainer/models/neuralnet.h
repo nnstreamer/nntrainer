@@ -550,7 +550,7 @@ private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath,
-               props::MemoryOptimization, props::MemorySwap>;
+               props::MemoryOptimization, props::MemorySwap, props::MemorySwapPath>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;

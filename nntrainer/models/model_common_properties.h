@@ -143,6 +143,24 @@ public:
   MemorySwap(bool value = false);
 };
 
+/**
+ * @brief cache file path property
+ *
+ */
+class MemorySwapPath : public Property<std::string> {
+public:
+  static constexpr const char *key =
+    "memory_swap_path";          /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to current directory
+   */
+  MemorySwapPath(const std::string &value = ".");
+};
+
 } // namespace nntrainer::props
 
 #endif

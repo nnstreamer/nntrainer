@@ -31,4 +31,6 @@ MemoryOptimization::MemoryOptimization(bool value) { set(value); }
 
 MemorySwap::MemorySwap(bool value) { set(value); }
 
+MemorySwapPath::MemorySwapPath(const std::string &value) { set(value); }
+
 } // namespace nntrainer::props

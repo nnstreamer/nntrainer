@@ -22,6 +22,7 @@
  */
 
 #include "layer_context.h"
+#include "model_common_properties.h"
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -68,7 +69,7 @@ NeuralNetwork::NeuralNetwork() :
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap()),
+                   props::MemorySwap(), props::MemorySwapPath()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -85,7 +86,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap()),
+                   props::MemorySwap(), props::MemorySwapPath()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -159,7 +160,8 @@ int NeuralNetwork::compile() {
   }
 
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
-  model_graph = NetworkGraph(memory_swap);
+	const std::string memory_swap_path = std::get<props::MemorySwapPath>(model_flex_props);
+  model_graph = NetworkGraph(memory_swap, memory_swap_path);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
