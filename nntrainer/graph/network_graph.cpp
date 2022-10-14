@@ -329,8 +329,10 @@ void NetworkGraph::applyGradients(
   }
 }
 
-sharedConstTensors NetworkGraph::forwarding(bool training) const {
-  for (auto iter = cbegin(); iter != cend(); iter++) {
+sharedConstTensors
+NetworkGraph::forwarding(bool training,
+                         std::function<bool(void *userdata)> stop_cb) {
+  for (auto iter = cbegin(); iter != cend() && !stop_cb(nullptr); iter++) {
     auto const &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     ln->forwarding(training);
@@ -351,7 +353,8 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
 void NetworkGraph::backwarding(
   int iteration,
   std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-  std::function<void(Weight &, int)> &apply_grad_clip_op) const {
+  std::function<void(Weight &, int)> &apply_grad_clip_op,
+  std::function<bool(void *userdata)> stop_cb) const {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -369,7 +372,7 @@ void NetworkGraph::backwarding(
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  for (auto iter = iter_begin; iter != iter_end; iter++) {
+  for (auto iter = iter_begin; iter != iter_end && !stop_cb(nullptr); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);

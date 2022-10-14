@@ -248,8 +248,10 @@ NeuralNetwork::~NeuralNetwork() = default;
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensors NeuralNetwork::forwarding(bool training) {
-  return model_graph.forwarding(training);
+sharedConstTensors
+NeuralNetwork::forwarding(bool training,
+                          std::function<bool(void *userdata)> stop_cb) {
+  return model_graph.forwarding(training, stop_cb);
 }
 
 /**
@@ -277,14 +279,15 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(int iteration) {
+void NeuralNetwork::backwarding(int iteration,
+                                std::function<bool(void *userdata)> stop_cb) {
 
 #ifdef DEBUG
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
   std::function<void(std::shared_ptr<LayerNode>, int)> backwarding_op =
-    [this](std::shared_ptr<LayerNode> node, int iteration) -> void {
+    [this, stop_cb](std::shared_ptr<LayerNode> node, int iteration) -> void {
     /**
      * Do not change this order:
      * 1. calcGradient
@@ -315,6 +318,10 @@ void NeuralNetwork::backwarding(int iteration) {
     if (!dynamic_training_opt.isGradientMode() && apply_gradient)
       node->calcGradient();
 
+    if (stop_cb(nullptr)) {
+      return;
+    }
+
     if (node->needsCalcDerivative())
       node->calcDerivative();
 
@@ -340,7 +347,8 @@ void NeuralNetwork::backwarding(int iteration) {
     opt_->applyGradient(opt_context);
   };
 
-  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op);
+  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op,
+                          stop_cb);
 }
 
 void NeuralNetwork::save(const std::string &file_path,
@@ -754,8 +762,8 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
 
   auto train_for_iteration = [this, stop_cb](RunStats &stat,
                                              DataBuffer &buffer) {
-    forwarding(true);
-    backwarding(iter++);
+    forwarding(true, stop_cb);
+    backwarding(iter++, stop_cb);
 
     if (!stop_cb(nullptr)) {
       std::cout << "#" << epoch_idx << "/" << getEpochs();

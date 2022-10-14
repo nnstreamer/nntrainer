@@ -222,7 +222,9 @@ public:
   /**
    * @brief     Forward Propagation of the neural network
    */
-  sharedConstTensors forwarding(bool training = true);
+  sharedConstTensors forwarding(bool training = true,
+                                std::function<bool(void *userdata)> stop_cb =
+                                  [](void *user_data) { return false; });
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -238,7 +240,8 @@ public:
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
-  void backwarding(int iteration);
+  void backwarding(int iteration, std::function<bool(void *userdata)> stop_cb =
+                                    [](void *user_data) { return false; });
 
   /**
    * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
