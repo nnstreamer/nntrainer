@@ -166,7 +166,9 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(bool training = false);
+  sharedConstTensors forwarding(bool training = false,
+                                std::function<bool(void *userdata)> stop_cb =
+                                  [](void *user_data) { return false; });
 
   /**
    * @brief     backwarding the network graph
@@ -177,7 +179,10 @@ public:
   void backwarding(
     int iteration,
     std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-    std::function<void(Weight &, int)> &apply_grad_clip_op) const;
+    std::function<void(Weight &, int)> &apply_grad_clip_op,
+    std::function<bool(void *userdata)> stop_cb = [](void *user_data) {
+      return false;
+    }) const;
 
   /**
    * @brief     get begin iterator for the graph
