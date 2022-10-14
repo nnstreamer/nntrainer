@@ -15,6 +15,7 @@ tensor_sources = [
 ]
 
 tensor_headers = [
+  'memory_data.h',
   'tensor.h',
   'tensor_wrap_specs.h'
 ]
