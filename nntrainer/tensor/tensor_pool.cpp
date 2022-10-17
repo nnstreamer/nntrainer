@@ -154,9 +154,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    details->token = mem_pool->requestMemory(spec.tensor->bytes(),
-                                             validity_start, validity_end + 1,
-                                             details->exec_order);
+    details->token =
+      mem_pool->requestMemory(spec.tensor->bytes(), validity_start,
+                              validity_end + 1, details->exec_order);
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");

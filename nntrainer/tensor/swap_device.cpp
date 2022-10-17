@@ -45,8 +45,7 @@ void SwapDevice::start(size_t size) {
 }
 
 void *SwapDevice::getBuffer(int offset, size_t size) {
-  NNTR_THROW_IF(fd <= 0, std::runtime_error)
-    << "SwapDevice is not started";
+  NNTR_THROW_IF(fd <= 0, std::runtime_error) << "SwapDevice is not started";
 
 #ifdef USE_MMAP
   // page aligned
@@ -69,8 +68,7 @@ void *SwapDevice::getBuffer(int offset, size_t size) {
   void *ptr;
 
   ptr = calloc(1, size);
-  NNTR_THROW_IF(ptr == NULL, std::runtime_error)
-    << "memory alloc failed";
+  NNTR_THROW_IF(ptr == NULL, std::runtime_error) << "memory alloc failed";
 
   ret = lseek(fd, offset, SEEK_SET);
   NNTR_THROW_IF(ret < 0, std::runtime_error) << "seek file: " << dev_path;
@@ -88,8 +86,7 @@ void *SwapDevice::getBuffer(int offset, size_t size) {
 void SwapDevice::putBuffer(void *ptr) {
   int ret;
 
-  NNTR_THROW_IF(fd <= 0, std::runtime_error)
-    << "SwapDevice is not started";
+  NNTR_THROW_IF(fd <= 0, std::runtime_error) << "SwapDevice is not started";
 #ifdef USE_MMAP
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
     << "Couldn't find buffer";

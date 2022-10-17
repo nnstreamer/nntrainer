@@ -46,9 +46,10 @@ public:
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool(bool enable_swap, const std::string &name = std::string()) {
+  TensorPool(bool enable_swap, const std::string &swap_path = "",
+             const std::string &swap_name = "") {
     if (enable_swap)
-      mem_pool = std::make_unique<CachePool>(name);
+      mem_pool = std::make_unique<CachePool>(swap_path, swap_name);
     else
       mem_pool = std::make_unique<MemoryPool>();
   }
@@ -351,7 +352,7 @@ private:
    */
   std::vector<RequestSpec> pool; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
-    name_map;          /**< indexing of requested tensors */
+    name_map;                           /**< indexing of requested tensors */
   std::unique_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
 
   /**

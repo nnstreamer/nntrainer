@@ -45,7 +45,14 @@ void CacheElem::swapOut() {
 }
 
 CachePool::CachePool(const std::string &name) :
-  swap_device(std::make_shared<SwapDevice>(name + std::to_string(getpid()))) {
+  swap_device(std::make_shared<SwapDevice>(name + std::to_string(getpid()))) {}
+
+CachePool::CachePool(const std::string &path, const std::string &name) {
+  if (path.empty())
+    swap_device = std::make_shared<SwapDevice>(name + std::to_string(getpid()));
+  else
+    swap_device =
+      std::make_shared<SwapDevice>(path, name + std::to_string(getpid()));
 }
 
 CachePool::~CachePool() { deallocate(); }
@@ -93,11 +100,11 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
   int offset = getMemoryOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
-  auto mem_data = std::make_shared<MemoryData<float>>(id,
-    std::bind(&CachePool::validate, this, std::placeholders::_1),
+  auto mem_data = std::make_shared<MemoryData<float>>(
+    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
-  auto elem =
-    std::make_shared<CacheElem>(swap_device, id, offset, len, mem_data, exe_order);
+  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
+                                          mem_data, exe_order);
 
   elems[id] = elem;
 
@@ -106,7 +113,8 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
     ords.append(std::to_string(o));
     ords.append(" ");
   }
-  ml_logd("[%d] exe_order(%s), offset: 0x%x, len: %zu", id, ords.c_str(), offset, len);
+  ml_logd("[%d] exe_order(%s), offset: 0x%x, len: %zu", id, ords.c_str(),
+          offset, len);
 
   return mem_data;
 }

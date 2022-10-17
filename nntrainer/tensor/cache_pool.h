@@ -14,10 +14,10 @@
 #ifndef __CACHE_POOL_H__
 #define __CACHE_POOL_H__
 
-#include <mutex>
-#include <memory_pool.h>
 #include <list>
-#include <nntrainer_log.h>
+#include <mutex>
+
+#include <memory_pool.h>
 #include <swap_device.h>
 
 namespace nntrainer {
@@ -83,18 +83,22 @@ public:
    */
   size_t getLength() const { return length; }
 
-
+  /**
+   * @brief get id of cache element
+   *
+   * @return cache element id
+   */
   unsigned int getId() const { return id; }
 
 private:
-  std::mutex device_mutex; /**< protect device */
+  std::mutex device_mutex;            /**< protect device */
   std::shared_ptr<SwapDevice> device; /**< swap device */
   bool active;                        /**< element is loaded */
   unsigned int id;                    /**< memory id */
   int offset;                         /**< element offset from swap device */
   size_t length;                      /**< element size */
   std::shared_ptr<MemoryData<float>> mem_data; /**< allocated memory data */
-  std::vector<unsigned int> exe_order;    /**< execution order */
+  std::vector<unsigned int> exe_order;         /**< execution order */
 };
 
 /**
@@ -108,6 +112,12 @@ public:
    *
    */
   explicit CachePool(const std::string &name);
+
+  /**
+   * @brief CachePool constructor with cache path
+   *
+   */
+  explicit CachePool(const std::string &path, const std::string &name);
 
   /**
    * @brief MemoryPool destructor
