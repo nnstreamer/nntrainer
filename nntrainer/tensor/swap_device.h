@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <utility>
 
-
 /* Uncomment this to use mmap for swap data */
 //#define USE_MMAP
 
@@ -41,14 +40,23 @@ public:
    * @brief swap device default path
    *
    */
-  const std::string swap_device_path = "/tmp/";
+  const std::string swap_device_default_path = ".";
 
   /**
    * @brief SwapDevice default constructor
    *
    */
-  explicit SwapDevice(const std::string &name)
-    : dev_path(swap_device_path + name), fd(-1) {}
+  explicit SwapDevice(const std::string &name) :
+    dev_path(swap_device_default_path + name),
+    fd(-1) {}
+
+  /**
+   * @brief SwapDevice default constructor
+   *
+   */
+  explicit SwapDevice(const std::string &path, const std::string &name) :
+    dev_path(path + "/" + name),
+    fd(-1) {}
 
   /**
    * @brief SwapDevice destructor

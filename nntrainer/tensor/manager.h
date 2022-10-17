@@ -135,9 +135,9 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap) :
-    weight_pool(enable_swap, "weight_pool"),
-    tensor_pool(enable_swap, "tensor_pool"),
+  Manager(bool enable_swap, const std::string &swap_path = "") :
+    weight_pool(enable_swap, swap_path, "weight_pool"),
+    tensor_pool(enable_swap, swap_path, "tensor_pool"),
     enable_optimizations(true) {}
 
   /**
