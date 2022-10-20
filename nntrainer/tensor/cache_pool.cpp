@@ -55,7 +55,13 @@ CachePool::CachePool(const std::string &path, const std::string &name) {
       std::make_shared<SwapDevice>(path, name + std::to_string(getpid()));
 }
 
-CachePool::~CachePool() { deallocate(); }
+CachePool::~CachePool() {
+  try {
+    deallocate();
+  } catch (...) {
+    ml_loge("Failed deallocate");
+  }
+}
 
 void CachePool::allocate() {
   if (swap_device->isOperating())
