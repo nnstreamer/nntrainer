@@ -137,14 +137,17 @@ void SwapDevice::finish() {
     free(ptr);
   mapped.clear();
 #else
-  for (auto &[ptr, info] : allocated)
-    free(ptr);
+  for (auto &alloc : allocated)
+    free(alloc.first);
   allocated.clear();
 #endif
 
   close(fd);
   fd = -1;
-  std::remove(dev_path.c_str());
+  int status = std::remove(dev_path.c_str());
+
+  NNTR_THROW_IF(status, std::runtime_error)
+    << "Couldn't remove " << dev_path.c_str();
 }
 
 } // namespace nntrainer
