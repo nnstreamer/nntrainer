@@ -155,6 +155,14 @@ public:
   const std::string getWorkingPath(const std::string &path = "");
 
   /**
+   * @brief Get memory swap file path from configuration file
+   * @return memory swap path.
+   * If memory swap path is not presented in configuration file, it returns
+   * empty string
+   */
+  const std::vector<std::string> getProperties(void);
+
+  /**
    * @brief Factory register function, use this function to register custom
    * object
    *

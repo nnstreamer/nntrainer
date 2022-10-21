@@ -105,7 +105,13 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
 
   ModelLoader loader(app_context);
   NeuralNetwork tempNet(*this);
-  int status = loader.loadFromConfig(config, tempNet);
+
+  int status = loader.loadFromContext(tempNet);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = loader.loadFromConfig(config, tempNet);
   if (status != ML_ERROR_NONE) {
     return status;
   }

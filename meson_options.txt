@@ -12,6 +12,8 @@ option('enable-tflite-backbone', type: 'boolean', value: true)
 option('enable-profile', type: 'boolean', value: false)
 option('enable-debug', type: 'boolean', value: false)
 option('enable-tflite-interpreter', type: 'boolean', value: true)
+option('enable-memory-swap', type: 'boolean', value: false)
+option('memory-swap-path', type: 'string', value: '')
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',

@@ -44,6 +44,12 @@ public:
   ~ModelLoader() {}
 
   /**
+   * @brief     load all properties from context
+   * @param[in/out] model model to be loaded
+   */
+  int loadFromContext(NeuralNetwork &model);
+
+  /**
    * @brief     load all of model and dataset from given config file
    * @param[in] config config file path
    * @param[in/out] model model to be loaded
