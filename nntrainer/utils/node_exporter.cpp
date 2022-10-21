@@ -104,7 +104,6 @@ template <>
 void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
                              const FullyConnectedLayer *self) {
   createIfNull(tf_node);
-
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
   auto options = tflite::CreateFullyConnectedOptions(*fbb).Union();
   tf_node->setBuiltinOptions(tflite::BuiltinOptions_FullyConnectedOptions,
@@ -126,8 +125,8 @@ void Exporter::saveTflResult(const std::tuple<props::Activation> &props,
   }
   case ActivationType::ACT_SOFTMAX: {
     tf_node->setOpType(tflite::BuiltinOperator_SOFTMAX);
-    auto optinos = tflite::CreateSoftmaxOptions(*fbb, 1.0).Union();
-    tf_node->setBuiltinOptions(tflite::BuiltinOptions_SoftmaxOptions, optinos);
+    auto options = tflite::CreateSoftmaxOptions(*fbb, 1.0).Union();
+    tf_node->setBuiltinOptions(tflite::BuiltinOptions_SoftmaxOptions, options);
     break;
   }
   default:
@@ -138,8 +137,8 @@ void Exporter::saveTflResult(const std::tuple<props::Activation> &props,
 template <>
 void Exporter::saveTflResult(
   const std::tuple<props::FilterSize, std::array<props::KernelSize, CONV2D_DIM>,
-                   std::array<props::Stride, CONV2D_DIM>, props::Padding2D>
-    &props,
+                   std::array<props::Stride, CONV2D_DIM>, props::Padding2D,
+                   std::array<props::Dilation, CONV2D_DIM>> &props,
   const Conv2DLayer *self) {
   createIfNull(tf_node);
 
@@ -242,7 +241,7 @@ void Exporter::saveTflResult(
     break;
   }
   default:
-    throw std::runtime_error{"Unsupported poolings type"};
+    throw std::runtime_error{"Unsupported pooling type"};
   }
 }
 

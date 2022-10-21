@@ -285,7 +285,8 @@ class Conv2DLayer;
 template <>
 void Exporter::saveTflResult(
   const std::tuple<props::FilterSize, std::array<props::KernelSize, 2>,
-                   std::array<props::Stride, 2>, props::Padding2D> &props,
+                   std::array<props::Stride, 2>, props::Padding2D,
+                   std::array<props::Dilation, 2>> &props,
   const Conv2DLayer *self);
 
 class InputLayer;

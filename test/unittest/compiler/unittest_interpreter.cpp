@@ -47,7 +47,7 @@ auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
  * @brief nntrainer Interpreter Test setup
  *
  * @note Proposing an evolutional path of current test
- * 1. A reference graph vs given paramater
+ * 1. A reference graph vs given parameter
  * 2. A reference graph vs list of models
  * 3. A reference graph vs (pick two models) a -> b -> a graph, b -> a -> b
  * graph
@@ -127,8 +127,6 @@ auto fc0 = LayerRepresentation("fully_connected",
 auto fc1 = LayerRepresentation("fully_connected", {"name=fc1", "unit=2"});
 
 auto flatten = LayerRepresentation("flatten", {"name=flat"});
-
-#ifdef ENABLE_TFLITE_INTERPRETER
 
 /**
  * TODO: update tflite interpreter after the change of semantics that tensors
@@ -279,7 +277,7 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
               << "failed, reason: " << strerror(errno);
   }
 }
-#endif
+
 /**
  * @brief make ini test case from given parameter
  */
@@ -318,6 +316,9 @@ TEST(nntrainerInterpreterTflite, simple_flatten) {
   auto g = fr.realize(makeGraph({input0, fc0_zeroed}));
 
   nntrainer::NetworkGraph ng;
+
+  /// @todo Disable Support Inplace  --> should be support Inplace()
+  ng.setMemoryOptimizations(false);
 
   for (auto &node : g) {
     ng.addLayer(node);
@@ -415,16 +416,22 @@ TEST(nntrainerInterpreterTflite, simple_flatten2) {
   nntrainer::TfliteInterpreter interpreter;
   nntrainer::FlattenRealizer fr;
 
-  auto input0 = LayerRepresentation(
-    "input", {"name=in0", "input_shape=3:2:4", "flatten=true"});
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=3:2:4"});
+
+  auto flatten =
+    LayerRepresentation("flatten", {"name=flat", "input_layers=in0"});
 
   auto fc0_zeroed = LayerRepresentation(
-    "fully_connected", {"name=fc0", "unit=4", "input_layers=in0",
-                        "bias_initializer=ones", "weight_initializer=ones"});
+    "fully_connected",
+    {"name=fc0", "unit=4", "input_layers=flat", "bias_initializer=ones",
+     "weight_initializer=ones", "activation=softmax"});
 
-  auto g = fr.realize(makeGraph({input0, fc0_zeroed}));
+  auto g = fr.realize(makeGraph({input0, flatten, fc0_zeroed}));
 
   nntrainer::NetworkGraph ng;
+
+  /// @todo Disable Support Inplace  --> should be support Inplace()
+  ng.setMemoryOptimizations(false);
 
   for (auto &node : g) {
     ng.addLayer(node);
@@ -535,6 +542,9 @@ TEST(nntrainerInterpreterTflite, simple_flatten3) {
 
   nntrainer::NetworkGraph ng;
 
+  /// @todo Disable Support Inplace  --> should be support Inplace()
+  ng.setMemoryOptimizations(false);
+
   for (auto &node : g) {
     ng.addLayer(node);
   }
@@ -640,6 +650,9 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
   auto g = fr.realize(makeGraph({input0, flat}));
 
   nntrainer::NetworkGraph ng;
+
+  /// @todo Disable Support Inplace  --> should be support Inplace()
+  ng.setMemoryOptimizations(false);
 
   for (auto &node : g) {
     ng.addLayer(node);

@@ -9,19 +9,17 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <tflite_interpreter.h>
+
 #include <algorithm>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
-#include <tflite_interpreter.h>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <tf_schema_generated.h>
 
 #include <bn_realizer.h>
 #include <fc_layer.h>
@@ -304,7 +302,6 @@ private:
 TfOpNodes buildOpNodes(const GraphRepresentation &representation,
                        flatbuffers::FlatBufferBuilder &fbb) {
   TfOpNodes nodes;
-
   /// @todo TfOpNode needs to have LayerNode pointer
   std::map<TfOpNode *, const LayerNode *> tf_to_layer;
   std::map<const LayerNode *, TfOpNode *> layer_to_tf;
@@ -324,13 +321,28 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
   }
 
   int node_count = 0;
+  bool is_local_first = true;
+  /** is_local_first : first FC Layer after Channel related layer
+   * For example
+   * : Input -> Conv -> Conv -> Flatten -> [FC]:local_first
+   * : Input -> Conv -> Flatten -> [FC]:local_first -> Conv -> Flatten ->
+   * [FC]:local_first
+   */
+
   for (auto &n : nodes) {
     auto tf_node = n.get();
 
     if (tf_node->getOptionType() ==
           tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions &&
-        node_count != 0) {
+        node_count != 0 && is_local_first) {
       tf_node->setNeedReorderWeight();
+      is_local_first = false;
+    }
+
+    if (is_local_first == false &&
+        tf_node->getOptionType() !=
+          tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions) {
+      is_local_first = true;
     }
 
     node_count++;
@@ -361,8 +373,8 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
   node_count = 0;
   for (auto &n : nodes) {
     auto tf_node = n.get();
-
-    if (tf_node->isNeedReorder()) {
+    if (tf_node->getOptionType() ==
+        tflite::BuiltinOptions::BuiltinOptions_FullyConnectedOptions) {
       tf_node->weightReorder(node_count);
     }
 
