@@ -46,13 +46,13 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
    *method.
    *
    *  1. with loss layer at the end of the graph
-   *  2. wihtout loss layer but last node has loss layer output connection
+   *  2. without loss layer but last node has loss layer output connection
    *
    *  Loss layer of the first case is removed by `LossRealizer` and the previous
    *layer of the loss layer is set as the output node. And, the below logic is
    *for the second case.
    **/
-  /// aussume that loss layers have single output
+  /// assume that loss layers have single output
   if (layer.getNumOutputConnections() == 1) {
     for (auto loss : loss_type) {
       if (layer.getOutputConnections()[0].find(loss) != std::string::npos) {
@@ -79,7 +79,7 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
    *
    * Q2) Why are only output tensors reshaped?
    * A2) the tflite needs only one tensor between nodes. Therefore,
-   *basically, outputs are used for tflite tensors
+   * basically, outputs are used for tflite tensors
    **/
   auto create_variables_with_NCHW_to_NHWC = [](auto tensor_getter,
                                                unsigned size) {
@@ -115,34 +115,33 @@ void TfOpNode::setWeightTransformFn(TransformFn fn) { weight_transform = fn; }
 void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
 
 void TfOpNode::weightReorder(unsigned int node_count) {
-  if (need_reorder_weight == false) {
-    return;
-  }
 
-  auto previous_input_shape = input_nodes[0]->getInputs()[0];
+  if (need_reorder_weight == true) {
 
-  const unsigned int UNIT = outputs[0]->height();
-  const unsigned int CHANNEL = previous_input_shape->channel();
-  const unsigned int HEIGHT = previous_input_shape->height();
-  const unsigned int WIDTH = previous_input_shape->width();
+    auto previous_input_shape = input_nodes[0]->getInputs()[0];
 
-  auto weight_data = weights[0]->getData();
-  auto *ptr = const_cast<float *>(weight_data);
+    const unsigned int UNIT = outputs[0]->height();
+    const unsigned int CHANNEL = previous_input_shape->channel();
+    const unsigned int HEIGHT = previous_input_shape->height();
+    const unsigned int WIDTH = previous_input_shape->width();
 
-  std::vector<float> old_value_list;
-  old_value_list.reserve((UNIT * CHANNEL * HEIGHT * WIDTH));
-  memcpy(&old_value_list[0], &ptr[0],
-         sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
+    auto weight_data = weights[0]->getData();
+    auto *ptr = const_cast<float *>(weight_data);
 
-  for (unsigned int h = 0; h < HEIGHT; h++) {
-    for (unsigned int w = 0; w < WIDTH; w++) {
-      for (unsigned int c = 0; c < CHANNEL; c++) {
+    std::vector<float> old_value_list(UNIT * CHANNEL * HEIGHT * WIDTH);
+    memcpy(&old_value_list[0], &ptr[0],
+           sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
 
-        unsigned int now_position = h * (WIDTH * CHANNEL) + w * CHANNEL + c;
-        unsigned int next_position = c * (HEIGHT * WIDTH) + h * WIDTH + w;
+    for (unsigned int h = 0; h < HEIGHT; h++) {
+      for (unsigned int w = 0; w < WIDTH; w++) {
+        for (unsigned int c = 0; c < CHANNEL; c++) {
 
-        memcpy(&ptr[now_position * UNIT], &old_value_list[next_position * UNIT],
-               sizeof(float) * UNIT);
+          unsigned int now_position = h * (WIDTH * CHANNEL) + w * CHANNEL + c;
+          unsigned int next_position = c * (HEIGHT * WIDTH) + h * WIDTH + w;
+
+          memcpy(&ptr[now_position * UNIT],
+                 &old_value_list[next_position * UNIT], sizeof(float) * UNIT);
+        }
       }
     }
   }
@@ -182,7 +181,7 @@ void TfOpNode::finalize() {
       /// @todo comment out below codes. TfOpNode needs to have LayerNode
       /// pointer
       // NNTR_THROW_IF(dynamic_cast<InputLayer>(layer_ptr->getLayer()) ==
-      // nulltpr && result.size() != v.size(), std::invalid_argument)
+      // nullptr && result.size() != v.size(), std::invalid_argument)
       //   << "result size must match with given variable size";
       node_owned_variable.insert(node_owned_variable.end(), result.begin(),
                                  result.end());
@@ -208,7 +207,7 @@ flatbuffers::Offset<void> TfOpNode::getBuiltinOps() const {
   case tflite::BuiltinOperator_TRANSPOSE:
     return builtin_ops;
   default:
-    throw std::runtime_error{"Unsupproted operator"};
+    throw std::runtime_error{"Unsupported operator"};
   }
 }
 

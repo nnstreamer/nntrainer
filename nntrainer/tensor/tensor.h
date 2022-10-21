@@ -678,7 +678,6 @@ public:
    * @brief Transpose Tensor
    *
    * @param direction to transpose ex) 0:2:1
-   * @param is_FC if layer == FC only transpose shape and clone data
    * @return Tensor
    */
   Tensor transpose(const std::string &direction) const;
@@ -687,7 +686,6 @@ public:
    * @brief Transpose Tensor
    * @param direction to transpose ex) 0:2:1
    * @param[out] Tensor to save to, dimension is always reshaped.
-   * @param is_FC if layer == FC only transpose shape and clone data
    * @retval Tensor& reference to the out
    */
   Tensor &transpose(const std::string &direction, Tensor &out) const;

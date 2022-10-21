@@ -58,11 +58,6 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
   /**
-   * @copydoc Layer::supportInPlace()
-   */
-  bool supportInPlace() const override { return false; }
-
-  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
