@@ -446,6 +446,16 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
 }
 
 /**
+ * @brief     load all properties from context
+ */
+int ModelLoader::loadFromContext(NeuralNetwork &model) {
+  auto props = app_context.getProperties();
+  model.setTrainConfig(props);
+
+  return ML_ERROR_NONE;
+}
+
+/**
  * @brief     load all of model and dataset from given config file
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {

@@ -105,7 +105,13 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
 
   ModelLoader loader(app_context);
   NeuralNetwork tempNet(*this);
-  int status = loader.loadFromConfig(config, tempNet);
+
+  int status = loader.loadFromContext(tempNet);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = loader.loadFromConfig(config, tempNet);
   if (status != ML_ERROR_NONE) {
     return status;
   }
@@ -160,7 +166,8 @@ int NeuralNetwork::compile() {
   }
 
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
-	const std::string memory_swap_path = std::get<props::MemorySwapPath>(model_flex_props);
+  const std::string memory_swap_path =
+    std::get<props::MemorySwapPath>(model_flex_props);
   model_graph = NetworkGraph(memory_swap, memory_swap_path);
 
   model_graph.setMemoryOptimizations(

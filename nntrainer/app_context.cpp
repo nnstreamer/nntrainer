@@ -106,7 +106,7 @@ namespace {
  *
  * @return std::string plugin path
  */
-std::string getPluginPathConf(const std::string &suffix) {
+std::string getConfig(const std::string &key) {
   std::string conf_path{getConfPath()};
 
   ml_logd("%s conf path: %s", func_tag.c_str(), conf_path.c_str());
@@ -121,19 +121,25 @@ std::string getPluginPathConf(const std::string &suffix) {
   NNTR_THROW_IF(ini == nullptr, std::runtime_error)
     << func_tag << "loading ini failed";
 
-  auto freedict = [ini] { iniparser_freedict(ini); };
+  std::string value;
+  int nsec = iniparser_getnsec(ini);
+  for (int i = 0; i < nsec; i++) {
+    std::string query(iniparser_getsecname(ini, i));
+    query += ":";
+    query += key;
 
-  std::string s{"plugins:"};
+    value = std::string(iniparser_getstring(ini, query.c_str(), ""));
+    if (!value.empty())
+      break;
+  }
 
-  s += suffix;
+  if (value.empty())
+    ml_logd("key %s is not found in config(%s)", key.c_str(),
+            conf_path.c_str());
 
-  const char *path = iniparser_getstring(ini, s.c_str(), NULL);
-  NNTR_THROW_IF_CLEANUP(path == nullptr, std::invalid_argument, freedict)
-    << func_tag << "plugins layer failed";
+  iniparser_freedict(ini);
 
-  std::string ret{path};
-  freedict();
-  return ret;
+  return value;
 }
 
 /**
@@ -163,10 +169,10 @@ std::vector<std::string> getPluginPaths() {
     }
   }
 
-  std::string conf_path = getPluginPathConf("layer");
-  if (conf_path != "") {
-    ret.emplace_back(conf_path);
-    ml_logd("DEFAULT CONF PATH, path: %s", conf_path.c_str());
+  std::string plugin_path = getConfig("layer");
+  if (!plugin_path.empty()) {
+    ret.emplace_back(plugin_path);
+    ml_logd("DEFAULT CONF PATH, path: %s", plugin_path.c_str());
   }
 
   return ret;
@@ -402,6 +408,53 @@ void AppContext::setWorkingDirectory(const std::string &base) {
 
 const std::string AppContext::getWorkingPath(const std::string &path) {
   return getFullPath(path, working_path_base);
+}
+
+/**
+ * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+ *
+ * @tparam I size of tuple(automated)
+ * @tparam V container type of properties
+ * @tparam Ts types from tuple
+ * @param prop property container to be added to
+ * @param tup tuple to be iterated
+ * @return void
+ */
+template <size_t I = 0, typename V, typename... Ts>
+typename std::enable_if<I == sizeof...(Ts), void>::type inline parse_properties(
+  V &props, std::tuple<Ts...> &tup) {
+  // end of recursion.
+}
+
+/**
+ * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+ *
+ * @tparam I size of tuple(automated)
+ * @tparam V container type of properties
+ * @tparam Ts types from tuple
+ * @param prop property container to be added to
+ * @param tup tuple to be iterated
+ * @return void
+ */
+template <size_t I = 0, typename V, typename... Ts>
+  typename std::enable_if <
+  I<sizeof...(Ts), void>::type inline parse_properties(V &props,
+                                                       std::tuple<Ts...> &tup) {
+  std::string name = std::get<I>(tup);
+  std::string prop = getConfig(name);
+  if (!prop.empty())
+    props.push_back(name + "=" + prop);
+
+  parse_properties<I + 1>(props, tup);
+}
+
+const std::vector<std::string> AppContext::getProperties(void) {
+  std::vector<std::string> properties;
+
+  auto props = std::tuple("memory_swap", "memory_swap_path");
+  parse_properties(properties, props);
+
+  return properties;
 }
 
 int AppContext::registerLayer(const std::string &library_path,
