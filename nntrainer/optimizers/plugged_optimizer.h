@@ -48,7 +48,7 @@ public:
   ~PluggedOptimizer() override { destroy_func(optimizer_devel); }
 
   /**
-   * @brief Move Contruct Plugged Optimizer object
+   * @brief Move Construct Plugged Optimizer object
    *
    * @param rhs optimizer to move
    */
@@ -93,13 +93,13 @@ public:
   void finalize() override { optimizer_devel->finalize(); }
 
   /**
-   * @brief     Read Training optimizer paramters from file
+   * @brief     Read Training optimizer parameters from file
    * @param[in] file input stream file
    */
   void read(std::ifstream &file) override { optimizer_devel->read(file); }
 
   /**
-   * @brief     Save Training optimizer paramters from file
+   * @brief     Save Training optimizer parameters from file
    * @param[in] file output stream file
    */
   void save(std::ofstream &file) override { optimizer_devel->save(file); }
