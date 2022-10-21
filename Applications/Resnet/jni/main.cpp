@@ -266,7 +266,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
 std::array<UserDataType, 2>
 createFakeDataGenerator(unsigned int batch_size,
-                        unsigned int simulted_data_size,
+                        unsigned int simulated_data_size_,
                         unsigned int data_split) {
   constexpr unsigned int simulated_data_size = 512;
 
@@ -361,7 +361,7 @@ int main(int argc, char *argv[]) {
   try {
     status = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error during RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 #endif
 

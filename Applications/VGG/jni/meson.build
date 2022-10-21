@@ -1,7 +1,7 @@
 build_root = meson.build_root()
 res_path = meson.current_source_dir() / '..' / 'res'
 
-mnist_sources = [
+vgg_sources = [
   'main.cpp',
   cifar_path / 'cifar_dataloader.cpp'
 ]
@@ -12,7 +12,7 @@ if get_option('platform') == 'tizen'
 endif
 
 executable('nntrainer_vgg',
-  mnist_sources,
+  vgg_sources,
   dependencies: [iniparser_dep, nntrainer_dep, nntrainer_ccapi_dep, app_utils_dep],
   include_directories: [include_directories('.'), cifar_include_dir],
   install: get_option('install-app'),

@@ -111,7 +111,7 @@ public:
    * @brief this function helps exporting the optimizer in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
-   * @param     exporter exporter that conatins exporting logic
+   * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
   void exportTo(Exporter &exporter,
@@ -123,13 +123,13 @@ public:
   void finalize();
 
   /**
-   * @brief     Read Training optimizer paramters from file
+   * @brief     Read Training optimizer parameters from file
    * @param[in] file input stream file
    */
   void read(std::ifstream &file);
 
   /**
-   * @brief     Save Training optimizer paramters from file
+   * @brief     Save Training optimizer parameters from file
    * @param[in] file output stream file
    */
   void save(std::ofstream &file);

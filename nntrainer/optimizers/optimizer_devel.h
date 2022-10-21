@@ -60,7 +60,7 @@ public:
    * @brief this function helps exporting the optimizer in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
-   * @param     exporter exporter that conatins exporting logic
+   * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
   virtual void exportTo(Exporter &exporter,
@@ -72,13 +72,13 @@ public:
   virtual void finalize(){};
 
   /**
-   * @brief     Read Training optimizer paramters from file
+   * @brief     Read Training optimizer parameters from file
    * @param[in] file input stream file
    */
   virtual void read(std::ifstream &file);
 
   /**
-   * @brief     Save Training optimizer paramters from file
+   * @brief     Save Training optimizer parameters from file
    * @param[in] file output stream file
    */
   virtual void save(std::ofstream &file);
@@ -122,7 +122,7 @@ createOptimizer(const std::vector<std::string> &props = {}) {
  */
 typedef struct {
   CreateOptimizerFunc createfunc;   /**< create function */
-  DestroyOptimizerFunc destroyfunc; /**< destory function */
+  DestroyOptimizerFunc destroyfunc; /**< destroy function */
 } OptimizerPluggable;
 
 /**
