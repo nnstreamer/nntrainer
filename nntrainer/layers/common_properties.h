@@ -250,6 +250,18 @@ public:
 };
 
 /**
+ * @brief split number property, split number is used to split input dimension
+ * in split layer
+ *
+ */
+class SplitNumber : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "split_number";               /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
+/**
  * @brief Axis property, idx in the dimension
  *
  */

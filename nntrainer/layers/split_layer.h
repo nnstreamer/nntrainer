@@ -9,7 +9,7 @@
  * @bug    No known bugs except for NYI items
  * @brief  This is Split Layer Class for Neural Network
  *
- * @todo   Add support for number of splits and uneven splits. For now, this can
+ * @todo   Add support for uneven splits. For now, this can
  * be acheived with combination of split and concat layers.
  */
 
@@ -102,7 +102,7 @@ private:
                                 containing the actual batch */
   TensorDim input_reshape_helper;  /** helper dimension to reshape input */
   TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
-  std::tuple<props::SplitDimension> split_props;
+  std::tuple<props::SplitDimension, props::SplitNumber> split_props;
 
   /**
    * @brief set batch for the internal variables

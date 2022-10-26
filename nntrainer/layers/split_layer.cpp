@@ -26,7 +26,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 SplitLayer::SplitLayer() :
   Layer(),
   leading_helper_dim(1),
-  split_props(props::SplitDimension()) {}
+  split_props(props::SplitDimension(), props::SplitNumber()) {}
 
 void SplitLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
@@ -34,21 +34,33 @@ void SplitLayer::finalize(InitLayerContext &context) {
 
   unsigned int split_dimension = std::get<props::SplitDimension>(split_props);
 
+  if (std::get<props::SplitNumber>(split_props).empty()) {
+    std::get<props::SplitNumber>(split_props)
+      .set(context.getNumRequestedOutputs());
+  }
+  unsigned int split_number = std::get<props::SplitNumber>(split_props);
+
   /**
    * The split is only done along the split_dimension dimension.
-   * For example, consider input dimension [b,c,h,w],
-   * 1. axis = 1, output_dim = [b,1,h,w], num_outputs = c
-   * 2. axis = 2, output_dim = [b,c,1,w], num_outputs = h
-   * 3. axis = 3, output_dim = [b,c,h,1], num_outputs = w
+   * For example, consider input dimension [b,c,h,w], split_number = n
+   * 1. axis = 1, output_dim = [b,n,h,w], num_outputs = c//n
+   * 2. axis = 2, output_dim = [b,c,n,w], num_outputs = h//n
+   * 3. axis = 3, output_dim = [b,c,h,n], num_outputs = w//n
    */
   const TensorDim &in_dim = context.getInputDimensions()[0];
-  NNTR_THROW_IF(in_dim.getTensorDim(split_dimension) !=
-                  context.getNumRequestedOutputs(),
+  NNTR_THROW_IF(split_number != context.getNumRequestedOutputs(),
                 std::invalid_argument)
-    << "Split dimension cannot be split into given number of outputs";
+    << "Given split number does not match with number of outputs";
+
+  NNTR_THROW_IF(in_dim.getTensorDim(split_dimension) % split_number,
+                std::invalid_argument)
+    << "Split dimension cannot be split into given number of split_number";
+
+  const unsigned int split_size =
+    in_dim.getTensorDim(split_dimension) / split_number;
 
   TensorDim d = in_dim;
-  d.setTensorDim(split_dimension, 1);
+  d.setTensorDim(split_dimension, split_size);
 
   std::vector<TensorDim> output_dim(context.getNumRequestedOutputs());
   for (auto &out_dim : output_dim) {
@@ -85,31 +97,35 @@ void SplitLayer::finalize(InitLayerContext &context) {
    * to facilitate easier processing.
    */
   output_reshape_helper = input_reshape_helper;
-  output_reshape_helper.height(1);
+  output_reshape_helper.height(split_size);
 
   setBatch(in_dim.batch());
 }
 
 void SplitLayer::forwarding(RunLayerContext &context, bool training) {
+  unsigned int split_number = std::get<props::SplitNumber>(split_props);
+
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   const TensorDim in_dim = input_.getDim();
   input_.reshape(input_reshape_helper);
 
-  for (unsigned int idx = 0; idx < context.getNumOutputs(); idx++) {
+  for (unsigned int idx = 0; idx < split_number; idx++) {
     Tensor &output_ = context.getOutput(idx);
     const TensorDim out_dim = output_.getDim();
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
-      const Tensor source_tensor =
-        Tensor::Map(input_.getAddress(batch, 0, idx, 0),
-                    input_reshape_helper.width() * sizeof(float),
-                    {1, 1, 1, input_reshape_helper.width()});
-      Tensor dest_tensor =
-        Tensor::Map(output_.getAddress(batch, 0, 0, 0),
-                    output_reshape_helper.width() * sizeof(float),
-                    {1, 1, 1, output_reshape_helper.width()});
+      const Tensor source_tensor = Tensor::Map(
+        input_.getAddress(batch, 0, idx * output_reshape_helper.height(), 0),
+        output_reshape_helper.height() * input_reshape_helper.width() *
+          sizeof(float),
+        {1, 1, output_reshape_helper.height(), input_reshape_helper.width()});
+      Tensor dest_tensor = Tensor::Map(
+        output_.getAddress(batch, 0, 0, 0),
+        output_reshape_helper.height() * output_reshape_helper.width() *
+          sizeof(float),
+        {1, 1, output_reshape_helper.height(), output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
 
@@ -120,25 +136,33 @@ void SplitLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void SplitLayer::calcDerivative(RunLayerContext &context) {
+  unsigned int split_number = std::get<props::SplitNumber>(split_props);
+
   Tensor &input_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   const TensorDim in_dim = input_.getDim();
   input_.reshape(input_reshape_helper);
 
-  for (unsigned int idx = 0; idx < context.getNumOutputs(); idx++) {
+  for (unsigned int idx = 0; idx < split_number; idx++) {
     Tensor output_ = context.getIncomingDerivative(idx);
+    const TensorDim out_dim = output_.getDim();
+    output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
-      Tensor dest_tensor =
-        Tensor::Map(input_.getAddress(batch, 0, idx, 0),
-                    input_reshape_helper.width() * sizeof(float),
-                    {1, 1, 1, input_reshape_helper.width()});
-      const Tensor source_tensor =
-        Tensor::Map(output_.getAddress(batch, 0, 0, 0),
-                    output_reshape_helper.width() * sizeof(float),
-                    {1, 1, 1, output_reshape_helper.width()});
+      Tensor dest_tensor = Tensor::Map(
+        input_.getAddress(batch, 0, idx * output_reshape_helper.height(), 0),
+        output_reshape_helper.height() * input_reshape_helper.width() *
+          sizeof(float),
+        {1, 1, output_reshape_helper.height(), input_reshape_helper.width()});
+      const Tensor source_tensor = Tensor::Map(
+        output_.getAddress(batch, 0, 0, 0),
+        output_reshape_helper.height() * output_reshape_helper.width() *
+          sizeof(float),
+        {1, 1, output_reshape_helper.height(), output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
+
+    output_.reshape(out_dim);
   }
 
   input_.reshape(in_dim);
