@@ -6,3 +6,10 @@
 [plugins]
 # path to search for layers
 layer=@PLUGIN_INSTALL_PREFIX@/layers
+
+[swap]
+# enable memory swap feature
+memory_swap = @MEMORY_SWAP@
+
+# path to save swap file
+memory_swap_path = @MEMORY_SWAP_PATH@
