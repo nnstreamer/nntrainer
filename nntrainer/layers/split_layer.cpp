@@ -34,20 +34,22 @@ void SplitLayer::finalize(InitLayerContext &context) {
 
   unsigned int split_dimension = std::get<props::SplitDimension>(split_props);
 
+  const TensorDim &in_dim = context.getInputDimensions()[0];
+
   if (std::get<props::SplitNumber>(split_props).empty()) {
     std::get<props::SplitNumber>(split_props)
-      .set(context.getNumRequestedOutputs());
+      .set(in_dim.getTensorDim(split_dimension));
   }
   unsigned int split_number = std::get<props::SplitNumber>(split_props);
 
   /**
    * The split is only done along the split_dimension dimension.
+   * (Assumes input data is continous)
    * For example, consider input dimension [b,c,h,w], split_number = n
-   * 1. axis = 1, output_dim = [b,n,h,w], num_outputs = c//n
-   * 2. axis = 2, output_dim = [b,c,n,w], num_outputs = h//n
-   * 3. axis = 3, output_dim = [b,c,h,n], num_outputs = w//n
+   * 1. axis = 1, output_dim = [b,c//n,h,w], num_outputs = n
+   * 2. axis = 2, output_dim = [b,c,h//n,w], num_outputs = n
+   * 3. axis = 3, output_dim = [b,c,h,w//n], num_outputs = n
    */
-  const TensorDim &in_dim = context.getInputDimensions()[0];
   NNTR_THROW_IF(split_number != context.getNumRequestedOutputs(),
                 std::invalid_argument)
     << "Given split number does not match with number of outputs";

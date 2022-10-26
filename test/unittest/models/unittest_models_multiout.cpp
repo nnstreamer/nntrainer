@@ -22,6 +22,65 @@
 
 using namespace nntrainer;
 
+static std::unique_ptr<NeuralNetwork> split_axis3_split_number5() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto graph = makeGraph({
+    {"conv2d",
+     {"name=conv", "input_shape=3:4:5", "filters=3", "kernel_size=1,1"}},
+    {"split", {"name=split", "input_layers=conv", "axis=3", "split_number=5"}},
+    {"addition",
+     {"name=add", "input_layers=split(0),split(1),split(2),split(3),split(4)"}},
+    {"mse", {"name=loss", "input_layers=add"}},
+  });
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> split_axis2_split_number4() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto graph = makeGraph({
+    {"conv2d",
+     {"name=conv", "input_shape=3:4:5", "filters=3", "kernel_size=1,1"}},
+    {"split", {"name=split", "input_layers=conv", "axis=2", "split_number=4"}},
+    {"addition",
+     {"name=add", "input_layers=split(0),split(1),split(2),split(3)"}},
+    {"mse", {"name=loss", "input_layers=add"}},
+  });
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> split_axis2_split_number2() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto graph = makeGraph({
+    {"conv2d",
+     {"name=conv", "input_shape=3:4:5", "filters=3", "kernel_size=1,1"}},
+    {"split", {"name=split", "input_layers=conv", "axis=2", "split_number=2"}},
+    {"addition", {"name=add", "input_layers=split(0),split(1)"}},
+    {"mse", {"name=loss", "input_layers=add"}},
+  });
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  return nn;
+}
+
 /// A has two output tensor a1, a2 and B, C takes it
 ///     A
 /// (a0, a1)
@@ -176,6 +235,12 @@ static std::unique_ptr<NeuralNetwork> split_and_join_dangle() {
 GTEST_PARAMETER_TEST(
   multiInoutModels, nntrainerModelTest,
   ::testing::ValuesIn({
+    mkModelTc_V2(split_axis3_split_number5, "split_axis3_split_number5",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(split_axis2_split_number4, "split_axis2_split_number4",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(split_axis2_split_number2, "split_axis2_split_number2",
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(split_and_join, "split_and_join", ModelTestOption::ALL_V2),
     mkModelTc_V2(one_to_one, "one_to_one", ModelTestOption::ALL_V2),
     mkModelTc_V2(one_to_one_reversed, "one_to_one__reversed",

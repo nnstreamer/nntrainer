@@ -11,6 +11,24 @@
 from recorder_v2 import record_v2, inspect_file
 import torch
 
+class Split(torch.nn.Module):
+    def __init__(self, axis, split_number, channel):
+        super().__init__()
+        self.axis = axis
+        self.split_number = split_number
+        self.conv = torch.nn.Conv2d(channel, channel, 1)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        outs = self.conv(inputs[0])
+        split_size = outs.size(self.axis) // self.split_number
+        *outs, = torch.split(outs, split_size, self.axis)
+        out = torch.clone(outs[0])
+        for i in range(1, len(outs)):
+            out += outs[i]
+
+        loss = self.loss(out, labels[0])
+        return out, loss
 
 class SplitAndJoin(torch.nn.Module):
     def __init__(self):
@@ -92,6 +110,30 @@ class OneToMany(torch.nn.Module):
 
 
 if __name__ == "__main__":
+    record_v2(
+        Split(3, 5, 3),
+        iteration=2,
+        input_dims=[(2, 3, 4, 5)],
+        label_dims=[(2, 3, 4, 1)],
+        name="split_axis3_split_number5"
+    )
+
+    record_v2(
+        Split(2, 4, 3),
+        iteration=2,
+        input_dims=[(2, 3, 4, 5)],
+        label_dims=[(2, 3, 1, 5)],
+        name="split_axis2_split_number4"
+    )
+
+    record_v2(
+        Split(2, 2, 3),
+        iteration=2,
+        input_dims=[(2, 3, 4, 5)],
+        label_dims=[(2, 3, 2, 5)],
+        name="split_axis2_split_number2"
+    )
+
     record_v2(
         SplitAndJoin(),
         iteration=2,
