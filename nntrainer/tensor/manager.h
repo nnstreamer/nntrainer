@@ -176,7 +176,7 @@ public:
    * updates gradient
    *
    * @param node Graph node to extract node identifiers/info
-   * @param weights_spec Specficiation for the weights
+   * @param weights_spec Specification for the weights
    * @param trainable make the weight trainable if true
    * @param shared_names name to refer to when the weights are borrowed from the
    * original source. if not shared pass empty vector

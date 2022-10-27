@@ -144,7 +144,7 @@ public:
 
   /**
    * @brief Get Working Path from a relative or representation of a path
-   * strating from @a working_path_base.
+   * starting from @a working_path_base.
    * @param[in] path to make full path
    * @return If absolute path is given, returns @a path
    * If relative path is given and working_path_base is not set, return

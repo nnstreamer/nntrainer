@@ -64,7 +64,7 @@ for inference and training without any configurations*/
   MODEL_FORMAT_INI = ML_TRAIN_MODEL_FORMAT_INI, /**< ini file */
   MODEL_FORMAT_INI_WITH_BIN =
     ML_TRAIN_MODEL_FORMAT_INI_WITH_BIN, /**< ini file with save_path defined
-                                           where the binaray will be saved */
+                                           where the binary will be saved */
 };
 
 /**
@@ -88,7 +88,7 @@ public:
 
   /**
    * @brief     Minimal set of properties that must be supported by the model
-   * @details   The minimal properies:
+   * @details   The minimal properties:
                 - loss_type
                 - batch_size
                 - epochs

@@ -17,7 +17,7 @@
  * certain properties of the layer which are either related to graph related
  * connections (input_connections, output_connections, activation, flatten,
  * distribute, name) or essential for the description of the layer (trainable,
- * input_dims) iself. These properties, if needed by the layer object, are
+ * input_dims) itself. These properties, if needed by the layer object, are
  * provided access to via LayerContext.
  */
 
@@ -276,7 +276,7 @@ public:
    * @brief this function helps exporting the layer in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
-   * @param     exporter exporter that conatins exporting logic
+   * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
   void exportTo(Exporter &exporter,

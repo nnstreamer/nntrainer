@@ -28,7 +28,7 @@ namespace train {
  */
 enum class ExportMethods {
   METHOD_STRINGVECTOR = 0, /**< export to a string vector */
-  METHOD_TFLITE = 1,       /**< epxort to tflite */
+  METHOD_TFLITE = 1,       /**< export to tflite */
   METHOD_UNDEFINED = 999,  /**< undefined */
 };
 
