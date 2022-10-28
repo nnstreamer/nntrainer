@@ -87,6 +87,8 @@ void CachePool::deallocate() {
 
   for (auto &[id, elem] : elems)
     invalidate(id);
+
+  actives.clear();
   swap_device->finish();
 }
 
@@ -98,8 +100,10 @@ void CachePool::validate(unsigned int id) {
 }
 
 void CachePool::invalidate(unsigned int id) {
-  if (elems[id]->isActive())
+  if (elems[id]->isActive()) {
+    actives.remove(elems[id]);
     elems[id]->swapOut();
+  }
 }
 
 std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
@@ -130,7 +134,7 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
 
 void CachePool::flush() {
   for (auto elem : actives)
-    invalidate(elem->getId());
+    elem->swapOut();
 
   actives.clear();
 }
@@ -140,7 +144,7 @@ void CachePool::flushExcept(unsigned int order) {
     auto exe_order = elem->getExeOrder();
     auto found = std::find(exe_order.begin(), exe_order.end(), order);
     if (found == exe_order.end()) {
-      invalidate(elem->getId());
+      elem->swapOut();
       return true;
     }
     return false;
@@ -148,11 +152,65 @@ void CachePool::flushExcept(unsigned int order) {
 }
 
 void CachePool::clear() {
-	flush();
-	deallocate();
-	MemoryPool::clear();
+  flush();
+  deallocate();
+  MemoryPool::clear();
 }
 
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }
+
+void CachePool::loadExec(unsigned int order) {
+  for (auto &[id, elem] : elems) {
+    auto exe_order = elem->getExeOrder();
+    auto found = std::find(exe_order.begin(), exe_order.end(), order);
+    if (found != exe_order.end())
+      validate(elem->getId());
+  }
+}
+
+void CachePool::initCacheElemIter(CacheElemsIter &iter) {
+  iter = elems.begin();
+}
+
+bool CachePool::isLastCacheElemIter(const CacheElemsIter &iter) const {
+  return iter == elems.end();
+}
+
+bool CachePool::loadExecOnce(unsigned int order, CacheElemsIter &iter) {
+  if (iter == elems.end())
+    return true;
+
+  auto elem = iter->second;
+  auto exe_order = elem->getExeOrder();
+  auto found = std::find(exe_order.begin(), exe_order.end(), order);
+  if (found != exe_order.end())
+    validate(elem->getId());
+
+  iter++;
+  return false;
+}
+
+void CachePool::unloadExec(unsigned int order) {
+  for (auto &[id, elem] : elems) {
+    auto exe_order = elem->getExeOrder();
+    auto found = std::find(exe_order.begin(), exe_order.end(), order);
+    if (found != exe_order.end())
+      invalidate(elem->getId());
+  }
+}
+
+void CachePool::loadActives() {
+  ml_logd("load active caches");
+
+  for (auto &elem : actives)
+    elem->swapIn();
+}
+
+void CachePool::unloadActives() {
+  ml_logd("unload active caches");
+
+  for (auto &elem : actives)
+    elem->swapOut();
+}
 
 } // namespace nntrainer
