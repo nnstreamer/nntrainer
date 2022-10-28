@@ -107,6 +107,9 @@ private:
  */
 class CachePool : public MemoryPool {
 public:
+  using CacheElems = std::map<unsigned int, std::shared_ptr<CacheElem>>;
+  using CacheElemsIter = CacheElems::iterator;
+
   /**
    * @brief CachePool default constructor
    *
@@ -174,6 +177,51 @@ public:
    */
   virtual void clear();
 
+  /**
+   * @brief Load cache data by execution order
+   *
+   * @param order execution order
+   */
+  virtual void loadExec(unsigned int order);
+
+  /**
+   * @brief Load cache data by execution order
+   *
+   * @param order execution order
+   */
+  virtual void initCacheElemIter(CacheElemsIter &iter);
+
+  /**
+   * @brief Check iterator is last element
+   *
+   * @param order execution order
+   */
+  virtual bool isLastCacheElemIter(const CacheElemsIter &iter) const;
+
+  /**
+   * @brief Load cache data by execution order
+   *
+   * @param order execution order
+   */
+  virtual bool loadExecOnce(unsigned int order, CacheElemsIter &iter);
+
+  /**
+   * @brief Unload cache data by execution order
+   *
+   * @param order execution order
+   */
+  virtual void unloadExec(unsigned int order);
+
+  /**
+   * @brief Load active cache data
+   */
+  virtual void loadActives();
+
+  /**
+   * @brief Unload active cache data
+   */
+  virtual void unloadActives();
+
 protected:
   /**
    * @brief validate cache element
@@ -190,8 +238,7 @@ protected:
   virtual void invalidate(unsigned int id);
 
   std::shared_ptr<SwapDevice> swap_device; /**< swap device */
-  std::map<unsigned int, std::shared_ptr<CacheElem>>
-    elems; /**< cache elements */
+  CacheElems elems;                        /**< cache elements */
 
   std::list<std::shared_ptr<CacheElem>> actives;
 };
