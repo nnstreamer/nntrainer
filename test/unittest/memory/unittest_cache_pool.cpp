@@ -149,7 +149,7 @@ TEST_F(CachePoolTest, validate_02_p) {
  */
 TEST_F(CachePoolTest, invalidate_01_p) {
   EXPECT_CALL(*pool, validate).Times(1);
-  EXPECT_CALL(*pool, invalidate).Times(3);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData<float>> mem;
   auto idx = pool->requestMemory(1, 4, 5);
@@ -175,7 +175,7 @@ TEST_F(CachePoolTest, invalidate_01_p) {
  */
 TEST_F(CachePoolTest, invalidate_02_p) {
   EXPECT_CALL(*pool, validate).Times(1);
-  EXPECT_CALL(*pool, invalidate).Times(3);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData<float>> mem;
   auto idx = pool->requestMemory(1, 4, 5);
@@ -204,7 +204,7 @@ TEST_F(CachePoolTest, invalidate_02_p) {
  */
 TEST_F(CachePoolTest, validate_invalidate_01_p) {
   EXPECT_CALL(*pool, validate).Times(2);
-  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData<float>> mem;
   auto idx = pool->requestMemory(4, 4, 5);
@@ -239,7 +239,7 @@ TEST_F(CachePoolTest, validate_invalidate_01_p) {
  */
 TEST_F(CachePoolTest, validate_invalidate_02_n) {
   EXPECT_CALL(*pool, validate).Times(6);
-  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(9));
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(6));
 
   std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 2);
@@ -303,7 +303,7 @@ TEST_F(CachePoolTest, validate_invalidate_02_n) {
  */
 TEST_F(CachePoolTest, validate_invalidate_03_p) {
   EXPECT_CALL(*pool, validate).Times(6);
-  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(9));
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(6));
 
   std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5);
@@ -357,6 +357,287 @@ TEST_F(CachePoolTest, validate_invalidate_03_p) {
   EXPECT_EQ(*(mem1->getAddr()), TEMP_DATA1);
   EXPECT_EQ(*(mem2->getAddr()), TEMP_DATA2);
   EXPECT_EQ(*(mem3->getAddr()), TEMP_DATA3);
+
+  EXPECT_NO_THROW(pool->deallocate());
+}
+
+/**
+ * @brief flush cache data
+ */
+TEST_F(CachePoolTest, flush_01_p) {
+  EXPECT_CALL(*pool, validate).Times(3);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
+
+  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
+  auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
+  auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
+  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->allocate());
+  EXPECT_EQ(pool->size(), 12);
+  EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
+  EXPECT_NO_THROW(mem2 = pool->getMemory(idx2));
+  EXPECT_NO_THROW(mem3 = pool->getMemory(idx3));
+  EXPECT_NE(mem1, nullptr);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2, nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3, nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  /**
+   * Check loaded data are invalid after flush()
+   */
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  pool->flush();
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  EXPECT_NO_THROW(pool->deallocate());
+}
+
+/**
+ * @brief load cache data by execution order
+ */
+TEST_F(CachePoolTest, loadExec_01_p) {
+  EXPECT_CALL(*pool, validate).Times(14);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
+
+  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
+  auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
+  auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
+  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->allocate());
+  EXPECT_EQ(pool->size(), 12);
+  EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
+  EXPECT_NO_THROW(mem2 = pool->getMemory(idx2));
+  EXPECT_NO_THROW(mem3 = pool->getMemory(idx3));
+  EXPECT_NE(mem1, nullptr);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2, nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3, nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  /**
+   * Check loaded data for each execution order
+   */
+  pool->loadExec(1);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(2);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(3);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(4);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(5);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(6);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(7);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  pool->loadExec(8);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+  pool->flush();
+
+  EXPECT_NO_THROW(pool->deallocate());
+}
+
+/**
+ * @brief unload cache data by execution order
+ */
+TEST_F(CachePoolTest, unloadExec_01_p) {
+  EXPECT_CALL(*pool, validate).Times(16);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(16));
+
+  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
+  auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
+  auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
+  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->allocate());
+  EXPECT_EQ(pool->size(), 12);
+  EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
+  EXPECT_NO_THROW(mem2 = pool->getMemory(idx2));
+  EXPECT_NO_THROW(mem3 = pool->getMemory(idx3));
+  EXPECT_NE(mem1, nullptr);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2, nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3, nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  /**
+   * Check unloaded data for each execution order
+   */
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(1);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(2);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(3);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(4);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(5);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(6);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(7);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  pool->unloadExec(8);
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  EXPECT_NO_THROW(pool->deallocate());
+}
+
+/**
+ * @brief load/unload active caches
+ */
+TEST_F(CachePoolTest, load_unload_actives_01_p) {
+  EXPECT_CALL(*pool, validate).Times(3);
+  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
+
+  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
+  auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
+  auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
+  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->allocate());
+  EXPECT_EQ(pool->size(), 12);
+  EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
+  EXPECT_NO_THROW(mem2 = pool->getMemory(idx2));
+  EXPECT_NO_THROW(mem3 = pool->getMemory(idx3));
+  EXPECT_NE(mem1, nullptr);
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2, nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3, nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  /**
+   * Check load and unload acives
+   * all active data is invalid when unloadActives() called.
+   */
+  mem1->validate();
+  mem2->validate();
+  mem3->validate();
+
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  pool->unloadActives();
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  pool->loadActives();
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
+
+  pool->unloadActives();
+  EXPECT_EQ(mem1->getAddr(), nullptr);
+  EXPECT_EQ(mem2->getAddr(), nullptr);
+  EXPECT_EQ(mem3->getAddr(), nullptr);
+
+  pool->loadActives();
+  EXPECT_NE(mem1->getAddr(), nullptr);
+  EXPECT_NE(mem2->getAddr(), nullptr);
+  EXPECT_NE(mem3->getAddr(), nullptr);
 
   EXPECT_NO_THROW(pool->deallocate());
 }
