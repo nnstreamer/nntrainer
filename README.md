@@ -87,7 +87,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | concat | ConcatLayer | Concatenate input layers |
  | multiout | MultiOutLayer | Multi-Output Layer |
  | backbone_nnstreamer | NNStreamerLayer | Encapsulate NNStreamer layer |
- | backbone_tflite | TfLiteLayer | Encapsulate tflite as an layer |
+ | backbone_tflite | TfLiteLayer | Encapsulate tflite as a layer |
  | permute | PermuteLayer | Permute layer for transpose |
  | preprocess_flip | PreprocessFlipLayer | Preprocess random flip layer |
  | preprocess_l2norm | PreprocessL2NormLayer | Preprocess simple l2norm layer to normalize |
@@ -187,7 +187,7 @@ NNTrainer example for a variety of networks
 
 ## Open Source License
 
-The nntrainer is an open source project released under the terms of the Apache License version 2.0.
+The NNtrainer is an open source project released under the terms of the Apache License version 2.0.
 
 ## Contributing
 
