@@ -13,8 +13,8 @@ The following dependencies are needed to compile/build/run.
 * libopenblas-dev and base
 * tensorflow-lite >= 2.3.0
 * libiniparser
-* libjsoncpp >=0.6.0 ( if you wand to use open AI )
-* libcurl3 >=7.47 ( if you wand to use open AI )
+* libjsoncpp >=0.6.0 ( if you want to use open AI )
+* libcurl3 >=7.47 ( if you want to use open AI )
 * libgtest >=1.10 ( for testing )
 
 ## Install via PPA repository (Debian/Ubuntu)
