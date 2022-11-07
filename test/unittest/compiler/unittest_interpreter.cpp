@@ -719,3 +719,147 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
               << "failed, reason: " << strerror(errno);
   }
 }
+
+TEST(nntrainerInterpreterTflite, MNIST_OUTPUT_TEST) {
+
+  //  Tensor declare :
+  //  { in : NNTrainer & TFLite input,
+  //    ans : NNtrainer result,
+  //    out : TFlite result }
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 10}));
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 1, 28, 28}));
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 10}));
+  int count = 0;
+
+  for (int h = 0; h < 28; h++) {
+    for (int w = 0; w < 28; w++) {
+      in.setValue(0, 0, h, w, count);
+      count++;
+    }
+  }
+
+  // 1. Load ini file and Build NN model for export and inference
+  nntrainer::NeuralNetwork NN;
+  NN.loadFromConfig("./res/test/test_models/models/tf_mnist.ini");
+  NN.compile();
+  NN.initialize();
+
+  // 2. NNTrainer inference & save result at ans Tensor
+  auto output2 = NN.inference({MAKE_SHARED_TENSOR(in)}, false)[0];
+  for (int i = 0; i < 10; i++) {
+    ans.setValue(0, 0, 0, i, output2->getValue(0, 0, 0, i));
+  }
+
+  // 3. export NNtrainer to tensorflow lite
+  NN.exports(ml::train::ExportMethods::METHOD_TFLITE, "MNIST_TEST.tflite");
+
+  // 4. load tflite file ans invoke inference
+  nntrainer::TfliteInterpreter interpreter;
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("MNIST_TEST.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  // 5. compare results
+  EXPECT_EQ(out, ans);
+
+  if (remove("MNIST_TEST.tflite")) {
+    std::cerr << "remove "
+              << "MNIST_TEST.tflite "
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+TEST(nntrainerInterpreterTflite, RESNET_OUTPUT_TEST) {
+
+  //  Tensor declare :
+  //  { in : NNTrainer & TFLite input,
+  //    ans : NNtrainer result,
+  //    out : TFlite result }
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 32, 32}));
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 100}));
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 100}));
+  int count = 0;
+
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 32; h++) {
+      for (int w = 0; w < 32; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+
+  // 1. Load ini file and Build NN model for export and inference
+  nntrainer::NeuralNetwork NN;
+  NN.loadFromConfig("./res/test/test_models/models/tf_resnet.ini");
+  NN.compile();
+  NN.initialize();
+
+  // 2. NNTrainer inference & save result at ans Tensor
+  auto output2 = NN.inference({MAKE_SHARED_TENSOR(in)}, false)[0];
+  for (int i = 0; i < 100; i++) {
+    ans.setValue(0, 0, 0, i, output2->getValue(0, 0, 0, i));
+  }
+
+  // 3. export NNtrainer to tensorflow lite
+  NN.exports(ml::train::ExportMethods::METHOD_TFLITE, "ResNet_TEST.tflite");
+
+  // 4. load tflite file ans invoke inference
+  nntrainer::TfliteInterpreter interpreter;
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("ResNet_TEST.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  // 5. compare results
+  EXPECT_EQ(out, ans);
+
+  if (remove("ResNet_TEST.tflite")) {
+    std::cerr << "remove "
+              << "ResNet_TEST.tflite "
+              << "failed, reason: " << strerror(errno);
+  }
+}
