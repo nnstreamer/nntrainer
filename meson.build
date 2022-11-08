@@ -372,6 +372,15 @@ if get_option('enable-nnstreamer-tensor-filter')
   endif
 endif
 
+if get_option('enable-nnstreamer-tensor-trainer')
+  if get_option('platform') == 'android'
+    warning('android nnstreamer-filter is not yet supported, building nnstreamer-filter skipped')
+  else
+    nnstreamer_dep = dependency('nnstreamer', required: true)
+    subdir('nnstreamer/tensor_trainer')
+  endif
+endif
+
 if get_option('platform') == 'android'
   subdir('jni')
 endif
