@@ -38,5 +38,7 @@ option('enable-openmp', type: 'boolean', value: true)
 # If this is disabled, related options (capi-ml-*) are ignored.
 option('ml-api-support', type: 'feature', value: 'auto')
 # @todo : make them use 'feature' and depend on ml-api-support
-option('enable-nnstreamer-tensor-filter', type: 'boolean', value: false)
+option('enable-nnstreamer-tensor-filter', type: 'boolean', value: true)
+option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nnstreamer') # where nnstreamer subplugin should be installed
+option('enable-nnstreamer-tensor-trainer', type: 'boolean', value: true)
 option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nnstreamer') # where nnstreamer subplugin should be installed
