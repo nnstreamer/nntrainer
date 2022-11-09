@@ -79,6 +79,12 @@ public:
    * @brief create model
    */
   void createModel();
+
+  /**
+   * @brief train model
+   */
+  void trainModel();
+
   /**
    * @brief send input data to NNTrainerTrain
    * @param input input tensor memory imported input and label
@@ -86,6 +92,8 @@ public:
   void sendTensorData(const GstTensorMemory *input);
 
   std::unique_ptr<NNTrainer::InputTensorsInfo> train_data, valid_data;
+  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_valid;
+  float training_loss, validation_loss;
 
 private:
   unsigned int batch_size;
@@ -112,4 +120,15 @@ public:
   std::vector<float *> inputs;
   std::vector<float *> labels;
 };
+
+InputTensorsInfo::InputTensorsInfo(unsigned int _num_of_samples,
+                                   unsigned int _num_of_inputs,
+                                   unsigned int _num_of_labels) :
+  count(0),
+  num_of_samples(_num_of_samples),
+  num_of_inputs(_num_of_inputs),
+  num_of_labels(_num_of_labels) {
+  inputs.reserve(num_of_samples * num_of_inputs);
+  labels.reserve(num_of_samples * num_of_labels);
+}
 } // namespace NNTrainer
