@@ -22,5 +22,5 @@ auto semantic_nnstreamer = LayerSemanticsParamType(
   {"model_path=../test/test_models/models/add.tflite"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-GTEST_PARAMETER_TEST(NNStreamer, LayerSemantics,
-                     ::testing::Values(semantic_nnstreamer));
+// GTEST_PARAMETER_TEST(NNStreamer, LayerSemantics,
+//                      ::testing::Values(semantic_nnstreamer));
