@@ -30,6 +30,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>
+#include <unistd.h>
 
 namespace nntrainer {
 
@@ -77,7 +78,12 @@ Logger::Logger() {
      << std::setw(2) << now->tm_sec << ".out";
   outputstream.open(ss.str(), std::ios_base::app);
   if (!outputstream.good()) {
-    throw std::runtime_error("Unable to initialize the Logger!");
+    char buf[256];
+    char *ret = getcwd(buf, 256);
+    std::string cur_path = std::string(buf);
+    std::string err_msg =
+      "Unable to initialize the Logger on path(" + cur_path + ")";
+    throw std::runtime_error(err_msg);
   }
 }
 
