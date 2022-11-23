@@ -393,7 +393,7 @@ void AppContext::setWorkingDirectory(const std::string &base) {
   }
   closedir(dir);
 
-  char *ret = realpath(base.c_str(), nullptr);
+  char *ret = getRealpath(base.c_str(), nullptr);
 
   if (ret == nullptr) {
     std::stringstream ss;

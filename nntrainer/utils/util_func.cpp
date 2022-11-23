@@ -20,6 +20,10 @@
  *
  */
 
+#ifdef _WIN32
+#define MAX_PATH_LENGTH 1024
+#endif
+
 #include <cmath>
 #include <fstream>
 #include <random>
@@ -195,6 +199,14 @@ bool istrequal(const std::string &a, const std::string &b) {
   return std::equal(a.begin(), a.end(), b.begin(), [](char a_, char b_) {
     return tolower(a_) == tolower(b_);
   });
+}
+
+char *getRealpath(const char *name, char *resolved) {
+#ifdef _WIN32
+  return _fullpath(resolved, name, MAX_PATH_LENGTH);
+#else
+  return realpath(name, resolved);
+#endif
 }
 
 } // namespace nntrainer
