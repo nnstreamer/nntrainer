@@ -359,14 +359,15 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
     tf_node->arity(layer_node_inputs.size());
     for (size_t index = 0; index < layer_node_inputs.size(); index++) {
       auto input_layer_name = layer_node_inputs[index];
-      auto input_layer_node =
-        std::find_if(
-          representation.begin(), representation.end(),
-          [&input_layer_name](std::shared_ptr<nntrainer::LayerNode> node) {
-            return istrequal(node.get()->getName(), input_layer_name);
-          })
-          ->get();
-      tf_node->setArg(index, layer_to_tf.find(input_layer_node)->second);
+      auto input_later_node_iterator = std::find_if(
+        representation.begin(), representation.end(),
+        [&input_layer_name](std::shared_ptr<nntrainer::LayerNode> node) {
+          return istrequal(node.get()->getName(), input_layer_name);
+        });
+      if (input_later_node_iterator != representation.end()) {
+        auto input_layer_node = input_later_node_iterator->get();
+        tf_node->setArg(index, layer_to_tf.find(input_layer_node)->second);
+      }
     }
   }
 
