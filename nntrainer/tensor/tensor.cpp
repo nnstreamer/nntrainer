@@ -160,8 +160,10 @@ void Tensor::allocate() {
   } else {
     /// allocate new memory for the tensor data
     auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
-    data = std::shared_ptr<MemoryData<float>>(
-      mem_data, [](auto *mem_data) { delete[] mem_data->getAddr(); delete mem_data; });
+    data = std::shared_ptr<MemoryData<float>>(mem_data, [](auto *mem_data) {
+      delete[] mem_data->getAddr();
+      delete mem_data;
+    });
     offset = 0;
     initialize();
   }
@@ -183,8 +185,8 @@ Tensor Tensor::Map(float *buf, unsigned int bytes, const TensorDim &d,
   tmp.dim = d;
   tmp.strides = d.computeStrides();
   /// Tensor does not own the memory
-  tmp.data = std::shared_ptr<MemoryData<float>>(new MemoryData<float>(buf),
-                                                [](void *) {});
+  tmp.data = std::shared_ptr<MemoryData<float>>(
+    new MemoryData<float>(buf), std::default_delete<MemoryData<float>>());
   tmp.offset = offset;
 
   return tmp;
