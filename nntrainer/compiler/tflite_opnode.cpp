@@ -25,6 +25,7 @@ TfOpNode::TfOpNode() :
   weight_transform(nullptr),
   is_input(false),
   is_output(false),
+  is_virtual(false),
   need_reorder_weight(false),
   node_owned_variable(),
   /// @todo distinguish between uninitialized and ADD operator.
