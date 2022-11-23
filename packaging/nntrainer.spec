@@ -384,11 +384,11 @@ meson test -C build -t 2.0 --print-errorlogs
 
 # unittest for nntrainer plugin for nnstreamer
 # todo: migrate this to meson test soon
-# %if 0%{?nnstreamer_filter}
-# pushd test/nnstreamer
-# ssat
-# popd
-# %endif #nnstreamer_filter
+%if 0%{?nnstreamer_filter}
+pushd test/nnstreamer
+ssat
+popd
+%endif #nnstreamer_filter
 %endif #unit_test
 
 %if 0%{?gcov:1}

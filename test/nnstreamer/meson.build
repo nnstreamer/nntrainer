@@ -22,10 +22,10 @@ else
   nntrainer_filter_env = environment()
   nntrainer_filter_env.set('NNSTREAMER_FILTERS', meson.build_root() / 'nnstreamer' / 'tensor_filter')
 
-  # test(test_name, exe,
-  #     args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
-  #     env: nntrainer_filter_env
-  # )
+  test(test_name, exe,
+      args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
+      env: nntrainer_filter_env
+  )
 
 
 endif

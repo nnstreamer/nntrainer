@@ -37,8 +37,8 @@ override_dh_auto_configure:
 		--includedir=include -Dinstall-app=true \
 		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) \
 		-Denable-debug=$(ENABLE_DEBUG) \
-		-Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
-                -Denable-nnstreamer-backbone=true \
+		-Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=false \
+                -Denable-nnstreamer-backbone=false \
                 -Dcapi-ml-common-actual=capi-ml-common \
                 -Dcapi-ml-inference-actual=capi-ml-inference \
                 -Denable-capi=enabled \
