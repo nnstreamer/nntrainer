@@ -28,6 +28,7 @@
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <layer_node.h>
+#include <layer_normalization_layer.h>
 #include <multiout_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
@@ -561,7 +562,8 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    */
   auto io_independent_backwarding =
     [](const std::shared_ptr<LayerNode> &lnode) {
-      return lnode->getType() == BatchNormalizationLayer::type;
+      return (lnode->getType() == BatchNormalizationLayer::type) ||
+             (lnode->getType() == LayerNormalizationLayer::type);
     };
 
   /**
@@ -625,7 +627,8 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * memory save they provide and then make them in-place in that order.
    */
   if (lnode->getType() == ActivationLayer::type ||
-      lnode->getType() == BatchNormalizationLayer::type) {
+      lnode->getType() == BatchNormalizationLayer::type ||
+      lnode->getType() == LayerNormalizationLayer::type) {
     for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
       if (getLayerNode(lnode->getInputConnectionName(i))->executeInPlace() ==
