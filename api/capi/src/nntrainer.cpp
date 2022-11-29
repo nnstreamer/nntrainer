@@ -25,11 +25,10 @@
 #include <array>
 #include <cstdarg>
 #include <cstring>
-#include <sstream>
-#include <string>
-
 #include <nntrainer.h>
 #include <nntrainer_internal.h>
+#include <sstream>
+#include <string>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -1206,6 +1205,90 @@ int ml_train_model_load(ml_train_model_h model, const char *file_path,
   };
 
   status = nntrainer_exception_boundary(f);
+  return status;
+}
+
+int ml_train_model_get_weight(ml_train_model_h model, const char *layer_name,
+                              ml_tensors_data_h *weight,
+                              ml_tensors_info_h *info) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+
+  check_feature_state();
+
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+
+  std::shared_ptr<ml::train::Model> m;
+  std::shared_ptr<ml::train::Layer> l;
+  std::vector<float *> w;
+  std::vector<ml::train::TensorDim> dims;
+  std::vector<std::string> weight_name;
+
+  m = nnmodel->model;
+
+  returnable f = [&]() { return m->getLayer(layer_name, &l); };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  f = [&]() {
+    l->getWeights(w, dims);
+
+    for (unsigned int i = 0; i < dims.size(); ++i)
+      weight_name.emplace_back(l->getWeightName(i));
+
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_create(info);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_set_count(*info, dims.size());
+  if (status != ML_ERROR_NONE) {
+    ml_tensors_info_destroy(info);
+    return status;
+  }
+
+  for (unsigned int i = 0; i < dims.size(); ++i) {
+    status = ml_tensors_info_set_tensor_type(*info, i, ML_TENSOR_TYPE_FLOAT32);
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+
+    status = ml_tensors_info_set_tensor_dimension(*info, i, dims[i].getDim());
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+
+    status = ml_tensors_info_set_tensor_name(*info, i, weight_name[i].c_str());
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+  }
+
+  status = ml_tensors_data_create(*info, weight);
+  if (status != ML_ERROR_NONE) {
+    ml_tensors_data_destroy(weight);
+    return status;
+  }
+
+  for (unsigned int i = 0; i < dims.size(); ++i) {
+    status = ml_tensors_data_set_tensor_data(
+      *weight, i, w[i], dims[i].getDataLen() * sizeof(float));
+    return status;
+  }
+
   return status;
 }
 
