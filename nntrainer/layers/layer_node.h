@@ -530,6 +530,28 @@ public:
   }
 
   /**
+   * @brief     Get weight data of the layer
+   * @param[out]    weights : float * arrary to store weight data
+   * @param[out]    weights_dim : TensorDim for each weights
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  void getWeights(std::vector<float *> &weights,
+                  std::vector<TensorDim> &weight_dim) override {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+
+    std::vector<int *> weights_dim;
+    for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
+      TensorDim d = getWeight(idx).getDim();
+      weights.emplace_back(getWeight(idx).getData());
+      weight_dim.emplace_back(d);
+    }
+    return;
+  }
+
+  /**
    * @brief     Set weight data of the layer
    * @note      Size of vector must be the same with number of weights.
    * @note      layer needs to be finalized before called.

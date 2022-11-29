@@ -867,6 +867,62 @@ TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
 }
 
 /**
+ * @brief Neural Network Model Get Weight  Test
+ */
+TEST(nntrainer_capi_nnmodel, getWeight_01) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  const unsigned int MAXDIM = 4;
+
+  ml_tensors_info_h weight_info;
+  ml_tensors_data_h weights;
+  unsigned int num_weights;
+  unsigned int dim[2][MAXDIM];
+  unsigned int weight_dim_expected[2][MAXDIM] = {{1, 1, 62720, 10},
+                                                 {1, 1, 1, 10}};
+
+  ScopedIni s("capi_test_get_weight_01",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_model_get_weight(handle, "outputlayer", &weights, &weight_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(weight_info, &num_weights);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(num_weights, 2ul);
+
+  for (unsigned int idx = 0; idx < num_weights; ++idx) {
+    ml_tensors_info_get_tensor_dimension(weight_info, idx, dim[idx]);
+    for (unsigned int i = 0; i < MAXDIM; ++i) {
+      EXPECT_EQ(dim[idx][i], weight_dim_expected[idx][i]);
+    }
+  }
+
+  status = ml_tensors_info_destroy(weight_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *t;
+  size_t size = 627200 * sizeof(float);
+
+  status = ml_tensors_data_get_tensor_data(weights, 0, (void **)&t, &size);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_data_destroy(weights);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Neural Network Model Get Layer Test
  */
 TEST(nntrainer_capi_nnmodel, getLayer_05_n) {
@@ -1102,7 +1158,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.182019, 2.223670, 22.9167);
+  nntrainer_capi_model_comp_metrics(model, 2.11176, 2.21936, 16.6667);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1186,7 +1242,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.17419004, 1.94411003, 66.66670227);
+  nntrainer_capi_model_comp_metrics(model, 2.20755, 1.98047, 58.3333);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);

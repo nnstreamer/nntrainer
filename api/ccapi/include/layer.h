@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <string>
+#include <tensor_dim.h>
 #include <vector>
 
 #include <common.h>
@@ -70,7 +71,8 @@ enum LayerType {
     ML_TRAIN_LAYER_TYPE_LAYER_NORMALIZATION, /**< Layer Normalization Layer type
                                               */
   LAYER_POSITIONAL_ENCODING =
-    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type */
+    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
+                                              */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -175,6 +177,14 @@ public:
   virtual const std::string getName() const noexcept = 0;
 
   /**
+   * @brief Get the Weight object name
+   *
+   * @param idx Identifier of the weight
+   * @return const std::string &Name of the weight
+   */
+  virtual const std::string &getWeightName(unsigned int idx) = 0;
+
+  /**
    * @brief     Get weight data of the layer
    * @retval    weight data of the layer
    * @note      nntrainer assign the vector and if there is no weights, the size
@@ -182,6 +192,17 @@ public:
    * @note      layer needs to be finalized before called.
    */
   virtual const std::vector<float *> getWeights() = 0;
+
+  /**
+   * @brief     Get weight data of the layer
+   * @retval    weights : float * arrary to store weight data
+   * @retval    weights_dim : TensorDim for each weights
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  virtual void getWeights(std::vector<float *> &weights,
+                          std::vector<ml::train::TensorDim> &weights_dim) = 0;
 
   /**
    * @brief     Set weight data of the layer

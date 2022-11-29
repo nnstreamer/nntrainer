@@ -630,6 +630,32 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer);
 
 /**
+ * @brief Gets weight tensors and information of the layer.
+ * @details Use this function to get weight tensors and information of the
+ * layer. destroy @a info with @c ml_tensors_info_destroy() after use. destroy
+ * @a weight with @c ml_tensors_data_destory() after use.
+ * @since_tizen 7.5
+ * @remarks @a model must be compiled before calling this function.
+ * @remarks the returned @a info @a weights are newly created so it does not
+ * reflect future changes in the model
+ * @remarks On returning error, info must not be destroyed with
+ * ml_tensors_info_destory()
+ *
+ * @param[in] model The NNTrainer model handle.
+ * @param[in] layer_name The name of the layer handle.
+ * @param[out] weight The weight tensors handle.
+ * @param[out] info The weights information handle.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_OUT_OF_MEMORY Failed to allocate required memory.
+ */
+int ml_train_model_get_weight(ml_train_model_h model, const char *layer_name,
+                              ml_tensors_data_h *weight,
+                              ml_tensors_info_h *info);
+
+/**
  * @}
  */
 #ifdef __cplusplus
