@@ -34,6 +34,7 @@
 #include <bn_layer.h>
 #include <graph_node.h>
 #include <layer_node.h>
+#include <layer_normalization_layer.h>
 #include <manager.h>
 #include <multiout_layer.h>
 #include <nntrainer_log.h>
@@ -498,7 +499,8 @@ Manager::requestInputs(const GraphNode &node,
   /// @todo handle this inside layer
   if (node.getType() == ActivationLayer::type or
       node.getType() == MultiOutLayer::type or
-      node.getType() == BatchNormalizationLayer::type)
+      node.getType() == BatchNormalizationLayer::type or
+      node.getType() == LayerNormalizationLayer::type)
     var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
 
   std::vector<Var_Grad *> ret;
