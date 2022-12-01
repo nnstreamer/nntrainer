@@ -76,11 +76,10 @@ This component defines layers which consist of a neural network model. Layers ha
  | pooling2d | Pooling2DLayer |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooling |
  | flatten | FlattenLayer | Flatten layer |
  | fully_connected | FullyConnectedLayer | Fully connected layer |
- | pooling2D | Pooling2DLayer | Pooling 2D layer |
  | input | InputLayer | Input Layer.  This is not always required. |
  | batch_normalization | BatchNormalizationLayer | Batch normalization layer |
  | layer_normalization | LayerNormalizationLayer | Layer normalization layer |
- | activation | ActivaitonLayer | Set by layer property |
+ | activation | ActivationLayer | Set by layer property |
  | addition | AdditionLayer | Add input input layers |
  | attention | AttentionLayer | Attenstion layer |
  | centroid_knn | CentroidKNN | Centroid K-nearest neighbor layer |
@@ -143,13 +142,13 @@ NNTrainer provides
  |:-------:|:---:|:---|
  | tanh | tanh function | set as layer property |
  | sigmoid | sigmoid function | set as layer property |
- | relu | relu function | set as layer propery |
- | softmax | softmax function | set as layer propery |
+ | relu | relu function | set as layer property |
+ | softmax | softmax function | set as layer property |
 
 ### Tensor
 
 Tensor is responsible for calculation of a layer. It executes several operations such as addition, division, multiplication, dot production, data averaging and so on. In order to accelerate  calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU) are implemented for some of the operations. Later, these calculations will be optimized.
-Currently, we supports lazy calculation mode to reduce complexity for copying tensors during calculations.
+Currently, we support lazy calculation mode to reduce complexity for copying tensors during calculations.
 
  | Keyword | Description |
  |:-------:|:---:|
