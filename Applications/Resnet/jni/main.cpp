@@ -28,6 +28,10 @@
 
 #include <cifar_dataloader.h>
 
+#ifdef PROFILE
+#include <profiler.h>
+#endif
+
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
@@ -313,6 +317,12 @@ int main(int argc, char *argv[]) {
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
+#ifdef PROFILE
+  auto listener =
+    std::make_shared<nntrainer::profile::GenericProfileListener>();
+  nntrainer::profile::Profiler::Global().subscribe(listener);
+#endif
+
   std::string data_dir = argv[1];
   unsigned int batch_size = std::stoul(argv[2]);
   unsigned int data_split = std::stoul(argv[3]);
@@ -354,6 +364,10 @@ int main(int argc, char *argv[]) {
 
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
+
+#ifdef PROFILE
+  std::cout << *listener;
+#endif
 
   int status = EXIT_SUCCESS;
 #if defined(ENABLE_TEST)
