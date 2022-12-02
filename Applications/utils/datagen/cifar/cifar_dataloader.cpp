@@ -60,9 +60,9 @@ bool updateIteration(unsigned int &iteration,
 
 RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &input_shapes,
                                    const std::vector<TensorDim> &output_shapes,
-                                   int data_size) :
+                                   int iterations) :
   iteration(0),
-  iteration_for_one_epoch(data_size),
+  iteration_for_one_epoch(iterations),
   input_shapes(input_shapes),
   output_shapes(output_shapes),
   input_dist(0, 255),
@@ -71,8 +71,6 @@ RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &input_shapes,
     << "output_shape size empty not supported";
   NNTR_THROW_IF(output_shapes.size() > 1, std::invalid_argument)
     << "output_shape size > 1 is not supported";
-
-  iteration_for_one_epoch /= output_shapes.front().batch();
 }
 
 void RandomDataLoader::next(float **input, float **label, bool *last) {
