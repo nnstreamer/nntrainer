@@ -367,13 +367,24 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('enable-nnstreamer-tensor-filter')
-  if get_option('platform') == 'android'
-    warning('android nnstreamer-filter is not yet supported, building nnstreamer-filter skipped')
-  else
-    nnstreamer_dep = dependency('nnstreamer', required: true)
-    subdir('nnstreamer/tensor_filter')
-  endif
+if get_option('enable-nnstreamer-tensor-filter').enabled()
+	if get_option('platform') == 'android'
+		warning('android nnstreamer-filter is not yet supported, building nnstreamer-filter skipped')
+	else
+    nnstreamer_filter_dep = dependency('nnstreamer')
+		subdir('nnstreamer/tensor_filter')
+		extra_defines += '-DSUPPORT_NNSREAMER_PLUGIN_FILTER=1'
+	endif
+endif
+
+if get_option('enable-nnstreamer-tensor-trainer').enabled()
+	if get_option('platform') == 'android'
+		warning('android nnstreamer-trainer is not yet supported, building nnstreamer-trainer skipped')
+	else
+    nnstreamer_trainer_dep = dependency('nnstreamer')
+		subdir('nnstreamer/tensor_trainer')
+		extra_defines += '-DSUPPORT_NNSREAMER_PLUGIN_TRAINER=1'
+	endif
 endif
 
 if get_option('platform') == 'android'
