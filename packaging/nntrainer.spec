@@ -1,6 +1,7 @@
 # Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
 %define         use_cblas 1
 %define         nnstreamer_filter 1
+%define         nnstreamer_trainer 1
 %define         nnstreamer_subplugin_path /usr/lib/nnstreamer
 %define         use_gym 0
 %define         support_ccapi 1
@@ -115,6 +116,7 @@ BuildRequires: tensorflow2-lite-devel
 %endif # support_tflite_interpreter
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
+%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=false
 
 %if  0%{?nnstreamer_filter}
 BuildRequires:	nnstreamer-devel
@@ -126,15 +128,25 @@ BuildRequires:	nnstreamer-test-devel
 %endif
 BuildRequires:	gst-plugins-good-extra
 BuildRequires:	python
-%endif #unit_test
-%endif #nnstreamer_filter
-%endif  # tizen
+%endif # unit_test
+%endif # nnstreamer_filter
+
+%if  0%{?nnstreamer_trainer}
+BuildRequires:	nnstreamer-devel
+%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=true
+%endif # nnstreamer_trainer
+%endif # tizen
 
 Requires:	nntrainer-core = %{version}-%{release}
 
 %if 0%{?nnstreamer_filter}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
 %endif #nnstreamer_filter
+
+%if 0%{?nnstreamer_trainer}
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
+%endif #nnstreamer_trainer
+
 %if %{with tizen}
 Requires:	capi-machine-learning-training = %{version}-%{release}
 %endif #tizen
@@ -266,20 +278,36 @@ Static library of ccapi-machine-learning-training-devel package.
 %endif
 
 %if 0%{?nnstreamer_filter}
-%package -n nnstreamer-nntrainer
+%package -n nnstreamer-nntrainer-filter
 Summary: NNStreamer NNTrainer support
 Requires: %{name} = %{version}-%{release}
 Requires:	nnstreamer
-%description -n nnstreamer-nntrainer
+%description -n nnstreamer-nntrainer-filter
 NNSteamer tensor filter for nntrainer to support inference.
 
-%package -n nnstreamer-nntrainer-devel-static
+%package -n nnstreamer-nntrainer-filter-devel-static
 Summary: NNStreamer NNTrainer support
 Requires: nntrainer-devel-static = %{version}-%{release}
-Requires:	nnstreamer-nntrainer = %{version}-%{release}
-%description -n nnstreamer-nntrainer-devel-static
+Requires:	nnstreamer-nntrainer-filter = %{version}-%{release}
+%description -n nnstreamer-nntrainer-filter-devel-static
 NNSteamer tensor filter static package for nntrainer to support inference.
 %endif #nnstreamer_filter
+
+%if 0%{?nnstreamer_trainer}
+%package -n nnstreamer-nntrainer-trainer
+Summary: NNStreamer NNTrainer support
+Requires: %{name} = %{version}-%{release}
+Requires:	nnstreamer
+%description -n nnstreamer-nntrainer-trainer
+NNSteamer tensor trainer for nntrainer to support inference.
+
+%package -n nnstreamer-nntrainer-trainer-devel-static
+Summary: NNStreamer NNTrainer support
+Requires: nntrainer-devel-static = %{version}-%{release}
+Requires:	nnstreamer-nntrainer-trainer = %{version}-%{release}
+%description -n nnstreamer-nntrainer-trainer-devel-static
+NNSteamer tensor trainer static package for nntrainer to support inference.
+%endif #nnstreamer_trainer
 
 %endif #tizen
 
@@ -367,12 +395,12 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
       --includedir=%{_includedir} %{install_app} %{platform} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
-      %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
-      %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
+      %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_nnstreamer_tensor_trainer} \
+      %{enable_profile} %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
-      -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
-      -Denable-capi=enabled \
+      -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
+      -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
       build
 
 ninja -C build %{?_smp_mflags}
@@ -380,6 +408,7 @@ ninja -C build %{?_smp_mflags}
 %if 0%{?unit_test}
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+export NNSTREAMER_TRAINERS=$(pwd)/build/nnstreamer/tensor_trainer
 meson test -C build -t 2.0 --print-errorlogs
 
 # unittest for nntrainer plugin for nnstreamer
@@ -389,6 +418,11 @@ pushd test/nnstreamer
 ssat
 popd
 %endif #nnstreamer_filter
+%if 0%{?nnstreamer_trainer}
+pushd test/nnstreamer
+ssat
+popd
+%endif #nnstreamer_trainer
 %endif #unit_test
 
 %if 0%{?gcov:1}
@@ -544,19 +578,35 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif # support_ccapi
 
 %if 0%{?nnstreamer_filter}
-%files -n nnstreamer-nntrainer
+%files -n nnstreamer-nntrainer-filter
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
 %{nnstreamer_subplugin_path}/filters/libnnstreamer_filter_nntrainer.so
 
-%files -n nnstreamer-nntrainer-devel-static
+%files -n nnstreamer-nntrainer-filter-devel-static
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnnstreamer_filter_nntrainer.a
 
 %endif #nnstreamer_filter
+
+%if 0%{?nnstreamer_trainer}
+%files -n nnstreamer-nntrainer-trainer
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{nnstreamer_subplugin_path}/trainers/libnnstreamer_trainer_nntrainer.so
+
+%files -n nnstreamer-nntrainer-trainer-devel-static
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/libnnstreamer_trainer_nntrainer.a
+
+%endif #nnstreamer_trainer
+
 %endif #tizen
 
 %files applications

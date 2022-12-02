@@ -42,11 +42,11 @@ endif
 
 nnstreamer_test_dep = dependency('nnstreamer-test-devel', required: false)
 
-if get_option('enable-nnstreamer-tensor-filter') and nnstreamer_test_dep.found()
+if get_option('enable-nnstreamer-tensor-filter').enabled() and nnstreamer_test_dep.found()
   subdir('nnstreamer')
 endif
 
-if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter')
+if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter').enabled()
   run_command('cp','-lr',
     meson.current_source_dir() / 'test_models/',
     nntrainer_test_resdir
