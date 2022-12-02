@@ -274,10 +274,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
 std::array<UserDataType, 2>
 createFakeDataGenerator(unsigned int batch_size,
-                        unsigned int simulated_data_size_,
+                        unsigned int simulated_data_size,
                         unsigned int data_split) {
-  constexpr unsigned int simulated_data_size = 512;
-
   UserDataType train_data(new nntrainer::util::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
