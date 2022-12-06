@@ -25,32 +25,33 @@
 namespace nntrainer {
 
 void SwapDevice::start(size_t size) {
-  int ret;
-
   if (fd > 0)
     return;
 
   fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t)0666);
   NNTR_THROW_IF(fd < 0, std::runtime_error) << "open file: " << dev_path;
 
+  off_t off;
+
   /* make sparse file */
-  ret = lseek(fd, size - 1, SEEK_SET);
-  NNTR_THROW_IF(ret < 0, std::runtime_error) << "seek file: " << dev_path;
+  off = lseek(fd, (off_t)size - 1, SEEK_SET);
+  NNTR_THROW_IF(off < 0, std::runtime_error) << "seek file: " << dev_path;
 
-  ret = write(fd, "", 1);
-  NNTR_THROW_IF(ret != 1, std::runtime_error) << "write file: " << dev_path;
+  ssize_t len;
+  len = write(fd, "", 1);
+  NNTR_THROW_IF(len != 1, std::runtime_error) << "write file: " << dev_path;
 
-  ret = lseek(fd, 0, SEEK_SET);
-  NNTR_THROW_IF(ret < 0, std::runtime_error) << "seek file: " << dev_path;
+  off = lseek(fd, 0, SEEK_SET);
+  NNTR_THROW_IF(off < 0, std::runtime_error) << "seek file: " << dev_path;
 }
 
-void *SwapDevice::getBuffer(int offset, size_t size) {
+void *SwapDevice::getBuffer(off_t offset, size_t size) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error) << "SwapDevice is not started";
 
 #ifdef USE_MMAP
   // page aligned
   off_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-  int diff = (off_t)offset - off;
+  int diff = offset - off;
   size_t len = size + diff;
 
   char *ptr = static_cast<char *>(
@@ -63,15 +64,15 @@ void *SwapDevice::getBuffer(int offset, size_t size) {
 
   return buf;
 #else
-  int ret;
+  off_t off;
   ssize_t len;
   void *ptr;
 
   ptr = calloc(1, size);
   NNTR_THROW_IF(ptr == NULL, std::runtime_error) << "memory alloc failed";
 
-  ret = lseek(fd, offset, SEEK_SET);
-  NNTR_THROW_IF(ret < 0, std::runtime_error) << "seek file: " << dev_path;
+  off = lseek(fd, offset, SEEK_SET);
+  NNTR_THROW_IF(off < 0, std::runtime_error) << "seek file: " << dev_path;
 
   len = read(fd, ptr, size);
   NNTR_THROW_IF(len != (ssize_t)size, std::runtime_error)
@@ -84,10 +85,10 @@ void *SwapDevice::getBuffer(int offset, size_t size) {
 }
 
 void SwapDevice::putBuffer(void *ptr) {
-  int ret;
-
   NNTR_THROW_IF(fd <= 0, std::runtime_error) << "SwapDevice is not started";
 #ifdef USE_MMAP
+  int ret;
+
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
     << "Couldn't find buffer";
 
@@ -103,16 +104,19 @@ void SwapDevice::putBuffer(void *ptr) {
 #endif
 
 #else
+  off_t off;
+  ssize_t len;
+
   NNTR_THROW_IF(allocated.find(ptr) == allocated.end(), std::invalid_argument)
     << "Couldn't find buffer";
 
   auto [offset, size] = allocated[ptr];
 
-  ret = lseek(fd, offset, SEEK_SET);
-  NNTR_THROW_IF(ret < 0, std::runtime_error) << "seek file: " << dev_path;
+  off = lseek(fd, offset, SEEK_SET);
+  NNTR_THROW_IF(off < 0, std::runtime_error) << "seek file: " << dev_path;
 
-  ret = write(fd, ptr, size);
-  NNTR_THROW_IF(ret != size, std::runtime_error) << "write file: " << dev_path;
+  len = write(fd, ptr, size);
+  NNTR_THROW_IF(len != size, std::runtime_error) << "write file: " << dev_path;
 
   free(ptr);
   allocated.erase(ptr);

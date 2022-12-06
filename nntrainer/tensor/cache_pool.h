@@ -33,7 +33,7 @@ public:
    *
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
-                     int off, size_t len,
+                     off_t off, size_t len,
                      std::shared_ptr<MemoryData<float>> data,
                      std::vector<unsigned int> order) :
     device(dev),
@@ -95,7 +95,7 @@ private:
   std::shared_ptr<SwapDevice> device; /**< swap device */
   bool active;                        /**< element is loaded */
   unsigned int id;                    /**< memory id */
-  int offset;                         /**< element offset from swap device */
+  off_t offset;                       /**< element offset from swap device */
   size_t length;                      /**< element size */
   std::shared_ptr<MemoryData<float>> mem_data; /**< allocated memory data */
   std::vector<unsigned int> exe_order;         /**< execution order */

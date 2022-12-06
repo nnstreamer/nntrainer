@@ -75,9 +75,6 @@ void CachePool::allocate() {
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
 
-  NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
-    << "Cache pool is already allocated";
-
   swap_device->start(pool_size);
 }
 
@@ -110,7 +107,7 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
   NNTR_THROW_IF(!swap_device->isOperating(), std::invalid_argument)
     << "Allocate memory before allocation";
 
-  int offset = getMemoryOffset().at(id - 1);
+  off_t offset = getMemoryOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto mem_data = std::make_shared<MemoryData<float>>(
@@ -126,8 +123,8 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
     ords.append(std::to_string(o));
     ords.append(" ");
   }
-  ml_logd("[%d] exe_order(%s), offset: 0x%x, len: %zu", id, ords.c_str(),
-          offset, len);
+  ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
+          (long long unsigned int)offset, len);
 
   return mem_data;
 }
