@@ -81,7 +81,7 @@ public:
    * @return The pointer of the swap space
    *
    */
-  void *getBuffer(int offset, size_t size);
+  void *getBuffer(off_t offset, size_t size);
 
   /**
    * @brief Deallocate and put data
@@ -121,7 +121,7 @@ private:
   std::map<void *, std::pair<void *, size_t>>
     mapped; /**< <pointer, <orig_pointer, size>> */
 #else
-  std::map<void *, std::pair<int, ssize_t>>
+  std::map<void *, std::pair<off_t, ssize_t>>
     allocated; /**< <pointer, <offset, size>> */
 #endif
 };
