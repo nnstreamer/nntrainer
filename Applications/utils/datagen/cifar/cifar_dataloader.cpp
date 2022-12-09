@@ -44,12 +44,11 @@ void fillLabel(float *data, unsigned int length, unsigned int label) {
  * iteration resets to 0
  *
  * @param[in/out] iteration current iteration
- * @param iteration_per_epoch iteration per epoch
+ * @param data_size Data size
  * @return bool true if iteration has finished
  */
-bool updateIteration(unsigned int &iteration,
-                     unsigned int iteration_per_epoch) {
-  if (iteration++ == iteration_per_epoch) {
+bool updateIteration(unsigned int &iteration, unsigned int data_size) {
+  if (iteration++ == data_size) {
     iteration = 0;
     return true;
   }
@@ -60,9 +59,9 @@ bool updateIteration(unsigned int &iteration,
 
 RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &input_shapes,
                                    const std::vector<TensorDim> &output_shapes,
-                                   int iterations) :
+                                   int data_size_) :
   iteration(0),
-  iteration_for_one_epoch(iterations),
+  data_size(data_size_),
   input_shapes(input_shapes),
   output_shapes(output_shapes),
   input_dist(0, 255),
@@ -88,7 +87,7 @@ void RandomDataLoader::next(float **input, float **label, bool *last) {
     label += length;
   };
 
-  if (updateIteration(iteration, iteration_for_one_epoch)) {
+  if (updateIteration(iteration, data_size)) {
     *last = true;
     return;
   }

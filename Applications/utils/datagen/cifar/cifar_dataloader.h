@@ -73,7 +73,7 @@ public:
 
 private:
   unsigned int iteration;
-  unsigned int iteration_for_one_epoch;
+  unsigned int data_size;
 
   std::vector<TensorDim> input_shapes;
   std::vector<TensorDim> output_shapes;
