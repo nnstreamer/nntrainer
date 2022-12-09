@@ -188,7 +188,7 @@ public:
 
   /**
    * @brief     get begin iterator for the graph
-   * @retval    const reverse iterator
+   * @retval    const iterator
    */
   graph_const_iterator<LayerNode> cbegin() const {
     return graph.cbegin<LayerNode>();
