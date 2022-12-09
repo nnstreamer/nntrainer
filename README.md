@@ -61,6 +61,8 @@ Even if NNtariner runs on device, it provides full functionalities to train mode
 * [Jiho Chu](https://github.com/jihochu)
 * [Yelin Jeong](https://github.com/niley7464)
 * [Donghak Park](https://github.com/DonghakPark)
+* [Hyungjun Seo](https://github.com/SeoHyungjun)
+* [Seungbaek Hong](https://github.com/baek2sm)
 
 
 ## Components
@@ -165,7 +167,7 @@ NNTrainer provides
 
  | Keyword | Loss Name | Description |
  |:-------:|:---:|:---|
- | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
+ | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Uniform) |
  | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_param & type |
 
 ### APIs
