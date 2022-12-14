@@ -1,5 +1,6 @@
 tensor_sources = [
   'blas_interface.cpp',
+  'cache_elem.cpp',
   'cache_pool.cpp',
   'lazy_tensor.cpp',
   'manager.cpp',
