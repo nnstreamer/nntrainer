@@ -14,6 +14,8 @@
 #ifndef __MEMORY_DATA_H__
 #define __MEMORY_DATA_H__
 
+#include <functional>
+
 namespace nntrainer {
 
 using MemoryDataValidateCallback = std::function<void(unsigned int)>;
