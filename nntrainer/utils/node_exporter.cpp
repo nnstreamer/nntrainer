@@ -9,26 +9,28 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <node_exporter.h>
 
-#ifdef ENABLE_TFLITE_INTERPRETER
 #include <activation_layer.h>
 #include <bitset>
 #include <common_properties.h>
 #include <fc_layer.h>
 #include <map>
 #include <node_exporter.h>
+
+#ifdef ENABLE_TFLITE_INTERPRETER
 #include <tf_schema_generated.h>
 #include <tflite_opnode.h>
 #endif
 
 namespace {
 
+#ifdef ENABLE_TFLITE_INTERPRETER
 tflite::Padding tflite_padding(const std::string &padding) {
   std::map<std::string, tflite::Padding> m = {{"same", tflite::Padding_SAME},
                                               {"valid", tflite::Padding_VALID}};
   return m[padding];
 }
+#endif
 
 } // namespace
 
@@ -37,11 +39,26 @@ namespace nntrainer {
 constexpr const unsigned int CONV2D_DIM = 2;
 constexpr const unsigned int POOLING2D_DIM = 2;
 
+#ifdef ENABLE_TFLITE_INTERPRETER
+
 /**
  * @brief Construct a new Exporter object
  *
  */
-Exporter::Exporter() : fbb(nullptr), stored_result(nullptr), is_exported(false) {}
+Exporter::Exporter() :
+  fbb(nullptr),
+  stored_result(nullptr),
+  is_exported(false) {}
+
+#else
+
+/**
+ * @brief Construct a new Exporter object
+ *
+ */
+Exporter::Exporter() : stored_result(nullptr), is_exported(false) {}
+
+#endif
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 /**
