@@ -161,6 +161,24 @@ public:
   MemorySwapPath(const std::string &value = ".");
 };
 
+/**
+ * @brief cache file path property
+ *
+ */
+class MemorySwapLookahead : public Property<unsigned int> {
+public:
+  static constexpr const char *key =
+    "memory_swap_lookahead";      /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to current directory
+   */
+  MemorySwapLookahead(const unsigned int &value = 0);
+};
+
 } // namespace nntrainer::props
 
 #endif

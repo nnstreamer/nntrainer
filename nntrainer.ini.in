@@ -13,3 +13,6 @@ memory_swap = @MEMORY_SWAP@
 
 # path to save swap file
 memory_swap_path = @MEMORY_SWAP_PATH@
+
+# look ahead window size
+memory_swap_lookahead = @MEMORY_SWAP_LOOKAHEAD@

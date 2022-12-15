@@ -556,7 +556,7 @@ private:
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath,
                props::MemoryOptimization, props::MemorySwap,
-               props::MemorySwapPath>;
+               props::MemorySwapPath, props::MemorySwapLookahead>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
