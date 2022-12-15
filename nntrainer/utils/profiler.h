@@ -33,6 +33,8 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_TIME_REGISTER_EVENT(event_key, event_str)
 #define PROFILE_MEM_ALLOC(ptr, size, str)
 #define PROFILE_MEM_DEALLOC(ptr)
+#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, swap)
+#define PROFILE_CACHE_DEALLOC(ptr, policy, swap)
 #define PROFILE_BEGIN(listener)
 #define PROFILE_END(listener)
 #define PROFILE_MEM_ANNOTATE(str)
@@ -56,6 +58,12 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 
 #define PROFILE_MEM_DEALLOC(ptr) \
   nntrainer::profile::Profiler::Global().dealloc(ptr)
+
+#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, swap) \
+  nntrainer::profile::Profiler::Global().alloc(ptr, size, str, policy, swap)
+
+#define PROFILE_CACHE_DEALLOC(ptr, policy, swap) \
+  nntrainer::profile::Profiler::Global().dealloc(ptr, policy, swap)
 
 #define PROFILE_BEGIN(listener)                                 \
   do {                                                          \
@@ -102,6 +110,21 @@ public:
     event_str(str),
     duration(dur) {}
 
+  /**
+   * @brief Construct a new ProfileEventData struct
+   *
+   */
+  ProfileEventData(int item, size_t cur, size_t total, std::string str,
+                   std::chrono::microseconds dur, std::string policy,
+                   bool swap) :
+    time_item(item),
+    alloc_current(cur),
+    alloc_total(total),
+    cache_policy(policy),
+    cache_swap(swap),
+    event_str(str),
+    duration(dur) {}
+
   /* for time profile */
   int time_item;
 
@@ -110,6 +133,9 @@ public:
 
   /* total allocation size */
   size_t alloc_total;
+
+  std::string cache_policy;
+  bool cache_swap;
 
   /* common data */
   std::string event_str;
@@ -233,7 +259,8 @@ private:
    */
   void onNotifyMemoryEvent(PROFILE_EVENT event, const size_t alloc_current,
                            const size_t alloc_total, const std::string &str,
-                           const std::chrono::microseconds &duration);
+                           const std::chrono::microseconds &duration,
+                           const std::string &policy, bool swap);
 
   std::chrono::time_point<std::chrono::steady_clock> start_time;
   unsigned int warmups;
@@ -252,8 +279,9 @@ private:
     time_taken;
 
   std::list<std::tuple<PROFILE_EVENT, size_t, size_t, std::string,
-                       std::chrono::microseconds>>
-    mem_taken;        /**< taken memory information */
+                       std::chrono::microseconds, std::string, bool>>
+    mem_taken; /**< taken memory information <event, current, total, str, dur,
+                  policy, swap> */
   size_t mem_max;     /**< memory max size */
   size_t mem_sum;     /**< memory sum */
   size_t mem_average; /**< memory average */
@@ -321,14 +349,16 @@ public:
    * @param size amount of allocated memory
    * @param str information string
    */
-  void alloc(const void *ptr, size_t size, const std::string &str);
+  void alloc(const void *ptr, size_t size, const std::string &str,
+             const std::string &policy = "", bool swap = false);
 
   /**
    * @brief trace memory de-allocation
    *
    * @param ptr de-allocated memory pointer
    */
-  void dealloc(const void *ptr);
+  void dealloc(const void *ptr, const std::string &policy = "",
+               bool swap = false);
 
   /**
    * @brief add annotation on memory profile data
