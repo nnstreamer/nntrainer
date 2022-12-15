@@ -11,51 +11,89 @@
  *
  */
 
-#include "memory_pool.h"
+#include "cache_pool.h"
+
 #include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
 
-#include <cache_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <profiler.h>
 
 namespace nntrainer {
 
-void CacheElem::swapIn() {
-  std::lock_guard<std::mutex> lock(device_mutex);
-  void *buf = device->getBuffer(offset, length);
-  mem_data->setAddr((float *)buf);
-  mem_data->setValid(true);
-  active = true;
+namespace {
 
-  std::string msg("CacheElem(");
-  msg += device->getDevicePath() + ") #" + std::to_string(id);
-  PROFILE_MEM_ALLOC(buf, length, msg);
+/**
+ * @brief convert tensor lifespan to cache policy
+ *
+ * @param lifespand tensor lifespan
+ * @return cache policy
+ * @note cache policy is defined by tensor's lifetime. If it needs to be maintained its value,
+ * ALWAYS_SYNCED or ITERATION_CONSIST is proper. If not, TEMPORAL doesnot keep its value.
+ */
+inline const CachePolicy
+convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
+  CachePolicy policy;
+
+  switch (lifespan) {
+  case TensorLifespan::UNMANAGED:
+    policy = CachePolicy::ALWAYS_SYNCED;
+    break;
+  case TensorLifespan::FORWARD_FUNC_LIFESPAN:
+    policy = CachePolicy::ALWAYS_SYNCED;
+    break;
+  case TensorLifespan::CALC_DERIV_LIFESPAN:
+    policy = CachePolicy::TEMPORAL;
+    break;
+  case TensorLifespan::CALC_GRAD_LIFESPAN:
+    policy = CachePolicy::TEMPORAL;
+    break;
+  case TensorLifespan::CALC_GRAD_DERIV_LIFESPAN:
+    policy = CachePolicy::TEMPORAL;
+    break;
+  case TensorLifespan::FORWARD_GRAD_LIFESPAN:
+    policy = CachePolicy::ITERATION_CONSIST;
+    break;
+  case TensorLifespan::FORWARD_DERIV_LIFESPAN:
+    policy = CachePolicy::ALWAYS_SYNCED;
+    break;
+  case TensorLifespan::ITERATION_LIFESPAN:
+    policy = CachePolicy::ITERATION_CONSIST;
+    break;
+  case TensorLifespan::EPOCH_LIFESPAN:
+    policy = CachePolicy::ITERATION_CONSIST;
+    break;
+  case TensorLifespan::MAX_LIFESPAN:
+    policy = CachePolicy::ALWAYS_SYNCED;
+    break;
+  default:
+    policy = CachePolicy::ALWAYS_SYNCED;
+    break;
+  }
+
+  return policy;
 }
 
-void CacheElem::swapOut() {
-  std::lock_guard<std::mutex> lock(device_mutex);
-  void *buf = (void *)mem_data->getAddr();
-  device->putBuffer(buf);
-  mem_data->setAddr(nullptr);
-  mem_data->setValid(false);
-  active = false;
+std::atomic_int pool_id = 0;
 
-  PROFILE_MEM_DEALLOC(buf);
-}
+} // namespace
 
-CachePool::CachePool(const std::string &name) :
-  swap_device(std::make_shared<SwapDevice>(name + std::to_string(getpid()))) {}
+CachePool::CachePool(const std::string &n) :
+  name(n),
+  swap_device(std::make_shared<SwapDevice>(n + "_" + std::to_string(getpid()) +
+                                           "_" + std::to_string(pool_id++))) {}
 
-CachePool::CachePool(const std::string &path, const std::string &name) {
+CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
   if (path.empty())
-    swap_device = std::make_shared<SwapDevice>(name + std::to_string(getpid()));
+    swap_device = std::make_shared<SwapDevice>(
+      n + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
   else
     swap_device =
-      std::make_shared<SwapDevice>(path, name + std::to_string(getpid()));
+      std::make_shared<SwapDevice>(path, n + "_" + std::to_string(getpid()) +
+                                           "_" + std::to_string(pool_id++));
 }
 
 CachePool::~CachePool() {
@@ -103,6 +141,23 @@ void CachePool::invalidate(unsigned int id) {
   }
 }
 
+unsigned int CachePool::requestMemory(size_t bytes, unsigned int start_time,
+                                      unsigned int end_time,
+                                      std::vector<unsigned int> exec_order,
+                                      TensorLifespan lifespan) {
+  auto id = MemoryPool::requestMemory(bytes, start_time, end_time, exec_order,
+                                      lifespan);
+
+  const CachePolicy policy = convertTensorLifespanToCachePolicy(lifespan);
+
+  policies.push_back(policy);
+
+  NNTR_THROW_IF(id != policies.size(), std::runtime_error)
+    << "Invalid requqestMemory call exist";
+
+  return id;
+}
+
 std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
   NNTR_THROW_IF(!swap_device->isOperating(), std::invalid_argument)
     << "Allocate memory before allocation";
@@ -110,16 +165,17 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
   off_t offset = getMemoryOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
+  auto policy = getCachePolicy().at(id - 1);
   auto mem_data = std::make_shared<MemoryData<float>>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
-  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
-                                          mem_data, exe_order);
-
+  auto elem =
+    std::make_shared<CacheElem>(swap_device, id, offset, len, mem_data, policy);
   elems[id] = elem;
 
   std::string ords;
   for (auto &o : exe_order) {
+    exec_ids[o].push_back(id);
     ords.append(std::to_string(o));
     ords.append(" ");
   }
@@ -130,69 +186,111 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
 }
 
 void CachePool::flush() {
-  for (auto elem : actives)
-    elem->swapOut();
+  for (auto &elem : actives)
+    elem->swapOut(CacheElem::LAST_ACCESS);
+
+  for (auto &[id, elem] : elems)
+    elem->reset();
 
   actives.clear();
 }
 
 void CachePool::flushExcept(unsigned int order) {
+  auto exe_orders = getMemoryExecOrder();
+
   actives.remove_if([&, order](auto elem) -> bool {
-    auto exe_order = elem->getExeOrder();
+    auto id = elem->getId();
+    auto exe_order = exe_orders.at(id - 1);
     auto found = std::find(exe_order.begin(), exe_order.end(), order);
     if (found == exe_order.end()) {
-      elem->swapOut();
+      /**
+       * We assumes that flushExcept will be called in front of each execution
+       * order, and the order is incremental. So, we can conclude that, if the
+       * order passes by the max order of the cache element, it was LAST access
+       * of the element.
+       */
+      CacheElem::Options opt = CacheElem::NONE;
+      if (*std::max_element(exe_order.begin(), exe_order.end()) < order)
+        opt = CacheElem::LAST_ACCESS;
+      elem->swapOut(opt);
       return true;
     }
     return false;
   });
 }
 
+void CachePool::flushExcept(std::vector<unsigned int> order) {
+  auto exe_orders = getMemoryExecOrder();
+
+  actives.remove_if([&, order](const auto elem) -> bool {
+    auto id = elem->getId();
+    auto exe_order = exe_orders.at(id - 1);
+    for (auto &o : order) {
+      auto found = std::find(exe_order.begin(), exe_order.end(), o);
+      if (found != exe_order.end())
+        return false;
+    }
+    /**
+     * We assumes that flushExcept will be called in front of each execution
+     * order, and the order is incremental. So, we can conclude that, if the
+     * order passes by the max order of the cache element, it was LAST access of
+     * the element.
+     */
+    CacheElem::Options opt = CacheElem::NONE;
+    if (*std::max_element(exe_order.begin(), exe_order.end()) < order[0])
+      opt = CacheElem::LAST_ACCESS;
+    elem->swapOut(opt);
+    return true;
+  });
+}
+
 void CachePool::clear() {
   flush();
   deallocate();
+  policies.clear();
   MemoryPool::clear();
 }
 
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }
 
 void CachePool::loadExec(unsigned int order) {
-  for (auto &[id, elem] : elems) {
-    auto exe_order = elem->getExeOrder();
-    auto found = std::find(exe_order.begin(), exe_order.end(), order);
-    if (found != exe_order.end())
-      validate(elem->getId());
-  }
+  for (auto &id : exec_ids[order])
+    validate(id);
 }
 
 void CachePool::initCacheElemIter(CacheElemsIter &iter) {
   iter = elems.begin();
 }
 
-bool CachePool::isLastCacheElemIter(const CacheElemsIter &iter) const {
+bool CachePool::isLastCacheElemIter(const CacheElemsIter &iter) {
   return iter == elems.end();
 }
 
-bool CachePool::loadExecOnce(unsigned int order, CacheElemsIter &iter) {
-  if (iter == elems.end())
+void CachePool::initExecIdsIter(unsigned int order, ExecIdsIter &iter) {
+  iter = exec_ids[order].begin();
+}
+
+bool CachePool::isLastExecIdsIter(unsigned int order, const ExecIdsIter &iter) {
+  return iter == exec_ids[order].end();
+}
+
+bool CachePool::loadExecOnce(unsigned int order, ExecIdsIter &iter) {
+  if (iter == exec_ids[order].end())
     return true;
 
-  auto elem = iter->second;
-  auto exe_order = elem->getExeOrder();
-  auto found = std::find(exe_order.begin(), exe_order.end(), order);
-  if (found != exe_order.end())
-    validate(elem->getId());
+  validate(*iter);
 
   iter++;
   return false;
 }
 
 void CachePool::unloadExec(unsigned int order) {
+  auto exe_orders = getMemoryExecOrder();
   for (auto &[id, elem] : elems) {
-    auto exe_order = elem->getExeOrder();
+    auto exe_order = exe_orders.at(id - 1);
     auto found = std::find(exe_order.begin(), exe_order.end(), order);
     if (found != exe_order.end())
-      invalidate(elem->getId());
+      invalidate(id);
   }
 }
 

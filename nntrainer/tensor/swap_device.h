@@ -77,19 +77,20 @@ public:
    *
    * @param offset Requested offset of swap device file
    * @param size Requested size.
+   * @param alloc_only only allocate buffer without reading data
    *
    * @return The pointer of the swap space
    *
    */
-  void *getBuffer(off_t offset, size_t size);
+  void *getBuffer(off_t offset, size_t size, bool alloc_only = false);
 
   /**
    * @brief Deallocate and put data
    *
    * @param ptr The pointer obtained from getBuffer
-   *
+   * @param dealloc_only only deallocate buffer without writing data
    */
-  void putBuffer(void *ptr);
+  void putBuffer(void *ptr, bool dealloc_only = false);
 
   /**
    * @brief Close device
