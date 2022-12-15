@@ -26,6 +26,43 @@
 
 namespace nntrainer {
 
+std::atomic_int32_t TaskExecutor::ids(1);
+
+TaskExecutor::TaskExecutor(const std::string &n) :
+  name(n),
+  run_thread(true),
+  wait_complete(false) {
+  task_thread = std::thread([&]() {
+    ml_logd("Task Thread(%s): start thread", name.c_str());
+    while (run_thread) {
+      std::unique_lock lk(task_mutex);
+      if (!task_cv.wait_for(lk, std::chrono::milliseconds(500),
+                            [&] { return !task_queue.empty(); }))
+        continue;
+
+      auto &task_info = task_queue.front();
+      lk.unlock();
+
+      auto id = std::get<int>(task_info);
+      auto callback = std::get<CompleteCallback>(task_info);
+
+      auto status = worker(task_info);
+      callback(id, status);
+
+      lk.lock();
+      task_queue.pop_front();
+      lk.unlock();
+    }
+    ml_logd("Task Thread(%s): finish thread", name.c_str());
+  });
+}
+
+TaskExecutor::~TaskExecutor() {
+  run_thread = false;
+
+  task_thread.join();
+}
+
 int TaskExecutor::run(std::shared_ptr<Task> task) {
   auto work = task->getWork();
   std::atomic_bool running(true);
@@ -33,72 +70,47 @@ int TaskExecutor::run(std::shared_ptr<Task> task) {
 }
 
 void TaskExecutor::cancel(int id) {
-  NNTR_THROW_IF(tasks.find(id) == tasks.end(), std::invalid_argument)
-    << "there is no task id: " << id;
+  std::scoped_lock lock(task_mutex);
 
-  std::get<std::atomic_bool>(tasks[id]).store(false);
+  auto it = std::find_if(task_queue.begin(), task_queue.end(),
+                         [&](auto &info) { return std::get<int>(info) == id; });
+
+  if (it != task_queue.end())
+    std::get<std::atomic_bool>(*it).store(false);
 }
 
 void TaskExecutor::cancelAll(void) {
-  for (auto &[id, task_data] : tasks) {
-    std::get<std::atomic_bool>(task_data).store(false);
+  for (auto &task_info : task_queue) {
+    std::get<std::atomic_bool>(task_info).store(false);
   }
 }
 
 void TaskExecutor::clean(void) {
-  for (auto it = tasks.begin(); it != tasks.end();) {
-    auto running = std::get<std::atomic_bool>(it->second).load();
+  for (auto it = task_queue.begin(); it != task_queue.end();) {
+    auto running = std::get<std::atomic_bool>(*it).load();
     if (running == false)
-      it = tasks.erase(it);
+      it = task_queue.erase(it);
     else
       it++;
   }
 }
 
-void TaskExecutor::handleWork(int id, Task::Work &work, void *data) {
+TaskExecutor::CompleteStatus TaskExecutor::handleWork(std::atomic_bool &running,
+                                                      Task::Work &work,
+                                                      void *data) {
   CompleteStatus status = CompleteStatus::SUCCESS;
 
   try {
-    int ret = work(std::get<std::atomic_bool>(tasks[id]), data);
+    int ret = work(running, data);
     if (ret != 0)
       status = CompleteStatus::FAIL_CANCEL;
   } catch (const std::exception &e) {
-    ml_loge("AsyncTask(%d): failed while running task: %s", id, e.what());
+    ml_loge("TaskExecutor(%s): failed while running task: %s", name.c_str(),
+            e.what());
     status = CompleteStatus::FAIL;
   }
 
-  std::get<CompleteStatus>(tasks[id]) = status;
-}
-
-void TaskExecutor::handleCompleteStatus(int id,
-                                        const std::future_status status) {
-  if (status != std::future_status::ready) {
-    ml_loge("Task(%d): timeout reached", id);
-
-    cancel(id);
-
-    /* wait for cancel is complete */
-    auto status_cancel =
-      std::get<0>(tasks[id]).wait_for(std::chrono::seconds(1));
-    if (status_cancel != std::future_status::ready) {
-      ml_loge(
-        "AsyncTask(%d): fatal problem. cancel does not work. please check", id);
-      throw std::runtime_error("cancel does not work");
-    }
-
-    std::get<CompleteStatus>(tasks[id]) = CompleteStatus::FAIL_TIMEOUT;
-  }
-
-  try {
-    auto callback = std::get<CompleteCallback>(tasks[id]);
-    auto complete_status = std::get<CompleteStatus>(tasks[id]);
-    callback(id, complete_status);
-  } catch (const std::exception &e) {
-    ml_loge("AsyncTask(%d): failed while processing user callback: %s", id,
-            e.what());
-  }
-
-  std::get<std::atomic_bool>(tasks[id]).store(false);
+  return status;
 }
 
 } // namespace nntrainer
