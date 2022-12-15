@@ -31,8 +31,9 @@ namespace {
  *
  * @param lifespand tensor lifespan
  * @return cache policy
- * @note cache policy is defined by tensor's lifetime. If it needs to be maintained its value,
- * ALWAYS_SYNCED or ITERATION_CONSIST is proper. If not, TEMPORAL doesnot keep its value.
+ * @note cache policy is defined by tensor's lifetime. If it needs to be
+ * maintained its value, ALWAYS_SYNCED or ITERATION_CONSIST is proper. If not,
+ * TEMPORAL doesnot keep its value.
  */
 inline const CachePolicy
 convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
@@ -43,7 +44,7 @@ convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
     policy = CachePolicy::ALWAYS_SYNCED;
     break;
   case TensorLifespan::FORWARD_FUNC_LIFESPAN:
-    policy = CachePolicy::ALWAYS_SYNCED;
+    policy = CachePolicy::TEMPORAL;
     break;
   case TensorLifespan::CALC_DERIV_LIFESPAN:
     policy = CachePolicy::TEMPORAL;
