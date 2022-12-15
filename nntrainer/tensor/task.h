@@ -152,14 +152,14 @@ public:
    *
    * @param time timeout in T
    */
-  virtual void setTimeout(int time) { timeout = T(time); }
+  virtual void setTimeout(int64_t time) { timeout = T(time); }
 
   /**
    * @brief Get timeout
    *
    * @param time timeout in T
    */
-  virtual int getTimeout(void) const { return timeout.count(); }
+  virtual int64_t getTimeout(void) const { return timeout.count(); }
 
   /**
    * @brief Set priority

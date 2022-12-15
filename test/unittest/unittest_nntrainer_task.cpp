@@ -34,25 +34,17 @@ public:
    */
   MockTaskExecutor() {
     ON_CALL(*this, handleWork)
-      .WillByDefault([&](int id, nntrainer::Task::Work &work, void *data) {
-        nntrainer::TaskExecutor::handleWork(id, work, data);
-      });
-    ON_CALL(*this, handleCompleteStatus)
-      .WillByDefault([&](int id, const std::future_status status) {
-        nntrainer::TaskExecutor::handleCompleteStatus(id, status);
+      .WillByDefault([&](std::atomic_bool &running, nntrainer::Task::Work &work,
+                         void *data) {
+        return nntrainer::TaskExecutor::handleWork(running, work, data);
       });
   }
 
   /**
    * @brief Mock method for worker
    */
-  MOCK_METHOD(void, handleWork, (int, nntrainer::Task::Work &, void *),
-              (override));
-
-  /**
-   * @brief Mock method for completeChecker
-   */
-  MOCK_METHOD(void, handleCompleteStatus, (int, const std::future_status),
+  MOCK_METHOD(CompleteStatus, handleWork,
+              (std::atomic_bool &, nntrainer::Task::Work &, void *),
               (override));
 };
 
@@ -107,9 +99,8 @@ TEST_F(TaskExecutorTest, run_01_p) {
   EXPECT_EQ(executor->run(task), 0);
 }
 
-TEST_F(TaskExecutorTest, run_aync_01_p) {
+TEST_F(TaskExecutorTest, run_async_01_p) {
   EXPECT_CALL(*executor, handleWork).Times(1);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(1);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -136,9 +127,8 @@ TEST_F(TaskExecutorTest, run_aync_01_p) {
   f.wait();
 }
 
-TEST_F(TaskExecutorTest, run_aync_02_p) {
+TEST_F(TaskExecutorTest, run_async_02_p) {
   EXPECT_CALL(*executor, handleWork).Times(3);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(3);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -179,17 +169,21 @@ TEST_F(TaskExecutorTest, run_aync_02_p) {
   task2->setTimeout(1000);
   task3->setTimeout(1000);
 
-  EXPECT_EQ(executor->run(task1, complete), 1);
-  EXPECT_EQ(executor->run(task2, complete), 2);
-  EXPECT_EQ(executor->run(task3, complete), 3);
+  EXPECT_EQ(executor->run(task1, complete), 2);
+  EXPECT_EQ(executor->run(task2, complete), 3);
+  EXPECT_EQ(executor->run(task3, complete), 4);
 
   // Wait until complete callback called
   f.wait();
 }
 
+/**
+ * Cancel and timeout feature are instantly removed now.
+ * It needs to implement the features more precisely.
+ */
+#if 0
 TEST_F(TaskExecutorTest, cancel_01_p) {
   EXPECT_CALL(*executor, handleWork).Times(1);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(1);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -235,7 +229,6 @@ TEST_F(TaskExecutorTest, cancel_01_p) {
 
 TEST_F(TaskExecutorTest, cancel_all_01_p) {
   EXPECT_CALL(*executor, handleWork).Times(3);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(3);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -292,7 +285,6 @@ TEST_F(TaskExecutorTest, cancel_all_01_p) {
 
 TEST_F(TaskExecutorTest, timeout_01_p) {
   EXPECT_CALL(*executor, handleWork).Times(1);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(1);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -335,7 +327,6 @@ TEST_F(TaskExecutorTest, timeout_01_p) {
 
 TEST_F(TaskExecutorTest, timeout_all_01_p) {
   EXPECT_CALL(*executor, handleWork).Times(3);
-  EXPECT_CALL(*executor, handleCompleteStatus).Times(3);
 
   std::promise<void> p;
   auto f = p.get_future();
@@ -386,6 +377,7 @@ TEST_F(TaskExecutorTest, timeout_all_01_p) {
   // Wait until complete callback called
   f.wait();
 }
+#endif
 
 /**
  * @brief Main gtest

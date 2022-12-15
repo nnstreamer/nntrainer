@@ -15,13 +15,15 @@
 #define __TASK_EXECUTOR_H__
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <future>
-#include <map>
+#include <list>
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <unistd.h>
 
-#include <nntrainer_error.h>
 #include <task.h>
 
 namespace nntrainer {
@@ -48,17 +50,23 @@ public:
   using CompleteCallback =
     std::function<void(int, CompleteStatus)>; /**< (task id, status) */
 
+  template <typename T = std::chrono::milliseconds>
+  using TaskInfo =
+    std::tuple<int, std::shared_ptr<TaskAsync<T>>, CompleteCallback,
+               std::atomic_bool, std::promise<CompleteStatus>>;
+  /**< (task id, task, complete callback, running, complete promise) */
+
   /**
    * @brief TaskExecutor constructor
    *
    */
-  explicit TaskExecutor() : ids(1) {}
+  explicit TaskExecutor(const std::string &name = "");
 
   /**
    * @brief TaskExecutor destructor
    *
    */
-  virtual ~TaskExecutor() = default;
+  virtual ~TaskExecutor();
 
   /**
    * @brief Run task
@@ -79,14 +87,14 @@ public:
   template <typename T>
   int run(std::shared_ptr<TaskAsync<T>> task, CompleteCallback callback) {
     int id = ids.load();
-
-    tasks[id] = std::make_tuple(
-      std::async(std::launch::async, &TaskExecutor::worker<T>, this, id, task),
-      std::async(std::launch::async, &TaskExecutor::completeChecker<T>, this,
-                 id, task),
-      callback, CompleteStatus::SUCCESS, true);
-
+    {
+      std::scoped_lock lock(task_mutex);
+      task_queue.emplace_back(id, task, callback, true,
+                              std::promise<CompleteStatus>());
+    }
+    task_cv.notify_one();
     ids++;
+
     return id;
   }
 
@@ -116,58 +124,42 @@ protected:
    * @param id task id
    * @param task asynchronous task
    */
-  template <typename T>
-  void worker(int id, std::shared_ptr<TaskAsync<T>> task) {
+  template <typename T> CompleteStatus worker(TaskInfo<T> &info) {
+    auto &running = std::get<std::atomic_bool>(info);
+    auto task = std::get<std::shared_ptr<TaskAsync<T>>>(info);
     if (task->started())
-      return;
+      return CompleteStatus::FAIL;
 
     auto work = task->getWork();
     auto data = task->getData();
 
     task->setState(Task::State::PROCESSING);
 
-    handleWork(id, work, data);
-  }
-
-  virtual void handleWork(int id, Task::Work &work, void *data);
-
-  /**
-   * @brief Check task is completed
-   *
-   * @param id task id
-   * @param task asynchronous task
-   */
-  template <typename T>
-  void completeChecker(int id, std::shared_ptr<TaskAsync<T>> task) {
-    // wait until tasks are fully mapped (max 1 sec)
-    int retry = 10;
-    while (retry && (tasks.find(id) == tasks.end())) {
-      usleep(100 * 1000);
-      retry--;
-    }
-
-    NNTR_THROW_IF(tasks.find(id) == tasks.end(), std::runtime_error)
-      << "tasks was not correctly mapped";
-
-    auto status = std::get<0>(tasks[id]).wait_for(T(task->getTimeout()));
-    handleCompleteStatus(id, status);
-
-    task->setState(Task::State::DONE);
+    return handleWork(running, work, data);
   }
 
   /**
-   * @brief handles complete status
+   * @brief handle work for asynchronous task
    *
-   * @param id task id
-   * @param status asynchronous worker's finishing status
+   * @param running running flag
+   * @param work work function
+   * @param data data to be passed to work function
+   * @return CompleteStatus
    */
-  virtual void handleCompleteStatus(int id, const std::future_status status);
+  virtual CompleteStatus handleWork(std::atomic_bool &running, Task::Work &work,
+                                    void *data);
 
-  std::atomic_int32_t ids; /**< for id generation */
-  std::map<int, std::tuple<std::future<void>, std::future<void>,
-                           CompleteCallback, CompleteStatus, std::atomic_bool>>
-    tasks; /**< (task id, (future, complete future, callback, complete status,
-              running)) */
+  static std::atomic_int32_t ids;
+  std::string name;
+  bool run_thread;
+  bool wait_complete;
+
+  std::list<TaskInfo<>> task_queue;
+
+  std::condition_variable task_cv;
+  std::condition_variable comp_cv;
+  std::thread task_thread;
+  std::mutex task_mutex;
 };
 
 } // namespace nntrainer
