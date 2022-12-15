@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <ini_wrapper.h>
+#include <neuralnet.h>
 #include <tensor_dim.h>
 
 inline constexpr const char *DIM_UNUSED = "1:1:1";
@@ -71,6 +72,7 @@ protected:
    *
    */
   nntrainerModelTest() :
+    props({"memory_swap=false"}),
     iteration(0),
     name(""),
     options(ModelTestOption::NO_THROW_RUN) {}
@@ -109,7 +111,9 @@ protected:
    * @return std::unique_ptr<nntrainer::NeuralNetwork> created model
    */
   std::unique_ptr<nntrainer::NeuralNetwork> createModel() {
-    return nn_creator();
+    auto nn = nn_creator();
+    nn->setProperty(props);
+    return nn;
   }
 
   /**
@@ -174,6 +178,8 @@ protected:
   void validate(bool opt,
                 std::function<std::unique_ptr<nntrainer::NeuralNetwork>()>
                   creator = nullptr);
+
+  std::vector<std::string> props; /**< property to be initially set */
 
 private:
   /**

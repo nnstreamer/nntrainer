@@ -25,6 +25,7 @@
 
 #include <memory_data.h>
 #include <memory_planner.h>
+#include <tensor_wrap_specs.h>
 
 namespace nntrainer {
 
@@ -52,6 +53,8 @@ public:
    * @param bytes The size of the memory requested in bytes
    * @param start_time The start of the validity interval of this memory
    * @param end_time The end of the validity interval of this memory
+   * @param exec_order execution orders of this memory
+   * @param lifespan lifespan of memory
    *
    * @return The token to get the pointer for this memory after allocation
    * @note start_time is inclusive, but end_time is exclusive
@@ -59,7 +62,8 @@ public:
    */
   virtual unsigned int requestMemory(
     size_t bytes, unsigned int start_time, unsigned int end_time,
-    std::vector<unsigned int> exec_order = std::vector<unsigned int>());
+    std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
+    TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN);
 
   /**
    * @brief Plan the layout with memory planner
@@ -195,7 +199,7 @@ private:
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 
-  void *mem_pool;   /**< memory pool allocated at once */
+  void *mem_pool; /**< memory pool allocated at once */
 
   size_t pool_size; /**< memory requirement for this pool */
 

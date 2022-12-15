@@ -27,7 +27,8 @@ namespace nntrainer {
  */
 unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
                                        unsigned int end_time,
-                                       std::vector<unsigned int> exec_order) {
+                                       std::vector<unsigned int> exec_order,
+                                       TensorLifespan lifespan) {
   if (bytes == 0)
     throw std::invalid_argument("Requesting memory of 0 size");
 
