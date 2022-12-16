@@ -1286,7 +1286,10 @@ int ml_train_model_get_weight(ml_train_model_h model, const char *layer_name,
   for (unsigned int i = 0; i < dims.size(); ++i) {
     status = ml_tensors_data_set_tensor_data(
       *weight, i, w[i], dims[i].getDataLen() * sizeof(float));
-    return status;
+    if (status != ML_ERROR_NONE) {
+	    ml_tensors_data_destroy(weight);
+      return status;
+    }
   }
 
   return status;
