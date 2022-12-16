@@ -311,18 +311,20 @@ public:
   /**
    * @brief     Run NeuralNetwork inference
    * @param[in] X input tensor
+   * @param[in] free_mem true to free memory. used only in training mode.
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors inference(sharedConstTensors X, bool free_mem = true);
+  sharedConstTensors inference(sharedConstTensors X, bool free_mem = false);
 
   /**
    * @brief     Run NeuralNetwork inference
    * @param[in] X input tensor
    * @param[in] label label tensor
+   * @param[in] free_mem true to free memory. used only in training mode.
    * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors inference(sharedConstTensors X, sharedConstTensors label,
-                               bool free_mem = true);
+                               bool free_mem = false);
 
   /**
    * @brief     Run the inference of the model
@@ -553,7 +555,8 @@ private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath,
-               props::MemoryOptimization, props::MemorySwap, props::MemorySwapPath>;
+               props::MemoryOptimization, props::MemorySwap,
+               props::MemorySwapPath>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
