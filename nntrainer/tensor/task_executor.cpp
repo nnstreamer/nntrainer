@@ -49,8 +49,9 @@ void TaskExecutor::clean(void) {
   for (auto it = tasks.begin(); it != tasks.end();) {
     auto running = std::get<std::atomic_bool>(it->second).load();
     if (running == false)
-      tasks.erase(it);
-    it++;
+      it = tasks.erase(it);
+    else
+      it++;
   }
 }
 
