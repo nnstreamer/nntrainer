@@ -189,7 +189,7 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
 template <typename... Args>
 static int ml_train_dataset_add_(ml_train_dataset_h dataset,
                                  ml_train_dataset_mode_e mode,
-                                 ml::train::DatasetType type, Args &&... args) {
+                                 ml::train::DatasetType type, Args &&...args) {
   check_feature_state();
   std::shared_ptr<ml::train::Dataset> underlying_dataset;
 
@@ -1287,7 +1287,7 @@ int ml_train_model_get_weight(ml_train_model_h model, const char *layer_name,
     status = ml_tensors_data_set_tensor_data(
       *weight, i, w[i], dims[i].getDataLen() * sizeof(float));
     if (status != ML_ERROR_NONE) {
-	    ml_tensors_data_destroy(weight);
+      ml_tensors_data_destroy(*weight);
       return status;
     }
   }
