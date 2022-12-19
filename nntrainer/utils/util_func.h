@@ -281,6 +281,15 @@ template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
  */
 char *getRealpath(const char *name, char *resolved);
 
+/**
+ * @brief Get local time in tm struct format
+ *
+ * @param tp variable to store the result values
+ *
+ * @return tm struct
+ */
+tm *getLocaltime(tm *tp);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

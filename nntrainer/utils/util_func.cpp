@@ -209,4 +209,14 @@ char *getRealpath(const char *name, char *resolved) {
 #endif
 }
 
+tm *getLocaltime(tm *tp) {
+  time_t t = time(0);
+#ifdef _WIN32
+  localtime_s(tp, &t);
+  return tp;
+#else
+  return localtime_r(&t, tp);
+#endif
+}
+
 } // namespace nntrainer
