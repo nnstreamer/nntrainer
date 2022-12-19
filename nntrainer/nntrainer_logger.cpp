@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include <stdexcept>
 #include <unistd.h>
+#include <util_func.h>
 
 namespace nntrainer {
 
@@ -67,15 +68,14 @@ Logger::Cleanup::~Cleanup() {
 Logger::~Logger() { outputstream.close(); }
 
 Logger::Logger() {
-  struct tm lt;
-  time_t t = time(0);
-  struct tm *now = localtime_r(&t, &lt);
+  struct tm now;
+  getLocaltime(&now);
   std::stringstream ss;
-  ss << logfile_name << std::dec << (now->tm_year + 1900) << std::setfill('0')
-     << std::setw(2) << (now->tm_mon + 1) << std::setfill('0') << std::setw(2)
-     << now->tm_mday << std::setfill('0') << std::setw(2) << now->tm_hour
-     << std::setfill('0') << std::setw(2) << now->tm_min << std::setfill('0')
-     << std::setw(2) << now->tm_sec << ".out";
+  ss << logfile_name << std::dec << (now.tm_year + 1900) << std::setfill('0')
+     << std::setw(2) << (now.tm_mon + 1) << std::setfill('0') << std::setw(2)
+     << now.tm_mday << std::setfill('0') << std::setw(2) << now.tm_hour
+     << std::setfill('0') << std::setw(2) << now.tm_min << std::setfill('0')
+     << std::setw(2) << now.tm_sec << ".out";
   outputstream.open(ss.str(), std::ios_base::app);
   if (!outputstream.good()) {
     char buf[256];
@@ -90,9 +90,8 @@ Logger::Logger() {
 void Logger::log(const std::string &message,
                  const nntrainer_loglevel loglevel) {
   std::lock_guard<std::mutex> guard(smutex);
-  time_t t = time(0);
-  struct tm lt;
-  struct tm *now = localtime_r(&t, &lt);
+  struct tm now;
+  getLocaltime(&now);
   std::stringstream ss;
   switch (loglevel) {
   case NNTRAINER_LOG_INFO:
@@ -111,11 +110,11 @@ void Logger::log(const std::string &message,
     break;
   }
 
-  ss << std::dec << (now->tm_year + 1900) << '-' << std::setfill('0')
-     << std::setw(2) << (now->tm_mon + 1) << '-' << std::setfill('0')
-     << std::setw(2) << now->tm_mday << ' ' << std::setfill('0') << std::setw(2)
-     << now->tm_hour << ':' << std::setfill('0') << std::setw(2) << now->tm_min
-     << ':' << std::setfill('0') << std::setw(2) << now->tm_sec << ']';
+  ss << std::dec << (now.tm_year + 1900) << '-' << std::setfill('0')
+     << std::setw(2) << (now.tm_mon + 1) << '-' << std::setfill('0')
+     << std::setw(2) << now.tm_mday << ' ' << std::setfill('0') << std::setw(2)
+     << now.tm_hour << ':' << std::setfill('0') << std::setw(2) << now.tm_min
+     << ':' << std::setfill('0') << std::setw(2) << now.tm_sec << ']';
 
   outputstream << ss.str() << " " << message << std::endl;
 }
