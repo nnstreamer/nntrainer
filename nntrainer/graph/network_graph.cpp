@@ -824,7 +824,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                                    lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names));
 
   return outputs;
 }

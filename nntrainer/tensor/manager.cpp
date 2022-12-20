@@ -354,10 +354,9 @@ std::vector<Weight *> Manager::requestWeights(
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
 
-  std::vector<unsigned int> var_exec_order(
-    {forwarding_order, calcGradient_order, calcDerivative_order});
-  std::vector<unsigned int> default_grad_exec_order(
-    {calcGradient_order, calcDerivative_order});
+  std::vector<unsigned int> default_var_exec_order(
+    {forwarding_order, calcDerivative_order});
+  std::vector<unsigned int> default_grad_exec_order({calcDerivative_order});
 
   TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
@@ -368,7 +367,14 @@ std::vector<Weight *> Manager::requestWeights(
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
     auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
            need_gradient, name] = weights_spec.at(i);
+    auto var_exec_order = default_var_exec_order;
     auto grad_exec_order = default_grad_exec_order;
+
+    if (trainable) {
+      var_exec_order.insert(var_exec_order.begin(), calcGradient_order);
+      grad_exec_order.insert(grad_exec_order.begin(), calcGradient_order);
+    }
+
     /**
      * If the weight is supposed to be clip by global norm, extend its exec
      * order with the max exec order where it will be used for clipping and then
@@ -417,10 +423,9 @@ std::vector<Weight *> Manager::requestWeights(
  * @brief     Create weights with the given spec
  *
  */
-std::vector<Var_Grad *>
-Manager::requestTensors(const GraphNode &node,
-                        const std::vector<Var_Grad::Spec> &tensors_spec,
-                        const std::vector<std::string> &shared_names) {
+std::vector<Var_Grad *> Manager::requestTensors(
+  const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
+  bool trainable, const std::vector<std::string> &shared_names) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
 
@@ -438,7 +443,8 @@ Manager::requestTensors(const GraphNode &node,
       var_exec_order.push_back(forwarding_order);
 
     /** usage for tensors gradient in backwarding */
-    if (enum_class_logical_and(tspan, TensorLifespan::CALC_GRAD_LIFESPAN)) {
+    if (trainable &&
+        enum_class_logical_and(tspan, TensorLifespan::CALC_GRAD_LIFESPAN)) {
       var_exec_order.push_back(calcGradient_order);
       grad_exec_order.push_back(calcGradient_order);
     }
@@ -460,7 +466,6 @@ Manager::requestTensors(const GraphNode &node,
                                            dim, grad_exec_order, tspan,
                                            Tensor::Initializer::ZEROS);
       }
-
     } else {
       var = tensor_pool.request(name, dim, var_exec_order, tspan, t_init);
 
