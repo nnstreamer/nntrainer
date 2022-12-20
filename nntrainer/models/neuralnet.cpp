@@ -313,12 +313,14 @@ void NeuralNetwork::backwarding(int iteration,
     PROFILE_MEM_ANNOTATE("CalcGradient: " + node->getName());
 
     bool apply_gradient = true;
+
     /** If gradient optimization mode, then calculate gradient first */
     if (dynamic_training_opt.isGradientMode())
       node->calcGradient();
 
     /**
-     * If optimization off, or gradient must be applied, then this will be true
+     * If optimization off, or gradient must be applied, then this will be
+     * true
      * @todo This apply gradient should be passed to the each weight and later
      * be queried when updating gradient at once. (after moving apply_gradient
      * out of this function)
@@ -326,8 +328,8 @@ void NeuralNetwork::backwarding(int iteration,
      */
     // auto &layer = node->getObject();
     // apply_gradient = dynamic_training_opt.checkIfApply(
-    //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
-    //   iteration);
+    //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0],
+    //   opt, iteration);
 
     /** If gradient must be applied and its not gradient mode, calculate
      * gradient

@@ -193,14 +193,14 @@ public:
    *
    * @param node Graph node to extract node identifiers/info
    * @param tensors_spec Specification for the tensors
+   * @param trainable make the weight trainable if true
    * @param shared_names if tensor is shared, name is needed
    *
    * @return created tensors list
    */
-  std::vector<Var_Grad *>
-  requestTensors(const GraphNode &node,
-                 const std::vector<Var_Grad::Spec> &tensors_spec,
-                 const std::vector<std::string> &shared_names = {});
+  std::vector<Var_Grad *> requestTensors(
+    const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
+    bool trainable, const std::vector<std::string> &shared_names = {});
 
   /**
    * @brief     Create tensors with the given spec
