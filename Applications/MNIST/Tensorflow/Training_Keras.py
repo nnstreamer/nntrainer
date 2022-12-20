@@ -33,6 +33,7 @@ from tensorflow.keras.models import load_model
 np.set_printoptions(threshold=sys.maxsize)
 SEED=1
 
+tf.compat.v1.disable_eager_execution()
 tf.compat.v1.reset_default_graph()
 random.seed(SEED)
 tf.compat.v1.set_random_seed(SEED)
@@ -99,12 +100,12 @@ def train_nntrainer(target):
 
     if USE_FIT == False:
         ## Method 1 : using tensorflow session (training and evaluating manually)
-        inputs = tf.placeholder(tf.float32, [None, 28,28,1], name="input_X")
-        labels = tf.placeholder(tf.float32,[None, 10], name = "label")
+        inputs = tf.compat.v1.placeholder(tf.float32, [None, 28,28,1], name="input_X")
+        labels = tf.compat.v1.placeholder(tf.float32, [None, 10], name = "label")
         sess=tf.compat.v1.Session()
 
         tf_logit = model(inputs, training=True)
-        tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+        tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
             labels=labels, logits=tf_logit))
         optimizer = tf.keras.optimizers.Adam(learning_rate=1.0e-4, epsilon=1.0e-7, beta_1=0.9, beta_2=0.999)
 
