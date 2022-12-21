@@ -8,7 +8,7 @@
 # @brief Resnet 18 model file
 # @author Jihoon lee <jhoon.it.lee@samsung.com>
 # @author Parichay Kapoor <pk.kapoor@samsung.com>
-# @note tested with tensorflow 2.6
+# @note tested with tensorflow 2.11
 
 
 import random
@@ -29,7 +29,7 @@ from transLayer import attach_trans_layer as TL
 # Fix the seeds across frameworks
 SEED = 412349
 random.seed(SEED)
-tf.compat.v1.set_random_seed(SEED)
+tf.random.set_seed(SEED)
 np.random.seed(SEED)
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
