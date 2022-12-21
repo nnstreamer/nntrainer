@@ -495,6 +495,14 @@ ReduceMean(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create Identity layer
+ */
+inline std::unique_ptr<Layer>
+Identity(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_IDENTITY, properties);
+}
+
+/**
  * @brief Helper function to create activation layer
  */
 inline std::unique_ptr<Layer>
