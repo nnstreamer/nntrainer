@@ -154,9 +154,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    details->token =
-      mem_pool->requestMemory(spec.tensor->bytes(), validity_start,
-                              validity_end + 1, details->exec_order);
+    details->token = mem_pool->requestMemory(
+      spec.tensor->bytes(), validity_start, validity_end + 1,
+      details->exec_order, details->lifespan);
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
@@ -199,12 +199,18 @@ void TensorPool::allocate() {
     spec.tensor->setData(mem_pool->getMemory(details->token), 0, true);
     syncDependents(spec);
   }
+
+  if (cache_loader)
+    cache_loader->init();
 }
 
 /**
  * @brief Deallocate memory for all the managed tensors
  */
 void TensorPool::deallocate() {
+  if (cache_loader)
+    cache_loader->finish();
+
   mem_pool->deallocate();
 
   /** nullify the data pointers for the tensors */
@@ -418,6 +424,26 @@ void TensorPool::flushCache() {
 void TensorPool::flushCacheExcept(unsigned int order) {
   if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
     pool->flushExcept(order);
+}
+
+void TensorPool::loadCacheExec(unsigned int order) {
+  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+    cache_loader->load(order);
+}
+
+int TensorPool::loadCacheExecAsync(
+  unsigned int order, TaskExecutor::CompleteCallback complete_callback) {
+  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+    return cache_loader->loadAsync(order, complete_callback);
+  else
+    return -1;
+}
+
+void TensorPool::loadCacheCancel(int id) {
+  if (dynamic_cast<CachePool *>(mem_pool.get()) == nullptr)
+    return;
+
+  cache_loader->cancelAsync(id);
 }
 
 } // namespace nntrainer

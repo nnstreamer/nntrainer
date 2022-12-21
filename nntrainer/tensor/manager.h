@@ -135,10 +135,12 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap, const std::string &swap_path = "") :
+  Manager(bool enable_swap, const std::string &swap_path = "",
+          unsigned int lookahead = 0) :
     weight_pool(enable_swap, swap_path, "weight_pool"),
     tensor_pool(enable_swap, swap_path, "tensor_pool"),
-    enable_optimizations(true) {}
+    enable_optimizations(true),
+    swap_lookahead(lookahead) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -453,6 +455,10 @@ public:
    * @brief flush cache data except the order
    *
    * @param order except execution order
+   * @param lookahead preloading size
+   * @note preloading loads execution order data asynchronously,
+   *       for lookahead size. If new flush request arrives,
+   *       it waits previous preloading is completed and invokes new one.
    */
   void flushCacheExcept(unsigned int order);
 
@@ -473,7 +479,17 @@ private:
   TensorPool weight_pool; /**< tensor pool to request tensors */
   TensorPool tensor_pool; /**< tensor pool to request tensors */
 
+  std::map<unsigned int, std::tuple<int, int>> async_task_eos;
+  /**< async tasks <execution order, <weight_pool completed id, tensor_pool
+   * completed id>>
+   */
+  std::map<int, std::promise<bool>> completed;
+  /**< async tasks completion <task id, promise> */
+  std::mutex completed_mutex; /**< mutex for async tasks completion */
+
   bool enable_optimizations; /**< to enable memory optimizations */
+
+  unsigned int swap_lookahead; /** lookahead for memory swap */
 
   /**
    * @brief Finalize the given tensor pool

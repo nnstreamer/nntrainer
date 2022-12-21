@@ -55,8 +55,10 @@ public:
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
-  NetworkGraph(bool enable_swap, const std::string &swap_path = "") :
-    tensor_manager(std::make_shared<Manager>(enable_swap, swap_path)),
+  NetworkGraph(bool enable_swap, const std::string &swap_path = "",
+               unsigned int lookahead = 0) :
+    tensor_manager(
+      std::make_shared<Manager>(enable_swap, swap_path, lookahead)),
     graph(),
     compiled(false),
     batch_size(0),
