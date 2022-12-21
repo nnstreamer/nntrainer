@@ -26,6 +26,7 @@
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
+#include <identity_layer.h>
 #include <input_layer.h>
 #include <layer_node.h>
 #include <layer_normalization_layer.h>
@@ -547,7 +548,8 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
 
   /** layers which behave as a no-op - flatten */
   auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {
-    return lnode->getType() == FlattenLayer::type;
+    return lnode->getType() == FlattenLayer::type ||
+           lnode->getType() == IdentityLayer::type;
   };
 
   /** layers which behave as a no-op but shares memory among parallel nodes -
@@ -729,12 +731,20 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       if (shared_var) {
         s.variable_spec.request_type =
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
-        s.variable_spec.reference_name = inputs[0]->getName();
+        if (lnode->getType() == IdentityLayer::type) {
+          s.variable_spec.reference_name = inputs[i]->getName();
+        } else {
+          s.variable_spec.reference_name = inputs[0]->getName();
+        }
       }
       if (shared_grad && s.gradient_spec) {
         s.gradient_spec->request_type =
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
-        s.gradient_spec->reference_name = inputs[0]->getGradientName();
+        if (lnode->getType() == IdentityLayer::type) {
+          s.gradient_spec->reference_name = inputs[i]->getGradientName();
+        } else {
+          s.gradient_spec->reference_name = inputs[0]->getGradientName();
+        }
       }
     }
   }
