@@ -23,6 +23,7 @@
 #include <variant>
 #include <vector>
 
+#include <cache_loader.h>
 #include <cache_pool.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
@@ -41,17 +42,22 @@ public:
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool() : mem_pool(std::make_unique<MemoryPool>()) {}
+  TensorPool() :
+    mem_pool(std::make_unique<MemoryPool>()),
+    cache_loader(nullptr) {}
 
   /**
    * @brief     Constructor of TensorPool
    */
   TensorPool(bool enable_swap, const std::string &swap_path = "",
              const std::string &swap_name = "") {
-    if (enable_swap)
-      mem_pool = std::make_unique<CachePool>(swap_path, swap_name);
-    else
-      mem_pool = std::make_unique<MemoryPool>();
+    if (enable_swap) {
+      auto cache_pool = std::make_shared<CachePool>(swap_path, swap_name);
+      cache_loader = std::make_unique<CacheLoader>(cache_pool);
+      mem_pool = cache_pool;
+    } else {
+      mem_pool = std::make_shared<MemoryPool>();
+    }
   }
 
   /**
@@ -258,6 +264,29 @@ public:
    */
   void flushCacheExcept(unsigned int order);
 
+  /**
+   * @brief load cache data by execution order
+   *
+   * @param order execution order
+   */
+  void loadCacheExec(unsigned int order);
+
+  /**
+   * @brief load cache data by execution order
+   *
+   * @param order execution order
+   * @return async task id
+   */
+  int loadCacheExecAsync(unsigned int order,
+                         TaskExecutor::CompleteCallback complete_callback);
+
+  /**
+   * @brief load cache data by execution order
+   *
+   * @param id async task id
+   */
+  void loadCacheCancel(int id);
+
 private:
   /**
    * @brief Source tensor detailed specification
@@ -353,7 +382,8 @@ private:
   std::vector<RequestSpec> pool; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
     name_map;                           /**< indexing of requested tensors */
-  std::unique_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
+  std::shared_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
+  std::unique_ptr<CacheLoader> cache_loader; /**< memory pool for the tensors */
 
   /**
    * @brief     Check if the lifespan leads to long term valitidy
