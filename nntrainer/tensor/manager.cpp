@@ -630,13 +630,50 @@ Manager::getWeights(const std::function<bool(const Weight *)> &condition) {
 }
 
 void Manager::flushCache() {
-  weight_pool.flushCache();
-  tensor_pool.flushCache();
+  if (!swap_lookahead) {
+    weight_pool.flushCache();
+    tensor_pool.flushCache();
+  }
 }
 
 void Manager::flushCacheExcept(unsigned int order) {
-  weight_pool.flushCacheExcept(order);
-  tensor_pool.flushCacheExcept(order);
+  auto loadAsync = [&](TensorPool &pool, unsigned int order) {
+    return pool.loadCacheExecAsync(
+      order, [&](int id, TaskExecutor::CompleteStatus status) {
+        std::scoped_lock<std::mutex> lock(completed_mutex);
+        completed[id].set_value(true);
+      });
+  };
+
+  auto waitComplete = [&](unsigned int o) {
+    auto &tasks = async_task_eos[o];
+
+    std::unique_lock<std::mutex> lock(completed_mutex);
+    auto w_fut = completed[std::get<0>(tasks)].get_future();
+    auto t_fut = completed[std::get<1>(tasks)].get_future();
+    lock.unlock();
+
+    w_fut.wait();
+    t_fut.wait();
+
+    async_task_eos.erase(o);
+  };
+
+  // TODO: lookahead > 1 is required.
+  if (swap_lookahead == 1) {
+    if (async_task_eos.count(order) == 1)
+      waitComplete(order);
+
+    auto load_weight = loadAsync(weight_pool, order + 1);
+    auto load_tensor = loadAsync(tensor_pool, order + 1);
+
+    NNTR_THROW_IF(load_weight < 0 || load_tensor < 0, std::runtime_error)
+      << "Failed to launch preloading task";
+    async_task_eos[order + 1] = std::make_tuple(load_weight, load_tensor);
+  } else {
+    weight_pool.flushCacheExcept(order);
+    tensor_pool.flushCacheExcept(order);
+  }
 }
 
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
