@@ -42,6 +42,14 @@ typedef enum {
   NNTRAINER_LOG_ERROR
 } nntrainer_loglevel;
 
+/**
+ * @brief     Log TimeStamp type
+ */
+typedef enum {
+  NNTRAINER_LOG_TIMESTAMP_SEC = 0,
+  NNTRAINER_LOG_TIMESTAMP_MS,
+} nntrainer_log_timestamp;
+
 namespace nntrainer {
 
 /**
@@ -64,6 +72,11 @@ public:
   void log(const std::string &message,
            const nntrainer_loglevel loglevel = NNTRAINER_LOG_INFO);
 
+  /**
+   * @brief     Set timestamp type
+   */
+  void setTimeStampType(nntrainer_log_timestamp type) { ts_type = type; }
+
 protected:
   /**
    * @brief     Logging instance
@@ -84,6 +97,10 @@ protected:
    * @brief     sure the single logger
    */
   friend class Cleanup;
+
+  /**
+   * @brief     Class to make sure the single logger
+   */
   class Cleanup {
   public:
     ~Cleanup();
@@ -94,13 +111,31 @@ private:
    * @brief     Constructor
    */
   Logger();
+
   /**
    * @brief     Destructor
    */
   virtual ~Logger();
+
+  /**
+   * @brief     Copy Constructor
+   */
   Logger(const Logger &);
+
+  /**
+   * @brief     Assignment operator
+   */
   Logger &operator=(const Logger &);
+
+  /**
+   * @brief     mutex for logging
+   */
   static std::mutex smutex;
+
+  /**
+   * @brief     log timestamp type
+   */
+  nntrainer_log_timestamp ts_type;
 };
 } /* namespace nntrainer */
 
