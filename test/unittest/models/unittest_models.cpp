@@ -50,6 +50,50 @@ IniWrapper fc_relu_decay(
    IniSection("dense_1") + fc_base + "unit = 2" + "bias_decay=0.9",
    IniSection("act_1") + act_base + "Activation = sigmoid"});
 
+/**
+ * @brief get function to make model with non-trainable fc layer
+ * @param[in] idx index of the fc layer to be non-trainable
+ * @retval function to make model with non-trainable fc layer
+ */
+std::function<std::unique_ptr<NeuralNetwork>()>
+getFuncToMakeNonTrainableFc(int idx) {
+
+  std::string fc1_trainable = (idx == 1) ? "trainable=false" : "trainable=true";
+  std::string fc2_trainable = (idx == 2) ? "trainable=false" : "trainable=true";
+
+  return [fc1_trainable, fc2_trainable]() {
+    std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+    nn->setProperty({"batch_size=3"});
+
+    auto outer_graph = makeGraph({
+      {"input", {"name=in", "input_shape=1:1:3"}},
+      {"fully_connected",
+       {"name=fc1", "input_layers=in", "unit=10", fc1_trainable}},
+      {"activation", {"name=act1", "input_layers=fc1", "activation=relu"}},
+      {"fully_connected",
+       {"name=fc2", "input_layers=act1", "unit=10", fc2_trainable}},
+      {"activation", {"name=act2", "input_layers=fc2", "activation=relu"}},
+      {"fully_connected", {"name=fc3", "input_layers=act2", "unit=2"}},
+      {"activation", {"name=act3", "input_layers=fc3", "activation=sigmoid"}},
+      {"mse", {"name=loss", "input_layers=act3"}},
+    });
+
+    for (auto &node : outer_graph) {
+      nn->addLayer(node);
+    }
+
+    nn->setOptimizer(
+      ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+    nn->setProperty({"input_layers=in", "label_layers=loss"});
+
+    return nn;
+  };
+}
+
+static auto makeNonTrainableFcIdx1 = getFuncToMakeNonTrainableFc(1);
+static auto makeNonTrainableFcIdx2 = getFuncToMakeNonTrainableFc(2);
+
 static std::unique_ptr<NeuralNetwork> makeMolAttention() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty({"batch_size=3"});
@@ -882,6 +926,10 @@ GTEST_PARAMETER_TEST(
                  "transformer_pseudo_bool_attn_mask", ModelTestOption::ALL_V2),
     mkModelIniTc(fc_relu_decay, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
+    mkModelTc_V2(makeNonTrainableFcIdx1, "non_trainable_fc_idx1",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeNonTrainableFcIdx2, "non_trainable_fc_idx2",
+                 ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
     return std::get<1>(info.param);

@@ -287,6 +287,29 @@ class FCRelu(torch.nn.Module):
                 {'params': non_decay_params},
                 {'params': decay_params, 'weight_decay': 0.9}], lr=0.1)
 
+# class for test non-trainable fc layer
+class NonTrainableFC(torch.nn.Module):
+    def __init__(self, idx):
+        super().__init__()
+        self.fc1 = torch.nn.Linear(3, 10)
+        self.fc2 = torch.nn.Linear(10, 10)
+        self.fc3 = torch.nn.Linear(10, 2)
+        self.loss = torch.nn.MSELoss()
+        # determine which layer to set to non-trainable
+        if idx == 1:
+            for param in self.fc1.parameters():
+                param.requires_grad = False
+        elif idx == 2:
+            for param in self.fc2.parameters():
+                param.requires_grad = False
+
+    def forward(self, inputs, labels):
+        out = torch.relu(self.fc1(inputs[0]))
+        out = torch.relu(self.fc2(out))
+        out = torch.sigmoid(self.fc3(out))
+        loss = self.loss(out, labels[0])
+        return out, loss
+
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
@@ -487,4 +510,25 @@ if __name__ == "__main__":
         optimizer=fc_relu_decay.getOptimizer()
     )
 
+    non_trainable_fc_idx1 = NonTrainableFC(idx=1)
+    record_v2(
+        non_trainable_fc_idx1,
+        iteration=2,
+        input_dims=[(3,3)],
+        input_dtype=[float],
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx1"
+    )
+
+    non_trainable_fc_idx2 = NonTrainableFC(idx=2)
+    record_v2(
+        non_trainable_fc_idx2,
+        iteration=2,
+        input_dims=[(3,3)],
+        input_dtype=[float],
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx2"
+    )
+    
+    # Function to check the created golden test file
     inspect_file("fc_relu_decay.nnmodelgolden")
