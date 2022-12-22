@@ -393,6 +393,10 @@ std::vector<Weight *> Manager::requestWeights(
                                         var_ls, t_initializer);
 
       if (trainable && need_gradient) {
+        /** We cannot use the tensor schedulding for weight gradient if the
+         * weight is shared. Weight Sharing means, the gradient is not temporal
+         * for each layer anymore and it is hard to overwritten.
+         */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim, grad_exec_order, grad_ls,
                                            Tensor::Initializer::ZEROS);
@@ -402,10 +406,18 @@ std::vector<Weight *> Manager::requestWeights(
       var =
         weight_pool.request(name, dim, var_exec_order, var_ls, t_initializer);
 
-      if (trainable && need_gradient)
+      if (trainable && need_gradient) {
+        /** is_wgrad is the index which is true when it is the gradient tensor
+         * of weight. If it is true, memory planner schedule based on it to
+         * reduce the memory.
+         */
+        bool is_wgrad = true;
+        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
+          is_wgrad = false;
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim,
                                    grad_exec_order, grad_ls,
-                                   Tensor::Initializer::ZEROS);
+                                   Tensor::Initializer::ZEROS, is_wgrad);
+      }
     }
 
     weights_v2.emplace_back(std::make_unique<Weight>(

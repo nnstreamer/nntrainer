@@ -55,6 +55,7 @@ public:
    * @param end_time The end of the validity interval of this memory
    * @param exec_order execution orders of this memory
    * @param lifespan lifespan of memory
+   * @param is_wgrad check if the tensor is weight gradient
    *
    * @return The token to get the pointer for this memory after allocation
    * @note start_time is inclusive, but end_time is exclusive
@@ -63,7 +64,8 @@ public:
   virtual unsigned int requestMemory(
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
-    TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN);
+    TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
+    bool is_wgrad = false);
 
   /**
    * @brief Plan the layout with memory planner
@@ -198,6 +200,9 @@ private:
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
+
+  std::vector<bool>
+    memory_is_wgrad; /**< index for identification of weight gradient */
 
   void *mem_pool; /**< memory pool allocated at once */
 

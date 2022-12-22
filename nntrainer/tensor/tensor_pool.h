@@ -154,6 +154,7 @@ public:
    * @param exec_order The execution orders for this tensor.
    * @param lifespan Lifespan of this tensor.
    * @param init Initializer of the tensor.
+   * @param is_weight_grad Identification of weight gradient
    *
    * @return ptr to the created tensor
    *
@@ -164,7 +165,8 @@ public:
   Tensor *request(const std::string &name, const TensorDim &dim,
                   const std::vector<unsigned int> &exec_order,
                   TensorLifespan lifespan,
-                  const Tensor::Initializer &init = Tensor::Initializer::NONE);
+                  const Tensor::Initializer &init = Tensor::Initializer::NONE,
+                  bool is_weight_grad = false);
 
   /**
    * @brief     Request tensor which is a view of already requested with the
@@ -285,6 +287,7 @@ private:
    * @todo move tensor initialization from tensor class to RequestSpec
    */
   struct RequestSpec {
+    bool is_weight_grad;            /**< identification of weight gradient */
     std::unique_ptr<Tensor> tensor; /**< tensor object itself */
     std::variant<SourceDetails, DependentDetails>
       details; /**< additional information by its kind */
