@@ -33,9 +33,10 @@ namespace nntrainer {
 Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
                             const std::vector<unsigned int> &exec_order,
                             TensorLifespan lifespan,
-                            const Tensor::Initializer &init) {
+                            const Tensor::Initializer &init,
+                            bool is_weight_grad) {
   return registerRequestSpec(
-    {std::make_unique<Tensor>(dim, false, init, name),
+    {is_weight_grad, std::make_unique<Tensor>(dim, false, init, name),
      TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
 }
 
@@ -89,8 +90,12 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
   /** @note in case of view of view, internal datastructure saves the src to
    * view index, not view to view reference in order to flatten depth */
   auto parent_idx = name_map.at(spec.tensor->getName());
+
+  /** @note default is_weight_grad for view is false. view is for the
+   * activation. */
   return registerRequestSpec(
-    {std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
+    {false,
+     std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
      TensorPool::DependentDetails{parent_idx, adjusted_offset}});
 }
 
@@ -156,7 +161,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      */
     details->token = mem_pool->requestMemory(
       spec.tensor->bytes(), validity_start, validity_end + 1,
-      details->exec_order, details->lifespan);
+      details->exec_order, details->lifespan, spec.is_weight_grad);
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
@@ -321,6 +326,7 @@ Tensor *TensorPool::extend(const std::string &name, const TensorDim &dim,
   auto &spec = getSourceSpec(name);
   NNTR_THROW_IF(dim != spec.tensor->getDim(), std::invalid_argument)
     << "Cannot extend tensor with different dimension";
+  spec.is_weight_grad = false;
   expandLifespan(spec, exec_order, lifespan);
   return getTensor(name);
 }
