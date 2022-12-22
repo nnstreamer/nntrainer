@@ -38,6 +38,7 @@ public:
    * @param[in] memory_validity The validity of the various memories
    * @param[out] memory_offset The offset of each memory from the base of the
    * allocated memory
+   * @param[in] memory_is_wgrad The index for identification of weight gradient
    * @return The total memory required as per this strategy
    *
    * @details The minimum offset will be 0, and the maximum offset will be less
@@ -46,7 +47,8 @@ public:
   virtual size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-    std::vector<size_t> &memory_offset) const = 0;
+    std::vector<size_t> &memory_offset,
+    std::vector<bool> &memory_is_wgrad) const = 0;
 
   /**
    * @brief Get type of the planner
