@@ -20,7 +20,8 @@ namespace nntrainer {
  * @copydoc MemoryPlanner::planLayout(
  * const std::vector<size_t> &memory_size,
  * const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
- * std::vector<size_t> &memory_offset);
+ * std::vector<size_t> &memory_offset,
+ * std::vector<bool> &memory_is_wgrad);
  *
  * @details The basic memory planner does not incorporate any memory sharing.
  * This planner allocates independent memory for all the required memories
@@ -30,7 +31,8 @@ namespace nntrainer {
 size_t BasicPlanner::planLayout(
   const std::vector<size_t> &memory_size,
   const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-  std::vector<size_t> &memory_offset) const {
+  std::vector<size_t> &memory_offset,
+  std::vector<bool> &memory_is_wgrad) const {
 
   memory_offset.resize(memory_size.size());
   size_t csum = 0;
