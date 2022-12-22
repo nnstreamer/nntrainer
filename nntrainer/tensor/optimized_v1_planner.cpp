@@ -48,6 +48,17 @@ struct MemoryRequest {
 };
 
 /**
+ * @brief Memory Request data structure clubbing for the weight gradient
+ * requests
+ */
+struct WGradMemoryRequest {
+  MemoryRequest *mem_req;
+  std::vector<std::pair<unsigned int, unsigned int>> start_end;
+
+  WGradMemoryRequest(MemoryRequest *req) : mem_req(req) {}
+};
+
+/**
  * @brief check if validate interval is overlapping in a very naive way.
  *
  * @param memory_validity validity
@@ -130,6 +141,7 @@ struct MemoryRequest {
 size_t OptimizedV1Planner::planLayout(
   const std::vector<size_t> &memory_size,
   const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
+
   std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
   size_t n_wgrad) const {
 
@@ -215,6 +227,65 @@ size_t OptimizedV1Planner::planLayout(
       new_grad_size += req.size;
     }
 #endif
+  }
+
+  if (wgrad_requests.size()) {
+    /** TODO: We donot need to start from memory_req. We might find proper
+     * offset considering execution order */
+    size_t last_offset = memory_req;
+
+    /* sort the memory request with ascending order of size */
+    std::sort(
+      wgrad_requests.begin(), wgrad_requests.end(),
+      [](auto const &v1, auto const &v2) -> int { return v1.size > v2.size; });
+
+    std::vector<WGradMemoryRequest> wgrad_sorted_req;
+
+    bool replace_and_fill = false;
+    for (auto &req : wgrad_requests) {
+      for (unsigned int idx = 0; idx < wgrad_sorted_req.size(); idx++) {
+        auto const sr = wgrad_sorted_req[idx];
+        bool merge = true;
+        if (sr.mem_req->size >= req.size) {
+          for (auto &interval : sr.start_end) {
+            if ((interval.first < req.start && interval.first < req.end &&
+                 req.end < interval.second) ||
+                (req.start > interval.first && req.start < interval.second &&
+                 req.end > interval.second) ||
+                (req.start == interval.first && req.end == interval.second)) {
+              merge = false;
+              break;
+            }
+          }
+        }
+
+        if (merge) {
+          req.offset = sr.mem_req->offset;
+          memory_offset[req.loc] = req.offset;
+          replace_and_fill = true;
+          wgrad_sorted_req[idx].start_end.push_back(
+            std::make_pair(req.start, req.end));
+          break;
+        } else {
+          replace_and_fill = false;
+        }
+      }
+      if (replace_and_fill) {
+        continue;
+      }
+
+      size_t offset = last_offset;
+      if (!wgrad_sorted_req.empty())
+        offset = wgrad_sorted_req.back().mem_req->offset +
+                 wgrad_sorted_req.back().mem_req->size;
+
+      req.offset = offset;
+      memory_offset[req.loc] = offset;
+      memory_req = std::max(memory_req, req.offset + req.size);
+      wgrad_sorted_req.push_back(WGradMemoryRequest(&req));
+      wgrad_sorted_req.back().start_end.push_back(
+        std::make_pair(req.start, req.end));
+    }
   }
 
   //   validateIntervalOverlap(memory_validity, memory_size, memory_offset,
