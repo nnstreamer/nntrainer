@@ -15,6 +15,11 @@ util_headers = [
   'nntr_threads.h'
 ]
 
+if get_option('enable-trace')
+  util_sources += 'tracer.cpp'
+  util_headers += 'tracer.h'
+endif
+
 foreach s : util_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach
