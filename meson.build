@@ -183,6 +183,10 @@ if get_option('enable-profile')
   extra_defines += '-DPROFILE=1'
 endif
 
+if get_option('enable-trace')
+  extra_defines += '-DTRACE=1'
+endif
+
 if get_option('enable-debug')
   extra_defines += '-DDEBUG=1'
 endif
