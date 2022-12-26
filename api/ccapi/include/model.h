@@ -322,7 +322,8 @@ public:
  * @brief Factory creator with constructor for optimizer
  */
 std::unique_ptr<Model>
-createModel(ModelType type, const std::vector<std::string> &properties = {});
+createModel(ModelType type = ml::train::ModelType::NEURAL_NET,
+            const std::vector<std::string> &properties = {});
 
 /**
  * @brief creator by copying the configuration of other model
