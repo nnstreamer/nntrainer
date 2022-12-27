@@ -44,6 +44,8 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
   memory_validity.push_back({start_time, end_time});
   memory_exec_order.push_back(exec_order);
   memory_is_wgrad.push_back(is_wgrad);
+  if (is_wgrad)
+    n_wgrad++;
 
   /** invalidate min_pool_size if already there */
   min_pool_size = 0;
@@ -75,7 +77,7 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
     min_pool_size = calcMinMemoryRequirement();
 
   pool_size = planner.planLayout(memory_size, memory_validity, memory_offset,
-                                 memory_is_wgrad);
+                                 memory_is_wgrad, n_wgrad);
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
 
@@ -323,6 +325,7 @@ void MemoryPool::clear() {
 
   pool_size = 0;
   min_pool_size = 0;
+  n_wgrad = 0;
 }
 
 /**
