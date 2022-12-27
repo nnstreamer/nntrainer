@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2022 Jijoong.Moon <jijoong.moon@samsung.com>
  *
- * @file   optimzied_v1_planner.h
- * @date   2 September 2021
+ * @file   optimzied_v2_planner.h
+ * @date   29 December 2022
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Optimized V1 Memory Planner
+ * @brief  This is Optimized V2 Memory Planner
  *
  * @note This planner has been design to give reduced memory usage for training
  * and might not perform very well for inference.
@@ -25,8 +26,8 @@
  * are freed and reused for the next allocations.
  */
 
-#ifndef __OPTIMIZED_V1_PLANNER_H_
-#define __OPTIMIZED_V1_PLANNER_H_
+#ifndef __OPTIMIZED_V2_PLANNER_H_
+#define __OPTIMIZED_V2_PLANNER_H_
 
 #include <vector>
 
@@ -35,19 +36,19 @@
 namespace nntrainer {
 
 /**
- * @class   OptimizedV1Planner
- * @brief   Optimized V1 Memory Planner provides the optimized plan for memory
+ * @class   OptimizedV2Planner
+ * @brief   Optimized V2 Memory Planner provides the optimized plan for memory
  * layout
  * @details optimized planner performs sharing of overlapping memory sharing
  * upto certain extent
  */
-class OptimizedV1Planner : public MemoryPlanner {
+class OptimizedV2Planner : public MemoryPlanner {
 public:
   /**
    * @brief OptimizedV1Planner destructor
    *
    */
-  OptimizedV1Planner() = default;
+  OptimizedV2Planner() = default;
 
   /**
    * @copydoc MemoryPlanner::planLayout(
@@ -69,9 +70,9 @@ public:
    */
   const std::string &getType() const { return type; }
 
-  inline static const std::string type = "optimized_v1_planner";
+  inline static const std::string type = "optimized_v2_planner";
 };
 
 } // namespace nntrainer
 
-#endif /** __OPTIMIZED_V1_PLANNER_H_ */
+#endif /** __OPTIMIZED_V2_PLANNER_H_ */

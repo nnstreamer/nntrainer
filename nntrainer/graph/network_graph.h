@@ -312,7 +312,7 @@ public:
    */
   void allocateWeights() {
     tensor_manager->allocateWeights(
-      std::get<0>((*(cend() - 1))->getExecutionOrder()));
+      std::get<2>(backward_iter_end->getExecutionOrder()));
   }
 
   /**

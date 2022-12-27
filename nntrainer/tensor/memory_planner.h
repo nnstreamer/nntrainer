@@ -47,8 +47,8 @@ public:
   virtual size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-    std::vector<size_t> &memory_offset,
-    std::vector<bool> &memory_is_wgrad) const = 0;
+    std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
+    size_t n_wgrad) const = 0;
 
   /**
    * @brief Get type of the planner

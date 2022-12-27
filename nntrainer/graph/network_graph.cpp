@@ -1111,7 +1111,7 @@ void NetworkGraph::requestOptimizerVariable(
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        Tensor::Initializer::ZEROS));
+        w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS));
     }
   }
 }

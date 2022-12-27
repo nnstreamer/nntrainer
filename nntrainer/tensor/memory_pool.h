@@ -39,7 +39,11 @@ public:
    * @brief MemoryPool default constructor
    *
    */
-  explicit MemoryPool() : mem_pool(nullptr), pool_size(0), min_pool_size(0) {}
+  explicit MemoryPool() :
+    mem_pool(nullptr),
+    pool_size(0),
+    min_pool_size(0),
+    n_wgrad(0) {}
 
   /**
    * @brief MemoryPool destructor
@@ -209,6 +213,8 @@ private:
   size_t pool_size; /**< memory requirement for this pool */
 
   size_t min_pool_size; /**< minimum theoretical memory requirement */
+
+  size_t n_wgrad;
 };
 
 } // namespace nntrainer

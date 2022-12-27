@@ -109,6 +109,11 @@ void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
   mem_pool->clear();
   unsigned int bytes_requested = 0;
+  /** if execution order is PERSIST_END_ORDER, then we think it has another
+   * execution order for gradient clipping
+   *  persist_end_order is for checking if the end order is updated */
+  bool persist_end_order = false;
+  unsigned int old_end_order = end_order;
   for (auto &spec : pool) {
     auto details = std::get_if<SourceDetails>(&spec.details);
     if (!details || details->lifespan == TensorLifespan::UNMANAGED ||
@@ -127,12 +132,26 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
       if (details->exec_order[idx] >= start_order)
         validity_start = std::min(validity_start, details->exec_order[idx]);
+      /** This is to enforce not to reach if the execution order is greater than
+       *  backwarding end order.
+       *  e.g., for the input layer, the backwarding is not reached but the
+       * exeuction order is assigned.
+       * */
+      if (details->exec_order[idx] > old_end_order &&
+          details->exec_order[idx] != PERSIST_END_ORDER) {
+        details->exec_order[idx] = PERSIST_END_ORDER - 1;
+      }
     }
 
     unsigned int validity_end = validity_start;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
       if (details->exec_order[idx] == PERSIST_END_ORDER) {
+        if (!persist_end_order) {
+          end_order = end_order + 1;
+          persist_end_order = true;
+        }
         validity_end = end_order;
+        details->exec_order[idx] = validity_end;
         break;
       }
 
