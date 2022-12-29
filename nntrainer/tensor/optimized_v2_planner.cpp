@@ -233,10 +233,12 @@ size_t OptimizedV2Planner::planLayout(
     std::vector<WGradMemoryRequest> wgrad_sorted_req;
 
     bool replace_and_fill = false;
+#ifdef DEBUG
     unsigned int new_grad_cnt = 0;
     unsigned int reused_grad_cnt = 0;
     size_t new_grad_size = 0;
     size_t reused_grad_size = 0;
+#endif
     for (auto &req : wgrad_requests) {
       for (unsigned int idx = 0; idx < wgrad_sorted_req.size(); idx++) {
         auto const sr = wgrad_sorted_req[idx];
@@ -260,8 +262,10 @@ size_t OptimizedV2Planner::planLayout(
           replace_and_fill = true;
           wgrad_sorted_req[idx].start_end.push_back(
             std::make_pair(req.start, req.end));
+#ifdef DEBUG
           reused_grad_size += req.size;
           reused_grad_cnt++;
+#endif
           break;
         } else {
           replace_and_fill = false;
@@ -282,15 +286,11 @@ size_t OptimizedV2Planner::planLayout(
       wgrad_sorted_req.push_back(WGradMemoryRequest(&req));
       wgrad_sorted_req.back().start_end.push_back(
         std::make_pair(req.start, req.end));
+#ifdef DEBUG
       new_grad_cnt++;
       new_grad_size += req.size;
+#endif
     }
-
-    ml_logd("Total Requested Memory(OPTV2): %lf MiB>>>>>>>> \n - new mem for "
-            "gradient = %d, "
-            "(%lf MiB) & reused mem for gradient = %d (%lf MiB)\n",
-            memory_req / 1024, new_grad_cnt, new_grad_size / 1024,
-            reused_grad_cnt, reused_grad_size / 1024);
   }
 
   //   validateIntervalOverlap(memory_validity, memory_size, memory_offset,

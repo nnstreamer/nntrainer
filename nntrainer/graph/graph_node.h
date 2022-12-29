@@ -39,7 +39,8 @@ public:
    * This ensures that the operations are executed in the order of their
    * listing.
    */
-  typedef std::tuple<unsigned int, unsigned int, unsigned int, unsigned int> ExecutionOrder;
+  typedef std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>
+    ExecutionOrder;
 
   /**
    * @brief     Destructor of Layer Class
@@ -69,6 +70,13 @@ public:
    * @return const std::string type representation
    */
   virtual const std::string getType() const = 0;
+
+  /**
+   * @brief     Get the trainable parameter
+   *
+   * @return bool true / false
+   */
+  virtual bool getTrainable() const = 0;
 
   /**
    * @brief     Get the input connections for this node
