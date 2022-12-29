@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <acti_func.h>
+#include <common_properties.h>
 #include <layer_devel.h>
 #include <limits>
 
@@ -102,6 +103,8 @@ protected:
    * with derived classes as well
    */
   void finalizeCommon(InitLayerContext &context);
+
+  std::tuple<props::ScaledDotProduct> attention_props;
 
 private:
   ActiFunc sm;                        /** softmax activation operation */
