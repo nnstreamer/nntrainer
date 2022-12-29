@@ -296,12 +296,9 @@ class NonTrainableFC(torch.nn.Module):
         self.fc3 = torch.nn.Linear(10, 2)
         self.loss = torch.nn.MSELoss()
         # determine which layer to set to non-trainable
-        if idx == 1:
-            for param in self.fc1.parameters():
-                param.requires_grad = False
-        elif idx == 2:
-            for param in self.fc2.parameters():
-                param.requires_grad = False
+        fc_layer_list = [self.fc1, self.fc2, self.fc3]
+        for param in fc_layer_list[idx-1].parameters():
+            param.requires_grad = False
 
     def forward(self, inputs, labels):
         out = torch.relu(self.fc1(inputs[0]))
@@ -529,6 +526,16 @@ if __name__ == "__main__":
         label_dims=[(3,2)],
         name="non_trainable_fc_idx2"
     )
+
+    non_trainable_fc_idx3 = NonTrainableFC(idx=3)
+    record_v2(
+        non_trainable_fc_idx3,
+        iteration=2,
+        input_dims=[(3,3)],
+        input_dtype=[float],
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx3"
+    )
     
     # Function to check the created golden test file
-    inspect_file("fc_relu_decay.nnmodelgolden")
+    inspect_file("non_trainable_fc_idx3.nnmodelgolden")
