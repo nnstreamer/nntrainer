@@ -101,6 +101,9 @@ public:
   /**
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
+   * @note      this function should not be used when node_list is empty.
+   * if node_list is empty, end iterator is dereferenced,
+   * This action is undefined behavior.
    */
   template <
     typename T = GraphNode,
@@ -114,16 +117,19 @@ public:
 
   /**
    * @brief     get end iterator for the forwarding
-   * @retval    const iterator marking the emd of forwarding
+   * @retval    const iterator marking the end of forwarding
+   * @note      this function should not be used when node_list is empty.
+   * if node_list is empty, end iterator is dereferenced,
+   * This action is undefined behavior.
    */
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_const_iterator<T> cend() const {
     if (Sorted.empty())
-      return graph_const_iterator<T>(&(*node_list.cend()));
+      return graph_const_iterator<T>(&(*node_list.cbegin())) + node_list.size();
     else
-      return graph_const_iterator<T>(&(*Sorted.cend()));
+      return graph_const_iterator<T>(&(*Sorted.cbegin())) + Sorted.size();
   }
 
   /**
