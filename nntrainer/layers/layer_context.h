@@ -234,7 +234,7 @@ public:
    */
   static VarGradSpecV2
   outSpec(const TensorDim &dim, const std::string &name = "out",
-          TensorLifespan ls = TensorLifespan::FORWARD_GRAD_LIFESPAN,
+          TensorLifespan ls = TensorLifespan::FORWARD_FUNC_LIFESPAN,
           TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 
   /**

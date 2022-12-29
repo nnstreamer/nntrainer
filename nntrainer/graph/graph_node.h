@@ -70,6 +70,13 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
+   * @brief     Get the trainable parameter
+   *
+   * @return bool true / false
+   */
+  virtual bool getTrainable() const = 0;
+
+  /**
    * @brief     Get the input connections for this node
    *
    * @return list of name of the nodes which form input connections

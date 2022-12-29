@@ -27,15 +27,18 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <identity_layer.h>
+#include <grucell.h>
 #include <input_layer.h>
 #include <layer_node.h>
 #include <layer_normalization_layer.h>
+#include <lstmcell.h>
 #include <multiout_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <profiler.h>
 #include <rnn.h>
+#include <rnncell.h>
 #include <split_layer.h>
 #include <time_dist.h>
 #include <util_func.h>
@@ -770,6 +773,15 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                     spec.variable_spec.additional_exec_order.push_back(
                       std::get<0>(forward_iter_end->getExecutionOrder()));
                   });
+  }
+
+  if (lnode->getType() == RNNCellLayer::type or
+      lnode->getType() == LSTMCellLayer::type or
+      lnode->getType() == GRUCellLayer::type) {
+    std::for_each(
+      out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
+        spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+      });
   }
 
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(

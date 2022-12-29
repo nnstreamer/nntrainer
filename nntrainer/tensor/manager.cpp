@@ -654,7 +654,6 @@ Manager::getWeights(const std::function<bool(const Weight *)> &condition) {
     if (!condition || condition(w.get()))
       conditional_weights.push_back(w.get());
   }
-
   return conditional_weights;
 }
 
