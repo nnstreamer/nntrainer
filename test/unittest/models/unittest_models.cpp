@@ -60,8 +60,9 @@ getFuncToMakeNonTrainableFc(int idx) {
 
   std::string fc1_trainable = (idx == 1) ? "trainable=false" : "trainable=true";
   std::string fc2_trainable = (idx == 2) ? "trainable=false" : "trainable=true";
+  std::string fc3_trainable = (idx == 3) ? "trainable=false" : "trainable=true";
 
-  return [fc1_trainable, fc2_trainable]() {
+  return [fc1_trainable, fc2_trainable, fc3_trainable]() {
     std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
 
     nn->setProperty({"batch_size=3"});
@@ -69,14 +70,15 @@ getFuncToMakeNonTrainableFc(int idx) {
     auto outer_graph = makeGraph({
       {"input", {"name=in", "input_shape=1:1:3"}},
       {"fully_connected",
-       {"name=fc1", "input_layers=in", "unit=10", fc1_trainable}},
-      {"activation", {"name=act1", "input_layers=fc1", "activation=relu"}},
+       {"name=fc1", "input_layers=in", "unit=10", "activation=relu",
+        fc1_trainable}},
       {"fully_connected",
-       {"name=fc2", "input_layers=act1", "unit=10", fc2_trainable}},
-      {"activation", {"name=act2", "input_layers=fc2", "activation=relu"}},
-      {"fully_connected", {"name=fc3", "input_layers=act2", "unit=2"}},
-      {"activation", {"name=act3", "input_layers=fc3", "activation=sigmoid"}},
-      {"mse", {"name=loss", "input_layers=act3"}},
+       {"name=fc2", "input_layers=fc1", "unit=10", "activation=relu",
+        fc2_trainable}},
+      {"fully_connected",
+       {"name=fc3", "input_layers=fc2", "unit=2", "activation=sigmoid",
+        fc3_trainable}},
+      {"mse", {"name=loss", "input_layers=fc3"}},
     });
 
     for (auto &node : outer_graph) {
@@ -93,6 +95,7 @@ getFuncToMakeNonTrainableFc(int idx) {
 
 static auto makeNonTrainableFcIdx1 = getFuncToMakeNonTrainableFc(1);
 static auto makeNonTrainableFcIdx2 = getFuncToMakeNonTrainableFc(2);
+static auto makeNonTrainableFcIdx3 = getFuncToMakeNonTrainableFc(3);
 
 static std::unique_ptr<NeuralNetwork> makeMolAttention() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
@@ -929,6 +932,8 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeNonTrainableFcIdx1, "non_trainable_fc_idx1",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeNonTrainableFcIdx2, "non_trainable_fc_idx2",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeNonTrainableFcIdx3, "non_trainable_fc_idx3",
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
