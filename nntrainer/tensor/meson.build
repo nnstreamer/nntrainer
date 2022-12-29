@@ -14,6 +14,7 @@ tensor_sources = [
   'swap_device.cpp',
   'tensor_pool.cpp',
   'optimized_v1_planner.cpp',
+  'optimized_v2_planner.cpp',
   'task_executor.cpp',
 ]
 

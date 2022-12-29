@@ -31,6 +31,7 @@ struct MemoryRequest {
   unsigned int loc;   /**< index/location of the this request */
   size_t size;        /**< size of the request */
   size_t offset;      /**< offset for this request */
+  size_t size_from_offset;
 
   /**
    * @brief Constructor for the Memory Request
@@ -42,7 +43,8 @@ struct MemoryRequest {
     end(valid.second),
     loc(idx),
     size(s),
-    offset(0) {}
+    offset(0),
+    size_from_offset(0) {}
 };
 
 /**
@@ -135,6 +137,13 @@ size_t OptimizedV1Planner::planLayout(
   std::vector<MemoryRequest> requests;
   requests.reserve(memory_size.size());
 
+#ifdef DEBUG
+  unsigned int new_grad_cnt = 0;
+  size_t new_grad_size = 0;
+  unsigned int reused_grad_cnt = 0;
+  size_t reused_grad_size = 0;
+#endif
+
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
     requests.emplace_back(memory_size[idx], memory_validity[idx], idx);
   }
@@ -171,11 +180,18 @@ size_t OptimizedV1Planner::planLayout(
     for (int idx = sorted_req.size() - 1; idx >= 0; idx--) {
       auto const &sr = sorted_req[idx];
       /** TODO: reuse if memory size not exactly match */
-      if (sr->end <= req.start && sr->size == req.size) {
+      if (sr->end <= req.start && sr->size_from_offset >= req.size) {
         req.offset = sr->offset;
         memory_offset[req.loc] = req.offset;
+        req.size_from_offset = sr->size_from_offset;
         sorted_req[idx] = &req;
         replace_and_fill = true;
+#ifdef DEBUG
+        if (n_wgrad && memory_is_wgrad[req.loc]) {
+          reused_grad_cnt++;
+          reused_grad_size += req.size;
+        }
+#endif
         break;
       }
     }
@@ -185,13 +201,20 @@ size_t OptimizedV1Planner::planLayout(
 
     size_t offset = 0;
     if (!sorted_req.empty())
-      offset = sorted_req.back()->offset + sorted_req.back()->size;
+      offset = sorted_req.back()->offset + sorted_req.back()->size_from_offset;
 
     /** assign offset to the new request and push to queue */
     req.offset = offset;
     memory_offset[req.loc] = offset;
     memory_req = std::max(memory_req, req.offset + req.size);
+    req.size_from_offset = req.size;
     sorted_req.push_back(&req);
+#ifdef DEBUG
+    if (n_wgrad && memory_is_wgrad[req.loc]) {
+      new_grad_cnt++;
+      new_grad_size += req.size;
+    }
+#endif
   }
 
   //   validateIntervalOverlap(memory_validity, memory_size, memory_offset,
