@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2023 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file   optimized_v1_planner.cpp
- * @date   3 September 2021
+ * @file   optimized_v3_planner.cpp
+ * @date   2 January 2023
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Optimized V1 Memory Planner
+ * @brief  This is Optimized V3 Memory Planner
  *
  */
 
@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <optimized_v1_planner.h>
+#include <optimized_v3_planner.h>
 
 namespace nntrainer {
 
@@ -44,6 +44,37 @@ struct MemoryRequest {
     size(s),
     offset(0) {}
 };
+
+static size_t computeSpace(unsigned int exec_order,
+                           std::vector<MemoryRequest *> &sorted_req,
+                           std::vector<std::pair<size_t, size_t>> &vacant) {
+  size_t bottom = 0;
+  size_t max_offset = 0;
+
+  std::sort(sorted_req.begin(), sorted_req.end(),
+            [](auto const &v1, auto const &v2) -> int {
+              return v1->offset < v2->offset;
+              /** TODO: try this */
+              //   if (v1.end == v2.end)
+              //     return v1.start < v2.start;
+              //   return v1.end > v2.end;
+            });
+
+  for (unsigned idx = 0; idx < sorted_req.size(); idx++) {
+    auto const &sr = sorted_req[idx];
+    size_t top = sr->offset + sr->size;
+
+    if (max_offset < top)
+      max_offset = top;
+
+    if (sr->offset > bottom) {
+      vacant.push_back(std::make_pair(bottom, sr->offset));
+    }
+    bottom = top;
+  }
+
+  return max_offset;
+}
 
 /**
  * @brief check if validate interval is overlapping in a very naive way.
@@ -125,7 +156,7 @@ struct MemoryRequest {
  * memories.
  *
  */
-size_t OptimizedV1Planner::planLayout(
+size_t OptimizedV3Planner::planLayout(
   const std::vector<size_t> &memory_size,
   const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
   std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
@@ -134,7 +165,6 @@ size_t OptimizedV1Planner::planLayout(
   /** create memory requests structure array for easier management */
   std::vector<MemoryRequest> requests;
   requests.reserve(memory_size.size());
-
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
     requests.emplace_back(memory_size[idx], memory_validity[idx], idx);
   }
@@ -161,41 +191,37 @@ size_t OptimizedV1Planner::planLayout(
   memory_offset.resize(memory_size.size());
   size_t memory_req = 0;
   for (auto &req : requests) {
-    /** remove expired memories and update offset */
-    while (!sorted_req.empty() && sorted_req.back()->end <= req.start)
-      sorted_req.pop_back();
+    sorted_req.erase(
+      std::remove_if(sorted_req.begin(), sorted_req.end(),
+                     [req](auto elem) { return elem->end <= req.start; }),
+      sorted_req.end());
 
-    /** if there exists an expired memory with same size (not at the edge),
-     * reuse it */
     bool replace_and_fill = false;
-    for (int idx = sorted_req.size() - 1; idx >= 0; idx--) {
-      auto const &sr = sorted_req[idx];
-      /** TODO: reuse if memory size not exactly match */
-      if (sr->end <= req.start && sr->size == req.size) {
-        req.offset = sr->offset;
+    std::vector<std::pair<size_t, size_t>> vacant;
+
+    size_t max_offset = computeSpace(req.start, sorted_req, vacant);
+
+    for (unsigned int idx = 0; idx < vacant.size(); idx++) {
+      if (vacant[idx].second - vacant[idx].first >= req.size) {
+        req.offset = vacant[idx].first;
         memory_offset[req.loc] = req.offset;
-        sorted_req[idx] = &req;
+        sorted_req.push_back(&req);
         replace_and_fill = true;
         break;
       }
     }
+    vacant.clear();
+
     if (replace_and_fill) {
       continue;
     }
 
-    size_t offset = 0;
-    if (!sorted_req.empty())
-      offset = sorted_req.back()->offset + sorted_req.back()->size;
-
-    /** assign offset to the new request and push to queue */
-    req.offset = offset;
-    memory_offset[req.loc] = offset;
+    req.offset = max_offset;
+    memory_offset[req.loc] = max_offset;
     memory_req = std::max(memory_req, req.offset + req.size);
     sorted_req.push_back(&req);
   }
 
-  //   validateIntervalOverlap(memory_validity, memory_size, memory_offset,
-  //   memory_req);
   return memory_req;
 }
 
