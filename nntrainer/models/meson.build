@@ -8,7 +8,8 @@ model_sources = [
 model_headers = []
 
 foreach s : model_sources
-  nntrainer_sources += meson.current_source_dir() / s
+  nntrainer_sources += files(s)
+  nntrainer_sources_abs += meson.current_source_dir() / s
 endforeach
 
 foreach h : model_headers

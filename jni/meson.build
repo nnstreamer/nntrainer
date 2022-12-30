@@ -11,13 +11,13 @@ message('compile flags are:' + ' '.join(flags))
 flags = extra_defines + flags
 
 and_conf.set('MESON_CFLAGS', ' '.join(flags))
-and_conf.set('MESON_NNTRAINER_SRCS', ' '.join(nntrainer_sources))
+and_conf.set('MESON_NNTRAINER_SRCS', ' '.join(nntrainer_sources_abs))
 and_conf.set('MESON_NNTRAINER_INCS', ' '.join(nntrainer_inc_abs))
-and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src))
+and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src_abs))
 and_conf.set('MESON_CCAPI_NNTRAINER_INCS', ' '.join(ccapi_inc_abs))
 
 if get_option('enable-capi').enabled()
-   and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src))
+   and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src_abs))
    and_conf.set('MESON_CAPI_NNTRAINER_INCS', ' '.join(capi_inc_abs))
 else
    and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join([]))
@@ -83,17 +83,13 @@ endforeach
 ndk_build_command += ndk_additional_flags
 
 ndk_depends = []
-ndk_input = []
-foreach src: nntrainer_sources
-  ndk_input += files(src)
-endforeach
 
 if get_option('enable-tflite-interpreter')
   ndk_depends += flat_header
 endif
 
 ndk_result = custom_target('ndk-build',
-                           input: ndk_input,
+                           input: nntrainer_sources,
                            output: outputs,
                            build_by_default: true,
                            depends: ndk_depends,

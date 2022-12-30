@@ -3,18 +3,19 @@ nntrainer_inc = [
   include_directories('../api', '../api/ccapi/include')
 ]
 
-# meson provides include_directories. But there is no support to get the absolute path from the object.
-# to feed to the android.mk, sadly nntrainer_inc_abs is saved as well
-nntrainer_inc_abs = [
-  meson.current_source_dir(),
-  meson.source_root() / 'api',
-  meson.source_root() / 'api' / 'ccapi' / 'include'
-]
-
 nntrainer_sources = []
 nntrainer_headers = [
    meson.current_source_dir() / 'nntrainer_error.h',
    meson.current_source_dir() / 'app_context.h',
+]
+
+# meson provides include_directories. But there is no support to get the absolute path from the object.
+# to feed to the android.mk, sadly nntrainer_sources_abs, nntrainer_inc_abs is saved as well
+nntrainer_sources_abs = []
+nntrainer_inc_abs = [
+  meson.current_source_dir(),
+  meson.source_root() / 'api',
+  meson.source_root() / 'api' / 'ccapi' / 'include'
 ]
 
 # Dependencies
@@ -56,7 +57,8 @@ nntrainer_common_sources = [
 ]
 
 foreach s : nntrainer_common_sources
-  nntrainer_sources += meson.current_source_dir() / s
+  nntrainer_sources += files(s)
+  nntrainer_sources_abs += meson.current_source_dir() / s
 endforeach
 
 if get_option('platform') == 'android'

@@ -42,3 +42,5 @@ option('ml-api-support', type: 'feature', value: 'auto')
 # @todo : make them use 'feature' and depend on ml-api-support
 option('enable-nnstreamer-tensor-filter', type: 'boolean', value: false)
 option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nnstreamer') # where nnstreamer subplugin should be installed
+
+option('enable-gcov', type: 'boolean', value:false)

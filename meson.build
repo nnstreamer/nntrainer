@@ -379,3 +379,13 @@ endif
 if get_option('platform') != 'none'
   message('building for ' + get_option('platform'))
 endif
+
+if get_option('platform') == 'tizen' and get_option('enable-gcov')
+  conf = configuration_data()
+  conf.set('CAPI_SOURCES', ' '.join(capi_src_abs))
+  conf.set('CCAPI_SOURCES', ' '.join(ccapi_src_abs))
+  conf.set('NNTRAINER_SOURCES', ' '.join(nntrainer_sources_abs))
+  configure_file(input: 'gcov_sources.txt.in', output: 'gcov_sources.txt',
+    configuration: conf
+  )
+endif
