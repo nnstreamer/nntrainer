@@ -54,21 +54,20 @@ FlattenRealizer::realize(const GraphRepresentation &reference) {
       processed.push_back(std::move(flatten_node));
     }
   }
-  RemapRealizer remap_others([&remap_table](std::string &name, unsigned &idx) {
-    if (auto iter = remap_table.find(name); iter != remap_table.end()) {
-      name = iter->second;
-    }
-  });
-
-  RemapRealizer recover_temp(
-    [&recovery_table](std::string &name, unsigned &idx) {
+  processed =
+    RemapRealizer([&remap_table](std::string &name, unsigned &idx) {
+      if (auto iter = remap_table.find(name); iter != remap_table.end()) {
+        name = iter->second;
+      }
+    })
+      .realize(processed);
+  processed =
+    RemapRealizer([&recovery_table](std::string &name, unsigned &idx) {
       if (auto iter = recovery_table.find(name); iter != recovery_table.end()) {
         name = iter->second;
       }
-    });
-
-  processed = remap_others.realize(processed);
-  processed = recover_temp.realize(processed);
+    })
+      .realize(processed);
 
   return processed;
 }
