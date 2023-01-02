@@ -94,10 +94,13 @@ void NetworkGraph::setExecutionOrder() {
     auto calc_gradient_order = backward_order;
     if (node->getTrainable())
       backward_order++;
-    auto calc_derivative_order = backward_order++;
+    auto calc_derivative_order = backward_order;
+    if (node->getTrainable())
+      backward_order++;
+    auto apply_gradient_order = backward_order++;
 
-    node->setExecutionOrder(
-      {forward_order, calc_gradient_order, calc_derivative_order});
+    node->setExecutionOrder({forward_order, calc_gradient_order,
+                             calc_derivative_order, apply_gradient_order});
   }
 
   /**
@@ -105,7 +108,7 @@ void NetworkGraph::setExecutionOrder() {
    * This set max execution order is used to extend gradient exec orders for
    * clipping.
    */
-  graph_exec_end = std::get<2>((*(cbegin()))->getExecutionOrder());
+  graph_exec_end = std::get<3>((*(cbegin()))->getExecutionOrder());
 }
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
@@ -306,6 +309,10 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
 void NetworkGraph::applyGradients(
   LayerNode *node, const std::function<void(Weight &)> &apply_func) {
+
+  if (!node->getTrainable())
+    return;
+
   auto &rc = node->getRunContext();
   auto num_weight = rc.getNumWeights();
   for (unsigned i = 0; i < num_weight; ++i) {
@@ -905,7 +912,7 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
     auto const &lnode = getSortedLayerNode(idx);
     auto &rc = lnode->getRunContext();
     auto first_grad_access = std::get<1>(lnode->getExecutionOrder());
-    auto last_grad_access = std::get<2>(lnode->getExecutionOrder());
+    auto last_grad_access = std::get<3>(lnode->getExecutionOrder());
     for (unsigned i = 0; i < rc.getNumWeights(); ++i) {
       if (!rc.weightHasGradient(i)) {
         /// @todo this is duck taping that MUST BE REMOVED. We will need to

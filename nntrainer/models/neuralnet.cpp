@@ -308,7 +308,8 @@ void NeuralNetwork::backwarding(int iteration,
      * Do not change this order:
      * 1. calcGradient
      * 2. calcDerivative
-     * 3. applyGradientsOnLastAccess
+     * 3. applyGradient
+     * 4. gradientClippingOnLastAccess
      */
 
     model_graph.flushCacheExcept(std::get<1>(node->getExecutionOrder()));
@@ -348,6 +349,9 @@ void NeuralNetwork::backwarding(int iteration,
 
     if (node->needsCalcDerivative())
       node->calcDerivative();
+
+    model_graph.flushCacheExcept(std::get<3>(node->getExecutionOrder()));
+    PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
 
     if (apply_gradient) {
       /// Apply gradient only at the end of the last shared weight access
