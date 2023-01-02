@@ -29,16 +29,17 @@ public:
   /**
    * @brief Provides the time/order at which the node will be executed.
    * @details This time will be finalized once the graph has been calculated.
-   * The three times given indicate the order with which the below three
-   * operations for each node are executed:
+   * Each element indicates the orders with which the below operations
+   * for each node are executed:
    * 1. Forwarding
    * 2. calcGradient
    * 3. calcDerivative
-   * One constraint the three times is that they must be sorted in ascending
-   * order. This ensures that the operations are executed in the order of their
+   * 4. ApplyGradient
+   * One constraint is that they must be sorted in ascending order.
+   * This ensures that the operations are executed in the order of their
    * listing.
    */
-  typedef std::tuple<unsigned int, unsigned int, unsigned int> ExecutionOrder;
+  typedef std::tuple<unsigned int, unsigned int, unsigned int, unsigned int> ExecutionOrder;
 
   /**
    * @brief     Destructor of Layer Class

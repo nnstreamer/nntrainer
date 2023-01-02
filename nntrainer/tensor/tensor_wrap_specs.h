@@ -42,18 +42,23 @@ enum class TensorLifespan {
                            needed during forward operations */
   CALC_DERIV_LIFESPAN = 0b010,   /**< must be valid during calcDerivative() */
   CALC_GRAD_LIFESPAN = 0b100, /**< tensor must be valid during calcGradient() */
+  CALC_AGRAD_LIFESPAN = 0b1000, /**< tensor must be valid during calcGradient() */
   CALC_GRAD_DERIV_LIFESPAN = 0b110, /**< tensor must not be reset before during
                              the calc_grad and clac_deriv call, eg. temporary
                              tensors needed during backward operations */
+  CALC_GRAD_DERIV_AGRAD_LIFESPAN = 0b1110, /**< tensor must not be reset before during
+                             the calc_grad, clac_deriv and apply gradient call,
+                             eg. temporary tensors needed during backward operations */
   FORWARD_GRAD_LIFESPAN = 0b101,    /**< Forward + grad lifespan */
+  FORWARD_GRAD_AGRAD_LIFESPAN = 0b1101, /**< Forward + grad + apply gradient lifespan */
   FORWARD_DERIV_LIFESPAN = 0b011,   /**< Forward + deriv lifespan */
   BACKWARD_FUNC_LIFESPAN =
-    CALC_GRAD_DERIV_LIFESPAN, /**< Alias of CALC_GRAD_DERIV_LIFESPAN */
-  ITERATION_LIFESPAN = 0b111, /**< tensor must not be reset until the owning
+    CALC_GRAD_DERIV_AGRAD_LIFESPAN, /**< Alias of CALC_GRAD_DERIV_AGRAD_LIFESPAN */
+  ITERATION_LIFESPAN = 0b1111, /**< tensor must not be reset until the owning
                         layer finishes its execution in the current
                         iteration, eg. hidden memory/cells of RNN */
-  EPOCH_LIFESPAN = 0b1111,    /**< tensor must be valid before the epoch ends */
-  MAX_LIFESPAN = 0b11111,     /**< tensor must not be reset until the end of the
+  EPOCH_LIFESPAN = 0b11111,    /**< tensor must be valid before the epoch ends */
+  MAX_LIFESPAN = 0b111111,     /**< tensor must not be reset until the end of the
                       model  execution, eg. layer weights */
 };
 
