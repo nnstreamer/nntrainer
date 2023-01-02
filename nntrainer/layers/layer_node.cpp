@@ -169,7 +169,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
   regularization_loss(0.0f),
-  exec_order({0, 0, 0}) {
+  exec_order({0, 0, 0, 0}) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   }
