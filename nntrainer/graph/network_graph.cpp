@@ -38,6 +38,7 @@
 #include <rnn.h>
 #include <split_layer.h>
 #include <time_dist.h>
+#include <tracer.h>
 #include <util_func.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
@@ -312,6 +313,9 @@ void NetworkGraph::applyGradients(
 
   if (!node->getTrainable())
     return;
+
+  TRACE_MEMORY() << node->getName() + ": AG";
+  TRACE_TIME() << node->getName() + ": AG";
 
   auto &rc = node->getRunContext();
   auto num_weight = rc.getNumWeights();
