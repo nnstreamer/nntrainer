@@ -91,6 +91,10 @@ std::atomic_int pool_id = 0;
 
 } // namespace
 
+#ifdef _WIN32
+#define getpid _getpid
+#endif
+
 CachePool::CachePool(const std::string &n) :
   name(n),
   swap_device(std::make_shared<SwapDevice>(n + "_" + std::to_string(getpid()) +

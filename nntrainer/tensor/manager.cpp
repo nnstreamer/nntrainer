@@ -115,6 +115,10 @@ MMapedMemory::~MMapedMemory() noexcept {
   assert(buf_size > 0 && fd > 0);
 #endif
 
+#ifdef _WIN32
+#define close _close
+#endif
+
   if (fd != -1) {
     if (close(fd) < 0) {
       ml_logw("[MMapedMemory] closing fd failed on destruction please check");
