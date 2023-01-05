@@ -589,11 +589,11 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
  */
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
-  TRACE_MEMORY() << getName() + ": F";
-  TRACE_TIME() << getName() + ": F";
   PROFILE_TIME_START(forward_event_key);
   layer->forwarding(*run_context, training);
   PROFILE_TIME_END(forward_event_key);
+  TRACE_MEMORY() << getName() + ": F";
+  TRACE_TIME() << getName() + ": F";
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
@@ -610,11 +610,12 @@ void LayerNode::forwarding(bool training) {
  * @brief     calc the derivative to be passed to the previous layer
  */
 void LayerNode::calcDerivative() {
-  TRACE_MEMORY() << getName() + ": CD";
-  TRACE_TIME() << getName() + ": CD";
   PROFILE_TIME_START(calc_deriv_event_key);
+  PROFILE_MEM_ANNOTATE("CalcDerivative: " + getName());
   layer->calcDerivative(*run_context);
   PROFILE_TIME_END(calc_deriv_event_key);
+  TRACE_MEMORY() << getName() + ": CD";
+  TRACE_TIME() << getName() + ": CD";
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
@@ -629,9 +630,10 @@ void LayerNode::calcDerivative() {
 void LayerNode::calcGradient() {
   PROFILE_TIME_START(calc_grad_event_key);
   if (needs_calc_gradient) {
+    PROFILE_MEM_ANNOTATE("CalcGradient: " + getName());
+    layer->calcGradient(*run_context);
     TRACE_MEMORY() << getName() + ": CG";
     TRACE_TIME() << getName() + ": CG";
-    layer->calcGradient(*run_context);
   }
   PROFILE_TIME_END(calc_grad_event_key);
 
