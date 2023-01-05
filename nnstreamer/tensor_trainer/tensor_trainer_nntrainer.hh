@@ -76,7 +76,9 @@ public:
    * @brief Nntrainer dataset
    */
   std::shared_ptr<ml::train::Dataset> dataset_train, dataset_valid;
+
   float training_loss, validation_loss;
+  bool is_train_complete;
 
   int64_t tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
   int64_t num_tensors;
@@ -84,6 +86,9 @@ public:
   int64_t num_labels;
   int64_t num_train_samples;
   int64_t num_valid_samples;
+  int64_t total_num_samples;
+  int64_t num_epoch;
+  int64_t num_invoke;
   std::string model_config;
   std::string model_save_path;
 
@@ -113,7 +118,11 @@ public:
    */
   ~InputTensorsInfo();
 
-  bool is_mutex_locked;
+  bool is_data_wait;
+  bool is_data_full;
+  unsigned int queue_size;
+  unsigned int queue_front;
+  unsigned int queue_rear;
   int64_t push_count;
   int64_t pop_count;
   int64_t input_size[NNS_TENSOR_SIZE_LIMIT]; // feature size * data type
@@ -124,6 +133,7 @@ public:
 
   std::vector<TensorData> tensor_data;
   pthread_mutex_t mutex;
-  pthread_cond_t cond;
+  pthread_cond_t data_wait_cond;
+  pthread_cond_t data_full_cond;
 };
 } // namespace NNTrainer
