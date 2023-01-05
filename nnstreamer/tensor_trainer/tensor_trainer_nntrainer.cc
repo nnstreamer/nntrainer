@@ -15,7 +15,6 @@
 #include <cstring>
 #include <iostream>
 #include <nntrainer_log.h>
-#include <pthread.h>
 #include <random>
 #include <sys/syscall.h>
 #include <thread>
@@ -68,7 +67,7 @@ static int nntrainer_model_invoke(const GstTensorTrainerFramework *fw,
   }
 
   nntrainer->num_invoke++;
-  ml_logd("Received data (%d/%d)", nntrainer->num_invoke,
+  ml_logd("Received data (%d/%d(total))", nntrainer->num_invoke,
           nntrainer->total_num_samples);
   if (nntrainer->total_num_samples < nntrainer->num_invoke) {
     ml_logd("Already received all data required for the train, "
@@ -116,19 +115,16 @@ static int nntrainer_model_invoke(const GstTensorTrainerFramework *fw,
   ml_logd("front:%d, rear:%d", data->queue_front, data->queue_rear);
 
   if (data->is_data_wait && data->queue_rear > data->queue_front) {
-    pthread_mutex_lock(&data->mutex);
+    data->data_wait.notify_one();
     ml_logd("send signal");
-    pthread_cond_signal(&data->data_wait_cond);
-    pthread_mutex_unlock(&data->mutex);
   }
 
   if (data->queue_rear == data->queue_size) {
-    pthread_mutex_lock(&data->mutex);
     data->is_data_full = TRUE;
     ml_logd("locked, data is full");
-    pthread_cond_wait(&data->data_full_cond, &data->mutex);
+    std::unique_lock<std::mutex> lock(data->data_full_lock);
+    data->data_full.wait(lock);
     ml_logd("unlocked, queue is empty");
-    pthread_mutex_unlock(&data->mutex);
     data->is_data_full = FALSE;
     data->queue_rear = data->queue_front = 0;
   }
@@ -156,13 +152,11 @@ int getSample(float **input, float **label, bool *last, void *user_data) {
 
   ml_logd("front:%d, rear:%d", data->queue_front, data->queue_rear);
   if (data->queue_rear <= data->queue_front) {
-    pthread_mutex_lock(&data->mutex);
+    std::unique_lock<std::mutex> lock(data->data_wait_lock);
     data->is_data_wait = TRUE;
     ml_logd("locked, need to wait for more data");
-    pthread_cond_wait(&data->data_wait_cond, &data->mutex);
+    data->data_wait.wait(lock);
     ml_logd("unlocked, get data");
-    pthread_mutex_unlock(&data->mutex);
-    data->is_data_wait = FALSE;
   }
 
   ml_logd("num_inputs: %d, num_labels: %d", data->num_inputs, data->num_labels);
@@ -201,10 +195,8 @@ int getSample(float **input, float **label, bool *last, void *user_data) {
   }
 
   if (data->is_data_full && data->queue_rear == data->queue_front) {
-    pthread_mutex_lock(&data->mutex);
+    data->data_full.notify_one();
     ml_logd("send signal");
-    pthread_cond_signal(&data->data_full_cond);
-    pthread_mutex_unlock(&data->mutex);
   }
 
   ml_logd("<leave>");
@@ -251,9 +243,6 @@ NNTrainer::InputTensorsInfo::InputTensorsInfo(int64_t _num_samples,
   queue_size = (_num_samples > min_queue_size) ? min_queue_size : _num_samples;
   ml_logd("queue_size:%d", queue_size);
   tensor_data.reserve(queue_size);
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&data_wait_cond, NULL);
-  pthread_cond_init(&data_full_cond, NULL);
 
   int64_t idx = 0, i = 0;
   for (i = 0; i < num_inputs; i++) {
@@ -327,17 +316,19 @@ void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
   num_train_samples = prop->num_train_samples;
   num_valid_samples = prop->num_valid_samples;
   model_save_path = prop->model_save_path;
+  num_epochs = prop->num_epochs;
   train_complete_cond = prop->train_complete_cond;
-  num_epoch = 5; // for test
   is_train_complete = FALSE;
-  total_num_samples = (num_train_samples + num_valid_samples) * num_epoch;
+  total_num_samples = (num_train_samples + num_valid_samples) * num_epochs;
 
   ml_logd("num_inputs: %d", num_inputs);
   ml_logd("num_labels: %d", num_labels);
   ml_logd("num_train_samples: %d", num_train_samples);
   ml_logd("num_valid_samples: %d", num_valid_samples);
+  ml_logd("num_epochs: %d", num_epochs);
+  ml_logd("Total number of data to be received: %d", total_num_samples);
   ml_logd("model_config: %s", model_config.c_str());
-  ml_logd("model_config: %s", model_save_path.c_str());
+  ml_logd("model_save_path: %s", model_save_path.c_str());
   ml_logd("<leave>");
 }
 
@@ -387,6 +378,13 @@ void NNTrainer::NNTrainerTrain::trainModel() {
 
   ml_logd("<called>");
   ml_logd("pid[%d], tid[%d]", pid, tid);
+
+  try {
+    model->setProperty({"epochs=" + std::to_string(num_epochs)});
+  } catch (const std::exception &e) {
+    ml_loge("Error %s, %s", typeid(e).name(), e.what());
+    return;
+  }
 
   try {
     model->train();

@@ -16,6 +16,7 @@
 #include <nnstreamer_plugin_api.h>
 #include <nnstreamer_plugin_api_trainer.h>
 #include <vector>
+#include <condition_variable>
 
 namespace NNTrainer {
 
@@ -87,7 +88,7 @@ public:
   int64_t num_train_samples;
   int64_t num_valid_samples;
   int64_t total_num_samples;
-  int64_t num_epoch;
+  int64_t num_epochs;
   int64_t num_invoke;
   std::string model_config;
   std::string model_save_path;
@@ -132,8 +133,11 @@ public:
   int64_t num_labels;
 
   std::vector<TensorData> tensor_data;
-  pthread_mutex_t mutex;
-  pthread_cond_t data_wait_cond;
-  pthread_cond_t data_full_cond;
+
+  std::mutex data_wait_lock;
+  std::mutex data_full_lock;
+  std::condition_variable data_wait;
+  std::condition_variable data_full;
+
 };
 } // namespace NNTrainer
