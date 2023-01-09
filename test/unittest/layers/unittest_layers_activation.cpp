@@ -21,6 +21,11 @@ auto semantic_activation_relu = LayerSemanticsParamType(
   nntrainer::ActivationLayer::type, {"activation=relu"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
+auto semantic_activation_swish = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::ActivationLayer>,
+  nntrainer::ActivationLayer::type, {"activation=swish"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
 auto semantic_activation_sigmoid = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
   nntrainer::ActivationLayer::type, {"activation=sigmoid"},
@@ -41,9 +46,8 @@ auto semantic_activation_none = LayerSemanticsParamType(
   nntrainer::ActivationLayer::type, {"activation=none"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-GTEST_PARAMETER_TEST(Activation, LayerSemantics,
-                     ::testing::Values(semantic_activation_relu,
-                                       semantic_activation_sigmoid,
-                                       semantic_activation_softmax,
-                                       semantic_activation_tanh,
-                                       semantic_activation_none));
+GTEST_PARAMETER_TEST(
+  Activation, LayerSemantics,
+  ::testing::Values(semantic_activation_relu, semantic_activation_swish,
+                    semantic_activation_sigmoid, semantic_activation_softmax,
+                    semantic_activation_tanh, semantic_activation_none));

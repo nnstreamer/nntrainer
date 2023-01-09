@@ -69,9 +69,10 @@ void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
 void ActivationLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &in = context.getInput(SINGLE_INOUT_IDX);
   Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
 
-  acti_func.run_prime_fn(out, ret, deriv);
+  acti_func.run_prime_fn(in, out, ret, deriv);
 }
 
 void ActivationLayer::exportTo(Exporter &exporter,
