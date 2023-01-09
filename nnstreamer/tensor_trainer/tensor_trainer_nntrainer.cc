@@ -91,9 +91,7 @@ static int nntrainer_model_invoke(const GstTensorTrainerFramework *fw,
   ml_logd("number of inputs(%d) and labels(%d)", nntrainer->num_inputs,
           nntrainer->num_labels);
 
-  NNTrainer::TensorData tensor_data;
   unsigned int idx = 0, i = 0;
-
   i = data->queue_rear;
   ml_logd("Insert, queue_rear : %d", i);
   for (auto inputs : data->tensor_data[i].inputs) {
@@ -110,23 +108,24 @@ static int nntrainer_model_invoke(const GstTensorTrainerFramework *fw,
     idx++;
   }
 
-  data->queue_rear++;
   data->push_count++;
-  ml_logd("front:%d, rear:%d", data->queue_front, data->queue_rear);
+  data->queue_count++;
+  data->queue_rear = (data->queue_rear + 1) % data->queue_size;
+  ml_logd("front:%d, rear:%d, filled:%d", data->queue_front, data->queue_rear,
+          data->queue_count);
 
-  if (data->is_data_wait && data->queue_rear > data->queue_front) {
+  if (data->is_data_wait_locked && data->queue_count > 0) {
     data->data_wait.notify_one();
     ml_logd("send signal");
   }
 
-  if (data->queue_rear == data->queue_size) {
-    data->is_data_full = TRUE;
+  if (data->queue_count == data->queue_size) {
+    data->is_data_full_locked = TRUE;
     ml_logd("locked, data is full");
     std::unique_lock<std::mutex> lock(data->data_full_lock);
     data->data_full.wait(lock);
     ml_logd("unlocked, queue is empty");
-    data->is_data_full = FALSE;
-    data->queue_rear = data->queue_front = 0;
+    data->is_data_full_locked = FALSE;
   }
 
   ml_logd("(pop/push: %d/%d)", data->pop_count, data->push_count);
@@ -151,13 +150,6 @@ int getSample(float **input, float **label, bool *last, void *user_data) {
   ml_logd("pid[%d], tid[%d]", pid, tid);
 
   ml_logd("front:%d, rear:%d", data->queue_front, data->queue_rear);
-  if (data->queue_rear <= data->queue_front) {
-    std::unique_lock<std::mutex> lock(data->data_wait_lock);
-    data->is_data_wait = TRUE;
-    ml_logd("locked, need to wait for more data");
-    data->data_wait.wait(lock);
-    ml_logd("unlocked, get data");
-  }
 
   ml_logd("num_inputs: %d, num_labels: %d", data->num_inputs, data->num_labels);
 
@@ -179,7 +171,8 @@ int getSample(float **input, float **label, bool *last, void *user_data) {
   }
 
   data->pop_count++;
-  data->queue_front++;
+  data->queue_count--;
+  data->queue_front = (data->queue_front + 1) % data->queue_size;
 
   ml_logd("(pop/push: %d/%d)", data->pop_count, data->push_count);
 
@@ -194,9 +187,24 @@ int getSample(float **input, float **label, bool *last, void *user_data) {
     std::shuffle(data->tensor_data.begin(), data->tensor_data.end(), g);
   }
 
-  if (data->is_data_full && data->queue_rear == data->queue_front) {
+  if (data->is_data_full_locked && data->queue_count > 0) {
     data->data_full.notify_one();
     ml_logd("send signal");
+  }
+  ml_logd("front:%d, rear:%d, filled:%d", data->queue_front, data->queue_rear,
+          data->queue_count);
+
+  /* epoch is complete */
+  if (data->pop_count == 0)
+    return 0;
+
+  /* to avoid dead lock, check is_data_full_locked */
+  if (!data->is_data_full_locked && data->queue_count == 0) {
+    ml_logd("locked, need to wait for more data");
+    std::unique_lock<std::mutex> lock(data->data_wait_lock);
+    data->is_data_wait_locked = TRUE;
+    data->data_wait.wait(lock);
+    ml_logd("unlocked, get data");
   }
 
   ml_logd("<leave>");
@@ -228,10 +236,11 @@ NNTrainer::InputTensorsInfo::InputTensorsInfo(int64_t _num_samples,
                                               int64_t _num_inputs,
                                               int64_t _num_labels,
                                               int64_t _tensors_inputsize[]) :
-  is_data_wait(0),
-  is_data_full(0),
+  is_data_wait_locked(0),
+  is_data_full_locked(0),
   queue_front(0),
   queue_rear(0),
+  queue_count(0),
   push_count(0),
   pop_count(0),
   num_samples(_num_samples),

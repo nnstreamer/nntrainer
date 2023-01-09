@@ -119,11 +119,12 @@ public:
    */
   ~InputTensorsInfo();
 
-  bool is_data_wait;
-  bool is_data_full;
+  bool is_data_wait_locked;
+  bool is_data_full_locked;
   unsigned int queue_size;
   unsigned int queue_front;
   unsigned int queue_rear;
+  unsigned int queue_count;
   int64_t push_count;
   int64_t pop_count;
   int64_t input_size[NNS_TENSOR_SIZE_LIMIT]; // feature size * data type
