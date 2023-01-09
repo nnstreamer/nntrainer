@@ -522,6 +522,14 @@ ReLU(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create swish activation layer
+ */
+inline std::unique_ptr<Layer>
+Swish(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=swish", properties);
+}
+
+/**
  * @brief Helper function to create Tanh layer
  */
 inline std::unique_ptr<Layer>

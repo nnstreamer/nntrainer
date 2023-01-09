@@ -289,6 +289,65 @@ TEST(nntrainer_activation, reluPrime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, swish_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float answer[30] = {
+    -0.16052495, -0.12766725, -0.0900332,  -0.04750208, 0,
+    0.05249792,  0.10996679,  0.17233276,  0.23947506,  0.31122968,
+    -0.24802041, -0.21260624, -0.16052495, -0.0900332,  0,
+    0.10996679,  0.23947506,  0.3873938,   0.5519796,   0.73105854,
+    -0.27777028, -0.26014543, -0.21260624, -0.12766725, 0,
+    0.17233276,  0.3873938,   0.6398545,   0.9222298,   1.2263616};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor results(batch, channel, height, width);
+  results = nntrainer::ActiFunc::swish(input, results);
+
+  float *data = results.getData();
+  ASSERT_NE(nullptr, data);
+  float *indata = input.getData();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, swishPrime_01_p) {
+
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float answer[30] = {
+    0.30520803, 0.35221997, 0.40066269, 0.45008320, 0.50000000, 0.54991674,
+    0.59933728, 0.64778000, 0.69479191, 0.73996115, 0.13889773, 0.21707317,
+    0.30520803, 0.40066269, 0.50000000, 0.59933728, 0.69479191, 0.78292680,
+    0.86110222, 0.92767054, 0.01800188, 0.10410020, 0.21707317, 0.35221997,
+    0.50000000, 0.64778000, 0.78292680, 0.89589977, 0.98199815, 1.04129410};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor results(batch, channel, height, width);
+  nntrainer::ActiFunc::swish(input, results);
+
+  nntrainer::Tensor prime_results(batch, channel, height, width);
+  nntrainer::ActiFunc::swishPrime(input, results, prime_results);
+
+  float *data = prime_results.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 /**
  * @brief Main gtest
  */
