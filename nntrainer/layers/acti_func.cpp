@@ -39,6 +39,24 @@ int ActiFunc::setActivation(
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
     &activation_prime_fn) {
   _act_fn = activation_fn;
+  _act_prime_fn =
+    [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                          Tensor &outgoing_derivative,
+                          Tensor const &incoming_derivative) -> Tensor & {
+    return activation_prime_fn(t_out, outgoing_derivative, incoming_derivative);
+  };
+
+  return ML_ERROR_NONE;
+}
+
+int ActiFunc::setActivation(
+  std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+  std::function<Tensor &(Tensor const &, Tensor const &, Tensor &,
+                         Tensor const &)> const &activation_prime_fn) {
+  if (in_place)
+    return ML_ERROR_INVALID_PARAMETER;
+
+  _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
 
   return ML_ERROR_NONE;
@@ -50,22 +68,24 @@ int ActiFunc::setActivation(
   _act_fn = activation_fn;
   if (!in_place) {
     _act_prime_fn =
-      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                            Tensor const &derivative) -> Tensor & {
+      [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative) -> Tensor & {
       /** @todo update this based on supportInPlace */
-      activation_prime_fn(x, ret_derivative);
-      ret_derivative.multiply_i_strided(derivative);
+      activation_prime_fn(t_out, outgoing_derivative);
+      outgoing_derivative.multiply_i_strided(incoming_derivative);
 
-      return ret_derivative;
+      return outgoing_derivative;
     };
   } else {
     _act_prime_fn =
-      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                            Tensor const &derivative) -> Tensor & {
-      activation_prime_fn(x, x);
-      derivative.multiply_strided(x, ret_derivative);
+      [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative) -> Tensor & {
+      activation_prime_fn(t_out, t_out);
+      incoming_derivative.multiply_strided(t_out, outgoing_derivative);
 
-      return ret_derivative;
+      return outgoing_derivative;
     };
   }
 
@@ -80,22 +100,24 @@ int ActiFunc::setActivation(
   };
   if (!in_place) {
     _act_prime_fn =
-      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                            Tensor const &derivative) -> Tensor & {
+      [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative) -> Tensor & {
       /** @todo update this based on supportInPlace */
-      x.apply(activation_prime_fn, ret_derivative);
-      ret_derivative.multiply_i_strided(derivative);
+      t_out.apply(activation_prime_fn, outgoing_derivative);
+      outgoing_derivative.multiply_i_strided(incoming_derivative);
 
-      return ret_derivative;
+      return outgoing_derivative;
     };
   } else {
     _act_prime_fn =
-      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                            Tensor const &derivative) -> Tensor & {
-      x.apply(activation_prime_fn, x);
-      derivative.multiply_strided(x, ret_derivative);
+      [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative) -> Tensor & {
+      t_out.apply(activation_prime_fn, t_out);
+      incoming_derivative.multiply_strided(t_out, outgoing_derivative);
 
-      return ret_derivative;
+      return outgoing_derivative;
     };
   }
 
@@ -126,6 +148,10 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
   case ActivationType::ACT_LEAKY_RELU:
     this->setActivation(leakyRelu, leakyReluPrime);
     break;
+  case ActivationType::ACT_SWISH:
+    in_place = false;
+    this->setActivation(swish, swishPrime);
+    break;
   case ActivationType::ACT_NONE:
     this->setActivation(no_op, no_op_prime);
     break;
@@ -139,9 +165,16 @@ void ActiFunc::run_fn(Tensor const &input, Tensor &output) {
   _act_fn(input, output);
 }
 
+Tensor &ActiFunc::run_prime_fn(Tensor &input, Tensor &output,
+                               Tensor &outgoing_derivative,
+                               Tensor const &incoming_derivative) {
+  return _act_prime_fn(input, output, outgoing_derivative, incoming_derivative);
+}
+
 Tensor &ActiFunc::run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
                                Tensor const &incoming_derivative) {
-  return _act_prime_fn(output, outgoing_derivative, incoming_derivative);
+  return _act_prime_fn(Tensor(), output, outgoing_derivative,
+                       incoming_derivative);
 }
 
 bool ActiFunc::supportInPlace() const { return in_place; }
@@ -297,6 +330,30 @@ float ActiFunc::leakyRelu(float x) {
 
 float ActiFunc::leakyReluPrime(float x) {
   return x >= 0.0f ? 1.0f : NEGATIVE_SLOPE;
+}
+
+Tensor &ActiFunc::swish(Tensor const &t_in, Tensor &t_out) {
+  t_in.apply([&](float x) { return sigmoid(x); }, t_out);
+  t_out.multiply_i(t_in);
+
+  return t_out;
+}
+
+Tensor &ActiFunc::swishPrime(Tensor const &t_in, Tensor const &t_out,
+                             Tensor &outgoing_derivative,
+                             Tensor const &incoming_derivative) {
+  if (outgoing_derivative.empty())
+    outgoing_derivative = Tensor(t_out.getDim());
+
+  Tensor tmp = Tensor(t_out.getDim());
+  t_in.apply([&](float x) { return sigmoid(x); }, outgoing_derivative);
+  t_out.apply([&](float x) { return 1 - x; }, tmp);
+  outgoing_derivative.multiply_i(tmp);
+  outgoing_derivative.add_i(t_out);
+
+  outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+  return outgoing_derivative;
 }
 
 void ActiFunc::executeInPlace(bool val) {

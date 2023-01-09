@@ -57,6 +57,19 @@ public:
   /**
    * @brief run prime function
    *
+   * @param[in] input input
+   * @param[in] output output
+   * @param[out] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
+   * @retVal    Tensor
+   */
+  Tensor &run_prime_fn(Tensor &input, Tensor &output,
+                       Tensor &outgoing_derivative,
+                       Tensor const &incoming_derivative);
+
+  /**
+   * @brief run prime function
+   *
    * @param[in] output output
    * @param[out] outgoing_derivative outgoing derivative
    * @param[in] incoming_derivative incoming derivative
@@ -159,6 +172,24 @@ public:
   static float leakyReluPrime(float x);
 
   /**
+   * @brief     swish activation function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   */
+  static Tensor &swish(Tensor const &t_in, Tensor &t_out);
+
+  /**
+   * @brief     derivative swish function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   * @param[in] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
+   */
+  static Tensor &swishPrime(Tensor const &t_in, Tensor const &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative = Tensor());
+
+  /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative
@@ -189,6 +220,19 @@ public:
 
   /**
    * @brief setActivation by custom activation function
+   * @note  derivative not applied here as this activation_prime_fn applies
+   * derivative itself
+   * @param[in] activation_fn activation function to be used
+   * @param[in] activtion_prime_fn activation prime function to be used
+   * @retval #ML_ERROR_NONE when successful
+   */
+  int setActivation(
+    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+    std::function<Tensor &(Tensor const &, Tensor const &, Tensor &,
+                           Tensor const &)> const &activation_prime_fn);
+
+  /**
+   * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative
    * @param[in] std::function<float(float const &)> activation_fn activation
@@ -202,6 +246,20 @@ public:
     std::function<float(float const)> const &activation_prime_fn);
 
   /**
+   * @brief setActivation by custom activation function
+   * @note  apply derivative as this activation_prime_fn does not utilize
+   * derivative
+   * @param[in] std::function<float(float const)> activation_fn activation
+   * function to be used
+   * @param[in] std::function<float(float const, float const)>
+   * activation_prime_fn activation_prime_function to be used
+   * @retval #ML_ERROR_NONE when successful
+   */
+  int setActivation(
+    std::function<float(float const)> const &activation_fn,
+    std::function<float(float const, float const)> const &activation_prime_fn);
+
+  /**
    * @brief   Notify that this layer will execute in-place
    *
    * @param val True if execute in-place, else false
@@ -210,7 +268,8 @@ public:
 
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
-  std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> _act_prime_fn;
+  std::function<Tensor &(Tensor const &, Tensor &, Tensor &, Tensor const &)>
+    _act_prime_fn; /**< prime function with input and output*/
 
   ActivationType
     activation_type; /**< type of the activation represented by this */
