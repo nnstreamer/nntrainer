@@ -15,6 +15,9 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#ifdef _WIN32
+#include <string>
+#endif
 
 #include <realizer.h>
 

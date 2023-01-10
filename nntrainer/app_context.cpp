@@ -12,7 +12,9 @@
  *
  */
 #include <dirent.h>
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 #include <iostream>
 #include <sstream>
 #include <string>

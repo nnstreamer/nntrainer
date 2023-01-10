@@ -17,7 +17,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include <BaseTsd.h>
+#include <io.h>
+typedef SSIZE_T ssize_t;
+typedef int mode_t;
+#endif
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -137,7 +144,7 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   free(ptr);
   allocated.erase(ptr);
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(_WIN32)
   malloc_trim(0);
 #endif
 

@@ -24,10 +24,15 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
+#ifndef _WIN32
+#include <sys/mman.h>
+#include <unistd.h>
+#else
+#include <io.h>
+#include <tools/mman_win32/mman.h>
+#endif
 
 #include <activation_layer.h>
 #include <basic_planner.h>
@@ -358,8 +363,8 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
 std::vector<Weight *> Manager::requestWeights(
   const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
   bool trainable, const std::vector<std::string> &shared_names) {
-  const auto [forwarding_order, calcGradient_order, calcDerivative_order, applyGradient_order] =
-    node.getExecutionOrder();
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order,
+              applyGradient_order] = node.getExecutionOrder();
 
   std::vector<unsigned int> default_var_exec_order(
     {forwarding_order, calcDerivative_order});
@@ -434,8 +439,8 @@ std::vector<Weight *> Manager::requestWeights(
 std::vector<Var_Grad *> Manager::requestTensors(
   const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
   bool trainable, const std::vector<std::string> &shared_names) {
-  const auto [forwarding_order, calcGradient_order, calcDerivative_order, applyGradient_order] =
-    node.getExecutionOrder();
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order,
+              applyGradient_order] = node.getExecutionOrder();
 
   std::vector<Var_Grad *> ret;
   size_t current_size = tensors_v2.size();
@@ -462,7 +467,8 @@ std::vector<Var_Grad *> Manager::requestTensors(
       grad_exec_order.push_back(calcDerivative_order);
     }
 
-    if (trainable && enum_class_logical_and(tspan, TensorLifespan::CALC_AGRAD_LIFESPAN)) {
+    if (trainable &&
+        enum_class_logical_and(tspan, TensorLifespan::CALC_AGRAD_LIFESPAN)) {
       var_exec_order.push_back(applyGradient_order);
       grad_exec_order.push_back(applyGradient_order);
     }
