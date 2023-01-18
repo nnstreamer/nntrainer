@@ -278,18 +278,18 @@ Static library of ccapi-machine-learning-training-devel package.
 %endif
 
 %if 0%{?nnstreamer_filter}
-%package -n nnstreamer-nntrainer-filter
+%package -n nnstreamer-nntrainer
 Summary: NNStreamer NNTrainer support
 Requires: %{name} = %{version}-%{release}
 Requires:	nnstreamer
-%description -n nnstreamer-nntrainer-filter
+%description -n nnstreamer-nntrainer
 NNSteamer tensor filter for nntrainer to support inference.
 
-%package -n nnstreamer-nntrainer-filter-devel-static
+%package -n nnstreamer-nntrainer-devel-static
 Summary: NNStreamer NNTrainer support
 Requires: nntrainer-devel-static = %{version}-%{release}
-Requires:	nnstreamer-nntrainer-filter = %{version}-%{release}
-%description -n nnstreamer-nntrainer-filter-devel-static
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
+%description -n nnstreamer-nntrainer-devel-static
 NNSteamer tensor filter static package for nntrainer to support inference.
 %endif #nnstreamer_filter
 
@@ -578,13 +578,13 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif # support_ccapi
 
 %if 0%{?nnstreamer_filter}
-%files -n nnstreamer-nntrainer-filter
+%files -n nnstreamer-nntrainer
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
 %{nnstreamer_subplugin_path}/filters/libnnstreamer_filter_nntrainer.so
 
-%files -n nnstreamer-nntrainer-filter-devel-static
+%files -n nnstreamer-nntrainer-devel-static
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE

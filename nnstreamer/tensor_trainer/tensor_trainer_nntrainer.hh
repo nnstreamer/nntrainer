@@ -7,16 +7,17 @@
  * @file   tensor_trainer_nntrainer.hh
  * @date   02 Dec 2022
  * @brief  NNStreamer tensor_trainer subplugin header
+ * @see    http://github.com/nnstreamer/nntrainer
  * @see    http://github.com/nnstreamer/nnstreamer
  * @author Hyunil Park <hyunil46.park@samsung.com>
  * @bug    No known bugs except for NYI items
  */
 
+#include <condition_variable>
 #include <model.h>
 #include <nnstreamer_plugin_api.h>
 #include <nnstreamer_plugin_api_trainer.h>
 #include <vector>
-#include <condition_variable>
 
 namespace NNTrainer {
 
@@ -79,21 +80,27 @@ public:
   std::shared_ptr<ml::train::Dataset> dataset_train, dataset_valid;
 
   float training_loss, validation_loss;
-  bool is_train_complete;
+  bool is_training_complete;
 
   int64_t tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
-  int64_t num_tensors;
-  int64_t num_inputs;
-  int64_t num_labels;
-  int64_t num_train_samples;
-  int64_t num_valid_samples;
-  int64_t total_num_samples;
-  int64_t num_epochs;
-  int64_t num_invoke;
+  int64_t num_tensors; /**< The number of tensors in the received a sample */
+  int64_t num_inputs; /**< The number of tensors used as input in the received a
+                         sample */
+  int64_t num_labels; /**< The number of tensors used as label in the received a
+                         sample */
+  int64_t num_training_samples; /**< The number of training samples to be taken
+                                   for training model */
+  int64_t num_validation_samples; /**< The number of validation samples to be
+                                     taken for validation model */
+  int64_t total_num_samples; /**< Total number of samples received for creating
+                                model */
+  int64_t num_epochs;        /**< The number of epoch */
+  int64_t num_push_data;     /**< The number of samples pushed by
+                                NNStreamer(tensor_trainer)*/
   std::string model_config;
-  std::string model_save_path;
+  std::string model_save_path; /**< Model is finally stored */
 
-  GCond *train_complete_cond;
+  GCond *training_complete_cond;
 
 private:
   std::unique_ptr<ml::train::Model> model;
@@ -106,13 +113,16 @@ class InputTensorsInfo {
 public:
   /**
    * @brief Construct a new InputTensorsInfo object
-   * @param _num_samples number of samples
-   * @param _num_inputs number of inputs
-   * @param _num_labels number of labels
-   * @param _tensors_inputsize[] input tensors size
+   * @param _total_num_samples Total number of samples received for creating
+   * model
+   * @param _num_inputs The number of tensors used as input in the received a
+   * sample
+   * @param _num_labels The number of tensors used as label in the received a
+   * sample
+   * @param _tensors_size[] size of each tensor in a sample
    */
-  InputTensorsInfo(int64_t _num_samples, int64_t _num_inputs,
-                   int64_t _num_labels, int64_t _tensors_inputsize[]);
+  InputTensorsInfo(int64_t _total_num_samples, int64_t _num_inputs,
+                   int64_t _num_labels, int64_t _tensors_size[]);
 
   /**
    * @brief Destroy the InputTensorsInfo object
@@ -125,20 +135,24 @@ public:
   unsigned int queue_front;
   unsigned int queue_rear;
   unsigned int queue_count;
-  int64_t push_count;
-  int64_t pop_count;
+  int64_t push_count; /**< The number of samples pushed to queue by
+                         NNStreamer(tensor_trainer) */
+  int64_t pop_count;  /**< The number of pop from the queue for pushing samples
+                         to nntrainer */
   int64_t input_size[NNS_TENSOR_SIZE_LIMIT]; // feature size * data type
   int64_t label_size[NNS_TENSOR_SIZE_LIMIT];
-  int64_t num_samples;
-  int64_t num_inputs;
-  int64_t num_labels;
+  int64_t total_num_samples; /**< Total number of samples received for creating
+                                model */
+  int64_t num_inputs; /**< The number of tensors in the received a sample */
+  int64_t num_labels; /**< The number of tensors used as label in the received a
+                         sample */
 
-  std::vector<TensorData> tensor_data;
+  std::vector<TensorData>
+    tensor_data; /**< Manage multiple inputs and labels data */
 
   std::mutex data_wait_lock;
   std::mutex data_full_lock;
   std::condition_variable data_wait;
   std::condition_variable data_full;
-
 };
 } // namespace NNTrainer
