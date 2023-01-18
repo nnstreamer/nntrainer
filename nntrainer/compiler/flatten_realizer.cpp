@@ -28,10 +28,10 @@ FlattenRealizer::realize(const GraphRepresentation &reference) {
   std::unordered_map<std::string /**< layer_name */,
                      std::string /**< flatten_layer_name */>
     remap_table;
-  std::vector<LayerNode *> flatten_nodes;
   std::unordered_map<std::string /**< temp_layer_name */,
                      std::string /**< layer_name */>
     recovery_table;
+  std::vector<LayerNode *> flatten_nodes;
 
   for (auto &node : reference) {
     /// @note: [node] type=flatten; flatten=true; is awkward but allowed.

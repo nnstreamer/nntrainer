@@ -35,6 +35,7 @@ ActivationRealizer::realize(const GraphRepresentation &reference) {
                      std::string /**< layer_name */>
     recovery_table;
   std::vector<LayerNode *> act_nodes;
+
   for (auto &node : reference) {
     processed.push_back(node);
     if (node->getType() == ActivationLayer::type) {
