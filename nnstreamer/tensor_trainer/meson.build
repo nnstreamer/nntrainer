@@ -1,5 +1,7 @@
 trainer_subplugin_sources = ['tensor_trainer_nntrainer.cc']
 
+extra_defines += '-DSUPPORT_NNSREAMER_PLUGIN_TRAINER=1'
+
 nnstreamer_trainer_nntrainer_sources = []
 foreach s : trainer_subplugin_sources
   nnstreamer_trainer_nntrainer_sources += meson.current_source_dir() / s
@@ -13,7 +15,7 @@ gst_dep = dependency('gstreamer-'+gst_api_version)
 
 nntrainer_prefix = get_option('prefix')
 
-nnstreamer_trainer_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_ccapi_dep, nnstreamer_trainer_dep]
+nnstreamer_trainer_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_ccapi_dep, nnstreamer_dep]
 
 nnstreamer_libdir = nntrainer_prefix / get_option('libdir')
 subplugin_install_prefix = get_option('nnstreamer-subplugin-install-path')

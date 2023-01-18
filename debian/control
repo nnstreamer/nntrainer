@@ -77,3 +77,18 @@ Multi-Arch: same
 Depends: nnstreamer, nntrainer, ${shlibs:Depends}, ${misc:Depends}
 Description: Development package for nntrainer tensor filter
  This is a developement package of nntrainer's tensor filter.
+
+Package: nnstreamer-nntrainer-trainer
+Architecture: any
+Multi-Arch: same
+Depends: nnstreamer, nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Description: NNStreamer tensor trainer for nntrainer
+ This is a NNStreamer tensor trainer for nntrainer to support training.
+
+Package: nnstreamer-nntrainer-trainer-dev
+Architecture: any
+Multi-Arch: same
+Depends: nnstreamer, nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Description: Development package for nntrainer tensor trainer
+ This is a developement package of nntrainer's tensor trainer.
+
