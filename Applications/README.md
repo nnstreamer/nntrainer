@@ -28,6 +28,10 @@ An example to train resnet18 network.
 
 An example to train vgg16 network.
 
+#### [LSTM Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/LSTM)
+
+An example to train LSTM network.
+
 #### [ProductRating Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/ProductRatings)
 
 This application contains a simple embedding-based model that predicts ratings given a user and a product.
