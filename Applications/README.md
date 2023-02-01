@@ -60,3 +60,7 @@ A logistic regression example using NNTrainer.
 #### [Alexnet Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/AlexNet)
 
 An example to train Alexnet(Fused) network with CIFAR100 Dataset
+
+#### [Layers Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/Layers)
+
+An example to train Single Layers with Dummy Dataset
