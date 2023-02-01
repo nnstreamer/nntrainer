@@ -17,6 +17,7 @@ endif
 subdir('Custom')
 subdir('ProductRatings/jni')
 subdir('AlexNet/jni')
+subdir('Layers/jni')
 if get_option('enable-tflite-backbone')
   subdir('SimpleShot')
 endif
