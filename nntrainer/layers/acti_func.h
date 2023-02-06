@@ -49,20 +49,21 @@ public:
   /**
    * @brief run function
    *
-   * @param[in] x : input
+   * @param[in] input : input
    * @param[out] output : output
    */
-  void run_fn(Tensor const &x, Tensor &output);
+  void run_fn(Tensor const &input, Tensor &output);
 
   /**
    * @brief run prime function
    *
-   * @param[in] in : input
-   * @param[out] ret : output
-   * @param[in] deriv : derivative
+   * @param[in] output output
+   * @param[out] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
    * @retVal    Tensor
    */
-  Tensor &run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv);
+  Tensor &run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
+                       Tensor const &incoming_derivative);
 
   /**
    * @copydoc Layer::supportInPlace()
@@ -71,21 +72,21 @@ public:
 
   /**
    * @brief       Calculate softmax for Tensor Type
-   * @param[in] x Tensor
+   * @param[in] input input Tensor
    * @param[out] output output Tensor
    * @retval      Tensor
    */
-  static Tensor &softmax(Tensor const &x, Tensor &output);
+  static Tensor &softmax(Tensor const &input, Tensor &output);
 
   /**
-   * @brief     derivative softmax function for Tensor Type
-   * @param[in] x Tensor
-   * @param[out] output output Tensor
-   * @param[in] derivative derivative Tensor from next layer
+   * @brief     Calculate derivative of softmax function
+   * @param[in] output output tensor
+   * @param[out] outgoing_derivative result of calculated derivative of softmax
+   * @param[in] incoming_derivative incoming derivative tensor from next layer
    * @retVal    Tensor
    */
-  static Tensor &softmaxPrime(Tensor const &x, Tensor &output,
-                              Tensor const &derivative = Tensor());
+  static Tensor &softmaxPrime(Tensor const &output, Tensor &outgoing_derivative,
+                              Tensor const &incoming_derivative = Tensor());
 
   /**
    * @brief     sigmoid activation function

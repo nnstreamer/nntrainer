@@ -53,7 +53,7 @@ int ActiFunc::setActivation(
       [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                             Tensor const &derivative) -> Tensor & {
       /** @todo update this based on supportInPlace */
-      ret_derivative = activation_prime_fn(x, ret_derivative);
+      activation_prime_fn(x, ret_derivative);
       ret_derivative.multiply_i_strided(derivative);
 
       return ret_derivative;
@@ -62,8 +62,8 @@ int ActiFunc::setActivation(
     _act_prime_fn =
       [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                             Tensor const &derivative) -> Tensor & {
-      x = activation_prime_fn(x, x);
-      ret_derivative = derivative.multiply_strided(x, ret_derivative);
+      activation_prime_fn(x, x);
+      derivative.multiply_strided(x, ret_derivative);
 
       return ret_derivative;
     };
@@ -92,8 +92,8 @@ int ActiFunc::setActivation(
     _act_prime_fn =
       [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                             Tensor const &derivative) -> Tensor & {
-      x = x.apply(activation_prime_fn, x);
-      ret_derivative = derivative.multiply_strided(x, ret_derivative);
+      x.apply(activation_prime_fn, x);
+      derivative.multiply_strided(x, ret_derivative);
 
       return ret_derivative;
     };
@@ -135,45 +135,48 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
   }
 }
 
-void ActiFunc::run_fn(Tensor const &x, Tensor &output) { _act_fn(x, output); }
+void ActiFunc::run_fn(Tensor const &input, Tensor &output) {
+  _act_fn(input, output);
+}
 
-Tensor &ActiFunc::run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv) {
-  return _act_prime_fn(in, ret, deriv);
+Tensor &ActiFunc::run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
+                               Tensor const &incoming_derivative) {
+  return _act_prime_fn(output, outgoing_derivative, incoming_derivative);
 }
 
 bool ActiFunc::supportInPlace() const { return in_place; }
 
-Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
+Tensor &ActiFunc::softmax(Tensor const &input, Tensor &output) {
   /**
    * shiftx_logit = logit - max_batch(logit)
    * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
    *
    * @note softmax is applied on the last dimension
    */
-
   /** TODO: support strided operations */
-  if (t.size() == output.size() && t.getStrides() != output.getStrides())
+  if (input.size() == output.size() &&
+      input.getStrides() != output.getStrides())
     throw std::invalid_argument(
       "Softmax does not support operating on strided tensors");
 
-  unsigned int feat_len = t.width();
-  unsigned int fixed_dim = t.getDim().getDataLen() / feat_len;
+  unsigned int width = input.width();
+  unsigned int bch_size = input.getDim().getDataLen() / width;
 
   // copy will not executed in inplace case
-  output.copy(t);
+  output.copy(input);
 
   float *output_data = output.getData();
 
   // prevent overflow
-  Tensor tmp = Tensor(feat_len);
-  for (unsigned int k = 0; k < fixed_dim; k++) {
-    float *ptr = output_data + k * feat_len;
+  Tensor tmp(width);
+  for (unsigned int i = 0; i < bch_size; i++) {
+    float *ptr = output_data + i * width;
 
-    // find max and subtract it
-    float m = *std::max_element(ptr, ptr + feat_len);
+    // find max value and subtract it
+    float max_value = *std::max_element(ptr, ptr + width);
 
-    tmp.setValue(m);
-    saxpy(feat_len, -1, tmp.getData(), 1, ptr, 1);
+    tmp.setValue(max_value);
+    saxpy(width, -1, tmp.getData(), 1, ptr, 1);
   }
 
   // take exp
@@ -182,66 +185,71 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   // take sum over the last dimension
   Tensor sum = output.sum(3);
 
-  for (unsigned int k = 0; k < fixed_dim; k++) {
-    float *ptr = output_data + k * feat_len;
+  for (unsigned int i = 0; i < bch_size; i++) {
+    float *ptr = output_data + i * width;
     std::transform(
-      ptr, ptr + feat_len, ptr,
-      std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(k)));
+      ptr, ptr + width, ptr,
+      std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(i)));
   }
 
   return output;
 }
 
-Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
-                               Tensor const &derivative) {
+Tensor &ActiFunc::softmaxPrime(Tensor const &output,
+                               Tensor &outgoing_derivative,
+                               Tensor const &incoming_derivative) {
   /** TODO: support strided operations */
-  if ((x.size() == output.size() && x.getStrides() != output.getStrides()) ||
-      (x.size() == derivative.size() &&
-       x.getStrides() != derivative.getStrides()))
+  if ((output.size() == outgoing_derivative.size() &&
+       output.getStrides() != outgoing_derivative.getStrides()) ||
+      (output.size() == incoming_derivative.size() &&
+       output.getStrides() != incoming_derivative.getStrides()))
     throw std::invalid_argument(
       "SoftmaxPrime does not support operating on strided tensors");
 
-  unsigned int batch = x.batch();
-  unsigned int channel = x.channel();
-  unsigned int height = x.height();
-  unsigned int width = x.width();
+  unsigned int batch = output.batch();
+  unsigned int channel = output.channel();
+  unsigned int height = output.height();
+  unsigned int width = output.width();
 
-  if (output.empty())
-    output = Tensor(x.getDim());
+  if (outgoing_derivative.empty())
+    outgoing_derivative = Tensor(output.getDim());
 
-  const float *xp = x.getData();
-  const float *d = derivative.getData();
-  float *pp = output.getData();
+  const float *output_data = output.getData();
+  const float *incoming_derivative_data = incoming_derivative.getData();
+  float *outgoing_derivative_data = outgoing_derivative.getData();
 
   Tensor tmp = Tensor(width);
   float *tmp_data = tmp.getData();
   unsigned int output_width_stride = output.getStrides()[3];
-  for (unsigned int k = 0; k < batch; ++k) {
-    int K = k * channel * height * width;
+  for (unsigned int b = 0; b < batch; ++b) {
+    int b_offset = b * channel * height * width;
     for (unsigned int c = 0; c < channel; ++c) {
-      int C = K + c * height * width;
-      for (unsigned int i = 0; i < height; ++i) {
-        int I = C + i * width;
-        for (unsigned int j = 0; j < width; ++j) {
+      int bc_offset = b_offset + c * height * width;
+      for (unsigned int h = 0; h < height; ++h) {
+        int bch_offset = bc_offset + h * width;
+        for (unsigned int w1 = 0; w1 < width; ++w1) {
           float sum = 0.0f;
-          for (unsigned int l = 0; l < width; ++l) {
+          for (unsigned int w2 = 0; w2 < width; ++w2) {
             float val;
-            if (j == l) {
-              val = xp[I + l] * (1.0f - xp[I + j]);
+            if (w1 == w2) {
+              val = output_data[bch_offset + w2] *
+                    (1.0f - output_data[bch_offset + w1]);
             } else {
-              val = -xp[I + l] * xp[I + j];
+              val =
+                -output_data[bch_offset + w2] * output_data[bch_offset + w1];
             }
-            if (!derivative.empty())
-              val *= d[I + l];
+            if (!incoming_derivative.empty())
+              val *= incoming_derivative_data[bch_offset + w2];
             sum += val;
           }
-          tmp.setValue(0, 0, 0, j, sum);
+          tmp.setValue(0, 0, 0, w1, sum);
         }
-        scopy(width, tmp_data, 1, pp + I, output_width_stride);
+        scopy(width, tmp_data, 1, outgoing_derivative_data + bch_offset,
+              output_width_stride);
       }
     }
   }
-  return output;
+  return outgoing_derivative;
 }
 
 float ActiFunc::sigmoid(float x) { return 1.0f / (1.0f + exp_util(-x)); }

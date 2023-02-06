@@ -33,7 +33,7 @@ MoLAttentionLayer::~MoLAttentionLayer() {}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum AttentionParams {
+enum MoLAttentionParams {
   query = 0,
   value = 1,
   state = 2,
@@ -59,14 +59,14 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
     << "MoL Attention layer needs 3-4 inputs.";
 
   auto const &all_dims = context.getInputDimensions();
-  auto const &query_dim = all_dims[AttentionParams::query];
-  auto const &value_dim = all_dims[AttentionParams::value];
-  auto const &state_dim = all_dims[AttentionParams::state];
+  auto const &query_dim = all_dims[MoLAttentionParams::query];
+  auto const &value_dim = all_dims[MoLAttentionParams::value];
+  auto const &state_dim = all_dims[MoLAttentionParams::state];
 
-  wt_idx[AttentionParams::query] = AttentionParams::query;
-  wt_idx[AttentionParams::value] = AttentionParams::value;
-  wt_idx[AttentionParams::state] = AttentionParams::state;
-  wt_idx[AttentionParams::mask_len] = AttentionParams::mask_len;
+  wt_idx[MoLAttentionParams::query] = MoLAttentionParams::query;
+  wt_idx[MoLAttentionParams::value] = MoLAttentionParams::value;
+  wt_idx[MoLAttentionParams::state] = MoLAttentionParams::state;
+  wt_idx[MoLAttentionParams::mask_len] = MoLAttentionParams::mask_len;
 
   NNTR_THROW_IF(query_dim.width() != value_dim.width(), std::invalid_argument)
     << "Query and Value dimension mismatch for layer " << context.getName();
@@ -95,59 +95,59 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
 
   TensorDim fc_w_dim = {query_dim.width(), unit};
-  wt_idx[AttentionParams::fc_w] = context.requestWeight(
+  wt_idx[MoLAttentionParams::fc_w] = context.requestWeight(
     fc_w_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "fc_w", true);
   TensorDim fc_bias_dim = {unit};
-  wt_idx[AttentionParams::fc_bias] = context.requestWeight(
+  wt_idx[MoLAttentionParams::fc_bias] = context.requestWeight(
     fc_bias_dim, bias_initializer, weight_regularizer,
     weight_regularizer_constant, bias_decay, "fc_bias", true);
 
   TensorDim fc_proj_w_dim = {unit, 3 * mol_k};
-  wt_idx[AttentionParams::fc_proj_w] = context.requestWeight(
+  wt_idx[MoLAttentionParams::fc_proj_w] = context.requestWeight(
     fc_proj_w_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "fc_proj_w", true);
 
   TensorDim fc_out_dim = query_dim;
   fc_out_dim.width(fc_w_dim.width());
-  wt_idx[AttentionParams::fc_out] =
+  wt_idx[MoLAttentionParams::fc_out] =
     context.requestTensor(fc_out_dim, "fc_out", Tensor::Initializer::NONE,
                           false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
-  wt_idx[AttentionParams::fc_tanh] =
+  wt_idx[MoLAttentionParams::fc_tanh] =
     context.requestTensor(fc_out_dim, "fc_tanh", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim fc_proj_out_dim = fc_out_dim;
   fc_proj_out_dim.width(fc_proj_w_dim.width());
-  wt_idx[AttentionParams::fc_proj_out] = context.requestTensor(
+  wt_idx[MoLAttentionParams::fc_proj_out] = context.requestTensor(
     fc_proj_out_dim, "fc_proj_out", Tensor::Initializer::NONE, false,
     TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim scores_dim =
     TensorDim({value_dim.batch(), 1, 1, value_dim.height()});
-  wt_idx[AttentionParams::scores] =
+  wt_idx[MoLAttentionParams::scores] =
     context.requestTensor(scores_dim, "scores", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim prob_dim = value_dim;
   prob_dim.width(mol_k);
-  wt_idx[AttentionParams::prob] =
+  wt_idx[MoLAttentionParams::prob] =
     context.requestTensor(prob_dim, "prob", Tensor::Initializer::NONE, false,
                           TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[AttentionParams::prob_left] =
+  wt_idx[MoLAttentionParams::prob_left] =
     context.requestTensor(prob_dim, "prob_left", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[AttentionParams::prob_right] =
+  wt_idx[MoLAttentionParams::prob_right] =
     context.requestTensor(prob_dim, "prob_right", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[AttentionParams::u_neg_div] =
+  wt_idx[MoLAttentionParams::u_neg_div] =
     context.requestTensor(prob_dim, "u_neg_div", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[AttentionParams::u_pos_div] =
+  wt_idx[MoLAttentionParams::u_pos_div] =
     context.requestTensor(prob_dim, "u_pos_div", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[AttentionParams::dstate] =
+  wt_idx[MoLAttentionParams::dstate] =
     context.requestTensor(state_dim, "dstate", Tensor::Initializer::NONE, false,
                           TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 
@@ -158,23 +158,25 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
 }
 
 void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
-  Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
-  Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
-  Tensor &state = context.getInput(wt_idx[AttentionParams::state]);
+  Tensor &query = context.getInput(wt_idx[MoLAttentionParams::query]);
+  Tensor &value = context.getInput(wt_idx[MoLAttentionParams::value]);
+  Tensor &state = context.getInput(wt_idx[MoLAttentionParams::state]);
 
   Tensor &output = context.getOutput(0);
-  Tensor &fc_w = context.getWeight(wt_idx[AttentionParams::fc_w]);
-  Tensor &fc_bias = context.getWeight(wt_idx[AttentionParams::fc_bias]);
-  Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &fc_out = context.getTensor(wt_idx[AttentionParams::fc_out]);
-  Tensor &fc_tanh = context.getTensor(wt_idx[AttentionParams::fc_tanh]);
-  Tensor &fc_proj_out = context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
-  Tensor &scores = context.getTensor(wt_idx[AttentionParams::scores]);
-  Tensor &prob = context.getTensor(wt_idx[AttentionParams::prob]);
-  Tensor &prob_left = context.getTensor(wt_idx[AttentionParams::prob_left]);
-  Tensor &prob_right = context.getTensor(wt_idx[AttentionParams::prob_right]);
-  Tensor &u_neg_div = context.getTensor(wt_idx[AttentionParams::u_neg_div]);
-  Tensor &u_pos_div = context.getTensor(wt_idx[AttentionParams::u_pos_div]);
+  Tensor &fc_w = context.getWeight(wt_idx[MoLAttentionParams::fc_w]);
+  Tensor &fc_bias = context.getWeight(wt_idx[MoLAttentionParams::fc_bias]);
+  Tensor &fc_proj_w = context.getWeight(wt_idx[MoLAttentionParams::fc_proj_w]);
+  Tensor &fc_out = context.getTensor(wt_idx[MoLAttentionParams::fc_out]);
+  Tensor &fc_tanh = context.getTensor(wt_idx[MoLAttentionParams::fc_tanh]);
+  Tensor &fc_proj_out =
+    context.getTensor(wt_idx[MoLAttentionParams::fc_proj_out]);
+  Tensor &scores = context.getTensor(wt_idx[MoLAttentionParams::scores]);
+  Tensor &prob = context.getTensor(wt_idx[MoLAttentionParams::prob]);
+  Tensor &prob_left = context.getTensor(wt_idx[MoLAttentionParams::prob_left]);
+  Tensor &prob_right =
+    context.getTensor(wt_idx[MoLAttentionParams::prob_right]);
+  Tensor &u_neg_div = context.getTensor(wt_idx[MoLAttentionParams::u_neg_div]);
+  Tensor &u_pos_div = context.getTensor(wt_idx[MoLAttentionParams::u_pos_div]);
 
   const TensorDim &input_dim = query.getDim();
   unsigned int batch = input_dim.batch();
@@ -253,7 +255,7 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 
   if (context.getNumInputs() == 4) {
     Tensor mask = Tensor(scores.getDim());
-    mask.filter_mask(context.getInput(wt_idx[AttentionParams::mask_len]),
+    mask.filter_mask(context.getInput(wt_idx[MoLAttentionParams::mask_len]),
                      false);
     scores.multiply_i(mask);
   }
@@ -264,20 +266,22 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
 void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
                                              Tensor &dstate) {
   /** optimize temporary tensor usage here */
-  Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
-  Tensor &value = context.getInput(wt_idx[AttentionParams::value]);
+  Tensor &query = context.getInput(wt_idx[MoLAttentionParams::query]);
+  Tensor &value = context.getInput(wt_idx[MoLAttentionParams::value]);
 
   const Tensor &derivative = context.getIncomingDerivative(0);
 
-  Tensor &fc_proj_out = context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
+  Tensor &fc_proj_out =
+    context.getTensor(wt_idx[MoLAttentionParams::fc_proj_out]);
   Tensor &dfc_proj_out =
-    context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
-  Tensor &scores = context.getTensor(wt_idx[AttentionParams::scores]);
-  Tensor &prob = context.getTensor(wt_idx[AttentionParams::prob]);
-  Tensor &prob_left = context.getTensor(wt_idx[AttentionParams::prob_left]);
-  Tensor &prob_right = context.getTensor(wt_idx[AttentionParams::prob_right]);
-  Tensor &u_neg_div = context.getTensor(wt_idx[AttentionParams::u_neg_div]);
-  Tensor &u_pos_div = context.getTensor(wt_idx[AttentionParams::u_pos_div]);
+    context.getTensor(wt_idx[MoLAttentionParams::fc_proj_out]);
+  Tensor &scores = context.getTensor(wt_idx[MoLAttentionParams::scores]);
+  Tensor &prob = context.getTensor(wt_idx[MoLAttentionParams::prob]);
+  Tensor &prob_left = context.getTensor(wt_idx[MoLAttentionParams::prob_left]);
+  Tensor &prob_right =
+    context.getTensor(wt_idx[MoLAttentionParams::prob_right]);
+  Tensor &u_neg_div = context.getTensor(wt_idx[MoLAttentionParams::u_neg_div]);
+  Tensor &u_pos_div = context.getTensor(wt_idx[MoLAttentionParams::u_pos_div]);
 
   const TensorDim &input_dim = query.getDim();
   unsigned int batch = input_dim.batch();
@@ -296,7 +300,7 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
   dscores.reshape(TensorDim({scores.batch(), 1, scores.width(), 1}));
   if (context.getNumInputs() == 4) {
     Tensor mask = Tensor(dscores.getDim());
-    mask.filter_mask(context.getInput(wt_idx[AttentionParams::mask_len]));
+    mask.filter_mask(context.getInput(wt_idx[MoLAttentionParams::mask_len]));
     dscores.multiply_i(mask);
   }
 
@@ -351,21 +355,21 @@ void MoLAttentionLayer::calcDerivativeHelper(RunLayerContext &context,
 
 void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
   Tensor &dquery =
-    context.getOutgoingDerivative(wt_idx[AttentionParams::query]);
+    context.getOutgoingDerivative(wt_idx[MoLAttentionParams::query]);
   Tensor &dvalue =
-    context.getOutgoingDerivative(wt_idx[AttentionParams::value]);
+    context.getOutgoingDerivative(wt_idx[MoLAttentionParams::value]);
   Tensor &dstate =
-    context.getOutgoingDerivative(wt_idx[AttentionParams::state]);
-  Tensor &dstate_local = context.getTensor(wt_idx[AttentionParams::dstate]);
+    context.getOutgoingDerivative(wt_idx[MoLAttentionParams::state]);
+  Tensor &dstate_local = context.getTensor(wt_idx[MoLAttentionParams::dstate]);
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
-  Tensor &fc_w = context.getWeight(wt_idx[AttentionParams::fc_w]);
-  Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &fc_tanh = context.getTensor(wt_idx[AttentionParams::fc_tanh]);
+  Tensor &fc_w = context.getWeight(wt_idx[MoLAttentionParams::fc_w]);
+  Tensor &fc_proj_w = context.getWeight(wt_idx[MoLAttentionParams::fc_proj_w]);
+  Tensor &fc_tanh = context.getTensor(wt_idx[MoLAttentionParams::fc_tanh]);
   Tensor &dfc_proj_out =
-    context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
-  Tensor &scores = context.getTensor(wt_idx[AttentionParams::scores]);
+    context.getTensor(wt_idx[MoLAttentionParams::fc_proj_out]);
+  Tensor &scores = context.getTensor(wt_idx[MoLAttentionParams::scores]);
 
   scores.dot_batched_deriv_wrt_2(dvalue, derivative);
 
@@ -383,17 +387,17 @@ void MoLAttentionLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
-  Tensor &query = context.getInput(wt_idx[AttentionParams::query]);
-  Tensor &dstate = context.getTensor(wt_idx[AttentionParams::dstate]);
+  Tensor &query = context.getInput(wt_idx[MoLAttentionParams::query]);
+  Tensor &dstate = context.getTensor(wt_idx[MoLAttentionParams::dstate]);
 
-  Tensor &fc_proj_w = context.getWeight(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &dfc_w = context.getWeightGrad(wt_idx[AttentionParams::fc_w]);
-  Tensor &dfc_bias = context.getWeightGrad(wt_idx[AttentionParams::fc_bias]);
+  Tensor &fc_proj_w = context.getWeight(wt_idx[MoLAttentionParams::fc_proj_w]);
+  Tensor &dfc_w = context.getWeightGrad(wt_idx[MoLAttentionParams::fc_w]);
+  Tensor &dfc_bias = context.getWeightGrad(wt_idx[MoLAttentionParams::fc_bias]);
   Tensor &dfc_proj_w =
-    context.getWeightGrad(wt_idx[AttentionParams::fc_proj_w]);
-  Tensor &fc_tanh = context.getTensor(wt_idx[AttentionParams::fc_tanh]);
+    context.getWeightGrad(wt_idx[MoLAttentionParams::fc_proj_w]);
+  Tensor &fc_tanh = context.getTensor(wt_idx[MoLAttentionParams::fc_tanh]);
   Tensor &dfc_proj_out =
-    context.getTensor(wt_idx[AttentionParams::fc_proj_out]);
+    context.getTensor(wt_idx[MoLAttentionParams::fc_proj_out]);
 
   if (!helper_exec)
     calcDerivativeHelper(context, dstate);
@@ -401,16 +405,16 @@ void MoLAttentionLayer::calcGradient(RunLayerContext &context) {
   Tensor dfc_tanh = Tensor(fc_tanh.getDim());
   fc_tanh.dot_deriv_wrt_2(
     dfc_proj_w, dfc_proj_out, false, false,
-    !context.isGradientFirstAccess(wt_idx[AttentionParams::fc_proj_w]));
+    !context.isGradientFirstAccess(wt_idx[MoLAttentionParams::fc_proj_w]));
   dfc_tanh.dot_deriv_wrt_1(fc_proj_w, dfc_proj_out);
 
   Tensor dfc_out;
   tanh.run_prime_fn(fc_tanh, dfc_out, dfc_tanh);
   query.dot_deriv_wrt_2(
     dfc_w, dfc_out, false, false,
-    !context.isGradientFirstAccess(wt_idx[AttentionParams::fc_w]));
+    !context.isGradientFirstAccess(wt_idx[MoLAttentionParams::fc_w]));
 
-  if (context.isGradientFirstAccess(wt_idx[AttentionParams::fc_bias])) {
+  if (context.isGradientFirstAccess(wt_idx[MoLAttentionParams::fc_bias])) {
     dfc_out.sum({0, 1, 2}, dfc_bias);
   } else {
     /// @todo optimize below by adding beta to Tensor::sum
@@ -425,16 +429,16 @@ void MoLAttentionLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void MoLAttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
-  context.updateTensor(wt_idx[AttentionParams::fc_out], batch);
-  context.updateTensor(wt_idx[AttentionParams::fc_tanh], batch);
-  context.updateTensor(wt_idx[AttentionParams::fc_proj_out], batch);
-  context.updateTensor(wt_idx[AttentionParams::scores], batch);
-  context.updateTensor(wt_idx[AttentionParams::prob], batch);
-  context.updateTensor(wt_idx[AttentionParams::prob_left], batch);
-  context.updateTensor(wt_idx[AttentionParams::prob_right], batch);
-  context.updateTensor(wt_idx[AttentionParams::u_neg_div], batch);
-  context.updateTensor(wt_idx[AttentionParams::u_pos_div], batch);
-  context.updateTensor(wt_idx[AttentionParams::dstate], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::fc_out], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::fc_tanh], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::fc_proj_out], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::scores], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::prob], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::prob_left], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::prob_right], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::u_neg_div], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::u_pos_div], batch);
+  context.updateTensor(wt_idx[MoLAttentionParams::dstate], batch);
 }
 
 void MoLAttentionLayer::exportTo(Exporter &exporter,
