@@ -38,9 +38,6 @@ int ActiFunc::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
     &activation_prime_fn) {
-  if (in_place)
-    return ML_ERROR_INVALID_PARAMETER;
-
   _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
 
@@ -121,7 +118,6 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
     this->setActivation(sigmoid, sigmoidPrime);
     break;
   case ActivationType::ACT_SOFTMAX:
-    in_place = false;
     this->setActivation(softmax, softmaxPrime);
     break;
   case ActivationType::ACT_RELU:
@@ -145,13 +141,7 @@ Tensor &ActiFunc::run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv) {
   return _act_prime_fn(in, ret, deriv);
 }
 
-bool ActiFunc::supportInPlace() const {
-  bool support_in_place = in_place;
-  if (activation_type == ActivationType::ACT_SOFTMAX)
-    support_in_place = false;
-
-  return support_in_place;
-}
+bool ActiFunc::supportInPlace() const { return in_place; }
 
 Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   /**
@@ -160,40 +150,42 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
    *
    * @note softmax is applied on the last dimension
    */
-  unsigned int fixed_dim = t.getDim().getDataLen() / t.width();
-  float *dp;
-  float *rp;
 
   /** TODO: support strided operations */
   if (t.size() == output.size() && t.getStrides() != output.getStrides())
     throw std::invalid_argument(
       "Softmax does not support operating on strided tensors");
 
-  Tensor divisor = t.clone();
-
-  dp = divisor.getData();
   unsigned int feat_len = t.width();
+  unsigned int fixed_dim = t.getDim().getDataLen() / feat_len;
 
+  // copy will not executed in inplace case
+  output.copy(t);
+
+  float *output_data = output.getData();
+
+  // prevent overflow
+  Tensor tmp = Tensor(feat_len);
   for (unsigned int k = 0; k < fixed_dim; k++) {
-    int index = k * feat_len;
-    // find max and subtract it
-    float m = *std::max_element(dp + index, dp + index + feat_len);
+    float *ptr = output_data + k * feat_len;
 
-    Tensor tmp = Tensor(1, 1, 1, feat_len);
+    // find max and subtract it
+    float m = *std::max_element(ptr, ptr + feat_len);
+
     tmp.setValue(m);
-    saxpy(feat_len, -1, tmp.getData(), 1, dp + index, 1);
+    saxpy(feat_len, -1, tmp.getData(), 1, ptr, 1);
   }
 
   // take exp
-  output = divisor.apply(exp_util, output);
-  rp = output.getData();
+  output.apply(exp_util, output);
+
   // take sum over the last dimension
   Tensor sum = output.sum(3);
 
   for (unsigned int k = 0; k < fixed_dim; k++) {
-    int index = k * feat_len;
+    float *ptr = output_data + k * feat_len;
     std::transform(
-      rp + index, rp + index + feat_len, rp + index,
+      ptr, ptr + feat_len, ptr,
       std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(k)));
   }
 
@@ -221,6 +213,9 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
   const float *d = derivative.getData();
   float *pp = output.getData();
 
+  Tensor tmp = Tensor(width);
+  float *tmp_data = tmp.getData();
+  unsigned int output_width_stride = output.getStrides()[3];
   for (unsigned int k = 0; k < batch; ++k) {
     int K = k * channel * height * width;
     for (unsigned int c = 0; c < channel; ++c) {
@@ -240,8 +235,9 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
               val *= d[I + l];
             sum += val;
           }
-          pp[I + j] = sum;
+          tmp.setValue(0, 0, 0, j, sum);
         }
+        scopy(width, tmp_data, 1, pp + I, output_width_stride);
       }
     }
   }
