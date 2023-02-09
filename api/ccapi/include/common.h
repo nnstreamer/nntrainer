@@ -29,6 +29,7 @@ namespace train {
 enum class ExportMethods {
   METHOD_STRINGVECTOR = 0, /**< export to a string vector */
   METHOD_TFLITE = 1,       /**< export to tflite */
+  METHOD_FLATBUFFER = 2,   /**< export to flatbuffer */
   METHOD_UNDEFINED = 999,  /**< undefined */
 };
 

@@ -65,6 +65,8 @@ for inference and training without any configurations*/
   MODEL_FORMAT_INI_WITH_BIN =
     ML_TRAIN_MODEL_FORMAT_INI_WITH_BIN, /**< ini file with save_path defined
                                            where the binary will be saved */
+  MODEL_FORMAT_FLATBUFFER =
+    ML_TRAIN_MODEL_FORMAT_FLATBUFFER, /**< flatbuffer file */
 };
 
 /**
@@ -174,7 +176,7 @@ public:
   virtual int addLayer(std::shared_ptr<Layer> layer) = 0;
 
   /**
-   * @brief add refering to reference layers.
+   * @brief add referring to reference layers.
    * @note This method does add the provided layers itself but adds a deep copy
    * of the passed layers to the model. The layers passed to this function can
    * be reused later.
