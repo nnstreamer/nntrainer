@@ -235,8 +235,10 @@ typedef enum {
   ML_TRAIN_MODEL_FORMAT_INI =
     1, /**< Ini format file saves model configurations. */
   ML_TRAIN_MODEL_FORMAT_INI_WITH_BIN =
-    2 /**< Ini with bin format file saves configurations with parameters
+    2, /**< Ini with bin format file saves configurations with parameters
          required for inference and training. */
+  ML_TRAIN_MODEL_FORMAT_FLATBUFFER =
+    3 /**< Flatbuffer format file saves model configurations and weights. */
 } ml_train_model_format_e;
 
 /**

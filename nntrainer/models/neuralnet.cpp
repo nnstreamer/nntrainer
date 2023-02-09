@@ -488,6 +488,9 @@ void NeuralNetwork::load(const std::string &file_path,
     throw_status(ret);
     break;
   }
+  case ml::train::ModelFormat::MODEL_FORMAT_FLATBUFFER: {
+    break;
+  }
   default:
     throw nntrainer::exception::not_supported(
       "loading with given format is not supported yet");
@@ -1280,6 +1283,12 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
       "Export methods METHOD_TFLITE is not supported. Please enable tflite "
       "interpreter by set ENABLE_TFLITE_INTERPRETER=1"};
 #endif
+    break;
+  }
+  case ml::train::ExportMethods::METHOD_FLATBUFFER: {
+
+    model_graph.deallocateTensors();
+    model_graph.allocateTensors(ExecutionMode::TRAIN);
     break;
   }
   default:
