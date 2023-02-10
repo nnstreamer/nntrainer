@@ -15,9 +15,9 @@ import numpy as np
 
 from transLayer_v2 import params_translated
 
-if torch.__version__ != "1.9.1":
+if torch.__version__ != "1.13.1":
     print(
-        "the script was tested at version 1.9.1 it might not work if torch version is different"
+        "the script was tested at version 1.13.1 it might not work if torch version is different"
     )
 
 SEED = 1234
