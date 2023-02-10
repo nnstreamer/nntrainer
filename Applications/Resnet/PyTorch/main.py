@@ -16,6 +16,22 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor, transforms
 
+import sys
+import os
+
+# get pyutils path using relative path
+def get_util_path():
+    current_path = os.path.abspath(os.path.dirname(__file__))
+    parent_path = os.path.abspath(os.path.dirname(current_path))
+    target_path = os.path.abspath(os.path.dirname(parent_path))
+    return os.path.dirname(target_path) + '/tools/pyutils/'
+
+# add pyutils path to sys.path
+sys.path.append(get_util_path())
+print(get_util_path())
+from torchconverter import save_bin
+
+
 DEVICE = "cpu"
 print(f"Using {DEVICE} device")
 print(f"PyTorch version: {torch.__version__}")
@@ -35,25 +51,27 @@ class BasicBlock(nn.Module):
     def __init__(self, in_planes, planes, stride=1):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(
-            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
+            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=True
         )
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=True)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(
-                    in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False
+                    in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=True
                 ),
-                nn.BatchNorm2d(self.expansion * planes),
+                # nn.BatchNorm2d(self.expansion * planes),
             )
+        
+        self.bn2 = nn.BatchNorm2d(planes)
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+        out = self.conv2(out)
         out += self.shortcut(x)
+        out = self.bn2(out)
         out = F.relu(out)
         return out
 
@@ -63,7 +81,7 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_planes = 64
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=True)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
@@ -141,3 +159,5 @@ if __name__ == "__main__":
         train(trainloader, model, loss_fn, optimizer)
 
     print("Training Done!")
+
+    save_bin(model, 'pretrained_resnet18')
