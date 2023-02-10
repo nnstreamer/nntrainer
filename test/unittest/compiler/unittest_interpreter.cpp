@@ -129,6 +129,26 @@ auto fc1 = LayerRepresentation("fully_connected", {"name=fc1", "unit=2"});
 auto flatten = LayerRepresentation("flatten", {"name=flat"});
 
 /**
+ * @brief make ini test case from given parameter
+ */
+static std::tuple<nntrainer::GraphRepresentation, const char *,
+                  std::shared_ptr<nntrainer::GraphInterpreter>>
+mkTc(nntrainer::GraphRepresentation graph, const char *file,
+     std::shared_ptr<nntrainer::GraphInterpreter> interpreter) {
+  return std::make_tuple(graph, file, interpreter);
+}
+
+// clang-format off
+GTEST_PARAMETER_TEST(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
+                        ::testing::Values(
+  mkTc(makeGraph({fc0, flatten}), "simple_fc.ini", ini_interpreter),
+  mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)
+));
+// clang-format on
+
+#ifdef ENABLE_TFLITE_INTERPRETER
+
+/**
  * TODO: update tflite interpreter after the change of semantics that tensors
  * are different between input and output of a layer but the underlying data
  * is same. Once the interpreter is updated, this test can be enabled.
@@ -277,24 +297,6 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
               << "failed, reason: " << strerror(errno);
   }
 }
-
-/**
- * @brief make ini test case from given parameter
- */
-static std::tuple<nntrainer::GraphRepresentation, const char *,
-                  std::shared_ptr<nntrainer::GraphInterpreter>>
-mkTc(nntrainer::GraphRepresentation graph, const char *file,
-     std::shared_ptr<nntrainer::GraphInterpreter> interpreter) {
-  return std::make_tuple(graph, file, interpreter);
-}
-
-// clang-format off
-GTEST_PARAMETER_TEST(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
-                        ::testing::Values(
-  mkTc(makeGraph({fc0, flatten}), "simple_fc.ini", ini_interpreter),
-  mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)
-));
-// clang-format on
 
 /**
  * @brief Fully Connected Layer weights transpose(NCHW -> NHWC) unittest
@@ -719,3 +721,5 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
               << "failed, reason: " << strerror(errno);
   }
 }
+
+#endif
