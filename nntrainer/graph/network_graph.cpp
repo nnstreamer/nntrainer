@@ -12,6 +12,7 @@
  * @todo    Support multi-input graph.
  */
 
+#include "graph_node.h"
 #include "tensor.h"
 #include <cmath>
 #include <stdexcept>
@@ -848,6 +849,65 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   return outputs;
 }
+
+#ifdef ENABLE_TEST
+
+std::map<std::string, std::vector<unsigned int>>
+NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
+  const GraphNode &gnode = *lnode.get();
+  auto init_context = lnode->getInitContext();
+  auto out_specs = init_context.getOutSpecs();
+  auto weight_specs = init_context.getWeightsSpec();
+  auto tensor_specs = init_context.getTensorsSpec();
+
+  std::map<std::string, std::vector<unsigned int>> exec_orders;
+
+  for (auto &spec : out_specs) {
+    const auto name = lnode->getName() + ":" + spec.variable_spec.name;
+    auto orders = tensor_manager->getTensorExecutionOrders(name, false);
+    exec_orders.insert({name, orders});
+    try {
+      auto orders_grad =
+        tensor_manager->getTensorExecutionOrders(name + ":grad", false);
+      exec_orders.insert({name + ":grad", orders_grad});
+    } catch (const std::exception &e) {
+      ml_logi("Cannot find grad tensor for %s:grad", name.c_str());
+      continue;
+    }
+  }
+
+  for (auto &spec : weight_specs) {
+    const auto name = std::get<const std::string>(spec);
+    auto orders = tensor_manager->getTensorExecutionOrders(name, true);
+    exec_orders.insert({name, orders});
+    try {
+      auto orders_grad =
+        tensor_manager->getTensorExecutionOrders(name + ":grad", false);
+      exec_orders.insert({name + ":grad", orders_grad});
+    } catch (const std::exception &e) {
+      ml_logi("Cannot find grad tensor for %s:grad", name.c_str());
+      continue;
+    }
+  }
+
+  for (auto &spec : tensor_specs) {
+    const auto name = std::get<const std::string>(spec);
+    auto orders = tensor_manager->getTensorExecutionOrders(name, false);
+    exec_orders.insert({name, orders});
+    try {
+      auto orders_grad =
+        tensor_manager->getTensorExecutionOrders(name + ":grad", false);
+      exec_orders.insert({name + ":grad", orders_grad});
+    } catch (const std::exception &e) {
+      ml_logi("Cannot find grad tensor for %s:grad", name.c_str());
+      continue;
+    }
+  }
+
+  return exec_orders;
+}
+
+#endif // ENABLE_TEST
 
 int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {

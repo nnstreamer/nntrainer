@@ -10,6 +10,7 @@
  * @brief  This is the layer node for network graph
  */
 
+#include "layer_context.h"
 #include <algorithm>
 #include <cmath>
 #include <iterator>
@@ -563,11 +564,16 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     /// label. This should be substituted to the proper label management
     out_info.push_back(true);
   }
-  auto init_context = InitLayerContext(actual_input_dims, out_info,
-                                       executeInPlace() != InPlace::NONE,
-                                       getName(), scope, max_norm);
 
-  layer->finalize(init_context);
+  auto context = InitLayerContext(actual_input_dims, out_info,
+                                  executeInPlace() != InPlace::NONE, getName(),
+                                  scope, max_norm);
+
+  layer->finalize(context);
+
+#ifdef ENABLE_TEST
+  init_context = std::make_unique<InitLayerContext>(context);
+#endif // ENABLE_TEST
 
 #ifdef PROFILE
   auto profile_name = [this](const char *suffix) {
@@ -581,7 +587,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   PROFILE_TIME_REGISTER_EVENT(calc_grad_event_key,
                               profile_name(CALC_GRAD_SUFFIX));
 
-  return init_context;
+  return context;
 }
 
 /**
