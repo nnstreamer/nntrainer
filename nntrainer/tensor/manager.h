@@ -246,6 +246,16 @@ public:
   getWeights(const std::function<bool(const Weight *)> &condition = nullptr);
 
   /**
+   * @brief Get the tensor execution orders
+   *
+   * @param name name of the tensor
+   * @param is_weight check if this should be queried in weight pool
+   * @return std::vector<unsigned int>
+   */
+  std::vector<unsigned int> getTensorExecutionOrders(const std::string &name,
+                                                     bool is_weight);
+
+  /**
    * @brief Get the Min Max of a tensor execution order
    *
    * @param name name of the tensor
