@@ -596,6 +596,13 @@ Manager::requestInputs(const GraphNode &node,
   return ret;
 }
 
+std::vector<unsigned int>
+Manager::getTensorExecutionOrders(const std::string &name, bool is_weight) {
+
+  return is_weight ? weight_pool.getExecutionOrder(name)
+                   : tensor_pool.getExecutionOrder(name);
+}
+
 std::pair<unsigned int, unsigned int>
 Manager::getMinMaxTensorExecutionOrder(const std::string &name,
                                        bool is_weight) {

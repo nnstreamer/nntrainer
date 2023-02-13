@@ -505,7 +505,7 @@ public:
    * @param idx Identifier of the weight
    * @return const std::string &Name of the weight
    */
-  const std::string &getWeightName(unsigned int idx) {
+  const std::string &getWeightName(unsigned int idx) override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getWeightName(idx);
@@ -660,7 +660,7 @@ public:
    */
   RunLayerContext &getRunContext() {
     NNTR_THROW_IF(!run_context, std::runtime_error)
-      << __func__ << " layer needs to be finalized first!";
+      << __func__ << " layer needs to be configured first!";
     return *run_context;
   }
 
@@ -671,9 +671,33 @@ public:
    */
   const RunLayerContext &getRunContext() const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
-      << __func__ << " layer needs to be finalized first!";
+      << __func__ << " layer needs to be configured first!";
     return *run_context;
   }
+
+#ifdef ENABLE_TEST
+  /**
+   * @brief   Get init layer context
+   *
+   * @retval  init layer context
+   */
+  InitLayerContext &getInitContext() {
+    NNTR_THROW_IF(!init_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return *init_context;
+  }
+
+  /**
+   * @brief   Get init layer context
+   *
+   * @retval  init layer context
+   */
+  const InitLayerContext &getInitContext() const {
+    NNTR_THROW_IF(!init_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return *init_context;
+  }
+#endif // ENABLE_TEST
 
   /**
    * @brief   check if layer is finalized
@@ -803,6 +827,15 @@ private:
 
   std::vector<std::unique_ptr<Connection>>
     output_connections; /**< output layer names */
+
+#ifdef ENABLE_TEST
+  /**
+   * @brief   Init context which is stored for debugging issue
+   *
+   * @note init context is stored only for testing purpose
+   */
+  std::unique_ptr<InitLayerContext> init_context;
+#endif // ENABLE_TEST
 
   std::unique_ptr<RunLayerContext>
     run_context; /**< context required for running/execution of the layer. This
