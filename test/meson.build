@@ -36,6 +36,7 @@ if enable_capi
 endif
 
 if enable_ccapi
+  subdir('input_gen')
   subdir('ccapi')
   subdir('unittest')
 endif
