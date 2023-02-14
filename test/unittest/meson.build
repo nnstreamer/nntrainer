@@ -17,6 +17,7 @@ unzip_target = [
   ['unittest_models_v2.tar.gz', 'unittest_models'],
   ['unittest_models_v3.tar.gz', 'unittest_models'],
   ['unittest_models_multiout.tar.gz', 'unittest_models'],
+  ['unittest_models_exeorder.tar.gz', 'unittest_models'],
 ]
 
 src_path = meson.source_root() / 'packaging'
