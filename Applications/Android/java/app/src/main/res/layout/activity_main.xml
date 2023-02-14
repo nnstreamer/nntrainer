@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" >
+
+        <LinearLayout
+            android:padding="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" >
+
+            <LinearLayout
+                android:padding="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" >
+
+                <TextView
+                    android:layout_gravity="center"
+                    android:text="Batch size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <NumberPicker
+                    android:id="@+id/batch_size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="batch_size" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:padding="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" >
+
+                <TextView
+                    android:layout_gravity="center"
+                    android:text="data split"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <NumberPicker
+                    android:id="@+id/data_split"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="data_split" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:padding="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" >
+
+                <TextView
+                    android:layout_gravity="center"
+                    android:text="epoch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <NumberPicker
+                    android:id="@+id/epoch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="epoch" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    <Button
+        android:layout_gravity="center"
+        android:id="@+id/train_resnet"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="train resnet" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
