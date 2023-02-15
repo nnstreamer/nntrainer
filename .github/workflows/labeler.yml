@@ -1,0 +1,50 @@
+# This workflow will triage pull requests and apply a label based on the
+# paths that are modified in the pull request.
+#
+# To use this workflow, you will need to set up a .github/labeler.yml
+# file with configuration.  For more information, see:
+# https://github.com/actions/labeler
+
+name: Label Need Review (on pr)
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get number of approved reviews
+        run: |
+          reviews=$(curl -s -H "Accept: application/vnd.github.black-cat-preview+json" \
+          https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+          | jq '[ .[] | select(.state=="APPROVED") ] | length')
+          echo "Number of approved reviews: $reviews"
+        id: review_count
+
+      - name: Apply label if needed
+        if: ${{ steps.review_count.outputs.review_count < 3 && !contains(github.event.pull_request.labels.*.name, 'Need Review') }}
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ["Need Review"]
+            })
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove label if needed
+        if: ${{ steps.review_count.outputs.review_count >= 3 && contains(github.event.pull_request.labels.*.name, 'Need Review') }}
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              name : "Need Review"
+            })
+          token: ${{ secrets.GITHUB_TOKEN }}
