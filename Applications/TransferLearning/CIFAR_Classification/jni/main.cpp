@@ -40,6 +40,7 @@
 #include <time.h>
 
 #include <app_context.h>
+#include <model.h>
 #include <neuralnet.h>
 #include <tensor.h>
 
@@ -454,7 +455,8 @@ int main(int argc, char *argv[]) {
     nntrainer::Tensor X;
     try {
       X = nntrainer::Tensor({featureVector});
-      NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply(stepFunction);
+      ml::train::RunStats stat;
+      NN.forwarding(stat, {MAKE_SHARED_TENSOR(X)})[0]->apply(stepFunction);
     } catch (...) {
       std::cerr << "Error while forwarding the model" << std::endl;
       return 1;

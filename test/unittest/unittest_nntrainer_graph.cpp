@@ -104,7 +104,8 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
 
-  NN.forwarding({MAKE_SHARED_TENSOR(input)});
+  ml::train::RunStats stat;
+  NN.forwarding(stat, {MAKE_SHARED_TENSOR(input)});
 
   nntrainer::Tensor output(batch, 1, 1, 10);
 
@@ -113,8 +114,9 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   for (int i = 0; i < batch; ++i)
     output.setValue(i, 0, 0, 3, 1.0);
 
-  NN.forwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)});
-  NN.backwarding(1);
+  NN.forwarding(stat, {MAKE_SHARED_TENSOR(input)},
+                {MAKE_SHARED_TENSOR(output)});
+  NN.backwarding(1, stat);
 }
 
 static nntrainer::IniSection nw_base("model", "Type = NeuralNetwork | "

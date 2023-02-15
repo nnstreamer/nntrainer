@@ -64,32 +64,15 @@
 
 namespace nntrainer {
 
-NeuralNetwork::NeuralNetwork() :
-  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead()),
-  load_path(std::string()),
-  epoch_idx(0),
-  iter(0),
-  loss(0.0f),
-  data_buffers({nullptr, nullptr, nullptr}),
-  initialized(false),
-  compiled(false),
-  loadedFromConfig(false),
-  training(ml::train::RunStats()),
-  validation(ml::train::RunStats()),
-  testing(ml::train::RunStats()) {
-  app_context = AppContext(AppContext::Global());
-}
+NeuralNetwork::NeuralNetwork() : NeuralNetwork(AppContext::Global()) {}
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
   model_flex_props(
     props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
     props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead()),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::StopCallbackCheckpoint()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -98,10 +81,11 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  app_context(app_context_),
   training(ml::train::RunStats()),
   validation(ml::train::RunStats()),
-  testing(ml::train::RunStats()) {}
+  testing(ml::train::RunStats()),
+  stop_cb_checkpoint(props::StopCallbackCheckpoint()),
+  app_context(app_context_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -271,15 +255,18 @@ NeuralNetwork::~NeuralNetwork() { deallocate(); }
  * @brief     forward propagation using layers object which has layer
  */
 sharedConstTensors
-NeuralNetwork::forwarding(bool training,
-                          std::function<bool(void *userdata)> stop_cb) {
-  return model_graph.forwarding(training, stop_cb);
+NeuralNetwork::forwarding(ml::train::RunStats &stat, bool training,
+                          std::function<bool(void *userdata)> stop_cb,
+                          void *user_data) {
+  return model_graph.forwarding(stat, training, stop_cb, stop_cb_checkpoint,
+                                user_data);
 }
 
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
+sharedConstTensors NeuralNetwork::forwarding(ml::train::RunStats &stat,
+                                             sharedConstTensors input,
                                              sharedConstTensors label,
                                              bool training) {
   auto current_batch = model_graph.getBatchSize();
@@ -293,7 +280,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 
   model_graph.setInputsLabels(input, label);
 
-  return forwarding(training);
+  return forwarding(stat, training);
 }
 
 /**
@@ -301,15 +288,17 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(int iteration,
-                                std::function<bool(void *userdata)> stop_cb) {
+void NeuralNetwork::backwarding(int iteration, ml::train::RunStats &stat,
+                                std::function<bool(void *userdata)> stop_cb,
+                                void *user_data) {
 
 #ifdef DEBUG
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
   std::function<void(std::shared_ptr<LayerNode>, int)> backwarding_op =
-    [this, stop_cb](std::shared_ptr<LayerNode> node, int iteration) -> void {
+    [this, stop_cb, user_data](std::shared_ptr<LayerNode> node,
+                               int iteration) -> void {
     /**
      * Do not change this order:
      * 1. calcGradient
@@ -349,10 +338,6 @@ void NeuralNetwork::backwarding(int iteration,
     model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
     PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
 
-    if (stop_cb(nullptr)) {
-      return;
-    }
-
     if (node->needsCalcDerivative())
       node->calcDerivative();
 
@@ -381,8 +366,8 @@ void NeuralNetwork::backwarding(int iteration,
     opt_->applyGradient(opt_context);
   };
 
-  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op,
-                          stop_cb);
+  model_graph.backwarding(iteration, stat, backwarding_op, apply_grad_clip_op,
+                          stop_cb, stop_cb_checkpoint, user_data);
 }
 
 void NeuralNetwork::save(const std::string &file_path,
@@ -609,11 +594,12 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
     throw std::invalid_argument("Input validation failed.");
 
   allocate(ExecutionMode::INFERENCE);
+  validation.init();
 
   int nn_foward;
   PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
   PROFILE_TIME_START(nn_foward);
-  out = forwarding(X, label, false);
+  out = forwarding(validation, X, label, false);
   PROFILE_TIME_END(nn_foward);
 
   if (free_mem)
@@ -689,7 +675,7 @@ int NeuralNetwork::deallocate() {
 }
 
 int NeuralNetwork::train(const std::vector<std::string> &values,
-                         std::function<bool(void *)> stop_cb) {
+                         std::function<bool(void *)> stop_cb, void *user_data) {
   int status = ML_ERROR_NONE;
 
   if (data_buffers[static_cast<int>(DatasetModeType::MODE_TRAIN)] == nullptr) {
@@ -711,7 +697,7 @@ int NeuralNetwork::train(const std::vector<std::string> &values,
   status = allocate(ExecutionMode::TRAIN);
   NN_RETURN_STATUS();
 
-  status = train_run(stop_cb);
+  status = train_run(stop_cb, user_data);
   NN_RETURN_STATUS();
 
   /**
@@ -726,7 +712,8 @@ int NeuralNetwork::train(const std::vector<std::string> &values,
 /**
  * @brief     Run NeuralNetwork train with callback function by user
  */
-int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
+int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
+                             void *user_data) {
   int status = ML_ERROR_NONE;
 
   if (!std::get<props::ContinueTrain>(model_flex_props)) {
@@ -750,6 +737,9 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  stop_cb_checkpoint =
+    std::get<props::StopCallbackCheckpoint>(model_flex_props);
+
   /**
    * @brief run a single epoch with given callback, @a auto is used instead of
    * std::function for performance measure
@@ -760,12 +750,14 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
    * @param on_epoch_end function that will recieve reference to stat,
    * buffer which will be called on the epoch end
    */
-  auto run_epoch = [this, &in_dims, &label_dims, &outputs, batch_size](
-                     DataBuffer *buffer, bool shuffle,
-                     auto &&on_iteration_fetch, auto &&on_iteration_update_stat,
-                     auto &&on_epoch_end, ml::train::RunStats &stat) {
+  auto run_epoch = [this, &in_dims, &label_dims, &outputs, batch_size, stop_cb,
+                    user_data](DataBuffer *buffer, bool shuffle,
+                               auto &&on_iteration_fetch,
+                               auto &&on_iteration_update_stat,
+                               auto &&on_epoch_end, ml::train::RunStats &stat) {
     /// @todo managing metrics must be handled here as well!! for now it is
     /// handled in individual callbacks
+    stat.init();
     std::future<std::shared_ptr<IterationQueue>> future_iq =
       buffer->startFetchWorker(in_dims, label_dims, shuffle);
     while (true) {
@@ -783,71 +775,72 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
       auto const &inputs = iteration.getInputsRef();
       model_graph.setInputsLabels(inputs, labels);
 
-      on_iteration_fetch(stat, *buffer);
-      on_iteration_update_stat(stat, outputs, labels);
+      on_iteration_fetch(stat);
+      if (stat.stop_checkpoint != ml::train::StopCallbackCheckpointType::NONE) {
+        return;
+      }
+      on_iteration_update_stat(stat, outputs, labels, *buffer);
+      if (enum_class_logical_and(
+            stop_cb_checkpoint,
+            ml::train::StopCallbackCheckpointType::END_OF_ITERATION)) {
+        if (stop_cb(user_data)) {
+          stat.stop_checkpoint =
+            ml::train::StopCallbackCheckpointType::END_OF_ITERATION;
+          return;
+        }
+      }
     }
     future_iq.get();
-    on_epoch_end(stat, *buffer);
+    on_epoch_end(stat);
 
     if (stat.num_iterations == 0) {
       throw std::runtime_error("No data came while buffer ran");
     }
   };
 
-  auto train_for_iteration = [this, stop_cb](ml::train::RunStats &stat,
-                                             DataBuffer &buffer) {
-    forwarding(true, stop_cb);
-    backwarding(iter++, stop_cb);
+  auto train_for_iteration = [this, stop_cb,
+                              user_data](ml::train::RunStats &stat) {
+    forwarding(stat, true, stop_cb, user_data);
+    backwarding(iter++, stat, stop_cb, user_data);
 
     // To avoid unconsidered memory leak, we need to clear the cache
     model_graph.flushCache();
+  };
 
-    if (!stop_cb(nullptr)) {
-      std::cout << "#" << epoch_idx << "/" << getEpochs();
-      ml_logi("# %d / %d", epoch_idx, getEpochs());
+  auto update_train_stat =
+    [this](ml::train::RunStats &stat, const std::vector<Tensor> &outputs,
+           const std::vector<Tensor> &labels, DataBuffer &buffer) {
       auto loss = getLoss();
       buffer.displayProgress(stat.num_iterations, loss);
-    }
-  };
+      stat.loss += loss;
+      stat.num_iterations++;
+      std::cout << "iteration: " << stat.num_iterations;
+      ml_logi("iteration: %d", stat.num_iterations);
+    };
 
-  auto update_train_stat = [this](ml::train::RunStats &stat,
-                                  const std::vector<Tensor> &outputs,
-                                  const std::vector<Tensor> &labels) {
-    stat.loss += getLoss();
-    stat.num_iterations++;
-  };
-
-  auto train_epoch_end = [this, stop_cb](ml::train::RunStats &stat,
-                                         DataBuffer &buffer) {
+  auto train_epoch_end = [this, stop_cb, user_data](ml::train::RunStats &stat) {
+    ++stat.epoch;
     stat.loss /= static_cast<float>(stat.num_iterations);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
-    if (!stop_cb(nullptr)) {
-      if (!save_path.empty()) {
-        save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-      }
-
-      std::cout << "#" << epoch_idx << "/" << getEpochs()
-                << " - Training Loss: " << stat.loss;
-      ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(),
-              stat.loss);
-      ml_logd("[NNTrainer] Training epoch %d / %d finished successfully.",
-              epoch_idx, getEpochs());
-    } else {
-      ml_logd("[NNTrainer] Training stopped by stop callback function during "
-              "epoch %d.",
-              epoch_idx);
+    if (!save_path.empty()) {
+      save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     }
+
+    std::cout << "#" << epoch_idx << "/" << getEpochs()
+              << " - Training Loss: " << stat.loss;
+    ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(), stat.loss);
+    ml_logd("[NNTrainer] Training epoch %d / %d finished successfully.",
+            epoch_idx, getEpochs());
   };
 
-  auto eval_for_iteration = [this, batch_size](ml::train::RunStats &stat,
-                                               DataBuffer &buffer) {
-    forwarding(false);
+  auto eval_for_iteration = [this, batch_size](ml::train::RunStats &stat) {
+    forwarding(stat, false);
   };
 
   auto update_eval_stat =
-    [batch_size, &update_train_stat](ml::train::RunStats &stat,
-                                     const std::vector<Tensor> &outputs,
-                                     const std::vector<Tensor> &labels) {
+    [batch_size, &update_train_stat](
+      ml::train::RunStats &stat, const std::vector<Tensor> &outputs,
+      const std::vector<Tensor> &labels, DataBuffer &buffer) {
       auto model_out = outputs[0].argmax();
       auto label_out = labels[0].argmax();
 
@@ -856,49 +849,72 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
           stat.num_correct_predictions++;
       }
 
-      update_train_stat(stat, outputs, labels);
+      update_train_stat(stat, outputs, labels, buffer);
     };
 
-  auto eval_epoch_end =
-    [this, batch_size, max_acc = 0.0f,
-     min_loss = std::numeric_limits<float>::max()](ml::train::RunStats &stat,
-                                                   DataBuffer &buffer) mutable {
-      stat.loss /= static_cast<float>(stat.num_iterations);
-      stat.accuracy = stat.num_correct_predictions /
-                      static_cast<float>(stat.num_iterations * batch_size) *
-                      100.0f;
+  auto eval_epoch_end = [this, batch_size, max_acc = 0.0f,
+                         min_loss = std::numeric_limits<float>::max()](
+                          ml::train::RunStats &stat) mutable {
+    ++stat.epoch;
+    stat.loss /= static_cast<float>(stat.num_iterations);
+    stat.accuracy = stat.num_correct_predictions /
+                    static_cast<float>(stat.num_iterations * batch_size) *
+                    100.0f;
 
-      if (stat.accuracy > max_acc ||
-          (stat.accuracy == max_acc && stat.loss < min_loss)) {
-        max_acc = stat.accuracy;
-        /// @note this is not actually 'the' min loss for whole time but records
-        /// when data change
-        min_loss = stat.loss;
-        auto &save_best_path = std::get<props::SaveBestPath>(model_flex_props);
-        if (!save_best_path.empty()) {
-          save(save_best_path);
-        }
+    if (stat.accuracy > max_acc ||
+        (stat.accuracy == max_acc && stat.loss < min_loss)) {
+      max_acc = stat.accuracy;
+      /// @note this is not actually 'the' min loss for whole time but records
+      /// when data change
+      min_loss = stat.loss;
+      auto &save_best_path = std::get<props::SaveBestPath>(model_flex_props);
+      if (!save_best_path.empty()) {
+        save(save_best_path);
       }
-      std::cout << " >> [ Accuracy: " << stat.accuracy
-                << "% - Validation Loss : " << stat.loss << " ]";
-      ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
-              stat.loss);
-    };
+    }
+    std::cout << " >> [ Accuracy: " << stat.accuracy
+              << "% - Validation Loss : " << stat.loss << " ]";
+    ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
+            stat.loss);
+  };
 
   PROFILE_MEM_ANNOTATE("TRAIN START");
   auto epochs = getEpochs();
   ml_logd("[NNTrainer] Starts training. Current epoch: %d. Total epochs: %d.",
           epoch_idx + 1, getEpochs());
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
-    if (stop_cb(nullptr)) {
-      --epoch_idx;
-      break;
-    }
     run_epoch(train_buffer.get(), true, train_for_iteration, update_train_stat,
               train_epoch_end, training);
+    if (training.stop_checkpoint !=
+        ml::train::StopCallbackCheckpointType::NONE) {
+      break;
+    }
+    if (enum_class_logical_and(
+          stop_cb_checkpoint,
+          ml::train::StopCallbackCheckpointType::END_OF_TRAIN_EPOCH)) {
+      if (stop_cb(user_data)) {
+        training.stop_checkpoint =
+          ml::train::StopCallbackCheckpointType::END_OF_TRAIN_EPOCH;
+        break;
+      }
+    }
+
     if (valid_buffer) {
       run_epoch(valid_buffer.get(), false, eval_for_iteration, update_eval_stat,
                 eval_epoch_end, validation);
+      if (validation.stop_checkpoint !=
+          ml::train::StopCallbackCheckpointType::NONE) {
+        break;
+      }
+      if (enum_class_logical_and(
+            stop_cb_checkpoint,
+            ml::train::StopCallbackCheckpointType::END_OF_VALIDATION_EPOCH)) {
+        if (stop_cb(user_data)) {
+          validation.stop_checkpoint =
+            ml::train::StopCallbackCheckpointType::END_OF_VALIDATION_EPOCH;
+          break;
+        }
+      }
     }
     std::cout << '\n';
   }

@@ -344,10 +344,21 @@ void NetworkGraph::applyGradients(
   }
 }
 
-sharedConstTensors
-NetworkGraph::forwarding(bool training,
-                         std::function<bool(void *userdata)> stop_cb) {
-  for (auto iter = cbegin(); iter != cend() && !stop_cb(nullptr); iter++) {
+sharedConstTensors NetworkGraph::forwarding(
+  ml::train::RunStats &stat, bool training,
+  std::function<bool(void *userdata)> stop_cb,
+  ml::train::StopCallbackCheckpointType stop_cb_checkpoint, void *user_data) {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    if (enum_class_logical_and(
+          stop_cb_checkpoint,
+          ml::train::StopCallbackCheckpointType::EVERY_FORWARDING_LAYER)) {
+      if (stop_cb(user_data)) {
+        stat.stop_checkpoint =
+          ml::train::StopCallbackCheckpointType::EVERY_FORWARDING_LAYER;
+        break;
+      }
+    }
+
     auto const &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + ln->getName());
@@ -372,10 +383,12 @@ NetworkGraph::forwarding(bool training,
 }
 
 void NetworkGraph::backwarding(
-  int iteration,
+  int iteration, ml::train::RunStats &stat,
   std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
   std::function<void(Weight &, int)> &apply_grad_clip_op,
-  std::function<bool(void *userdata)> stop_cb) const {
+  std::function<bool(void *userdata)> stop_cb,
+  ml::train::StopCallbackCheckpointType stop_cb_checkpoint,
+  void *user_data) const {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -393,7 +406,16 @@ void NetworkGraph::backwarding(
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  for (auto iter = iter_begin; iter != iter_end && !stop_cb(nullptr); iter++) {
+  for (auto iter = iter_begin; iter != iter_end; iter++) {
+    if (enum_class_logical_and(
+          stop_cb_checkpoint,
+          ml::train::StopCallbackCheckpointType::EVERY_BACKWARDING_LAYER)) {
+      if (stop_cb(user_data)) {
+        stat.stop_checkpoint =
+          ml::train::StopCallbackCheckpointType::EVERY_BACKWARDING_LAYER;
+        return;
+      }
+    }
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);

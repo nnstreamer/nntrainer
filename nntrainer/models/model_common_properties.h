@@ -14,6 +14,7 @@
 #define __MODEL_COMMON_PROPERTIES_H__
 
 #include <base_properties.h>
+#include <model.h>
 
 #ifdef __cplusplus
 namespace nntrainer::props {
@@ -177,6 +178,44 @@ public:
    * @param value value to set, defaults to current directory
    */
   MemorySwapLookahead(const unsigned int &value = 0);
+};
+
+/**
+ * @brief Enumeration of return attention weight
+ */
+struct StopCallbackCheckpointInfo {
+  using Enum = ml::train::StopCallbackCheckpointType;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::NONE,
+    Enum::EVERY_FORWARDING_LAYER,
+    Enum::EVERY_BACKWARDING_LAYER,
+    Enum::END_OF_ITERATION,
+    Enum::END_OF_TRAIN_EPOCH,
+    Enum::END_OF_VALIDATION_EPOCH};
+
+  static constexpr const char *EnumStr[] = {"none",
+                                            "every_forwarding_layer",
+                                            "every_backwarding_layer",
+                                            "end_of_iteration",
+                                            "end_of_train_epoch",
+                                            "end_of_validation_epoch"};
+};
+
+/**
+ * @brief StopCallbackCheckpoint, return attention weight
+ */
+class StopCallbackCheckpoint : public EnumProperty<StopCallbackCheckpointInfo> {
+public:
+  static constexpr const char *key =
+    "stop_callback_checkpoint";         /**< unique key to access */
+  using prop_tag = enum_class_prop_tag; /**< property type */
+
+  /**
+   * @brief Construct a new StopCallbackCheckpoint object
+   *
+   */
+  StopCallbackCheckpoint(StopCallbackCheckpointInfo::Enum value =
+                           StopCallbackCheckpointInfo::Enum::NONE);
 };
 
 } // namespace nntrainer::props

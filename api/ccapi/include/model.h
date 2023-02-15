@@ -70,20 +70,59 @@ for inference and training without any configurations*/
 };
 
 /**
+ * @brief     stop callback checkpoint options
+ */
+enum class StopCallbackCheckpointType {
+  NONE = 0,
+  EVERY_FORWARDING_LAYER = 1,
+  EVERY_BACKWARDING_LAYER = 1 << 1,
+  END_OF_ITERATION = 1 << 2,
+  END_OF_TRAIN_EPOCH = 1 << 3,
+  END_OF_VALIDATION_EPOCH = 1 << 4,
+};
+
+/**
  * @brief     Statistics from running or training a model
  */
 struct RunStats {
-  float accuracy;     /** accuracy of the model */
-  float loss;         /** loss of the model */
-  int num_iterations; /** number of iterations done on this stat */
+  unsigned int num_iterations; /** number of iterations done on this stat */
+  unsigned int epoch;
+  float loss; /** loss of the model */
   unsigned int
     num_correct_predictions; /** number of right sample on this run */
+  float accuracy;            /** accuracy of the model */
+  StopCallbackCheckpointType
+    stop_checkpoint; /** record in which point the stop callback returns true */
 
+  /**
+   * @brief     Constructor of RunStats
+   */
   RunStats() :
-    accuracy(0),
-    loss(0),
     num_iterations(0),
-    num_correct_predictions(0) {}
+    epoch(0),
+    loss(0),
+    num_correct_predictions(0),
+    accuracy(0),
+    stop_checkpoint(StopCallbackCheckpointType::NONE) {}
+
+  /**
+   * @brief     initialize statistics except epoch
+   */
+  void init() {
+    num_iterations = 0;
+    loss = 0;
+    num_correct_predictions = 0;
+    accuracy = 0;
+    stop_checkpoint = StopCallbackCheckpointType::NONE;
+  }
+
+  /**
+   * @brief     clear statistics
+   */
+  void clear() {
+    epoch = 0;
+    init();
+  }
 };
 
 /**
@@ -165,15 +204,16 @@ public:
    * @a user_data user_data to be used in stop_cb
    * @a bool true if stop the training
    * ~~~~~
+   * @param[in] user_data user data
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
   virtual int train(const std::vector<std::string> &values = {},
-                    std::function<bool(void *)> stop_cb = [](void *user_data) {
-                      return false;
-                    }) = 0;
+                    std::function<bool(void *)> stop_cb =
+                      [](void *user_data) { return false; },
+                    void *user_data = nullptr) = 0;
 
   /**
    * @brief     Run Model train with callback function by user

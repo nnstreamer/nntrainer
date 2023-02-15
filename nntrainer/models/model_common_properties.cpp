@@ -37,4 +37,9 @@ MemorySwapLookahead::MemorySwapLookahead(const unsigned int &value) {
   set(value);
 }
 
+StopCallbackCheckpoint::StopCallbackCheckpoint(
+  StopCallbackCheckpointInfo::Enum value) {
+  set(value);
+};
+
 } // namespace nntrainer::props

@@ -205,27 +205,49 @@ public:
 
   /**
    * @brief     Forward Propagation of the neural network
+   * @param[in] stat RunStats object to store in which state the forwarding was
+   * stopped
+   * @param[in] training true if forwarding is on training
+   * @param[in] stop_cb callback function to decide stop training or not
+   * ~~~~~
+   * @a user_data user_data to be used in stop_cb
+   * @a bool true if stop the training
+   * ~~~~~
+   * @param[in] user_data user data
    */
-  sharedConstTensors forwarding(bool training = true,
-                                std::function<bool(void *userdata)> stop_cb =
-                                  [](void *user_data) { return false; });
+  sharedConstTensors forwarding(ml::train::RunStats &stat, bool training = true,
+                                std::function<bool(void *)> stop_cb =
+                                  [](void *) { return false; },
+                                void *user_data = nullptr);
 
   /**
    * @brief     Forward Propagation of the neural network
+   * @param[in] stat RunStats object to store in which state the forwarding was
+   * stopped
    * @param[in] input List of Input Tensors taken by the neural network
    * @param[in] label List of Label Tensors for the model
+   * @param[in] training true if forwarding is on training
    * @retval    List of Output Tensors
    */
-  sharedConstTensors forwarding(sharedConstTensors input,
+  sharedConstTensors forwarding(ml::train::RunStats &stat,
+                                sharedConstTensors input,
                                 sharedConstTensors label = {},
                                 bool training = true);
 
   /**
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
+   * @param[in] stop_cb callback function to decide stop training or not
+   * ~~~~~
+   * @a user_data user_data to be used in stop_cb
+   * @a bool true if stop the training
+   * ~~~~~
+   * @param[in] user_data user data
    */
-  void backwarding(int iteration, std::function<bool(void *userdata)> stop_cb =
-                                    [](void *user_data) { return false; });
+  void backwarding(int iteration, ml::train::RunStats &stat,
+                   std::function<bool(void *)> stop_cb =
+                     [](void *) { return false; },
+                   void *user_data = nullptr);
 
   /**
    * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
@@ -284,13 +306,14 @@ public:
    * @a user_data user_data to be used in stop_cb
    * @a bool true if stop the training
    * ~~~~~
+   * @param[in] user_data user data
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int train(const std::vector<std::string> &values = {},
-            std::function<bool(void *)> stop_cb = [](void *user_data) {
-              return false;
-            }) override;
+            std::function<bool(void *)> stop_cb =
+              [](void *user_data) { return false; },
+            void *user_data = nullptr) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -545,7 +568,8 @@ private:
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath,
                props::MemoryOptimization, props::MemorySwap,
-               props::MemorySwapPath, props::MemorySwapLookahead>;
+               props::MemorySwapPath, props::MemorySwapLookahead,
+               props::StopCallbackCheckpoint>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
@@ -585,9 +609,11 @@ private:
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
-  ml::train::RunStats validation; /** validation statistics of the model */
   ml::train::RunStats training;   /** training statistics of the model */
+  ml::train::RunStats validation; /** validation statistics of the model */
   ml::train::RunStats testing;    /** testing statistics of the model */
+
+  ml::train::StopCallbackCheckpointType stop_cb_checkpoint;
 
   AppContext app_context; /** Configurations bound to current app */
 
@@ -626,9 +652,9 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train_run(std::function<bool(void *)> stop_cb = [](void *) {
-    return false;
-  });
+  int train_run(std::function<bool(void *)> stop_cb =
+                  [](void *) { return false; },
+                void *user_data = nullptr);
 
   /**
    * @brief     Swap function for the class

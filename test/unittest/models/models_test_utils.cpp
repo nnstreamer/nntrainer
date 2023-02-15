@@ -163,9 +163,11 @@ public:
     auto shared_inputs = toSharedTensors(inputs);
     auto shared_labels = toSharedTensors(labels);
 
-    auto out = nn->forwarding(shared_inputs, shared_labels);
+    ml::train::RunStats stat;
+
+    auto out = nn->forwarding(stat, shared_inputs, shared_labels);
     verify(to_tensors(out), expected_outputs, " output");
-    nn->backwarding(iteration);
+    nn->backwarding(iteration, stat);
   }
 
 private:
@@ -363,6 +365,7 @@ void GraphWatcher::compareFor(const std::string &reference,
 
   auto data = prepareData(ref, label_shape);
   nntrainer::sharedConstTensors input;
+  ml::train::RunStats stat;
 
   for (unsigned int iteration = 0; iteration < iterations; ++iteration) {
     input = {MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
@@ -371,7 +374,7 @@ void GraphWatcher::compareFor(const std::string &reference,
 
     readIteration(ref);
 
-    nn->forwarding(input, label);
+    nn->forwarding(stat, input, label);
     for (unsigned int i = 0; i < loss_nodes.size(); ++i) {
       EXPECT_NEAR(expected_losses[i], loss_nodes[i].getLoss(),
                   nntrainer::Tensor::epsilon);
@@ -384,14 +387,14 @@ void GraphWatcher::compareFor(const std::string &reference,
     it->forward(iteration, true);
 
     if (loss_nodes.size()) {
-      nn->backwarding(iteration);
+      nn->backwarding(iteration, stat);
 
       for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
         if (it->needsCalcDerivative())
           it->backward(iteration, !optimize, !optimize);
       }
     } else {
-      EXPECT_THROW(nn->backwarding(iteration), std::runtime_error);
+      EXPECT_THROW(nn->backwarding(iteration, stat), std::runtime_error);
     }
   }
 
@@ -416,14 +419,16 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   label_tensor->setRandNormal();
   nntrainer::sharedConstTensors label = {label_tensor};
 
+  ml::train::RunStats stat;
+
   if (loss_nodes.size()) {
-    EXPECT_NO_THROW(nn->forwarding(input, label));
+    EXPECT_NO_THROW(nn->forwarding(stat, input, label));
   } else {
-    EXPECT_NO_THROW(nn->forwarding(input, {}));
+    EXPECT_NO_THROW(nn->forwarding(stat, input, {}));
   }
 
   if (loss_nodes.size()) {
-    EXPECT_NO_THROW(nn->backwarding(0));
+    EXPECT_NO_THROW(nn->backwarding(0, stat));
   }
 
   /**
@@ -464,14 +469,16 @@ void GraphWatcher::validateFor_V2() {
   auto shared_inputs = toSharedTensors(inputs);
   auto shared_labels = toSharedTensors(labels);
 
+  ml::train::RunStats stat;
+
   if (loss_nodes.size()) {
-    EXPECT_NO_THROW(nn->forwarding(shared_inputs, shared_labels));
+    EXPECT_NO_THROW(nn->forwarding(stat, shared_inputs, shared_labels));
   } else {
-    EXPECT_NO_THROW(nn->forwarding(shared_inputs, {}));
+    EXPECT_NO_THROW(nn->forwarding(stat, shared_inputs, {}));
   }
 
   if (loss_nodes.size()) {
-    EXPECT_NO_THROW(nn->backwarding(0));
+    EXPECT_NO_THROW(nn->backwarding(0, stat));
   }
 
   /**

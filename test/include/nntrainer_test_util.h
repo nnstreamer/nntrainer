@@ -33,6 +33,7 @@
 
 #include <compiler_fwd.h>
 #include <ini_wrapper.h>
+#include <model.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

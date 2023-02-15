@@ -25,6 +25,7 @@
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
+#include <model.h>
 
 namespace nntrainer {
 
@@ -170,9 +171,13 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(bool training = false,
-                                std::function<bool(void *userdata)> stop_cb =
-                                  [](void *user_data) { return false; });
+  sharedConstTensors
+  forwarding(ml::train::RunStats &stat, bool training = false,
+             std::function<bool(void *userdata)> stop_cb =
+               [](void *user_data) { return false; },
+             ml::train::StopCallbackCheckpointType stop_cb_checkpoint =
+               ml::train::StopCallbackCheckpointType::NONE,
+             void *user_data = nullptr);
 
   /**
    * @brief     backwarding the network graph
@@ -181,12 +186,14 @@ public:
    * @param[in] apply_grad_clip_op operation for applying the clip gradients
    */
   void backwarding(
-    int iteration,
+    int iteration, ml::train::RunStats &stat,
     std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
     std::function<void(Weight &, int)> &apply_grad_clip_op,
-    std::function<bool(void *userdata)> stop_cb = [](void *user_data) {
-      return false;
-    }) const;
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    ml::train::StopCallbackCheckpointType stop_cb_checkpoint =
+      ml::train::StopCallbackCheckpointType::NONE,
+    void *user_data = nullptr) const;
 
   /**
    * @brief     get begin iterator for the graph
