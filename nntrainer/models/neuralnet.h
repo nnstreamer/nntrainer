@@ -67,22 +67,6 @@ using NetType = ml::train::ModelType;
 class DataBuffer;
 using DatasetType = ml::train::DatasetType;
 using DatasetModeType = ml::train::DatasetModeType;
-/**
- * @brief     Statistics from running or training a model
- */
-struct RunStats {
-  float accuracy;     /** accuracy of the model */
-  float loss;         /** loss of the model */
-  int num_iterations; /** number of iterations done on this stat */
-  unsigned int
-    num_correct_predictions; /** number of right sample on this run */
-
-  RunStats() :
-    accuracy(0),
-    loss(0),
-    num_iterations(0),
-    num_correct_predictions(0) {}
-};
 
 /**
  * @class   NeuralNetwork Class
@@ -551,6 +535,11 @@ public:
   void exports(const ml::train::ExportMethods &method,
                const std::string file_path) override;
 
+  /**
+   * @brief     Get run statistics
+   */
+  std::vector<ml::train::RunStats> getStatistics() override;
+
 private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
@@ -596,9 +585,9 @@ private:
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
-  RunStats validation; /** validation statistics of the model */
-  RunStats training;   /** training statistics of the model */
-  RunStats testing;    /** testing statistics of the model */
+  ml::train::RunStats validation; /** validation statistics of the model */
+  ml::train::RunStats training;   /** training statistics of the model */
+  ml::train::RunStats testing;    /** testing statistics of the model */
 
   AppContext app_context; /** Configurations bound to current app */
 

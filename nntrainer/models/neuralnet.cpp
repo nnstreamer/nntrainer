@@ -77,7 +77,10 @@ NeuralNetwork::NeuralNetwork() :
   data_buffers({nullptr, nullptr, nullptr}),
   initialized(false),
   compiled(false),
-  loadedFromConfig(false) {
+  loadedFromConfig(false),
+  training(ml::train::RunStats()),
+  validation(ml::train::RunStats()),
+  testing(ml::train::RunStats()) {
   app_context = AppContext(AppContext::Global());
 }
 
@@ -95,7 +98,10 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  app_context(app_context_) {}
+  app_context(app_context_),
+  training(ml::train::RunStats()),
+  validation(ml::train::RunStats()),
+  testing(ml::train::RunStats()) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -757,10 +763,9 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
   auto run_epoch = [this, &in_dims, &label_dims, &outputs, batch_size](
                      DataBuffer *buffer, bool shuffle,
                      auto &&on_iteration_fetch, auto &&on_iteration_update_stat,
-                     auto &&on_epoch_end) {
+                     auto &&on_epoch_end, ml::train::RunStats &stat) {
     /// @todo managing metrics must be handled here as well!! for now it is
     /// handled in individual callbacks
-    RunStats stat;
     std::future<std::shared_ptr<IterationQueue>> future_iq =
       buffer->startFetchWorker(in_dims, label_dims, shuffle);
     while (true) {
@@ -787,11 +792,9 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
     if (stat.num_iterations == 0) {
       throw std::runtime_error("No data came while buffer ran");
     }
-
-    return stat;
   };
 
-  auto train_for_iteration = [this, stop_cb](RunStats &stat,
+  auto train_for_iteration = [this, stop_cb](ml::train::RunStats &stat,
                                              DataBuffer &buffer) {
     forwarding(true, stop_cb);
     backwarding(iter++, stop_cb);
@@ -807,14 +810,15 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
     }
   };
 
-  auto update_train_stat = [this](RunStats &stat,
+  auto update_train_stat = [this](ml::train::RunStats &stat,
                                   const std::vector<Tensor> &outputs,
                                   const std::vector<Tensor> &labels) {
     stat.loss += getLoss();
     stat.num_iterations++;
   };
 
-  auto train_epoch_end = [this, stop_cb](RunStats &stat, DataBuffer &buffer) {
+  auto train_epoch_end = [this, stop_cb](ml::train::RunStats &stat,
+                                         DataBuffer &buffer) {
     stat.loss /= static_cast<float>(stat.num_iterations);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!stop_cb(nullptr)) {
@@ -835,49 +839,51 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
     }
   };
 
-  auto eval_for_iteration = [this, batch_size](RunStats &stat,
+  auto eval_for_iteration = [this, batch_size](ml::train::RunStats &stat,
                                                DataBuffer &buffer) {
     forwarding(false);
   };
 
-  auto update_eval_stat = [batch_size, &update_train_stat](
-                            RunStats &stat, const std::vector<Tensor> &outputs,
-                            const std::vector<Tensor> &labels) {
-    auto model_out = outputs[0].argmax();
-    auto label_out = labels[0].argmax();
+  auto update_eval_stat =
+    [batch_size, &update_train_stat](ml::train::RunStats &stat,
+                                     const std::vector<Tensor> &outputs,
+                                     const std::vector<Tensor> &labels) {
+      auto model_out = outputs[0].argmax();
+      auto label_out = labels[0].argmax();
 
-    for (unsigned int b = 0; b < batch_size; b++) {
-      if (model_out[b] == label_out[b])
-        stat.num_correct_predictions++;
-    }
-
-    update_train_stat(stat, outputs, labels);
-  };
-
-  auto eval_epoch_end = [this, batch_size, max_acc = 0.0f,
-                         min_loss = std::numeric_limits<float>::max()](
-                          RunStats &stat, DataBuffer &buffer) mutable {
-    stat.loss /= static_cast<float>(stat.num_iterations);
-    stat.accuracy = stat.num_correct_predictions /
-                    static_cast<float>(stat.num_iterations * batch_size) *
-                    100.0f;
-
-    if (stat.accuracy > max_acc ||
-        (stat.accuracy == max_acc && stat.loss < min_loss)) {
-      max_acc = stat.accuracy;
-      /// @note this is not actually 'the' min loss for whole time but records
-      /// when data change
-      min_loss = stat.loss;
-      auto &save_best_path = std::get<props::SaveBestPath>(model_flex_props);
-      if (!save_best_path.empty()) {
-        save(save_best_path);
+      for (unsigned int b = 0; b < batch_size; b++) {
+        if (model_out[b] == label_out[b])
+          stat.num_correct_predictions++;
       }
-    }
-    std::cout << " >> [ Accuracy: " << stat.accuracy
-              << "% - Validation Loss : " << stat.loss << " ]";
-    ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
-            stat.loss);
-  };
+
+      update_train_stat(stat, outputs, labels);
+    };
+
+  auto eval_epoch_end =
+    [this, batch_size, max_acc = 0.0f,
+     min_loss = std::numeric_limits<float>::max()](ml::train::RunStats &stat,
+                                                   DataBuffer &buffer) mutable {
+      stat.loss /= static_cast<float>(stat.num_iterations);
+      stat.accuracy = stat.num_correct_predictions /
+                      static_cast<float>(stat.num_iterations * batch_size) *
+                      100.0f;
+
+      if (stat.accuracy > max_acc ||
+          (stat.accuracy == max_acc && stat.loss < min_loss)) {
+        max_acc = stat.accuracy;
+        /// @note this is not actually 'the' min loss for whole time but records
+        /// when data change
+        min_loss = stat.loss;
+        auto &save_best_path = std::get<props::SaveBestPath>(model_flex_props);
+        if (!save_best_path.empty()) {
+          save(save_best_path);
+        }
+      }
+      std::cout << " >> [ Accuracy: " << stat.accuracy
+                << "% - Validation Loss : " << stat.loss << " ]";
+      ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
+              stat.loss);
+    };
 
   PROFILE_MEM_ANNOTATE("TRAIN START");
   auto epochs = getEpochs();
@@ -888,11 +894,11 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
       --epoch_idx;
       break;
     }
-    training = run_epoch(train_buffer.get(), true, train_for_iteration,
-                         update_train_stat, train_epoch_end);
+    run_epoch(train_buffer.get(), true, train_for_iteration, update_train_stat,
+              train_epoch_end, training);
     if (valid_buffer) {
-      validation = run_epoch(valid_buffer.get(), false, eval_for_iteration,
-                             update_eval_stat, eval_epoch_end);
+      run_epoch(valid_buffer.get(), false, eval_for_iteration, update_eval_stat,
+                eval_epoch_end, validation);
     }
     std::cout << '\n';
   }
@@ -900,8 +906,8 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb) {
 
   if (test_buffer) {
     std::cout << "Evaluation with test data...\n";
-    testing = run_epoch(test_buffer.get(), false, eval_for_iteration,
-                        update_eval_stat, eval_epoch_end);
+    run_epoch(test_buffer.get(), false, eval_for_iteration, update_eval_stat,
+              eval_epoch_end, testing);
   }
 
   /** Clear the set inputs and labels */
@@ -1294,5 +1300,9 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
   default:
     throw std::runtime_error{"Unsupported export method"};
   }
+}
+
+std::vector<ml::train::RunStats> NeuralNetwork::getStatistics() {
+  return {training, validation, testing};
 }
 } /* namespace nntrainer */
