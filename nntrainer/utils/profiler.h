@@ -107,6 +107,7 @@ public:
     time_item(item),
     alloc_current(cur),
     alloc_total(total),
+    cache_swap(false),
     event_str(str),
     duration(dur) {}
 
