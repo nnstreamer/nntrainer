@@ -130,7 +130,7 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() : enable_optimizations(true) {}
+  Manager() : enable_optimizations(true), swap_lookahead(0) {}
 
   /**
    * @brief     Constructor of Manager
