@@ -24,11 +24,13 @@
 
 namespace {
 
+#ifdef ENABLE_TFLITE_INTERPRETER
 tflite::Padding tflite_padding(const std::string &padding) {
   std::map<std::string, tflite::Padding> m = {{"same", tflite::Padding_SAME},
                                               {"valid", tflite::Padding_VALID}};
   return m[padding];
 }
+#endif
 
 } // namespace
 
@@ -41,7 +43,7 @@ constexpr const unsigned int POOLING2D_DIM = 2;
  * @brief Construct a new Exporter object
  *
  */
-Exporter::Exporter() : fbb(nullptr), stored_result(nullptr), is_exported(false) {}
+Exporter::Exporter() : stored_result(nullptr), is_exported(false) {}
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 /**
