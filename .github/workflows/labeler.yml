@@ -1,56 +1,71 @@
-# @author : Donghak Park <donghak.park@samsung.com>
-# @file   : labeler.yml
-# @date   : 15 Feb 2023
-
-name: Auto Need-Review labeler
-
+name: Labeler
 on:
-  pull_request:
-    types: [opened, edited, reopened, synchronize]
-  pull_request_review:
-    types: [edited, dismissed, submitted]
-
+  workflow_run:
+    workflows: ["Upload Data"]
+    types:
+      - completed
 jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-      - name: review_count
-        id: review_count
-        run: |
-          review=$(curl -s -H "Accept: application/vnd.github.black-cat-preview+json" \
-          https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
-          | jq '[ .[] | select(.state=="APPROVED") ] | length')
-          echo "Number of approved review_count: $review"
-          echo "::set-output name=review::$review"
-          echo "REVIEW=$review" >> $GITHUB_OUTPUT
+      - name: "Download artifact"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner : context.repo.owner,
+              repo : context.repo.repo,
+              run_id : context.payload.workflow_run.id,
+            });
 
-      
-      - name: DEBUG
-        run: |
-          echo "Number of Approved review_count : ${{ steps.review_count.outputs.REVIEW }}"
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr_number"
+            })[0];
+
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+
+            let fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
+
+      - name: "Unzip artifact"
+        run: unzip pr_number.zip
 
       - name: Make label if approved review < 3
-        if: ${{ steps.review_count.outputs.REVIEW < 3 && !contains(github.event.pull_request.labels.*.name, 'Need Review') }}
         uses: actions/github-script@v4
         with:
           script: |
-            github.issues.addLabels({
+            let fs = require('fs');
+            let issue_number = Number(fs.readFileSync('./pr_number'));
+            let review = Number(fs.readFileSync('./review_num'));
+
+            if (review < 3) {
+            await github.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: issue_number,
               labels: ["Need Review"]
             })
+            }
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove label if approved review >= 3
-        if: ${{ steps.review_count.outputs.REVIEW >= 3 && contains(github.event.pull_request.labels.*.name, 'Need Review') }}
         uses: actions/github-script@v4
         with:
           script: |
+            let fs = require('fs');
+            let issue_number = Number(fs.readFileSync('./pr_number'));
+            let review = Number(fs.readFileSync('./review_num'));
+
+            if (review >= 3) {
             github.issues.removeLabel({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: issue_number,
               name : ["Need Review"]
-            })
+            })}
           token: ${{ secrets.GITHUB_TOKEN }}
