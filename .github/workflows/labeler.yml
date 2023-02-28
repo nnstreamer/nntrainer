@@ -23,10 +23,10 @@ jobs:
             })[0];
 
             let download = await github.rest.actions.downloadArtifact({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               artifact_id: matchArtifact.id,
-               archive_format: 'zip',
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
             });
 
             let fs = require('fs');
@@ -35,24 +35,6 @@ jobs:
       - name: "Unzip artifact"
         run: unzip pr_number.zip
 
-      - name: Make label if approved review < 3
-        uses: actions/github-script@v4
-        with:
-          script: |
-            let fs = require('fs');
-            let issue_number = Number(fs.readFileSync('./pr_number'));
-            let review = Number(fs.readFileSync('./review_num'));
-
-            if (review < 3) {
-            await github.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
-              labels: ["Need Review"]
-            })
-            }
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Remove label if approved review >= 3
         uses: actions/github-script@v4
         with:
@@ -60,12 +42,33 @@ jobs:
             let fs = require('fs');
             let issue_number = Number(fs.readFileSync('./pr_number'));
             let review = Number(fs.readFileSync('./review_num'));
+            let is_contain = String(fs.readFileSync('./contain_bool')).trim();
 
-            if (review >= 3) {
-            github.issues.removeLabel({
+            if ((review >= 3) && (is_contain==String("true"))) {
+            await github.issues.removeLabel({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue_number,
-              name : ["Need Review"]
-            })}
+              name : "Need Review"
+            })
+            }
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Make label if approved review < 3
+        uses: actions/github-script@v4
+        with:
+          script: |
+            let fs = require('fs');
+            let issue_number = Number(fs.readFileSync('./pr_number'));
+            let review = Number(fs.readFileSync('./review_num'));
+            let is_contain = String(fs.readFileSync('./contain_bool')).trim();
+
+            if ((review < 3) && (is_contain==String("false"))) {
+            await github.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              labels: ["Need Review"]
+            })
+            }
           token: ${{ secrets.GITHUB_TOKEN }}
