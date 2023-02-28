@@ -39,15 +39,22 @@ sudo apt install pbuilder debootstrap devscripts
 
 The following example configuration is for Ubuntu 18.04:
 
+You can configure the pbuilderrc file as follows:
 ```bash
 $ cat ~/.pbuilderrc
+
 DISTRIBUTION=bionic
 COMPONENTS="main restricted universe multiverse"
 OTHERMIRROR="deb http://archive.ubuntu.com/ubuntu ${DISTRIBUTION} main restricted universe multiverse |\
   deb http://archive.ubuntu.com/ubuntu ${DISTRIBUTION}-security main restricted universe multiverse |\
   deb http://archive.ubuntu.com/ubuntu ${DISTRIBUTION}-updates main restricted universe multiverse |\
   deb [trusted=yes] http://ppa.launchpad.net/nnstreamer/ppa/ubuntu ${DISTRIBUTION} main"
+```
+
+Then You can Link to ```/root/.pbuilderrc``` and create
+```bash
 $ sudo ln -s  ~/.pbuilderrc /root/.pbuilderrc
+
 $ sudo pbuilder create
 ```
 
@@ -172,4 +179,6 @@ compilation terminated.
 
 ### Solution: Please install libflatbuffers-dev using the following:
 
+```bash
 sudo apt install libflatbuffers-dev
+```
