@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # SPDX-License-Identifier: Apache-2.0
+=======
+##
+>>>>>>> [Application] add object detection example using pytorch
 # Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
 #
 # @file yolo_loss.py
@@ -90,7 +94,11 @@ class YoloV2_LOSS(nn.Module):
         bbox_pred = self.apply_anchors_to_bbox(bbox_pred)
         
         bbox_built, iou_built, cls_built, bbox_mask, iou_mask, cls_mask =\
+<<<<<<< HEAD
             self._build_target(bbox_pred, bbox_gt, cls_gt)
+=======
+            self._build_target(bbox_pred, iou_pred, bbox_gt, cls_gt)
+>>>>>>> [Application] add object detection example using pytorch
         
         self.bbox_loss = self.mse(bbox_pred * bbox_mask,
                                         bbox_built * bbox_mask)
@@ -175,8 +183,15 @@ class YoloV2_LOSS(nn.Module):
         best_anchors = find_best_ratio(self.anchors, _bbox_gt_wh)
         
         # normalize x, y pos based on cell coornindates
+<<<<<<< HEAD
         cx = _bbox_gt[:, 0] * self.outsize[0]
         cy = _bbox_gt[:, 1] * self.outsize[1]
+=======
+        cell_w = float(self.img_shape[0]) / self.outsize[0] 
+        cell_h = float(self.img_shape[1]) / self.outsize[1]
+        cx = _bbox_gt[:, 0] * self.img_shape[0] / cell_w
+        cy = _bbox_gt[:, 1] * self.img_shape[1] / cell_h
+>>>>>>> [Application] add object detection example using pytorch
         # calculate cell pos and normalize x, y
         cell_idx = np.floor(cy) * self.outsize[0] + np.floor(cx)
         cell_idx = np.array(cell_idx, dtype=np.int16)
