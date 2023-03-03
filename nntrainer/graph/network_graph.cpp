@@ -344,19 +344,15 @@ void NetworkGraph::applyGradients(
   }
 }
 
-sharedConstTensors
-NetworkGraph::forwarding(bool training,
-                         std::function<bool(void *userdata)> stop_cb) {
+sharedConstTensors NetworkGraph::forwarding(
+  bool training,
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
+  std::function<bool(void *userdata)> stop_cb) {
   for (auto iter = cbegin(); iter != cend() && !stop_cb(nullptr); iter++) {
-    auto const &ln = *iter;
+    auto &ln = *iter;
+
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + ln->getName());
-
-    auto f = std::get<0>(ln->getExecutionOrder());
-    flushCacheExcept(f);
-
-    ln->forwarding(training);
-
+    forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
