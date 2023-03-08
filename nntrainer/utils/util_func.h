@@ -188,9 +188,11 @@ template <typename T>
 T checkedOpenStream(const std::string &path, std::ios_base::openmode mode) {
   T model_file(path, mode);
   if (!model_file.good()) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::stringstream ss;
     ss << "[parseutil] requested file not opened, file path: " << path
-       << " reason: " << std::strerror(errno);
+       << " reason: " << strerror_r(errno, error_buf, error_buflen);
     if (errno == EPERM || errno == EACCES) {
       throw nntrainer::exception::permission_denied(ss.str().c_str());
     } else {

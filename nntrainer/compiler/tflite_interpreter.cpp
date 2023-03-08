@@ -50,8 +50,11 @@ void builder2file(const flatbuffers::FlatBufferBuilder &builder,
     << FUNC_TAG << "Verifying serialized model failed";
 
   std::ofstream os(out, std::ios_base::binary);
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
   NNTR_THROW_IF(!os.good(), std::invalid_argument)
-    << FUNC_TAG << "failed to open, reason: " << strerror(errno);
+    << FUNC_TAG
+    << "failed to open, reason: " << strerror_r(errno, error_buf, error_buflen);
   os.write((char *)builder.GetBufferPointer(), builder.GetSize());
   os.close();
 }
