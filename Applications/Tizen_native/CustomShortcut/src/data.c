@@ -587,7 +587,10 @@ static void on_inference_end_(ml_tensors_data_h data,
   status =
     ml_tensors_data_get_tensor_data(data, 0, (void **)&raw_data, &data_size);
   if (status != ML_ERROR_NONE) {
-    LOG_E("get tensor data failed: reason %s", strerror(status));
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    LOG_E("get tensor data failed: reason %s",
+          strerror_r(status, error_buf, error_buflen));
     goto RESUME;
   }
 

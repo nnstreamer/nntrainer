@@ -63,8 +63,11 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
 
   char *ptr = static_cast<char *>(
     mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
   NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-    << "SwapDevice: mmap: " << std::string(strerror(errno));
+    << "SwapDevice: mmap: "
+    << std::string(strerror_r(errno, error_buf, error_buflen));
 
   void *buf = static_cast<void *>(ptr + diff);
   mapped[buf] = std::make_pair(ptr, len);
@@ -106,8 +109,11 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
 
   auto info = mapped[ptr];
   ret = munmap(std::get<void *>(info), std::get<size_t>(info));
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
   NNTR_THROW_IF(ret == -1, std::runtime_error)
-    << "SwapDevice: munmap: " << std::string(strerror(errno));
+    << "SwapDevice: munmap: "
+    << std::string(strerror_r(errno, error_buf, error_buflen));
 
   mapped.erase(ptr);
 
