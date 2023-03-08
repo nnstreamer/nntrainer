@@ -128,8 +128,10 @@ void IniWrapper::save_ini(const std::string &ini_name) const {
 
 void IniWrapper::erase_ini() const noexcept {
   if (remove(getIniName().c_str())) {
-    std::cerr << "remove ini " << getIniName()
-              << "failed, reason: " << strerror(errno);
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    std::cerr << "remove ini " << getIniName() << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 

@@ -75,7 +75,10 @@ static void *train_(void *data) {
   LOG_D("creating thread to run model");
   status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
   if (status < 0) {
-    LOG_E("creating pthread failed %s", strerror(errno));
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    LOG_E("creating pthread failed %s",
+          strerror_r(errno, error_buf, error_buflen));
     goto RESTORE_CB;
   }
 
@@ -94,7 +97,10 @@ static void *train_(void *data) {
 
   status = pthread_join(ad->tid_writer, NULL);
   if (status < 0) {
-    LOG_E("joining writing thread failed %s", strerror(errno));
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    LOG_E("joining writing thread failed %s",
+          strerror_r(errno, error_buf, error_buflen));
     pthread_cancel(ad->tid_writer);
   }
 
@@ -227,12 +233,18 @@ void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
 
   status = pthread_create(&infer_thread, NULL, infer_, data);
   if (status != 0) {
-    LOG_E("creating pthread failed %s", strerror(errno));
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    LOG_E("creating pthread failed %s",
+          strerror_r(errno, error_buf, error_buflen));
     return;
   }
   status = pthread_detach(infer_thread);
   if (status < 0) {
-    LOG_E("detaching reading thread failed %s", strerror(errno));
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    LOG_E("detaching reading thread failed %s",
+          strerror_r(errno, error_buf, error_buflen));
     pthread_cancel(infer_thread);
   }
 }
@@ -257,12 +269,18 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
                                    presenter_on_back_button_press);
     status = pthread_create(&train_thread, NULL, train_, (void *)ad);
     if (status < 0) {
-      LOG_E("creating pthread failed %s", strerror(errno));
+      const size_t error_buflen = 100;
+      char error_buf[error_buflen];
+      LOG_E("creating pthread failed %s",
+            strerror_r(errno, error_buf, error_buflen));
       return;
     }
     status = pthread_detach(train_thread);
     if (status < 0) {
-      LOG_E("detaching reading thread failed %s", strerror(errno));
+      const size_t error_buflen = 100;
+      char error_buf[error_buflen];
+      LOG_E("detaching reading thread failed %s",
+            strerror_r(errno, error_buf, error_buflen));
       pthread_cancel(train_thread);
     }
   }
@@ -281,7 +299,7 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
 
 /********************* app related methods  **************************/
 static bool app_create(void *data) {
-  /* Hook to take necessary actions before main event loop starts
+  /** Hook to take necessary actions before main event loop starts
      Initialize UI resources and application's data
      If this function returns true, the main loop of application starts
      If this function returns false, the application is terminated */

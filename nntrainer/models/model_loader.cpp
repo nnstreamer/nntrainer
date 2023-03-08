@@ -472,8 +472,10 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
 
   auto config_realpath_char = getRealpath(config.c_str(), nullptr);
   if (config_realpath_char == nullptr) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     ml_loge("failed to resolve config path to absolute path, reason: %s",
-            strerror(errno));
+            strerror_r(errno, error_buf, error_buflen));
     return ML_ERROR_INVALID_PARAMETER;
   }
   std::string config_realpath(config_realpath_char);
