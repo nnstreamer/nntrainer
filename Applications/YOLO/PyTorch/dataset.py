@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 # SPDX-License-Identifier: Apache-2.0
-=======
-##
->>>>>>> [Application] add object detection example using pytorch
 # Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
 #
 # @file dataset.py
