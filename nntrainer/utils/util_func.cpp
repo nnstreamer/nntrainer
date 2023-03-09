@@ -67,6 +67,12 @@ Tensor rotate_180(Tensor in) {
   return output;
 }
 
+Tensor calculateIOU(Tensor &b1_x1, Tensor &b1_y1, Tensor &b1_w, Tensor &b1_h,
+                    Tensor &b2_x1, Tensor &b2_y1, Tensor &b2_w, Tensor &b2_h) {
+  /** NYI */
+  return Tensor();
+}
+
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();

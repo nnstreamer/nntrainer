@@ -1,6 +1,7 @@
 yolo_sources = [
   'main.cpp',
-  'det_dataloader.cpp'
+  'det_dataloader.cpp',
+  'yolo_v2_loss.cpp'
 ]
 
 yolo_dependencies = [app_utils_dep,
