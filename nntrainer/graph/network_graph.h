@@ -175,7 +175,8 @@ public:
     std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
       [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
-      [](void *user_data) { return false; });
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
 
   /**
    * @brief     backwarding the network graph
@@ -187,9 +188,9 @@ public:
     int iteration,
     std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
     std::function<void(Weight &, int)> &apply_grad_clip_op,
-    std::function<bool(void *userdata)> stop_cb = [](void *user_data) {
-      return false;
-    }) const;
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr) const;
 
   /**
    * @brief     get begin iterator for the graph

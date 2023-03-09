@@ -36,7 +36,7 @@ TensorDim::TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_,
   feature_len = 0;
 }
 
-TensorDim::TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
+TensorDim::TensorDim(std::initializer_list<size_t> dims) : TensorDim() {
   int shift_size = MAXDIM - dims.size();
 
   if (shift_size < 0) {
@@ -51,11 +51,11 @@ TensorDim::TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
   }
 }
 
-TensorDim::TensorDim(const std::array<unsigned int, 3> &shapes) :
+TensorDim::TensorDim(const std::array<size_t, 3> &shapes) :
   TensorDim({shapes[0], shapes[1], shapes[2]}) {}
 
-TensorDim::TensorDim(unsigned int b, unsigned int c, unsigned int h,
-                     unsigned int w, const std::bitset<MAXDIM> &eff_dim_flag_,
+TensorDim::TensorDim(size_t b, size_t c, size_t h, size_t w,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
   TensorDim(eff_dim_flag_, dyn_dim_flag_) {
   setTensorDim(0, b);
@@ -92,7 +92,7 @@ void TensorDim::resetLen() {
   len = dim[0] * feature_len;
 }
 
-const unsigned int TensorDim::getTensorDim(unsigned int idx) const {
+const size_t TensorDim::getTensorDim(unsigned int idx) const {
   if (idx >= MAXDIM)
     throw std::invalid_argument(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
@@ -100,7 +100,7 @@ const unsigned int TensorDim::getTensorDim(unsigned int idx) const {
   return dim[idx];
 }
 
-void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
+void TensorDim::setTensorDim(unsigned int idx, size_t value) {
   if (idx >= MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
@@ -163,27 +163,27 @@ void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
   std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
 }
 
-unsigned int TensorDim::batch() const { return dim[0]; };
+size_t TensorDim::batch() const { return dim[0]; };
 
-unsigned int TensorDim::channel() const { return dim[1]; };
+size_t TensorDim::channel() const { return dim[1]; };
 
-unsigned int TensorDim::height() const { return dim[2]; };
+size_t TensorDim::height() const { return dim[2]; };
 
-unsigned int TensorDim::width() const { return dim[3]; };
+size_t TensorDim::width() const { return dim[3]; };
 
-unsigned int TensorDim::getDataLen() const { return len; };
+size_t TensorDim::getDataLen() const { return len; };
 
-unsigned int TensorDim::getFeatureLen() const { return feature_len; };
+size_t TensorDim::getFeatureLen() const { return feature_len; };
 
-void TensorDim::batch(unsigned int b) { setTensorDim(0, b); }
+void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
-void TensorDim::channel(unsigned int c) { setTensorDim(1, c); }
+void TensorDim::channel(size_t c) { setTensorDim(1, c); }
 
-void TensorDim::height(unsigned int h) { setTensorDim(2, h); }
+void TensorDim::height(size_t h) { setTensorDim(2, h); }
 
-void TensorDim::width(unsigned int w) { setTensorDim(3, w); }
+void TensorDim::width(size_t w) { setTensorDim(3, w); }
 
-const unsigned int *TensorDim::getDim() const { return dim; }
+const size_t *TensorDim::getDim() const { return dim; }
 
 unsigned int TensorDim::getNumDim() { return MAXDIM; }
 
@@ -194,15 +194,13 @@ TensorDim TensorDim::transpose(const std::string &direction) const {
   NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
     << "parsing direction failed";
 
-  const std::array<unsigned int, MAXDIM> axes{{0, (unsigned int)dirs[0] + 1,
-                                               (unsigned int)dirs[1] + 1,
-                                               (unsigned int)dirs[2] + 1}};
+  const std::array<size_t, MAXDIM> axes{
+    {0, (size_t)dirs[0] + 1, (size_t)dirs[1] + 1, (size_t)dirs[2] + 1}};
 
   return transpose(axes);
 }
 
-TensorDim
-TensorDim::transpose(const std::array<unsigned int, MAXDIM> &axes) const {
+TensorDim TensorDim::transpose(const std::array<size_t, MAXDIM> &axes) const {
   TensorDim tmp(*this);
 
   for (unsigned int i = 0; i < MAXDIM; ++i) {
@@ -237,21 +235,21 @@ unsigned int TensorDim::rank() const {
   return rank;
 }
 
-unsigned int &TensorDim::operator[](const unsigned int index) {
+size_t &TensorDim::operator[](const unsigned int index) {
   if (index >= MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
   return dim[index];
 }
 
-const unsigned int &TensorDim::operator[](const unsigned int index) const {
+const size_t &TensorDim::operator[](const unsigned int index) const {
   if (index >= MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
   return dim[index];
 }
 
-std::array<unsigned int, TensorDim::MAXDIM> TensorDim::computeStrides() const {
+std::array<size_t, TensorDim::MAXDIM> TensorDim::computeStrides() const {
   return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
 }
 

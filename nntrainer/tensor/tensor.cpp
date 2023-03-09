@@ -123,7 +123,7 @@ public:
    */
   SrcSharedTensor() : src(nullptr), off(0) {}
 
-  SrcSharedTensor(const Tensor *tensor, unsigned int offset) :
+  SrcSharedTensor(const Tensor *tensor, size_t offset) :
     src(tensor),
     off(offset) {}
 
@@ -140,11 +140,11 @@ public:
   /**
    * @brief   Get the offset from the source tensor
    */
-  unsigned int offset() const { return off; }
+  size_t offset() const { return off; }
 
 private:
   const Tensor *src; /**< Tensor of the source */
-  unsigned int off;  /**< offset from the source data ptr */
+  size_t off;        /**< offset from the source data ptr */
 };
 
 void Tensor::allocate() {
@@ -170,7 +170,7 @@ void Tensor::allocate() {
 }
 
 Tensor Tensor::Map(float *buf, unsigned int bytes, const TensorDim &d,
-                   int offset) {
+                   size_t offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
       "[Tensor::Map] empty tensor dim is not allowed");
@@ -684,7 +684,7 @@ Tensor &Tensor::pow(float exponent, Tensor &out) const {
   return apply(f, out);
 }
 
-Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
+Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
   TensorDim dim_ = dim;
   dim_.batch(size);
 
@@ -692,7 +692,7 @@ Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
 }
 
 void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
-                                    unsigned int offset) {
+                                    size_t offset) {
   /**
    * - If src already has data allocaed, then directly make dest tensor based on
    * the src tensor.
@@ -716,7 +716,7 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
       src.src_tensor->tensor(), offset + src.src_tensor->offset());
 }
 
-Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
+Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
                                    bool reset_stride,
                                    const std::string &name_) const {
   Tensor ret = *this;
@@ -844,7 +844,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
   std::array<unsigned, 4> loc = {0, 0, 0, 0};
   for (auto &t : tensors) {
     std::array<unsigned, 4> start_loc = loc;
-    for (auto i = 0u, sz = t.size(); i < sz; ++i) {
+    for (size_t i = 0u, sz = t.size(); i < sz; ++i) {
       iter_value(loc, start_loc, ret, t.getDim()) = t.getValue(i);
     }
     loc[axis] += t.getDim().getTensorDim(axis);
@@ -853,7 +853,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
   return ret;
 }
 
-void Tensor::makeSharedDataTensor(const Tensor &src, unsigned int offset) {
+void Tensor::makeSharedDataTensor(const Tensor &src, size_t offset) {
   if (strides != src.strides)
     throw std::invalid_argument(
       "Creating shared tensor of different stride than source tensor.");
@@ -903,8 +903,8 @@ void Tensor::apply_broadcast_util(
   std::function<void(const BroadcastInfo &e, const float *, const float *,
                      float *)>
     v_func,
-  Tensor &output, const BroadcastInfo &e, int cur_axis, unsigned int offset,
-  unsigned int m_offset) const {
+  Tensor &output, const BroadcastInfo &e, int cur_axis, size_t offset,
+  size_t m_offset) const {
 
   const float *buf = this->getData();
   const float *m_buf = m.getData();
@@ -917,8 +917,8 @@ void Tensor::apply_broadcast_util(
 
   cur_axis++;
   for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
-    unsigned int next_offset = offset + i * strides[cur_axis];
-    unsigned int next_m_offset = m_offset + i * e.strides[cur_axis];
+    size_t next_offset = offset + i * strides[cur_axis];
+    size_t next_m_offset = m_offset + i * e.strides[cur_axis];
     apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
                          next_m_offset);
   }
@@ -933,8 +933,8 @@ Tensor Tensor::sum_by_batch() const {
     << getName() << " is not contiguous, cannot sum";
 
   Tensor ret(dim.batch(), 1, 1, 1);
-  unsigned int feat_len = dim.getFeatureLen();
-  unsigned int batch = dim.batch();
+  size_t feat_len = dim.getFeatureLen();
+  size_t batch = dim.batch();
 
   const float *data = getData();
   float *rdata = ret.getData();
@@ -973,8 +973,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
   switch (axis) {
   case 0: {
     CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width());
-    unsigned int feat_len = dim.getFeatureLen();
-    unsigned int batch = dim.batch();
+    size_t feat_len = dim.getFeatureLen();
+    size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch);
     ones.setValue(alpha);
     sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
@@ -1699,8 +1699,8 @@ std::vector<unsigned int> Tensor::argmax() const {
 
   const float *data = getData();
   std::vector<unsigned int> result;
-  unsigned int batch_size = batch();
-  unsigned int feature_len = dim.getFeatureLen();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
 
   result.resize(batch_size);
 

@@ -347,10 +347,9 @@ void NetworkGraph::applyGradients(
 sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
-  std::function<bool(void *userdata)> stop_cb) {
-  for (auto iter = cbegin(); iter != cend() && !stop_cb(nullptr); iter++) {
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
-
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
@@ -371,7 +370,7 @@ void NetworkGraph::backwarding(
   int iteration,
   std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
   std::function<void(Weight &, int)> &apply_grad_clip_op,
-  std::function<bool(void *userdata)> stop_cb) const {
+  std::function<bool(void *userdata)> stop_cb, void *userdata) const {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -389,7 +388,7 @@ void NetworkGraph::backwarding(
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  for (auto iter = iter_begin; iter != iter_end && !stop_cb(nullptr); iter++) {
+  for (auto iter = iter_begin; iter != iter_end && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);
@@ -855,7 +854,6 @@ int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     std::vector<Var_Grad *> inputs = {};
     auto const &lnode = getSortedLayerNode(idx);
-    ml_logd("layer name : %s", lnode->getName().c_str());
 
     if (profile_keys.find(lnode->getType()) == profile_keys.end()) {
       int event_key = 0;

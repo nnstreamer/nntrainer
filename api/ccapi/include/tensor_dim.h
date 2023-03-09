@@ -56,14 +56,14 @@ public:
    *
    * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} are accepted
    */
-  TensorDim(std::initializer_list<unsigned int> dims);
+  TensorDim(std::initializer_list<size_t> dims);
 
   /**
    * @brief Construct a new Tensor Dim object without batch dimension
    *
    * @param shapes shapes without batch dimension
    */
-  TensorDim(const std::array<unsigned int, 3> &shapes);
+  TensorDim(const std::array<size_t, 3> &shapes);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -75,7 +75,7 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+  TensorDim(size_t b, size_t c, size_t h, size_t w,
             const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
             const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
@@ -165,77 +165,77 @@ public:
    *
    * @return unsigned int batch size
    */
-  unsigned int batch() const;
+  size_t batch() const;
 
   /**
    * @brief get channel (axis 1)
    *
-   * @return unsigned int channel size
+   * @return size_t channel size
    */
-  unsigned int channel() const;
+  size_t channel() const;
 
   /**
    * @brief get height (axis 2)
    *
-   * @return unsigned int height size
+   * @return size_t height size
    */
-  unsigned int height() const;
+  size_t height() const;
 
   /**
    * @brief get width (axis 3)
    *
-   * @return unsigned int width size
+   * @return size_t width size
    */
-  unsigned int width() const;
+  size_t width() const;
 
   /**
    * @brief Get the Data Len object
    *
-   * @return unsigned int get length of the data
+   * @return size_t get length of the data
    */
-  unsigned int getDataLen() const;
+  size_t getDataLen() const;
 
   /**
    * @brief Get the Feature Len object
    *
-   * @return unsigned int get feature length
+   * @return size_t get feature length
    */
-  unsigned int getFeatureLen() const;
+  size_t getFeatureLen() const;
 
   /**
    * @brief set batch (axis 0)
    *
    * @param b batch to set
    */
-  void batch(unsigned int b);
+  void batch(size_t b);
 
   /**
    * @brief set channel (axis 1)
    *
    * @param c channel to set
    */
-  void channel(unsigned int c);
+  void channel(size_t c);
 
   /**
    * @brief set height (axis 2)
    *
    * @param h height to set
    */
-  void height(unsigned int h);
+  void height(size_t h);
 
   /**
    * @brief set width (axis 3)
    *
    * @param w width to set
    */
-  void width(unsigned int w);
+  void width(size_t w);
 
   /**
    * @brief Get the Dim object
    *
-   * @return const unsigned int* array of size[MAXDIM]
+   * @return const size_t* array of size[MAXDIM]
    */
-  const unsigned int *getDim() const;
+  const size_t *getDim() const;
 
   /**
    * @brief calculate tranposed dimension
@@ -254,15 +254,15 @@ public:
    * @param axes axes to be transposed
    * @return TensorDim calculated dimension
    */
-  TensorDim transpose(const std::array<unsigned int, MAXDIM> &axes) const;
+  TensorDim transpose(const std::array<size_t, MAXDIM> &axes) const;
 
   /**
    * @brief Get the Tensor dimension for an axis
    *
    * @param idx axis to get
-   * @return const unsigned int dimension of the given axis
+   * @return const size_t dimension of the given axis
    */
-  const unsigned int getTensorDim(unsigned int idx) const;
+  const size_t getTensorDim(unsigned int idx) const;
 
   /**
    * @brief Set the Tensor Dim object
@@ -270,7 +270,7 @@ public:
    * @param idx axis to set
    * @param value value to set
    */
-  void setTensorDim(unsigned int idx, unsigned int value);
+  void setTensorDim(unsigned int idx, size_t value);
 
   /**
    * @brief Set the Tensor Dim object
@@ -327,22 +327,22 @@ public:
    * @param index index
    * @return unsigned int& returned index reference
    */
-  unsigned int &operator[](const unsigned int index);
+  size_t &operator[](const unsigned int index);
 
   /**
    * @brief operator[] to get index from tensor_dim
    *
    * @param index index
-   * @return const unsigned int& returned index reference
+   * @return const size_t& returned index reference
    */
-  const unsigned int &operator[](const unsigned int index) const;
+  const size_t &operator[](const unsigned int index) const;
 
   /**
    * @brief Calculate standard strides
    *
-   * @return std::array <int, MAXDIM>
+   * @return std::array <unsigned int, MAXDIM>
    */
-  std::array<unsigned int, MAXDIM> computeStrides() const;
+  std::array<size_t, MAXDIM> computeStrides() const;
 
   /**
    * @brief reverse the dimensions inplace
@@ -354,7 +354,7 @@ public:
    * @note dynamic dimension is returned as -1
    *
    * @param dynamic if dimension has to be considering dynamic set this to ture
-   * @return std::vector<unsigned int> integer vector
+   * @return std::vector<int> integer vector
    */
   std::vector<int> getEffectiveDimension(bool dynamic = false) const;
 
@@ -379,9 +379,9 @@ private:
   std::bitset<MAXDIM> dyn_dim_flag; /**< dimension bit flag to define
 dynamic dimension size */
 
-  unsigned int dim[MAXDIM]; /**< underlying dimension type */
-  unsigned int len;         /**< number of elements */
-  unsigned int feature_len; /**< number of feature elements */
+  size_t dim[MAXDIM]; /**< underlying dimension type */
+  size_t len;         /**< number of elements */
+  size_t feature_len; /**< number of feature elements */
 };
 
 /**
