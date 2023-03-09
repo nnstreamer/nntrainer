@@ -87,6 +87,12 @@ struct int_prop_tag {};
 struct uint_prop_tag {};
 
 /**
+ * @brief property is treated as unsigned integer
+ *
+ */
+struct size_t_prop_tag {};
+
+/**
  * @brief property is treated as dimension, eg 1:2:3
  *
  */
@@ -455,6 +461,20 @@ std::string str_converter<uint_prop_tag, unsigned int>::to_string(
 template <>
 unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
   const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string
+str_converter<size_t_prop_tag, size_t>::to_string(const size_t &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+size_t
+str_converter<size_t_prop_tag, size_t>::from_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter

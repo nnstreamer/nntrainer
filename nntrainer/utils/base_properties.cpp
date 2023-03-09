@@ -74,6 +74,18 @@ unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
 
 template <>
 std::string
+str_converter<size_t_prop_tag, size_t>::to_string(const size_t &value) {
+  return std::to_string(value);
+}
+
+template <>
+size_t
+str_converter<size_t_prop_tag, size_t>::from_string(const std::string &value) {
+  return std::stoul(value);
+}
+
+template <>
+std::string
 str_converter<float_prop_tag, float>::to_string(const float &value) {
   return std::to_string(value);
 }

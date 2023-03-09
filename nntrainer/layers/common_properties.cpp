@@ -320,7 +320,7 @@ void GenericShape::set(const TensorDim &value) {
   TensorDim ret = value;
   ret.setDynDimFlag(0b1000);
   if (ret.batch() != 1) {
-    ml_logw("Batch size set with dimension %u is ignored."
+    ml_logw("Batch size set with dimension %zu is ignored."
             "Use batchsize property for the model to update batchsize.",
             ret.batch());
     ret.batch(1);

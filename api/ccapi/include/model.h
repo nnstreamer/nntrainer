@@ -37,6 +37,30 @@ namespace ml {
 namespace train {
 
 /**
+ * @brief     Statistics from running or training a model
+ */
+struct RunStats {
+  float accuracy;     /** accuracy of the model */
+  float loss;         /** loss of the model */
+  int num_iterations; /** number of iterations done on this stat */
+  int max_epoch;
+  int epoch_idx;
+  unsigned int
+    num_correct_predictions; /** number of right sample on this run */
+
+  /**
+   * @brief     Initializer of RunStats
+   */
+  RunStats() :
+    accuracy(0),
+    loss(0),
+    num_iterations(0),
+    max_epoch(0),
+    epoch_idx(0),
+    num_correct_predictions(0) {}
+};
+
+/**
  * @brief     Enumeration of Network Type
  */
 enum class ModelType {
@@ -154,9 +178,9 @@ public:
    *  { std::string property_name, void * property_val, ...}
    */
   virtual int train(const std::vector<std::string> &values = {},
-                    std::function<bool(void *)> stop_cb = [](void *user_data) {
-                      return false;
-                    }) = 0;
+                    std::function<bool(void *)> stop_cb =
+                      [](void *user_data) { return false; },
+                    void *user_data = nullptr) = 0;
 
   /**
    * @brief     Run Model train with callback function by user
@@ -310,6 +334,24 @@ public:
    * @retval    loss value
    */
   virtual float getValidationLoss() = 0;
+
+  /**
+   * @brief     Get training statstics
+   * @retval    training statstics
+   */
+  virtual RunStats getTrainingStats() = 0;
+
+  /**
+   * @brief     Get validation statstics
+   * @retval    validation statstics
+   */
+  virtual RunStats getValidStats() = 0;
+
+  /**
+   * @brief     Get test statstics
+   * @retval    test statstics
+   */
+  virtual RunStats getTestStats() = 0;
 
   /**
    * @brief export the model according to given export method

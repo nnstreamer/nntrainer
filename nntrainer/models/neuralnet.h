@@ -67,22 +67,7 @@ using NetType = ml::train::ModelType;
 class DataBuffer;
 using DatasetType = ml::train::DatasetType;
 using DatasetModeType = ml::train::DatasetModeType;
-/**
- * @brief     Statistics from running or training a model
- */
-struct RunStats {
-  float accuracy;     /** accuracy of the model */
-  float loss;         /** loss of the model */
-  int num_iterations; /** number of iterations done on this stat */
-  unsigned int
-    num_correct_predictions; /** number of right sample on this run */
-
-  RunStats() :
-    accuracy(0),
-    loss(0),
-    num_iterations(0),
-    num_correct_predictions(0) {}
-};
+using RunStats = ml::train::RunStats;
 
 /**
  * @class   NeuralNetwork Class
@@ -148,6 +133,12 @@ public:
    * @retval    loss value
    */
   float getValidationLoss() override { return validation.loss; }
+
+  RunStats getTrainingStats() override { return training; }
+
+  RunStats getValidStats() override { return validation; }
+
+  RunStats getTestStats() override { return testing; }
 
   /**
    * @brief     Get Learning rate
@@ -224,7 +215,8 @@ public:
    */
   sharedConstTensors forwarding(bool training = true,
                                 std::function<bool(void *userdata)> stop_cb =
-                                  [](void *user_data) { return false; });
+                                  [](void *user_data) { return false; },
+                                void *user_data = nullptr);
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -240,8 +232,10 @@ public:
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
-  void backwarding(int iteration, std::function<bool(void *userdata)> stop_cb =
-                                    [](void *user_data) { return false; });
+  void backwarding(int iteration,
+                   std::function<bool(void *userdata)> stop_cb =
+                     [](void *user_data) { return false; },
+                   void *user_data = nullptr);
 
   /**
    * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
@@ -304,9 +298,9 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int train(const std::vector<std::string> &values = {},
-            std::function<bool(void *)> stop_cb = [](void *user_data) {
-              return false;
-            }) override;
+            std::function<bool(void *)> stop_cb =
+              [](void *user_data) { return false; },
+            void *user_data = nullptr) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -637,9 +631,9 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train_run(std::function<bool(void *)> stop_cb = [](void *) {
-    return false;
-  });
+  int train_run(std::function<bool(void *)> stop_cb =
+                  [](void *) { return false; },
+                void *user_data = nullptr);
 
   /**
    * @brief     Swap function for the class

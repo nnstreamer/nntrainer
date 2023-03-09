@@ -110,8 +110,7 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(unsigned int batch, unsigned int channel, unsigned int height,
-         unsigned int width) :
+  Tensor(size_t batch, size_t channel, size_t height, size_t width) :
     Tensor(TensorDim(batch, channel, height, width)){};
 
   /**
@@ -120,7 +119,7 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(unsigned int channel, unsigned int height, unsigned int width) :
+  Tensor(size_t channel, size_t height, size_t width) :
     Tensor(1, channel, height, width){};
 
   /**
@@ -128,14 +127,13 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(unsigned int height, unsigned int width) :
-    Tensor(1, 1, height, width){};
+  Tensor(size_t height, size_t width) : Tensor(1, 1, height, width){};
 
   /**
    * @brief     Constructor of Tensor with just width
    * @param[in] width Width of Tensor
    */
-  explicit Tensor(unsigned int width) : Tensor(1, 1, 1, width){};
+  explicit Tensor(size_t width) : Tensor(1, 1, 1, width){};
 
   /**
    * @brief     Constructor of Tensor
@@ -195,7 +193,7 @@ public:
    * @throws std::invalid_argument if buf is null
    */
   static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
-                    int offset = 0);
+                    size_t offset = 0);
 
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
@@ -919,7 +917,7 @@ public:
    * @brief     Get size of current tensor
    * @retval    unsigned int size of the current tensor
    */
-  unsigned int size() const { return dim.getDataLen(); }
+  size_t size() const { return dim.getDataLen(); }
 
   /**
    * @brief     Get if the tensor is empty
@@ -1047,7 +1045,7 @@ public:
    * @note This function provides a slice of this tensor, and does not create a
    * copy
    */
-  Tensor getBatchSlice(unsigned int offset, unsigned int size) const;
+  Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
    * @brief Get new tensor which shares memory with current tensor but different
@@ -1060,7 +1058,7 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset,
+  Tensor getSharedDataTensor(const TensorDim dim, size_t offset,
                              bool reset_stride = true,
                              const std::string &name_ = "") const;
   /**
@@ -1092,7 +1090,7 @@ public:
    * the source tensor.
    * @note The stride of the source tensor and this tensor must be same.
    */
-  void makeSharedDataTensor(const Tensor &src, unsigned int offset = 0);
+  void makeSharedDataTensor(const Tensor &src, size_t offset = 0);
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.
@@ -1134,31 +1132,31 @@ public:
    * @brief     return Tensor Dim for a given axis
    * @retval    dimension
    */
-  unsigned int getTensorDim(unsigned int axis);
+  size_t getTensorDim(unsigned int axis);
 
   /**
    * @brief     return Tensor batch size
    * @retval    batch size
    */
-  unsigned int batch() const { return dim.batch(); }
+  size_t batch() const { return dim.batch(); }
 
   /**
    * @brief     return Tensor batch size
    * @retval    batch size
    */
-  unsigned int channel() const { return dim.channel(); }
+  size_t channel() const { return dim.channel(); }
 
   /**
    * @brief     return Tensor height size
    * @retval    height size
    */
-  unsigned int height() const { return dim.height(); }
+  size_t height() const { return dim.height(); }
 
   /**
    * @brief     return Tensor batch size
    * @retval    width size
    */
-  unsigned int width() const { return dim.width(); }
+  size_t width() const { return dim.width(); }
 
   /**
    * @brief     update batch size for this tensor
@@ -1305,15 +1303,14 @@ public:
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<unsigned int, TensorDim::MAXDIM> getStrides() const
-    noexcept {
+  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
     return strides;
   }
   /**
    * @brief Get linear index given the n-d index
    */
-  inline unsigned int getIndex(unsigned int b, unsigned int c, unsigned int h,
-                               unsigned int w) const noexcept {
+  inline size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w) const noexcept {
     return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
 
@@ -1361,7 +1358,7 @@ public:
 private:
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
-  std::array<unsigned int, TensorDim::MAXDIM> strides;
+  std::array<size_t, TensorDim::MAXDIM> strides;
   bool contiguous;
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
@@ -1396,8 +1393,8 @@ private:
                                           const float *, float *)>
                          v_func,
                        Tensor &output, const BroadcastInfo &e,
-                       int cur_axis = -1, unsigned int offset = 0,
-                       unsigned int m_offset = 0) const;
+                       int cur_axis = -1, size_t offset = 0,
+                       size_t m_offset = 0) const;
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
@@ -1449,7 +1446,7 @@ private:
    * tensor.
    */
   static void createSharedDataTensor(const Tensor &src, Tensor &dest,
-                                     unsigned int offset);
+                                     size_t offset);
 
   /**
    * @brief    Reallocate memory for this tensor
