@@ -105,6 +105,9 @@ template <typename T = float> T logFloat(T x) {
  */
 template <typename T = float> T exp_util(T x) { return static_cast<T>(exp(x)); }
 
+Tensor calculateIOU(Tensor &b1_x1, Tensor &b1_y1, Tensor &b1_x2, Tensor &b1_y2,
+                    Tensor &b2_x1, Tensor &b2_y1, Tensor &b2_x2, Tensor &b2_y2);
+
 /**
  * @brief     Check Existance of File
  * @param[in] file path of the file to be checked
