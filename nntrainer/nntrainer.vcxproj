@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{75030667-cb1c-4525-a766-73760bb839bb}</ProjectGuid>
+    <RootNamespace>nntrainer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>nntrainer</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetName>nntrainer</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetName>nntrainer</TargetName>
+    <IncludePath>..\api\ccapi\src;..\api\ccapi\include;..\api;.\mman-win32;.\iniparser;.\utils;.\tensor;.\optimizers;.\models;.\layers\loss;.\layers;.\graph;.\dataset;.\compiler;.;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>nntrainer</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;NNTRAINER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;NNTRAINER_EXPORTS;_WINDOWS;_USRDLL;NNTR_NUM_THREADS;TRACE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS /D _CRT_SECURE_NO_WARNINGS /D _CRT_NONSTDC_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;NNTRAINER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;NNTRAINER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="app_context.cpp" />
+    <ClCompile Include="compiler\activation_realizer.cpp" />
+    <ClCompile Include="compiler\bn_realizer.cpp" />
+    <ClCompile Include="compiler\flatbuffer_interpreter.cpp" />
+    <ClCompile Include="compiler\flatten_realizer.cpp" />
+    <ClCompile Include="compiler\ini_interpreter.cpp" />
+    <ClCompile Include="compiler\input_realizer.cpp" />
+    <ClCompile Include="compiler\loss_realizer.cpp" />
+    <ClCompile Include="compiler\multiout_realizer.cpp" />
+    <ClCompile Include="compiler\previous_input_realizer.cpp" />
+    <ClCompile Include="compiler\recurrent_realizer.cpp" />
+    <ClCompile Include="compiler\remap_realizer.cpp" />
+    <ClCompile Include="compiler\slice_realizer.cpp" />
+    <ClCompile Include="dataset\databuffer.cpp" />
+    <ClCompile Include="dataset\databuffer_factory.cpp" />
+    <ClCompile Include="dataset\data_iteration.cpp" />
+    <ClCompile Include="dataset\func_data_producer.cpp" />
+    <ClCompile Include="dataset\iteration_queue.cpp" />
+    <ClCompile Include="dataset\random_data_producers.cpp" />
+    <ClCompile Include="dataset\raw_file_data_producer.cpp" />
+    <ClCompile Include="graph\connection.cpp" />
+    <ClCompile Include="graph\graph_core.cpp" />
+    <ClCompile Include="graph\network_graph.cpp" />
+    <ClCompile Include="iniparser\dictionary.c" />
+    <ClCompile Include="iniparser\iniparser.c" />
+    <ClCompile Include="layers\activation_layer.cpp" />
+    <ClCompile Include="layers\acti_func.cpp" />
+    <ClCompile Include="layers\addition_layer.cpp" />
+    <ClCompile Include="layers\attention_layer.cpp" />
+    <ClCompile Include="layers\bn_layer.cpp" />
+    <ClCompile Include="layers\centroid_knn.cpp" />
+    <ClCompile Include="layers\common_properties.cpp" />
+    <ClCompile Include="layers\concat_layer.cpp" />
+    <ClCompile Include="layers\conv1d_layer.cpp" />
+    <ClCompile Include="layers\conv2d_layer.cpp" />
+    <ClCompile Include="layers\dropout.cpp" />
+    <ClCompile Include="layers\embedding.cpp" />
+    <ClCompile Include="layers\fc_layer.cpp" />
+    <ClCompile Include="layers\flatten_layer.cpp" />
+    <ClCompile Include="layers\gru.cpp" />
+    <ClCompile Include="layers\grucell.cpp" />
+    <ClCompile Include="layers\identity_layer.cpp" />
+    <ClCompile Include="layers\input_layer.cpp" />
+    <ClCompile Include="layers\layer_context.cpp" />
+    <ClCompile Include="layers\layer_impl.cpp" />
+    <ClCompile Include="layers\layer_node.cpp" />
+    <ClCompile Include="layers\layer_normalization_layer.cpp" />
+    <ClCompile Include="layers\loss\constant_derivative_loss_layer.cpp" />
+    <ClCompile Include="layers\loss\cross_entropy_sigmoid_loss_layer.cpp" />
+    <ClCompile Include="layers\loss\cross_entropy_softmax_loss_layer.cpp" />
+    <ClCompile Include="layers\loss\kld_loss_layer.cpp" />
+    <ClCompile Include="layers\loss\loss_layer.cpp" />
+    <ClCompile Include="layers\loss\mse_loss_layer.cpp" />
+    <ClCompile Include="layers\lstm.cpp" />
+    <ClCompile Include="layers\lstmcell.cpp" />
+    <ClCompile Include="layers\lstmcell_core.cpp" />
+    <ClCompile Include="layers\mol_attention_layer.cpp" />
+    <ClCompile Include="layers\multiout_layer.cpp" />
+    <ClCompile Include="layers\multi_head_attention_layer.cpp" />
+    <ClCompile Include="layers\permute_layer.cpp" />
+    <ClCompile Include="layers\pooling2d_layer.cpp" />
+    <ClCompile Include="layers\positional_encoding_layer.cpp" />
+    <ClCompile Include="layers\preprocess_flip_layer.cpp" />
+    <ClCompile Include="layers\preprocess_l2norm_layer.cpp" />
+    <ClCompile Include="layers\preprocess_translate_layer.cpp" />
+    <ClCompile Include="layers\reduce_mean_layer.cpp" />
+    <ClCompile Include="layers\reshape_layer.cpp" />
+    <ClCompile Include="layers\rnn.cpp" />
+    <ClCompile Include="layers\rnncell.cpp" />
+    <ClCompile Include="layers\split_layer.cpp" />
+    <ClCompile Include="layers\time_dist.cpp" />
+    <ClCompile Include="layers\zoneout_lstmcell.cpp" />
+    <ClCompile Include="mman-win32\mman.c" />
+    <ClCompile Include="models\dynamic_training_optimization.cpp" />
+    <ClCompile Include="models\model_common_properties.cpp" />
+    <ClCompile Include="models\model_loader.cpp" />
+    <ClCompile Include="models\neuralnet.cpp" />
+    <ClCompile Include="nntrainer_logger.cpp" />
+    <ClCompile Include="optimizers\adam.cpp" />
+    <ClCompile Include="optimizers\lr_scheduler_constant.cpp" />
+    <ClCompile Include="optimizers\lr_scheduler_exponential.cpp" />
+    <ClCompile Include="optimizers\lr_scheduler_step.cpp" />
+    <ClCompile Include="optimizers\optimizer_context.cpp" />
+    <ClCompile Include="optimizers\optimizer_devel.cpp" />
+    <ClCompile Include="optimizers\optimizer_wrapped.cpp" />
+    <ClCompile Include="optimizers\sgd.cpp" />
+    <ClCompile Include="tensor\basic_planner.cpp" />
+    <ClCompile Include="tensor\blas_interface.cpp" />
+    <ClCompile Include="tensor\cache_elem.cpp" />
+    <ClCompile Include="tensor\cache_loader.cpp" />
+    <ClCompile Include="tensor\cache_pool.cpp" />
+    <ClCompile Include="tensor\lazy_tensor.cpp" />
+    <ClCompile Include="tensor\manager.cpp" />
+    <ClCompile Include="tensor\memory_pool.cpp" />
+    <ClCompile Include="tensor\optimized_v1_planner.cpp" />
+    <ClCompile Include="tensor\swap_device.cpp" />
+    <ClCompile Include="tensor\task_executor.cpp" />
+    <ClCompile Include="tensor\tensor.cpp" />
+    <ClCompile Include="tensor\tensor_dim.cpp" />
+    <ClCompile Include="tensor\tensor_pool.cpp" />
+    <ClCompile Include="tensor\var_grad.cpp" />
+    <ClCompile Include="tensor\weight.cpp" />
+    <ClCompile Include="utils\base_properties.cpp" />
+    <ClCompile Include="utils\ini_wrapper.cpp" />
+    <ClCompile Include="utils\nntr_threads.cpp" />
+    <ClCompile Include="utils\node_exporter.cpp" />
+    <ClCompile Include="utils\profiler.cpp" />
+    <ClCompile Include="utils\tracer.cpp" />
+    <ClCompile Include="utils\util_func.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="app_context.h" />
+    <ClInclude Include="compiler\activation_realizer.h" />
+    <ClInclude Include="compiler\bn_realizer.h" />
+    <ClInclude Include="compiler\compiler.h" />
+    <ClInclude Include="compiler\compiler_fwd.h" />
+    <ClInclude Include="compiler\flatbuffer_interpreter.h" />
+    <ClInclude Include="compiler\flatten_realizer.h" />
+    <ClInclude Include="compiler\ini_interpreter.h" />
+    <ClInclude Include="compiler\input_realizer.h" />
+    <ClInclude Include="compiler\interpreter.h" />
+    <ClInclude Include="compiler\loss_realizer.h" />
+    <ClInclude Include="compiler\multiout_realizer.h" />
+    <ClInclude Include="compiler\previous_input_realizer.h" />
+    <ClInclude Include="compiler\realizer.h" />
+    <ClInclude Include="compiler\recurrent_realizer.h" />
+    <ClInclude Include="compiler\remap_realizer.h" />
+    <ClInclude Include="compiler\slice_realizer.h" />
+    <ClInclude Include="dataset\databuffer.h" />
+    <ClInclude Include="dataset\databuffer_factory.h" />
+    <ClInclude Include="dataset\data_iteration.h" />
+    <ClInclude Include="dataset\data_producer.h" />
+    <ClInclude Include="dataset\func_data_producer.h" />
+    <ClInclude Include="dataset\iteration_queue.h" />
+    <ClInclude Include="dataset\random_data_producers.h" />
+    <ClInclude Include="dataset\raw_file_data_producer.h" />
+    <ClInclude Include="delegate.h" />
+    <ClInclude Include="graph\connection.h" />
+    <ClInclude Include="graph\graph_core.h" />
+    <ClInclude Include="graph\graph_node.h" />
+    <ClInclude Include="graph\network_graph.h" />
+    <ClInclude Include="iniparser\dictionary.h" />
+    <ClInclude Include="iniparser\iniparser.h" />
+    <ClInclude Include="layers\activation_layer.h" />
+    <ClInclude Include="layers\acti_func.h" />
+    <ClInclude Include="layers\addition_layer.h" />
+    <ClInclude Include="layers\attention_layer.h" />
+    <ClInclude Include="layers\bn_layer.h" />
+    <ClInclude Include="layers\centroid_knn.h" />
+    <ClInclude Include="layers\common_properties.h" />
+    <ClInclude Include="layers\concat_layer.h" />
+    <ClInclude Include="layers\conv1d_layer.h" />
+    <ClInclude Include="layers\conv2d_layer.h" />
+    <ClInclude Include="layers\dropout.h" />
+    <ClInclude Include="layers\embedding.h" />
+    <ClInclude Include="layers\entropy_layer.h" />
+    <ClInclude Include="layers\fc_layer.h" />
+    <ClInclude Include="layers\flatten_layer.h" />
+    <ClInclude Include="layers\gru.h" />
+    <ClInclude Include="layers\grucell.h" />
+    <ClInclude Include="layers\identity_layer.h" />
+    <ClInclude Include="layers\input_layer.h" />
+    <ClInclude Include="layers\layer_context.h" />
+    <ClInclude Include="layers\layer_devel.h" />
+    <ClInclude Include="layers\layer_impl.h" />
+    <ClInclude Include="layers\layer_node.h" />
+    <ClInclude Include="layers\layer_normalization_layer.h" />
+    <ClInclude Include="layers\loss\constant_derivative_loss_layer.h" />
+    <ClInclude Include="layers\loss\cross_entropy_loss_layer.h" />
+    <ClInclude Include="layers\loss\cross_entropy_sigmoid_loss_layer.h" />
+    <ClInclude Include="layers\loss\cross_entropy_softmax_loss_layer.h" />
+    <ClInclude Include="layers\loss\kld_loss_layer.h" />
+    <ClInclude Include="layers\loss\loss_layer.h" />
+    <ClInclude Include="layers\loss\mse_loss_layer.h" />
+    <ClInclude Include="layers\lstm.h" />
+    <ClInclude Include="layers\lstmcell.h" />
+    <ClInclude Include="layers\lstmcell_core.h" />
+    <ClInclude Include="layers\mol_attention_layer.h" />
+    <ClInclude Include="layers\multiout_layer.h" />
+    <ClInclude Include="layers\multi_head_attention_layer.h" />
+    <ClInclude Include="layers\permute_layer.h" />
+    <ClInclude Include="layers\plugged_layer.h" />
+    <ClInclude Include="layers\pooling2d_layer.h" />
+    <ClInclude Include="layers\positional_encoding_layer.h" />
+    <ClInclude Include="layers\preprocess_flip_layer.h" />
+    <ClInclude Include="layers\preprocess_l2norm_layer.h" />
+    <ClInclude Include="layers\preprocess_translate_layer.h" />
+    <ClInclude Include="layers\reduce_mean_layer.h" />
+    <ClInclude Include="layers\reshape_layer.h" />
+    <ClInclude Include="layers\rnn.h" />
+    <ClInclude Include="layers\rnncell.h" />
+    <ClInclude Include="layers\split_layer.h" />
+    <ClInclude Include="layers\time_dist.h" />
+    <ClInclude Include="layers\zoneout_lstmcell.h" />
+    <ClInclude Include="mman-win32\mman.h" />
+    <ClInclude Include="models\dynamic_training_optimization.h" />
+    <ClInclude Include="models\execution_mode.h" />
+    <ClInclude Include="models\model_common_properties.h" />
+    <ClInclude Include="models\model_loader.h" />
+    <ClInclude Include="models\neuralnet.h" />
+    <ClInclude Include="nntrainer_error.h" />
+    <ClInclude Include="nntrainer_log.h" />
+    <ClInclude Include="nntrainer_logger.h" />
+    <ClInclude Include="optimizers\adam.h" />
+    <ClInclude Include="optimizers\lr_scheduler.h" />
+    <ClInclude Include="optimizers\lr_scheduler_constant.h" />
+    <ClInclude Include="optimizers\lr_scheduler_exponential.h" />
+    <ClInclude Include="optimizers\lr_scheduler_step.h" />
+    <ClInclude Include="optimizers\optimizer_context.h" />
+    <ClInclude Include="optimizers\optimizer_devel.h" />
+    <ClInclude Include="optimizers\optimizer_wrapped.h" />
+    <ClInclude Include="optimizers\plugged_optimizer.h" />
+    <ClInclude Include="optimizers\sgd.h" />
+    <ClInclude Include="tensor\basic_planner.h" />
+    <ClInclude Include="tensor\blas_interface.h" />
+    <ClInclude Include="tensor\cache_elem.h" />
+    <ClInclude Include="tensor\cache_loader.h" />
+    <ClInclude Include="tensor\cache_pool.h" />
+    <ClInclude Include="tensor\lazy_tensor.h" />
+    <ClInclude Include="tensor\manager.h" />
+    <ClInclude Include="tensor\memory_data.h" />
+    <ClInclude Include="tensor\memory_planner.h" />
+    <ClInclude Include="tensor\memory_pool.h" />
+    <ClInclude Include="tensor\optimized_v1_planner.h" />
+    <ClInclude Include="tensor\swap_device.h" />
+    <ClInclude Include="tensor\task.h" />
+    <ClInclude Include="tensor\task_executor.h" />
+    <ClInclude Include="tensor\tensor.h" />
+    <ClInclude Include="tensor\tensor_pool.h" />
+    <ClInclude Include="tensor\tensor_wrap_specs.h" />
+    <ClInclude Include="tensor\var_grad.h" />
+    <ClInclude Include="tensor\weight.h" />
+    <ClInclude Include="utils\base_properties.h" />
+    <ClInclude Include="utils\ini_wrapper.h" />
+    <ClInclude Include="utils\nntr_threads.h" />
+    <ClInclude Include="utils\node_exporter.h" />
+    <ClInclude Include="utils\profiler.h" />
+    <ClInclude Include="utils\tracer.h" />
+    <ClInclude Include="utils\util_func.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
