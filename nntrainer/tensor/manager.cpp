@@ -31,7 +31,7 @@
 #include <unistd.h>
 #else
 #include <io.h>
-#include <tools/mman_win32/mman.h>
+#include <mman.h>
 #endif
 
 #include <activation_layer.h>

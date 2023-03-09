@@ -208,7 +208,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   /// hs is height_strided, ws is width_strided
   unsigned int owidth = out.width();
   unsigned int base_im_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
+  for (int hs = -1 * pt; hs <= h_stride_end; hs += mstride[0]) {
     unsigned int base_im_h = 0;
     int patch_height_end = eff_k_height + hs;
     /// map the patch to a single line looping through channel
@@ -220,7 +220,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
         }
 
         unsigned int im_w = base_im_w;
-        for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
+        for (int ws = -1 * pl; ws <= w_stride_end; ws += mstride[1]) {
           unsigned int im_h = base_im_h;
           int patch_width_end = eff_k_width + ws;
 

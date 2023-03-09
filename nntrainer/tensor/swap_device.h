@@ -22,8 +22,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #else
+#include <BaseTsd.h>
 #include <io.h>
-#include <tools/mman_win32/mman.h>
+#include <mman.h>
+#define ssize_t SSIZE_T
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>

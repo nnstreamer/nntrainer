@@ -43,6 +43,8 @@
 #include <tensor.h>
 #include <util_func.h>
 
+#define uint unsigned int
+
 #define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                 \
   do {                                                                \
     unsigned int i, j, k, l;                                          \

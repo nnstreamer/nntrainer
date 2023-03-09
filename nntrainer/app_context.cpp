@@ -12,9 +12,7 @@
  *
  */
 #include <dirent.h>
-#ifndef _WIN32
 #include <dlfcn.h>
-#endif
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -216,7 +214,9 @@ std::mutex factory_mutex;
  * @brief finialize global context
  *
  */
+#ifndef _WIN32
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
+#endif
 
 static void fini_global_context_nntrainer(void) {}
 

@@ -22,6 +22,10 @@
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
+#ifdef _WIN32
+#define uint unsigned int
+#endif
+
 namespace nntrainer {
 
 /**

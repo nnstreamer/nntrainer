@@ -22,8 +22,14 @@
 #else
 #include <BaseTsd.h>
 #include <io.h>
-typedef SSIZE_T ssize_t;
-typedef int mode_t;
+#define ssize_t SSIZE_T
+#define mode_t int
+#define open _open
+#define lseek _lseek
+#define read _read
+#define write _write
+#define close _close
+#define O_SYNC 0x04010000
 #endif
 
 #include <nntrainer_error.h>
