@@ -30,7 +30,9 @@
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <unistd.h>
 #endif
 #include <util_func.h>

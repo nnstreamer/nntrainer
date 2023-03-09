@@ -21,7 +21,9 @@
 #include <list>
 #include <sys/types.h>
 #include <tuple>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 namespace {
 

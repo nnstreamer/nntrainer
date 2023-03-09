@@ -459,6 +459,12 @@ const std::vector<std::string> AppContext::getProperties(void) {
   return properties;
 }
 
+#ifdef _WIN32
+int AppContext::registerLayer(const std::string &library_path,
+                              const std::string &base_path) {
+  return 0;
+}
+#else
 int AppContext::registerLayer(const std::string &library_path,
                               const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
@@ -497,7 +503,14 @@ int AppContext::registerLayer(const std::string &library_path,
 
   return registerFactory<nntrainer::Layer>(factory_func, type);
 }
+#endif
 
+#ifdef _WIN32
+int AppContext::registerOptimizer(const std::string &library_path,
+                                  const std::string &base_path) {
+  return 0;
+}
+#else
 int AppContext::registerOptimizer(const std::string &library_path,
                                   const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
@@ -536,6 +549,7 @@ int AppContext::registerOptimizer(const std::string &library_path,
 
   return registerFactory<nntrainer::Optimizer>(factory_func, type);
 }
+#endif
 
 std::vector<int>
 AppContext::registerPluggableFromDirectory(const std::string &base_path) {
