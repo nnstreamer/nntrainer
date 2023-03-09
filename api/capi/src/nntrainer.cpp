@@ -1097,7 +1097,12 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
       return status;
     }
 
-    status = ml_tensors_info_set_tensor_dimension(*info, i, dims[i].getDim());
+    std::vector<unsigned int> u_dim;
+
+    for (unsigned int j = 0; j < dims[i].getNumDim(); j++)
+      u_dim.push_back(dims[i].getDim()[j]);
+
+    status = ml_tensors_info_set_tensor_dimension(*info, i, u_dim.data());
     if (status != ML_ERROR_NONE) {
       ml_tensors_info_destroy(info);
       return status;
@@ -1128,6 +1133,7 @@ int ml_train_model_get_output_tensors_info(ml_train_model_h model,
   }
 
   std::vector<ml::train::TensorDim> dims;
+
   f = [&]() {
     dims = m->getOutputDimension();
     return ML_ERROR_NONE;
@@ -1155,7 +1161,12 @@ int ml_train_model_get_output_tensors_info(ml_train_model_h model,
       return status;
     }
 
-    status = ml_tensors_info_set_tensor_dimension(*info, i, dims[i].getDim());
+    std::vector<unsigned int> u_dim;
+
+    for (unsigned int j = 0; j < dims[i].getNumDim(); j++)
+      u_dim.push_back(dims[i].getDim()[j]);
+
+    status = ml_tensors_info_set_tensor_dimension(*info, i, u_dim.data());
     if (status != ML_ERROR_NONE) {
       ml_tensors_info_destroy(info);
       return status;

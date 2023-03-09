@@ -89,7 +89,6 @@ void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
 
 void TfLiteLayer::finalize(InitLayerContext &context) {
   tflite::ops::builtin::BuiltinOpResolver resolver;
-
   model = tflite::FlatBufferModel::BuildFromFile(
     std::get<PropsTflModelPath>(*tfl_layer_props).get().c_str());
   NNTR_THROW_IF(!model, std::invalid_argument)
