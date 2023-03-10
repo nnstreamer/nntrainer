@@ -78,7 +78,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>nntrainer</TargetName>
-    <IncludePath>..\api\ccapi\src;..\api\ccapi\include;..\api;.\mman-win32;.\iniparser;.\utils;.\tensor;.\optimizers;.\models;.\layers\loss;.\layers;.\graph;.\dataset;.\compiler;.;$(IncludePath)</IncludePath>
+    <IncludePath>..\api\ccapi\src;..\api\ccapi\include;..\api;.\dirent;.\dlfcn-win32;.\mman-win32;.\iniparser;.\utils;.\tensor;.\optimizers;.\models;.\layers\loss;.\layers;.\graph;.\dataset;.\compiler;.;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>nntrainer</TargetName>

@@ -50,9 +50,14 @@ def copy_dir(external_name, dir_name, from_path, to_path):
 def set_nntrainer_project_path_setting():
     nntrainer_dir = "..\\nntrainer\\"
     external_dir = resource_dir + "external\\"
-    externals = {"openblas" : "OpenBLAS-0.3.21-x86\\", "mman-win32" : "mman-win32\\", "iniparser" : "iniparser\\"}
+    externals = {"openblas" : "OpenBLAS-0.3.21-x86\\", 
+                "mman-win32" : "mman-win32\\", 
+                "iniparser" : "iniparser\\"
+                "dirent" : "dirent\\",
+                "dlfcn-win32" : "dlfcn-win32\\"}
 
     for external, dir_name in externals.items():
+        if not os.path.isdir(external_dir + external): continue
         if external == "openblas" and not os.path.isdir(external_dir + "openblas\\" + dir_name):
             unzip_openblas(external_dir + "openblas\\")
         copy_dir(external, dir_name, external_dir, nntrainer_dir)
