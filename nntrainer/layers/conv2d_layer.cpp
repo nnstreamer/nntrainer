@@ -243,7 +243,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
 } // namespace
 
-enum ConvParams { weight, bias, inter_result };
+enum ConvParams { weight, bias };
 
 Conv2DLayer::Conv2DLayer(
   const std::array<unsigned int, CONV2D_DIM * 2> &padding_) :
@@ -322,20 +322,6 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
                   eff_in_width - padding[2] - kernel_size[1] > IM,
                 std::invalid_argument)
     << "Failed to initialize: Calculated patch end is over int max";
-
-  /**
-   * @note: although col2im and im2col dims are different, the size of their
-   * memories is same. If requested separately, both im2col and col2im result
-   * memories will be valid in backwarding but used mutually exclusively.
-   * So, requested both commonly.
-   *
-   * @todo: the request has been split to forward and backward to allow reusing
-   * this memory in between. This requires another setZero() in backwarding
-   * which will be expensive.
-   */
-  wt_idx[ConvParams::inter_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, kernel_dim), "inter_result",
-    Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
 }
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
@@ -396,16 +382,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   filter_kernel.reshape(filter_dim_squeezed);
 
   /**
-   * @todo im2col_result lifespan can be epoch and then setZero can be done
-   * just once at the start of training then every iteration
-   *
-   * @todo even better, allocate in_sub with pad, and set stride for in_sub
-   * appropriately
-   */
-  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
-  im2col_result.setZero();
-
-  /**
    * Below sets the pad area values to zero
    * it is faster to do this way than seting selective area to zero
    */
@@ -421,6 +397,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       im2col(in_sub, filter_dim, padding, stride, dilation, result);
       filter_kernel.dot(result, out, false, true);
     }
+    result.deallocate();
   };
 
   auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
@@ -475,6 +452,7 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
       filter_kernel.dot(deriv_sub, result, true, false);
       col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
     }
+    result.deallocate();
   };
 
   auto workers = ParallelBatch(compute_derivative, derivative.batch(), nullptr);
@@ -509,12 +487,12 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
    * no need to set zero for im2col_result, as its lifespan is ITERATION,
    * so its zero padded values will still be zero
    */
-  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
+
   TensorDim out_dim_squeezed{filter_size,
                              derivative.width() * derivative.height()};
-
   auto workers = ParallelBatch(input_.batch());
-
+  /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
+  /// so delK = dy x column_matrix ^ T;
   if (workers.getNumWorkers() > 1) {
 
     TensorDim delK_ext = filter_dim_squeezed;
@@ -525,7 +503,8 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
 
     auto calc_grad_job = [&](unsigned int s, unsigned int e, unsigned int pid,
                              void *user_data) {
-      Tensor result = Tensor(im2col_result.getDim());
+      Tensor result =
+        Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
       result.setZero();
       for (unsigned int b = s; b < e; ++b) {
         Tensor deriv_sub = derivative.getBatchSlice(b, 1);
@@ -542,6 +521,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
         im2col(in_sub, filter_dim, padding, stride, dilation, result);
         deriv_sub.dot(result, delK_sub, false, false);
       }
+      result.deallocate();
     };
 
     workers.setCallback(calc_grad_job, nullptr);
@@ -554,8 +534,10 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
     }
 
   } else {
-    /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
-    /// so delK = dy x column_matrix ^ T;
+    Tensor result =
+      Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+    result.setZero();
+
     for (unsigned int b = 0; b < input_.batch(); ++b) {
       Tensor deriv_sub = derivative.getBatchSlice(b, 1);
       deriv_sub.reshape(out_dim_squeezed);
@@ -567,11 +549,11 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
        * expense of memory. In this case, memory of im2col_result must be saved
        * for the whole batch. try this while benchmarking.
        */
-      im2col(in_sub, filter_dim, padding, stride, dilation, im2col_result);
-      deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
+      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      deriv_sub.dot(result, delK, false, false, b == 0 ? 0 : 1);
     }
+    result.deallocate();
   }
-
   delK.reshape(filter_dim);
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
