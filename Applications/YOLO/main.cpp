@@ -24,6 +24,7 @@
 #include <optimizer.h>
 
 #include <cifar_dataloader.h>
+#include <tensor.h>
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
@@ -245,7 +246,40 @@ int main(int argc, char *argv[]) {
 
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
-  model->train();
+  model->load("./yolov2.bin");
+
+  // nntrainer::Tensor t1(nntrainer::TensorDim(1,3,416,416));
+  // t1.setZero();
+  // auto out_test = model.inference({MAKE_SHARED_TENSOR(t1)});
+
+  std::vector<float *> input_db;
+  std::vector<float *> output_db;
+
+  float input_sample[1*3*416*416];
+  float output_sample[1*50*13*13];
+
+  for (int i=0; i < 1*3*416*416; i++) {
+    input_sample[i] = 1;
+  }
+
+  for (int i=0; i < 1*50*13*13; i++) {
+    output_sample[i] = 1;
+  }
+
+  input_db.push_back(input_sample);
+  output_db.push_back(output_sample);
+
+  auto output = model->inference(1, input_db, output_db);
+
+  for (auto ptr : output) {
+    for (int i=0; i<1*50*13*13; i++) {
+      std::cout << *(ptr+i) << " ";
+    }
+    std::cout << std::endl;
+  }
+  // model->getInputDimension();
+  // std::cout << outputs << std::endl;
+  // model->train();
 
   // print end time and duration
   auto end = std::chrono::system_clock::now();

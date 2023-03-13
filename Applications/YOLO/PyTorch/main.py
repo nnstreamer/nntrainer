@@ -22,6 +22,20 @@ from yolo import YoloV2_light
 from yolo_loss import YoloV2_LOSS
 from dataset import YOLODataset, collate_db
 
+import sys
+import os
+
+# get pyutils path using relative path
+def get_util_path():
+    current_path = os.path.abspath(os.path.dirname(__file__))
+    parent_path = os.path.abspath(os.path.dirname(current_path))
+    target_path = os.path.abspath(os.path.dirname(parent_path))
+    return os.path.dirname(target_path) + '/tools/pyutils/'
+
+# add pyutils path to sys.path
+sys.path.append(get_util_path())
+print(get_util_path())
+from torchconverter import save_bin
 
 # set config
 out_size = 13
@@ -74,11 +88,12 @@ for epoch in range(epochs):
         optimizer.step()  
         scheduler.step()
         epoch_loss += loss.item()
-        
+
     if epoch_loss < best_loss:
         best_loss = epoch_loss
         torch.save(model.state_dict(), './best_model.pt')
-        
+        save_bin(model, 'best_model')
+
     print("{}epoch, loss: {:.4f}".format(epoch, epoch_loss / len(loader)))
 
 ##
