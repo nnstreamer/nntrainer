@@ -2,15 +2,15 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file inputremap_realizer.h
+ * @file input_realizer.h
  * @date 14 October 2021
  * @brief NNTrainer graph realizer which remaps input to the external graph
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#ifndef __INPUTREMAP_REALIZER_H__
-#define __INPUTREMAP_REALIZER_H__
+#ifndef __INPUT_REALIZER_H__
+#define __INPUT_REALIZER_H__
 
 #include <memory>
 #include <string>
@@ -62,4 +62,4 @@ private:
 
 } // namespace nntrainer
 
-#endif // __INPUTREMAP_REALIZER_H__
+#endif // __INPUT_REALIZER_H__

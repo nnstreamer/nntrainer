@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file inputremap_realizer.cpp
+ * @file input_realizer.cpp
  * @date 14 October 2021
  * @brief NNTrainer graph realizer which remaps input to the external graph
  * @see	https://github.com/nnstreamer/nntrainer
