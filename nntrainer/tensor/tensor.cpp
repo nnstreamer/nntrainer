@@ -746,7 +746,6 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
 }
 
 std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
-
   NNTR_THROW_IF(num_size == 0, std::invalid_argument)
     << "num size cannot be zero";
 
@@ -761,16 +760,53 @@ std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
     << "axis is not divisible by num_size, axis: " << axis
     << " num size: " << num_size;
 
-  auto ret_dim = dim;
-  auto new_dim = dim.getTensorDim(axis) / num_size;
-  ret_dim.setTensorDim(axis, new_dim);
+  std::vector<size_t> sizes;
+  sizes.resize(num_size);
 
-  auto iter_value = [this, &ret_dim](std::array<unsigned, 4> &loc) -> float & {
+  unsigned int sz = dim.getTensorDim(axis) / num_size;
+  std::fill(sizes.begin(), sizes.end(), sz);
+
+  return split(sizes, axis);
+}
+
+std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
+  size_t num_size = sizes.size();
+
+  NNTR_THROW_IF(num_size == 0, std::invalid_argument)
+    << "num size cannot be zero";
+
+  if (axis == -1) {
+    axis = 3;
+  }
+
+  NNTR_THROW_IF(!(0 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(
+    std::any_of(sizes.begin(), sizes.end(), [](size_t sz) { return !sz; }),
+    std::invalid_argument)
+    << "among given sizes at least one of size is 0";
+
+  size_t total_size = std::accumulate(sizes.begin(), sizes.end(), 0);
+  NNTR_THROW_IF(dim.getTensorDim(axis) != total_size, std::invalid_argument)
+    << "given sum of sizes did not match with origin tensor dim, tensor dim: "
+    << dim.getTensorDim(axis) << " total size: " << total_size;
+
+  std::vector<TensorDim> ret_dims;
+  ret_dims.reserve(num_size);
+  for (unsigned int i = 0; i < num_size; ++i) {
+    ret_dims[i] = dim;
+    ret_dims[i].setTensorDim(axis, sizes[i]);
+  }
+
+  auto iter_value = [this](std::array<size_t, 4> &loc,
+                           std::array<size_t, 4> &end_loc,
+                           TensorDim &reset_dim) -> float & {
     auto &value = getValue(loc[0], loc[1], loc[2], loc[3]);
     for (int i = 3; i >= 0; --i) {
       loc[i]++;
-      if (loc[i] % ret_dim.getTensorDim(i) == 0) {
-        loc[i] -= ret_dim.getTensorDim(i);
+      if (loc[i] == end_loc[i]) {
+        loc[i] -= reset_dim.getTensorDim(i);
         continue;
       }
       break;
@@ -781,13 +817,23 @@ std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
   std::vector<Tensor> ret;
   ret.reserve(num_size);
 
+  unsigned int accumulated_size = 0;
   for (unsigned int i = 0; i < num_size; ++i) {
-    std::array<unsigned, 4> loc = {0, 0, 0, 0};
-    loc[axis] = new_dim * i;
-    ret.emplace_back(ret_dim);
+    std::array<size_t, 4> loc = {0, 0, 0, 0};
+    loc[axis] += accumulated_size;
+    ret.emplace_back(ret_dims[i]);
     auto &ret_t = ret.back();
 
-    ret_t.apply_i([&iter_value, &loc](float _) { return iter_value(loc); });
+    std::array<size_t, 4> end_loc = {ret_dims[i].batch(), ret_dims[i].channel(),
+                                     ret_dims[i].height(), ret_dims[i].width()};
+    accumulated_size += sizes[i];
+    end_loc[axis] = accumulated_size;
+
+    auto reset_dim = ret_dims[i];
+
+    ret_t.apply_i([&iter_value, &loc, &end_loc, &reset_dim](float _) {
+      return iter_value(loc, end_loc, reset_dim);
+    });
   }
 
   return ret;

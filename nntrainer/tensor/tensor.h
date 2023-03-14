@@ -1071,6 +1071,17 @@ public:
   std::vector<Tensor> split(unsigned num_size, int axis = 0);
 
   /**
+   * @brief split tensor along axis.
+   *
+   * @param sizes sizes
+   * @param axis axis
+   * @return Tensor splitted tensor
+   * @note if the given array sizes is just a 1 unsigned int value, assumes that
+   * it divide tensor by given size evenly
+   */
+  std::vector<Tensor> split(std::vector<size_t> sizes, int axis = 0);
+
+  /**
    * @brief concatenate tensors along axis
    *
    * @param tensors tensors to be concatenated to the first tensor
