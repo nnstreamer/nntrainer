@@ -147,7 +147,7 @@ public:
       saveTflResult(props, self);
       break;
     case ml::train::ExportMethods::METHOD_UNDEFINED:
-    /// fall thorugh intended
+    /// fall through intended
     default:
       throw exception::not_supported("given method is not supported yet");
     }
@@ -344,7 +344,7 @@ void Exporter::saveTflResult(const std::tuple<> &props,
  * @tparam I size of tuple(automated)
  * @tparam Callable generic lambda to be called during iteration
  * @tparam Ts types from tuple
- * @param c callable gerneric labmda
+ * @param c callable generic lambda
  * @param tup tuple to be iterated
  * @return void
  */
@@ -360,7 +360,7 @@ iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
  * @tparam I size of tuple(automated)
  * @tparam Callable generic lambda to be called during iteration
  * @tparam Ts types from tuple
- * @param c callable gerneric labmda
+ * @param c callable generic lambda
  * @param tup tuple to be iterated
  * @return not used
  */

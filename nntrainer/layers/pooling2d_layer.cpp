@@ -100,7 +100,7 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
 
   /**
    * in case of max pool, idx that points to the first max item
-   * in case of avearge pool, effective average counter is number of patches
+  //  * in case of average pool, effective average counter is number of patches
    * actually counted into when calculating the average
    * // clang-format off
    * eg) pooling of below
@@ -198,13 +198,13 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   } break;
   case props::PoolingTypeInfo::Enum::global_average:
   case props::PoolingTypeInfo::Enum::average: {
-    int heigth_stride_end = height - p_height + pt;
+    int height_stride_end = height - p_height + pt;
     int width_stride_end = width - p_width + pl;
     const int *iter = pool_helper.getData<int>();
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
         J = 0;
-        for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
+        for (int j = -pt; j <= height_stride_end; j += stride[0]) {
           K = 0;
           for (int k = -pl; k <= width_stride_end; k += stride[1]) {
             float del = deriv.getValue(b, i, J, K) / *iter;

@@ -75,7 +75,7 @@ class BackboneLayer {};
  * @param ini ini handler
  * @param sec_name section name
  * @param pathResolver path resolver of ini. If relative path is given to ini,
- * it is priortized to be interpreted relative to ini file. So this resolver is
+ * it is prioritized to be interpreted relative to ini file. So this resolver is
  * required @see ModelLoader::resolvePath for detail.
  * @return std::vector<std::string> list of properties
  */
@@ -108,7 +108,7 @@ std::vector<std::string> section2properties(
     NNTR_THROW_IF(value == UNKNOWN_STR || value.empty(), std::invalid_argument)
       << "parsing property failed key: " << key << " value: " << value;
 
-    /// @todo systemetically manage those props
+    /// @todo systematically manage those props
     if (istrequal(prop_key, "model_path")) {
       value = pathResolver(value);
     }
