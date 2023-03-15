@@ -90,7 +90,7 @@ public:
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    */
-  Tensor(const TensorDim &d, bool alloc_now,
+  __declspec(dllexport) Tensor(const TensorDim &d, bool alloc_now,
          Initializer init = Initializer::NONE, std::string name = "");
 
   /**
@@ -192,7 +192,7 @@ public:
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
+  __declspec(dllexport) static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
                     int offset = 0);
 
   /**
@@ -320,14 +320,14 @@ public:
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
    */
-  int multiply_i(float const &value);
+  __declspec(dllexport) int multiply_i(float const &value);
 
   /**
    * @brief     Multiply value element by element
    * @param[in] value multiplier
    * @retval    Calculated Tensor
    */
-  Tensor multiply(float const &value) const;
+  __declspec(dllexport) Tensor multiply(float const &value) const;
 
   /**
    * @brief     multiply value element by element
@@ -343,7 +343,7 @@ public:
    * @param[in] beta scalar to multiply output with and add
    * @retval    #ML_ERROR_NONE successful
    */
-  int multiply_i(Tensor const &m, const float beta = 0.0);
+  __declspec(dllexport) int multiply_i(Tensor const &m, const float beta = 0.0);
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
@@ -360,7 +360,7 @@ public:
    * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    */
-  Tensor &multiply(Tensor const &m, Tensor &output,
+  __declspec(dllexport) Tensor &multiply(Tensor const &m, Tensor &output,
                    const float beta = 0.0) const;
 
   /**
@@ -451,7 +451,7 @@ public:
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
    */
-  int divide_i(float const &value);
+  __declspec(dllexport) int divide_i(float const &value);
 
   /**
    * @brief     Divide value element by element
@@ -543,7 +543,7 @@ public:
    * @retval #ML_ERROR_NONE  Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int subtract_i(float const &value);
+  __declspec(dllexport) int subtract_i(float const &value);
 
   /**
    * @brief     subtract value Element by Element
@@ -566,7 +566,7 @@ public:
    * @retval #ML_ERROR_NONE  Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int subtract_i(Tensor const &m);
+  __declspec(dllexport) int subtract_i(Tensor const &m);
 
   /**
    * @brief     Substract Tensor Element by Element
@@ -581,7 +581,7 @@ public:
    * @param[out] m Tensor to be out
    * @retval    Calculated Tensor
    */
-  Tensor &subtract(Tensor const &m, Tensor &out) const;
+  __declspec(dllexport) Tensor &subtract(Tensor const &m, Tensor &out) const;
 
   /**
    * @brief Tensor power elementwise
@@ -604,7 +604,7 @@ public:
    * @param[out] out out to store the result
    * @retval Calculated Tensor
    */
-  Tensor &pow(float exponent, Tensor &out) const;
+  __declspec(dllexport) Tensor &pow(float exponent, Tensor &out) const;
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -688,7 +688,7 @@ public:
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    Calculated Tensor
    */
-  Tensor transpose(const std::string &direction) const;
+  __declspec(dllexport) Tensor transpose(const std::string &direction) const;
 
   /**
    * @brief Transpose Tensor
@@ -742,7 +742,7 @@ public:
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum_by_batch() const;
+  __declspec(dllexport) Tensor sum_by_batch() const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -787,7 +787,7 @@ public:
    * @param alpha Scale the sum by this value
    * @return Tensor
    */
-  Tensor &sum(const std::vector<unsigned int> &axes, Tensor &output,
+  __declspec(dllexport) Tensor &sum(const std::vector<unsigned int> &axes, Tensor &output,
               float alpha = 1.0) const;
 
   /**
@@ -883,7 +883,7 @@ public:
    * @param f function to apply
    * @return int ML_ERROR_NONE if successful
    */
-  int apply_i(std::function<float(float)> f);
+  __declspec(dllexport) int apply_i(std::function<float(float)> f);
 
   /**
    * @brief     Apply function element by element
@@ -898,7 +898,7 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const;
+  __declspec(dllexport) Tensor &apply(std::function<float(float)> f, Tensor &output) const;
 
   /**
    * @brief     Apply function to Tensor
@@ -949,7 +949,7 @@ public:
    * @param[in] w width location
    * @param[in] value value to be stored
    */
-  void setValue(unsigned int batch, unsigned int c, unsigned int h,
+  __declspec(dllexport) void setValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value) noexcept {
     data.get()[getIndex(batch, c, h, w)] = value;
   }
@@ -986,12 +986,12 @@ public:
    * @brief     Fill the Tensor elements with value
    * @param[in] value value to be stored
    */
-  void setValue(float value);
+  __declspec(dllexport) void setValue(float value);
 
   /**
    * @brief     Fill the Tensor elements with zero
    */
-  void setZero();
+  __declspec(dllexport) void setZero();
 
   /**
    * @brief     Set the tensor with random normal distribution
@@ -1039,7 +1039,7 @@ public:
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    */
-  void copyData(const Tensor &from);
+  __declspec(dllexport) void copyData(const Tensor &from);
 
   /**
    * @brief     Copy the Tensor
@@ -1078,7 +1078,7 @@ public:
    * @param axis axis
    * @return Tensor splitted tensor
    */
-  std::vector<Tensor> split(unsigned num_size, int axis = 0);
+  __declspec(dllexport) std::vector<Tensor> split(unsigned num_size, int axis = 0);
 
   /**
    * @brief concatenate tensors along axis
@@ -1087,7 +1087,7 @@ public:
    * @param axis axis
    * @return Tensor concatenated tensor
    */
-  static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
+  __declspec(dllexport) static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
 
   /**
    * @brief make this tensor share memory with given tensor
@@ -1112,13 +1112,13 @@ public:
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */
-  void save(std::ostream &file);
+  __declspec(dllexport) void save(std::ostream &file);
 
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  void read(std::ifstream &file);
+  __declspec(dllexport) void read(std::ifstream &file);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1260,7 +1260,7 @@ public:
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch
    */
-  void reshape(const TensorDim &d);
+  __declspec(dllexport) void reshape(const TensorDim &d);
 
   /**
    * @brief fill tensor data with current value,
@@ -1271,7 +1271,7 @@ public:
    * @param allocate if unallocated, allocate with from.getDim()
    * @throws std::invalid_argument if dimension and stride does not match
    */
-  void fill(const Tensor &from, bool allocate = false);
+  __declspec(dllexport) void fill(const Tensor &from, bool allocate = false);
 
   /**
    * @brief     return current stride of tensor.

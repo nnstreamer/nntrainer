@@ -80,7 +80,7 @@ public:
    *
    * @return AppContext&
    */
-  static AppContext &Global();
+  __declspec(dllexport) static AppContext &Global();
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set

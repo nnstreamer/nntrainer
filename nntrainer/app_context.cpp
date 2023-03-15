@@ -189,7 +189,12 @@ std::vector<std::string> getPluginPaths() {
 const std::string getFullPath(const std::string &path,
                               const std::string &base) {
   /// if path is absolute, return path
-  if (path[0] == '/') {
+#ifdef _WIN32
+  auto seperator = '\\';
+#else
+  auto seperator = '/';
+#endif
+  if (path[0] == seperator) {
     return path;
   }
 
@@ -197,7 +202,7 @@ const std::string getFullPath(const std::string &path,
     return path == std::string() ? "." : path;
   }
 
-  return path == std::string() ? base : base + "/" + path;
+  return path == std::string() ? base : base + seperator + path;
 }
 
 } // namespace
@@ -208,7 +213,9 @@ std::mutex factory_mutex;
  * @brief finialize global context
  *
  */
+#ifndef _WIN32
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
+#endif
 
 static void fini_global_context_nntrainer(void) {}
 
@@ -387,7 +394,11 @@ void AppContext::setWorkingDirectory(const std::string &base) {
   }
   closedir(dir);
 
+#ifdef _WIN32
+  char *ret = _fullpath(nullptr, base.c_str(), 1024);
+#else
   char *ret = realpath(base.c_str(), nullptr);
+#endif
 
   if (ret == nullptr) {
     std::stringstream ss;
@@ -404,6 +415,10 @@ const std::string AppContext::getWorkingPath(const std::string &path) {
   return getFullPath(path, working_path_base);
 }
 
+#ifdef _WIN32
+  int AppContext::registerLayer(const std::string &library_path,
+                              const std::string &base_path) { return 0; }
+#else
 int AppContext::registerLayer(const std::string &library_path,
                               const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
@@ -442,7 +457,12 @@ int AppContext::registerLayer(const std::string &library_path,
 
   return registerFactory<nntrainer::Layer>(factory_func, type);
 }
+#endif
 
+#ifdef _WIN32
+int AppContext::registerOptimizer(const std::string &library_path,
+                                  const std::string &base_path) { return 0; }
+#else
 int AppContext::registerOptimizer(const std::string &library_path,
                                   const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
@@ -481,6 +501,7 @@ int AppContext::registerOptimizer(const std::string &library_path,
 
   return registerFactory<nntrainer::Optimizer>(factory_func, type);
 }
+#endif
 
 std::vector<int>
 AppContext::registerPluggableFromDirectory(const std::string &base_path) {
@@ -569,7 +590,7 @@ template const int AppContext::registerFactory<nntrainer::Optimizer>(
 /**
  * @copydoc const int AppContext::registerFactory
  */
-template const int AppContext::registerFactory<nntrainer::Layer>(
+template __declspec(dllexport) const int AppContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
 

@@ -40,6 +40,10 @@
 #include <thread>
 #include <util_func.h>
 
+#ifdef _WIN32
+#include <numeric>
+#endif
+
 namespace nntrainer {
 
 /**

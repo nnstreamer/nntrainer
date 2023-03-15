@@ -18,6 +18,10 @@
 
 #include <realizer.h>
 
+#ifdef _WIN32
+#include <string>
+#endif
+
 namespace nntrainer {
 
 /**

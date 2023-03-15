@@ -24,10 +24,15 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
+#ifndef _WIN32
+#include <sys/mman.h>
+#include <unistd.h>
+#else
+#include <io.h>
+#include <mman.h>
+#endif
 
 #include <activation_layer.h>
 #include <basic_planner.h>

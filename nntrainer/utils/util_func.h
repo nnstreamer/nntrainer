@@ -271,6 +271,25 @@ template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
   return static_cast<T>(i1 | i2);
 }
 
+/**
+ * @brief Convert a relative path into an absolute path.
+ *
+ * @param name relative path
+ * @param resolved variable to store the result value.
+ *
+ * @return absolute path
+ */
+char *getRealpath(const char *name, char *resolved);
+
+/**
+ * @brief Get local time in tm struct format
+ *
+ * @param tp variable to store the result values
+ *
+ * @return tm struct
+ */
+tm *getLocaltime(tm *tp);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

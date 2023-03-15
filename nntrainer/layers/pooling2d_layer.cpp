@@ -204,9 +204,9 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
         J = 0;
-        for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
+        for (int j = -1 * pt; j <= heigth_stride_end; j += stride[0]) {
           K = 0;
-          for (int k = -pl; k <= width_stride_end; k += stride[1]) {
+          for (int k = -1 * pl; k <= width_stride_end; k += stride[1]) {
             float del = deriv.getValue(b, i, J, K) / *iter;
             int patch_height_end =
               std::min(static_cast<int>(j + p_height), height);
@@ -399,8 +399,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   int width_stride_end = width - patch_width - pl;
   for (unsigned int i = 0; i < channel; ++i) {
     const float *in_data_channel_sliced = in_data + i * map_size;
-    for (int j = -pt; j <= height_stride_end; j += stride[0]) {
-      for (int k = -pl; k <= width_stride_end; k += stride[1]) {
+    for (int j = -1 * pt; j <= height_stride_end; j += stride[0]) {
+      for (int k = -1 * pl; k <= width_stride_end; k += stride[1]) {
         float pool_value = pool_fn(in_data_channel_sliced, i, j, k);
         *out_data = pool_value;
         out_data++;
