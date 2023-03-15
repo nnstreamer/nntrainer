@@ -14,13 +14,10 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <realizer.h>
-
-#ifdef _WIN32
-#include <string>
-#endif
 
 namespace nntrainer {
 

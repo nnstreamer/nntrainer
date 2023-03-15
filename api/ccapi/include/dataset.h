@@ -37,7 +37,7 @@ typedef std::function<std::remove_pointer<ml_train_datagen_cb>::type>
 /**
  * @brief     Enumeration for dataset type
  */
-enum class __declspec(dllexport) DatasetType {
+enum class ML_API DatasetType {
   GENERATOR, /** Dataset with generators */
   FILE,      /** Dataset with files */
   UNKNOWN    /** Unknown dataset type */
@@ -57,7 +57,7 @@ enum class DatasetModeType {
  * @class   Dataset for class for input data
  * @brief   Dataset for read and manage data
  */
-class __declspec(dllexport) Dataset {
+class ML_API Dataset {
 public:
   /**
    * @brief     Destructor
@@ -80,7 +80,7 @@ public:
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-__declspec(dllexport) std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type,
               const std::vector<std::string> &properties = {});
 
@@ -92,7 +92,7 @@ createDataset(DatasetType type,
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-__declspec(dllexport) std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type, const char *path,
               const std::vector<std::string> &properties = {});
 
@@ -105,7 +105,7 @@ createDataset(DatasetType type, const char *path,
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-__declspec(dllexport) std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type, datagen_cb cb, void *user_data = nullptr,
               const std::vector<std::string> &properties = {});
 } // namespace train

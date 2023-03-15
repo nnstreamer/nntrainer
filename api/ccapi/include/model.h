@@ -321,7 +321,7 @@ public:
 /**
  * @brief Factory creator with constructor for optimizer
  */
-std::unique_ptr<Model>
+ML_API std::unique_ptr<Model>
 createModel(ModelType type, const std::vector<std::string> &properties = {});
 
 /**

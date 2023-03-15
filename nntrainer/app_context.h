@@ -33,6 +33,12 @@
 
 #include <nntrainer_error.h>
 
+#ifdef _WIN32
+#define ML_API __declspec(dllexport)
+#else
+#define ML_API
+#endif
+
 namespace nntrainer {
 
 extern std::mutex factory_mutex;
@@ -80,7 +86,7 @@ public:
    *
    * @return AppContext&
    */
-  __declspec(dllexport) static AppContext &Global();
+  ML_API static AppContext &Global();
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set

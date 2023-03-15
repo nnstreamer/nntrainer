@@ -30,6 +30,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>
+#include <vector>
 
 namespace nntrainer {
 
@@ -91,7 +92,6 @@ void Logger::log(const std::string &message,
                  const nntrainer_loglevel loglevel) {
   std::lock_guard<std::mutex> guard(smutex);
   time_t t = time(0);
-  struct tm lt;
 
 #ifdef _WIN32
   struct tm *now = localtime(&t);
@@ -130,6 +130,7 @@ void Logger::log(const std::string &message,
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 void __nntrainer_log_print(nntrainer_loglevel loglevel,
                            const std::string format_str, ...) {
   int final_n, n = ((int)format_str.size()) * 2;

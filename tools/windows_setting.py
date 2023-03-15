@@ -1,11 +1,21 @@
+#!/usr/bin/env python
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2023 SeoHyungjun <hyungjun.seo@samsung.com>
+#
+# @file	  windows_setting.py
+# @date	  05 Apr 2023
+# @brief  This is the NNTrainer Windows build automation file.
+# @see    https://github.com/nnstreamer/nntrainer
+# @author SeoHyungjun <hyungjun.seo@samsung.com>
+# @bug    No known bugs except for NYI items
+
 #######################################################################
 ####################### Change settings as needed #####################
 #######################################################################
-proxy_setting = True # True or False
+proxy_setting = False # True or False
 proxy_ip = "YOUR PROXY IP" # "http://ip:port"
-proxy_ip = "http://10.112.1.184:8080"
 cert_path = "PATH" # input Cert Path
-cert_path = "C:\\SRnD_Web_Proxy_new.crt"
 #######################################################################
 
 import os
@@ -22,6 +32,9 @@ def set_cmd():
     return [sys.executable, "-m"] + cmd.split() + ["install"]
 
 
+##
+# @brief Install the requirements via pip.
+#
 def pip_install_requirements(requirements):
     pip_cmd = set_cmd()
 
@@ -30,6 +43,11 @@ def pip_install_requirements(requirements):
         subprocess.check_call(pip_cmd + [package])
 
 
+##
+# @brief Clone the Git Repo
+# @param[in] git_url : Remote repo address to clone
+# @param[in] target_dir : Save path
+#
 def git_clone(git_url, target_dir):
     if os.path.isdir(resource_dir): return
 
@@ -49,6 +67,9 @@ def copy_dir(external_name, dir_name, from_path, to_path):
     shutil.copytree(from_path + external_name, to_path + dir_name)
 
 
+##
+# @brief Clone the required external library and navigate to the correct path
+#
 def set_nntrainer_project_path_setting():
     nntrainer_dir = "..\\nntrainer\\"
     external_dir = resource_dir + "external\\"
@@ -86,6 +107,14 @@ def set_api_hardlink():
         os.link(real_dir + "ccapi\\include\\" + f, ccapi_dir + "include\\" + f)
 
 
+def copy_openblas_dll():
+    target_dir = "..\\Release\\"
+    if os.path.isdir(target_dir) and os.path.isfile(target_dir + "libopenblas.dll"): return
+    if not os.path.isdir(target_dir): os.mkdir(target_dir)
+    shutil.copyfile("..\\nntrainer\\OpenBLAS-0.3.21-x86\\OpenBLAS-0.3.21-x86\\bin\\libopenblas.dll",
+                    target_dir + "libopenblas.dll")
+
+
 # nntrainer windows resource repo
 git_url = "https://github.com/nnstreamer/nnstreamer-windows-resource.git"
 
@@ -97,3 +126,4 @@ git_clone(git_url, resource_dir)
 
 set_nntrainer_project_path_setting()
 set_api_hardlink()
+copy_openblas_dll()

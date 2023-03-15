@@ -22,6 +22,8 @@
 #include <bitset>
 #include <vector>
 
+#include <common.h>
+
 namespace ml {
 namespace train {
 
@@ -29,7 +31,7 @@ namespace train {
  * @brief Tensor Dimension. This class is used to save dimension information
  *
  */
-class TensorDim {
+class ML_API TensorDim {
 public:
   static constexpr const size_t MAXDIM = 4;
 
@@ -391,7 +393,7 @@ dynamic dimension size */
  * @param d dimension to print
  * @return std::ostream& ostream
  */
-std::ostream &operator<<(std::ostream &out, TensorDim const &d);
+ML_API std::ostream &operator<<(std::ostream &out, TensorDim const &d);
 
 } /* namespace train */
 } /* namespace ml */

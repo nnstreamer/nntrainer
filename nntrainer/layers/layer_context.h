@@ -109,7 +109,7 @@ public:
    *
    * @param out_dim the output dimension to set to
    */
-  __declspec(dllexport) void setOutputDimensions(const std::vector<TensorDim> &out_dim);
+  ML_API void setOutputDimensions(const std::vector<TensorDim> &out_dim);
 
   /**
    * @brief Request a new weight for the layer
@@ -353,7 +353,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  __declspec(dllexport) Tensor &getWeight(unsigned int idx) const;
+  ML_API Tensor &getWeight(unsigned int idx) const;
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -395,7 +395,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  __declspec(dllexport) Tensor &getOutput(unsigned int idx);
+  ML_API Tensor &getOutput(unsigned int idx);
 
   /**
    * @brief Get the Output tensor object
@@ -441,7 +441,7 @@ public:
    * @return Tensor output derivative tensor, if derivative does not have
    * gradient, return a temporary, initialized to zero
    */
-  __declspec(dllexport) const Tensor getIncomingDerivative(unsigned int idx) const;
+  ML_API const Tensor getIncomingDerivative(unsigned int idx) const;
 
   /**
    * @brief Get the Input tensor object
@@ -449,7 +449,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  __declspec(dllexport) Tensor &getInput(unsigned int idx);
+  ML_API Tensor &getInput(unsigned int idx);
 
   /**
    * @brief Get the Input tensor object
@@ -481,7 +481,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input derivative tensor
    */
-  __declspec(dllexport) Tensor &getOutgoingDerivative(unsigned int idx);
+  ML_API Tensor &getOutgoingDerivative(unsigned int idx);
 
   /**
    * @brief Get the Tensor object
@@ -489,7 +489,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor
    */
-  __declspec(dllexport) Tensor &getTensor(unsigned int idx);
+  ML_API Tensor &getTensor(unsigned int idx);
 
   /**
    * @brief Get the Tensor object
@@ -618,7 +618,7 @@ public:
    * @param idx index of the tensor (identifier)
    * @param batch Updated batch size
    */
-  __declspec(dllexport) void updateTensor(unsigned int idx, unsigned int batch);
+  ML_API void updateTensor(unsigned int idx, unsigned int batch);
 
   /**
    * @brief   Get weight object for the weights
@@ -634,7 +634,7 @@ public:
    * @param idx Identifier of the input
    * @return true if label is available else false
    */
-  __declspec(dllexport) bool isLabelAvailable(unsigned int idx) const;
+  ML_API bool isLabelAvailable(unsigned int idx) const;
 
   /**
    * @brief   Get label tensor
@@ -642,7 +642,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the label tensor
    */
-  __declspec(dllexport) Tensor &getLabel(unsigned int idx);
+  ML_API Tensor &getLabel(unsigned int idx);
 
   /**
    * @brief   update loss by the layer

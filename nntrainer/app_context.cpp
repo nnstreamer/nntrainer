@@ -209,11 +209,11 @@ const std::string getFullPath(const std::string &path,
 
 std::mutex factory_mutex;
 
+#ifndef _WIN32
 /**
  * @brief finialize global context
  *
  */
-#ifndef _WIN32
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
 #endif
 
@@ -416,8 +416,10 @@ const std::string AppContext::getWorkingPath(const std::string &path) {
 }
 
 #ifdef _WIN32
-  int AppContext::registerLayer(const std::string &library_path,
-                              const std::string &base_path) { return 0; }
+int AppContext::registerLayer(const std::string &library_path,
+                              const std::string &base_path) {
+  return 0;
+}
 #else
 int AppContext::registerLayer(const std::string &library_path,
                               const std::string &base_path) {
@@ -461,7 +463,9 @@ int AppContext::registerLayer(const std::string &library_path,
 
 #ifdef _WIN32
 int AppContext::registerOptimizer(const std::string &library_path,
-                                  const std::string &base_path) { return 0; }
+                                  const std::string &base_path) {
+  return 0;
+}
 #else
 int AppContext::registerOptimizer(const std::string &library_path,
                                   const std::string &base_path) {
@@ -590,7 +594,7 @@ template const int AppContext::registerFactory<nntrainer::Optimizer>(
 /**
  * @copydoc const int AppContext::registerFactory
  */
-template __declspec(dllexport) const int AppContext::registerFactory<nntrainer::Layer>(
+template ML_API const int AppContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
 

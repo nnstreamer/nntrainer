@@ -33,16 +33,13 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
 #include <util_func.h>
-
-#ifdef _WIN32
-#include <numeric>
-#endif
 
 namespace nntrainer {
 

@@ -70,7 +70,8 @@ enum LayerType {
     ML_TRAIN_LAYER_TYPE_LAYER_NORMALIZATION, /**< Layer Normalization Layer type
                                               */
   LAYER_POSITIONAL_ENCODING =
-    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type */
+    ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
+                                              */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -194,14 +195,14 @@ public:
 /**
  * @brief Factory creator with constructor for layer type
  */
-std::unique_ptr<Layer>
+ML_API std::unique_ptr<Layer>
 createLayer(const LayerType &type,
             const std::vector<std::string> &properties = {});
 
 /**
  * @brief Factory creator with constructor for layer
  */
-std::unique_ptr<Layer>
+ML_API std::unique_ptr<Layer>
 createLayer(const std::string &type,
             const std::vector<std::string> &properties = {});
 

@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>.\OpenBLAS-0.3.21-x86\OpenBLAS-0.3.21-x86\include;.\mman-win32;.\iniparser;.\api\ccapi\src;.\api\ccapi\include;.\api;.\utils;.\tensor;.\optimizers;.\models;.\layers\loss;.\layers;.\graph;.\dataset;.\compiler;.;$(IncludePath)</IncludePath>
+    <IncludePath>.\OpenBLAS-0.3.21-x86\OpenBLAS-0.3.21-x86\bin;.\OpenBLAS-0.3.21-x86\OpenBLAS-0.3.21-x86\include;.\mman-win32;.\iniparser;.\api\ccapi\src;.\api\ccapi\include;.\api;.\utils;.\tensor;.\optimizers;.\models;.\layers\loss;.\layers;.\graph;.\dataset;.\compiler;.;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -102,9 +102,13 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\hyungjun.seo\Desktop\github\lts\nntrainer\OpenBLAS-0.3.21-x86\OpenBLAS-0.3.21-x86\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\OpenBLAS-0.3.21-x86\OpenBLAS-0.3.21-x86\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libopenblas.dll.a;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

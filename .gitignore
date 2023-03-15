@@ -61,13 +61,17 @@ __pycache__/
 nntrainer_for_android.tar.gz
 
 # windows build
-nntrainer/x64
-nntrainer/Release
-nntrainer/Debug
-nntrainer/api
-nntrainer/OpenBLAS-0.3.21-x86
-nntrainer/iniparser
-nntrainer/mman-win32
-nntrainer/dirent
-nntrainer/dlfcn-win32
+tools/nnstreamer-windows-resource/
+nntrainer/x64/
+nntrainer/Release/
+nntrainer/Debug/
+nntrainer/api/
+nntrainer/OpenBLAS-0.3.21-x86/
+nntrainer/iniparser/
+nntrainer/mman-win32/
+nntrainer/dirent/
+nntrainer/dlfcn-win32/
 .vs/
+Applications/MNIST/Release/
+Applications/MNIST/x64/
+Release/
