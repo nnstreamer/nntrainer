@@ -57,7 +57,13 @@ void builder2file(const flatbuffers::FlatBufferBuilder &builder,
   NNTR_THROW_IF(!os.good(), std::invalid_argument)
     << FUNC_TAG
     << "failed to open, reason: " << strerror_r(errno, error_buf, error_buflen);
-  os.write((char *)builder.GetBufferPointer(), builder.GetSize());
+
+  std::streamsize sz = static_cast<std::streamsize>(builder.GetSize());
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << FUNC_TAG << "builder size: " << builder.GetSize()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  os.write((char *)builder.GetBufferPointer(), sz);
   os.close();
 }
 
