@@ -1610,16 +1610,25 @@ void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
 
-  checkedWrite(file, (char *)getData(), bytes(),
-               "[Tensor::save] operation failed");
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
 }
 
 void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
-  checkedRead(file, (char *)getData(), bytes(),
-              "[Tensor::read] operation failed");
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed");
 }
 
 /**

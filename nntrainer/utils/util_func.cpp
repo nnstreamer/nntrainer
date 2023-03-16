@@ -94,8 +94,14 @@ std::string readString(std::ifstream &file, const char *error_msg) {
   size_t size;
 
   checkedRead(file, (char *)&size, sizeof(size), error_msg);
+
+  std::streamsize sz = static_cast<std::streamsize>(size);
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read string size: " << sz
+    << " is too big. It cannot be represented by std::streamsize";
+
   str.resize(size);
-  checkedRead(file, (char *)&str[0], size, error_msg);
+  checkedRead(file, (char *)&str[0], sz, error_msg);
 
   return str;
 }
@@ -105,7 +111,13 @@ void writeString(std::ofstream &file, const std::string &str,
   size_t size = str.size();
 
   checkedWrite(file, (char *)&size, sizeof(size), error_msg);
-  checkedWrite(file, (char *)&str[0], size, error_msg);
+
+  std::streamsize sz = static_cast<std::streamsize>(size);
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "write string size: " << size
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)&str[0], sz, error_msg);
 }
 
 bool endswith(const std::string &target, const std::string &suffix) {
