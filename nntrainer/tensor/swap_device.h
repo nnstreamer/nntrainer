@@ -18,11 +18,18 @@
 #include <map>
 #include <memory>
 #include <string>
+#ifndef _WIN32
 #include <sys/mman.h>
+#include <unistd.h>
+#else
+#include <BaseTsd.h>
+#include <io.h>
+#include <mman.h>
+#define ssize_t SSIZE_T
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
-#include <unistd.h>
 #include <utility>
 
 /* Uncomment this to use mmap for swap data */

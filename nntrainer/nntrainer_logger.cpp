@@ -30,7 +30,11 @@
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <unistd.h>
+#endif
 #include <util_func.h>
 
 namespace nntrainer {

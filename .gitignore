@@ -13,6 +13,16 @@ obj/
 ml_api_common/
 openblas/
 
+# Windows Visual Studio build files
+.vs/
+nntrainer/Debug/
+nntrainer/mman-win32/
+nntrainer/iniparser/
+nntrainer/OpenBLAS-0.3.21-x86/
+nntrainer/Release/
+nntrainer/x64/
+Release/
+
 # tflite for applications
 tensorflow-1.13.1
 tensorflow-2.3.0
