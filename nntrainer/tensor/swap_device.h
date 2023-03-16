@@ -18,11 +18,16 @@
 #include <map>
 #include <memory>
 #include <string>
+#ifndef _WIN32
 #include <sys/mman.h>
+#include <unistd.h>
+#else
+#include <io.h>
+#include <tools/mman_win32/mman.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
-#include <unistd.h>
 #include <utility>
 
 /* Uncomment this to use mmap for swap data */

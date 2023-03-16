@@ -85,8 +85,8 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   int w_stride_end = im_eff_width - eff_k_width - pl;
 
   unsigned col_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
-    for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
+  for (int hs = -1 * pt; hs <= h_stride_end; hs += hstride) {
+    for (int ws = -1 * pl; ws <= w_stride_end; ws += wstride) {
       unsigned col_h = 0;
       int patch_height_end = hs + eff_k_height;
       int patch_width_end = ws + eff_k_width;

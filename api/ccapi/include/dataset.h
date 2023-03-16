@@ -80,7 +80,7 @@ public:
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type,
               const std::vector<std::string> &properties = {});
 
@@ -92,7 +92,7 @@ createDataset(DatasetType type,
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type, const char *path,
               const std::vector<std::string> &properties = {});
 
@@ -105,7 +105,7 @@ createDataset(DatasetType type, const char *path,
  * @param properties property representations
  * @return std::unique_ptr<Dataset> created dataset
  */
-std::unique_ptr<Dataset>
+ML_API std::unique_ptr<Dataset>
 createDataset(DatasetType type, datagen_cb cb, void *user_data = nullptr,
               const std::vector<std::string> &properties = {});
 } // namespace train
