@@ -245,7 +245,19 @@ int main(int argc, char *argv[]) {
 
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
-  model->train();
+  model->load("./best_model.bin");
+
+  // simple inference example
+  std::vector<float *> input_db;
+  std::vector<float *> output_db;
+
+  float input_sample[1*3*416*416];
+  for (int i=0; i < 1*3*416*416; i++) {
+    input_sample[i] = 1;
+  }
+  input_db.push_back(input_sample);
+
+  auto output = model->inference(1, input_db, output_db);
 
   // print end time and duration
   auto end = std::chrono::system_clock::now();
