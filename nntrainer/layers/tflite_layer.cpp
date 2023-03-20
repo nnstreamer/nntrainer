@@ -110,7 +110,8 @@ void TfLiteLayer::finalize(InitLayerContext &context) {
 
   for (size_t idx = 0; idx < dims.size(); idx++) {
     NNTR_THROW_IF(dims[idx] != input_dims[idx], std::invalid_argument)
-      << "Input dimensions mismatch";
+      << "Input dimensions mismatch -> " << idx << ":" << dims[idx] << " "
+      << input_dims[idx];
   }
 
   std::vector<TensorDim> output_dims;
