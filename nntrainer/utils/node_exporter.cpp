@@ -43,7 +43,12 @@ constexpr const unsigned int POOLING2D_DIM = 2;
  * @brief Construct a new Exporter object
  *
  */
-Exporter::Exporter() : stored_result(nullptr), is_exported(false) {}
+Exporter::Exporter() : stored_result(nullptr), is_exported(false) {
+#ifdef ENABLE_TFLITE_INTERPRETER
+  tf_node = nullptr;
+  fbb = nullptr;
+#endif
+}
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 /**
