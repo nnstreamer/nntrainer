@@ -23,36 +23,34 @@
 #include <model.h>
 #include <optimizer.h>
 
-#include <cifar_dataloader.h>
+#include <det_dataloader.h>
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
-using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
+using UserDataType = std::unique_ptr<nntrainer::util::DirDataLoader>;
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
 
   data->next(input, label, last);
   return 0;
 }
 
 int validData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
 
   data->next(input, label, last);
   return 0;
 }
 
-std::array<UserDataType, 2>
-createFakeDataGenerator(unsigned int batch_size,
-                        unsigned int simulated_data_size,
-                        unsigned int data_split) {
-  UserDataType train_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 416, 416}}, {{batch_size, (5 + 5) * 5, 13, 13}},
-    simulated_data_size / data_split));
-  UserDataType valid_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 416, 416}}, {{batch_size, (5 + 5) * 5, 13, 13}},
-    simulated_data_size / data_split));
+std::array<UserDataType, 2> createDetDataGenerator(const char *train_dir,
+                                                   const char *valid_dir,
+                                                   int max_num_label, int c,
+                                                   int h, int w) {
+  UserDataType train_data(new nntrainer::util::DirDataLoader(
+    train_dir, max_num_label, c, h, w, true));
+  UserDataType valid_data(new nntrainer::util::DirDataLoader(
+    valid_dir, max_num_label, c, h, w, false));
 
   return {std::move(train_data), std::move(valid_data)};
 }
@@ -217,7 +215,14 @@ int main(int argc, char *argv[]) {
   // create train and validation data
   std::array<UserDataType, 2> user_datas;
   try {
-    user_datas = createFakeDataGenerator(batch_size, data_size, data_split);
+    const char *train_dir = "./train_dir/";
+    const char *valid_dir = "./valid_dir/";
+    const int max_num_label = 5;
+    const int channel = 3;
+    const int width = 416;
+    const int height = 416;
+    user_datas = createDetDataGenerator(train_dir, valid_dir, max_num_label,
+                                        channel, width, height);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while creating data generator! details: "
               << e.what() << std::endl;
