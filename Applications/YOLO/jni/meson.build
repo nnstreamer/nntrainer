@@ -1,6 +1,6 @@
 yolo_sources = [
   'main.cpp',
-  cifar_path / 'cifar_dataloader.cpp'
+  'det_dataloader.cpp'
 ]
 
 yolo_dependencies = [app_utils_dep,
@@ -10,7 +10,7 @@ yolo_dependencies = [app_utils_dep,
 
 e = executable('nntrainer_yolov2',
   yolo_sources,
-  include_directories: [include_directories('.'), cifar_include_dir],
+  include_directories: [include_directories('.')],
   dependencies: yolo_dependencies,
   install: get_option('install-app'),
   install_dir: application_install_dir
