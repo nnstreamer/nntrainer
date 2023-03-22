@@ -7,7 +7,8 @@ ccapi_inc_abs = [
 ]
 
 ccapi_src = []
-ccapi_src += meson.current_source_dir() / 'src' / 'factory.cpp'
+ccapi_src_abs = []
+subdir('src')
 
 ccapi_headers = []
 ccapi_headers += meson.current_source_dir() / 'include' / 'common.h'

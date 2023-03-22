@@ -295,6 +295,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 %define enable_reduce_tolerance -Dreduce-tolerance=true
 %define enable_debug -Denable-debug=false
+%define enable_gcov -Denable-gcov=false
 
 # enable full tolerance on the CI
 %if 0%{?unit_test}
@@ -354,6 +355,7 @@ CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 %if 0%{?testcoverage} || 0%{?gcov:1}
 export CFLAGS+=" -fprofile-arcs -ftest-coverage"
 export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
+%define enable_gcov -Denable-gcov=true
 %endif
 
 # Add backward competibility for tizen < 6
@@ -371,6 +373,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
+      %{enable_gcov} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=true \
       -Denable-capi=enabled \
       build
@@ -392,16 +395,24 @@ popd
 %endif #unit_test
 
 %if 0%{?gcov:1}
-mkdir -p gcov-obj
-find . -name '*.gcno' -exec cp '{}' gcov-obj ';'
+builddir=$(basename $(pwd))
+gcov_obj_dir=$(pwd)/gcov-obj/$builddir
+mkdir -p $gcov_obj_dir
+pushd build
+# the files under Applications & nnstreamer & test directories are not line coverage target.
+find . ! -path "*/gcov-obj/*" ! -path "*/Applications/*" ! -path "*/nnstreamer/*" ! -path "*/test/*" -name '*.gcno' ! -name "meson-generated*" ! -name "sanitycheck*" -exec cp --parents '{}' "$gcov_obj_dir" ';'
+popd
+python3 gcov_trim_path.py $(pwd)/build $gcov_obj_dir
 %endif
 
 %install
 DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
 
 %if 0%{?gcov:1}
-mkdir -p %{buildroot}%{_datadir}/gcov/obj/%{name}
-install -m 0644 gcov-obj/* %{buildroot}%{_datadir}/gcov/obj/%{name}
+pushd gcov-obj
+find . -type d -exec install -d {} %{buildroot}%{_datadir}/gcov/obj/%{name}/'{}' ';'
+find . -type f -exec install -m 0644 {} %{buildroot}%{_datadir}/gcov/obj/%{name}/'{}' ';'
+popd
 %endif
 
 %if 0%{?testcoverage}

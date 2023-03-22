@@ -78,7 +78,8 @@ layer_deps += opencv_dep
 nntrainer_base_deps += layer_deps
 
 foreach s : layer_sources
-  nntrainer_sources += meson.current_source_dir() / s
+  nntrainer_sources += files(s)
+  nntrainer_sources_abs += meson.current_source_dir() / s
 endforeach
 
 foreach h : layer_headers

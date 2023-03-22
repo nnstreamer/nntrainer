@@ -7,14 +7,11 @@ capi_inc_abs = [
 ]
 
 capi_src = []
-capi_src += meson.current_source_dir() / 'src' / 'nntrainer.cpp'
+capi_src_abs = []
+subdir('src')
 
 if not nnstreamer_capi_dep.found() and get_option('platform') == 'tizen'
   error('nnstreamer capi dependency not found for tizen')
-endif
-
-if get_option('platform') == 'tizen' and get_option('enable-tizen-feature-check')
-  capi_src += meson.current_source_dir() / 'src' / 'nntrainer-capi-tizen-feature-check.cpp'
 endif
 
 capi_headers = []
