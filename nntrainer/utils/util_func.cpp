@@ -28,6 +28,7 @@
 #include <fstream>
 #include <random>
 
+#include <acti_func.h>
 #include <nntrainer_log.h>
 #include <util_func.h>
 
@@ -39,10 +40,11 @@ float sqrtFloat(float x) { return sqrt(x); };
 
 double sqrtDouble(double x) { return sqrt(x); };
 
+float absFloat(float x) { return abs(x); };
+
 float logFloat(float x) { return log(x + 1.0e-20); }
 
 float exp_util(float x) { return exp(x); }
-
 
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
