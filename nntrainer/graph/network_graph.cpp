@@ -478,7 +478,7 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * usage less than the max_exec_order are allocated.
      */
     tensor_manager->allocateTensors(
-      std::get<2>(backward_iter_end->getExecutionOrder()));
+      std::get<3>(backward_iter_end->getExecutionOrder()));
   }
 }
 
