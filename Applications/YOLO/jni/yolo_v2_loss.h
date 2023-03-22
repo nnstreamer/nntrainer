@@ -69,28 +69,6 @@ public:
   using prop_tag = nntrainer::uint_prop_tag;
 };
 
-/**
- * @brief image height size
- *
- */
-class ImageHeightSize final : public nntrainer::PositiveIntegerProperty {
-public:
-  ImageHeightSize(const unsigned &value = 1);
-  static constexpr const char *key = "image_height_size";
-  using prop_tag = nntrainer::uint_prop_tag;
-};
-
-/**
- * @brief image width size
- *
- */
-class ImageWidthSize final : public nntrainer::PositiveIntegerProperty {
-public:
-  ImageWidthSize(const unsigned &value = 1);
-  static constexpr const char *key = "image_width_size";
-  using prop_tag = nntrainer::uint_prop_tag;
-};
-
 } // namespace props
 
 /**
@@ -138,6 +116,12 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
   /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(nntrainer::RunLayerContext &context,
+                unsigned int batch) override;
+
+  /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return true; };
@@ -168,8 +152,7 @@ private:
   nntrainer::ActiFunc softmax; /** softmax activation operation */
 
   std::tuple<props::MaxObjectNumber, props::ClassNumber,
-             props::GridHeightNumber, props::GridWidthNumber,
-             props::ImageHeightSize, props::ImageWidthSize>
+             props::GridHeightNumber, props::GridWidthNumber>
     yolo_v2_loss_props;
   std::array<unsigned int, 8> wt_idx; /**< indices of the weights */
 
@@ -181,14 +164,7 @@ private:
   /**
    * @brief generate ground truth, mask from labels
    */
-  void generate_ground_truth(
-    nntrainer::Tensor &bbox_x_pred, nntrainer::Tensor &bbox_y_pred,
-    nntrainer::Tensor &bbox_w_pred, nntrainer::Tensor &bbox_h_pred,
-    nntrainer::Tensor &labels, nntrainer::Tensor &bbox_x_gt,
-    nntrainer::Tensor &bbox_y_gt, nntrainer::Tensor &bbox_w_gt,
-    nntrainer::Tensor &bbox_h_gt, nntrainer::Tensor &confidence_gt,
-    nntrainer::Tensor &class_gt, nntrainer::Tensor &bbox_class_mask,
-    nntrainer::Tensor &iou_mask);
+  void generate_ground_truth(nntrainer::RunLayerContext &context);
 };
 
 } // namespace custom
