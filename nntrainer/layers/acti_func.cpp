@@ -306,21 +306,9 @@ float ActiFunc::tanhPrime(float x) {
   return 1.0f - x * x;
 }
 
-float ActiFunc::relu(float x) {
-  if (x <= 0.0f) {
-    return 0.0f;
-  } else {
-    return x;
-  }
-}
+float ActiFunc::relu(float x) { return x <= 0.0f ? 0.0f : x; }
 
-float ActiFunc::reluPrime(float x) {
-  if (x <= 0.0f) {
-    return 0.0f;
-  } else {
-    return 1.0f;
-  }
-}
+float ActiFunc::reluPrime(float x) { return x <= 0.0f ? 0.0f : 1.0f; }
 
 float ActiFunc::no_op(float x) { return x; }
 

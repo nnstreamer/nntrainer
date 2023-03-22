@@ -28,6 +28,7 @@
 #include <fstream>
 #include <random>
 
+#include <acti_func.h>
 #include <nntrainer_log.h>
 #include <util_func.h>
 
@@ -45,6 +46,8 @@ unsigned int getSeed() { return 0; }
 float sqrtFloat(float x) { return sqrt(x); };
 
 double sqrtDouble(double x) { return sqrt(x); };
+
+float absFloat(float x) { return abs(x); };
 
 float logFloat(float x) { return log(x + 1.0e-20); }
 
@@ -65,12 +68,6 @@ Tensor rotate_180(Tensor in) {
     }
   }
   return output;
-}
-
-Tensor calculateIOU(Tensor &b1_x1, Tensor &b1_y1, Tensor &b1_w, Tensor &b1_h,
-                    Tensor &b2_x1, Tensor &b2_y1, Tensor &b2_w, Tensor &b2_h) {
-  /** NYI */
-  return Tensor();
 }
 
 bool isFileExist(std::string file_name) {

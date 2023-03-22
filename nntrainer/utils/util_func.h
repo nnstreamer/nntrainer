@@ -85,6 +85,12 @@ float sqrtFloat(float x);
 double sqrtDouble(double x);
 
 /**
+ * @brief     abs function for float type
+ * @param[in] x float
+ */
+float absFloat(float x);
+
+/**
  * @brief     log function for float type
  * @param[in] x float
  */
@@ -102,9 +108,6 @@ float exp_util(float x);
  * @retVal Tensor rotated tensor (180 degree)
  */
 Tensor rotate_180(Tensor in);
-
-Tensor calculateIOU(Tensor &b1_x1, Tensor &b1_y1, Tensor &b1_x2, Tensor &b1_y2,
-                    Tensor &b2_x1, Tensor &b2_y1, Tensor &b2_x2, Tensor &b2_y2);
 
 /**
  * @brief     Check Existance of File
