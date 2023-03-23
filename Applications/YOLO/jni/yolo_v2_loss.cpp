@@ -643,13 +643,14 @@ void YoloV2LossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   bbox_w_pred_grad.copyData(splitted_bbox_pred_grad[2]);
   bbox_h_pred_grad.copyData(splitted_bbox_pred_grad[3]);
 
-  std::vector<nntrainer::Tensor> bbox_pred_iou_grad =
-    calc_iou_grad(confidence_gt_grad, bbox1_width, bbox1_height, is_xy_min_max,
-                  intersection_width, intersection_height, unions);
-  bbox_x_pred_grad.add_i(bbox_pred_iou_grad[0]);
-  bbox_y_pred_grad.add_i(bbox_pred_iou_grad[1]);
-  bbox_w_pred_grad.add_i(bbox_pred_iou_grad[2]);
-  bbox_h_pred_grad.add_i(bbox_pred_iou_grad[3]);
+  // std::vector<nntrainer::Tensor> bbox_pred_iou_grad =
+  //   calc_iou_grad(confidence_gt_grad, bbox1_width, bbox1_height,
+  //   is_xy_min_max,
+  //                 intersection_width, intersection_height, unions);
+  // bbox_x_pred_grad.add_i(bbox_pred_iou_grad[0]);
+  // bbox_y_pred_grad.add_i(bbox_pred_iou_grad[1]);
+  // bbox_w_pred_grad.add_i(bbox_pred_iou_grad[2]);
+  // bbox_h_pred_grad.add_i(bbox_pred_iou_grad[3]);
 
   /**
    * @brief calculate gradient for applying anchors to bounding box

@@ -19,11 +19,13 @@
 #include <sstream>
 #include <vector>
 
+#include <app_context.h>
+#include <det_dataloader.h>
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
 
-#include <det_dataloader.h>
+#include "yolo_v2_loss.h"
 
 #include <app_context.h>
 #include <reorg_layer.h>
@@ -32,7 +34,19 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DirDataLoader>;
 
-const int num_classes = 92;
+const unsigned int ANCHOR_NUMBER = 5;
+
+const unsigned int MAX_OBJECT_NUMBER = 4;
+const unsigned int CLASS_NUMBER = 4;
+const unsigned int GRID_HEIGHT_NUMBER = 13;
+const unsigned int GRID_WIDTH_NUMBER = 13;
+const unsigned int IMAGE_HEIGHT_SIZE = 416;
+const unsigned int IMAGE_WIDTH_SIZE = 416;
+const unsigned int BATCH_SIZE = 4;
+const unsigned int EPOCHS = 3;
+const char *TRAIN_DIR_PATH = "TRAIN_DIR_PATH";
+const char *VALIDATION_DIR_PATH = "VALIDATION_DIR_PATH";
+const std::string MODEL_INIT_BIN_PATH = "MODEL_INIT_BIN_PATH";
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
   auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
@@ -135,9 +149,9 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
   LayerHandle a1 = createConv("a1", kernel_size, 1, "same", input_name);
 
   if (downsample) {
-    LayerHandle a2 =
-      createLayer("batch_normalization",
-                  {with_name("a2"), withKey("activation", "leaky_relu")});
+    LayerHandle a2 = createLayer("batch_normalization",
+                                 {with_name("a2"), withKey("momentum", "0.9"),
+                                  withKey("activation", "leaky_relu")});
 
     LayerHandle a3 = createLayer(
       "pooling2d", {withKey("name", block_name), withKey("stride", {2, 2}),
@@ -146,8 +160,9 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
     return {a1, a2, a3};
   } else {
     LayerHandle a2 =
-      createLayer("batch_normalization", {withKey("name", block_name),
-                                          withKey("activation", "leaky_relu")});
+      createLayer("batch_normalization",
+                  {withKey("name", block_name), withKey("momentum", "0.9"),
+                   withKey("activation", "leaky_relu")});
 
     return {a1, a2};
   }
@@ -167,7 +182,10 @@ ModelHandle YOLO() {
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "3:416:416")}));
+    "input",
+    {withKey("name", "input0"),
+     withKey("input_shape", "3:" + std::to_string(IMAGE_HEIGHT_SIZE) + ":" +
+                              std::to_string(IMAGE_WIDTH_SIZE))}));
 
   std::vector<std::vector<LayerHandle>> blocks;
 
@@ -212,7 +230,7 @@ ModelHandle YOLO() {
   blocks.push_back(
     {createLayer("conv2d", {
                              withKey("name", "conv_out2"),
-                             withKey("filters", (5 + num_classes) * 5),
+                             withKey("filters", 5 * (5 + CLASS_NUMBER)),
                              withKey("kernel_size", {1, 1}),
                              withKey("stride", {1, 1}),
                              withKey("padding", "same"),
@@ -222,6 +240,30 @@ ModelHandle YOLO() {
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
   }
+
+  layers.push_back(createLayer("permute", {
+                                            withKey("name", "permute"),
+                                            withKey("direction", {2, 3, 1}),
+                                          }));
+
+  layers.push_back(createLayer(
+    "reshape",
+    {
+      withKey("name", "reshape"),
+      withKey("target_shape",
+              std::to_string(GRID_HEIGHT_NUMBER * GRID_WIDTH_NUMBER) + ":" +
+                std::to_string(ANCHOR_NUMBER) + ":" +
+                std::to_string(5 + CLASS_NUMBER)),
+    }));
+
+  layers.push_back(createLayer(
+    "yolo_v2_loss", {
+                      withKey("name", "yolo_v2_loss"),
+                      withKey("max_object_number", MAX_OBJECT_NUMBER),
+                      withKey("class_number", CLASS_NUMBER),
+                      withKey("grid_height_number", GRID_HEIGHT_NUMBER),
+                      withKey("grid_width_number", GRID_WIDTH_NUMBER),
+                    }));
 
   for (auto &layer : layers) {
     model->addLayer(layer);
@@ -237,68 +279,53 @@ int main(int argc, char *argv[]) {
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
-  // set training config and print it
-  unsigned int data_size = 1;
-  unsigned int batch_size = 1;
-  unsigned int data_split = 1;
-  unsigned int epochs = 1;
-  std::cout << "batch_size: " << batch_size << " data_split: " << data_split
-            << " epoch: " << epochs << std::endl;
-
   try {
     auto &app_context = nntrainer::AppContext::Global();
-    app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
+    app_context.registerFactory(
+      nntrainer::createLayer<custom::YoloV2LossLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
     return 1;
   }
 
-  // create train and validation data
-  std::array<UserDataType, 2> user_datas;
-  try {
-    const char *train_dir = "./train_dir/";
-    const char *valid_dir = "./valid_dir/";
-    const int max_num_label = 5;
-    const int channel = 3;
-    const int width = 416;
-    const int height = 416;
-    user_datas = createDetDataGenerator(train_dir, valid_dir, max_num_label,
-                                        channel, width, height);
-  } catch (const std::exception &e) {
-    std::cerr << "uncaught error while creating data generator! details: "
-              << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
-  auto &[train_user_data, valid_user_data] = user_datas;
+  // set training config and print it
+  std::cout << "batch_size: " << BATCH_SIZE << " epochs: " << EPOCHS
+            << std::endl;
 
   try {
-    auto dataset_train = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
-    auto dataset_valid = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
-
     // create YOLO v2 model
     ModelHandle model = YOLO();
-    model->setProperty({withKey("batch_size", batch_size),
-                        withKey("epochs", epochs),
+    model->setProperty({withKey("batch_size", BATCH_SIZE),
+                        withKey("epochs", EPOCHS),
                         withKey("save_path", "yolov2.bin")});
 
     // create optimizer
-    auto optimizer =
-      ml::train::createOptimizer("adam", {"learning_rate=0.001"});
+    auto optimizer = ml::train::createOptimizer(
+      "adam", {"learning_rate=0.001", "epsilon=1e-8", "torch_ref=true"});
     model->setOptimizer(std::move(optimizer));
 
     // compile and initialize model
     model->compile();
     model->initialize();
+    model->load(MODEL_INIT_BIN_PATH);
+
+    // create train and validation data
+    std::array<UserDataType, 2> user_datas;
+    user_datas = createDetDataGenerator(TRAIN_DIR_PATH, VALIDATION_DIR_PATH,
+                                        MAX_OBJECT_NUMBER, 3, IMAGE_HEIGHT_SIZE,
+                                        IMAGE_WIDTH_SIZE);
+    auto &[train_user_data, valid_user_data] = user_datas;
+
+    auto dataset_train = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+    auto dataset_valid = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
 
     model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                       std::move(dataset_train));
     model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                       std::move(dataset_valid));
-
-    model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
     model->train();
   } catch (const std::exception &e) {
