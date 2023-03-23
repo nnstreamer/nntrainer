@@ -160,20 +160,19 @@ class YoloV2_LOSS(nn.Module):
                         torch.LongTensor(cls_gt[i])
                     )
             
-            bbox_built.append(_bbox_built.numpy())
-            bbox_mask.append(_bbox_mask.numpy())
-            iou_built.append(_iou_built.numpy())
-            iou_mask.append(_iou_mask.numpy())
-            cls_built.append(_cls_built.numpy())
-            cls_mask.append(_cls_mask.numpy())
+            bbox_built.append(_bbox_built)
+            bbox_mask.append(_bbox_mask)
+            iou_built.append(_iou_built)
+            iou_mask.append(_iou_mask)
+            cls_built.append(_cls_built)
+            cls_mask.append(_cls_mask)
 
-        bbox_built, bbox_mask, iou_built, iou_mask, cls_built, cls_mask =\
-            torch.FloatTensor(np.array(bbox_built)),\
-            torch.FloatTensor(np.array(bbox_mask)),\
-            torch.FloatTensor(np.array(iou_built)),\
-            torch.FloatTensor(np.array(iou_mask)),\
-            torch.FloatTensor(np.array(cls_built)),\
-            torch.FloatTensor(np.array(cls_mask))
+        bbox_built = torch.stack(bbox_built)
+        bbox_mask = torch.stack(bbox_mask)
+        iou_built = torch.stack(iou_built)
+        iou_mask = torch.stack(iou_mask)
+        cls_built = torch.stack(cls_built)
+        cls_mask = torch.stack(cls_mask)
                     
         return bbox_built, iou_built, cls_built, bbox_mask, iou_mask, cls_mask
         
@@ -221,7 +220,7 @@ class YoloV2_LOSS(nn.Module):
         _cls_mask[cell_idx, best_anchors, :] = 1
         
         # set confidence score of gt
-        _iou_built = calculate_iou(_bbox_pred.reshape(-1, 4), _bbox_built.view(-1, 4)).detach()    
+        _iou_built = calculate_iou(_bbox_pred.reshape(-1, 4), _bbox_built.view(-1, 4)).detach()
         _iou_built = _iou_built.view(hw, num_anchors, 1)
         _iou_mask[cell_idx, best_anchors, :] = 1
         
