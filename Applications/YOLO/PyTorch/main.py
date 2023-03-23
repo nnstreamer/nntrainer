@@ -37,25 +37,27 @@ out_size = 13
 num_classes = 4
 num_anchors = 5
 
-epochs = 1000
-batch_size = 8
+epochs = 3
+batch_size = 4
 
-train_img_dir = './custom_dataset/images/*'
-train_ann_dir = './custom_dataset/annotations/*'
-valid_img_dir = './custom_dataset_val/images/*'
-valid_ann_dir = './custom_dataset_val/annotations/*'
+train_img_dir = 'TRAIN_DIR/images/*'
+train_ann_dir = 'TRAIN_DIR/annotations/*'
+valid_img_dir = 'VALIDATION_DIR/images/*'
+valid_ann_dir = 'VALIDATION_DIR/annotations/*'
 
 # load data
 train_dataset = YOLODataset(train_img_dir, train_ann_dir)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=True, drop_last=True)
 valid_dataset = YOLODataset(valid_img_dir, valid_ann_dir)
-valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=False, drop_last=False)
+valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=False, drop_last=True)
 
 # set model, loss and optimizer
 model = YoloV2(num_classes=num_classes)
 criterion = YoloV2_LOSS(num_classes=num_classes)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
+
+save_bin(model, 'init_model')
 
 # train model
 best_loss = 1e+10
@@ -84,7 +86,7 @@ for epoch in range(epochs):
         # back prop
         loss.backward()
         optimizer.step()  
-        scheduler.step()
+        # scheduler.step()
         epoch_train_loss += loss.item()
 
     for idx, (img, bbox, cls) in enumerate(valid_loader):
