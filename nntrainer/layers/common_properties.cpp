@@ -20,6 +20,7 @@
 
 #include <regex>
 #include <sstream>
+#include <sys/stat.h>
 #include <utility>
 #include <vector>
 
@@ -67,6 +68,13 @@ void FilePath::set(const std::string &v) {
 }
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
+
+bool DirPath::isValid(const std::string &v) const {
+  struct stat dir;
+  return (stat(v.c_str(), &dir) == 0);
+}
+
+void DirPath::set(const std::string &v) { Property<std::string>::set(v); }
 
 ReturnSequences::ReturnSequences(bool value) { set(value); }
 

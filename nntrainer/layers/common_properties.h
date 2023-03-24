@@ -589,6 +589,42 @@ private:
 };
 
 /**
+ * @brief Props containing directory path value
+ *
+ */
+class DirPath : public Property<std::string> {
+public:
+  /**
+   * @brief Construct a new Dir Path object
+   */
+  DirPath() : Property<std::string>() {}
+
+  /**
+   * @brief Construct a new Dir Path object
+   *
+   * @param path path to set
+   */
+  DirPath(const std::string &path) { set(path); }
+  static constexpr const char *key = "dir_path"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                 /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @return bool true if valid
+   */
+  bool isValid(const std::string &v) const override;
+
+  /**
+   * @brief setter
+   *
+   * @param v value to set
+   */
+  void set(const std::string &v) override;
+};
+
+/**
  * @brief return sequence property, used to check
  * whether return only the last output. Return last output if true.
  *
