@@ -40,6 +40,7 @@ typedef std::function<std::remove_pointer<ml_train_datagen_cb>::type>
 enum class DatasetType {
   GENERATOR, /** Dataset with generators */
   FILE,      /** Dataset with files */
+  DIR,       /** Dataset with directory */
   UNKNOWN    /** Unknown dataset type */
 };
 

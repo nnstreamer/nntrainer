@@ -5,7 +5,8 @@ dataset_sources = [
   'databuffer_factory.cpp',
   'random_data_producers.cpp',
   'func_data_producer.cpp',
-  'raw_file_data_producer.cpp'
+  'raw_file_data_producer.cpp',
+  'dir_data_producers.cpp',
 ]
 
 dataset_headers = [
