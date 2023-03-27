@@ -34,7 +34,7 @@ namespace nntrainer {
 
 static void saxpy_raw(const unsigned int N, const float alpha, const float *X,
                       const int incX, float *Y, const int incY) {
-  if (incX <= 0 or incY <= 0)
+  if (incX < 0 or incY < 0)
     throw std::invalid_argument(
       "Error: negative inc not supported without cblas");
   for (unsigned int i = 0; i < N; ++i)
