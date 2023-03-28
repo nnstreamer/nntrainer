@@ -15,11 +15,12 @@ There are two ways to apply custom object to the code.
 
 #### Related Folders:
 
-1. `LayerClients/` has a demo about how to write a custom layer and register it.
-2. `LayerPlugin/` contains test and build scripts to show how to build a custom layer and object as a seperate library(`.so`) and register it.
+1. `LayerClient/` has a demo about how to write a custom layer and register it.
+2. `LayerPlugin/` contains test and build scripts to show how to build a custom layer and object as a separate library(`.so`) and register it.
+3. `CustomClient/` has a demo about how to write a custom optimizer and register it.
 
 #### Related Custom Objects:
 
 
 1. **Pow Layer**: A custom layer object which get x -> returns x^(exponent), exponent can be set by `layer.setProperty({"exponent={n}"});`.
-2. **Mean Absoulute Error(MAE) Loss Layer**: A loss layer object which calculates MAE.
+2. **Mean Absolute Error(MAE) Loss Layer**: A loss layer object which calculates MAE.
