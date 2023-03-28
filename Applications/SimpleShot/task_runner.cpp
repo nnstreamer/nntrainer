@@ -149,8 +149,8 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
         "centering", {"name=center",
                       "feature_path=" + getFeatureFilePath(backbone, app_path),
                       "trainable=false"});
-      LayerHandle l2 =
-        ml::train::createLayer("l2norm", {"name=l2norm", "trainable=false"});
+      LayerHandle l2 = ml::train::createLayer(
+        "preprocess_l2norm", {"name=l2norm", "trainable=false"});
       v.push_back(centering);
       v.push_back(l2);
     } else {
