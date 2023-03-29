@@ -12,10 +12,10 @@
  * @todo    Support multi-input graph.
  */
 
-#include "graph_node.h"
 #include "common_properties.h"
 #include "conv2d_layer.h"
 #include "fc_layer.h"
+#include "graph_node.h"
 #include "layer.h"
 #include "layer_devel.h"
 #include "mol_attention_layer.h"
@@ -156,8 +156,9 @@ void NetworkGraph::setCheckPoints() {
       continue;
     }
 
-    node->setCheckPoint(idx % (checkpoint_len + 1) == 0 ?
-        CheckPointType::CHECKPOINTED : CheckPointType::NONCHECK_UNLOAD);
+    node->setCheckPoint(idx % (checkpoint_len + 1) == 0
+                          ? CheckPointType::CHECKPOINTED
+                          : CheckPointType::NONCHECK_UNLOAD);
   }
 
   // handle InPlace layer
@@ -171,7 +172,8 @@ void NetworkGraph::setCheckPoints() {
       // If one of the input is checkpointed, then all the inputs should be
       CheckPointType checkpoint = node->getCheckPoint();
       for (auto &in : inputs) {
-        if (getLayerNode(in)->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
+        if (getLayerNode(in)->getCheckPoint().get() ==
+            CheckPointType::CHECKPOINTED) {
           checkpoint = CheckPointType::CHECKPOINTED;
           break;
         }
@@ -442,11 +444,10 @@ sharedConstTensors NetworkGraph::forwarding(
         continue;
 
       auto inputs = layer->getInputConnections();
-      std::for_each(inputs.begin(), inputs.end(),
-                    [&](const std::string &name) {
-                      auto in_ln = getLayerNode(name);
-                      stack.push(in_ln);
-                    });
+      std::for_each(inputs.begin(), inputs.end(), [&](const std::string &name) {
+        auto in_ln = getLayerNode(name);
+        stack.push(in_ln);
+      });
     }
   };
 
@@ -519,7 +520,8 @@ void NetworkGraph::backwarding(
   std::vector<std::shared_ptr<LayerNode>> forwarded;
 
   auto load_tensors = [&](std::shared_ptr<LayerNode> layer) {
-    if (layer->getCheckPoint().get() == CheckPointType::CHECKPOINTED)
+    if (layer->getCheckPoint().get() == CheckPointType::CHECKPOINTED ||
+        layer->getType() == ActivationLayer::type)
       return;
 
     auto checkpoints = search_checkpoints(layer);
@@ -565,10 +567,12 @@ void NetworkGraph::backwarding(
     }
   };
 
-/* Remained for later use:
+/**
+ * Remained for later use:
  * This unload tensor function unloads tensors only for checkpointed layers.
- * It unloads all tensors from successors of a checkpointed layer to next checkpointed layers.
- * By using this, loading and unloading tensors can be done only with checkpointed layers.
+ * It unloads all tensors from successors of a checkpointed layer to next
+ * checkpointed layers. By using this, loading and unloading tensors can be done
+ * only with checkpointed layers.
  */
 #if 0
   auto unload_tensors = [&](const std::shared_ptr<LayerNode> layer) {
@@ -967,11 +971,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   std::vector<bool> is_temporary_input;
   auto input_conns = lnode->getInputConnections();
-  std::for_each(input_conns.begin(), input_conns.end(),
-                [&](std::string &name) {
-                  is_temporary_input.push_back(
-                      getLayerNode(name)->getCheckPoint().get() != CheckPointType::CHECKPOINTED);
-                });
+  std::for_each(input_conns.begin(), input_conns.end(), [&](std::string &name) {
+    is_temporary_input.push_back(getLayerNode(name)->getCheckPoint().get() !=
+                                 CheckPointType::CHECKPOINTED);
+  });
 
   if (lnode->getInputConnections().empty())
     is_temporary_input.push_back(false);

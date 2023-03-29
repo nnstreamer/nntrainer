@@ -364,6 +364,7 @@ void GraphWatcher::compareFor(const std::string &reference,
   auto data = prepareData(ref, label_shape);
   nntrainer::sharedConstTensors input;
 
+  nn->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_LAYER);
   for (unsigned int iteration = 0; iteration < iterations; ++iteration) {
     input = {MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
     nntrainer::sharedConstTensors label = {
