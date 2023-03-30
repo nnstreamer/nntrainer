@@ -30,7 +30,6 @@ def get_util_path():
 
 # add pyutils path to sys.path
 sys.path.append(get_util_path())
-print(get_util_path())
 from torchconverter import save_bin
 
 # set config
@@ -41,13 +40,16 @@ num_anchors = 5
 epochs = 1000
 batch_size = 8
 
-img_dir = './custom_dataset/images/*'
-ann_dir = './custom_dataset/annotations/*'
-
+train_img_dir = './custom_dataset/images/*'
+train_ann_dir = './custom_dataset/annotations/*'
+valid_img_dir = './custom_dataset_val/images/*'
+valid_ann_dir = './custom_dataset_val/annotations/*'
 
 # load data
-dataset = YOLODataset(img_dir, ann_dir)
-loader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=True, drop_last=True)
+train_dataset = YOLODataset(train_img_dir, train_ann_dir)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=True, drop_last=True)
+valid_dataset = YOLODataset(valid_img_dir, valid_ann_dir)
+valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=False, drop_last=False)
 
 
 # set model, loss and optimizer
@@ -60,8 +62,10 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_
 # train model
 best_loss = 1e+10
 for epoch in range(epochs):
-    epoch_loss = 0
-    for idx, (img, bbox, cls) in enumerate(loader):
+    epoch_train_loss = 0
+    epoch_valid_loss = 0
+    for idx, (img, bbox, cls) in enumerate(train_loader):
+        model.train()
         optimizer.zero_grad()
         # model prediction
         hypothesis = model(img).permute((0, 2, 3, 1))
@@ -83,14 +87,36 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()  
         scheduler.step()
-        epoch_loss += loss.item()
+        epoch_train_loss += loss.item()
+
+    for idx, (img, bbox, cls) in enumerate(valid_loader):
+        model.eval()
+        with torch.no_grad():
+            # model prediction
+            hypothesis = model(img).permute((0, 2, 3, 1))
+            hypothesis = hypothesis.reshape((hypothesis.shape[0], out_size**2, num_anchors, 5+num_classes))        
+            # split each prediction(bbox, iou, class prob)
+            bbox_pred_xy = torch.sigmoid(hypothesis[..., :2])
+            bbox_pred_wh = torch.exp(hypothesis[..., 2:4])
+            bbox_pred = torch.cat((bbox_pred_xy, bbox_pred_wh), 3)        
+            iou_pred = torch.sigmoid(hypothesis[..., 4:5])        
+            score_pred = hypothesis[..., 5:].contiguous()
+            prob_pred = torch.softmax(score_pred.view(-1, num_classes), dim=1).view(score_pred.shape)
+            # calc loss
+            loss = criterion(torch.FloatTensor(bbox_pred),
+                            torch.FloatTensor(iou_pred),
+                            torch.FloatTensor(prob_pred),
+                            bbox,
+                            cls)
+            epoch_valid_loss += loss.item()
         
-    if epoch_loss < best_loss:
-        best_loss = epoch_loss
+    if epoch_valid_loss < best_loss:
+        best_loss = epoch_valid_loss
         torch.save(model.state_dict(), './best_model.pt')
         save_bin(model, 'best_model')
         
-    print("{}epoch, loss: {:.4f}".format(epoch, epoch_loss / len(loader)))
+    print("{}epoch, train loss: {:.4f}, valid loss: {:.4f}".format(
+        epoch, epoch_train_loss / len(train_loader), epoch_valid_loss / len(valid_loader)))
 
 ##
 # @brief bbox post process function for inference
