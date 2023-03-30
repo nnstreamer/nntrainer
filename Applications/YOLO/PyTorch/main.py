@@ -14,7 +14,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from yolo import YoloV2_light
+from yolo import YoloV2
 from yolo_loss import YoloV2_LOSS
 from dataset import YOLODataset, collate_db
 
@@ -34,7 +34,7 @@ from torchconverter import save_bin
 
 # set config
 out_size = 13
-num_classes = 5
+num_classes = 4
 num_anchors = 5
 
 epochs = 1000
@@ -51,13 +51,11 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=colla
 valid_dataset = YOLODataset(valid_img_dir, valid_ann_dir)
 valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate_db, shuffle=False, drop_last=False)
 
-
 # set model, loss and optimizer
-model = YoloV2_light(num_classes=5)
-criterion = YoloV2_LOSS(num_classes=5)
+model = YoloV2(num_classes=num_classes)
+criterion = YoloV2_LOSS(num_classes=num_classes)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
-
 
 # train model
 best_loss = 1e+10
@@ -69,12 +67,12 @@ for epoch in range(epochs):
         optimizer.zero_grad()
         # model prediction
         hypothesis = model(img).permute((0, 2, 3, 1))
-        hypothesis = hypothesis.reshape((batch_size, out_size**2, num_anchors, 5+num_classes))        
+        hypothesis = hypothesis.reshape((batch_size, out_size**2, num_anchors, 5+num_classes))
         # split each prediction(bbox, iou, class prob)
         bbox_pred_xy = torch.sigmoid(hypothesis[..., :2])
         bbox_pred_wh = torch.exp(hypothesis[..., 2:4])
-        bbox_pred = torch.cat((bbox_pred_xy, bbox_pred_wh), 3)        
-        iou_pred = torch.sigmoid(hypothesis[..., 4:5])        
+        bbox_pred = torch.cat((bbox_pred_xy, bbox_pred_wh), 3)
+        iou_pred = torch.sigmoid(hypothesis[..., 4:5])
         score_pred = hypothesis[..., 5:].contiguous()
         prob_pred = torch.softmax(score_pred.view(-1, num_classes), dim=1).view(score_pred.shape)
         # calc loss
@@ -120,9 +118,9 @@ for epoch in range(epochs):
 
 ##
 # @brief bbox post process function for inference
-def post_process_for_bbox(bbox_pred):    
+def post_process_for_bbox(bbox_pred):
     """
-    @param bbox_pred shape(batch_size, cell_h x cell_w, num_anchors, 4)    
+    @param bbox_pred shape(batch_size, cell_h x cell_w, num_anchors, 4)
     @return bbox_pred shape(batch_size, cell_h x cell_w, num_anchors, 4)
     """
     anchors = torch.FloatTensor(
@@ -136,7 +134,7 @@ def post_process_for_bbox(bbox_pred):
     outsize = (13, 13)
     width, height = outsize
     
-    # restore cell pos to x, y    
+    # restore cell pos to x, y
     for w in range(width):
         for h in range(height):
             bbox_pred[:, height*h + w, :, 0] += w
@@ -145,7 +143,7 @@ def post_process_for_bbox(bbox_pred):
     
     # apply anchors to w, h
     anchor_w = anchors[:, 0].contiguous().view(-1, 1)
-    anchor_h = anchors[:, 1].contiguous().view(-1, 1)        
+    anchor_h = anchors[:, 1].contiguous().view(-1, 1)
     bbox_pred[:, :, :, 2:3] *= anchor_w
     bbox_pred[:, :, :, 3:4] *= anchor_h
 
@@ -153,7 +151,7 @@ def post_process_for_bbox(bbox_pred):
 
 # inference example using trained model
 hypothesis = model(img).permute((0, 2, 3, 1))
-hypothesis = hypothesis[0].reshape((1, out_size**2, num_anchors, 5+num_classes))        
+hypothesis = hypothesis[0].reshape((1, out_size**2, num_anchors, 5+num_classes))
 
 # transform output
 bbox_pred_xy = torch.sigmoid(hypothesis[..., :2])

@@ -29,6 +29,8 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DirDataLoader>;
 
+const int num_classes = 4;
+
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
   auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
 
@@ -175,20 +177,50 @@ ModelHandle YOLO() {
   blocks.push_back(yoloBlock("conv7", "conv6", 128, 1, false));
   blocks.push_back(yoloBlock("conv8", "conv7", 256, 3, true));
   blocks.push_back(yoloBlock("conv9", "conv8", 512, 3, false));
-  blocks.push_back(yoloBlock("conv10", "conv9", 256, 1, true));
+  blocks.push_back(yoloBlock("conv10", "conv9", 256, 1, false));
+  blocks.push_back(yoloBlock("conv11", "conv10", 512, 3, false));
+  blocks.push_back(yoloBlock("conv12", "conv11", 256, 1, false));
+  blocks.push_back(yoloBlock("conv13", "conv12", 512, 3, false));
+
+  blocks.push_back({createLayer(
+    "pooling2d", {withKey("name", "conv_a_pool"), withKey("stride", {2, 2}),
+                  withKey("pooling", "max"), withKey("pool_size", {2, 2}),
+                  withKey("input_layers", "conv13")})});
+  blocks.push_back(yoloBlock("conv_a1", "conv_a_pool", 1024, 3, false));
+  blocks.push_back(yoloBlock("conv_a2", "conv_a1", 512, 1, false));
+  blocks.push_back(yoloBlock("conv_a3", "conv_a2", 1024, 3, false));
+  blocks.push_back(yoloBlock("conv_a4", "conv_a3", 512, 1, false));
+  blocks.push_back(yoloBlock("conv_a5", "conv_a4", 1024, 3, false));
+  blocks.push_back(yoloBlock("conv_a6", "conv_a5", 1024, 3, false));
+  blocks.push_back(yoloBlock("conv_a7", "conv_a6", 1024, 3, false));
+
+  blocks.push_back(yoloBlock("conv_b", "conv13", 64, 1, false));
+  // todo: conv_b_pool layer will be replaced with re-organization custom layer
+  blocks.push_back({createLayer(
+    "pooling2d", {withKey("name", "conv_b_pool"), withKey("stride", {2, 2}),
+                  withKey("pooling", "average"), withKey("pool_size", {2, 2}),
+                  withKey("input_layers", "conv_b")})});
+
+  blocks.push_back(
+    {createLayer("concat", {withKey("name", "concat"),
+                            withKey("input_layers", "conv_a7, conv_b_pool"),
+                            withKey("axis", 1)})});
+
+  blocks.push_back(yoloBlock("conv_out1", "concat", 1024, 3, false));
+
+  blocks.push_back(
+    {createLayer("conv2d", {
+                             withKey("name", "conv_out2"),
+                             withKey("filters", (5 + num_classes) * 5),
+                             withKey("kernel_size", {1, 1}),
+                             withKey("stride", {1, 1}),
+                             withKey("padding", "same"),
+                             withKey("input_layers", "conv_out1"),
+                           })});
 
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
   }
-
-  layers.push_back(createLayer("conv2d", {
-                                           withKey("name", "conv_out"),
-                                           withKey("filters", 50),
-                                           withKey("kernel_size", {1, 1}),
-                                           withKey("stride", {1, 1}),
-                                           withKey("padding", "same"),
-                                           withKey("input_layers", "conv10"),
-                                         }));
 
   for (auto layer : layers) {
     model->addLayer(layer);
