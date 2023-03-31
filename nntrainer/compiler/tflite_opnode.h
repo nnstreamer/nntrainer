@@ -7,6 +7,7 @@
  * @brief contains tflite opnode which has information to convert to tflite file
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -94,6 +95,12 @@ public:
   void setNeedReorderWeight() { need_reorder_weight = true; }
 
   /**
+   * @brief Set the Trainable object
+   *
+   */
+  void setTrainable(bool trainable) { is_trainable = trainable; }
+
+  /**
    * @brief Reorder Weight in case of NCHW --> NHWC
    *
    * @param node_count
@@ -168,10 +175,18 @@ public:
   /**
    * @brief check if this layer need to reorder
    *
-   * @return true
-   * @return false
+   * @return true if weight need to reorder
+   * @return false if reordering is not required
    */
   bool isNeedReorder() const { return need_reorder_weight; }
+
+  /**
+   * @brief check if this layer is trainable
+   *
+   * @return true if layer(OpNode) trainable
+   * @return false if layer(OpNode) non-trainable
+   */
+  bool isTrainable() const { return is_trainable; }
 
   /**
    * @brief Get the Op Type object
@@ -249,6 +264,7 @@ private:
   bool is_input;            /**< true if given input is input; */
   bool is_output;           /**< true if given output is output; */
   bool is_virtual;          /**< true if given node is virtual; */
+  bool is_trainable;        /**< true if given node has weight and trainable */
   bool need_reorder_weight; /**< true if given node need to reorder weight; */
 
   /// @todo change to shared_ptr or unique_ptr
