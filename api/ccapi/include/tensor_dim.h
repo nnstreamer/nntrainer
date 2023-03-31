@@ -34,6 +34,11 @@ public:
   static constexpr const size_t MAXDIM = 4;
 
   /**
+   * @brief     Tensor Formant : Default is NCHW
+   */
+  enum class Format { NCHW, NHWC };
+
+  /**
    * @brief Get the Num Dim object
    *
    * @return unsigned int fixed value of MAXDIM
@@ -43,27 +48,32 @@ public:
   /**
    * @brief Construct a new Tensor Dim object
    *
+   * @param fm format NCHW | HNWC
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
-  explicit TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+  explicit TensorDim(Format fm = Format::NCHW,
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
                      const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
    *
    * @param dims std::initialize_list
+   * @param fm format NCHW | HNWC
    *
-   * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} are accepted
+   * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW are accepted
+   * formats of {c}, {w, c}, {h, w, c}, {b, h, w, c} for the NHWC are accepted
    */
-  TensorDim(std::initializer_list<size_t> dims);
+  TensorDim(std::initializer_list<size_t> dims, Format fm = Format::NCHW);
 
   /**
    * @brief Construct a new Tensor Dim object without batch dimension
    *
    * @param shapes shapes without batch dimension
+   * @param fm format NCHW | HNWC
    */
-  TensorDim(const std::array<size_t, 3> &shapes);
+  TensorDim(const std::array<size_t, 3> &shapes, Format fm = Format::NCHW);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -72,10 +82,11 @@ public:
    * @param c channel
    * @param h height
    * @param w width
+   * @param fm format NCHW | HNWC
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t b, size_t c, size_t h, size_t w,
+  TensorDim(size_t b, size_t c, size_t h, size_t w, Format fm = Format::NCHW,
             const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
             const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
@@ -89,9 +100,10 @@ public:
   /**
    * @brief Construct a new Tensor Dim object
    *
-   * @param shape shape of format N:C:H:W
+   * @param shape shape of format
+   * @param fm format NCHW | HNWC
    */
-  TensorDim(const std::string &shape);
+  TensorDim(const std::string &shape, Format fm = Format::NCHW);
 
   /**
    * @brief Destroy the Tensor Dim object
@@ -275,10 +287,11 @@ public:
   /**
    * @brief Set the Tensor Dim object
    *
-   * @param input_shape input_shape of format `N:C:H:W`
+   * @param input_shape input_shape
+   * @param fm NCHW | NHWC
    * @return int ML_ERROR_NONE if successs
    */
-  int setTensorDim(const std::string &input_shape);
+  int setTensorDim(const std::string &input_shape, Format fm = Format::NCHW);
 
   /**
    * @brief copy assign a dimension
@@ -366,12 +379,26 @@ public:
    */
   bool is_dynamic() const;
 
+  /**
+   * @brief getFormat
+   *
+   */
+  TensorDim::Format getFormat() const { return format; };
+
+  /**
+   * @brief setFormat
+   *
+   */
+  void setFormat(TensorDim::Format fm) { format = fm; };
+
 private:
   /**
    * @brief reset length
    *
    */
   void resetLen();
+
+  Format format;
 
   std::bitset<MAXDIM> eff_dim_flag; /**< dimension bit flag to define effective
           dimension size */
