@@ -19,6 +19,9 @@
 /usr/include/nntrainer/layer_impl.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
+# logger
+/usr/include/nntrainer/nntrainer_log.h
+/usr/include/nntrainer/nntrainer_logger.h
 # optimizer headers
 /usr/include/nntrainer/optimizer_context.h
 /usr/include/nntrainer/optimizer_devel.h
