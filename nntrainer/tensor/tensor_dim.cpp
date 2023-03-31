@@ -25,8 +25,10 @@
 namespace ml {
 namespace train {
 
-TensorDim::TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_,
+TensorDim::TensorDim(TensorDim::Format fm,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  format(fm),
   eff_dim_flag(eff_dim_flag_),
   dyn_dim_flag(dyn_dim_flag_) {
   for (size_t i = 0; i < MAXDIM; ++i) {
@@ -36,7 +38,8 @@ TensorDim::TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_,
   feature_len = 0;
 }
 
-TensorDim::TensorDim(std::initializer_list<size_t> dims) : TensorDim() {
+TensorDim::TensorDim(std::initializer_list<size_t> dims, Format fm) :
+  TensorDim() {
   int shift_size = MAXDIM - dims.size();
 
   if (shift_size < 0) {
@@ -49,25 +52,33 @@ TensorDim::TensorDim(std::initializer_list<size_t> dims) : TensorDim() {
     setTensorDim(shift_size + cnt, i);
     cnt += 1;
   }
+  format = fm;
 }
 
-TensorDim::TensorDim(const std::array<size_t, 3> &shapes) :
-  TensorDim({shapes[0], shapes[1], shapes[2]}) {}
+TensorDim::TensorDim(const std::array<size_t, 3> &shapes, Format fm) :
+  TensorDim({shapes[0], shapes[1], shapes[2]}, fm) {}
 
-TensorDim::TensorDim(size_t b, size_t c, size_t h, size_t w,
+TensorDim::TensorDim(size_t b, size_t c, size_t h, size_t w, Format fm,
                      const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
-  TensorDim(eff_dim_flag_, dyn_dim_flag_) {
+  TensorDim(fm, eff_dim_flag_, dyn_dim_flag_) {
+
   setTensorDim(0, b);
-  setTensorDim(1, c);
-  setTensorDim(2, h);
-  setTensorDim(3, w);
+  if (fm == Format::NHWC) {
+    setTensorDim(1, h);
+    setTensorDim(2, w);
+    setTensorDim(3, c);
+  } else {
+    setTensorDim(1, c);
+    setTensorDim(2, h);
+    setTensorDim(3, w);
+  }
   feature_len = c * h * w;
   len = b * feature_len;
 }
 
-TensorDim::TensorDim(const std::string &shape) : TensorDim() {
-  if (setTensorDim(shape) != ML_ERROR_NONE) {
+TensorDim::TensorDim(const std::string &shape, Format fm) : TensorDim() {
+  if (setTensorDim(shape, fm) != ML_ERROR_NONE) {
     throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
   }
 }
@@ -119,7 +130,7 @@ void TensorDim::setTensorDim(unsigned int idx, size_t value) {
   resetLen();
 }
 
-int TensorDim::setTensorDim(const std::string &input_shape) {
+int TensorDim::setTensorDim(const std::string &input_shape, Format fm) {
   int status = ML_ERROR_NONE;
   static const std::regex words_regex("[^\\s.,:;!?]+");
   auto words_begin =
@@ -134,7 +145,7 @@ int TensorDim::setTensorDim(const std::string &input_shape) {
   for (std::sregex_iterator i = words_begin; i != words_end; ++i, ++cn) {
     setTensorDim(MAXDIM - cur_dim + cn, std::stoul((*i).str()));
   }
-
+  format = fm;
   return status;
 }
 
@@ -161,15 +172,22 @@ void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
   std::swap(lhs.feature_len, rhs.feature_len);
   std::swap(lhs.eff_dim_flag, rhs.eff_dim_flag);
   std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
+  std::swap(lhs.format, rhs.format);
 }
 
 size_t TensorDim::batch() const { return dim[0]; };
 
-size_t TensorDim::channel() const { return dim[1]; };
+size_t TensorDim::channel() const {
+  return format == Format::NCHW ? dim[1] : dim[3];
+};
 
-size_t TensorDim::height() const { return dim[2]; };
+size_t TensorDim::height() const {
+  return format == Format::NCHW ? dim[2] : dim[1];
+};
 
-size_t TensorDim::width() const { return dim[3]; };
+size_t TensorDim::width() const {
+  return format == Format::NCHW ? dim[3] : dim[2];
+};
 
 size_t TensorDim::getDataLen() const { return len; };
 
@@ -177,11 +195,20 @@ size_t TensorDim::getFeatureLen() const { return feature_len; };
 
 void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
-void TensorDim::channel(size_t c) { setTensorDim(1, c); }
+void TensorDim::channel(size_t c) {
+  uint i = (format == Format::NCHW) ? 1 : 3;
+  setTensorDim(i, c);
+}
 
-void TensorDim::height(size_t h) { setTensorDim(2, h); }
+void TensorDim::height(size_t h) {
+  uint i = (format == Format::NCHW) ? 2 : 1;
+  setTensorDim(i, h);
+}
 
-void TensorDim::width(size_t w) { setTensorDim(3, w); }
+void TensorDim::width(size_t w) {
+  uint i = (format == Format::NCHW) ? 3 : 2;
+  setTensorDim(i, w);
+}
 
 const size_t *TensorDim::getDim() const { return dim; }
 
@@ -211,6 +238,9 @@ TensorDim TensorDim::transpose(const std::array<size_t, MAXDIM> &axes) const {
 }
 
 bool TensorDim::operator==(const TensorDim &rhs) const {
+  if (this->format != rhs.format)
+    return false;
+
   for (size_t i = 0; i < MAXDIM; ++i) {
     if (this->dim[i] != rhs.dim[i]) {
       return false;
