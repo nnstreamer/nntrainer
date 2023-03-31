@@ -7,6 +7,7 @@
  * @brief contains tflite opnode which has information to convert to tflite file
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -26,6 +27,7 @@ TfOpNode::TfOpNode() :
   is_input(false),
   is_output(false),
   is_virtual(false),
+  is_trainable(true),
   need_reorder_weight(false),
   node_owned_variable(),
   /// @todo distinguish between uninitialized and ADD operator.
@@ -206,6 +208,7 @@ flatbuffers::Offset<void> TfOpNode::getBuiltinOps() const {
   case tflite::BuiltinOperator_RESHAPE:
   case tflite::BuiltinOperator_SOFTMAX:
   case tflite::BuiltinOperator_TRANSPOSE:
+  case tflite::BuiltinOperator_MUL:
     return builtin_ops;
   default:
     throw std::runtime_error{"Unsupported operator"};
