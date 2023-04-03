@@ -49,7 +49,7 @@
 
 Name:		nntrainer
 Summary:	Software framework for training neural networks
-Version:	0.4.0
+Version:	0.5.0
 Release:	0
 Packager:	Jijoong Moon <jijoong.moon@samsung.com>
 License:	Apache-2.0
@@ -626,6 +626,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif
 
 %changelog
+* Tue Apr 04 2023 Jijoong Moon <jijoong.moon@samsung.com>
+- Release of 0.5.0
 * Mon Sep 26 2022 Jijoong Moon <jijoong.moon@samsung.com>
 - Release of 0.4.0
 * Fri Sep 24 2021 Jijoong Moon <jijoong.moon@samsung.com>
