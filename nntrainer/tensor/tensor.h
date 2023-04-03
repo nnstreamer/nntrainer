@@ -47,6 +47,11 @@ namespace nntrainer {
 
 using TensorDim = ml::train::TensorDim;
 
+/**
+ * @brief    NHWC is WIP
+ */
+using Tformat = ml::train::TensorDim::Format;
+
 class LazyTensor;
 class SrcSharedTensor;
 
@@ -75,8 +80,8 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  Tensor(std::string name_ = "") :
-    dim(TensorDim()),
+  Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW) :
+    dim(TensorDim(fm)),
     strides(dim.computeStrides()),
     contiguous(true),
     initializer(Initializer::NONE),
@@ -105,35 +110,38 @@ public:
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] batch Batch of Tensor
-   * @param[in] channel Channel of Tensor
-   * @param[in] height Height of Tensor
-   * @param[in] width Width of Tensor
+   * @param[in] d0 Batch of Tensor
+   * @param[in] d1 Channel (NCHW) or Height (NHWC)
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t batch, size_t channel, size_t height, size_t width) :
-    Tensor(TensorDim(batch, channel, height, width)){};
+  Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
+         Tformat fm = Tformat::NCHW) :
+    Tensor(TensorDim(d0, d1, d2, d3, fm)){};
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] channel Channel of Tensor
-   * @param[in] height Height of Tensor
-   * @param[in] width Width of Tensor
+   * @param[in] d1 Channel (NCHW) or Height (NHWC)
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t channel, size_t height, size_t width) :
-    Tensor(1, channel, height, width){};
+  Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    Tensor(1, d1, d2, d3, fm){};
 
   /**
-   * @brief     Constructor of Tensor with batch size one and channel size one
-   * @param[in] height Height of Tensor
-   * @param[in] width Width of Tensor
+   * @brief     Constructor of Tensor with batch size one and d1 size one
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t height, size_t width) : Tensor(1, 1, height, width){};
+  Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    Tensor(1, 1, d2, d3, fm){};
 
   /**
-   * @brief     Constructor of Tensor with just width
-   * @param[in] width Width of Tensor
+   * @brief     Constructor of Tensor with just Width or Channel
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  explicit Tensor(size_t width) : Tensor(1, 1, 1, width){};
+  explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW) :
+    Tensor(1, 1, 1, d3, fm){};
 
   /**
    * @brief     Constructor of Tensor
@@ -1018,6 +1026,18 @@ public:
   }
 
   /**
+   * @brief     set the memory format
+   * @param     fm format of Tensor
+   */
+  void convertFormat(TensorDim::Format fm) {
+    if (getFormat() != fm) {
+      transpose("2:1:0");
+    }
+
+    dim.setFormat(fm);
+  }
+
+  /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    *
@@ -1364,6 +1384,14 @@ public:
    * @return initializer of the tensor
    */
   Tensor::Initializer getInitializer() const { return initializer; }
+
+  /**
+   * @brief Get format for the tensor
+   *
+   * @return format of the tensor
+   */
+  TensorDim::Format getFormat() const { return dim.getFormat(); }
+
   static constexpr float epsilon = 1e-5;
 
 private:
