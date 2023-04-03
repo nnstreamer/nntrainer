@@ -14,8 +14,12 @@
  * @todo   check before allocate that finalize is done
  */
 
+#include "common_properties.h"
+#include <exception>
+#include <memory>
 #include <memory_pool.h>
 #include <nntrainer_log.h>
+#include <stdexcept>
 #include <tensor.h>
 #include <tensor_pool.h>
 #include <tensor_wrap_specs.h>
@@ -34,9 +38,10 @@ Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
                             const std::vector<unsigned int> &exec_order,
                             TensorLifespan lifespan,
                             const Tensor::Initializer &init,
-                            bool is_weight_grad) {
+                            bool is_weight_grad, bool is_temporary) {
   return registerRequestSpec(
-    {is_weight_grad, std::make_unique<Tensor>(dim, false, init, name),
+    {is_weight_grad, is_temporary,
+     std::make_unique<Tensor>(dim, false, init, name),
      TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
 }
 
@@ -60,7 +65,8 @@ Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
 Tensor *TensorPool::view(const std::string &name, const std::string &reference,
                          const TensorDim &dim,
                          const std::vector<unsigned int> &exec_order,
-                         TensorLifespan lifespan, const size_t offset) {
+                         TensorLifespan lifespan, const size_t offset,
+                         bool is_temporary) {
   auto &spec = getSourceSpec(reference);
 
   NNTR_THROW_IF(spec.tensor->getDataType() != dim.getDataType() ||
@@ -79,7 +85,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
       }
       return 0u;
     },
-    pool[name_map.at(reference)].details);
+    specs[name_map.at(reference)].details);
   adjusted_offset += offset;
 
   NNTR_THROW_IF(spec.tensor->getDim().getDataLen() <
@@ -91,7 +97,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
     << " name: " << spec.tensor->getName();
 
   expandLifespan(spec, exec_order, lifespan);
-  std::get<SourceDetails>(spec.details).dependents.push_back(pool.size());
+  std::get<SourceDetails>(spec.details).dependents.push_back(specs.size());
 
   /** @note below invalidates spec reference */
   /** @note in case of view of view, internal datastructure saves the src to
@@ -101,7 +107,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
   /** @note default is_weight_grad for view is false. view is for the
    * activation. */
   return registerRequestSpec(
-    {false,
+    {false, is_temporary,
      std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
      TensorPool::DependentDetails{parent_idx, adjusted_offset}});
 }
@@ -115,13 +121,28 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
   mem_pool->clear();
+  temp_pool->clear();
+
+  plan(specs, planner, start_order, end_order);
+}
+
+/**
+ * @brief finalize the requested tensors
+ *
+ * @details finalize the requested tensors, request memory for them and plan
+ * layout for their allocations.
+ */
+void TensorPool::plan(std::vector<RequestSpec> &specs,
+                      const MemoryPlanner &planner, unsigned int start_order,
+                      unsigned int end_order) {
   unsigned int bytes_requested = 0;
+  unsigned int bytes_temp_requested = 0;
   /** if execution order is PERSIST_END_ORDER, then we think it has another
    * execution order for gradient clipping
    *  persist_end_order is for checking if the end order is updated */
   bool persist_end_order = false;
   unsigned int old_end_order = end_order;
-  for (auto &spec : pool) {
+  for (auto &spec : specs) {
     auto details = std::get_if<SourceDetails>(&spec.details);
     if (!details || details->lifespan == TensorLifespan::UNMANAGED ||
         details->exec_order.empty()) {
@@ -185,7 +206,10 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    details->token = mem_pool->requestMemory(
+
+    auto pool = spec.is_temporary ? temp_pool : mem_pool;
+
+    details->token = pool->requestMemory(
       spec.tensor->bytes(), validity_start, validity_end + 1,
       details->exec_order, details->lifespan, spec.is_weight_grad);
 #ifdef DEBUG
@@ -193,13 +217,22 @@ void TensorPool::finalize(const MemoryPlanner &planner,
       throw std::runtime_error("Received invalid token from memory pool");
 #endif
 
-    bytes_requested += spec.tensor->bytes();
+    if (spec.is_temporary)
+      bytes_temp_requested += spec.tensor->bytes();
+    else
+      bytes_requested += spec.tensor->bytes();
   }
 
   /** 4. finalizeLayout for the memory pool. */
+  double efficiency;
   if (bytes_requested > 0) {
-    double efficiency = mem_pool->planLayout(planner);
+    efficiency = mem_pool->planLayout(planner);
     ml_logd("Memory layout efficiency = %lf", efficiency);
+  }
+
+  if (bytes_temp_requested > 0) {
+    efficiency = temp_pool->planLayout(planner);
+    ml_logd("Temp Memory layout efficiency = %lf", efficiency);
   }
 }
 
@@ -208,9 +241,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
  */
 void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
   if (name_map.find(name) == name_map.end())
-    throw std::invalid_argument("Requested tensor not found");
+    throw std::invalid_argument("Invalid tensor name: " + name);
 
-  pool[name_map[name]].tensor->updateBatch(batch);
+  specs[name_map[name]].tensor->updateBatch(batch);
 }
 
 /**
@@ -219,16 +252,21 @@ void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
 void TensorPool::allocate() {
   if (minMemoryRequirement() == 0)
     return;
-  mem_pool->allocate();
+
+  if (mem_pool->size() > 0)
+    mem_pool->allocate();
+  if (temp_pool->size() > 0)
+    temp_pool->allocate();
 
   /** set the pointers using the token for all the tensors */
-  for (auto &spec : pool) {
+  for (auto &spec : specs) {
     auto details = std::get_if<SourceDetails>(&spec.details);
     if (!details || details->token == 0) {
       continue;
     }
-    spec.tensor->setData(mem_pool->getMemory(details->token), 0, true);
-    syncDependents(spec);
+    auto memory_pool = spec.is_temporary ? temp_pool : mem_pool;
+    spec.tensor->setData(memory_pool->getMemory(details->token), 0, true);
+    syncDependents(specs, spec);
   }
 
   if (cache_loader)
@@ -243,9 +281,10 @@ void TensorPool::deallocate() {
     cache_loader->finish();
 
   mem_pool->deallocate();
+  temp_pool->deallocate();
 
   /** nullify the data pointers for the tensors */
-  for (auto &spec : pool) {
+  for (auto &spec : specs) {
     spec.tensor->setData(nullptr);
   }
 }
@@ -287,11 +326,12 @@ void TensorPool::expandLifespan(RequestSpec &spec,
                             exec_order.end());
 }
 
-void TensorPool::syncDependents(const RequestSpec &spec) {
+void TensorPool::syncDependents(std::vector<RequestSpec> &request_specs,
+                                const RequestSpec &spec) {
   /// @note syncing dependents of dependents is invalid and will throw.
   auto &dependents = std::get<SourceDetails>(spec.details).dependents;
   for (auto &dep : dependents) {
-    auto &dep_spec = pool.at(dep);
+    auto &dep_spec = request_specs.at(dep);
     auto offset = std::get<DependentDetails>(dep_spec.details).offset;
 
     dep_spec.tensor->setData(spec.tensor->getMemoryData(),
@@ -310,16 +350,17 @@ Tensor *TensorPool::registerRequestSpec(RequestSpec &&spec) {
   if (name.empty())
     throw std::invalid_argument("Cannot request tensor with empty name");
 
-  pool.push_back(std::move(spec));
-  name_map[name] = pool.size() - 1;
+  specs.push_back(std::move(spec));
+  name_map[name] = specs.size() - 1;
 
-  return pool.back().tensor.get();
+  return specs.back().tensor.get();
 }
 
 TensorPool::RequestSpec &TensorPool::getSourceSpec(const std::string &name) {
-  RequestSpec *rs = &pool.at(name_map.at(name));
+  RequestSpec *rs = &specs.at(name_map.at(name));
+
   while (auto dep_details = std::get_if<DependentDetails>(&rs->details)) {
-    rs = &pool.at(dep_details->parent_idx);
+    rs = &specs.at(dep_details->parent_idx);
   }
 
   return *rs;
@@ -341,7 +382,7 @@ void TensorPool::fillPlaceholder(const std::string &name, const Tensor &t) {
     << spec.tensor->getName() << "(maybe view of " << name << ")";
 
   spec.tensor->setData(t.getMemoryData(), t.getOffset());
-  syncDependents(spec);
+  syncDependents(specs, spec);
 }
 
 Tensor *TensorPool::extend(const std::string &name, const TensorDim &dim,
@@ -361,7 +402,8 @@ Tensor *TensorPool::requestOrExtend(const std::string &name,
                                     const TensorDim &dim,
                                     const std::vector<unsigned int> &exec_order,
                                     TensorLifespan lifespan,
-                                    const Tensor::Initializer &init) {
+                                    const Tensor::Initializer &init,
+                                    bool is_temporary) {
   NNTR_THROW_IF(lifespan == TensorLifespan::UNMANAGED, std::invalid_argument)
     << "unmanaged life span is not supported";
 
@@ -373,7 +415,7 @@ Tensor *TensorPool::requestOrExtend(const std::string &name,
       << "tensor initializer mismatch for requestOrExtend name: " << name;
     return extend(name, dim, exec_order, lifespan);
   } else {
-    return request(name, dim, exec_order, lifespan, init);
+    return request(name, dim, exec_order, lifespan, init, false, is_temporary);
   }
 }
 
@@ -404,12 +446,12 @@ void TensorPool::reidentifySource(const std::string &dest,
       }
       return 0u;
     },
-    pool[new_parent_idx].details);
+    specs[new_parent_idx].details);
   base_offset += offset;
 
   /// 3. transform parent idx/offset of old src's dependents base on the offset
   for (auto &dep : old_details.dependents) {
-    auto &dep_spec = pool.at(dep);
+    auto &dep_spec = specs.at(dep);
     auto &details = std::get<DependentDetails>(dep_spec.details);
     details.offset += base_offset;
     details.parent_idx = new_parent_idx;
@@ -422,6 +464,7 @@ void TensorPool::reidentifySource(const std::string &dest,
 bool TensorPool::tensorExist(const std::string &name) {
   /// @todo consider use a helper function to check, eg) something like
   /// getTensor()
+
   return name_map.count(name);
 }
 

@@ -86,7 +86,7 @@ public:
    * any allocation but rather just plans the layout and stores the layout.
    * Subsequent call to this function will overwrite any existing layout.
    */
-  double planLayout(const MemoryPlanner &planner);
+  virtual double planLayout(const MemoryPlanner &planner);
 
   /**
    * @brief Do the allocation of memory
@@ -116,14 +116,14 @@ public:
    *
    * @return The real memory requirement with this strategy in bytes
    */
-  size_t size();
+  virtual size_t size();
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
    * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemoryRequirement();
+  virtual size_t minMemoryRequirement();
 
   /**
    * @brief Clear the memory pool
