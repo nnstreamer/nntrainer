@@ -126,7 +126,8 @@ nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
  * @brief return a tensor filled with ranged value with given dimension
  */
 nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
-                         unsigned width);
+                         unsigned width,
+                         nntrainer::Tformat fm = nntrainer::Tformat::NCHW);
 
 /**
  * @brief return a tensor filled with random value with given dimension
