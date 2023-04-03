@@ -34,16 +34,16 @@ from torchconverter import save_bin
 
 # set config
 out_size = 13
-num_classes = 4
+num_classes = 92
 num_anchors = 5
 
 epochs = 1000
 batch_size = 8
 
-train_img_dir = './custom_dataset/images/*'
-train_ann_dir = './custom_dataset/annotations/*'
-valid_img_dir = './custom_dataset_val/images/*'
-valid_ann_dir = './custom_dataset_val/annotations/*'
+train_img_dir = '/home/seungbaek/projects/COCO/test2017_bmp/*'
+train_ann_dir = '/home/seungbaek/projects/COCO/test2017_annotations/*'
+valid_img_dir = '/home/seungbaek/projects/COCO/test2017_bmp/*'
+valid_ann_dir = '/home/seungbaek/projects/COCO/test2017_annotations/*'
 
 # load data
 train_dataset = YOLODataset(train_img_dir, train_ann_dir)
@@ -96,8 +96,8 @@ for epoch in range(epochs):
             # split each prediction(bbox, iou, class prob)
             bbox_pred_xy = torch.sigmoid(hypothesis[..., :2])
             bbox_pred_wh = torch.exp(hypothesis[..., 2:4])
-            bbox_pred = torch.cat((bbox_pred_xy, bbox_pred_wh), 3)        
-            iou_pred = torch.sigmoid(hypothesis[..., 4:5])        
+            bbox_pred = torch.cat((bbox_pred_xy, bbox_pred_wh), 3)
+            iou_pred = torch.sigmoid(hypothesis[..., 4:5])
             score_pred = hypothesis[..., 5:].contiguous()
             prob_pred = torch.softmax(score_pred.view(-1, num_classes), dim=1).view(score_pred.shape)
             # calc loss

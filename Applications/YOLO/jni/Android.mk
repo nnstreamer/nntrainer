@@ -35,6 +35,9 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := ccapi-nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
 
+LOCAL_MODULE := reorg-layer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/Yolo/jni/libreorg_layer.so
+
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -49,12 +52,12 @@ LOCAL_CFLAGS += -pthread -fexceptions -fopenmp
 LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := nntrainer_resnet
+LOCAL_MODULE := nntrainer_yolo
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
 LOCAL_SRC_FILES := main.cpp $(CIFARDIR)/cifar_dataloader.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer reorg-layer
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CIFARDIR)
 

@@ -30,20 +30,20 @@ class YOLODataset(Dataset):
         self.cls_gt = []
 
         for i in range(len(img_list)):
-            img = np.array(Image.open(img_list[i])) / 255
+            img = np.array(Image.open(img_list[i]).resize((416, 416))) / 255
             label_bbox = []
             label_cls = []
             with open(ann_list[i], 'rt') as f:
                 for line in f.readlines():
-                    line = [int(i) for i in line.split()]
-                    label_bbox.append(np.array(line[1:], dtype=np.float32) / 416)
-                    label_cls.append(line[0])
+                    line = [float(i) for i in line.split()]
+                    label_bbox.append(np.array(line[1:], dtype=np.float32))
+                    label_cls.append(int(line[0]))
                     
             self.input_images.append(img)
             self.bbox_gt.append(label_bbox)
             self.cls_gt.append(label_cls)
-        
-        self.input_images = np.array(self.input_images)
+
+        self.input_images = np.array(self.input_images)        
         self.input_images = torch.FloatTensor(self.input_images).permute((0, 3, 1, 2))
         
     def __len__(self):

@@ -25,6 +25,9 @@
 
 #include <cifar_dataloader.h>
 
+#include <app_context.h>
+#include <reorg_layer.h>
+
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
@@ -197,15 +200,12 @@ ModelHandle YOLO() {
   blocks.push_back(yoloBlock("conv_a7", "conv_a6", 1024, 3, false));
 
   blocks.push_back(yoloBlock("conv_b", "conv13", 64, 1, false));
-  // todo: conv_b_pool layer will be replaced with re-organization custom layer
-  blocks.push_back({createLayer(
-    "pooling2d", {withKey("name", "conv_b_pool"), withKey("stride", {2, 2}),
-                  withKey("pooling", "average"), withKey("pool_size", {2, 2}),
-                  withKey("input_layers", "conv_b")})});
+  blocks.push_back({createLayer("reorg", {withKey("name", "re_organization"),
+                                          withKey("input_layers", "conv_b")})});
 
   blocks.push_back(
     {createLayer("concat", {withKey("name", "concat"),
-                            withKey("input_layers", "conv_a7, conv_b_pool"),
+                            withKey("input_layers", "conv_a7, re_organization"),
                             withKey("axis", 1)})});
 
   blocks.push_back(yoloBlock("conv_out1", "concat", 1024, 3, false));
@@ -245,6 +245,15 @@ int main(int argc, char *argv[]) {
   unsigned int epochs = 1;
   std::cout << "batch_size: " << batch_size << " data_split: " << data_split
             << " epoch: " << epochs << std::endl;
+
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
 
   // create train and validation data
   std::array<UserDataType, 2> user_datas;
