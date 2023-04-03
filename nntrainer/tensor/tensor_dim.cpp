@@ -25,8 +25,7 @@
 namespace ml {
 namespace train {
 
-TensorDim::TensorDim(TensorDim::Format fm,
-                     const std::bitset<MAXDIM> &eff_dim_flag_,
+TensorDim::TensorDim(Format fm, const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
   format(fm),
   eff_dim_flag(eff_dim_flag_),
@@ -39,7 +38,7 @@ TensorDim::TensorDim(TensorDim::Format fm,
 }
 
 TensorDim::TensorDim(std::initializer_list<size_t> dims, Format fm) :
-  TensorDim() {
+  TensorDim(fm) {
   int shift_size = MAXDIM - dims.size();
 
   if (shift_size < 0) {
@@ -52,29 +51,22 @@ TensorDim::TensorDim(std::initializer_list<size_t> dims, Format fm) :
     setTensorDim(shift_size + cnt, i);
     cnt += 1;
   }
-  format = fm;
 }
 
 TensorDim::TensorDim(const std::array<size_t, 3> &shapes, Format fm) :
   TensorDim({shapes[0], shapes[1], shapes[2]}, fm) {}
 
-TensorDim::TensorDim(size_t b, size_t c, size_t h, size_t w, Format fm,
+TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3, Format fm,
                      const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
   TensorDim(fm, eff_dim_flag_, dyn_dim_flag_) {
 
-  setTensorDim(0, b);
-  if (fm == Format::NHWC) {
-    setTensorDim(1, h);
-    setTensorDim(2, w);
-    setTensorDim(3, c);
-  } else {
-    setTensorDim(1, c);
-    setTensorDim(2, h);
-    setTensorDim(3, w);
-  }
-  feature_len = c * h * w;
-  len = b * feature_len;
+  setTensorDim(0, d0);
+  setTensorDim(1, d1);
+  setTensorDim(2, d2);
+  setTensorDim(3, d3);
+  feature_len = d1 * d2 * d3;
+  len = d0 * feature_len;
 }
 
 TensorDim::TensorDim(const std::string &shape, Format fm) : TensorDim() {

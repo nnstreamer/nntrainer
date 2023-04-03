@@ -167,8 +167,9 @@ nntrainer::Tensor constant(float value, unsigned int batch,
 }
 
 nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
-                         unsigned int height, unsigned int width) {
-  nntrainer::Tensor t(batch, channel, height, width);
+                         unsigned int height, unsigned int width,
+                         nntrainer::Tformat fm) {
+  nntrainer::Tensor t(batch, channel, height, width, fm);
   unsigned int i = 0;
   return t.apply([&](float in) { return i++; });
 }
