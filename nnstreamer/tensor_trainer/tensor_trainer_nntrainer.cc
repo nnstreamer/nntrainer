@@ -160,6 +160,9 @@ static int nntrainer_model_push_data(const GstTensorTrainerFramework *fw,
              nntrainer->num_validation_samples) {
     data = nntrainer->valid_data.get();
     ml_logd("#### V-Data ####");
+  } else {
+    ml_loge("Invalid push_count");
+    return -1;
   }
 
   ml_logd("number of inputs(%" PRId64 ") and labels(%" PRId64 ")",
@@ -531,6 +534,8 @@ void NNTrainer::NNTrainerTrain::createModel() {
 
 NNTrainer::NNTrainerTrain::NNTrainerTrain(
   const GstTensorTrainerProperties *prop, const std::string &_model_config) :
+  training_loss(0),
+  validation_loss(0),
   num_push_data(0),
   model_config(_model_config) {
   ml_logd("<called>");
