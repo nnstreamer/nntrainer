@@ -114,7 +114,13 @@ std::vector<std::tuple<std::string, nntrainer::NeuralNetwork>> test_models = {
 
 int main(int argc, char **argv) {
   for (auto &[name, model] : test_models) {
-    exportToFile(name, model);
+    try {
+      exportToFile(name, model);
+    } catch (const std::exception &e) {
+      ml_loge("Got error while export file. %s, %s", typeid(e).name(),
+              e.what());
+      return EXIT_FAILURE;
+    }
   }
 
   return EXIT_SUCCESS;
