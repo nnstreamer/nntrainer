@@ -110,7 +110,11 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
 
   graphEqual(g, new_g);
 
-  EXPECT_EQ(remove(out_file_path.c_str()), 0) << strerror(errno);
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+
+  EXPECT_EQ(remove(out_file_path.c_str()), 0)
+    << strerror_r(errno, error_buf, error_buflen);
 }
 
 TEST_P(nntrainerInterpreterTest, deserialize_01_n) {
@@ -196,9 +200,12 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   EXPECT_EQ(out, ans);
 
   if (remove("test.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "test.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 
@@ -272,9 +279,12 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
   EXPECT_EQ(out, ans);
 
   if (remove("part_of_resnet.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "part_of_resnet.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 
@@ -405,9 +415,12 @@ TEST(nntrainerInterpreterTflite, simple_flatten) {
   EXPECT_EQ(out, ans);
 
   if (remove("FC_weight_test.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "FC_weight_test.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 
@@ -516,9 +529,12 @@ TEST(nntrainerInterpreterTflite, simple_flatten2) {
   EXPECT_EQ(out, ans);
 
   if (remove("FC_weight_test2.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "FC_weight_test2.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 
@@ -628,9 +644,12 @@ TEST(nntrainerInterpreterTflite, simple_flatten3) {
   EXPECT_EQ(out, ans);
 
   if (remove("FC_weight_test3.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "FC_weight_test3.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
 
@@ -714,8 +733,11 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
   EXPECT_EQ(out, ans);
 
   if (remove("flatten_test.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "flatten_test.tflite"
-              << "failed, reason: " << strerror(errno);
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
   }
 }
