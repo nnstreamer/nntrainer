@@ -303,8 +303,8 @@ std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
 bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
-  out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
-      << ":" << d.width() << std::endl;
+  out << "Shape: " << d[0] << ":" << d[1] << ":" << d[2] << ":" << d[3]
+      << std::endl;
   return out;
 }
 

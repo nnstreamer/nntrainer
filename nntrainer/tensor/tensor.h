@@ -147,23 +147,25 @@ public:
    * @brief     Constructor of Tensor
    * @param[in] d data for the Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
+  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+         Tformat fm = Tformat::NCHW);
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &d) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+  Tensor(std::vector<std::vector<std::vector<float>>> const &d,
+         Tformat fm = Tformat::NCHW) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, fm){};
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
    */
-  Tensor(std::vector<std::vector<float>> const &d) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+  Tensor(std::vector<std::vector<float>> const &d, Tformat fm = Tformat::NCHW) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, fm){};
 
   /**
    *  @brief  Copy constructor of Tensor.

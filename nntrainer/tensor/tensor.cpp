@@ -307,17 +307,25 @@ void Tensor::initialize() {
 }
 
 Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
+  std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+  Tformat fm) {
 
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize Tensor from empty vector");
   }
 
-  dim.batch(d.size());
-  dim.channel(d[0].size());
-  dim.height(d[0][0].size());
-  dim.width(d[0][0][0].size());
+  // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2] ==
+  // height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
+  // dim[1] == height, dim[2] == width, dim[3] == channel
+
+  dim.setTensorDim(0, d.size());
+  dim.setTensorDim(1, d[0].size());
+  dim.setTensorDim(2, d[0][0].size());
+  dim.setTensorDim(3, d[0][0][0].size());
+
+  dim.setFormat(fm);
+
   strides = dim.computeStrides();
   auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
   data = std::shared_ptr<MemoryData<float>>(
@@ -326,10 +334,14 @@ Tensor::Tensor(
   contiguous = true;
   initializer = Initializer::NONE;
 
-  for (unsigned int i = 0; i < dim.batch(); ++i)
-    for (unsigned int j = 0; j < dim.channel(); ++j)
-      for (unsigned int k = 0; k < dim.height(); ++k)
-        for (unsigned int l = 0; l < dim.width(); ++l)
+  // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2] ==
+  // height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
+  // dim[1] == height, dim[2] == width, dim[3] == channel
+
+  for (unsigned int i = 0; i < dim[0]; ++i)
+    for (unsigned int j = 0; j < dim[1]; ++j)
+      for (unsigned int k = 0; k < dim[2]; ++k)
+        for (unsigned int l = 0; l < dim[3]; ++l)
           this->setValue(i, j, k, l, d[i][j][k][l]);
 }
 
@@ -479,7 +491,7 @@ int Tensor::multiply_i(Tensor const &m, const float beta) {
 }
 
 Tensor Tensor::multiply(Tensor const &m, const float beta) const {
-  Tensor t;
+  Tensor t("", this->getFormat());
   return this->multiply(m, t, beta);
 }
 
@@ -489,6 +501,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
    * @note this does not work correctly with differently strided inputs.
    * Use multiply_strided alternatively
    */
+
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
@@ -504,6 +517,12 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
       }
     }
   };
+
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((this->getFormat() == nntrainer::Tformat::NHWC) ? "NHWC" : "NCHW")
+    << " is not match. ("
+    << ((m.getFormat() == nntrainer::Tformat::NHWC) ? "NHWC" : "NCHW") << ")";
 
   NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
                 std::invalid_argument)
@@ -720,6 +739,9 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
                                    bool reset_stride,
                                    const std::string &name_) const {
   Tensor ret = *this;
+  if (dim_.getFormat() != ret.dim.getFormat())
+    throw std::invalid_argument("Tensor format does not match");
+
   ret.dim = dim_;
   if (!name_.empty())
     ret.name = name_;
@@ -1511,10 +1533,10 @@ void Tensor::print(std::ostream &out) const {
 
   std::ios init(NULL);
   init.copyfmt(out);
-  for (unsigned int k = 0; k < dim.batch(); k++) {
-    for (unsigned int l = 0; l < dim.channel(); l++) {
-      for (unsigned int i = 0; i < dim.height(); i++) {
-        for (unsigned int j = 0; j < dim.width(); j++) {
+  for (unsigned int k = 0; k < dim[0]; k++) {
+    for (unsigned int l = 0; l < dim[1]; l++) {
+      for (unsigned int i = 0; i < dim[2]; i++) {
+        for (unsigned int j = 0; j < dim[3]; j++) {
           out << std::setw(10) << std::setprecision(10)
               << this->getValue(k, l, i, j) << " ";
         }
