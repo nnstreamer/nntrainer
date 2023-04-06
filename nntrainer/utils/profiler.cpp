@@ -34,6 +34,9 @@ void GenericProfileListener::onNotifyTimeEvent(
   if (time_iter == time_taken.end()) {
     reset(time_item, str);
     time_iter = time_taken.find(time_item);
+    if (time_iter == time_taken.end()) {
+      throw std::runtime_error("Couldn't find time_iter.");
+    }
   }
 
   auto &cnt_ = std::get<GenericProfileListener::CNT>(time_iter->second);
@@ -117,10 +120,8 @@ void GenericProfileListener::report(std::ostream &out) const {
 
   for (auto &[item, time] : time_taken) {
     auto title = names.find(item);
-#ifdef DEBUG
     if (title == names.end())
       throw std::runtime_error("Couldn't find name. it's already removed.");
-#endif
     column_size[0] =
       std::max(column_size[0], static_cast<unsigned int>(title->second.size()));
   }
@@ -380,10 +381,8 @@ void Profiler::dealloc(const void *ptr, const std::string &policy, bool swap) {
   auto end = std::chrono::steady_clock::now();
   auto found = allocates.find(ptr);
 
-#ifdef DEBUG
   if (found == allocates.end())
     throw std::invalid_argument("memory profiler didn't allocated");
-#endif
 
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
     end - std::get<timepoint>(found->second));
