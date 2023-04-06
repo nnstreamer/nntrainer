@@ -369,6 +369,7 @@ endif
 
 if get_option('platform') != 'android'
   nnstreamer_dep = dependency('nnstreamer')
+  message('building nnstreamer')
   subdir('nnstreamer')
 else
   warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
