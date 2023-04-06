@@ -133,14 +133,14 @@ private:
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
-                           unsigned height, unsigned width);
+nntrainer::Tensor constant(float value, unsigned int d0, unsigned d1,
+                           unsigned d2, unsigned d3,
+                           nntrainer::Tformat fm = nntrainer::Tformat::NCHW);
 
 /**
  * @brief return a tensor filled with ranged value with given dimension
  */
-nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
-                         unsigned width,
+nntrainer::Tensor ranged(unsigned int d0, unsigned d1, unsigned d2, unsigned d3,
                          nntrainer::Tformat fm = nntrainer::Tformat::NCHW);
 
 /**

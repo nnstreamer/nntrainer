@@ -157,19 +157,18 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int batch,
-                           unsigned int channel, unsigned int height,
-                           unsigned int width) {
-  nntrainer::Tensor t(batch, channel, height, width);
+nntrainer::Tensor constant(float value, unsigned int d0, unsigned int d1,
+                           unsigned int d2, unsigned int d3,
+                           nntrainer::Tformat fm) {
+  nntrainer::Tensor t(d0, d1, d2, d3, fm);
   t.setValue(value);
 
   return t;
 }
 
-nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
-                         unsigned int height, unsigned int width,
-                         nntrainer::Tformat fm) {
-  nntrainer::Tensor t(batch, channel, height, width, fm);
+nntrainer::Tensor ranged(unsigned int d0, unsigned int d1, unsigned int d2,
+                         unsigned int d3, nntrainer::Tformat fm) {
+  nntrainer::Tensor t(d0, d1, d2, d3, fm);
   unsigned int i = 0;
   return t.apply([&](float in) { return i++; });
 }
