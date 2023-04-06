@@ -207,7 +207,7 @@ ModelHandle createResnet18() {
                                              {withKey("loss", "cross")});
 #endif
 
-  for (auto layer : createResnet18Graph()) {
+  for (auto &layer : createResnet18Graph()) {
     model->addLayer(layer);
   }
 
