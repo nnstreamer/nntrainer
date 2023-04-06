@@ -335,7 +335,8 @@ void NeuralNetwork::backwarding(int iteration,
         node->calcGradient();
 
       /**
-       * If optimization off, or gradient must be applied, then this will be true
+       * If optimization off, or gradient must be applied, then this will be
+       * true
        * @todo This apply gradient should be passed to the each weight and later
        * be queried when updating gradient at once. (after moving apply_gradient
        * out of this function)
@@ -343,8 +344,8 @@ void NeuralNetwork::backwarding(int iteration,
        */
       // auto &layer = node->getObject();
       // apply_gradient = dynamic_training_opt.checkIfApply(
-      //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
-      //   iteration);
+      //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0],
+      //   opt, iteration);
 
       /** If gradient must be applied and its not gradient mode, calculate
        * gradient
@@ -838,7 +839,12 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
 
   auto train_epoch_end = [this, stop_cb, user_data](RunStats &stat,
                                                     DataBuffer &buffer) {
-    stat.loss /= static_cast<float>(stat.num_iterations);
+    if (stat.num_iterations != 0) {
+      stat.loss /= static_cast<float>(stat.num_iterations);
+    } else {
+      std::cerr << "stat.num_iterations is 0" << std::endl;
+      return;
+    }
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!stop_cb(user_data)) {
       if (!save_path.empty()) {
@@ -880,7 +886,12 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
   auto eval_epoch_end = [this, batch_size, max_acc = 0.0f,
                          min_loss = std::numeric_limits<float>::max()](
                           RunStats &stat, DataBuffer &buffer) mutable {
-    stat.loss /= static_cast<float>(stat.num_iterations);
+    if (stat.num_iterations != 0) {
+      stat.loss /= static_cast<float>(stat.num_iterations);
+    } else {
+      std::cerr << "stat.num_iterations is 0" << std::endl;
+      return;
+    }
     stat.accuracy = stat.num_correct_predictions /
                     static_cast<float>(stat.num_iterations * batch_size) *
                     100.0f;

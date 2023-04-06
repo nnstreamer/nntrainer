@@ -226,7 +226,7 @@ LazyTensor &LazyTensor::average() {
  */
 Tensor LazyTensor::run() {
   int status;
-  for (auto item : call_chain) {
+  for (auto &item : call_chain) {
     status = item(target);
     if (status != ML_ERROR_NONE) {
       throw std::runtime_error("Error: evaluation failed");
