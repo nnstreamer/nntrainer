@@ -77,6 +77,9 @@ to_nnst_tensor_dim(const ml::train::TensorDim &dim) {
   for (unsigned int i = 0; i < ml::train::TensorDim::MAXDIM; ++i) {
     info->dimension[i] = dim.getTensorDim(ml::train::TensorDim::MAXDIM - i - 1);
   }
+  for (unsigned int i = ml::train::TensorDim::MAXDIM; i < NNS_TENSOR_RANK_LIMIT;
+       ++i)
+    info->dimension[i] = 1;
 
   return info;
 }
