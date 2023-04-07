@@ -85,12 +85,6 @@ static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res, TensorDim &dim) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  if (ML_TENSOR_RANK_LIMIT > ml::train::TensorDim::MAXDIM) {
-    for (uint i = ml::train::TensorDim::MAXDIM; i < ML_TENSOR_RANK_LIMIT; i++)
-      if (dim_[i] > 1)
-        return ML_ERROR_NOT_SUPPORTED;
-  }
-
   for (size_t i = 0; i < ml::train::TensorDim::MAXDIM; i++)
     dim.setTensorDim(i, dim_[i]);
 
