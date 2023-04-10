@@ -520,9 +520,8 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
 
   NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
     << "Tensor Format of " << getName() << ":"
-    << ((this->getFormat() == nntrainer::Tformat::NHWC) ? "NHWC" : "NCHW")
-    << " is not match. ("
-    << ((m.getFormat() == nntrainer::Tformat::NHWC) ? "NHWC" : "NCHW") << ")";
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
 
   NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
                 std::invalid_argument)
@@ -1000,14 +999,14 @@ Tensor Tensor::sum_by_batch() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
 
-  Tensor ret(dim.batch(), 1, 1, 1);
+  Tensor ret(dim.batch(), 1, 1, 1, this->getFormat());
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
   const float *data = getData();
   float *rdata = ret.getData();
 
-  Tensor ones(1, 1, 1, feat_len);
+  Tensor ones(1, 1, 1, feat_len, this->getFormat());
   ones.setValue(1.0);
   sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
         ones.getData(), 1, 0.0, rdata, 1);
@@ -1019,7 +1018,7 @@ Tensor Tensor::sum_by_batch() const {
  * @brief Calculate sum according to the axis.
  */
 Tensor Tensor::sum(unsigned int axis, float alpha) const {
-  Tensor ret;
+  Tensor ret("", this->getFormat());
   return sum(axis, ret, alpha, 0);
 }
 Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
@@ -1040,48 +1039,49 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
 
   switch (axis) {
   case 0: {
-    CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, 1, dim[1], dim[2], dim[3], this->getFormat());
+
     size_t feat_len = dim.getFeatureLen();
     size_t batch = dim.batch();
-    Tensor ones(1, 1, 1, batch);
+    Tensor ones(1, 1, 1, batch, this->getFormat());
     ones.setValue(alpha);
     sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
           ones.getData(), 1, beta, ret.getData(), 1);
   } break;
   case 1: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width());
-    unsigned int feat_len = dim.height() * dim.width();
-    unsigned int channel = dim.channel();
-    Tensor ones(1, 1, 1, channel);
+    CREATE_IF_EMPTY_DIMS(ret, dim[0], 1, dim[2], dim[3], this->getFormat());
+
+    unsigned int feat_len = dim[2] * dim[3];
+    unsigned int t_axis = dim[1];
+    Tensor ones(1, 1, 1, t_axis);
     ones.setValue(alpha);
     float *rdata = ret.getData();
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      sgemv(CblasRowMajor, CblasTrans, channel, feat_len, 1,
+    for (unsigned int k = 0; k < dim[0]; ++k) {
+      sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
             &data[k * dim.getFeatureLen()], feat_len, ones.getData(), 1, beta,
             &rdata[k * feat_len], 1);
     }
   } break;
   case 2: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width());
-    unsigned int width = dim.width();
-    unsigned int height = dim.height();
-    Tensor ones(1, 1, 1, height);
+    CREATE_IF_EMPTY_DIMS(ret, dim[0], dim[1], 1, dim[3], this->getFormat());
+    unsigned int t_3 = dim[3];
+    unsigned int t_axis = dim[2];
+    Tensor ones(1, 1, 1, t_axis);
     ones.setValue(alpha);
     float *rdata = ret.getData();
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      for (unsigned int c = 0; c < dim.channel(); ++c) {
-        unsigned int idx =
-          k * dim.getFeatureLen() + c * dim.width() * dim.height();
-        unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim.width();
-        sgemv(CblasRowMajor, CblasTrans, height, width, 1, &data[idx], width,
+    for (unsigned int k = 0; k < dim[0]; ++k) {
+      for (unsigned int c = 0; c < dim[1]; ++c) {
+        unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
+        unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[3];
+        sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
               ones.getData(), 1, beta, &rdata[ridx], 1);
       }
     }
   } break;
   case 3: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1);
+    CREATE_IF_EMPTY_DIMS(ret, dim[0], dim[1], dim[2], 1, this->getFormat());
     unsigned int m = ret.dim.getDataLen();
-    unsigned int n = dim.width();
+    unsigned int n = dim[3];
     Tensor ones(1, 1, 1, n);
     ones.setValue(alpha);
     sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(), 1,
@@ -1094,7 +1094,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
 }
 
 Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
-  Tensor ret;
+  Tensor ret("", this->getFormat());
   return sum(axes, ret, alpha);
 }
 

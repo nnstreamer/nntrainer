@@ -3531,6 +3531,20 @@ TEST(nntrainer_Tensor, sum_01_n) {
   EXPECT_THROW({ input.sum(4); }, std::out_of_range);
 }
 
+TEST(nntrainer_Tensor, sum_01_nhwc_n) {
+  int batch = 3;
+  int channel = 3;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, height, width, channel, NHWC_);
+
+  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
+                               j * (width * channel) + k * channel + l);
+
+  EXPECT_THROW({ input.sum(4); }, std::out_of_range);
+}
+
 TEST(nntrainer_Tensor, sum_02_n) {
   int batch = 3;
   int channel = 1;
@@ -3539,6 +3553,19 @@ TEST(nntrainer_Tensor, sum_02_n) {
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  EXPECT_THROW({ input.sum(-1); }, std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, sum_02_nhwc_n) {
+  int batch = 3;
+  int channel = 3;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, height, width, channel, NHWC_);
+  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
+                               j * (width * channel) + k * channel + l);
 
   EXPECT_THROW({ input.sum(-1); }, std::out_of_range);
 }
@@ -3583,6 +3610,109 @@ TEST(nntrainer_Tensor, sum_02_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height * channel) + j * (batch * height) +
                           k * (width) + l + 1);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result1 = input.sum(1);
+  nntrainer::Tensor result2 = input.sum(2);
+  nntrainer::Tensor result3 = input.sum(3);
+
+  EXPECT_EQ(ans0, result0);
+  EXPECT_EQ(ans1, result1);
+  EXPECT_EQ(ans2, result2);
+  EXPECT_EQ(ans3, result3);
+}
+
+TEST(nntrainer_Tensor, sum_02_nhwc_p) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 10;
+
+  nntrainer::Tensor ans0(
+    std::vector<std::vector<std::vector<std::vector<float>>>>({{{{123, 126},
+                                                                 {129, 132},
+                                                                 {135, 138},
+                                                                 {141, 144},
+                                                                 {147, 150},
+                                                                 {153, 156},
+                                                                 {159, 162},
+                                                                 {165, 168},
+                                                                 {171, 174},
+                                                                 {177, 180}},
+                                                                {{183, 186},
+                                                                 {189, 192},
+                                                                 {195, 198},
+                                                                 {201, 204},
+                                                                 {207, 210},
+                                                                 {213, 216},
+                                                                 {219, 222},
+                                                                 {225, 228},
+                                                                 {231, 234},
+                                                                 {237, 240}}}}),
+    NHWC_);
+
+  nntrainer::Tensor ans1(
+    std::vector<std::vector<std::vector<std::vector<float>>>>({{{{22, 24},
+                                                                 {26, 28},
+                                                                 {30, 32},
+                                                                 {34, 36},
+                                                                 {38, 40},
+                                                                 {42, 44},
+                                                                 {46, 48},
+                                                                 {50, 52},
+                                                                 {54, 56},
+                                                                 {58, 60}}},
+                                                               {{{102, 104},
+                                                                 {106, 108},
+                                                                 {110, 112},
+                                                                 {114, 116},
+                                                                 {118, 120},
+                                                                 {122, 124},
+                                                                 {126, 128},
+                                                                 {130, 132},
+                                                                 {134, 136},
+                                                                 {138, 140}}},
+                                                               {{{182, 184},
+                                                                 {186, 188},
+                                                                 {190, 192},
+                                                                 {194, 196},
+                                                                 {198, 200},
+                                                                 {202, 204},
+                                                                 {206, 208},
+                                                                 {210, 212},
+                                                                 {214, 216},
+                                                                 {218, 220}}}}),
+    NHWC_);
+
+  nntrainer::Tensor ans2(
+    std::vector<std::vector<std::vector<std::vector<float>>>>(
+      {{{{100, 110}}, {{300, 310}}},
+       {{{500, 510}}, {{700, 710}}},
+       {{{900, 910}}, {{1100, 1110}}}}),
+    NHWC_);
+
+  nntrainer::Tensor ans3(
+    std::vector<std::vector<std::vector<std::vector<float>>>>(
+      {{{{3}, {7}, {11}, {15}, {19}, {23}, {27}, {31}, {35}, {39}},
+        {{43}, {47}, {51}, {55}, {59}, {63}, {67}, {71}, {75}, {79}}},
+       {{{83}, {87}, {91}, {95}, {99}, {103}, {107}, {111}, {115}, {119}},
+        {{123}, {127}, {131}, {135}, {139}, {143}, {147}, {151}, {155}, {159}}},
+       {{{163}, {167}, {171}, {175}, {179}, {183}, {187}, {191}, {195}, {199}},
+        {{203},
+         {207},
+         {211},
+         {215},
+         {219},
+         {223},
+         {227},
+         {231},
+         {235},
+         {239}}}}),
+    NHWC_);
+
+  nntrainer::Tensor input(batch, height, width, channel, NHWC_);
+  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
+                               j * (width * channel) + k * (channel) + l + 1);
 
   nntrainer::Tensor result0 = input.sum(0);
   nntrainer::Tensor result1 = input.sum(1);
@@ -3809,6 +3939,567 @@ TEST(nntrainer_Tensor, sum_03_p) {
   }
 }
 
+TEST(nntrainer_Tensor, sum_03_nhwc_p) {
+  const int batch = 3;
+  const int channel = 2;
+  const int height = 2;
+  const int width = 10;
+
+  nntrainer::Tensor input(batch, height, width, channel, NHWC_);
+  GEN_TEST_INPUT_NHWC(input, i * (height * channel * width) +
+                               j * (width * channel) + k * (channel) + l + 1);
+  // Test for alpha == 1 and beta == 0 and dimension of reduced axis == 1
+  {
+    nntrainer::Tensor ans_0_1_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{123, 126},
+           {129, 132},
+           {135, 138},
+           {141, 144},
+           {147, 150},
+           {153, 156},
+           {159, 162},
+           {165, 168},
+           {171, 174},
+           {177, 180}},
+          {{183, 186},
+           {189, 192},
+           {195, 198},
+           {201, 204},
+           {207, 210},
+           {213, 216},
+           {219, 222},
+           {225, 228},
+           {231, 234},
+           {237, 240}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_1_1_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{22, 24},
+           {26, 28},
+           {30, 32},
+           {34, 36},
+           {38, 40},
+           {42, 44},
+           {46, 48},
+           {50, 52},
+           {54, 56},
+           {58, 60}}},
+         {{{102, 104},
+           {106, 108},
+           {110, 112},
+           {114, 116},
+           {118, 120},
+           {122, 124},
+           {126, 128},
+           {130, 132},
+           {134, 136},
+           {138, 140}}},
+         {{{182, 184},
+           {186, 188},
+           {190, 192},
+           {194, 196},
+           {198, 200},
+           {202, 204},
+           {206, 208},
+           {210, 212},
+           {214, 216},
+           {218, 220}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_2_1_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{100, 110}}, {{300, 310}}},
+         {{{500, 510}}, {{700, 710}}},
+         {{{900, 910}}, {{1100, 1110}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_3_1_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{3}, {7}, {11}, {15}, {19}, {23}, {27}, {31}, {35}, {39}},
+          {{43}, {47}, {51}, {55}, {59}, {63}, {67}, {71}, {75}, {79}}},
+         {{{83}, {87}, {91}, {95}, {99}, {103}, {107}, {111}, {115}, {119}},
+          {{123},
+           {127},
+           {131},
+           {135},
+           {139},
+           {143},
+           {147},
+           {151},
+           {155},
+           {159}}},
+         {{{163},
+           {167},
+           {171},
+           {175},
+           {179},
+           {183},
+           {187},
+           {191},
+           {195},
+           {199}},
+          {{203},
+           {207},
+           {211},
+           {215},
+           {219},
+           {223},
+           {227},
+           {231},
+           {235},
+           {239}}}}),
+      NHWC_);
+
+    nntrainer::Tensor result_0_1_0 = input.sum(0, 1);
+    nntrainer::Tensor result_1_1_0 = input.sum(1, 1);
+    nntrainer::Tensor result_2_1_0 = input.sum(2, 1);
+    nntrainer::Tensor result_3_1_0 = input.sum(3, 1);
+
+    EXPECT_EQ(ans_0_1_0, result_0_1_0);
+    EXPECT_EQ(ans_1_1_0, result_1_1_0);
+    EXPECT_EQ(ans_2_1_0, result_2_1_0);
+    EXPECT_EQ(ans_3_1_0, result_3_1_0);
+  }
+
+  // Test for alpha == 1 and beta == 2 and dimension of reduced axis == 1
+  {
+    nntrainer::Tensor ans_0_1_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{125, 130},
+           {135, 140},
+           {145, 150},
+           {155, 160},
+           {165, 170},
+           {175, 180},
+           {185, 190},
+           {195, 200},
+           {205, 210},
+           {215, 220}},
+          {{225, 230},
+           {235, 240},
+           {245, 250},
+           {255, 260},
+           {265, 270},
+           {275, 280},
+           {285, 290},
+           {295, 300},
+           {305, 310},
+           {315, 320}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_1_1_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{24, 28},
+           {32, 36},
+           {40, 44},
+           {48, 52},
+           {56, 60},
+           {64, 68},
+           {72, 76},
+           {80, 84},
+           {88, 92},
+           {96, 100}}},
+         {{{144, 148},
+           {152, 156},
+           {160, 164},
+           {168, 172},
+           {176, 180},
+           {184, 188},
+           {192, 196},
+           {200, 204},
+           {208, 212},
+           {216, 220}}},
+         {{{264, 268},
+           {272, 276},
+           {280, 284},
+           {288, 292},
+           {296, 300},
+           {304, 308},
+           {312, 316},
+           {320, 324},
+           {328, 332},
+           {336, 340}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_2_1_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{102, 114}}, {{306, 318}}},
+         {{{510, 522}}, {{714, 726}}},
+         {{{918, 930}}, {{1122, 1134}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_3_1_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{5}, {11}, {17}, {23}, {29}, {35}, {41}, {47}, {53}, {59}},
+          {{65}, {71}, {77}, {83}, {89}, {95}, {101}, {107}, {113}, {119}}},
+         {{{125},
+           {131},
+           {137},
+           {143},
+           {149},
+           {155},
+           {161},
+           {167},
+           {173},
+           {179}},
+          {{185},
+           {191},
+           {197},
+           {203},
+           {209},
+           {215},
+           {221},
+           {227},
+           {233},
+           {239}}},
+         {{{245},
+           {251},
+           {257},
+           {263},
+           {269},
+           {275},
+           {281},
+           {287},
+           {293},
+           {299}},
+          {{305},
+           {311},
+           {317},
+           {323},
+           {329},
+           {335},
+           {341},
+           {347},
+           {353},
+           {359}}}}),
+      NHWC_);
+
+    nntrainer::Tensor output_0_1_2(1, height, width, channel, NHWC_);
+    {
+      const int batch = 1;
+      GEN_TEST_INPUT_NHWC(output_0_1_2, i * (channel * height * width) +
+                                          j * (width * channel) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_1_1_2(batch, 1, width, channel, NHWC_);
+    {
+      const int height = 1;
+      GEN_TEST_INPUT_NHWC(output_1_1_2, i * (channel * height * width) +
+                                          j * (width * channel) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_2_1_2(batch, height, 1, channel, NHWC_);
+    {
+      const int width = 1;
+      GEN_TEST_INPUT_NHWC(output_2_1_2, i * (channel * height * width) +
+                                          j * (width * channel) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_3_1_2(batch, height, width, 1, NHWC_);
+    {
+      const int channel = 1;
+      GEN_TEST_INPUT_NHWC(output_3_1_2, i * (channel * height * width) +
+                                          j * (channel * width) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor result_0_1_2 = input.sum(0, output_0_1_2, 1, 2);
+    nntrainer::Tensor result_1_1_2 = input.sum(1, output_1_1_2, 1, 2);
+    nntrainer::Tensor result_2_1_2 = input.sum(2, output_2_1_2, 1, 2);
+    nntrainer::Tensor result_3_1_2 = input.sum(3, output_3_1_2, 1, 2);
+
+    EXPECT_EQ(ans_0_1_2, result_0_1_2);
+    EXPECT_EQ(ans_1_1_2, result_1_1_2);
+    EXPECT_EQ(ans_2_1_2, result_2_1_2);
+    EXPECT_EQ(ans_3_1_2, result_3_1_2);
+  }
+
+  // Test for alpha == 2 and beta == 0
+  {
+    nntrainer::Tensor ans_0_2_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{246, 252},
+           {258, 264},
+           {270, 276},
+           {282, 288},
+           {294, 300},
+           {306, 312},
+           {318, 324},
+           {330, 336},
+           {342, 348},
+           {354, 360}},
+          {{366, 372},
+           {378, 384},
+           {390, 396},
+           {402, 408},
+           {414, 420},
+           {426, 432},
+           {438, 444},
+           {450, 456},
+           {462, 468},
+           {474, 480}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_1_2_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{44, 48},
+           {52, 56},
+           {60, 64},
+           {68, 72},
+           {76, 80},
+           {84, 88},
+           {92, 96},
+           {100, 104},
+           {108, 112},
+           {116, 120}}},
+         {{{204, 208},
+           {212, 216},
+           {220, 224},
+           {228, 232},
+           {236, 240},
+           {244, 248},
+           {252, 256},
+           {260, 264},
+           {268, 272},
+           {276, 280}}},
+         {{{364, 368},
+           {372, 376},
+           {380, 384},
+           {388, 392},
+           {396, 400},
+           {404, 408},
+           {412, 416},
+           {420, 424},
+           {428, 432},
+           {436, 440}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_2_2_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{200, 220}}, {{600, 620}}},
+         {{{1000, 1020}}, {{1400, 1420}}},
+         {{{1800, 1820}}, {{2200, 2220}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_3_2_0(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{6}, {14}, {22}, {30}, {38}, {46}, {54}, {62}, {70}, {78}},
+          {{86}, {94}, {102}, {110}, {118}, {126}, {134}, {142}, {150}, {158}}},
+         {{{166},
+           {174},
+           {182},
+           {190},
+           {198},
+           {206},
+           {214},
+           {222},
+           {230},
+           {238}},
+          {{246},
+           {254},
+           {262},
+           {270},
+           {278},
+           {286},
+           {294},
+           {302},
+           {310},
+           {318}}},
+         {{{326},
+           {334},
+           {342},
+           {350},
+           {358},
+           {366},
+           {374},
+           {382},
+           {390},
+           {398}},
+          {{406},
+           {414},
+           {422},
+           {430},
+           {438},
+           {446},
+           {454},
+           {462},
+           {470},
+           {478}}}}),
+      NHWC_);
+
+    nntrainer::Tensor result_0_2_0 = input.sum(0, 2);
+    nntrainer::Tensor result_1_2_0 = input.sum(1, 2);
+    nntrainer::Tensor result_2_2_0 = input.sum(2, 2);
+    nntrainer::Tensor result_3_2_0 = input.sum(3, 2);
+
+    EXPECT_EQ(ans_0_2_0, result_0_2_0);
+    EXPECT_EQ(ans_1_2_0, result_1_2_0);
+    EXPECT_EQ(ans_2_2_0, result_2_2_0);
+    EXPECT_EQ(ans_3_2_0, result_3_2_0);
+  }
+
+  // Test for alpha == 2 and beta == 2
+  {
+    nntrainer::Tensor ans_0_2_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{248, 256},
+           {264, 272},
+           {280, 288},
+           {296, 304},
+           {312, 320},
+           {328, 336},
+           {344, 352},
+           {360, 368},
+           {376, 384},
+           {392, 400}},
+          {{408, 416},
+           {424, 432},
+           {440, 448},
+           {456, 464},
+           {472, 480},
+           {488, 496},
+           {504, 512},
+           {520, 528},
+           {536, 544},
+           {552, 560}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_1_2_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{46, 52},
+           {58, 64},
+           {70, 76},
+           {82, 88},
+           {94, 100},
+           {106, 112},
+           {118, 124},
+           {130, 136},
+           {142, 148},
+           {154, 160}}},
+         {{{246, 252},
+           {258, 264},
+           {270, 276},
+           {282, 288},
+           {294, 300},
+           {306, 312},
+           {318, 324},
+           {330, 336},
+           {342, 348},
+           {354, 360}}},
+         {{{446, 452},
+           {458, 464},
+           {470, 476},
+           {482, 488},
+           {494, 500},
+           {506, 512},
+           {518, 524},
+           {530, 536},
+           {542, 548},
+           {554, 560}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_2_2_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{202, 224}}, {{606, 628}}},
+         {{{1010, 1032}}, {{1414, 1436}}},
+         {{{1818, 1840}}, {{2222, 2244}}}}),
+      NHWC_);
+
+    nntrainer::Tensor ans_3_2_2(
+      std::vector<std::vector<std::vector<std::vector<float>>>>(
+        {{{{8}, {18}, {28}, {38}, {48}, {58}, {68}, {78}, {88}, {98}},
+          {{108},
+           {118},
+           {128},
+           {138},
+           {148},
+           {158},
+           {168},
+           {178},
+           {188},
+           {198}}},
+         {{{208},
+           {218},
+           {228},
+           {238},
+           {248},
+           {258},
+           {268},
+           {278},
+           {288},
+           {298}},
+          {{308},
+           {318},
+           {328},
+           {338},
+           {348},
+           {358},
+           {368},
+           {378},
+           {388},
+           {398}}},
+         {{{408},
+           {418},
+           {428},
+           {438},
+           {448},
+           {458},
+           {468},
+           {478},
+           {488},
+           {498}},
+          {{508},
+           {518},
+           {528},
+           {538},
+           {548},
+           {558},
+           {568},
+           {578},
+           {588},
+           {598}}}}),
+      NHWC_);
+
+    nntrainer::Tensor output_0_2_2(1, height, width, channel, NHWC_);
+    {
+      const int batch = 1;
+      GEN_TEST_INPUT_NHWC(output_0_2_2, i * (channel * height * width) +
+                                          j * (channel * width) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_1_2_2(batch, 1, width, channel, NHWC_);
+    {
+      const int height = 1;
+      GEN_TEST_INPUT_NHWC(output_1_2_2, i * (channel * height * width) +
+                                          j * (channel * width) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_2_2_2(batch, height, 1, channel, NHWC_);
+    {
+      const int width = 1;
+      GEN_TEST_INPUT_NHWC(output_2_2_2, i * (channel * height * width) +
+                                          j * (channel * width) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor output_3_2_2(batch, height, width, 1, NHWC_);
+    {
+      const int channel = 1;
+      GEN_TEST_INPUT_NHWC(output_3_2_2, i * (channel * height * width) +
+                                          j * (channel * width) +
+                                          k * (channel) + l + 1);
+    }
+    nntrainer::Tensor result_0_2_2 = input.sum(0, output_0_2_2, 2, 2);
+    nntrainer::Tensor result_1_2_2 = input.sum(1, output_1_2_2, 2, 2);
+    nntrainer::Tensor result_2_2_2 = input.sum(2, output_2_2_2, 2, 2);
+    nntrainer::Tensor result_3_2_2 = input.sum(3, output_3_2_2, 2, 2);
+    EXPECT_EQ(ans_0_2_2, result_0_2_2);
+    EXPECT_EQ(ans_1_2_2, result_1_2_2);
+    EXPECT_EQ(ans_2_2_2, result_2_2_2);
+    EXPECT_EQ(ans_3_2_2, result_3_2_2);
+  }
+}
+
 TEST(nntrainer_Tensor, sum_04_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -3829,13 +4520,41 @@ TEST(nntrainer_Tensor, sum_04_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, sum_04_nhwc_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, height, width, channel, NHWC_);
+  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
+                               j * (channel * width) + k * channel + l + 1);
+
+  nntrainer::Tensor result = input.sum_by_batch();
+  if (result.getValue(0, 0, 0, 0) != 820 ||
+      result.getValue(1, 0, 0, 0) != 2420 ||
+      result.getValue(2, 0, 0, 0) != 4020)
+    status = ML_ERROR_RESULT_OUT_OF_RANGE;
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_n) {
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1);
   EXPECT_THROW(t.sum(std::vector<unsigned int>()), std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_hnwc_n) {
+  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_);
+  EXPECT_THROW(t.sum(std::vector<unsigned int>()), std::invalid_argument);
+}
 TEST(nntrainer_Tensor, multiple_sum_out_of_range_n) {
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(t.sum({7}), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, multiple_sum_out_of_range_nhwc_n) {
+  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_);
   EXPECT_THROW(t.sum({7}), std::out_of_range);
 }
 
@@ -3857,6 +4576,27 @@ TEST(nntrainer_Tensor, multiple_sum_p) {
 
   actual = t.sum({3, 1}, 0.5);
   expected = constant(7 * 3 * 0.5, 2, 1, 5, 1);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, multiple_sum_nhwc_p) {
+  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_);
+  nntrainer::Tensor actual, expected;
+
+  actual = t.sum({0, 1});
+  expected = constant(2 * 3, 1, 1, 5, 7, NHWC_);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({1, 2, 3});
+  expected = constant(3 * 5 * 7, 2, 1, 1, 1, NHWC_);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({3, 1});
+  expected = constant(7 * 3, 2, 1, 5, 1, NHWC_);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({3, 1}, 0.5);
+  expected = constant(7 * 3 * 0.5, 2, 1, 5, 1, NHWC_);
   EXPECT_EQ(actual, expected);
 }
 
