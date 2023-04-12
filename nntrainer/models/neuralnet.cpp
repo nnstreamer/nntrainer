@@ -298,6 +298,8 @@ sharedConstTensors NeuralNetwork::forwarding(
     model_graph.flushCacheExcept(f);
 
     node->forwarding(training);
+    if (node->getCheckPoint().get() == CheckPointType::NONCHECK_UNLOAD)
+      node->setCheckPoint(CheckPointType::NONCHECK_LOAD);
   };
 
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
@@ -1204,8 +1206,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   if (flags & PRINT_GRAPH_INFO) {
-    unsigned int total_col_size = 80;
-    std::vector<unsigned int> column_size = {20, 20, 20, 20};
+    unsigned int total_col_size = 100;
+    std::vector<unsigned int> column_size = {20, 20, 20, 20, 20};
     auto print_graph_layer_info =
       [column_size](std::ostream &out, std::vector<std::string> layer_info) {
         auto trim_string = [](std::string str, unsigned int column_width) {
@@ -1221,8 +1223,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
       };
 
     out << std::string(total_col_size, '=') << '\n';
-    print_graph_layer_info(
-      out, {"Layer name", "Layer type", "Output dimension", "Input layer"});
+    print_graph_layer_info(out, {"Layer name", "Layer type", "Input dimension",
+                                 "Input layer", "CheckPoint"});
     out << std::string(total_col_size, '=') << '\n';
     if (compiled) {
       props::GenericShape dim_property;
@@ -1240,12 +1242,13 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
           iter->getInputConnections();
         std::string first_input_name =
           input_layer_names.empty() ? "" : input_layer_names[0];
-        print_graph_layer_info(
-          out, {iter->getName(), iter->getType(), first_dim, first_input_name});
+        print_graph_layer_info(out, {iter->getName(), iter->getType(),
+                                     first_dim, first_input_name,
+                                     to_string(iter->getCheckPoint())});
         for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
           dim_property.set(iter->getInputDimensions()[i]);
           print_graph_layer_info(
-            out, {"", "", to_string(dim_property), input_layer_names[i]});
+            out, {"", "", to_string(dim_property), input_layer_names[i], ""});
         }
         out << std::string(total_col_size,
                            iter == model_graph.cend() - 1 ? '=' : '-')
@@ -1279,7 +1282,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
         //          ? ""
         //          : (iter - 1)->getName())
         //     : input_layer_names[0];
-        print_graph_layer_info(out, {iter->getName(), iter->getType(), "", ""});
+        print_graph_layer_info(out, {iter->getName(), iter->getType(), "", "", ""});
         for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
           print_graph_layer_info(out, {"", "", "", ""});
         }
