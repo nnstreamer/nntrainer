@@ -815,6 +815,22 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  const nntrainer::Layer *getLayer() const;
+
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  nntrainer::Layer *getLayer();
+
 private:
   /**
    * @brief     Get the Input Layers object
@@ -880,22 +896,6 @@ properties in the context/graph unless intended. */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  const nntrainer::Layer *getLayer() const;
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  nntrainer::Layer *getLayer();
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for
