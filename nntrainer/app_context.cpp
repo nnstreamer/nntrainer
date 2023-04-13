@@ -230,7 +230,7 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Optimizer>,
                      "unknown", OptType::UNKNOWN);
 
-  using LRType = LearningRateType;
+  using LRType = LearningRateSchedulerType;
   ac.registerFactory(
     ml::train::createLearningRateScheduler<ConstantLearningRateScheduler>,
     ConstantLearningRateScheduler::type, LRType::CONSTANT);
