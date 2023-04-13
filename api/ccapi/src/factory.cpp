@@ -122,7 +122,7 @@ createDataset(DatasetType type, datagen_cb cb, void *user_data,
  * @brief Factory creator with constructor for learning rate scheduler type
  */
 std::unique_ptr<ml::train::LearningRateScheduler>
-createLearningRateScheduler(const LearningRateType &type,
+createLearningRateScheduler(const LearningRateSchedulerType &type,
                             const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
   return ac.createObject<ml::train::LearningRateScheduler>(type, properties);

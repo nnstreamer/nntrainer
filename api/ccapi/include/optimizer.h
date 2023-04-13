@@ -138,9 +138,9 @@ SGD(const std::vector<std::string> &properties = {}) {
 } // namespace optimizer
 
 /**
- * @brief     Enumeration of learning type
+ * @brief     Enumeration of learning rate scheduler type
  */
-enum LearningRateType {
+enum LearningRateSchedulerType {
   CONSTANT = 0, /**< constant */
   EXPONENTIAL,  /**< exponentially decay */
   STEP          /**< step wise decay */
@@ -194,7 +194,7 @@ public:
  * @brief Factory creator with constructor for learning rate scheduler type
  */
 std::unique_ptr<ml::train::LearningRateScheduler>
-createLearningRateScheduler(const LearningRateType &type,
+createLearningRateScheduler(const LearningRateSchedulerType &type,
                             const std::vector<std::string> &properties = {});
 
 /**
@@ -228,7 +228,8 @@ namespace learning_rate {
  */
 inline std::unique_ptr<LearningRateScheduler>
 Constant(const std::vector<std::string> &properties = {}) {
-  return createLearningRateScheduler(LearningRateType::CONSTANT, properties);
+  return createLearningRateScheduler(LearningRateSchedulerType::CONSTANT,
+                                     properties);
 }
 
 /**
@@ -236,7 +237,8 @@ Constant(const std::vector<std::string> &properties = {}) {
  */
 inline std::unique_ptr<LearningRateScheduler>
 Exponential(const std::vector<std::string> &properties = {}) {
-  return createLearningRateScheduler(LearningRateType::EXPONENTIAL, properties);
+  return createLearningRateScheduler(LearningRateSchedulerType::EXPONENTIAL,
+                                     properties);
 }
 
 /**
@@ -244,7 +246,8 @@ Exponential(const std::vector<std::string> &properties = {}) {
  */
 inline std::unique_ptr<LearningRateScheduler>
 Step(const std::vector<std::string> &properties = {}) {
-  return createLearningRateScheduler(LearningRateType::STEP, properties);
+  return createLearningRateScheduler(LearningRateSchedulerType::STEP,
+                                     properties);
 }
 
 } // namespace learning_rate
