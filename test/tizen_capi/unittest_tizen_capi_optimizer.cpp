@@ -72,7 +72,7 @@ TEST(nntrainer_capi_nnopt, create_delete_04_n) {
 /**
  * @brief Neural Network Optimizer set Property Test (positive test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_01_p) {
+TEST(nntrainer_capi_nnopt, setProperty_01_p) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -87,7 +87,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_01_p) {
 /**
  * @brief Neural Network Optimizer Set Property Test (positive test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_02_p) {
+TEST(nntrainer_capi_nnopt, setProperty_02_p) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -103,7 +103,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_02_p) {
 /**
  * @brief Neural Network Optimizer Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_03_n) {
+TEST(nntrainer_capi_nnopt, setProperty_03_n) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -118,7 +118,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_03_n) {
 /**
  * @brief Neural Network Optimizer Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_04_n) {
+TEST(nntrainer_capi_nnopt, setProperty_04_n) {
   ml_train_optimizer_h handle = NULL;
   int status;
 
@@ -131,7 +131,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_04_n) {
 /**
  * @brief Neural Network Optimizer Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_05_n) {
+TEST(nntrainer_capi_nnopt, setProperty_05_n) {
   ml_train_optimizer_h handle = NULL;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -143,7 +143,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_05_n) {
 /**
  * @brief Neural Network Optimizer Set Property Test (positive test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_06_p) {
+TEST(nntrainer_capi_nnopt, setProperty_with_single_param_01_p) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -158,7 +158,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_06_p) {
 /**
  * @brief Neural Network Optimizer Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_07_n) {
+TEST(nntrainer_capi_nnopt, setProperty_with_single_param_02_n) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
@@ -173,7 +173,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_07_n) {
 /**
  * @brief Neural Network Optimizer Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnopt, setOptimizer_with_single_param_08_n) {
+TEST(nntrainer_capi_nnopt, setProperty_with_single_param_03_n) {
   ml_train_optimizer_h handle;
   int status;
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
