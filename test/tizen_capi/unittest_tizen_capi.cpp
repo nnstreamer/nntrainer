@@ -168,6 +168,7 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
   ml_train_layer_h layers[2];
   ml_train_layer_h get_layer;
   ml_train_optimizer_h optimizer;
+  ml_train_lr_scheduler_h lr_scheduler;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -208,9 +209,20 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
   status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
-    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  status = ml_train_optimizer_set_property(optimizer, "beta1=0.002",
+                                           "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_lr_scheduler_create(&lr_scheduler,
+                                        ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_lr_scheduler_set_property(
+    lr_scheduler, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_lr_scheduler(optimizer, lr_scheduler);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_set_optimizer(model, optimizer);

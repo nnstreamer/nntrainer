@@ -186,6 +186,28 @@ TEST(nntrainer_capi_nnopt, setProperty_with_single_param_03_n) {
 }
 
 /**
+ * @brief Set learning rate scheduler to Neural Network Optimizer Test (positive
+ * test)
+ */
+TEST(nntrainer_capi_nnopt, set_lr_scheduler_01_p) {
+  ml_train_optimizer_h opt_handle;
+  ml_train_lr_scheduler_h lr_sched_handle;
+  int status;
+  status = ml_train_optimizer_create(&opt_handle, ML_TRAIN_OPTIMIZER_TYPE_SGD);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_lr_scheduler_create(&lr_sched_handle,
+                                        ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_lr_scheduler(opt_handle, lr_sched_handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_destroy(opt_handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
