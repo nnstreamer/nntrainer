@@ -95,6 +95,18 @@ typedef struct {
 } ml_train_layer;
 
 /**
+ * @brief Struct to wrap learning rate scheduler for the API
+ * @note optimizer mutex must be locked before learning rate scheduler lock, if
+ * optimizer lock is needed
+ */
+typedef struct {
+  uint magic;
+  std::shared_ptr<ml::train::LearningRateScheduler> lr_scheduler;
+  bool in_use;
+  std::mutex m;
+} ml_train_lr_scheduler;
+
+/**
  * @brief Struct to wrap neural network optimizer for the API
  * @note model mutex must be locked before optimizer lock, if model lock is
  * needed
@@ -102,6 +114,7 @@ typedef struct {
 typedef struct {
   uint magic;
   std::shared_ptr<ml::train::Optimizer> optimizer;
+  ml_train_lr_scheduler *lr_sheduler;
   bool in_use;
   std::mutex m;
 } ml_train_optimizer;
@@ -141,7 +154,7 @@ typedef struct {
   } while (0)
 
 /**
- * @brief     Check validity of the user passed arguments and lock the object
+ * @brief     Check validity of the user passed arguments
  */
 #define ML_TRAIN_GET_VALID_HANDLE(obj, obj_h, obj_type, obj_name)     \
   do {                                                                \
@@ -164,7 +177,8 @@ typedef struct {
   } while (0)
 
 /**
- * @brief     Check validity of the user passed arguments and lock the object
+ * @brief     Check validity of the user passed arguments, reset magic if in use
+ * and lock the object
  */
 #define ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(obj, obj_h, obj_type, obj_name) \
   do {                                                                         \
@@ -177,7 +191,7 @@ typedef struct {
   } while (0)
 
 /**
- * @brief     Check validity of the user passed arguments and lock the object
+ * @brief     Reset object magic
  */
 #define ML_TRAIN_RESET_VALIDATED_HANDLE(obj)          \
   do {                                                \
@@ -229,6 +243,22 @@ typedef struct {
 #define ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, opt)                  \
   ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(nnopt, opt, ml_train_optimizer, \
                                          "optimizer")
+
+/**
+ * @brief     Check validity of passed lr_scheduler and lock the object
+ */
+#define ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED(nnlrscheduler, lrscheduler) \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED(nnlrscheduler, lrscheduler,             \
+                                   ml_train_lr_scheduler, "lr_scheduler")
+
+/**
+ * @brief     Check validity of passed lr_scheduler, reset magic and lock the
+ * object
+ */
+#define ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED_RESET(nnlrscheduler, \
+                                                     lrscheduler)   \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(                           \
+    nnlrscheduler, lrscheduler, ml_train_lr_scheduler, "lr_scheduler")
 
 /**
  * @brief     Check validity of passed dataset and lock the object
@@ -392,6 +422,25 @@ int ml_train_layer_set_property_with_single_param(ml_train_layer_h layer,
  */
 int ml_train_optimizer_set_property_with_single_param(
   ml_train_optimizer_h optimizer, const char *single_param);
+
+/**
+ * @brief Sets the learning rate scheduler property with single param.
+ * @details Use this function to set learning rate scheduler property.
+ * @since_tizen 7.5
+ * API to solve va_list issue of Dllimport of C# interop.
+ * The input format of single_param must be 'key = value' format, and it
+ * received as shown in the example below. delimiter is '|'. e.g)
+ * ml_train_lr_scheduler_set_property_with_single_param(lr_scheduler,
+ * "learning_rate=0.01 | decay_rate=0.5 | decay_steps=1000");
+ * @param[in] lr_scheduler The learning rate scheduler handle.
+ * @param[in] single_param Property values.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_lr_scheduler_set_property_with_single_param(
+  ml_train_lr_scheduler_h lr_scheduler, const char *single_param);
 
 /**
  * @brief Sets the neural network dataset property with single param.

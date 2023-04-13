@@ -141,9 +141,10 @@ SGD(const std::vector<std::string> &properties = {}) {
  * @brief     Enumeration of learning rate scheduler type
  */
 enum LearningRateSchedulerType {
-  CONSTANT = 0, /**< constant */
-  EXPONENTIAL,  /**< exponentially decay */
-  STEP          /**< step wise decay */
+  CONSTANT = ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT, /**< constant */
+  EXPONENTIAL =
+    ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL, /**< exponentially decay */
+  STEP = ML_TRAIN_LR_SCHEDULER_TYPE_STEP    /**< step wise decay */
 };
 
 /**
