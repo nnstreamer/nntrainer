@@ -88,6 +88,17 @@ typedef enum {
 } ml_train_optimizer_type_e;
 
 /**
+ * @brief Enumeration for the learning rate scheduler type of NNTrainer.
+ * @since_tizen 7.5
+ */
+typedef enum {
+  ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT = 0,    /**< Constant lr scheduler */
+  ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL = 1, /**< Exponentially lr scheduler */
+  ML_TRAIN_LR_SCHEDULER_TYPE_STEP = 2,        /**< Step lr scheduler */
+  ML_TRAIN_LR_SCHEDULER_TYPE_UNKNOWN = 999    /**< Unknown lr scheduler */
+} ml_train_lr_scheduler_type_e;
+
+/**
  * @brief Dataset generator callback function for train/valid/test data.
  *
  * @details The user of the API must provide this callback function to supply

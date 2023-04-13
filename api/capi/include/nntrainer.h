@@ -52,25 +52,31 @@ extern "C" {
  */
 
 /**
- * @brief A handle of an NNTrainer model.
+ * @brief A handle of a NNTrainer model.
  * @since_tizen 6.0
  */
 typedef void *ml_train_model_h;
 
 /**
- * @brief A handle of an NNTrainer layer.
+ * @brief A handle of a NNTrainer layer.
  * @since_tizen 6.0
  */
 typedef void *ml_train_layer_h;
 
 /**
- * @brief A handle of an NNTrainer optimizer.
+ * @brief A handle of a NNTrainer optimizer.
  * @since_tizen 6.0
  */
 typedef void *ml_train_optimizer_h;
 
 /**
- * @brief A handle of an NNTrainer dataset.
+ * @brief A handle of a NNTrainer learning rate scheduler.
+ * @since_tizen 7.5
+ */
+typedef void *ml_train_lr_scheduler_h;
+
+/**
+ * @brief A handle of a NNTrainer dataset.
  * @since_tizen 6.0
  */
 typedef void *ml_train_dataset_h;
@@ -389,6 +395,71 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
+
+/**
+ * @brief Sets the learning rate scheduler for the optimizer.
+ * @details Use this function to set learning rate scheduler. This transfers
+ * the ownership of the scheduler to the optimizer. No need to destroy the
+ * optimizer if it is to a model.
+ * @since_tizen 7.5
+ * @remarks Unsets the previously set lr_scheduler, if any. The previously set
+ * lr_scheduler must be freed using ml_train_lr_scheduler_destroy().
+ * @param[in] optimizer The NNTrainer optimizer handle.
+ * @param[in] lr_scheduler The NNTrainer lr scheduler handle.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
+                                        ml_train_lr_scheduler_h lr_scheduler);
+
+/**
+ * @brief Creates a learning rate scheduler for optimizer.
+ * @details Use this function to create learning rate scheduler for optimizer.
+ * If not set to a optimizer, @a lr_sheduler should be released using
+ * ml_train_lr_scheduler_destroy(). If set to a optimizer, @a lr_scheduler is
+ * available until optimizer is released.
+ * @since_tizen 7.5
+ * @remarks If the function succeeds, @a lr_scheduler must be released using
+ * ml_train_lr_scheduler_destroy(), if not set to a optimizer. If set to a
+ * optimizer, @a lr_scheduler is available until the optimizer is released.
+ * @param[out] lr_scheduler The NNTrainer learning rate scheduler handle.
+ * @param[in] type The NNTrainer learning rate scheduler type.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_lr_scheduler_create(ml_train_lr_scheduler_h *lr_scheduler,
+                                 ml_train_lr_scheduler_type_e type);
+
+/**
+ * @brief Frees the learning rate scheduler.
+ * @details Use this function to destroy learning rate scheduler. Fails if
+ * learning rate scheduler is owned by a optimizer.
+ * @since_tizen 7.5
+ * @param[in] lr_scheduler The NNTrainer learning rate scheduler handle.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_lr_scheduler_destroy(ml_train_lr_scheduler_h lr_scheduler);
+
+/**
+ * @brief Sets the learning rate scheduler property.
+ * @details Use this function to set learning rate scheduler property.
+ * @since_tizen 7.5
+ * @param[in] lr_scheduler The NNTrainer learning rate scheduler handle.
+ * @param[in]  ... Property values with NULL for termination.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_lr_scheduler_set_property(ml_train_lr_scheduler_h lr_scheduler,
+                                       ...);
 
 /**
  * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead.
