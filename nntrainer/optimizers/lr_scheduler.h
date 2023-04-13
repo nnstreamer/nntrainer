@@ -26,7 +26,7 @@ class Exporter;
 /**
  * @brief     Enumeration of optimizer type
  */
-enum LearningRateType {
+enum LearningRateSchedulerType {
   CONSTANT = 0, /**< constant */
   EXPONENTIAL,  /**< exponentially decay */
   STEP          /**< step wise decay */
