@@ -393,10 +393,12 @@ int ml_train_model_destroy(ml_train_model_h model) {
     ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
   }
 
-  std::shared_ptr<ml::train::Model> m;
-  m = nnmodel->model;
-
   if (nnmodel->optimizer) {
+    if (nnmodel->optimizer->lr_sheduler) {
+      ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer->lr_sheduler);
+      delete nnmodel->optimizer->lr_sheduler;
+    }
+
     ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer);
     delete nnmodel->optimizer;
   }
@@ -547,8 +549,9 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
     nnopt->in_use = true;
-    if (nnmodel->optimizer)
+    if (nnmodel->optimizer) {
       nnmodel->optimizer->in_use = false;
+    }
     nnmodel->optimizer = nnopt;
   }
 
@@ -754,6 +757,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
   ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->in_use = false;
+  nnopt->lr_sheduler = NULL;
 
   returnable f = [&]() {
     nnopt->optimizer =
@@ -786,6 +790,11 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
       ml_loge("Cannot delete optimizer already set to a model."
               "Delete model will delete this optimizer.");
       return ML_ERROR_INVALID_PARAMETER;
+    }
+
+    if (nnopt->lr_sheduler) {
+      ML_TRAIN_RESET_VALIDATED_HANDLE(nnopt->lr_sheduler);
+      delete nnopt->lr_sheduler;
     }
   }
 
@@ -835,6 +844,138 @@ int ml_train_optimizer_set_property_with_single_param(
   ML_TRAIN_VERIFY_VALID_HANDLE(optimizer);
 
   return ml_train_optimizer_set_property(optimizer, single_param, NULL);
+}
+
+int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
+                                        ml_train_lr_scheduler_h lr_scheduler) {
+  int status = ML_ERROR_NONE;
+  ml_train_optimizer *nnopt;
+  ml_train_lr_scheduler *nnlrscheduler;
+
+  check_feature_state();
+
+  ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, optimizer);
+  ML_TRAIN_ADOPT_LOCK(nnopt, opt_lock);
+  ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED(nnlrscheduler, lr_scheduler);
+  ML_TRAIN_ADOPT_LOCK(nnlrscheduler, lr_scheduler_lock);
+
+  if (nnlrscheduler->in_use) {
+    ml_loge("learning rate scheduler already in use.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::shared_ptr<ml::train::Optimizer> opt;
+  std::shared_ptr<ml::train::LearningRateScheduler> lr_sched;
+
+  opt = nnopt->optimizer;
+  lr_sched = nnlrscheduler->lr_scheduler;
+
+  returnable f = [&]() { return opt->setLearningRateScheduler(lr_sched); };
+
+  status = nntrainer_exception_boundary(f);
+  if (status == ML_ERROR_NONE) {
+    nnlrscheduler->in_use = true;
+    if (nnopt->lr_sheduler) {
+      nnopt->lr_sheduler->in_use = false;
+    }
+    nnopt->lr_sheduler = nnlrscheduler;
+  }
+
+  return status;
+}
+
+int ml_train_lr_scheduler_create(ml_train_lr_scheduler_h *lr_scheduler,
+                                 ml_train_lr_scheduler_type_e type) {
+  int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
+  ml_train_lr_scheduler *nnlrscheduler = new ml_train_lr_scheduler;
+  nnlrscheduler->magic = ML_NNTRAINER_MAGIC;
+  nnlrscheduler->in_use = false;
+
+  returnable f = [&]() {
+    nnlrscheduler->lr_scheduler = ml::train::createLearningRateScheduler(
+      (ml::train::LearningRateSchedulerType)type);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    delete nnlrscheduler;
+    ml_loge("creating optimizer failed");
+  } else {
+    *lr_scheduler = nnlrscheduler;
+  }
+
+  return status;
+}
+
+int ml_train_lr_scheduler_destroy(ml_train_lr_scheduler_h lr_scheduler) {
+  int status = ML_ERROR_NONE;
+  ml_train_lr_scheduler *nnlrscheduler;
+
+  check_feature_state();
+
+  {
+    ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED_RESET(nnlrscheduler, lr_scheduler);
+    ML_TRAIN_ADOPT_LOCK(nnlrscheduler, lr_scheduler_lock);
+
+    if (nnlrscheduler->in_use) {
+      ml_loge(
+        "Cannot delete learning rate scheduler already set to a optimizer."
+        "Delete optimizer will delete this learning rate scheduler.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+  }
+
+  delete nnlrscheduler;
+  return status;
+}
+
+int ml_train_lr_scheduler_set_property(ml_train_lr_scheduler_h lr_scheduler,
+                                       ...) {
+  int status = ML_ERROR_NONE;
+  ml_train_lr_scheduler *nnlrscheduler;
+  const char *data;
+  std::shared_ptr<ml::train::LearningRateScheduler> lr_sched;
+
+  check_feature_state();
+
+  ML_TRAIN_VERIFY_VALID_HANDLE(lr_scheduler);
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, lr_scheduler);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+
+  va_end(arguments);
+
+  {
+    ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED(nnlrscheduler, lr_scheduler);
+    ML_TRAIN_ADOPT_LOCK(nnlrscheduler, lr_scheduler_lock);
+
+    lr_sched = nnlrscheduler->lr_scheduler;
+  }
+
+  returnable f = [&]() {
+    lr_sched->setProperty(arg_list);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+
+  return status;
+}
+
+int ml_train_lr_scheduler_set_property_with_single_param(
+  ml_train_lr_scheduler_h lr_scheduler, const char *single_param) {
+  ML_TRAIN_VERIFY_VALID_HANDLE(lr_scheduler);
+
+  return ml_train_lr_scheduler_set_property(lr_scheduler, single_param, NULL);
 }
 
 int ml_train_dataset_create(ml_train_dataset_h *dataset) {
