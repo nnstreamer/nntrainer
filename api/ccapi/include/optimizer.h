@@ -83,8 +83,8 @@ public:
    *
    * @param lrs the learning rate scheduler object
    */
-  virtual void setLearningRateScheduler(
-    std::unique_ptr<ml::train::LearningRateScheduler> &&lrs) = 0;
+  virtual int setLearningRateScheduler(
+    std::shared_ptr<ml::train::LearningRateScheduler> lrs) = 0;
 };
 
 /**

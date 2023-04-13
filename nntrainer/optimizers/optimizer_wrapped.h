@@ -85,8 +85,8 @@ public:
    *
    * @param lrs the learning rate scheduler object
    */
-  void setLearningRateScheduler(
-    std::unique_ptr<ml::train::LearningRateScheduler> &&lrs) override;
+  int setLearningRateScheduler(
+    std::shared_ptr<ml::train::LearningRateScheduler> lrs) override;
 
   /**
    * Support all the interface requirements by nntrainer::Optimizer
@@ -150,7 +150,7 @@ public:
 
 private:
   std::unique_ptr<OptimizerCore> optimizer; /**< the underlying optimizer */
-  std::unique_ptr<nntrainer::LearningRateScheduler>
+  std::shared_ptr<nntrainer::LearningRateScheduler>
     lr_sched; /**< the underlying learning rate scheduler */
 
   std::tuple<props::LearningRate, props::DecayRate, props::DecaySteps>
