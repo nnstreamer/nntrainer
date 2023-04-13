@@ -14,8 +14,16 @@
 
 #include "graph_node.h"
 #include "common_properties.h"
+#include "conv2d_layer.h"
+#include "fc_layer.h"
+#include "layer.h"
+#include "layer_devel.h"
+#include "mol_attention_layer.h"
+#include "mse_loss_layer.h"
+#include "multi_head_attention_layer.h"
 #include "tensor.h"
 #include <cmath>
+#include <queue>
 #include <stdexcept>
 #include <string>
 
@@ -121,21 +129,59 @@ void NetworkGraph::setExecutionOrder() {
 }
 
 void NetworkGraph::setCheckPoints() {
+  std::map<std::string, std::shared_ptr<LayerNode>> input_layers;
+  std::vector<std::shared_ptr<LayerNode>> multiout_layers;
+
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto &node = *iter;
     auto idx = iter - cbegin();
 
-    if (node->getType() == ActivationLayer::type) {
-      auto &prev_node = *(iter - 1);
-      if (prev_node->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
-        node->setCheckPoint(CheckPointType::CHECKPOINTED);
-        prev_node->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
-        continue;
-      }
+    // set checkpoint for non-training layers,
+    // also for input or output layer
+    if (!node->getTrainable() || node->getInputConnections().size() == 0 ||
+        iter == cend() - 1) {
+      node->setCheckPoint(CheckPointType::CHECKPOINTED);
+      continue;
+    }
+
+    /**
+     * BN/LN layers are always checkpointed, because it changes
+     * its weights while forwarding
+     *
+     * @note this is temporary solution, ant it needs to be investigated more
+     */
+    if (node->getType() == BatchNormalizationLayer::type ||
+        node->getType() == LayerNormalizationLayer::type) {
+      node->setCheckPoint(CheckPointType::CHECKPOINTED);
+      continue;
     }
 
     node->setCheckPoint(idx % (checkpoint_len + 1) == 0 ?
         CheckPointType::CHECKPOINTED : CheckPointType::NONCHECK_UNLOAD);
+  }
+
+  // handle InPlace layer
+  for (auto iter = cbegin() + 1; iter != cend(); iter++) {
+    auto &node = *iter;
+
+    if (node->executeInPlace() != InPlace::NONE) {
+      auto inputs = node->getInputConnections();
+      auto outputs = node->getOutputConnections();
+
+      // If one of the input is checkpointed, then all the inputs should be
+      CheckPointType checkpoint = node->getCheckPoint();
+      for (auto &in : inputs) {
+        if (getLayerNode(in)->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
+          checkpoint = CheckPointType::CHECKPOINTED;
+          break;
+        }
+      }
+
+      for (auto &in : inputs)
+        getLayerNode(in)->setCheckPoint(checkpoint);
+
+      node->setCheckPoint(checkpoint);
+    }
   }
 }
 
@@ -375,11 +421,46 @@ sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
+  auto unload = [&](std::shared_ptr<LayerNode> ln) {
+    std::stack<std::shared_ptr<LayerNode>> stack;
+
+    auto inputs = ln->getInputConnections();
+    std::for_each(inputs.begin(), inputs.end(), [&](const std::string &name) {
+      auto in_ln = getLayerNode(name);
+      stack.push(in_ln);
+    });
+
+    while (!stack.empty()) {
+      auto layer = stack.top();
+      stack.pop();
+
+      if (layer->getCheckPoint().get() == CheckPointType::CHECKPOINTED)
+        continue;
+
+      if (!tensor_manager->reclaim(layer, true))
+        continue;
+
+      auto inputs = layer->getInputConnections();
+      std::for_each(inputs.begin(), inputs.end(),
+                    [&](const std::string &name) {
+                      auto in_ln = getLayerNode(name);
+                      stack.push(in_ln);
+                    });
+    }
+  };
+
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
+
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    forwarding_op(*iter, training);
+    forwarding_op(ln, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
+
+    if (iter != cbegin() &&
+        ln->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
+      unload(ln);
+    }
   }
 
   sharedConstTensors out;
@@ -409,6 +490,137 @@ void NetworkGraph::backwarding(
     return;
   }
 
+  auto search_checkpoints = [&](const std::shared_ptr<LayerNode> layer) {
+    std::vector<std::shared_ptr<LayerNode>> checkpoints;
+
+    std::stack<std::shared_ptr<LayerNode>> stack;
+    auto inputs = layer->getInputConnections();
+    std::for_each(inputs.begin(), inputs.end(), [&](const std::string &name) {
+      stack.push(getLayerNode(name));
+    });
+
+    while (!stack.empty()) {
+      auto layer = stack.top();
+      stack.pop();
+
+      if (layer->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
+        checkpoints.push_back(layer);
+      } else {
+        auto inputs = layer->getInputConnections();
+        std::for_each(
+          inputs.begin(), inputs.end(),
+          [&](const std::string &name) { stack.push(getLayerNode(name)); });
+      }
+    }
+
+    return checkpoints;
+  };
+
+  std::vector<std::shared_ptr<LayerNode>> forwarded;
+
+  auto load_tensors = [&](std::shared_ptr<LayerNode> layer) {
+    if (layer->getCheckPoint().get() == CheckPointType::CHECKPOINTED)
+      return;
+
+    auto checkpoints = search_checkpoints(layer);
+
+    std::queue<std::shared_ptr<LayerNode>> fowards;
+
+    // insert initial forward layers
+    std::for_each(checkpoints.begin(), checkpoints.end(),
+                  [&](std::shared_ptr<LayerNode> &ln) {
+                    auto outputs = ln->getOutputConnections();
+                    std::for_each(outputs.begin(), outputs.end(),
+                                  [&](const std::string &name) {
+                                    fowards.push(getLayerNode(name));
+                                  });
+                  });
+
+    while (!fowards.empty()) {
+      auto ln = fowards.front();
+      fowards.pop();
+
+      if (ln->getCheckPoint().get() != CheckPointType::NONCHECK_UNLOAD)
+        continue;
+
+      auto inputs = ln->getInputConnections();
+      auto n_in = inputs.size();
+      auto n_in_loaded = std::count_if(
+        inputs.begin(), inputs.end(), [&](const std::string &name) {
+          return getLayerNode(name)->getCheckPoint().get() !=
+                 CheckPointType::NONCHECK_UNLOAD;
+        });
+
+      if (n_in == static_cast<size_t>(n_in_loaded)) {
+        ln->forwarding(true);
+        forwarded.push_back(ln);
+        if (ln->getCheckPoint().get() == CheckPointType::NONCHECK_UNLOAD)
+          ln->setCheckPoint(CheckPointType::NONCHECK_LOAD);
+
+        auto outputs = ln->getOutputConnections();
+        std::for_each(
+          outputs.begin(), outputs.end(),
+          [&](const std::string &name) { fowards.push(getLayerNode(name)); });
+      }
+    }
+  };
+
+/* Remained for later use:
+ * This unload tensor function unloads tensors only for checkpointed layers.
+ * It unloads all tensors from successors of a checkpointed layer to next checkpointed layers.
+ * By using this, loading and unloading tensors can be done only with checkpointed layers.
+ */
+#if 0
+  auto unload_tensors = [&](const std::shared_ptr<LayerNode> layer) {
+    if (ln->getCheckPoint().get() != CheckPointType::CHECKPOINTED)
+      return;
+
+    std::queue<std::shared_ptr<LayerNode>> unloads;
+
+    auto outputs = layer->getOutputConnections();
+    std::for_each(outputs.begin(), outputs.end(), [&](const std::string &name) {
+      unloads.push(getLayerNode(name));
+    });
+
+    while (!unloads.empty()) {
+      auto ln = unloads.front();
+      unloads.pop();
+
+      if (ln->getCheckPoint().get() != CheckPointType::NONCHECK_LOAD)
+        continue;
+
+      auto inputs = ln->getInputConnections();
+      auto n_in = inputs.size();
+      auto n_in_unloaded = std::count_if(
+        inputs.begin(), inputs.end(), [&](const std::string &name) {
+          return getLayerNode(name)->getCheckPoint().get() !=
+                 CheckPointType::NONCHECK_LOAD;
+        });
+
+      if (n_in == static_cast<size_t>(n_in_unloaded)) {
+        tensor_manager->reclaim(ln, false);
+        ln->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
+      }
+
+      auto outputs = ln->getOutputConnections();
+      std::for_each(
+        outputs.begin(), outputs.end(),
+        [&](const std::string &name) { unloads.push(getLayerNode(name)); });
+    }
+  };
+#else
+
+  auto unload_tensors = [&](std::shared_ptr<LayerNode> ln) {
+    if (ln->getCheckPoint().get() == CheckPointType::CHECKPOINTED)
+      return;
+
+    for (auto &ln : forwarded) {
+      tensor_manager->reclaim(ln, false);
+      ln->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
+    }
+  };
+#endif
+
   auto const &lptr_begin = (*iter_begin);
 
   if (lptr_begin->requireLabel() == false)
@@ -417,9 +629,16 @@ void NetworkGraph::backwarding(
 
   for (auto iter = iter_begin; iter != iter_end && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
+
+    // load for unloaded layers
+    load_tensors(ln);
+
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     backwarding_op(ln, iteration);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
+
+    // unload used non-checkpoint layers
+    unload_tensors(ln);
   }
 
   /** perform clipping of the gradients by global norm if any */
@@ -746,6 +965,17 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** finalize the layer and get the final context */
   auto init_context = lnode->finalize(input_dims, getTensorType());
 
+  std::vector<bool> is_temporary_input;
+  auto input_conns = lnode->getInputConnections();
+  std::for_each(input_conns.begin(), input_conns.end(),
+                [&](std::string &name) {
+                  is_temporary_input.push_back(
+                      getLayerNode(name)->getCheckPoint().get() != CheckPointType::CHECKPOINTED);
+                });
+
+  if (lnode->getInputConnections().empty())
+    is_temporary_input.push_back(false);
+
   /**
    * Request manager for either a pre-allocated output as input or a newly
    * allocated output. This is necessary for manager to know when this output
@@ -757,7 +987,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                  std::back_inserter(input_names),
                  [](auto const &vg) { return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
-    gnode, init_context.getInputDimensions(), input_names);
+    gnode, init_context.getInputDimensions(), input_names, is_temporary_input);
 
   /** In-Place optimizations */
   /**
@@ -822,9 +1052,12 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     });
   }
 
+  bool is_temporary =
+    lnode->getCheckPoint().get() != CheckPointType::CHECKPOINTED;
+
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
     out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
-    lnode->getName());
+    lnode->getName(), false, false, is_temporary);
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
@@ -877,8 +1110,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    lnode->getTrainable(), shared_tensor_names,
-                                   lnode->getCheckPoint().get() ==
-                                     CheckPointType::CHECKPOINTED));
+                                   is_temporary));
   return outputs;
 }
 
