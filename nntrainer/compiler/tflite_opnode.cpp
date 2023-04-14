@@ -125,15 +125,15 @@ void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
 void TfOpNode::setWeights(Variables weights_) {
   unsigned int cnt = 0;
   for (auto &w : weights_) {
-    const unsigned int UNIT = w->batch();
-    const unsigned int CHANNEL = w->channel();
-    const unsigned int HEIGHT = w->height();
-    const unsigned int WIDTH = w->width();
+    const unsigned int unit = w->batch();
+    const unsigned int channel = w->channel();
+    const unsigned int height = w->height();
+    const unsigned int width = w->width();
 
     auto weight_data = weights.at(cnt)->getData();
     auto *ptr = const_cast<float *>(weight_data);
     memcpy(&ptr[0], &w->getData()[0],
-           sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
+           sizeof(float) * (unit * channel * height * width));
     cnt++;
   }
 }
