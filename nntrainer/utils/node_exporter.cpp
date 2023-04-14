@@ -7,6 +7,7 @@
  * @brief NNTrainer Node exporter
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #include <node_exporter.h>
@@ -143,6 +144,24 @@ void Exporter::saveTflResult(const std::tuple<props::Activation> &props,
 
 template <>
 void Exporter::saveTflResult(
+  const std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT,
+                   props::BNPARAMS_VAR_INIT, props::BNPARAMS_BETA_INIT,
+                   props::BNPARAMS_GAMMA_INIT, props::Momentum, props::Axis,
+                   props::WeightDecay, props::BiasDecay> &props,
+  const BatchNormalizationLayer *self) {
+  createIfNull(tf_node);
+
+  auto epsilon = std::get<props::Epsilon>(props).get();
+  tf_node->AppendAdditionalProps(epsilon);
+
+  tf_node->setOpType(tflite::BuiltinOperator_MUL);
+  auto options =
+    tflite::CreateMulOptions(*fbb, tflite::ActivationFunctionType_NONE).Union();
+  tf_node->setBuiltinOptions(tflite::BuiltinOptions_MulOptions, options);
+}
+
+template <>
+void Exporter::saveTflResult(
   const std::tuple<props::FilterSize, std::array<props::KernelSize, CONV2D_DIM>,
                    std::array<props::Stride, CONV2D_DIM>, props::Padding2D,
                    std::array<props::Dilation, CONV2D_DIM>> &props,
@@ -183,6 +202,11 @@ void Exporter::saveTflResult(
   auto options = tflite::CreateConv2DOptions(*fbb, tflite_padding(padding),
                                              strides.at(0), strides.at(1))
                    .Union();
+
+  tf_node->AppendProps(tflite_padding(padding));
+  tf_node->AppendProps(strides.at(0));
+  tf_node->AppendProps(strides.at(1));
+
   tf_node->setBuiltinOptions(tflite::BuiltinOptions_Conv2DOptions, options);
 }
 
