@@ -153,6 +153,7 @@ private:
   std::shared_ptr<nntrainer::LearningRateScheduler>
     lr_sched; /**< the underlying learning rate scheduler */
 
+  /** @todo remove DecayRate, DecaySteps*/
   std::tuple<props::LearningRate, props::DecayRate, props::DecaySteps>
     props; /**< lr scheduler props for backward compatibility */
 };

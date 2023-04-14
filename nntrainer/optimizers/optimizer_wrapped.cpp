@@ -16,6 +16,7 @@
 #include <common_properties.h>
 #include <lr_scheduler_constant.h>
 #include <lr_scheduler_exponential.h>
+#include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <optimizer_wrapped.h>
 
@@ -99,6 +100,9 @@ void OptimizerWrapped::finalize() {
   /** if lr_sched not set, make lr_sched from properties */
   if (!lr_sched) {
     if (!props_empty) {
+      ml_logw(
+        "Either decay_rate or decay_steps properties are set in optimizer. "
+        "Please set these properties in learning rate scheduler");
       lr_sched = std::make_unique<ExponentialLearningRateScheduler>();
       if (!props_dr.empty())
         lr_sched->setProperty({"decay_rate=" + std::to_string(props_dr.get())});
@@ -109,6 +113,9 @@ void OptimizerWrapped::finalize() {
       lr_sched = std::make_unique<ConstantLearningRateScheduler>();
     }
     lr_sched->setProperty({"learning_rate=" + std::to_string(props_lr.get())});
+  } else if (lr_sched && !props_lr.empty()) {
+    ml_logw("Learning rate property is set in both optimizer and learning rate "
+            "scheduler. The value which is set in Optimizer will be ignored.");
   }
 
   lr_sched->finalize();

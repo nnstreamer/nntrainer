@@ -393,6 +393,12 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @note For now the properties for Exponential learning rate
+ * scheduler(decay_rate, decay_steps) can be set using
+ * ml_train_optimizer_set_property for backward compatibility. But
+ * ml_train_optimizer_set_property will not support to set decay_rate,
+ * decay_steps properties from tizen 8.0. Use ml_train_lr_scheduler_set_property
+ * instead.
  */
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
 
