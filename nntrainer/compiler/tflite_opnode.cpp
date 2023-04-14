@@ -28,6 +28,7 @@ TfOpNode::TfOpNode() :
   is_output(false),
   is_virtual(false),
   is_trainable(true),
+  is_to_be_removed(false),
   need_reorder_weight(false),
   node_owned_variable(),
   /// @todo distinguish between uninitialized and ADD operator.
@@ -111,11 +112,31 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
       return &t;
     },
     context.getNumWeights());
+
+  if (context.getNumWeights() == 0) {
+    is_trainable = false;
+  }
 }
 
 void TfOpNode::setWeightTransformFn(TransformFn fn) { weight_transform = fn; }
 
 void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
+
+void TfOpNode::setWeights(Variables weights_) {
+  unsigned int cnt = 0;
+  for (auto &w : weights_) {
+    const unsigned int UNIT = w->batch();
+    const unsigned int CHANNEL = w->channel();
+    const unsigned int HEIGHT = w->height();
+    const unsigned int WIDTH = w->width();
+
+    auto weight_data = weights.at(cnt)->getData();
+    auto *ptr = const_cast<float *>(weight_data);
+    memcpy(&ptr[0], &w->getData()[0],
+           sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
+    cnt++;
+  }
+}
 
 void TfOpNode::weightReorder(unsigned int node_count) {
 
@@ -209,6 +230,7 @@ flatbuffers::Offset<void> TfOpNode::getBuiltinOps() const {
   case tflite::BuiltinOperator_SOFTMAX:
   case tflite::BuiltinOperator_TRANSPOSE:
   case tflite::BuiltinOperator_MUL:
+
     return builtin_ops;
   default:
     throw std::runtime_error{"Unsupported operator"};
