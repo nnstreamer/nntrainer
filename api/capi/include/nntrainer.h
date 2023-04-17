@@ -246,7 +246,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @remarks The returned @a info is newly created so it does not reflect future
  * changes in the model.
  * @remarks On returning error, info must not be destroyed with
- * ml_tensors_info_destory()
+ * ml_tensors_info_destroy()
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
@@ -268,7 +268,7 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  * @remarks the returned @a info is newly created so it does not reflect future
  * changes in the model
  * @remarks On returning error, info must not be destroyed with
- * ml_tensors_info_destory()
+ * ml_tensors_info_destroy()
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
@@ -395,10 +395,10 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @note For now the properties for Exponential learning rate
  * scheduler(decay_rate, decay_steps) can be set using
- * ml_train_optimizer_set_property for backward compatibility. But
- * ml_train_optimizer_set_property will not support to set decay_rate,
- * decay_steps properties from tizen 8.0. Use ml_train_lr_scheduler_set_property
- * instead.
+ * ml_train_optimizer_set_property() for backward compatibility. But
+ * ml_train_optimizer_set_property() will not support to set decay_rate,
+ * decay_steps properties from tizen 8.0. Use
+ * ml_train_lr_scheduler_set_property() instead.
  */
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
 
@@ -423,7 +423,7 @@ int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
 /**
  * @brief Creates a learning rate scheduler for optimizer.
  * @details Use this function to create learning rate scheduler for optimizer.
- * If not set to a optimizer, @a lr_sheduler should be released using
+ * If not set to a optimizer, @a lr_scheduler should be released using
  * ml_train_lr_scheduler_destroy(). If set to a optimizer, @a lr_scheduler is
  * available until optimizer is released.
  * @since_tizen 7.5
@@ -690,9 +690,9 @@ int ml_train_model_load(ml_train_model_h model, const char *file_path,
 /**
  * @brief Gets neural network layer from the model with the given name.
  * @details Use this function to get already created Neural Network Layer. The
- * returned layer must not be deleted as it is owned by the model.
+ * returned layer must not be released as it is owned by the model.
  * @since_tizen 7.0
- * @remarks The modification through ml_trin_layer_set_property() after
+ * @remarks The modification through ml_train_layer_set_property() after
  * compiling the model by calling `ml_train_model_compile()` strictly
  * restricted.
  * @param[in] model The NNTrainer model handler from the given description.
@@ -709,14 +709,14 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
 /**
  * @brief Gets weight tensors and information of the layer.
  * @details Use this function to get weight tensors and information of the
- * layer. destroy @a info with @c ml_tensors_info_destroy() after use. destroy
- * @a weight with @c ml_tensors_data_destory() after use.
+ * layer. destroy @a info with ml_tensors_info_destroy() after use. destroy
+ * @a weight with ml_tensors_data_destroy() after use.
  * @since_tizen 7.5
  * @remarks @a model must be compiled before calling this function.
- * @remarks the returned @a info @a weights are newly created so it does not
+ * @remarks the returned @a info @a weight are newly created so it does not
  * reflect future changes in the model
  * @remarks On returning error, info must not be destroyed with
- * ml_tensors_info_destory()
+ * ml_tensors_info_destroy()
  *
  * @param[in] model The NNTrainer model handle.
  * @param[in] layer_name The name of the layer handle.
