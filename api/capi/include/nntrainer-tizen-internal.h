@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __NNTRAINER_TIZEN_INTERNAL_H__
-#define __NNTRAINER_TIZEN_INTERNAL_H__
+#ifndef __TIZEN_MACHINELEARNING_NNTRAINER_TIZEN_INTERNAL_H__
+#define __TIZEN_MACHINELEARNING_NNTRAINER_TIZEN_INTERNAL_H__
 
 #include <nntrainer.h>
 
@@ -27,4 +27,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-#endif // __NNTRAINER_TIZEN_INTERNAL_H__
+#endif /* __TIZEN_MACHINELEARNING_NNTRAINER_TIZEN_INTERNAL_H__ */
