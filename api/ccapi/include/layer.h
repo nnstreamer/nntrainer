@@ -73,6 +73,7 @@ enum LayerType {
   LAYER_POSITIONAL_ENCODING =
     ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
                                               */
+  LAYER_IDENTITY = ML_TRAIN_LAYER_TYPE_IDENTITY, /**< Identity Layer type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -94,7 +95,6 @@ enum LayerType {
   LAYER_BACKBONE_TFLITE,          /**< Backbone using TFLite */
   LAYER_RESHAPE,                  /**< Reshape Layer type */
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
-  LAYER_IDENTITY,                 /**< Identity Layer type */
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
