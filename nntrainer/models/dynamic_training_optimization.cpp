@@ -13,6 +13,9 @@
 
 #include <random>
 #include <vector>
+#ifdef _WIN32
+#include <numeric>
+#endif
 
 #include <dynamic_training_optimization.h>
 #include <optimizer_wrapped.h>

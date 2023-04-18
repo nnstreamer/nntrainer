@@ -46,6 +46,10 @@
 #include <profiler.h> // disable including this in android as profiler is not exposed yet to devel header
 #endif
 
+#ifdef _WIN32
+#include <numeric>
+#endif
+
 #define TRAINING true
 
 #define VALIDATION false

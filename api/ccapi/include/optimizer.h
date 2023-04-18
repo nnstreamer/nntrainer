@@ -23,11 +23,15 @@
 
 #include <common.h>
 
+// #ifdef _WIN32
+// #include <memory>
+// #endif
+
 namespace ml {
 namespace train {
 
 /** forward declaration */
-class LearningRateScheduler;
+class ML_API LearningRateScheduler;
 
 /**
  * @brief     Enumeration of optimizer type
@@ -42,7 +46,7 @@ enum OptimizerType {
  * @class   Optimizer Base class for optimizers
  * @brief   Base class for all optimizers
  */
-class Optimizer {
+class ML_API Optimizer {
 public:
   /**
    * @brief     Destructor of Optimizer Class
@@ -90,14 +94,14 @@ public:
 /**
  * @brief Factory creator with constructor for optimizer
  */
-std::unique_ptr<Optimizer>
+ML_API std::unique_ptr<Optimizer>
 createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties = {});
 
 /**
  * @brief Factory creator with constructor for optimizer
  */
-std::unique_ptr<Optimizer>
+ML_API std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties = {});
 
@@ -109,7 +113,7 @@ createOptimizer(const OptimizerType &type,
  */
 template <typename T,
           std::enable_if_t<std::is_base_of<Optimizer, T>::value, T> * = nullptr>
-std::unique_ptr<Optimizer>
+ML_API std::unique_ptr<Optimizer>
 createOptimizer(const std::vector<std::string> &props = {}) {
   std::unique_ptr<Optimizer> ptr = std::make_unique<T>();
 
@@ -150,7 +154,7 @@ enum LearningRateType {
  * @class   Learning Rate Schedulers Base class
  * @brief   Base class for all Learning Rate Schedulers
  */
-class LearningRateScheduler {
+class ML_API LearningRateScheduler {
 
 public:
   /**
@@ -193,14 +197,14 @@ public:
 /**
  * @brief Factory creator with constructor for learning rate scheduler type
  */
-std::unique_ptr<ml::train::LearningRateScheduler>
+ML_API std::unique_ptr<ml::train::LearningRateScheduler>
 createLearningRateScheduler(const LearningRateType &type,
                             const std::vector<std::string> &properties = {});
 
 /**
  * @brief Factory creator with constructor for learning rate scheduler
  */
-std::unique_ptr<ml::train::LearningRateScheduler>
+ML_API std::unique_ptr<ml::train::LearningRateScheduler>
 createLearningRateScheduler(const std::string &type,
                             const std::vector<std::string> &properties = {});
 
@@ -213,7 +217,7 @@ createLearningRateScheduler(const std::string &type,
 template <typename T,
           std::enable_if_t<std::is_base_of<LearningRateScheduler, T>::value, T>
             * = nullptr>
-std::unique_ptr<LearningRateScheduler>
+ML_API std::unique_ptr<LearningRateScheduler>
 createLearningRateScheduler(const std::vector<std::string> &props = {}) {
   std::unique_ptr<LearningRateScheduler> ptr = std::make_unique<T>();
   ptr->setProperty(props);

@@ -82,7 +82,11 @@ void IniSection::setEntry(const std::string &entry_str) {
 
 void IniWrapper::updateSection(const std::string &s) {
 
+#ifdef _WIN32
+  auto seperator_pos = s.find('\\');
+#else
   auto seperator_pos = s.find('/');
+#endif
 
   NNTR_THROW_IF(seperator_pos == std::string::npos, std::invalid_argument)
     << "invalid string format is given, please "

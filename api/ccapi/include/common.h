@@ -19,6 +19,16 @@
 
 #include <nntrainer-api-common.h>
 
+/**
+ * @brief Defining Macros for Exporting Dynamic Library in Windows.
+ * @note Macro is meaningful only if platform is windows.
+ */
+#ifdef _WIN32
+#define ML_API __declspec(dllexport)
+#else
+#define ML_API
+#endif
+
 namespace ml {
 namespace train {
 
