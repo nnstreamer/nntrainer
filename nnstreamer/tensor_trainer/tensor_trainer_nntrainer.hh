@@ -82,21 +82,22 @@ public:
   float training_loss, validation_loss;
   bool is_training_complete;
 
-  int64_t tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
-  int64_t num_tensors; /**< The number of tensors in the received a sample */
-  int64_t num_inputs; /**< The number of tensors used as input in the received a
-                         sample */
-  int64_t num_labels; /**< The number of tensors used as label in the received a
-                         sample */
-  int64_t num_training_samples; /**< The number of training samples to be taken
-                                   for training model */
-  int64_t num_validation_samples; /**< The number of validation samples to be
-                                     taken for validation model */
-  int64_t total_num_samples; /**< Total number of samples received for creating
-                                model */
-  int64_t num_epochs;        /**< The number of epoch */
-  int64_t num_push_data;     /**< The number of samples pushed by
-                                NNStreamer(tensor_trainer)*/
+  unsigned int tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
+  unsigned int
+    num_tensors; /**< The number of tensors in the received a sample */
+  unsigned int num_inputs; /**< The number of tensors used as input in the
+                              received a sample */
+  unsigned int num_labels; /**< The number of tensors used as label in the
+                              received a sample */
+  unsigned int num_training_samples;   /**< The number of training samples to be
+                                          taken for training model */
+  unsigned int num_validation_samples; /**< The number of validation samples to
+                                          be taken for validation model */
+  unsigned int total_num_samples;      /**< Total number of samples received for
+                                          creating model */
+  unsigned int num_epochs;             /**< The number of epoch */
+  unsigned int num_push_data;          /**< The number of samples pushed by
+                                          NNStreamer(tensor_trainer) */
   std::string model_config;
   std::string model_save_path; /**< Model is finally stored */
 
@@ -121,8 +122,8 @@ public:
    * sample
    * @param _tensors_size[] size of each tensor in a sample
    */
-  InputTensorsInfo(int64_t _total_num_samples, int64_t _num_inputs,
-                   int64_t _num_labels, int64_t _tensors_size[]);
+  InputTensorsInfo(unsigned int _total_num_samples, unsigned int _num_inputs,
+                   unsigned int _num_labels, unsigned int _tensors_size[]);
 
   /**
    * @brief Destroy the InputTensorsInfo object
@@ -135,17 +136,19 @@ public:
   unsigned int queue_front;
   unsigned int queue_rear;
   unsigned int queue_count;
-  int64_t push_count; /**< The number of samples pushed to queue by
-                         NNStreamer(tensor_trainer) */
-  int64_t pop_count;  /**< The number of pop from the queue for pushing samples
-                         to nntrainer */
-  int64_t input_size[NNS_TENSOR_SIZE_LIMIT]; // feature size * data type
-  int64_t label_size[NNS_TENSOR_SIZE_LIMIT];
-  int64_t total_num_samples; /**< Total number of samples received for creating
-                                model */
-  int64_t num_inputs; /**< The number of tensors in the received a sample */
-  int64_t num_labels; /**< The number of tensors used as label in the received a
-                         sample */
+  unsigned int push_count; /**< The number of samples pushed to queue by
+                              NNStreamer(tensor_trainer) */
+  unsigned int pop_count;  /**< The number of pop from the queue for pushing
+                              samples to nntrainer */
+  unsigned int
+    input_size[NNS_TENSOR_SIZE_LIMIT]; /**< feature size * data type */
+  unsigned int label_size[NNS_TENSOR_SIZE_LIMIT];
+  unsigned int total_num_samples; /**< Total number of samples received for
+                                     creating model */
+  unsigned int
+    num_inputs; /**< The number of tensors in the received a sample */
+  unsigned int num_labels; /**< The number of tensors used as label in the
+                              received a sample */
 
   std::vector<TensorData>
     tensor_data; /**< Manage multiple inputs and labels data */
