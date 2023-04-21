@@ -161,10 +161,8 @@ void GenericProfileListener::report(std::ostream &out) const {
       auto &sum_ = std::get<GenericProfileListener::SUM>(time.second);
 
       auto title = names.find(time.first);
-#ifdef DEBUG
       if (title == names.end())
         throw std::runtime_error("Couldn't find name. it's already removed.");
-#endif
 
       if (warmups >= cnt_) {
         out_ << std::left << std::setw(total_col_size) << title->second

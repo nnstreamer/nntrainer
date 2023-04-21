@@ -70,7 +70,7 @@ TEST(nntrainer_capi_lr_scheduler, create_destruct_03_p) {
 TEST(nntrainer_capi_lr_scheduler, create_destruct_04_n) {
   ml_train_lr_scheduler_h handle = NULL;
   int status;
-  status = ml_train_lr_scheduler_destroy(&handle);
+  status = ml_train_lr_scheduler_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 

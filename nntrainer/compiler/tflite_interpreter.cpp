@@ -360,7 +360,10 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
   /// set arity of TfOpNodes
   for (auto &n : nodes) {
     auto tf_node = n.get();
-    auto layer_node = tf_to_layer.find(tf_node)->second;
+    auto searched_layer = tf_to_layer.find(tf_node);
+    if (searched_layer == tf_to_layer.end())
+      throw std::runtime_error("Cannot find layer for TfOpNode");
+    auto layer_node = searched_layer->second;
     auto layer_node_inputs = layer_node->getInputConnections();
 
     /// assume that the TfOpNode and the LayerNode have a one-to-one
