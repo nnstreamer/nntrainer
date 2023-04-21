@@ -38,7 +38,7 @@ public:
   /**
    * @brief     Constructor of Graph Core Class
    */
-  GraphCore() : sorted(false), def_name_count(0) {}
+  GraphCore() : sorted(false), node_names(), def_name_count(0) {}
 
   /**
    * @brief     Destructor of Graph Core Class
