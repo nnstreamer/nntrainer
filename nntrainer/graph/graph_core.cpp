@@ -128,7 +128,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix_,
    */
   if (!orig_name_empty && !force_rename && !verifyNode(orig_name)) {
     node.setName(orig_name);
-    node_names.insert(orig_name);
+    node_names.emplace(orig_name);
     return;
   }
 
@@ -137,7 +137,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix_,
     std::string direct_name = prefix + orig_name + postfix;
     if (!verifyNode(direct_name)) {
       node.setName(direct_name);
-      node_names.insert(direct_name);
+      node_names.emplace(direct_name);
       return;
     }
   }
@@ -156,7 +156,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix_,
   } while (iter != node_names.end());
 
   node.setName(name);
-  node_names.insert(name);
+  node_names.emplace(name);
 }
 
 void GraphCore::replaceNode(std::shared_ptr<GraphNode> from,
