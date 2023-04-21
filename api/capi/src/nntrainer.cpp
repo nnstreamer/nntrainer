@@ -785,17 +785,17 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   {
     ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, optimizer);
     ML_TRAIN_ADOPT_LOCK(nnopt, optimizer_lock);
+  }
 
-    if (nnopt->in_use) {
-      ml_loge("Cannot delete optimizer already set to a model."
-              "Delete model will delete this optimizer.");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+  if (nnopt->in_use) {
+    ml_loge("Cannot delete optimizer already set to a model."
+            "Delete model will delete this optimizer.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
-    if (nnopt->lr_sheduler) {
-      ML_TRAIN_RESET_VALIDATED_HANDLE(nnopt->lr_sheduler);
-      delete nnopt->lr_sheduler;
-    }
+  if (nnopt->lr_sheduler) {
+    ML_TRAIN_RESET_VALIDATED_HANDLE(nnopt->lr_sheduler);
+    delete nnopt->lr_sheduler;
   }
 
   delete nnopt;
@@ -854,21 +854,25 @@ int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
 
   check_feature_state();
 
-  ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, optimizer);
-  ML_TRAIN_ADOPT_LOCK(nnopt, opt_lock);
-  ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED(nnlrscheduler, lr_scheduler);
-  ML_TRAIN_ADOPT_LOCK(nnlrscheduler, lr_scheduler_lock);
+  std::shared_ptr<ml::train::Optimizer> opt;
+  std::shared_ptr<ml::train::LearningRateScheduler> lr_sched;
+
+  {
+    ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, optimizer);
+    ML_TRAIN_ADOPT_LOCK(nnopt, opt_lock);
+    opt = nnopt->optimizer;
+  }
+
+  {
+    ML_TRAIN_GET_VALID_LR_SCHEDULER_LOCKED(nnlrscheduler, lr_scheduler);
+    ML_TRAIN_ADOPT_LOCK(nnlrscheduler, lr_scheduler_lock);
+    lr_sched = nnlrscheduler->lr_scheduler;
+  }
 
   if (nnlrscheduler->in_use) {
     ml_loge("learning rate scheduler already in use.");
     return ML_ERROR_INVALID_PARAMETER;
   }
-
-  std::shared_ptr<ml::train::Optimizer> opt;
-  std::shared_ptr<ml::train::LearningRateScheduler> lr_sched;
-
-  opt = nnopt->optimizer;
-  lr_sched = nnlrscheduler->lr_scheduler;
 
   returnable f = [&]() { return opt->setLearningRateScheduler(lr_sched); };
 
