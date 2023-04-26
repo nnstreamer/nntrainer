@@ -19,19 +19,9 @@
 
 constexpr unsigned SAMPLE_TRIES = 10;
 
-TEST_P(LayerSemantics, DISABLED_setProperties_p) {
-  /// @todo check if setProperties does not collide with layerNode designated
-  /// properties
-  EXPECT_EQ(1, 1); /**< no assert tc from TCM, this is disabled test */
-}
-
 TEST_P(LayerSemantics, setProperties_n) {
   /** must not crash */
   EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
-}
-
-TEST_P(LayerSemantics, DISABLED_setPropertiesValidWithInvalid_n) {
-  EXPECT_EQ(1, 1); /**< no assert tc from TCM, this is disabled test */
 }
 
 TEST_P(LayerPropertySemantics, setPropertiesValidInvalidOnly_n) {

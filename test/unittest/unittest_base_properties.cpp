@@ -140,9 +140,8 @@ public:
 
 } // namespace
 
-TEST(BasicProperty, tagCast) {
-  EXPECT_EQ(1, 1); /**< this is to prevent no assert tc from TCM */
-
+/// @todo convert this to typed param test
+TEST(BasicProperty, valid_p) {
   { /**< tag_cast simple cast */
     using T =
       nntrainer::tag_cast<banana_prop_tag, nntrainer::int_prop_tag>::type;
@@ -159,10 +158,6 @@ TEST(BasicProperty, tagCast) {
     using T = nntrainer::tag_cast<banana_prop_tag, int, std::string>::type;
     ::testing::StaticAssertTypeEq<T, banana_prop_tag>();
   }
-}
-
-TEST(BasicProperty, propInfo) {
-  EXPECT_EQ(1, 1); /**< this is to prevent no assert tc from TCM */
 
   { /**< prop_info test */
     using prop_type = nntrainer::prop_info<QualityOfBanana>::prop_type;
@@ -174,10 +169,7 @@ TEST(BasicProperty, propInfo) {
     using data_type = nntrainer::prop_info<QualityOfBanana>::data_type;
     ::testing::StaticAssertTypeEq<data_type, std::string>();
   }
-}
 
-/// @todo convert this to typed param test
-TEST(BasicProperty, valid_p) {
   { /** set -> get / to_string, int*/
     NumBanana b;
     b.set(123);
