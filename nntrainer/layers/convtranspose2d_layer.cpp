@@ -441,20 +441,20 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
 
   auto compute_derivative = [&](unsigned int s, unsigned int e,
                                 unsigned int pid, void *user_data) {
-    Tensor result =
-      Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+     Tensor result = Tensor(
+        calcCol2ImOutputDim(derivative.getDim(), filter_dim));
 
     for (unsigned int b = s; b < e; ++b) {
       Tensor deriv_sub = derivative.getBatchSlice(b, 1);
       Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
-      deriv_sub.reshape(
-        {filter_size, derivative.width() * derivative.height()});
-      filter_kernel.dot(deriv_sub, result, true, false);
-      col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
-    }
-    result.deallocate();
-  };
+      Tensor result_sub =
+          result.getBatchSlice(b, 1);
 
+      deriv_sub.reshape({derivative.channel(), derivative.width() * derivative.height()});
+      filter_kernel.dot(deriv_sub, result_sub, false, true);
+      col2im(result_sub, filter_dim, padding, stride, dilation, in_deriv_sub);
+    }
+  };
   auto workers = ParallelBatch(compute_derivative, derivative.batch(), nullptr);
 
   if (workers.getNumWorkers() > 1) {
@@ -464,6 +464,8 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
   }
 
   filter_kernel.reshape(filter_dim);
+
+
 }
 
 void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
