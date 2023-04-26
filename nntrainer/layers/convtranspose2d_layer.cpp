@@ -278,6 +278,14 @@ void ConvTranspose2DLayer::finalize(InitLayerContext &context) {
   auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
+  std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
+  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
+  std::array<unsigned int, CONVTRANSPOSE2D_DIM> transpose_z = {stride[0] - 1, stride[1] - 1};
+  const TensorDim &transpose_in_dim;
+  transpose_in_dim.batch(in_dim.batch());
+  transpose_in_dim.channel(in_dim.channel());
+  transpose_in_dim.width(stride[0] * (in_dim.width() - 1) + 1);
+  transpose_in_dim.height(stride[1] * (in_dim.height() - 1) + 1);
 
   TensorDim kernel_dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
@@ -286,6 +294,13 @@ void ConvTranspose2DLayer::finalize(InitLayerContext &context) {
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, kernel_dim, {stride[0], stride[1]},
                        {dilation[0], dilation[1]});
+  
+  std::array<unsigned int, CONVTRANSPOSE2D_DIM> transpose_padding = {
+      (kernel_size[0] - 1) / 2 - padding[0], 
+      (kernel_size[0] - 1) / 2 - padding[1], 
+      (kernel_size[1] - 1) / 2 - padding[2], 
+      (kernel_size[1] - 1) / 2 - padding[3], 
+      };
 
   wt_idx[ConvParams::weight] = context.requestWeight(
     kernel_dim, weight_initializer, weight_regularizer,
@@ -298,17 +313,19 @@ void ConvTranspose2DLayer::finalize(InitLayerContext &context) {
   }
 
   // this output_dim must be the same with dimension of hidden
-  unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
-  unsigned int eff_in_width = in_dim.width() + padding[2] + padding[3];
+  unsigned int eff_in_height = transpose_in_dim.height() + transpose_padding[0] + transpose_padding[1];
+  unsigned int eff_in_width = transpose_in_dim.width() + transpose_padding[2] + transpose_padding[3];
 
-  unsigned int eff_k_height = (kernel_size[0] - 1) * dilation[0] + 1;
-  unsigned int eff_k_width = (kernel_size[1] - 1) * dilation[1] + 1;
+  unsigned int eff_k_height = (kernel_size[0] - 1) * transpose_dilation[0] + 1;
+  unsigned int eff_k_width = (kernel_size[1] - 1) * transpose_dilation[1] + 1;
+
+  
 
   TensorDim out_dim;
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
-  out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
-  out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
+  out_dim.height((eff_in_height - eff_k_height) / transpose_stride[0] + 1);
+  out_dim.width((eff_in_width - eff_k_width) / transpose_stride[1] + 1);
   context.setOutputDimensions({out_dim});
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
@@ -318,8 +335,8 @@ void ConvTranspose2DLayer::finalize(InitLayerContext &context) {
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  NNTR_THROW_IF(eff_in_height - padding[0] - kernel_size[0] > IM ||
-                  eff_in_width - padding[2] - kernel_size[1] > IM,
+  NNTR_THROW_IF(eff_in_height - transpose_padding[0] - kernel_size[0] > IM ||
+                  eff_in_width - transpose_padding[2] - kernel_size[1] > IM,
                 std::invalid_argument)
     << "Failed to initialize: Calculated patch end is over int max";
 }
@@ -471,9 +488,31 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
   auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
+  auto &kernel_size = std::get<std::array<props::KernelSize, CONVTRANSPOSE2D_DIM>>(conv_props);
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+
+  /////////////////
+
+  TensorDim input_dim = input_.getDim();
+  TensorDim transpose_dim;
+  transpose_dim.batch(input_dim.batch())
+  transpose_dim.channel(input_dim.channel())
+  transpose_dim.height()
+
+  auto &z = stride;
+  for (auto &e : z) {
+      e -= 1;
+  }
+
+  auto p = 0;
+  for (int i = 0;)
+  
+
+  
+
+  /////////////////
 
   Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
   delK.setZero();
