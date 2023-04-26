@@ -43,11 +43,6 @@ public:
 };
 
 /**
- * @brief creation and destruction
- */
-TEST_F(CacheLoaderTest, create_destroy) {}
-
-/**
  * @brief load synchronously
  */
 TEST_F(CacheLoaderTest, load_01_p) {
