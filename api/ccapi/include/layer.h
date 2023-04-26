@@ -36,7 +36,8 @@ enum LayerType {
   LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /**< Input Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /**< Fully Connected Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN,    /**< Batch Normalization Layer type */
-  LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /**< Convolution 2D Layer type */
+  LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D,
+  LAYER_CONVTRANPOSE2D = ML_TRAIN_LAYER_TYPE_CONVTRANSPOSE2D, /**< Convolution 2D Layer type */
   LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /**< Pooling 2D Layer type */
   LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /**< Flatten Layer type */
   LAYER_ACTIVATION =
@@ -284,6 +285,10 @@ LayerNormalization(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Convolution2D(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_CONV2D, properties);
+}
+inline std::unique_ptr<Layer>
+ConvolutionTranspose2D(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CONVTRANPOSE2D, properties);
 }
 
 /**

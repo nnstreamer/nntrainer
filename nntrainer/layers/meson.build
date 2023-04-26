@@ -13,6 +13,7 @@ layer_sources = [
   'layer_normalization_layer.cpp',
   'conv2d_layer.cpp',
   'conv1d_layer.cpp',
+  'convtranspose2d_layer.cpp',
   'fc_layer.cpp',
   'flatten_layer.cpp',
   'input_layer.cpp',

@@ -447,13 +447,12 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
     for (unsigned int b = s; b < e; ++b) {
       Tensor deriv_sub = derivative.getBatchSlice(b, 1);
       Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
-      Tensor result_sub =
-          result.getBatchSlice(b, 1);
-
-      deriv_sub.reshape({derivative.channel(), derivative.width() * derivative.height()});
-      filter_kernel.dot(deriv_sub, result_sub, false, true);
-      col2im(result_sub, filter_dim, padding, stride, dilation, in_deriv_sub);
+      deriv_sub.reshape(
+        {filter_size, derivative.width() * derivative.height()});
+      filter_kernel.dot(deriv_sub, result, true, false);
+      col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
     }
+      result.deallocate();
   };
   auto workers = ParallelBatch(compute_derivative, derivative.batch(), nullptr);
 
