@@ -41,6 +41,18 @@ enum class ActivationType {
   ACT_UNKNOWN     /**< unknown */
 };
 
+/**
+ * @brief     Enumeration of checkpoint type
+ * @note      Upon changing this enum, CheckPointTypeInfo must be changed
+ * accordingly
+ */
+enum class CheckPointType {
+  CHECKPOINTED,       /**< unknown */
+  NONCHECK_UNLOAD,    /**< unknown */
+  NONCHECK_LOAD,      /**< unknown */
+  CHECKPOINT_UNKNOWN, /**< unknown */
+};
+
 namespace props {
 
 /**
@@ -1302,8 +1314,7 @@ public:
 
 /**
  * @brief Decay rate property
- *
- */
+ * */
 class DecayRate : public Property<float> {
 public:
   static constexpr const char *key = "decay_rate"; /**< unique key to access */
@@ -1329,6 +1340,29 @@ public:
   PropsUserData(void *user_data);
   static constexpr const char *key = "user_data";
   using prop_tag = ptr_prop_tag;
+};
+
+/**
+ * @brief     Enumeration of activation function type
+ */
+struct CheckPointStateInfo {
+  using Enum = nntrainer::CheckPointType;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::CHECKPOINTED, Enum::NONCHECK_UNLOAD, Enum::NONCHECK_LOAD,
+    Enum::CHECKPOINT_UNKNOWN};
+  static constexpr const char *EnumStr[] = {"checkpointed", "unloaded",
+                                            "loaded", "unknown"};
+};
+
+/**
+ * @brief Checkpoint props
+ *
+ */
+class CheckPoint final : public EnumProperty<CheckPointStateInfo> {
+public:
+  static constexpr const char *key = "checkpoint";
+  using prop_tag = enum_class_prop_tag;
+  CheckPoint(CheckPointType value = CheckPointType::CHECKPOINTED);
 };
 
 } // namespace props

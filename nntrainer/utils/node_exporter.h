@@ -245,7 +245,7 @@ void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputConnection>,
                    std::vector<props::InputShape>, props::SharedFrom,
-                   props::ClipGradByGlobalNorm> &props,
+                   props::ClipGradByGlobalNorm, props::CheckPoint> &props,
   const LayerNode *self);
 
 class BatchNormalizationLayer;

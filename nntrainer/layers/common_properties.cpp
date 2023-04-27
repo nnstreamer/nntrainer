@@ -343,6 +343,8 @@ ReturnAttentionWeight::ReturnAttentionWeight(
   set(value);
 }
 
+CheckPoint::CheckPoint(CheckPointType value) { set(value); }
+
 } // namespace props
 
 template <>

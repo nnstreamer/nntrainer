@@ -202,7 +202,27 @@ public:
   ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
                         ModelTensorDataTypeInfo::Enum::W32A32) {
     set(value);
-  };
+  }
+};
+
+/**  
+ * @brief check point length property
+ *
+ * @note this is checkpoint distance property, nodes in network graph
+ * are checkpointed in every CheckPointLen, others are uncheckpointed.
+ */
+class CheckPointLen : public Property<unsigned int> {
+public:
+  static constexpr const char *key =
+    "checkpoint_len";            /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to current directory
+   */
+  CheckPointLen(const unsigned int &value = 0);
 };
 
 } // namespace nntrainer::props
