@@ -347,8 +347,10 @@ bool LayerNode::getTrainable() const {
 }
 
 void LayerNode::setCheckPoint(props::CheckPoint chekcpoint) {
-  // run_context's property can be set only while finalize.
-  std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
+  if (run_context)
+    run_context->setCheckPoint(chekcpoint);
+  else
+    std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
 }
 
 const props::CheckPoint LayerNode::getCheckPoint() const {
@@ -356,6 +358,18 @@ const props::CheckPoint LayerNode::getCheckPoint() const {
     return run_context->getCheckPoint();
   else
     return std::get<props::CheckPoint>(*layer_node_props);
+}
+
+unsigned int LayerNode::getUsedCount() const {
+  if (run_context)
+    return run_context->getUsedCount();
+
+  return 0;
+}
+
+void LayerNode::setUsedCount(unsigned int count) {
+  if (run_context)
+    run_context->setUsedCount(count);
 }
 
 bool LayerNode::getFlatten() const {
@@ -511,10 +525,10 @@ void LayerNode::clearOptVar() {
 InitLayerContext
 LayerNode::finalize(const std::vector<TensorDim> &input_dims,
                     std::array<const std::string, 3> tensor_type) {
-  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType {
-  // 			       return from_string(ty);
+  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType
+  // { 			       return from_string(ty);
   // };
-  
+
   if (run_context)
     throw std::runtime_error(
       "Trying to finalizing a layer which is already finalized in layer: " +

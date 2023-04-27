@@ -144,6 +144,7 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  CheckPointType checkpoint) :
   loss(l),
   in_place(in_place_),
+  out_used(0),
   weights(w),
   inputs(in),
   outputs(out),

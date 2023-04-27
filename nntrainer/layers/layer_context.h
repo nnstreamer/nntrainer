@@ -112,6 +112,9 @@ public:
    */
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
 
+  /**
+   * @brief Set Input Data type
+   */
   void setInputDataType(TensorDim::DataType ty) {
     for (auto d : input_dim)
       d.setDataType(ty);
@@ -355,7 +358,7 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() : loss(0.0), in_place(false) {}
+  RunLayerContext() : loss(0.0), in_place(false), out_used(0) {}
 
   /**
    * @brief Construct a new Run Layer Context object
@@ -736,6 +739,25 @@ public:
   }
 
   /**
+   * @brief   get trainable by the layer
+   *
+   * @param checkpoint checkpoint property
+   */
+  void setCheckPoint(const props::CheckPoint &checkpoint) {
+    std::get<props::CheckPoint>(props) = checkpoint;
+  }
+
+  /**
+   * @brief   get output used count
+   */
+  unsigned int getUsedCount() const { return out_used; }
+
+  /**
+   * @brief   set output used count
+   */
+  void setUsedCount(unsigned int count) { out_used = count; }
+
+  /**
    * @brief   check if run context is set and is ready to use
    *
    * @return true if ready, else false
@@ -764,6 +786,7 @@ private:
     props;       /**< props of the layer */
   float loss;    /**< loss of the layer */
   bool in_place; /**< if the layer is expected to run in-place */
+  int out_used;  /**< number of times the output is used */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
