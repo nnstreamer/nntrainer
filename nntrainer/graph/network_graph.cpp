@@ -13,6 +13,7 @@
  */
 
 #include "graph_node.h"
+#include "common_properties.h"
 #include "tensor.h"
 #include <cmath>
 #include <stdexcept>
@@ -44,6 +45,8 @@
 #include <time_dist.h>
 #include <tracer.h>
 #include <util_func.h>
+
+#include <iostream>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
@@ -84,6 +87,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
+  setCheckPoints();
   compiled = true;
 
   return status;
@@ -114,6 +118,25 @@ void NetworkGraph::setExecutionOrder() {
    * clipping.
    */
   graph_exec_end = std::get<3>((*(cbegin()))->getExecutionOrder());
+}
+
+void NetworkGraph::setCheckPoints() {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &node = *iter;
+    auto idx = iter - cbegin();
+
+    if (node->getType() == ActivationLayer::type) {
+      auto &prev_node = *(iter - 1);
+      if (prev_node->getCheckPoint().get() == CheckPointType::CHECKPOINTED) {
+        node->setCheckPoint(CheckPointType::CHECKPOINTED);
+        prev_node->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
+        continue;
+      }
+    }
+
+    node->setCheckPoint(idx % (checkpoint_len + 1) == 0 ?
+        CheckPointType::CHECKPOINTED : CheckPointType::NONCHECK_UNLOAD);
+  }
 }
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
@@ -795,7 +818,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       lnode->getType() == LSTMCellLayer::type or
       lnode->getType() == GRUCellLayer::type) {
     std::for_each(
-      out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
+      out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
         spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
       });
   }

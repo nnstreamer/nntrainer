@@ -45,6 +45,7 @@ public:
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
+    checkpoint_len(0),
     backward_iter_end(nullptr),
     forward_iter_end(nullptr),
     optimize_memory(true),
@@ -58,7 +59,7 @@ public:
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
   NetworkGraph(bool enable_swap, const std::string &swap_path = "",
-               unsigned int lookahead = 0,
+               unsigned int lookahead = 0, unsigned int checkpoint_length = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
@@ -67,6 +68,7 @@ public:
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
+    checkpoint_len(checkpoint_length),
     backward_iter_end(nullptr),
     forward_iter_end(nullptr),
     optimize_memory(true),
@@ -415,6 +417,8 @@ private:
   unsigned int batch_size;     /**< current batch_size */
   unsigned int graph_exec_end; /**< Inclusive, last execution order of the
                                   given graph */
+  unsigned int checkpoint_len; /**< checkpoint length */
+
   LayerNode
     *backward_iter_end;        /**< inclusive end node of the valid backward
                                   execution when initialized, nodes after this node
@@ -519,6 +523,11 @@ private:
    * is expected to be called right after calcGradient().
    */
   void setExecutionOrder();
+
+  /**
+   * @brief Set the checkpoint for all the nodes in the graph
+   */
+  void setCheckPoints();
 
   /**
    * @brief Set external data to the given tensors with name
