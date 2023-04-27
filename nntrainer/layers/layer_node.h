@@ -630,6 +630,16 @@ public:
   const props::CheckPoint getCheckPoint() const;
 
   /**
+   * @brief Get the checkpoint property
+   */
+  void setUsedCount(unsigned int count);
+
+  /**
+   * @brief Get the checkpoint property
+   */
+  unsigned int getUsedCount() const;
+
+  /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
    * @param bool read optimizer variables

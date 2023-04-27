@@ -347,8 +347,10 @@ bool LayerNode::getTrainable() const {
 }
 
 void LayerNode::setCheckPoint(props::CheckPoint chekcpoint) {
-  // run_context's property can be set only while finalize.
-  std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
+  if (run_context)
+    run_context->setCheckPoint(chekcpoint);
+  else
+    std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
 }
 
 const props::CheckPoint LayerNode::getCheckPoint() const {
@@ -356,6 +358,18 @@ const props::CheckPoint LayerNode::getCheckPoint() const {
     return run_context->getCheckPoint();
   else
     return std::get<props::CheckPoint>(*layer_node_props);
+}
+
+unsigned int LayerNode::getUsedCount() const {
+  if (run_context)
+    return run_context->getUsedCount();
+
+  return 0;
+}
+
+void LayerNode::setUsedCount(unsigned int count) {
+  if (run_context)
+    run_context->setUsedCount(count);
 }
 
 bool LayerNode::getFlatten() const {
