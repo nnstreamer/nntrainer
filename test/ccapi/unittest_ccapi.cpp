@@ -70,6 +70,9 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::Convolution2D());
   EXPECT_EQ(layer->getType(), "conv2d");
 
+  EXPECT_NO_THROW(layer = ml::train::layer::ConvolutionTranspose2D());
+  EXPECT_EQ(layer->getType(), "convtranspose2d");
+
   EXPECT_NO_THROW(layer = ml::train::layer::Pooling2D());
   EXPECT_EQ(layer->getType(), "pooling2d");
 

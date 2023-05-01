@@ -59,3 +59,33 @@ __pycache__/
 
 # android build
 nntrainer_for_android.tar.gz
+
+#compiled files
+debian/
+debian/.debhelper/
+debian/capi-ml-training-dev.substvars
+debian/capi-ml-training-dev/
+debian/capi-ml-training.substvars
+debian/capi-ml-training/
+debian/ccapi-ml-training-dev.substvars
+debian/ccapi-ml-training-dev/
+debian/ccapi-ml-training.substvars
+debian/ccapi-ml-training/
+debian/files
+debian/nnstreamer-nntrainer-dev.substvars
+debian/nnstreamer-nntrainer-dev/
+debian/nnstreamer-nntrainer-trainer-dev.substvars
+debian/nnstreamer-nntrainer-trainer-dev/
+debian/nnstreamer-nntrainer-trainer.substvars
+debian/nnstreamer-nntrainer-trainer/
+debian/nnstreamer-nntrainer.substvars
+debian/nnstreamer-nntrainer/
+debian/nntrainer-applications.substvars
+debian/nntrainer-applications/
+debian/nntrainer-dev.substvars
+debian/nntrainer-dev/
+debian/nntrainer.substvars
+debian/nntrainer/
+debian/tmp/
+nntrainer-build-deps_0.5.0_all.deb
+

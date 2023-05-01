@@ -7,7 +7,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Convolution Layer Class for Neural Network
+ * @brief  This is Transposed Convolution Layer Class for Neural Network
  *
  */
 
@@ -25,8 +25,8 @@ namespace nntrainer {
 constexpr const unsigned int CONVTRANSPOSE2D_DIM = 2;
 
 /**
- * @class   Convolution 2D Layer
- * @brief   Convolution 2D Layer
+ * @class   Transposed Convolution 2D Layer
+ * @brief   Transposed Convolution 2D Layer
  */
 class ConvTranspose2DLayer : public LayerImpl {
 public:
