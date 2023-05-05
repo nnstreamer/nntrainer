@@ -354,149 +354,145 @@ void ConvTranspose2DLayer::finalize(InitLayerContext &context) {
 }
 
 void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
-//   int status = ML_ERROR_NONE;
+  int status = ML_ERROR_NONE;
 
-//   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
-//   auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
-//   // assume dilation=1
-// //   auto &dilation =
-// //     std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
+  // assume dilation=1
+//   auto &dilation =
+//     std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
 
-//   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-//   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-
-//   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
-
-//   /* Modified code */
-//   const TensorDim &in_dim = input_.getDim();
-//   std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
-//   std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
-//   std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
-
-//   auto &kernel_size =
-//     std::get<std::array<props::KernelSize, CONVTRANSPOSE2D_DIM>>(conv_props);
-
-//   padding = std::get<props::Padding2D>(conv_props)
-//               .compute(in_dim, filter_kernel.getDim(), {stride[0], stride[1]},
-//                        {dilation[0], dilation[1]});
-
-//   std::array<unsigned int, 4> transpose_padding = {
-//       (kernel_size[0] - 1) / 2 - padding[0], 
-//       (kernel_size[0] - 1) - (kernel_size[0] - 1) / 2 - padding[1], 
-//       (kernel_size[1] - 1) / 2 - padding[2], 
-//       (kernel_size[1] - 1) - (kernel_size[1] - 1) / 2 - padding[3], 
-//   };
-
-//   const TensorDim &transpose_in_dim = TensorDim(
-//     in_dim.batch(),
-//     in_dim.channel(),
-//     stride[0] * (in_dim.width() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
-//     stride[1] * (in_dim.height() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
-//   );
-
-//   Tensor transpose_input_ = Tensor(transpose_in_dim);
-//   transpose_input_.setZero();
-  
-//   for (unsigned int b = 0; b < in_dim.batch(); b++ ) {
-//       for (unsigned int c = 0; c < in_dim.channel(); c++) {
-//           for (unsigned int h = 0; h < in_dim.height(); h++) {
-//               for(unsigned int w = 0; w < in_dim.width(); w++) {
-//                   if (b > transpose_in_dim.batch())
-//                   transpose_input_.setValue(b, c, 
-//                     h * transpose_stride[0] + transpose_padding[0], 
-//                     w * transpose_stride[1] + transpose_padding[2], 
-//                     input_.getValue(b, c, h, w));
-//               }
-//           }
-//       }
-//   }
-
-//   input_.deallocate(); // necessary?
-//   /* ~Modified code */
-
-
-//   /** Calculate Convolution 2D
-//    *
-//    * This is the 2D Matrix Shape [ height ] x [ width ]
-//    *   . Height : filter_size
-//    *   . Width  : Input Channel * Kernel_size[0] * Kernel_size[1]
-//    *
-//    *                              imKernel
-//    *                        +------|------|------+
-//    *                        |------|------|------|
-//    * [filter_size (height)] |------|------|------|
-//    *                        |------|------|------|
-//    *                        +------|------|------+
-//    *                     [Input Channel * Kernel_size[0]
-//    *                       * Kernel_size[1] (width)]
-//    *
-//    *
-//    * After im2Col with channel_mode true (in : input)
-//    *
-//    * This is the 2D Matrix Shape [ height ] x [ width ]
-//    *   . Height : Input Channel * Kernel_size[0] * Kernel_size[1]
-//    *   . Width  : output_dim.height * output_dim.width
-//    *
-//    *                      +-|-|-|-|      |-|-|-|-+
-//    *   [Input Channel     | | | | |      | | | | |
-//    *   * Kernel_size[0]   |_|_|_|_|      |_|_|_|_|
-//    *  * Kenel_size[1]     | | | | | .... | | | | |
-//    *    (height)]         |_|_|_|_|      |_|_|_|_|
-//    *                      | | | | |      | | | | |
-//    *                      +_|_|_|_|      |_|_|_|_+
-//    *                     [ output_dim.height
-//    *                      * output_dim.width (width) ]
-//    *
-//    * Output Dimention
-//    *   -> [Channel ( = filter_size = output_dim.channel )]
-//    *       x [output_dim.height x output_dim.width]
-//    */
-  
-//   const TensorDim &out_dim = hidden_.getDim();
-//   const TensorDim &filter_dim = filter_kernel.getDim();
-//   TensorDim filter_dim_squeezed{filter_kernel.batch(),
-//                                 filter_kernel.getDim().getFeatureLen()};
-
-//   filter_kernel.reshape(filter_dim_squeezed);
-
-//   /**
-//    * Below sets the pad area values to zero
-//    * it is faster to do this way than seting selective area to zero
-//    */
-//   auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
-//                             void *user_data) {
-//     Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
-//     result.setZero();
-//     for (unsigned int b = s; b < e; ++b) {
-//       Tensor out = hidden_.getBatchSlice(b, 1);
-//       out.reshape({filter_size, out_dim.width() * out_dim.height()});
-//       Tensor in_sub = transpose_input_.getBatchSlice(b, 1);
-
-//       im2col(in_sub, filter_dim, padding, stride, dilation, result);
-//       filter_kernel.dot(result, out, false, true);
-//     }
-//     result.deallocate();
-//   };
-
-//   auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
-
-//   if (workers.getNumWorkers() > 1) {
-//     workers.run();
-//   } else {
-//     forwarding_job(0, in_dim.batch(), 0, nullptr);
-//   }
-
-//   filter_kernel.reshape(filter_dim);
-//   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-//       disable_bias.empty() || disable_bias.get() == false) {
-//     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
-//     status = hidden_.add_i(bias_kernel);
-//     if (status != ML_ERROR_NONE) {
-//       throw std::invalid_argument("[ConvTranspose2D] adding bias failed");
-//     }
-//   }
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  hidden_.setZero();
+
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+
+  /* Modified code */
+  const TensorDim &in_dim = input_.getDim();
+  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
+  std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
+  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
+
+  auto &kernel_size =
+    std::get<std::array<props::KernelSize, CONVTRANSPOSE2D_DIM>>(conv_props);
+
+  padding = std::get<props::Padding2D>(conv_props)
+              .compute(in_dim, filter_kernel.getDim(), {stride[0], stride[1]},
+                       {dilation[0], dilation[1]});
+
+  std::array<unsigned int, 4> transpose_padding = {
+      (kernel_size[0] - 1) / 2 - padding[0], 
+      (kernel_size[0] - 1) - (kernel_size[0] - 1) / 2 - padding[1], 
+      (kernel_size[1] - 1) / 2 - padding[2], 
+      (kernel_size[1] - 1) - (kernel_size[1] - 1) / 2 - padding[3], 
+  };
+
+  const TensorDim &transpose_in_dim = TensorDim(
+    in_dim.batch(),
+    in_dim.channel(),
+    stride[0] * (in_dim.width() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
+    stride[1] * (in_dim.height() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
+  );
+
+  Tensor transpose_input_ = Tensor(transpose_in_dim);
+  transpose_input_.setZero();
+  
+  for (unsigned int b = 0; b < in_dim.batch(); b++ ) {
+      for (unsigned int c = 0; c < in_dim.channel(); c++) {
+          for (unsigned int h = 0; h < in_dim.height(); h++) {
+              for(unsigned int w = 0; w < in_dim.width(); w++) {
+                  if (b > transpose_in_dim.batch())
+                  transpose_input_.setValue(b, c, 
+                    h * transpose_stride[0] + transpose_padding[0], 
+                    w * transpose_stride[1] + transpose_padding[2], 
+                    input_.getValue(b, c, h, w));
+              }
+          }
+      }
+  }
+  /* ~Modified code */
+
+
+  /** Calculate Convolution 2D
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter_size
+   *   . Width  : Input Channel * Kernel_size[0] * Kernel_size[1]
+   *
+   *                              imKernel
+   *                        +------|------|------+
+   *                        |------|------|------|
+   * [filter_size (height)] |------|------|------|
+   *                        |------|------|------|
+   *                        +------|------|------+
+   *                     [Input Channel * Kernel_size[0]
+   *                       * Kernel_size[1] (width)]
+   *
+   *
+   * After im2Col with channel_mode true (in : input)
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : Input Channel * Kernel_size[0] * Kernel_size[1]
+   *   . Width  : output_dim.height * output_dim.width
+   *
+   *                      +-|-|-|-|      |-|-|-|-+
+   *   [Input Channel     | | | | |      | | | | |
+   *   * Kernel_size[0]   |_|_|_|_|      |_|_|_|_|
+   *  * Kenel_size[1]     | | | | | .... | | | | |
+   *    (height)]         |_|_|_|_|      |_|_|_|_|
+   *                      | | | | |      | | | | |
+   *                      +_|_|_|_|      |_|_|_|_+
+   *                     [ output_dim.height
+   *                      * output_dim.width (width) ]
+   *
+   * Output Dimention
+   *   -> [Channel ( = filter_size = output_dim.channel )]
+   *       x [output_dim.height x output_dim.width]
+   */
+  
+  const TensorDim &out_dim = hidden_.getDim();
+  const TensorDim &filter_dim = filter_kernel.getDim();
+  TensorDim filter_dim_squeezed{filter_kernel.batch(),
+                                filter_kernel.getDim().getFeatureLen()};
+
+  filter_kernel.reshape(filter_dim_squeezed);
+
+  /**
+   * Below sets the pad area values to zero
+   * it is faster to do this way than seting selective area to zero
+   */
+  auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                            void *user_data) {
+    Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
+    result.setZero();
+    for (unsigned int b = s; b < e; ++b) {
+      Tensor out = hidden_.getBatchSlice(b, 1);
+      out.reshape({filter_size, out_dim.width() * out_dim.height()});
+      Tensor in_sub = transpose_input_.getBatchSlice(b, 1);
+
+      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      filter_kernel.dot(result, out, false, true);
+    }
+    result.deallocate();
+  };
+
+  auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    forwarding_job(0, in_dim.batch(), 0, nullptr);
+  }
+
+  filter_kernel.reshape(filter_dim);
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
+    status = hidden_.add_i(bias_kernel);
+    if (status != ML_ERROR_NONE) {
+      throw std::invalid_argument("[ConvTranspose2D] adding bias failed");
+    }
+  }
 }
 
 void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
@@ -599,7 +595,6 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
       }
   }
 
-  input_.deallocate(); // necessary?
   /* ~Modified code */
 
   Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);

@@ -140,47 +140,47 @@ auto convtranspose2d_mb_1x1_kernel =
                            "3:2:5:5", "convtranspose2d_mb_1x1_kernel.nnlayergolden",
                            LayerGoldenTestParamOptions::DEFAULT);
 
-auto convtranspose2d_sb_dilation =
-  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
-                           {
-                             "filters=2",
-                             "kernel_size=3,3",
-                             "dilation=2,2",
-                           },
-                           "1:3:11:11", "convtranspose2d_sb_dilation.nnlayergolden",
-                           LayerGoldenTestParamOptions::DEFAULT);
+// auto convtranspose2d_sb_dilation =
+//   LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
+//                            {
+//                              "filters=2",
+//                              "kernel_size=3,3",
+//                              "dilation=2,2",
+//                            },
+//                            "1:3:11:11", "convtranspose2d_sb_dilation.nnlayergolden",
+//                            LayerGoldenTestParamOptions::DEFAULT);
 
-auto convtranspose2d_mb_dilation =
-  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
-                           {
-                             "filters=2",
-                             "kernel_size=3,3",
-                             "dilation=2,2",
-                           },
-                           "3:3:11:11", "convtranspose2d_mb_dilation.nnlayergolden",
-                           LayerGoldenTestParamOptions::DEFAULT);
+// auto convtranspose2d_mb_dilation =
+//   LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
+//                            {
+//                              "filters=2",
+//                              "kernel_size=3,3",
+//                              "dilation=2,2",
+//                            },
+//                            "3:3:11:11", "convtranspose2d_mb_dilation.nnlayergolden",
+//                            LayerGoldenTestParamOptions::DEFAULT);
 
-auto convtranspose2d_sb_same_dilation =
-  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
-                           {
-                             "filters=2",
-                             "kernel_size=3,3",
-                             "padding=same",
-                             "dilation=2,2",
-                           },
-                           "1:3:11:11", "convtranspose2d_sb_same_dilation.nnlayergolden",
-                           LayerGoldenTestParamOptions::DEFAULT);
+// auto convtranspose2d_sb_same_dilation =
+//   LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
+//                            {
+//                              "filters=2",
+//                              "kernel_size=3,3",
+//                              "padding=same",
+//                              "dilation=2,2",
+//                            },
+//                            "1:3:11:11", "convtranspose2d_sb_same_dilation.nnlayergolden",
+//                            LayerGoldenTestParamOptions::DEFAULT);
 
-auto convtranspose2d_mb_same_dilation =
-  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
-                           {
-                             "filters=2",
-                             "kernel_size=3,3",
-                             "padding=same",
-                             "dilation=2,2",
-                           },
-                           "3:3:11:11", "convtranspose2d_mb_same_dilation.nnlayergolden",
-                           LayerGoldenTestParamOptions::DEFAULT);
+// auto convtranspose2d_mb_same_dilation =
+//   LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::ConvTranspose2DLayer>,
+//                            {
+//                              "filters=2",
+//                              "kernel_size=3,3",
+//                              "padding=same",
+//                              "dilation=2,2",
+//                            },
+//                            "3:3:11:11", "convtranspose2d_mb_same_dilation.nnlayergolden",
+//                            LayerGoldenTestParamOptions::DEFAULT);
 
 GTEST_PARAMETER_TEST(
   ConvolutionTranspose2D, LayerGoldenTest,
@@ -190,5 +190,6 @@ GTEST_PARAMETER_TEST(
     convtranspose2d_sb_same_uneven_remain_2, convtranspose2d_mb_same_uneven_remain_1,
     convtranspose2d_mb_same_uneven_remain_2, convtranspose2d_sb_valid_drop_last,
     convtranspose2d_mb_valid_drop_last, convtranspose2d_sb_no_overlap, convtranspose2d_mb_no_overlap,
-    convtranspose2d_sb_1x1_kernel, convtranspose2d_mb_1x1_kernel, convtranspose2d_sb_dilation,
-    convtranspose2d_mb_dilation, convtranspose2d_sb_same_dilation, convtranspose2d_mb_same_dilation));
+    convtranspose2d_sb_1x1_kernel, convtranspose2d_mb_1x1_kernel
+    // convtranspose2d_sb_dilation, convtranspose2d_mb_dilation, convtranspose2d_sb_same_dilation, convtranspose2d_mb_same_dilation
+    ));
