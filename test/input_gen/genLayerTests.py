@@ -130,6 +130,40 @@ if __name__ == "__main__":
     record_single(conv, (1, 3, 11, 11), "conv2d_sb_same_dilation")
     record_single(conv, (3, 3, 11, 11), "conv2d_mb_same_dilation")
 
+    # modified code
+    conv_transpose = K.layers.Conv2DTranspose(3, 2)
+    record_single(conv_transpose, (1, 1, 4, 4), "convtranspose2d_sb_minimum")
+    record_single(conv_transpose, (3, 1, 4, 4), "convtranspose2d_mb_minimum")
+
+    conv_transpose = K.layers.Conv2DTranspose(2, 3, padding="same")
+    record_single(conv_transpose, (1, 1, 4, 4), "convtranspose2d_sb_same_remain")
+    record_single(conv_transpose, (3, 1, 4, 4), "convtranspose2d_mb_same_remain", input_type='float')
+
+    conv_transpose = K.layers.Conv2DTranspose(2, 3, strides=2, padding="same")
+    record_single(conv_transpose, (1, 3, 4, 4), "convtranspose2d_sb_same_uneven_remain")
+    record_single(conv_transpose, (3, 3, 4, 4), "convtranspose2d_mb_same_uneven_remain")
+
+    conv_transpose = K.layers.Conv2DTranspose(2, 3, strides=2, padding="valid")
+    record_single(conv_transpose, (1, 3, 7, 7), "convtranspose2d_sb_valid_drop_last")
+    record_single(conv_transpose, (3, 3, 7, 7), "convtranspose2d_mb_valid_drop_last")
+
+    conv_transpose = K.layers.Conv2DTranspose(3, 2, strides=3)
+    record_single(conv_transpose, (1, 2, 5, 5), "convtranspose2d_sb_no_overlap")
+    record_single(conv_transpose, (3, 2, 5, 5), "convtranspose2d_mb_no_overlap")
+
+    conv_transpose = K.layers.Conv2DTranspose(3, 1, strides=2)
+    record_single(conv_transpose, (1, 2, 5, 5), "convtranspose2d_sb_1x1_kernel")
+    record_single(conv_transpose, (3, 2, 5, 5), "convtranspose2d_mb_1x1_kernel")
+
+    # conv_transpose = K.layers.Conv2DTranspose(2, 3, dilation_rate=(2, 2))
+    # record_single(conv_transpose, (1, 3, 11, 11), "convtranspose2d_sb_dilation")
+    # record_single(conv_transpose, (3, 3, 11, 11), "convtranspose2d_mb_dilation")
+
+    # conv_transpose = K.layers.Conv2DTranspose(2, 3, padding="same", dilation_rate=(2, 2))
+    # record_single(conv_transpose, (1, 3, 11, 11), "convtranspose2d_sb_same_dilation")
+    # record_single(conv_transpose, (3, 3, 11, 11), "convtranspose2d_mb_same_dilation")
+    # ~modified code
+
     # use float data to generate input here
     attention = K.layers.Attention()
     record_single(attention, [(1, 5, 7), (1, 3, 7)],
