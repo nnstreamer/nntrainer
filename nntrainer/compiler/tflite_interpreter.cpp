@@ -406,7 +406,7 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
           tflite::BuiltinOperator::BuiltinOperator_MUL &&
         nodes.at(node_count + 2).get()->getOpType() ==
           tflite::BuiltinOperator::BuiltinOperator_RELU) {
-      // Fuse Conv2D + Mul + ReLU to Conv2D
+      // Fuse Conv2D + Mul(Batch Norm) + ReLU to Conv2D
 
       auto props = tf_node->getProps();
       auto tf_padding = tflite::Padding_SAME;
@@ -462,7 +462,6 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
         conv_new_weights.push_back(&conv_weight);
         conv_new_weights.push_back(&conv_bias);
         nodes.at(node_count - 1).get()->setWeights(conv_new_weights);
-
         // set mul node to be removed (mul mean batch normalization)
         n->setToBeRemoved(true);
       }
@@ -706,30 +705,28 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
   unsigned int node_count = 0;
 
   for (auto &node : nodes) {
-
     if (set_input) { // if front node is new added node set input output
       node->setArg(0, realized_nodes.back().get());
       realized_nodes.back()->setOutputs(node->getInputs());
       set_input = false;
     }
 
-    if (node->isToBeRemoved() == true) { // Remove node
+    if (node->isToBeRemoved() == true) {
+      // Remove node, Assume that Input Node is not removed
       realized_nodes.back().get()->setOutputs(
-        nodes.at(node_count + 1)->getInputs());
+        nodes.at(node_count)->getOutputs());
       nodes.at(node_count + 1)->setArg(0, realized_nodes.back().get());
-      nodes.at(node_count + 1)
-        ->setInputs(realized_nodes.back().get()->getOutputs());
+      nodes.at(node_count + 1)->setInputs(nodes.at(node_count)->getInputs());
     } else {
       realized_nodes.push_back(std::move(node));
 
       if (realized_nodes.back().get()->getOpType() ==
           tflite::BuiltinOperator_MUL) { // Fused MUL ADD (Non Trainable)
-
-        // remove weights (In .tflite this mean INPUTS)
+        /**
+          y = x * (gamma / sqrt(variance + epsilon)) +
+          (beta - mean * gamma / sqrt(variance + epsilon))
+        */
         auto removed_weights = realized_nodes.back().get()->getWeights();
-        // y = x
-        // * (gamma / sqrt(variance + epsilon))
-        // + (beta - mean * gamma / sqrt(variance + epsilon) )
         auto mul_mean = removed_weights.at(0)->clone();
         auto mul_variance = removed_weights.at(1)->clone();
         auto mul_gamma = removed_weights.at(2)->clone();
@@ -752,14 +749,10 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
 
         removed_weights.clear();
         removed_weights.push_back(&new_mul_weight);
-        realized_nodes.back().get()->setWeights(removed_weights);
+        realized_nodes.back().get()->replaceWeights(removed_weights);
+        realized_nodes.back().get()->setWeights(removed_weights, true);
 
-        auto removed_weights2 = realized_nodes.back().get()->getWeights();
-        removed_weights2.pop_back();
-        removed_weights2.pop_back();
-        removed_weights2.pop_back();
-        realized_nodes.back().get()->replaceWeights(removed_weights2);
-
+        // Insert Add layer into Graph
         TfOpNode tf_node;
         tf_node.setInputs(realized_nodes.back()->getOutputs());
         tf_node.setOpType(tflite::BuiltinOperator_ADD);
@@ -768,18 +761,15 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
             .Union();
 
         auto add_weights = realized_nodes.back().get()->getWeights();
-        add_weights.clear();
-        add_weights.push_back(ptr_add_weight);
         tf_node.replaceWeights(add_weights);
 
         auto new_weight_add = mul_beta.clone();
         auto new_variable = tf_node.getWeights();
         new_variable.clear();
         new_variable.push_back(&new_weight_add);
-        tf_node.setWeights(new_variable);
-
         tf_node.setBuiltinOptions(tflite::BuiltinOptions_AddOptions, options);
-        tf_node.finalize();
+
+        tf_node.setWeights(new_variable);
 
         nodes.at(node_count + 1)
           .get()
@@ -788,7 +778,6 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
         auto mul_node = realized_nodes.back().get();
         tf_node.arity(1);
         tf_node.setArg(0, mul_node);
-        //
 
         std::unique_ptr<TfOpNode> ptr = std::make_unique<TfOpNode>(tf_node);
         realized_nodes.push_back(std::move(ptr));

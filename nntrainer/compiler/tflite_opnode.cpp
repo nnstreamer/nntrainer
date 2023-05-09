@@ -16,7 +16,6 @@
 #include <layer_context.h>
 #include <layer_node.h>
 #include <memory.h>
-
 namespace nntrainer {
 
 TfOpNode::TfOpNode() :
@@ -122,19 +121,44 @@ void TfOpNode::setWeightTransformFn(TransformFn fn) { weight_transform = fn; }
 
 void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
 
-void TfOpNode::setWeights(Variables weights_) {
+void TfOpNode::setWeights(Variables weights_, bool weight_transpose) {
   unsigned int cnt = 0;
+
   for (auto &w : weights_) {
     const unsigned int unit = w->batch();
     const unsigned int channel = w->channel();
     const unsigned int height = w->height();
     const unsigned int width = w->width();
-
     auto weight_data = weights.at(cnt)->getData();
+
     auto *ptr = const_cast<float *>(weight_data);
     memcpy(&ptr[0], &w->getData()[0],
            sizeof(float) * (unit * channel * height * width));
     cnt++;
+  }
+
+  auto weight_transform_fn = [](std::vector<const Tensor *> &weights) {
+    std::vector<Tensor> new_weights;
+    new_weights.reserve(weights.size());
+    new_weights.push_back(weights[0]->transpose("2:1:0"));
+    return new_weights;
+  };
+
+  auto transform_if = [this](TransformFn &fn, Variables &v) {
+    if (fn) {
+      auto result = fn(v);
+      v.resize(result.size());
+      node_owned_variable.insert(node_owned_variable.end(), result.begin(),
+                                 result.end());
+      std::transform(node_owned_variable.end() - result.size(),
+                     node_owned_variable.end(), v.begin(),
+                     [](Tensor &t) { return &t; });
+    }
+  };
+
+  if (weight_transpose == true) {
+    setWeightTransformFn(weight_transform_fn);
+    transform_if(weight_transform, weights);
   }
 }
 
