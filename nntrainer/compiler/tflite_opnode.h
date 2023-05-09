@@ -125,7 +125,7 @@ public:
    *
    * @param weights_
    */
-  void setWeights(Variables weights_);
+  void setWeights(Variables weights_, bool weight_transpose = false);
   /**
    * @brief Replace the Weights object
    *

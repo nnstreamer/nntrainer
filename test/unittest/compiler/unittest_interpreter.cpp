@@ -741,3 +741,113 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
               << strerror_r(errno, error_buf, error_buflen);
   }
 }
+
+/**
+ * @brief Test for Tensorflow Lite Export
+ * this test's target is Conv2D + BatchNormalization + ReLU
+ * -> Fused Conv2D with BatchNormalization
+ */
+TEST(nntrainerInterpreterTflite, tflite_export_test) {
+
+  nntrainer::TfliteInterpreter interpreter;
+  nntrainer::FlattenRealizer fr;
+
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=3:4:4"});
+
+  auto conv0 = LayerRepresentation(
+    "conv2d",
+    {"name=conv0", "input_layers=in0", "filters=2", "kernel_size=2,2",
+     "padding=same", "weight_initializer=ones", "bias_initializer=ones"});
+
+  auto bn0 = LayerRepresentation(
+    "batch_normalization",
+    {"name=bn0", "input_layers=conv0", "beta_initializer=zeros",
+     "gamma_initializer=ones", "moving_mean_initializer=zeros",
+     "moving_variance_initializer=ones"});
+
+  auto act0 = LayerRepresentation(
+    "activation", {"name=act0", "input_layers=bn0", "activation=relu"});
+
+  auto flat =
+    LayerRepresentation("flatten", {"name=flat", "input_layers=act0"});
+
+  auto g = fr.realize(makeGraph({input0, conv0, bn0, act0, flat}));
+
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+  interpreter.serialize(g, "tfexport_test.tflite");
+  ng.deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("tfexport_test.tflite");
+
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 4, 4}));
+
+  int count = 0;
+
+  for (int c = 0; c < 3; c++) {
+    for (int h = 0; h < 4; h++) {
+      for (int w = 0; w < 4; w++) {
+        in.setValue(0, c, h, w, count);
+        count++;
+      }
+    }
+  }
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 32}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 32}));
+  double ans_array[32] = {
+    222.88858,  222.88858,  234.88261, 234.88261, 246.8766,  246.8766,
+    126.936554, 126.936554, 270.8646,  270.8646,  282.8586,  282.8586,
+    294.85266,  294.85266,  150.92456, 150.92456, 318.8406,  318.8406,
+    330.83463,  330.83463,  342.82864, 342.82864, 174.91257, 174.91257,
+    171.91408,  171.91408,  177.91107, 177.91107, 183.90807, 183.90807,
+    93.95303,   93.95303};
+
+  for (int i = 0; i < 32; i++) {
+    ans.setValue(0, 0, 0, i, ans_array[i]);
+  }
+
+  EXPECT_EQ(out, ans);
+
+  if (remove("tfexport_test.tflite")) {
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    std::cerr << "remove ini "
+              << "tfexport_test.tflite"
+              << "failed, reason: "
+              << strerror_r(errno, error_buf, error_buflen);
+  }
+}
