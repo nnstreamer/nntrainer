@@ -169,8 +169,12 @@ public:
    * @param[in] values hyper parameters
    * @param[in] stop_cb callback function to decide stop training or not
    * ~~~~~
-   * @a user_data user_data to be used in stop_cb
+   * @a stop_user_data user_data to be used in stop_cb
    * @a bool true if stop the training
+   * ~~~~~
+   * @param[in] epoch_complete_cb Called the end of an epoch
+   * ~~~~~
+   * @a epoch_user_data user_data to be used in epoch_complete_cb
    * ~~~~~
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -179,8 +183,11 @@ public:
    */
   virtual int train(const std::vector<std::string> &values = {},
                     std::function<bool(void *)> stop_cb =
-                      [](void *user_data) { return false; },
-                    void *user_data = nullptr) = 0;
+                      [](void *stop_user_data) { return false; },
+                    void *stop_user_data = nullptr,
+                    std::function<void(void *)> epoch_complete_cb =
+                      [](void *epoch_user_data) { return false; },
+                    void *epoch_user_data = nullptr) = 0;
 
   /**
    * @brief     Run Model train with callback function by user
