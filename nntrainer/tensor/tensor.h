@@ -604,6 +604,25 @@ public:
   Tensor &pow(float exponent, Tensor &out) const;
 
   /**
+   * @brief  gaussian error function
+   * @return int ML_ERROR_NONE if successful
+   */
+  int erf_i();
+
+  /**
+   * @brief    gaussian error function
+   * @retval Calculated Tensor
+   */
+  Tensor erf() const;
+
+  /**
+   * @brief    gaussian error function
+   * @param[out] out out to store the result
+   * @retval Calculated Tensor
+   */
+  Tensor &erf(Tensor &out) const;
+
+  /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and second-last
    * dimension of passed tensor m.
