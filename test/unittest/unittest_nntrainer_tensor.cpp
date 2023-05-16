@@ -1672,6 +1672,24 @@ TEST(nntrainer_Tensor, pow_01_p) {
   EXPECT_EQ(actual, expected);
 }
 
+TEST(nntrainer_Tensor, erf_01_p) {
+  int batch = 1;
+  int channel = 1;
+  int height = 2;
+  int width = 2;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, k + l * 0.5 + 0.5);
+  nntrainer::Tensor actual = input.erf();
+  nntrainer::Tensor expected(
+    std::vector<std::vector<std::vector<std::vector<float>>>>(
+      {{{{0.5205, 0.8427}, {0.966105, 0.995322}}}}));
+
+  EXPECT_EQ(actual, expected);
+}
+
 TEST(nntrainer_Tensor, subtract_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;

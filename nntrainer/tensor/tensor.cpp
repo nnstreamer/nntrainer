@@ -684,6 +684,21 @@ Tensor &Tensor::pow(float exponent, Tensor &out) const {
   return apply(f, out);
 }
 
+int Tensor::erf_i() {
+  erf(*this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::erf() const {
+  Tensor t;
+  return erf(t);
+}
+
+Tensor &Tensor::erf(Tensor &out) const {
+  auto f = [](float in) { return std::erf(in); };
+  return apply(f, out);
+}
+
 Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
   TensorDim dim_ = dim;
   dim_.batch(size);
