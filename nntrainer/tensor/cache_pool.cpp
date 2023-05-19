@@ -154,7 +154,7 @@ void CachePool::invalidate(unsigned int id) {
 unsigned int CachePool::requestMemory(size_t bytes, unsigned int start_time,
                                       unsigned int end_time,
                                       std::vector<unsigned int> exec_order,
-                                      TensorLifespan lifespan) {
+                                      TensorLifespan lifespan, bool is_wgrad) {
   auto id = MemoryPool::requestMemory(bytes, start_time, end_time, exec_order,
                                       lifespan);
 
