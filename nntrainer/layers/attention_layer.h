@@ -104,7 +104,7 @@ protected:
    */
   void finalizeCommon(InitLayerContext &context);
 
-  std::tuple<props::ScaledDotProduct> attention_props;
+  std::tuple<props::ScaledDotProduct, props::CausalMask> attention_props;
 
 private:
   ActiFunc sm;                        /** softmax activation operation */

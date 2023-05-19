@@ -22,7 +22,7 @@
 namespace nntrainer {
 
 AttentionLayer::AttentionLayer() :
-  attention_props(props::ScaledDotProduct()),
+  attention_props(props::ScaledDotProduct(), props::CausalMask()),
   sm(ActivationType::ACT_SOFTMAX) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
@@ -85,6 +85,24 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
   if (std::get<props::ScaledDotProduct>(attention_props).get()) {
     weights.multiply_i(1 / sqrt((float)key.getDim().width()));
   }
+
+  if (std::get<props::CausalMask>(attention_props).get()) {
+    unsigned int mask_size = weights.getDim().width();
+    unsigned int mask_dim_height = mask_size;
+    unsigned int mask_dim_width = mask_size;
+
+    Tensor causal_mask(TensorDim{mask_size, mask_size});
+
+    causal_mask.setZero();
+    for (unsigned int i = 0; i < mask_dim_height; ++i) {
+      for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
+        causal_mask.setValue(0, 0, i, j, -1e10);
+      }
+    }
+
+    weights.add_i(causal_mask);
+  }
+
   sm.run_fn(weights, weights);       /** softmax */
   weights.dotBatched(value, output); /** dot 2 */
 }
