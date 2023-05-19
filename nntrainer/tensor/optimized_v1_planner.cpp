@@ -160,6 +160,7 @@ size_t OptimizedV1Planner::planLayout(
   /** iterate over the sorted requests and start allocation of the requests */
   memory_offset.resize(memory_size.size());
   size_t memory_req = 0;
+
   for (auto &req : requests) {
     /** remove expired memories and update offset */
     while (!sorted_req.empty() && sorted_req.back()->end <= req.start)

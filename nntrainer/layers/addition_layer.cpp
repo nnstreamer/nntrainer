@@ -14,6 +14,7 @@
 #include <addition_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <util_func.h>
 
 #include <layer_context.h>
@@ -38,32 +39,12 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
       hidden_.add_i(input_);
     }
   }
-}
 
-void AdditionLayer::incremental_forwarding(RunLayerContext &context,
-                                           unsigned int from, unsigned int to,
-                                           bool training) {
-  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  TensorDim hidden_dim = hidden_.getDim();
-  TensorDim hidden_step_dim = hidden_dim;
-  hidden_step_dim.height(to - from);
-
-  Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
-
-  /** @todo check possibility for in-place of addition layer */
-  for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
-    const Tensor &input_ = context.getInput(idx);
-    TensorDim input_dim = input_.getDim();
-
-    TensorDim input_step_dim = input_dim;
-    input_step_dim.height(to - from);
-
-    Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
-    if (!idx) {
-      hidden_step.copy(input_step);
-    } else {
-      hidden_step.add_i(input_step);
-    }
+  bool print = std::get<props::Print>(add_props).get();
+  if (print) {
+    // std::cerr << input_ << "\n";
+    // std::cerr << weight << "\n";
+    // std::cerr << hidden_ << "\n";
   }
 }
 
@@ -81,7 +62,8 @@ void AdditionLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void AdditionLayer::setProperty(const std::vector<std::string> &values) {
-  if (!values.empty()) {
+  auto remain_props = loadProperties(values, add_props);
+  if (!remain_props.empty()) {
     std::string msg = "[AdditionLayer] Unknown Layer Properties count " +
                       std::to_string(values.size());
     throw exception::not_supported(msg);

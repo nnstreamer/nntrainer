@@ -30,6 +30,8 @@
 #include <node_exporter.h>
 #include <util_func.h>
 
+#include <iostream>
+
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -148,36 +150,13 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_.add_i(bias);
   }
-}
 
-void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
-                                                 unsigned int from,
-                                                 unsigned int to,
-                                                 bool training) {
-  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
-
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-
-  TensorDim input_dim = input_.getDim();
-  TensorDim hidden_dim = hidden_.getDim();
-
-  TensorDim input_step_dim = input_dim;
-  TensorDim hidden_step_dim = hidden_dim;
-  input_step_dim.height(to - from);
-  hidden_step_dim.height(to - from);
-
-  // @todo: set reset stride as false. This implementation only works when batch
-  // size is 1
-  Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
-  Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
-
-  input_step.dot(weight, hidden_step, false, false);
-
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
-    hidden_step.add_i(bias);
+  bool print = std::get<props::Print>(*layer_impl_props).get();
+  if (print) {
+    // std::cerr << input_ << "\n";
+    // std::cerr << weight << "\n";
+    // std::cerr << weight.bytes() << "\n";
+    // std::cerr << hidden_ << "\n";
   }
 }
 

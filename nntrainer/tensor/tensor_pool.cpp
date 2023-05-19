@@ -114,6 +114,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
  */
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
+  // std::cout << name << " start Tensor Pool finalize"<< std::endl;
   mem_pool->clear();
   unsigned int bytes_requested = 0;
   /** if execution order is PERSIST_END_ORDER, then we think it has another
@@ -121,7 +122,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
    *  persist_end_order is for checking if the end order is updated */
   bool persist_end_order = false;
   unsigned int old_end_order = end_order;
+
   for (auto &spec : pool) {
+
     auto details = std::get_if<SourceDetails>(&spec.details);
     if (!details || details->lifespan == TensorLifespan::UNMANAGED ||
         details->exec_order.empty()) {
@@ -132,17 +135,16 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     /**
      * 1. create the validity ranges for the all the requested tensors.
      * validity_start/validity_end should be a value in the exec order of the
-     * given tensor or a value out of range so as to not request memory for this
-     * tensor
+     * given tensor or a value out of range so as to not request memory for
+     * this tensor
      */
     unsigned int validity_start = end_order + 1;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
       if (details->exec_order[idx] >= start_order)
         validity_start = std::min(validity_start, details->exec_order[idx]);
-      /** This is to enforce not to reach if the execution order is greater than
-       *  backwarding end order.
-       *  e.g., for the input layer, the backwarding is not reached but the
-       * exeuction order is assigned.
+      /** This is to enforce not to reach if the execution order is greater
+       * than backwarding end order. e.g., for the input layer, the
+       * backwarding is not reached but the exeuction order is assigned.
        * */
       if (details->exec_order[idx] > old_end_order &&
           details->exec_order[idx] != PERSIST_END_ORDER) {
@@ -178,8 +180,9 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     }
 
     /** 2. for each tensor request if it is in the provided range */
-    if (validity_end < start_order || validity_start > end_order)
+    if (validity_end < start_order || validity_start > end_order) {
       continue;
+    }
 
     /**
      * 3. requestMemory for all the tensors and set their tokens
@@ -221,6 +224,7 @@ void TensorPool::allocate() {
     return;
   mem_pool->allocate();
 
+  // std::cout << "syncDependents start" << std::endl;
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
     auto details = std::get_if<SourceDetails>(&spec.details);

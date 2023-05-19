@@ -1158,6 +1158,7 @@ public:
   using prop_tag = dimension_prop_tag; /**< property type */
 };
 
+
 /**
  * @brief scaled dot product property, used to check
  * whether attention layer is a kind of scaled dot product attention
@@ -1186,6 +1187,18 @@ public:
    */
   CausalMask(bool value = false);
   static constexpr const char *key = "causal_mask";
+  using prop_tag = bool_prop_tag;
+};
+
+
+class Print : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Print object
+   *
+   */
+  Print(bool value = false) { set(value); }
+  static constexpr const char *key = "print";
   using prop_tag = bool_prop_tag;
 };
 

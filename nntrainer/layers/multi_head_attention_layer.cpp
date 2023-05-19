@@ -22,11 +22,75 @@
 
 namespace nntrainer {
 
+template <typename T = float>
+
+std::vector<std::vector<std::complex<T>>> *
+precompute_freqs_cis(int dim, int seq_len, float theta = 10000.0) {
+  std::vector<float> freqs(dim / 2);
+  for (int i = 0; i < dim / 2; ++i) {
+    freqs[i] = 1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim)));
+  }
+
+  auto cis = new std::vector<std::vector<std::complex<T>>>();
+  cis->assign(seq_len, std::vector<std::complex<T>>(dim / 2, 0));
+
+  for (int i = 0; i < seq_len; ++i) {
+    for (int j = 0; j < dim / 2; ++j) {
+      float angle = i * freqs[j];
+      (*cis)[i][j] = static_cast<std::complex<T>>(std::polar(1.0f, angle));
+    }
+  }
+
+  return cis;
+}
+
+template <typename T = float>
+std::tuple<T, T>
+apply_rotary_emb(T real, T imag,
+                 std::vector<std::vector<std::complex<float>>> *freqs, int i,
+                 int j) {
+
+  std::complex<float> input_complex(static_cast<float>(real),
+                                    static_cast<float>(imag));
+  std::complex<float> output_complex = input_complex * (*freqs)[i][(int)j / 2];
+  return std::make_tuple(static_cast<T>(output_complex.real()),
+                         static_cast<T>(output_complex.imag()));
+}
+
+template <typename T = float>
+Tensor apply_rotary_emb_tensor(
+  Tensor in, unsigned int dim, unsigned int from,
+  std::vector<std::vector<std::complex<float>>> *freqs_cis) {
+  Tensor out(in.getDim());
+  for (int b = 0; b < (int)in.batch(); b++) {
+    for (int c = 0; c < (int)in.channel(); c++) {
+      for (int h = 0; h < (int)in.height(); h++) {
+        for (int w = 0; w < (int)in.width(); w = w + 2) {
+#ifdef ENABLE_FP16
+          _FP16 real = in.getValue<_FP16>(b, c, h, w);
+          _FP16 imag = in.getValue<_FP16>(b, c, h, w + 1);
+          std::tie(real, imag) =
+            apply_rotary_emb<_FP16>(real, imag, freqs_cis, from + h, w % dim);
+#else
+          float real = in.getValue(b, c, h, w);
+          float imag = in.getValue(b, c, h, w + 1);
+          std::tie(real, imag) =
+            apply_rotary_emb<float>(real, imag, freqs_cis, from + h, w % dim);
+#endif
+          out.setValue(b, c, h, w, real);
+          out.setValue(b, c, h, w + 1, imag);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
   multi_head_attention_props(
     props::NumHeads(), props::ProjectedKeyDim(), props::ProjectedValueDim(),
     props::OutputShape(), props::DropOutRate(), props::ReturnAttentionWeight(),
-    props::AverageAttentionWeight()),
+    props::AverageAttentionWeight(), props::MaxTimestep()),
   sm(ActivationType::ACT_SOFTMAX),
   epsilon(1e-3) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
@@ -91,9 +155,9 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
   const unsigned int query_width = query_dim.width();
-  const unsigned int key_height = key_dim.height();
+  // const unsigned int key_height = key_dim.height();
   const unsigned int key_width = key_dim.width();
-  const unsigned int value_height = value_dim.height();
+  // const unsigned int value_height = value_dim.height();
   const unsigned int value_width = value_dim.width();
 
   const bool disable_bias =
@@ -154,6 +218,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   const props::ReturnAttentionWeightInfo::Enum return_attention_weight =
     std::get<props::ReturnAttentionWeight>(multi_head_attention_props).get();
+
+  const unsigned int max_timestep =
+    std::get<props::MaxTimestep>(multi_head_attention_props).get();
+
+  // @todo: fix me
+  const unsigned int key_height = max_timestep;
+  const unsigned int value_height = max_timestep;
 
   const unsigned int projected_query_dim_prop = projected_key_dim_prop;
 
@@ -278,12 +349,18 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     projected_value_dim, "projected_value", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
-  weight_idx[AttentionParams::cache_key] = context.requestTensor(
-    projected_key_dim, "cache_key", Tensor::Initializer::NONE, true,
-    TensorLifespan::MAX_LIFESPAN);
+  TensorDim cache_key_dim(
+    {batch_size, 1, max_timestep, num_heads * projected_key_dim_prop},
+    activation_type);
+  weight_idx[AttentionParams::cache_key] =
+    context.requestTensor(cache_key_dim, "cache_key", Tensor::Initializer::NONE,
+                          true, TensorLifespan::MAX_LIFESPAN);
 
+  TensorDim cache_value_dim(
+    {batch_size, 1, max_timestep, num_heads * projected_value_dim_prop},
+    activation_type);
   weight_idx[AttentionParams::cache_value] = context.requestTensor(
-    projected_value_dim, "cache_value", Tensor::Initializer::NONE, true,
+    cache_value_dim, "cache_value", Tensor::Initializer::NONE, true,
     TensorLifespan::MAX_LIFESPAN);
 
   if (provide_attention_mask) {
@@ -328,6 +405,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   } else {
     context.setOutputDimensions({output_dim});
   }
+
+  /**
+   * @todo
+   * check query width and key width
+   *
+   */
+  freqs_cis = precompute_freqs_cis<float>(projected_key_dim_prop, key_height);
 }
 
 void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
@@ -424,6 +508,19 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
     projected_value.add_i(value_fc_bias);
   }
 
+#ifdef ENABLE_FP16
+  projected_query = apply_rotary_emb_tensor<_FP16>(
+    projected_query, projected_key_dim_prop, 0, freqs_cis);
+  projected_key = apply_rotary_emb_tensor<_FP16>(
+    projected_key, projected_key_dim_prop, 0, freqs_cis);
+#else
+  projected_query = apply_rotary_emb_tensor<float>(
+    projected_query, projected_key_dim_prop, 0, freqs_cis);
+  projected_key = apply_rotary_emb_tensor<float>(
+    projected_key, projected_key_dim_prop, 0, freqs_cis);
+#endif
+  // std::cerr << projected_query << "\n";
+
   projected_query.reshape(
     TensorDim({batch_size, query_height, num_heads, projected_query_dim_prop}));
   projected_key.reshape(
@@ -456,6 +553,29 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   /** scaled dot product attention */
   projected_query.dotBatched(projected_key, attention_weight, false, true);
   attention_weight.multiply_i(1 / sqrt((float)projected_query_dim_prop));
+
+  unsigned int mask_size = attention_weight.getDim().width();
+  unsigned int mask_dim_height = mask_size;
+  unsigned int mask_dim_width = mask_size;
+
+  Tensor causal_mask(
+    TensorDim{1, 1, mask_size, mask_size, attention_weight.getTensorType()});
+
+  causal_mask.setZero();
+
+#ifdef ENABLE_FP16
+#define _MASK_NUM -1e4
+#else
+#define _MASK_NUM -1e10
+#endif
+
+  for (unsigned int i = 0; i < mask_dim_height; ++i) {
+    for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
+      causal_mask.setValue(0, 0, i, j, _MASK_NUM);
+    }
+  }
+
+  attention_weight.add_i(causal_mask);
 
   if (provide_attention_mask) {
     // Tensor &attention_mask =
@@ -702,6 +822,20 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
     cache_value_step.add_i(value_fc_bias);
   }
 
+#ifdef ENABLE_FP16
+  projected_query_step = apply_rotary_emb_tensor<_FP16>(
+    projected_query_step, projected_key_dim_prop, from, freqs_cis);
+  nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<_FP16>(
+    cache_key_step, projected_key_dim_prop, from, freqs_cis);
+  cache_key_step.copyData(cache_key_step_temp);
+#else
+  projected_query_step = apply_rotary_emb_tensor<float>(
+    projected_query_step, projected_key_dim_prop, from, freqs_cis);
+  nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<float>(
+    cache_key_step, projected_key_dim_prop, from, freqs_cis);
+  cache_key_step.copyData(cache_key_step_temp);
+#endif
+
   projected_query_step.reshape(
     TensorDim({batch_size, 1, num_heads, projected_query_dim_prop}));
   cached_key.reshape(
@@ -770,6 +904,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   if (!disable_bias) {
     output.add_i(fc_bias);
   }
+  // output.print(std::cout);
 }
 
 void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {

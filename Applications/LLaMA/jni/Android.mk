@@ -39,22 +39,65 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-CIFARDIR = ../../utils/datagen/cifar
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
+LOCAL_CXXFLAGS += -std=c++17 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE := rms_norm_layer
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+
+LOCAL_SRC_FILES := rms_norm.cpp
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
 
 LOCAL_ARM_NEON := true
-LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
+LOCAL_CXXFLAGS += -std=c++17 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE := swiglu_layer
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+
+LOCAL_SRC_FILES := swiglu.cpp
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+include $(BUILD_SHARED_LIBRARY)
+
+
+
+include $(CLEAR_VARS)
+
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
 LOCAL_CXXFLAGS += -std=c++17 -frtti
-LOCAL_CFLAGS += -pthread -fexceptions -fopenmp
-LOCAL_LDFLAGS += -fexceptions
+LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_llama
-LOCAL_LDLIBS := -llog -landroid -fopenmp
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
 
-LOCAL_SRC_FILES := main.cpp rms_norm.cpp rotary_embedding.cpp swiglu.cpp transpose_layer.cpp $(CIFARDIR)/cifar_dataloader.cpp
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SRC_FILES := main.cpp 
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CIFARDIR)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer rms_norm_layer swiglu_layer
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)

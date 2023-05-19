@@ -30,6 +30,7 @@
 #include <grucell.h>
 #include <identity_layer.h>
 #include <input_layer.h>
+#include <iostream>
 #include <layer_node.h>
 #include <layer_normalization_layer.h>
 #include <lstmcell.h>
@@ -1204,6 +1205,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
       }
     }
   }
+
   /**** identify model input / output to be set externally later ****/
   auto identify_as_model_input = [this](LayerNode *node) {
     auto num_input = node->getNumInputs();
@@ -1272,7 +1274,6 @@ int NetworkGraph::initialize(ExecutionMode mode,
                             identify_as_model_input);
   identify_external_tensors(model_label_names, is_label_node,
                             identify_as_model_label);
-
   /** mark the nodes which will be backwarded during the graph operation */
   try {
     markNodesForBackwarding();

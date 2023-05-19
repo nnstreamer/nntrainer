@@ -80,14 +80,6 @@ public:
   void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
-   * int from, unsigned int to, bool training)
-   */
-  void incremental_forwarding(nntrainer::RunLayerContext &context,
-                              unsigned int from, unsigned int to,
-                              bool training) override;
-
-  /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
   void calcDerivative(nntrainer::RunLayerContext &context) override;
@@ -111,13 +103,18 @@ public:
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override{};
+  void setProperty(const std::vector<std::string> &values) override {
+    auto remain_props = loadProperties(values, rms_props);
+    NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+      << "[rms_norm] Unknown Layer Properties count " +
+           std::to_string(values.size());
+  };
 
   inline static const std::string type = "rms_norm";
 
 private:
   std::array<unsigned int, 1> wt_idx;
-  std::tuple<props::RMS_NORM_GAMMA_INIT> rms_props;
+  std::tuple<props::RMS_NORM_GAMMA_INIT, nntrainer::props::Epsilon> rms_props;
 };
 
 } // namespace custom

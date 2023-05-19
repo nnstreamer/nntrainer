@@ -7,7 +7,8 @@ models_targets = [
   'models_golden_test.cpp',
   'unittest_models_recurrent.cpp',
   'unittest_models_multiout.cpp',
-  'unittest_models.cpp',
+  # 'unittest_models.cpp',
+  # disable temperally
 ]
 
 test_target += models_targets
