@@ -1175,6 +1175,21 @@ public:
 };
 
 /**
+ * @brief causal mask property, used in attention layer
+ *
+ */
+class CausalMask : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new CausalMask object
+   *
+   */
+  CausalMask(bool value = false);
+  static constexpr const char *key = "causal_mask";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief K property, K is the size of the three projections in MoL attention
  *
  */
