@@ -39,6 +39,7 @@ class WeightDecay;
 class BiasDecay;
 class BiasInitializer;
 class DisableBias;
+class Print;
 } // namespace props
 
 /**
@@ -87,7 +88,7 @@ protected:
   std::unique_ptr<
     std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
                props::WeightInitializer, props::WeightDecay, props::BiasDecay,
-               props::BiasInitializer, props::DisableBias>>
+               props::BiasInitializer, props::DisableBias, props::Print>>
     layer_impl_props; /**< layer_impl_props */
 };
 

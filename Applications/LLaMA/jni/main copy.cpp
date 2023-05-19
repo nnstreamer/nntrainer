@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
+ * Copyright (C) 2023 Jihoon Lee <sb92.hong@samsung.com>
  *
  * @file   main.cpp
  * @date   7 August 2023
@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include <cifar_dataloader.h>
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
@@ -30,26 +31,27 @@
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
+using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
+
 // Hyper params for LLaMA
 int const DIM = 2304;
-int const NUM_LAYERS = 28;
+int const NUM_LAYERS = 1;
 int const NUM_HEADS = 18;
 
 int const MULTIPLE_OF = 256;
 
-float const NORM_EPS = 0.000001;
+int const NORM_EPS = 0.000001;
 int const NUM_VOCAB = 96000;
-int MAX_SEQ_LEN = 1024;
-int NUM_TO_GENERATE = 1;
+int MAX_SEQ_LEN = 2048;
+int NUM_TO_GENERATE = 3;
 
-constexpr unsigned int INIT_SEQ_LEN = 30;
+constexpr unsigned int INIT_SEQ_LEN = 2;
 unsigned int batch_size = 1;
 unsigned int epoch = 1;
 
 /** cache loss values post training for test */
 float training_loss = 0.0;
 float validation_loss = 0.0;
-bool swap = false;
 
 bool optimize = false;
 
@@ -178,7 +180,7 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
            std::to_string(i) + ",layer" + std::to_string(layer_id) +
            "_v_reshape_" + std::to_string(i) + ",layer" +
            std::to_string(layer_id) + "_k_rotary_" + std::to_string(i),
-         "scaled_dot_product=true", "causal_mask=true"}));
+         "scaled_dot_product=true"}));
 
       layers.push_back(createLayer(
         "reshape",
@@ -223,8 +225,6 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
     layers.push_back(createLayer(
       "multi_head_attention",
       {withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
-       withKey("num_heads", std::to_string(NUM_HEADS)),
-       withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
        withKey("disable_bias", "true"),
        withKey("input_layers", {query_name, key_name, value_name})}));
   }
@@ -247,6 +247,7 @@ std::vector<LayerHandle> createFeedForwardLayer(const int layer_id, int dim,
                 {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_1"),
                  withKey("unit", hidden_dim), withKey("disable_bias", "true"),
                  withKey("input_layers", input_name)}));
+
   layers.push_back(
     createLayer("fully_connected",
                 {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_2"),
@@ -278,8 +279,7 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
   layers.push_back(createLayer(
     "rms_norm",
     {withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
-     withKey("input_layers", input_name),
-     withKey("epsilon", std::to_string(NORM_EPS))}));
+     withKey("input_layers", input_name)}));
 
   auto att_layer = createAttentionLayer(
     layer_id, INIT_SEQ_LEN, NUM_HEADS, DIM / NUM_HEADS,
@@ -298,8 +298,7 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
     "rms_norm",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
      withKey("input_layers",
-             "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("epsilon", std::to_string(NORM_EPS))}));
+             "layer" + std::to_string(layer_id) + "_decoder_add")}));
 
   auto ffn_layer = createFeedForwardLayer(
     layer_id, DIM, 4 * DIM, "layer" + std::to_string(layer_id) + "_ffn_norm");
@@ -322,15 +321,8 @@ ModelHandle createLLaMA() {
 
   std::vector<LayerHandle> layers;
 
-  if (optimize) {
-    layers.push_back(createLayer(
-      "input",
-      {withKey("name", "input0"),
-       withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
-  } else {
-    layers.push_back(createLayer(
-      "input", {withKey("name", "input0"), withKey("input_shape", "1:1:1")}));
-  }
+  layers.push_back(createLayer(
+    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:1")}));
 
   layers.push_back(ml::train::layer::Embedding(
     {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB),
@@ -350,7 +342,6 @@ ModelHandle createLLaMA() {
 
   layers.push_back(createLayer(
     "rms_norm", {withKey("name", "output_norm"),
-                 withKey("epsilon", std::to_string(NORM_EPS)),
                  withKey("input_layers", "layer" + std::to_string(last_layer) +
                                            "_decoder_output")}));
 
@@ -366,6 +357,13 @@ ModelHandle createLLaMA() {
   return model;
 }
 
+int trainData_cb(float **input, float **label, bool *last, void *user_data) {
+  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
+
+  data->next(input, label, last);
+  return 0;
+}
+
 void createAndRun(unsigned int epochs, unsigned int batch_size) {
 
   // setup model
@@ -373,11 +371,11 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       // #ifdef ENABLE_FP16
-                      withKey("model_tensor_type", "FP16-FP16"),
+                      // withKey("model_tensor_type", "FP16-FP16"),
                       // #endif
                       withKey("save_path", "test_model.bin")});
 
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
@@ -390,10 +388,10 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
     throw std::invalid_argument("model initialization failed!");
   }
 
-  // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
-  std::string weight_path =
-    optimize ? "./llama_v2_att.bin" : "./summarization_v2_fp16.bin";
+  std::string weight_path = optimize ? "/home/hs89lee/2ndHDD/llama_v2_att.bin"
+                                     : "/home/hs89lee/2ndHDD/llama_v2.bin";
   model->load(weight_path);
 
   std::vector<float *> input;
@@ -402,29 +400,17 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   int data_size = batch_size * INIT_SEQ_LEN;
 
   float *input_sample = (float *)malloc(sizeof(float) * data_size);
-  // float init_data[INIT_SEQ_LEN] = {5058, 10832};
-  float init_data[INIT_SEQ_LEN] = {
-    0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
-    50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
 
   if (optimize) {
-    for (unsigned int i = 0; i < INIT_SEQ_LEN; ++i) {
-      input_sample[i] = init_data[i];
-    }
-
-    input.push_back(input_sample);
-
     auto output = model->inference(1, input, label);
 
-    nntrainer::Tensor output_tensor({batch_size, 1, INIT_SEQ_LEN, NUM_VOCAB},
-                                    output[0]);
-
-    for (unsigned int i = 0; i < INIT_SEQ_LEN; ++i) {
-      nntrainer::Tensor output_step = output_tensor.getSharedDataTensor(
-        {batch_size, 1, 1, NUM_VOCAB}, i * batch_size * NUM_VOCAB);
-      std::cerr << output_step << "\n";
+    for (int i = 0; i < (int)10; i++) {
+      std::cout << output[0][i] << " ";
     }
+    std::cout << "\n";
   } else {
+    float init_data[INIT_SEQ_LEN] = {5058, 10832};
+
     ((uint *)(input_sample))[0] = init_data[0];
 
     input.push_back(input_sample);
@@ -434,23 +420,25 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
         model->incremental_inference(1, input, label, INIT_SEQ_LEN, i - 1);
 
       nntrainer::Tensor output_tensor({batch_size, 1, 1, NUM_VOCAB}, output[0]);
-      std::cerr << output_tensor.argmax()[0] << "\n";
+      // std::cerr << output_tensor << "\n";
 
       if (i < INIT_SEQ_LEN) {
         ((uint *)(input_sample))[0] = init_data[i];
       } else {
         int diff = std::distance(
           output[0], std::max_element(output[0], output[0] + NUM_VOCAB));
-        // std::cerr << diff << "\n";
-        ((uint *)(input_sample))[0] = diff;
+        std::cerr << diff << "\n";
+        ((uint *)(input_sample))[0] = std::distance(
+          output[0], std::max_element(output[0], output[0] + NUM_VOCAB));
       }
     }
   }
 }
 
 int main(int argc, char *argv[]) {
-  auto &app_context = nntrainer::AppContext::Global();
+
   try {
+    auto &app_context = nntrainer::AppContext::Global();
     app_context.registerFactory(nntrainer::createLayer<custom::SwiGLULayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
@@ -459,7 +447,27 @@ int main(int argc, char *argv[]) {
   }
 
   try {
+    auto &app_context = nntrainer::AppContext::Global();
     app_context.registerFactory(nntrainer::createLayer<custom::RMSNormLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(
+      nntrainer::createLayer<custom::RotaryEmbeddingLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(nntrainer::createLayer<custom::TransposeLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;

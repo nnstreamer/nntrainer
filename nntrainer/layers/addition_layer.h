@@ -15,6 +15,7 @@
 #define __ADDITION_LAYER_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
 #include <layer_devel.h>
 
 namespace nntrainer {
@@ -28,7 +29,7 @@ public:
   /**
    * @brief     Constructor of Addition Layer
    */
-  AdditionLayer() : Layer() {}
+  AdditionLayer() : Layer(), add_props(props::Print()) {}
 
   /**
    * @brief     Destructor of Addition Layer
@@ -58,13 +59,6 @@ public:
   void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
-   * int from, unsigned int to, bool training)
-   */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
-
-  /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
   void calcDerivative(RunLayerContext &context) override;
@@ -90,6 +84,9 @@ public:
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return AdditionLayer::type; };
+
+  std::tuple<props::Print>
+    add_props; /**< fc layer properties : unit - number of output neurons */
 
   inline static const std::string type = "addition";
 };

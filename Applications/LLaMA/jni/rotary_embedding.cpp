@@ -43,13 +43,15 @@ precompute_freqs_cis(int dim, int seq_len, float theta = 10000.0) {
 }
 
 template <typename T = float>
-std::tuple<float, float>
-apply_rotary_emb(float real, float imag,
+std::tuple<T, T>
+apply_rotary_emb(T real, T imag,
                  std::vector<std::vector<std::complex<float>>> *freqs, int i,
                  int j) {
-  std::complex<float> input_complex(real, imag);
+  std::complex<float> input_complex(static_cast<float>(real),
+                                    static_cast<float>(imag));
   std::complex<float> output_complex = input_complex * (*freqs)[i][(int)j / 2];
-  return std::make_tuple(output_complex.real(), output_complex.imag());
+  return std::make_tuple(static_cast<T>(output_complex.real()),
+                         static_cast<T>(output_complex.imag()));
 
 } // namespace custom
 

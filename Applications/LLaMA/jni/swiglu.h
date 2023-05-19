@@ -49,6 +49,7 @@ public:
    */
   void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
+
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */

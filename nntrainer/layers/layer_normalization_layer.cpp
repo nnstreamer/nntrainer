@@ -227,6 +227,7 @@ void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
   deviation.multiply(inv_std_dev, output);
   output.multiply_i(gamma);
   output.add_i(beta);
+
 }
 
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {

@@ -364,7 +364,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
 
     auto f = std::get<0>(node->getExecutionOrder());
     model_graph.flushCacheExcept(f);
-
     node->incremental_forwarding(from, to, training);
   };
 
@@ -790,12 +789,12 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   int nn_foward;
   PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
   PROFILE_TIME_START(nn_foward);
+
   out = incremental_forwarding(cur_step, cur_step + 1, X, label, false);
 
   PROFILE_TIME_END(nn_foward);
 
   /** @todo: deallocate tensor after incremental inference **/
-
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});
 

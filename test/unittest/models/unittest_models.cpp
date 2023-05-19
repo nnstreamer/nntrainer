@@ -12,9 +12,8 @@
 
 #include <gtest/gtest.h>
 
-#include <memory>
-
 #include <ini_wrapper.h>
+#include <memory>
 #include <neuralnet.h>
 #include <nntrainer_test_util.h>
 

@@ -99,5 +99,4 @@ nntrainer::LayerPluggable ml_train_layer_pluggable{create_swiglu_layer,
 }
 
 #endif
-
 } // namespace custom

@@ -19,6 +19,8 @@
 #include <node_exporter.h>
 #include <util_func.h>
 
+#include <iostream>
+
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
