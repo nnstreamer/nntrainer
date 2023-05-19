@@ -60,13 +60,13 @@ public:
    * @brief Do the allocation of cache
    *
    */
-  virtual void allocate();
+  virtual void allocate() override;
 
   /**
    * @brief Free all the allocated cache
    *
    */
-  virtual void deallocate();
+  virtual void deallocate() override;
 
   /**
    * @brief Request Memory from memory pool
@@ -87,14 +87,14 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  virtual std::shared_ptr<MemoryData> getMemory(unsigned int id);
+  virtual std::shared_ptr<MemoryData<float>> getMemory(unsigned int id);
 
   /**
    * @brief Is the cache pool allocated
    *
    * @return true if the memory is allocated, else false
    */
-  virtual bool isAllocated() const;
+  virtual bool isAllocated() const override;
 
   /**
    * @brief Flush cache data to device
@@ -121,7 +121,7 @@ public:
    * @brief Clear the memory pool
    *
    */
-  virtual void clear();
+  virtual void clear() override;
 
   /**
    * @brief Load cache data by execution order
