@@ -394,9 +394,9 @@ int ml_train_model_destroy(ml_train_model_h model) {
   }
 
   if (nnmodel->optimizer) {
-    if (nnmodel->optimizer->lr_sheduler) {
-      ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer->lr_sheduler);
-      delete nnmodel->optimizer->lr_sheduler;
+    if (nnmodel->optimizer->lr_scheduler) {
+      ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer->lr_scheduler);
+      delete nnmodel->optimizer->lr_scheduler;
     }
 
     ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer);
@@ -757,7 +757,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
   ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->in_use = false;
-  nnopt->lr_sheduler = NULL;
+  nnopt->lr_scheduler = NULL;
 
   returnable f = [&]() {
     nnopt->optimizer =
@@ -793,9 +793,9 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (nnopt->lr_sheduler) {
-    ML_TRAIN_RESET_VALIDATED_HANDLE(nnopt->lr_sheduler);
-    delete nnopt->lr_sheduler;
+  if (nnopt->lr_scheduler) {
+    ML_TRAIN_RESET_VALIDATED_HANDLE(nnopt->lr_scheduler);
+    delete nnopt->lr_scheduler;
   }
 
   delete nnopt;
@@ -879,10 +879,10 @@ int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
     nnlrscheduler->in_use = true;
-    if (nnopt->lr_sheduler) {
-      nnopt->lr_sheduler->in_use = false;
+    if (nnopt->lr_scheduler) {
+      nnopt->lr_scheduler->in_use = false;
     }
-    nnopt->lr_sheduler = nnlrscheduler;
+    nnopt->lr_scheduler = nnlrscheduler;
   }
 
   return status;
