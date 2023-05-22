@@ -348,6 +348,63 @@ TEST(nntrainer_activation, swishPrime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, gelu_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float answer[30] = {
+    -0.13783135, -0.11462659, -0.08414805, -0.04601721, 0,
+    0.05398279,  0.11585195,  0.18537343,  0.26216868,  0.34573120,
+    -0.16948429, -0.16455182, -0.13783135, -0.08414805, 0,
+    0.11585195,  0.26216868,  0.43544820,  0.63051575,  0.84134471,
+    -0.13808367, -0.16565408, -0.16455182, -0.11462659, 0,
+    0.18537343,  0.43544820,  0.73434591,  1.06191635,  1.39978909};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor results(batch, channel, height, width);
+  results = nntrainer::ActiFunc::gelu(input, results);
+
+  float *data = results.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, geluPrime_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    0.19727029, 0.26767227, 0.34253171,  0.42047682,  0.5,         0.57952315,
+    0.65746832, 0.73232776, 0.80272973,  0.86749506,  -0.01989788, 0.07431830,
+    0.19727029, 0.34253171, 0.5,         0.65746832,  0.80272973,  0.92568171,
+    1.01989794, 1.08331537, -0.11795351, -0.05541664, 0.07431830,  0.26767227,
+    0.5,        0.73232776, 0.92568171,  1.05541658,  1.11795354,  1.12746918};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor results(batch, channel, height, width);
+  nntrainer::ActiFunc::gelu(input, results);
+
+  nntrainer::Tensor prime_results(batch, channel, height, width);
+  nntrainer::ActiFunc::geluPrime(input, results, prime_results);
+
+  float *data = prime_results.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 /**
  * @brief Main gtest
  */
