@@ -530,6 +530,14 @@ Swish(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create gelu activation layer
+ */
+inline std::unique_ptr<Layer>
+GeLU(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=gelu", properties);
+}
+
+/**
  * @brief Helper function to create Tanh layer
  */
 inline std::unique_ptr<Layer>

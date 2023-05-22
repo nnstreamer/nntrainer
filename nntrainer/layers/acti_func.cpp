@@ -152,6 +152,10 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
     in_place = false;
     this->setActivation(swish, swishPrime);
     break;
+  case ActivationType::ACT_GELU:
+    in_place = false;
+    this->setActivation(gelu, geluPrime);
+    break;
   case ActivationType::ACT_NONE:
     this->setActivation(no_op, no_op_prime);
     break;
@@ -350,6 +354,32 @@ Tensor &ActiFunc::swishPrime(Tensor const &t_in, Tensor const &t_out,
   t_out.apply([&](float x) { return 1 - x; }, tmp);
   outgoing_derivative.multiply_i(tmp);
   outgoing_derivative.add_i(t_out);
+
+  outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+  return outgoing_derivative;
+}
+
+Tensor &ActiFunc::gelu(Tensor const &t_in, Tensor &t_out) {
+  float tmp = 1 / sqrt(2);
+  t_in.apply([&](float x) { return 0.5 * x * (1 + erf(x * tmp)); }, t_out);
+  return t_out;
+}
+
+Tensor &ActiFunc::geluPrime(Tensor const &t_in, Tensor const &t_out,
+                            Tensor &outgoing_derivative,
+                            Tensor const &incoming_derivative) {
+
+  if (outgoing_derivative.empty())
+    outgoing_derivative = Tensor(t_out.getDim());
+
+  float tmp = 1 / sqrt(2);
+  t_in.apply(
+    [&](float x) {
+      return 0.5 * (1 + erf(x * tmp) +
+                    x * ((2 / sqrt(M_PI)) * exp(-pow(x * tmp, 2))) * tmp);
+    },
+    outgoing_derivative);
 
   outgoing_derivative.multiply_i_strided(incoming_derivative);
 
