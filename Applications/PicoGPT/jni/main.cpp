@@ -17,6 +17,7 @@
 #include <string.h>
 #include <tensor.h>
 
+#include "encoder.hpp"
 #include <iostream>
 
 const unsigned int BATCH_SIZE = 1;
@@ -29,11 +30,20 @@ const unsigned int NUM_VOCAB = 50257;
 const unsigned int NUM_CTX = 1024;
 const unsigned int NUM_TOKENS_TO_GENERATE = 40;
 
-const unsigned int init_input_seq_len = 10;
+unsigned int init_input_seq_len = 10;
 const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
 bool swap = false;
 bool optimize_attention = false;
+
+template <typename T>
+T unwrap(std::optional<T> &&value, const std::string &error_msg) {
+  if (value.has_value()) {
+    return value.value();
+  } else {
+    throw std::runtime_error(error_msg);
+  }
+}
 
 std::shared_ptr<ml::train::Model> genModel() {
   std::shared_ptr<ml::train::Model> model;
@@ -277,8 +287,17 @@ int main() {
   memset(wte_input, 0, sizeof(float) * MAX_TOKEN_LEN);
   memset(wpe_input, 0, sizeof(float) * MAX_TOKEN_LEN);
 
-  uint init_input[init_input_seq_len] = {36235, 39141, 18765, 1143, 326,
-                                         9061,  561,   530,   1110, 1716};
+  auto tokenizer = unwrap(GPT2Tokenizer::load("./vocab.json", "./merges.txt"),
+                          "Error initialising GPT2 tokenizer\n");
+  std::string text =
+    "Alan Turing theorized that computers would one day become";
+
+  auto init_input = tokenizer.encode(text);
+  init_input_seq_len = init_input.size();
+
+  // uint init_input[init_input_seq_len] = {36235, 39141, 18765, 1143, 326,
+  //                                        9061,  561,   530,   1110, 1716};
+
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
     ((uint *)(wte_input))[i] = init_input[i];
   }
@@ -323,7 +342,13 @@ int main() {
     ((uint *)(wpe_input))[i] = i;
 
     std::cerr << ids[0] << "\n";
-
+    std::vector<int64_t> token_ids;
+    for(auto element : ids)
+    {
+      token_ids.push_back(static_cast<int64_t>(element));
+    }
+    auto decoded_str = tokenizer.decode(token_ids);
+    
     std::shared_ptr<ml::train::Layer> wte_input_layer;
     model->getLayer("wte_input", &wte_input_layer);
     wte_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
