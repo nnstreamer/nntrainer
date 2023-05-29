@@ -4,8 +4,7 @@
  *
  * @file   main.cpp
  * @date   24 Jun 2021
- * @todo   move resnet model creating to separate sourcefile
- * @brief  task runner for the resnet
+ * @brief  task runner for the refinedet
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -76,31 +75,25 @@ static std::string withKey(const std::string &key,
 }
 
 /**
- * @brief TCB(Transfer Connection Block)
+ * @brief Feature extractor
  *
- * @param block_name name of the block
  * @param input_name name of the input
- * @param lateral_input_name name of the lateral input
- * @param filters number of filters
  * @return std::vector<LayerHandle> vectors of layers
  */
-std::vector<LayerHandle> tcbBlock(const std::string &block_name,
-                                  const std::string &input_name,
-                                  const std::string &upsample_input_name,
-                                  int filters, int upsample_filters,
-                                  int kernel_size, int upsample_kernel_size,
-                                  bool upsample_input_available) {
+std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
   using ml::train::createLayer;
 
-  auto scoped_name = [&block_name](const std::string &layer_name) {
-    return block_name + "/" + layer_name;
-  };
-  auto with_name = [&scoped_name](const std::string &layer_name) {
-    return withKey("name", scoped_name(layer_name));
+  auto scoped_name = [](const std::string &layer_name) {
+    return "feature_extractor/" + layer_name;
   };
 
-  auto create_conv = [&with_name, filters](const std::string &name,
+  auto with_name = [](const std::string &layer_name) {
+    return withKey("name", "feature_extractor/" + layer_name);
+  };
+
+  auto createConv = [&with_name](const std::string &name,
                                            int kernel_size, int stride,
+                                           int filters, bool use_relu,
                                            const std::string &padding,
                                            const std::string &input_layer) {
     std::vector<std::string> props{
@@ -111,31 +104,177 @@ std::vector<LayerHandle> tcbBlock(const std::string &block_name,
       withKey("padding", padding),
       withKey("input_layers", input_layer)};
 
+    if (use_relu) {
+      props.push_back(withKey("activation", "relu"));
+    }
+
     return createLayer("conv2d", props);
   };
 
-  auto create_deconv = [&with_name, upsample_filters](const std::string &name,
-                                                      int kernel_size, int stride,
-                                                      const std::string &input_layer) {
+  auto createMaxpool = [&with_name](const std::string &name,
+                                           int pool_size,
+                                           const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("pool_size", {pool_size, pool_size}),
+      withKey("pooling", "max"),
+      withKey("input_layers", input_layer)};
+
+    return createLayer("pooling2d", props);
+  };
+
+  // TODO: load conv1~5 weights from VGG16
+  return {
+    createConv("conv1_1", 3, 1, 64, true, "same", input_name),
+    createConv("conv1_2", 3, 1, 64, true, "same", scoped_name("conv1_1")),
+    createMaxpool("pool1", 2, scoped_name("conv1_2")),
+    createConv("conv2_1", 3, 1, 128, true, "same", scoped_name("pool1")),
+    createConv("conv2_2", 3, 1, 128, true, "same", scoped_name("conv2_1")),
+    createMaxpool("pool2", 2, scoped_name("conv2_2")),
+    createConv("conv3_1", 3, 1, 256, true, "same", scoped_name("pool2")),
+    createConv("conv3_2", 3, 1, 256, true, "same", scoped_name("conv3_1")),
+    createConv("conv3_3", 3, 1, 256, true, "same", scoped_name("conv3_2")),
+    createMaxpool("pool3", 2, scoped_name("conv3_3")),
+    createConv("conv4_1", 3, 1, 512, true, "same", scoped_name("pool3")),
+    createConv("conv4_2", 3, 1, 512, true, "same", scoped_name("conv4_1")),
+    createConv("conv4_3", 3, 1, 512, true, "same", scoped_name("conv4_2")),
+    createMaxpool("pool4", 2, scoped_name("conv4_3")),
+    createConv("conv5_1", 3, 1, 512, true, "same", scoped_name("pool4")),
+    createConv("conv5_2", 3, 1, 512, true, "same", scoped_name("conv5_1")),
+    createConv("conv5_3", 3, 1, 512, true, "same", scoped_name("conv5_2")),
+    createMaxpool("pool5", 2, scoped_name("conv5_3")),
+    createLayer("conv2d", {
+      with_name("conv6"),
+      withKey("stride", {1, 1}),
+      withKey("filters", 1024),
+      withKey("kernel_size", {3, 3}),
+      withKey("padding", "same"),
+      withKey("input_layers", scoped_name("pool5")),
+      withKey("dilation", 2)
+      }),
+    createConv("conv7", 1, 1, 1024, true, "same", scoped_name("conv6")),
+    createConv("conv8_1", 1, 1, 256, true, "same", scoped_name("conv7")),
+    createConv("conv8_2", 3, 2, 512, true, "same", scoped_name("conv8_1")),
+    createConv("conv9_1", 1, 1, 256, true, "same", scoped_name("conv8_2")),
+    createConv("conv9_2", 3, 2, 512, true, "same", scoped_name("conv9_1")),
+    createConv("conv10_1", 1, 1, 256, true, "same", scoped_name("conv9_2")),
+    createConv("conv10_2", 3, 1, 256, true, "same", scoped_name("conv10_1")),
+  };
+  
+}
+
+/**
+ * @brief ARM(Anchor Refinement Module)
+ *
+ * @param input_name name of the input
+ * @param num_anchors number of anchors
+ * @return std::vector<LayerHandle> vectors of layers
+ */
+std::vector<LayerHandle> ARM(const std::string &input_name, const int num_anchors) {
+  using ml::train::createLayer;
+
+  auto scoped_name = [](const std::string &layer_name) {
+    return "arm/" + layer_name;
+  };
+  auto with_name = [&scoped_name](const std::string &layer_name) {
+    return withKey("name", scoped_name(layer_name));
+  };
+
+  auto createConv = [&with_name](const std::string &name,
+                                           int kernel_size, int stride,
+                                           int filters, bool use_relu,
+                                           const std::string &padding,
+                                           const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
       withKey("stride", {stride, stride}),
-      withKey("filters", upsample_filters),
+      withKey("filters", filters),
+      withKey("kernel_size", {kernel_size, kernel_size}),
+      withKey("padding", padding),
+      withKey("input_layers", input_layer)};
+
+    if (use_relu) {
+      props.push_back(withKey("activation", "relu"));
+    }
+
+    return createLayer("conv2d", props);
+  };
+
+  return {
+    createConv("conv1", 3, 1, 256, true, "same", input_name),
+    createConv("conv2", 3, 1, 256, true, "same", scoped_name("conv1")),
+    createConv("conv3", 3, 1, 256, true, "same", scoped_name("conv2")),
+    createConv("conv4", 3, 1, 256, true, "same", scoped_name("conv3")),
+    createConv("ploc", 3, 1, 4 * num_anchors, false, "same", scoped_name("conv4")),
+    createConv("pconf", 3, 1, 2 * num_anchors, false, "same", scoped_name("conv4")),
+  };
+
+}
+
+/**
+ * @brief TCB(Transfer Connection Block)
+ *
+ * @param block_name name of the block
+ * @param input_name name of the input
+ * @param upsample_input_name name of the upsample input
+ * @param upsample_input_available whether upsample input exists
+ * @return std::vector<LayerHandle> vectors of layers
+ */
+std::vector<LayerHandle> tcbBlock(const std::string &block_name,
+                                  const std::string &input_name,
+                                  const std::string &upsample_input_name,
+                                  bool upsample_input_available) {
+  using ml::train::createLayer;
+
+  auto scoped_name = [&block_name](const std::string &layer_name) {
+    return block_name + "/" + layer_name;
+  };
+  auto with_name = [&scoped_name](const std::string &layer_name) {
+    return withKey("name", scoped_name(layer_name));
+  };
+
+  auto createConv = [&with_name](const std::string &name,
+                                           int kernel_size, int stride,
+                                           int filters, bool use_relu,
+                                           const std::string &padding,
+                                           const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("stride", {stride, stride}),
+      withKey("filters", filters),
+      withKey("kernel_size", {kernel_size, kernel_size}),
+      withKey("padding", padding),
+      withKey("input_layers", input_layer)};
+
+    if (use_relu) {
+      props.push_back(withKey("activation", "relu"));
+    }
+
+    return createLayer("conv2d", props);
+  };
+
+  auto createDeconv = [&with_name](const std::string &name,
+                                              int kernel_size, int stride, int filters,
+                                              const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("stride", {stride, stride}),
+      withKey("filters", filters),
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", "same"),
       withKey("input_layers", input_layer)};
 
-    return createLayer("deconv2d", props);
+    return createLayer("convtranspose2d", props);
   };
 
-  // Lateral path
-  LayerHandle lateral1 = create_conv("lateral1", kernel_size, 1, "same", input_name);
-  LayerHandle lateral2 = create_conv("lateral2", kernel_size, 1, "same", scoped_name("lateral1"));
+  // From ARM
+  LayerHandle conv1 = createConv("conv1", 3, 1, 256, true, "same", input_name);
+  LayerHandle conv2 = createConv("conv2", 3, 1, 256, false, "same", scoped_name("conv1"));
 
   // Upsample path
   LayerHandle upsample = nullptr;
   if (upsample_input_available) {
-    upsample = create_deconv("upsample", upsample_kernel_size, 2, upsample_input_name);
+    upsample = createDeconv("upsample", 4, 2, 256, upsample_input_name);
   }
 
   const std::string upsample_name = upsample ? scoped_name("upsample") : "";
@@ -143,78 +282,118 @@ std::vector<LayerHandle> tcbBlock(const std::string &block_name,
   LayerHandle add = nullptr;
   if (upsample_input_available) {
     add = createLayer(
-      "Addition",
-      {with_name("add"), withKey("input_layers", {scoped_name("lateral2"), upsample_name})});
+      "addition",
+      {
+        with_name("add"), 
+        withKey("input_layers", {scoped_name("conv2"), upsample_name}),
+        withKey("activation", "relu")
+        });
   }
 
-  LayerHandle relu = createLayer("relu", {with_name("relu")});
+  LayerHandle conv3 = createConv("conv3", 3, 1, 256, true, "same", scoped_name("add"));
+
 
   if (upsample_input_available) {
-    return {lateral1, lateral2, upsample, add, relu};
+    return {conv1, conv2, conv3, add, upsample};
   } else {
-    return {lateral1, lateral2, relu};
+    return {conv1, conv2, conv3, add};
   }
+}
+
+/**
+ * @brief ODM(Object Detection Module)
+ *
+ * @param input_name name of the input
+ * @param num_anchors number of anchors
+ * @param num_classes number of classes
+ * @return std::vector<LayerHandle> vectors of layers
+ */
+std::vector<LayerHandle> ODM(const std::string &input_name, const int num_anchors, const int num_classes) {
+  using ml::train::createLayer;
+
+  auto scoped_name = [](const std::string &layer_name) {
+    return "odm/" + layer_name;
+  };
+  auto with_name = [&scoped_name](const std::string &layer_name) {
+    return withKey("name", scoped_name(layer_name));
+  };
+
+  auto createConv = [&with_name](const std::string &name,
+                                           int kernel_size, int stride,
+                                           int filters, bool use_relu,
+                                           const std::string &padding,
+                                           const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("stride", {stride, stride}),
+      withKey("filters", filters),
+      withKey("kernel_size", {kernel_size, kernel_size}),
+      withKey("padding", padding),
+      withKey("input_layers", input_layer)};
+
+    if (use_relu) {
+      props.push_back(withKey("activation", "relu"));
+    }
+
+    return createLayer("conv2d", props);
+  };
+
+  return {
+    createConv("conv1", 3, 1, 256, true, "same", input_name),
+    createConv("conv2", 3, 1, 256, true, "same", scoped_name("conv1")),
+    createConv("conv3", 3, 1, 256, true, "same", scoped_name("conv2")),
+    createConv("conv4", 3, 1, 256, true, "same", scoped_name("conv3")),
+    createConv("ploc", 3, 1, 4 * num_anchors, false, "same", scoped_name("conv4")),
+    createConv("pconf", 3, 1, num_classes * num_anchors, false, "same", scoped_name("conv4")),
+  };
+
 }
 
 
 /**
- * @brief Create resnet 18
+ * @brief Create RefineDet
  *
- * @return vector of layers that contain full graph of resnet18
+ * @return vector of layers that contain full graph of RefineDet
  */
-std::vector<LayerHandle> createResnet18Graph() {
+std::vector<LayerHandle> createRefineDetGraph() {
+
+  const char* input_shape = "3:320:320";
+  const int num_anchors = 1000;
+  const int num_classes = 20;
+
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")}));
+    "input", {withKey("name", "image"), withKey("input_shape", input_shape)}));
 
-  layers.push_back(
-    createLayer("conv2d", {
-                            withKey("name", "conv0"),
-                            withKey("filters", 64),
-                            withKey("kernel_size", {3, 3}),
-                            withKey("stride", {1, 1}),
-                            withKey("padding", "same"),
-                            withKey("bias_initializer", "zeros"),
-                            withKey("weight_initializer", "xavier_uniform"),
-                          }));
+  std::vector<LayerHandle> feature_extractor = featureExtractor("image");
+  layers.insert(layers.end(), feature_extractor.begin(), feature_extractor.end());
 
-  layers.push_back(
-    createLayer("batch_normalization", {withKey("name", "first_bn_relu"),
-                                        withKey("activation", "relu")}));
+  std::vector<LayerHandle> arm = ARM("feature_extractor/conv10_2", num_anchors);
+  layers.insert(layers.end(), arm.begin(), arm.end());
 
   std::vector<std::vector<LayerHandle>> blocks;
-
-  blocks.push_back(resnetBlock("conv1_0", "first_bn_relu", 64, 3, false));
-  blocks.push_back(resnetBlock("conv1_1", "conv1_0", 64, 3, false));
-  blocks.push_back(resnetBlock("conv2_0", "conv1_1", 128, 3, true));
-  blocks.push_back(resnetBlock("conv2_1", "conv2_0", 128, 3, false));
-  blocks.push_back(resnetBlock("conv3_0", "conv2_1", 256, 3, true));
-  blocks.push_back(resnetBlock("conv3_1", "conv3_0", 256, 3, false));
-  blocks.push_back(resnetBlock("conv4_0", "conv3_1", 512, 3, true));
-  blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false));
-
+  blocks.push_back(tcbBlock("tcb1", "input1", "tcb2", true));
+  blocks.push_back(tcbBlock("tcb2", "input2", "tcb3", true));
+  blocks.push_back(tcbBlock("tcb3", "input3", "tcb4", true));
+  blocks.push_back(tcbBlock("tcb4", "input4", "", false));
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
-  }
+  }  
 
-  layers.push_back(createLayer("pooling2d", {withKey("name", "last_p1"),
-                                             withKey("pooling", "average"),
-                                             withKey("pool_size", {4, 4})}));
+  std::vector<LayerHandle> odm = ODM("feature_extractor/conv10_2", num_anchors, num_classes);
+  layers.insert(layers.end(), odm.begin(), odm.end());
 
-  layers.push_back(createLayer("flatten", {withKey("name", "last_f1")}));
-  layers.push_back(
-    createLayer("fully_connected",
-                {withKey("unit", 100), withKey("activation", "softmax")}));
+  ///////////////////////
+  // TODO: loss layers //
+  ///////////////////////
 
   return layers;
 }
 
-/// @todo update createResnet18 to be more generic
-ModelHandle createResnet18() {
-/// @todo support "LOSS : cross" for TF_Lite Exporter
+ModelHandle createRefineDet() {
 #if defined(ENABLE_TEST)
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                              {withKey("loss", "mse")});
@@ -223,7 +402,7 @@ ModelHandle createResnet18() {
                                              {withKey("loss", "cross")});
 #endif
 
-  for (auto &layer : createResnet18Graph()) {
+  for (auto &layer : createRefineDetGraph()) {
     model->addLayer(layer);
   }
 
@@ -255,7 +434,7 @@ TEST(Resnet_Training, verify_accuracy) {
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
                   UserDataType &valid_user_data) {
-  ModelHandle model = createResnet18();
+  ModelHandle model = createRefineDet();
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       withKey("save_path", "resnet_full.bin")});
