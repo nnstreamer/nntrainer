@@ -394,6 +394,7 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
     stride[1] * (in_dim.width() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
   );
 
+  // TODO: transpose input without allocating additional memory?
   Tensor transpose_input_ = Tensor(transpose_in_dim);
   transpose_input_.setZero();
   

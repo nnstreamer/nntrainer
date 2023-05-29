@@ -15,6 +15,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #if defined(ENABLE_TEST)
@@ -73,6 +74,10 @@ static std::string withKey(const std::string &key,
 
   return ss.str();
 }
+
+const std::string input_shape = "3:320:320";
+const int num_anchors = 1000;
+const int num_classes = 20;
 
 /**
  * @brief Feature extractor
@@ -166,11 +171,13 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
 /**
  * @brief ARM(Anchor Refinement Module)
  *
+ * @param block_name name of the block
  * @param input_name name of the input
  * @param num_anchors number of anchors
  * @return std::vector<LayerHandle> vectors of layers
  */
-std::vector<LayerHandle> ARM(const std::string &input_name, const int num_anchors) {
+std::vector<LayerHandle> ARM(const std::string &block_name,
+                              const std::string &input_name) {
   using ml::train::createLayer;
 
   auto scoped_name = [](const std::string &layer_name) {
@@ -303,12 +310,14 @@ std::vector<LayerHandle> tcbBlock(const std::string &block_name,
 /**
  * @brief ODM(Object Detection Module)
  *
+ * @param block_name name of the block
  * @param input_name name of the input
  * @param num_anchors number of anchors
  * @param num_classes number of classes
  * @return std::vector<LayerHandle> vectors of layers
  */
-std::vector<LayerHandle> ODM(const std::string &input_name, const int num_anchors, const int num_classes) {
+std::vector<LayerHandle> ODM(const std::string &block_name,
+                              const std::string &input_name) {
   using ml::train::createLayer;
 
   auto scoped_name = [](const std::string &layer_name) {
@@ -350,17 +359,36 @@ std::vector<LayerHandle> ODM(const std::string &input_name, const int num_anchor
 }
 
 
+
+/**
+ * @brief Loss function
+ *
+ * @param p predicted confidence from ARM
+ * @param x predicted coordinates from ARM
+ * @param c predicted class from ODM
+ * @param t predicted coordinates from ODM
+ * @param l ground truth label
+ * @param g ground truth location and size
+ * @return std::vector<LayerHandle> vectors of layers
+ */
+std::vector<LayerHandle> lossFunc(const std::string &p,
+                                  const std::string &x,
+                                  const std::string &c,
+                                  const std::string &t,
+                                  const std::string &l,
+                                  const std::string &g) {
+    
+  }
+
+
+
+
 /**
  * @brief Create RefineDet
  *
  * @return vector of layers that contain full graph of RefineDet
  */
 std::vector<LayerHandle> createRefineDetGraph() {
-
-  const char* input_shape = "3:320:320";
-  const int num_anchors = 1000;
-  const int num_classes = 20;
-
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
@@ -371,24 +399,41 @@ std::vector<LayerHandle> createRefineDetGraph() {
   std::vector<LayerHandle> feature_extractor = featureExtractor("image");
   layers.insert(layers.end(), feature_extractor.begin(), feature_extractor.end());
 
-  std::vector<LayerHandle> arm = ARM("feature_extractor/conv10_2", num_anchors);
-  layers.insert(layers.end(), arm.begin(), arm.end());
+  std::vector<std::vector<LayerHandle>> armBlocks;
+  armBlocks.push_back(ARM("arm1", "feature_extractor/conv4_3"));
+  armBlocks.push_back(ARM("arm2", "feature_extractor/conv5_3"));
+  armBlocks.push_back(ARM("arm3", "feature_extractor/conv8_2"));
+  armBlocks.push_back(ARM("arm4", "feature_extractor/conv10_2"));
 
-  std::vector<std::vector<LayerHandle>> blocks;
-  blocks.push_back(tcbBlock("tcb1", "input1", "tcb2", true));
-  blocks.push_back(tcbBlock("tcb2", "input2", "tcb3", true));
-  blocks.push_back(tcbBlock("tcb3", "input3", "tcb4", true));
-  blocks.push_back(tcbBlock("tcb4", "input4", "", false));
-  for (auto &block : blocks) {
+  for (auto &block : armBlocks) {
     layers.insert(layers.end(), block.begin(), block.end());
   }  
 
-  std::vector<LayerHandle> odm = ODM("feature_extractor/conv10_2", num_anchors, num_classes);
-  layers.insert(layers.end(), odm.begin(), odm.end());
+  std::vector<std::vector<LayerHandle>> tcbBlocks;
+  // tcbBlocks.push_back(tcbBlock("tcb4", "arm4/conv4", "", false));
+  // tcbBlocks.push_back(tcbBlock("tcb3", "arm3/conv4", "tcb4", true));
+  // tcbBlocks.push_back(tcbBlock("tcb2", "arm2/conv4", "tcb3", true));
+  // tcbBlocks.push_back(tcbBlock("tcb1", "arm1/conv4", "tcb2", true));
+  tcbBlocks.push_back(tcbBlock("tcb4", "feature_extractor/conv10_2", "", false));
+  tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4", true));
+  tcbBlocks.push_back(tcbBlock("tcb2", "feature_extractor/conv5_3", "tcb3", true));
+  tcbBlocks.push_back(tcbBlock("tcb1", "feature_extractor/conv4_3", "tcb2", true));
+  
+  for (auto &block : tcbBlocks) {
+    layers.insert(layers.end(), block.begin(), block.end());
+  }  
 
-  ///////////////////////
-  // TODO: loss layers //
-  ///////////////////////
+  std::vector<std::vector<LayerHandle>> odmBlocks;
+  odmBlocks.push_back(ODM("odm1", "tcb1/conv3"));
+  odmBlocks.push_back(ODM("odm2", "tcb2/conv3"));
+  odmBlocks.push_back(ODM("odm3", "tcb3/conv3"));
+  odmBlocks.push_back(ODM("odm4", "tcb4/conv3"));
+  
+  for (auto &block : odmBlocks) {
+    layers.insert(layers.end(), block.begin(), block.end());
+  }
+
+
 
   return layers;
 }
