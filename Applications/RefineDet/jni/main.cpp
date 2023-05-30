@@ -25,6 +25,8 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <app_context.h>
+#include "../refinedet_loss.h"
 
 #include <cifar_dataloader.h>
 
@@ -377,8 +379,12 @@ std::vector<LayerHandle> lossFunc(const std::string &p,
                                   const std::string &t,
                                   const std::string &l,
                                   const std::string &g) {
-    
-  }
+  using ml::train::createLayer;
+
+  return {createLayer("refinedetLoss", {
+    // TODO
+  })};
+}
 
 
 
@@ -551,6 +557,20 @@ int main(int argc, char *argv[]) {
          "train and validation\n";
     return EXIT_FAILURE;
   }
+
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    /// registering custom layer here
+    /// registerFactory excepts a function that returns unique_ptr<Layer> from
+    /// std::vector<std::string> ml::train::createLayer<T> is a templated
+    /// function for generic usage
+    app_context.registerFactory(nntrainer::createLayer<custom::RefineDetLoss>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
 
   auto start = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(start);
