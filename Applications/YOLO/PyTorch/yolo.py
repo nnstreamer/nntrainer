@@ -15,7 +15,7 @@ import torch.nn as nn
 class YoloV2(nn.Module): 
     def __init__(self, num_classes, num_anchors=5):
         
-        super(YoloV2, self).__init__()              
+        super(YoloV2, self).__init__()
         self.num_classes = num_classes
         self.num_anchors = num_anchors
         self.conv1 = nn.Sequential(nn.Conv2d(3, 32, 3, 1, 1), nn.BatchNorm2d(32, eps=1e-3),
@@ -46,8 +46,7 @@ class YoloV2(nn.Module):
                                            nn.LeakyReLU())
 
         self.conv_b = nn.Sequential(nn.Conv2d(512, 64, 1, 1, 0), nn.BatchNorm2d(64, eps=1e-3),
-                                    nn.LeakyReLU())
-        self.avgpool_b = nn.AvgPool2d(2, 2)
+                                    nn.LeakyReLU())        
 
         self.maxpool_a = nn.MaxPool2d(2, 2)
         self.conv_a1 = nn.Sequential(nn.Conv2d(512, 1024, 3, 1, 1), nn.BatchNorm2d(1024, eps=1e-3),
@@ -65,7 +64,7 @@ class YoloV2(nn.Module):
         self.conv_a7 = nn.Sequential(nn.Conv2d(1024, 1024, 3, 1, 1), nn.BatchNorm2d(1024, eps=1e-3),
                                             nn.LeakyReLU())
 
-        self.conv_out1 = nn.Sequential(nn.Conv2d(1088, 1024, 3, 1, 1), nn.BatchNorm2d(1024, eps=1e-3),
+        self.conv_out1 = nn.Sequential(nn.Conv2d(1280, 1024, 3, 1, 1), nn.BatchNorm2d(1024, eps=1e-3),
                                           nn.LeakyReLU())
 
         self.conv_out2 = nn.Conv2d(1024, self.num_anchors * (5 + num_classes), 1, 1, 0)
@@ -85,8 +84,6 @@ class YoloV2(nn.Module):
         output = self.conv12(output)
         output = self.conv13(output)
 
-        residual = output
-
         output_a = self.maxpool_a(output)
         output_a = self.conv_a1(output_a)
         output_a = self.conv_a2(output_a)
@@ -96,8 +93,11 @@ class YoloV2(nn.Module):
         output_a = self.conv_a6(output_a)
         output_a = self.conv_a7(output_a)
 
-        output_b = self.conv_b(residual)
-        output_b = self.avgpool_b(output_b)
+        output_b = self.conv_b(output)
+        b, c, h, w = output_b.size()
+        output_b = output_b.view(b, int(c / 4), h, 2, w, 2).contiguous()
+        output_b = output_b.permute(0, 3, 5, 1, 2, 4).contiguous()
+        output_b = output_b.view(b, -1, int(h / 2), int(w / 2))
 
         output = torch.cat((output_a, output_b), 1)
         output = self.conv_out1(output)
