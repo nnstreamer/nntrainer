@@ -24,7 +24,6 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
 	${ML_API_COMMON_INCLUDES}
-	
 
 LOCAL_MODULE := nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libnntrainer.so
@@ -51,9 +50,9 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_yolo
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
-LOCAL_SRC_FILES := main.cpp det_dataloader.cpp
+LOCAL_SRC_FILES := main.cpp det_dataloader.cpp reorg_layer.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(NNTRAINER_ROOT)/Applications/YOLO/jni
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
