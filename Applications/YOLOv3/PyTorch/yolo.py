@@ -46,9 +46,9 @@ class DarkNetBlock(nn.Module):
         super(DarkNetBlock, self).__init__()
         self.repeat = repeat
 
-        self.module_list = nn.Sequential()
+        self.module_list = nn.ModuleList()
         for _ in range(self.repeat):
-            self.module_list.append(nn.Sequential(
+            self.module_list.add_module('block', nn.Sequential(
                 ConvBlock(num_channel, num_channel // 2, 1, 1, 0),
                 ConvBlock(num_channel // 2, num_channel, 3, 1, 1)
             ))
@@ -65,21 +65,21 @@ class Darknet53(nn.Module):
     def __init__(self):
         super(Darknet53, self).__init__()
 
-        self.module_list = nn.Sequential()
-        self.module_list.append(ConvBlock(3, 32, 3, 1, 1))
-        self.module_list.append(ConvBlock(32, 64, 3, 2, 1))
-        self.module_list.append(DarkNetBlock(64, 1))
-        self.module_list.append(ConvBlock(64, 128, 3, 2, 1))
-        self.module_list.append(DarkNetBlock(128, 2))
-        self.module_list.append(ConvBlock(128, 256, 3, 2, 1))
-        self.module_list.append(DarkNetBlock(256, 8))
-        self.module_list.append(ConvBlock(256, 512, 3, 2, 1))
-        self.module_list.append(DarkNetBlock(512, 8))
-        self.module_list.append(ConvBlock(512, 1024, 3, 2, 1))
-        self.module_list.append(DarkNetBlock(1024, 4))        
+        self.fe_modules = nn.Sequential()
+        self.fe_modules.append(ConvBlock(3, 32, 3, 1, 1))
+        self.fe_modules.append(ConvBlock(32, 64, 3, 2, 1))
+        self.fe_modules.append(DarkNetBlock(64, 1))
+        self.fe_modules.append(ConvBlock(64, 128, 3, 2, 1))
+        self.fe_modules.append(DarkNetBlock(128, 2))
+        self.fe_modules.append(ConvBlock(128, 256, 3, 2, 1))
+        self.fe_modules.append(DarkNetBlock(256, 8))
+        self.fe_modules.append(ConvBlock(256, 512, 3, 2, 1))
+        self.fe_modules.append(DarkNetBlock(512, 8))
+        self.fe_modules.append(ConvBlock(512, 1024, 3, 2, 1))
+        self.fe_modules.append(DarkNetBlock(1024, 4))        
 
     def forward(self, x):
-        for module in self.module_list:
+        for module in self.fe_modules:
             x = module(x)
 
         return x
