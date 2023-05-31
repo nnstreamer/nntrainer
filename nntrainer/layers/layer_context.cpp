@@ -459,7 +459,7 @@ Tensor &RunLayerContext::getLabel(unsigned int idx) {
     return outputs[idx]->getGradientRef();
   else {
     std::stringstream ss;
-    ss << "Requesing label of index: " << idx << "for " << getName()
+    ss << "Requesting label of index: " << idx << "for " << getName()
        << " does not exist";
     throw std::invalid_argument(ss.str().c_str());
   }
