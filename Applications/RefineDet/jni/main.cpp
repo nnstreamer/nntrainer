@@ -182,8 +182,8 @@ std::vector<LayerHandle> ARM(const std::string &block_name,
                               const std::string &input_name) {
   using ml::train::createLayer;
 
-  auto scoped_name = [](const std::string &layer_name) {
-    return "arm/" + layer_name;
+  auto scoped_name = [block_name](const std::string &layer_name) {
+    return block_name + "/" + layer_name;
   };
   auto with_name = [&scoped_name](const std::string &layer_name) {
     return withKey("name", scoped_name(layer_name));
@@ -322,8 +322,8 @@ std::vector<LayerHandle> ODM(const std::string &block_name,
                               const std::string &input_name) {
   using ml::train::createLayer;
 
-  auto scoped_name = [](const std::string &layer_name) {
-    return "odm/" + layer_name;
+  auto scoped_name = [block_name](const std::string &layer_name) {
+    return block_name + "/" + layer_name;
   };
   auto with_name = [&scoped_name](const std::string &layer_name) {
     return withKey("name", scoped_name(layer_name));
@@ -357,10 +357,7 @@ std::vector<LayerHandle> ODM(const std::string &block_name,
     createConv("ploc", 3, 1, 4 * num_anchors, false, "same", scoped_name("conv4")),
     createConv("pconf", 3, 1, num_classes * num_anchors, false, "same", scoped_name("conv4")),
   };
-
 }
-
-
 
 /**
  * @brief Loss function
@@ -369,25 +366,24 @@ std::vector<LayerHandle> ODM(const std::string &block_name,
  * @param x predicted coordinates from ARM
  * @param c predicted class from ODM
  * @param t predicted coordinates from ODM
- * @param l ground truth label
- * @param g ground truth location and size
- * @return std::vector<LayerHandle> vectors of layers
+ * @return LayerHandle vectors of layers
  */
-std::vector<LayerHandle> lossFunc(const std::string &p,
-                                  const std::string &x,
-                                  const std::string &c,
-                                  const std::string &t,
-                                  const std::string &l,
-                                  const std::string &g) {
+LayerHandle lossFunc(const std::string &p,
+                      const std::string &x,
+                      const std::string &c,
+                      const std::string &t) {
   using ml::train::createLayer;
-
-  return {createLayer("refinedetLoss", {
-    // TODO
-  })};
+  auto scoped_name = [](const std::string &layer_name) {
+    return "refinedet_loss/" + layer_name;
+  };
+  auto with_name = [&scoped_name](const std::string &layer_name) {
+    return withKey("name", scoped_name(layer_name));
+  };
+  return createLayer("refinedetLoss", {
+    with_name("loss"),
+    withKey("input_layers", {p, x, c, t})
+  });
 }
-
-
-
 
 /**
  * @brief Create RefineDet
@@ -439,19 +435,30 @@ std::vector<LayerHandle> createRefineDetGraph() {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
+  auto createConcat = [](const std::string module, const std::string predict) {
+    return createLayer("concat", {
+        withKey("name", module + "_" + predict), 
+        withKey("input_layers", {module + "1/" + predict, module + "2/" + predict, module + "3/" + predict, module + "4/" + predict})
+      });
+  };
 
+  layers.push_back(createConcat("arm", "ploc"));
+  layers.push_back(createConcat("arm", "pconf"));
+  layers.push_back(createConcat("odm", "ploc"));
+  layers.push_back(createConcat("odm", "pconf"));
+
+  layers.push_back(lossFunc("arm_pconf", "arm_ploc", "odm_pconf", "odm_ploc"));
 
   return layers;
 }
 
 ModelHandle createRefineDet() {
-#if defined(ENABLE_TEST)
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "mse")});
-#else
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "cross")});
-#endif
+// #if defined(ENABLE_TEST)
+  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+// #else
+//   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
+//                                              {withKey("loss", "cross")});
+// #endif
 
   for (auto &layer : createRefineDetGraph()) {
     model->addLayer(layer);
@@ -474,12 +481,12 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
   return 0;
 }
 
-#if defined(ENABLE_TEST)
-TEST(Resnet_Training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 4.389328);
-  EXPECT_FLOAT_EQ(validation_loss, 11.611803);
-}
-#endif
+// #if defined(ENABLE_TEST)
+// TEST(Resnet_Training, verify_accuracy) {
+//   EXPECT_FLOAT_EQ(training_loss, 4.389328);
+//   EXPECT_FLOAT_EQ(validation_loss, 11.611803);
+// }
+// #endif
 
 /// @todo maybe make num_class also a parameter
 void createAndRun(unsigned int epochs, unsigned int batch_size,
@@ -488,7 +495,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   ModelHandle model = createRefineDet();
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
-                      withKey("save_path", "resnet_full.bin")});
+                      withKey("save_path", "refinedet_full.bin")});
 
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
@@ -516,7 +523,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model->train();
 
 #if defined(ENABLE_TEST)
-  model->exports(ml::train::ExportMethods::METHOD_TFLITE, "resnet_test.tflite");
+  model->exports(ml::train::ExportMethods::METHOD_TFLITE, "refinedet_test.tflite");
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();
 #endif
