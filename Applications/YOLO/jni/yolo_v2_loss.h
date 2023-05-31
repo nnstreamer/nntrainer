@@ -154,7 +154,7 @@ private:
   std::tuple<props::MaxObjectNumber, props::ClassNumber,
              props::GridHeightNumber, props::GridWidthNumber>
     yolo_v2_loss_props;
-  std::array<unsigned int, 8> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 22> wt_idx; /**< indices of the weights */
 
   /**
    * @brief find responsible anchors per object

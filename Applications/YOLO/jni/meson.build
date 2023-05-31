@@ -18,8 +18,8 @@ reorg_layer_dep = declare_dependency(
 yolo_sources = [
   'main.cpp',
   'det_dataloader.cpp',
-  layer_reorg_src
-  'yolo_v2_loss.cpp'
+  'yolo_v2_loss.cpp',
+  'reorg_layer.cpp',
 ]
 
 yolo_dependencies = [app_utils_dep,
