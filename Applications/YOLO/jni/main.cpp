@@ -27,7 +27,6 @@
 
 #include "yolo_v2_loss.h"
 
-#include <app_context.h>
 #include <reorg_layer.h>
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
@@ -44,9 +43,9 @@ const unsigned int IMAGE_HEIGHT_SIZE = 416;
 const unsigned int IMAGE_WIDTH_SIZE = 416;
 const unsigned int BATCH_SIZE = 4;
 const unsigned int EPOCHS = 3;
-const char *TRAIN_DIR_PATH = "TRAIN_DIR_PATH";
-const char *VALIDATION_DIR_PATH = "VALIDATION_DIR_PATH";
-const std::string MODEL_INIT_BIN_PATH = "MODEL_INIT_BIN_PATH";
+const char *TRAIN_DIR_PATH = "/TRAIN_DIR/";
+const char *VALIDATION_DIR_PATH = "/VALID_DIR/";
+const std::string MODEL_INIT_BIN_PATH = "/home/user/MODEL_INIT_BIN_PATH.bin";
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
   auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
@@ -176,8 +175,7 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
 ModelHandle YOLO() {
   using ml::train::createLayer;
 
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "mse")});
+  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   std::vector<LayerHandle> layers;
 
@@ -216,7 +214,7 @@ ModelHandle YOLO() {
   blocks.push_back(yoloBlock("conv_a7", "conv_a6", 1024, 3, false));
 
   blocks.push_back(yoloBlock("conv_b", "conv13", 64, 1, false));
-  // todo: conv_b_pool layer will be replaced with re-organization custom layer
+
   blocks.push_back({createLayer("reorg", {withKey("name", "re_organization"),
                                           withKey("input_layers", "conv_b")})});
 
@@ -279,12 +277,21 @@ int main(int argc, char *argv[]) {
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
+  auto &app_context = nntrainer::AppContext::Global();
+
   try {
-    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register reorg layer, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
+  try {
     app_context.registerFactory(
       nntrainer::createLayer<custom::YoloV2LossLayer>);
   } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register factory, reason: " << e.what()
+    std::cerr << "failed to register loss layer, reason: " << e.what()
               << std::endl;
     return 1;
   }
@@ -308,7 +315,7 @@ int main(int argc, char *argv[]) {
     // compile and initialize model
     model->compile();
     model->initialize();
-    model->load(MODEL_INIT_BIN_PATH);
+    // model->load(MODEL_INIT_BIN_PATH);
 
     // create train and validation data
     std::array<UserDataType, 2> user_datas;
