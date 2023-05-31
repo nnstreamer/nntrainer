@@ -36,7 +36,7 @@ class YOLODataset(Dataset):
             with open(ann_list[i], 'rt') as f:
                 for line in f.readlines():
                     line = [float(i) for i in line.split()]
-                    label_bbox.append(np.array(line[1:], dtype=np.float32))
+                    label_bbox.append(np.array(line[1:], dtype=np.float32) / 416)
                     label_cls.append(int(line[0]))
 
             self.input_images.append(img)

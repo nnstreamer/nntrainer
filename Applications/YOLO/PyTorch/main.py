@@ -34,16 +34,16 @@ from torchconverter import save_bin
 
 # set config
 out_size = 13
-num_classes = 92
+num_classes = 4
 num_anchors = 5
 
 epochs = 3
 batch_size = 4
 
-train_img_dir = 'TRAIN_DIR/images/*'
-train_ann_dir = 'TRAIN_DIR/annotations/*'
-valid_img_dir = 'VALIDATION_DIR/images/*'
-valid_ann_dir = 'VALIDATION_DIR/annotations/*'
+train_img_dir = '/home/user/TRAIN_DIR/images/*'
+train_ann_dir = '/home/user/TRAIN_DIR/annotations/*'
+valid_img_dir = '/home/user/VALID_DIR/images/*'
+valid_ann_dir = '/home/user/VALID_DIR/annotations/*'
 
 # load data
 train_dataset = YOLODataset(train_img_dir, train_ann_dir)
@@ -57,7 +57,9 @@ criterion = YoloV2_LOSS(num_classes=num_classes)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
 
+# save init model
 save_bin(model, 'init_model')
+torch.save(model.state_dict(), './init_model.pt')
 
 # train model
 best_loss = 1e+10
