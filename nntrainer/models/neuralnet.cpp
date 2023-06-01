@@ -1214,7 +1214,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
     out << std::string(total_col_size, '=') << '\n';
     print_graph_layer_info(
-      out, {"Layer name", "Layer type", "Input dimension", "Input layer"});
+      out, {"Layer name", "Layer type", "Output dimension", "Input layer"});
     out << std::string(total_col_size, '=') << '\n';
     if (compiled) {
       props::GenericShape dim_property;
@@ -1222,10 +1222,10 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            iter++) {
         std::string first_dim;
-        if (iter->getInputDimensions().empty()) {
+        if (iter->getOutputDimensions().empty()) {
           first_dim = "";
         } else {
-          dim_property.set(iter->getInputDimensions()[0]);
+          dim_property.set(iter->getOutputDimensions()[0]);
           first_dim = to_string(dim_property);
         }
         const std::vector<std::string> &input_layer_names =
