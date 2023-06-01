@@ -9,6 +9,7 @@ if enable_ccapi
 endif
 subdir('VGG/jni')
 subdir('Resnet/jni')
+subdir('RefineDet')
 subdir('YOLO/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')

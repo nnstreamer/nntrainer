@@ -77,7 +77,7 @@ static std::string withKey(const std::string &key,
   return ss.str();
 }
 
-const std::string input_shape = "3:320:320";
+const std::string input_shape = "3:32:32";
 const int num_anchors = 1000;
 const int num_classes = 20;
 
@@ -157,7 +157,7 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
       withKey("kernel_size", {3, 3}),
       withKey("padding", "same"),
       withKey("input_layers", scoped_name("pool5")),
-      withKey("dilation", 2)
+      withKey("dilation", {2, 2})
       }),
     createConv("conv7", 1, 1, 1024, true, "same", scoped_name("conv6")),
     createConv("conv8_1", 1, 1, 256, true, "same", scoped_name("conv7")),
@@ -379,7 +379,7 @@ LayerHandle lossFunc(const std::string &p,
   auto with_name = [&scoped_name](const std::string &layer_name) {
     return withKey("name", scoped_name(layer_name));
   };
-  return createLayer("refinedetLoss", {
+  return createLayer("refinedet_loss", {
     with_name("loss"),
     withKey("input_layers", {p, x, c, t})
   });
@@ -394,10 +394,8 @@ std::vector<LayerHandle> createRefineDetGraph() {
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
-
   layers.push_back(createLayer(
     "input", {withKey("name", "image"), withKey("input_shape", input_shape)}));
-
   std::vector<LayerHandle> feature_extractor = featureExtractor("image");
   layers.insert(layers.end(), feature_extractor.begin(), feature_extractor.end());
 
@@ -420,7 +418,7 @@ std::vector<LayerHandle> createRefineDetGraph() {
   tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4", true));
   tcbBlocks.push_back(tcbBlock("tcb2", "feature_extractor/conv5_3", "tcb3", true));
   tcbBlocks.push_back(tcbBlock("tcb1", "feature_extractor/conv4_3", "tcb2", true));
-  
+
   for (auto &block : tcbBlocks) {
     layers.insert(layers.end(), block.begin(), block.end());
   }  
@@ -454,16 +452,19 @@ std::vector<LayerHandle> createRefineDetGraph() {
 
 ModelHandle createRefineDet() {
 // #if defined(ENABLE_TEST)
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET, {});
 // #else
 //   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
 //                                              {withKey("loss", "cross")});
 // #endif
-
+  int cnt = 0;
   for (auto &layer : createRefineDetGraph()) {
-    model->addLayer(layer);
+    std::cout << "createrefinedet " << cnt << " " << layer << std::endl;
+    std::cout << layer->getName() << std::endl;
+    // model->addLayer(layer);
+    cnt += 1;
   }
-
+  std::cout << "createrefinedet end" << std::endl;
   return model;
 }
 
@@ -492,34 +493,36 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
                   UserDataType &valid_user_data) {
+  std::cout << "hi1" << std::endl;
   ModelHandle model = createRefineDet();
+  std::cout << "hi2" << std::endl;
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       withKey("save_path", "refinedet_full.bin")});
-
+  std::cout << "hi3" << std::endl;
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
-
+  std::cout << "hi4" << std::endl;
   int status = model->compile();
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
-
+  std::cout << "hi5" << std::endl;
   status = model->initialize();
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
-
+  std::cout << "hi6" << std::endl;
   auto dataset_train = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
   auto dataset_valid = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
-
+  std::cout << "hi7" << std::endl;
   model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                     std::move(dataset_train));
   model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                     std::move(dataset_valid));
-
+  std::cout << "hi8" << std::endl;
   model->train();
 
 #if defined(ENABLE_TEST)
@@ -605,7 +608,7 @@ int main(int argc, char *argv[]) {
 
   try {
     if (data_dir == "fake") {
-      user_datas = createFakeDataGenerator(batch_size, 512, data_split);
+      user_datas = createFakeDataGenerator(batch_size, 32, data_split);
     } else {
       user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }
