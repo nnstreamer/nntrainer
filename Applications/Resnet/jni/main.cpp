@@ -113,15 +113,18 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   };
 
   /** residual path */
-  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, "same", input_name);
-  LayerHandle a2 = createLayer(
-    "batch_normalization", {with_name("a2"), withKey("activation", "relu")});
+  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1,
+                               downsample ? "1,1" : "same", input_name);
+  LayerHandle a2 =
+    createLayer("batch_normalization",
+                {with_name("a2"), withKey("activation", "relu"),
+                 withKey("momentum", "0.9"), withKey("epsilon", "0.00001")});
   LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
   /** skip path */
   LayerHandle b1 = nullptr;
   if (downsample) {
-    b1 = create_conv("b1", 1, 2, "same", input_name);
+    b1 = create_conv("b1", 1, 2, "0,0", input_name);
   }
 
   const std::string skip_name = b1 ? scoped_name("b1") : input_name;
@@ -132,8 +135,8 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
 
   LayerHandle c2 =
     createLayer("batch_normalization",
-                {withKey("name", block_name), withKey("activation", "relu")});
-
+                {withKey("name", block_name), withKey("activation", "relu"),
+                 withKey("momentum", "0.9"), withKey("epsilon", "0.00001")});
   if (downsample) {
     return {b1, a1, a2, a3, c1, c2};
   } else {
@@ -165,9 +168,10 @@ std::vector<LayerHandle> createResnet18Graph() {
                             withKey("weight_initializer", "xavier_uniform"),
                           }));
 
-  layers.push_back(
-    createLayer("batch_normalization", {withKey("name", "first_bn_relu"),
-                                        withKey("activation", "relu")}));
+  layers.push_back(createLayer(
+    "batch_normalization",
+    {withKey("name", "first_bn_relu"), withKey("activation", "relu"),
+     withKey("momentum", "0.9"), withKey("epsilon", "0.00001")}));
 
   std::vector<std::vector<LayerHandle>> blocks;
 
@@ -184,9 +188,9 @@ std::vector<LayerHandle> createResnet18Graph() {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
-  layers.push_back(createLayer("pooling2d", {withKey("name", "last_p1"),
-                                             withKey("pooling", "average"),
-                                             withKey("pool_size", {4, 4})}));
+  layers.push_back(createLayer(
+    "pooling2d", {withKey("name", "last_p1"), withKey("pooling", "average"),
+                  withKey("pool_size", {4, 4}), withKey("stride", "4,4")}));
 
   layers.push_back(createLayer("flatten", {withKey("name", "last_f1")}));
   layers.push_back(
