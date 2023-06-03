@@ -9,6 +9,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include "tensor.h"
 #include <array>
 #include <chrono>
 #include <ctime>
@@ -78,8 +79,17 @@ static std::string withKey(const std::string &key,
 }
 
 const std::string input_shape = "3:32:32";
-const int num_anchors = 1000;
-const int num_classes = 20;
+const unsigned int feature_map_size1 = 4;
+const unsigned int feature_map_size2 = 2;
+const unsigned int feature_map_size3 = 1;
+const unsigned int feature_map_size4 = 1;
+const unsigned int num_ratios = 3;
+const unsigned int num_anchors = num_ratios * (
+  feature_map_size1 * feature_map_size1 + 
+  feature_map_size2 * feature_map_size2 + 
+  feature_map_size3 * feature_map_size3 + 
+  feature_map_size4 * feature_map_size4);
+const unsigned int num_classes = 20;
 
 /**
  * @brief Feature extractor
@@ -279,34 +289,22 @@ std::vector<LayerHandle> tcbBlock(const std::string &block_name,
   // From ARM
   LayerHandle conv1 = createConv("conv1", 3, 1, 256, true, "same", input_name);
   LayerHandle conv2 = createConv("conv2", 3, 1, 256, false, "same", scoped_name("conv1"));
-
-  // Upsample path
+  
   LayerHandle upsample = nullptr;
-  if (upsample_input_available) {
-    upsample = createDeconv("upsample", 4, 2, 256, upsample_input_name);
-  }
-
-  const std::string upsample_name = upsample ? scoped_name("upsample") : "";
-
   LayerHandle add = nullptr;
   if (upsample_input_available) {
+    upsample = createDeconv("upsample", 4, 2, 256, upsample_input_name);
     add = createLayer(
-      "addition",
-      {
+      "addition", {
         with_name("add"), 
-        withKey("input_layers", {scoped_name("conv2"), upsample_name}),
+        withKey("input_layers", {scoped_name("conv2"), scoped_name("upsample")}),
         withKey("activation", "relu")
         });
-  }
-
-  LayerHandle conv3 = createConv("conv3", 3, 1, 256, true, "same", scoped_name("add"));
-
-
-  if (upsample_input_available) {
+    LayerHandle conv3 = createConv("conv3", 3, 1, 256, true, "same", scoped_name("add"));
     return {conv1, conv2, conv3, add, upsample};
-  } else {
-    return {conv1, conv2, conv3, add};
   }
+  LayerHandle conv3 = createConv("conv3", 3, 1, 256, true, "same", scoped_name("conv2"));
+  return {conv1, conv2, conv3};
 }
 
 /**
@@ -355,34 +353,27 @@ std::vector<LayerHandle> ODM(const std::string &block_name,
     createConv("conv3", 3, 1, 256, true, "same", scoped_name("conv2")),
     createConv("conv4", 3, 1, 256, true, "same", scoped_name("conv3")),
     createConv("ploc", 3, 1, 4 * num_anchors, false, "same", scoped_name("conv4")),
-    createConv("pconf", 3, 1, num_classes * num_anchors, false, "same", scoped_name("conv4")),
+    createConv("pconf", 3, 1, num_classes * num_anchors, false, "same", scoped_name("conv4"))
   };
 }
 
-/**
- * @brief Loss function
- *
- * @param p predicted confidence from ARM
- * @param x predicted coordinates from ARM
- * @param c predicted class from ODM
- * @param t predicted coordinates from ODM
- * @return LayerHandle vectors of layers
- */
-LayerHandle lossFunc(const std::string &p,
-                      const std::string &x,
-                      const std::string &c,
-                      const std::string &t) {
+LayerHandle reshape_output(
+  const std::string& block_name, 
+  const std::string& input_name, 
+  const unsigned int& batch_size,
+  const unsigned int& feature_map_size,
+  const unsigned int& shape) {
   using ml::train::createLayer;
-  auto scoped_name = [](const std::string &layer_name) {
-    return "refinedet_loss/" + layer_name;
-  };
-  auto with_name = [&scoped_name](const std::string &layer_name) {
-    return withKey("name", scoped_name(layer_name));
-  };
-  return createLayer("refinedet_loss", {
-    with_name("loss"),
-    withKey("input_layers", {p, x, c, t})
-  });
+
+  return createLayer(
+    "reshape", {
+      withKey("name", block_name),
+      withKey("target_shape", nntrainer::TensorDim({
+        batch_size, 
+        num_anchors * feature_map_size * feature_map_size,
+        shape}))
+    }
+  );
 }
 
 /**
@@ -390,7 +381,7 @@ LayerHandle lossFunc(const std::string &p,
  *
  * @return vector of layers that contain full graph of RefineDet
  */
-std::vector<LayerHandle> createRefineDetGraph() {
+std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
@@ -400,24 +391,20 @@ std::vector<LayerHandle> createRefineDetGraph() {
   layers.insert(layers.end(), feature_extractor.begin(), feature_extractor.end());
 
   std::vector<std::vector<LayerHandle>> armBlocks;
-  armBlocks.push_back(ARM("arm1", "feature_extractor/conv4_3"));
-  armBlocks.push_back(ARM("arm2", "feature_extractor/conv5_3"));
-  armBlocks.push_back(ARM("arm3", "feature_extractor/conv8_2"));
-  armBlocks.push_back(ARM("arm4", "feature_extractor/conv10_2"));
+  armBlocks.push_back(ARM("arm1", "feature_extractor/conv4_3"));  // (b, 512, 4, 4)
+  armBlocks.push_back(ARM("arm2", "feature_extractor/conv5_3"));  // (b, 512, 2, 2)
+  armBlocks.push_back(ARM("arm3", "feature_extractor/conv8_2"));  // (b, 512, 1, 1)
+  armBlocks.push_back(ARM("arm4", "feature_extractor/conv10_2")); // (b, 256, 1, 1)
 
   for (auto &block : armBlocks) {
     layers.insert(layers.end(), block.begin(), block.end());
   }  
 
   std::vector<std::vector<LayerHandle>> tcbBlocks;
-  // tcbBlocks.push_back(tcbBlock("tcb4", "arm4/conv4", "", false));
-  // tcbBlocks.push_back(tcbBlock("tcb3", "arm3/conv4", "tcb4", true));
-  // tcbBlocks.push_back(tcbBlock("tcb2", "arm2/conv4", "tcb3", true));
-  // tcbBlocks.push_back(tcbBlock("tcb1", "arm1/conv4", "tcb2", true));
   tcbBlocks.push_back(tcbBlock("tcb4", "feature_extractor/conv10_2", "", false));
-  tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4", true));
-  tcbBlocks.push_back(tcbBlock("tcb2", "feature_extractor/conv5_3", "tcb3", true));
-  tcbBlocks.push_back(tcbBlock("tcb1", "feature_extractor/conv4_3", "tcb2", true));
+  tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4/conv3", true));
+  tcbBlocks.push_back(tcbBlock("tcb2", "feature_extractor/conv5_3", "tcb3/conv3", true));
+  tcbBlocks.push_back(tcbBlock("tcb1", "feature_extractor/conv4_3", "tcb2/conv3", true));
 
   for (auto &block : tcbBlocks) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -433,38 +420,87 @@ std::vector<LayerHandle> createRefineDetGraph() {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
-  auto createConcat = [](const std::string module, const std::string predict) {
+  layers.push_back(reshape_output("arm1_pconf", "arm1/pconf", batch_size, 4, 2));
+  layers.push_back(reshape_output("arm2_pconf", "arm2/pconf", batch_size, 2, 2));
+  layers.push_back(reshape_output("arm3_pconf", "arm3/pconf", batch_size, 1, 2));
+  layers.push_back(reshape_output("arm4_pconf", "arm4/pconf", batch_size, 1, 2));
+
+  layers.push_back(reshape_output("arm1_ploc", "arm1/ploc", batch_size, 4, 4));
+  layers.push_back(reshape_output("arm2_ploc", "arm2/ploc", batch_size, 2, 4));
+  layers.push_back(reshape_output("arm3_ploc", "arm3/ploc", batch_size, 1, 4));
+  layers.push_back(reshape_output("arm4_ploc", "arm4/ploc", batch_size, 1, 4));
+
+  layers.push_back(reshape_output("odm1_pconf", "odm1/pconf", batch_size, 4, false));
+  layers.push_back(reshape_output("odm2_pconf", "odm2/pconf", batch_size, 2, false));
+  layers.push_back(reshape_output("odm3_pconf", "odm3/pconf", batch_size, 1, false));
+  layers.push_back(reshape_output("odm4_pconf", "odm4/pconf", batch_size, 1, false));
+
+  layers.push_back(reshape_output("odm1_ploc", "odm1/ploc", batch_size, 4, true));
+  layers.push_back(reshape_output("odm2_ploc", "odm2/ploc", batch_size, 2, true));
+  layers.push_back(reshape_output("odm3_ploc", "odm3/ploc", batch_size, 1, true));
+  layers.push_back(reshape_output("odm4_ploc", "odm4/ploc", batch_size, 1, true));
+
+  // auto createSplit = [](
+  //   const std::string& block_name, 
+  //   const std::string& input_name,
+  //   const std::string& output_yx,
+  //   const std::string& output_hw) {
+  //   return createLayer("split", {
+  //       withKey("name", block_name), 
+  //       withKey("input_layers", {input_name}),
+  //       withKey("output_layers", {output_yx, output_hw}),
+  //       withKey("split_number", 2),
+  //       withKey("split_dimension", 2),
+  //     });
+  // };
+
+  // layers.push_back(createSplit("split_arm1", "arm1_ploc", "arm1_yx", "arm1_hw"));
+  // layers.push_back(createSplit("split_arm2", "arm2_ploc", "arm2_yx", "arm2_hw"));
+  // layers.push_back(createSplit("split_arm3", "arm3_ploc", "arm3_yx", "arm3_hw"));
+  // layers.push_back(createSplit("split_arm4", "arm4_ploc", "arm4_yx", "arm4_hw"));
+
+  // layers.push_back(createSplit("split_odm1", "odm1_ploc", "odm1_yx", "odm1_hw"));
+  // layers.push_back(createSplit("split_odm2", "odm2_ploc", "odm2_yx", "odm2_hw"));
+  // layers.push_back(createSplit("split_odm3", "odm3_ploc", "odm3_yx", "odm3_hw"));
+  // layers.push_back(createSplit("split_odm4", "odm4_ploc", "odm4_yx", "odm4_hw"));
+
+  auto createConcat = [](const std::string& module, const std::string& predict) {
     return createLayer("concat", {
         withKey("name", module + "_" + predict), 
-        withKey("input_layers", {module + "1/" + predict, module + "2/" + predict, module + "3/" + predict, module + "4/" + predict})
+        withKey("input_layers", {
+          module + "1_" + predict, 
+          module + "2_" + predict, 
+          module + "3_" + predict, 
+          module + "4_" + predict}),
+        withKey("axis", 1)
       });
   };
-
   layers.push_back(createConcat("arm", "ploc"));
   layers.push_back(createConcat("arm", "pconf"));
   layers.push_back(createConcat("odm", "ploc"));
   layers.push_back(createConcat("odm", "pconf"));
 
-  layers.push_back(lossFunc("arm_pconf", "arm_ploc", "odm_pconf", "odm_ploc"));
+  layers.push_back(createLayer("concat", {
+    withKey("name", "output"), 
+    withKey("input_layers", {"arm_ploc", "arm_pconf", "odm_ploc", "odm_pconf"}),
+    withKey("axis", 2)
+  }));
+
+  layers.push_back(createLayer("refinedet_loss", {withKey("name", "refinedet_loss")}));
 
   return layers;
 }
 
-ModelHandle createRefineDet() {
+ModelHandle createRefineDet(const unsigned int& batch_size) {
 // #if defined(ENABLE_TEST)
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET, {});
 // #else
 //   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
 //                                              {withKey("loss", "cross")});
 // #endif
-  int cnt = 0;
-  for (auto &layer : createRefineDetGraph()) {
-    std::cout << "createrefinedet " << cnt << " " << layer << std::endl;
-    std::cout << layer->getName() << std::endl;
-    // model->addLayer(layer);
-    cnt += 1;
+  for (auto &layer : createRefineDetGraph(batch_size)) {
+    model->addLayer(layer);
   }
-  std::cout << "createrefinedet end" << std::endl;
   return model;
 }
 
@@ -493,49 +529,56 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
                   UserDataType &valid_user_data) {
-  std::cout << "hi1" << std::endl;
-  ModelHandle model = createRefineDet();
-  std::cout << "hi2" << std::endl;
+  ModelHandle model = createRefineDet(batch_size);
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       withKey("save_path", "refinedet_full.bin")});
-  std::cout << "hi3" << std::endl;
+
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
-  std::cout << "hi4" << std::endl;
+
   int status = model->compile();
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
-  std::cout << "hi5" << std::endl;
+
   status = model->initialize();
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
-  std::cout << "hi6" << std::endl;
+
   auto dataset_train = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
   auto dataset_valid = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
-  std::cout << "hi7" << std::endl;
+
   model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                     std::move(dataset_train));
   model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                     std::move(dataset_valid));
   std::cout << "hi8" << std::endl;
   model->train();
-
+  std::cout << "hi9" << std::endl;
 #if defined(ENABLE_TEST)
   model->exports(ml::train::ExportMethods::METHOD_TFLITE, "refinedet_test.tflite");
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();
 #endif
+  std::cout << "hi10" << std::endl;
 }
 
 std::array<UserDataType, 2>
 createFakeDataGenerator(unsigned int batch_size,
                         unsigned int simulated_data_size,
                         unsigned int data_split) {
+  // UserDataType train_data(new nntrainer::util::RandomDataLoader(
+  //   {{batch_size, 3, 32, 32}}, {{
+  //     {batch_size, 4, 4, 2 * num_anchors}, {batch_size, 2, 2, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 4, 2 * num_anchors},
+  //     {batch_size, 4, 4, 4 * num_anchors}, {batch_size, 2, 2, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 4, 4 * num_anchors},
+  //     {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 4, 2 * num_anchors},
+  //     {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 4, 4 * num_anchors},
+  //     }},
+  //   simulated_data_size / data_split));
   UserDataType train_data(new nntrainer::util::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));

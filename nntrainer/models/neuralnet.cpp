@@ -274,7 +274,6 @@ sharedConstTensors NeuralNetwork::forwarding(
 
     auto f = std::get<0>(node->getExecutionOrder());
     model_graph.flushCacheExcept(f);
-
     node->forwarding(training);
   };
 
@@ -786,6 +785,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
 
     std::future<std::shared_ptr<IterationQueue>> future_iq =
       buffer->startFetchWorker(in_dims, label_dims, shuffle);
+
     while (true) {
       ScopedView<Iteration> iter_view = buffer->fetch();
       if (iter_view.isEmpty()) {
@@ -804,6 +804,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
       on_iteration_fetch(stat, *buffer);
       on_iteration_update_stat(stat, outputs, labels);
     }
+
     future_iq.get();
     on_epoch_end(stat, *buffer);
 
@@ -816,8 +817,11 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
 
   auto train_for_iteration = [this, stop_cb, user_data](RunStats &stat,
                                                         DataBuffer &buffer) {
+    std::cout << "train for iter1" << std::endl;
     forwarding(true, stop_cb, user_data);
+    std::cout << "train for iter2" << std::endl;
     backwarding(iter++, stop_cb, user_data);
+    std::cout << "train for iter3" << std::endl;
 
     // To avoid unconsidered memory leak, we need to clear the cache
     model_graph.flushCache();
@@ -912,7 +916,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
     ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
             stat.loss);
   };
-
+  std::cout << "train4" << std::endl;
   PROFILE_MEM_ANNOTATE("TRAIN START");
   auto epochs = getEpochs();
   ml_logd("[NNTrainer] Starts training. Current epoch: %d. Total epochs: %d.",
@@ -931,7 +935,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
     std::cout << '\n';
   }
   PROFILE_MEM_ANNOTATE("TRAIN END");
-
+  std::cout << "train5" << std::endl;
   if (test_buffer) {
     std::cout << "Evaluation with test data...\n";
     testing = run_epoch(test_buffer.get(), false, eval_for_iteration,

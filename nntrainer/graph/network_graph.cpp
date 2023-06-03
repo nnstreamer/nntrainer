@@ -15,6 +15,7 @@
 #include "graph_node.h"
 #include "tensor.h"
 #include <cmath>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
