@@ -83,6 +83,11 @@ const unsigned int feature_map_size1 = 40;
 const unsigned int feature_map_size2 = 20;
 const unsigned int feature_map_size3 = 5;
 const unsigned int feature_map_size4 = 3;
+const unsigned int total_feature_map = (
+  feature_map_size1 * feature_map_size1 +
+  feature_map_size2 * feature_map_size2 +
+  feature_map_size3 * feature_map_size3 +
+  feature_map_size4 * feature_map_size4);
 const unsigned int num_ratios = 3;
 const unsigned int num_anchors = num_ratios;
 const unsigned int num_classes = 20;
@@ -521,7 +526,6 @@ ModelHandle createRefineDet(const unsigned int& batch_size) {
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
   auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
-
   data->next(input, label, last);
   return 0;
 }
@@ -595,10 +599,10 @@ createFakeDataGenerator(unsigned int batch_size,
   //     }},
   //   simulated_data_size / data_split));
   UserDataType train_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
+    {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
     simulated_data_size / data_split));
   UserDataType valid_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
+    {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
     simulated_data_size / data_split));
 
   return {std::move(train_data), std::move(valid_data)};
@@ -666,7 +670,7 @@ int main(int argc, char *argv[]) {
 
   try {
     if (data_dir == "fake") {
-      user_datas = createFakeDataGenerator(batch_size, 32, data_split);
+      user_datas = createFakeDataGenerator(batch_size, 320, data_split);
     } else {
       user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }

@@ -412,15 +412,15 @@ std::vector<float> calc_iou(Tensor box1_yx, Tensor box1_hw, Tensor box2_yx, Tens
 
   Tensor inter_area = inter_x2.subtract(inter_x1).apply(nntrainer::ActiFunc::relu).multiply(
     inter_y2.subtract(inter_y1).apply(nntrainer::ActiFunc::relu));
+  inter_area.reshape({1, 1, inter_area.size(), 1});
   
-  std::cout<<"inter area"<<inter_area.height()<<inter_area.width()<<std::endl;
-  std::cout<<"box1 h"<<box1_h.height()<<box1_h.width()<<std::endl;
-  std::cout<<"box1 w"<<box1_w.height()<<box1_w.width()<<std::endl;
-  std::cout<<"box2 h"<<box2_h.height()<<box2_h.width()<<std::endl;
-  std::cout<<"box2 w"<<box2_w.height()<<box2_w.width()<<std::endl;
+  // std::cout<<"inter area"<<inter_area.height()<<inter_area.width()<<std::endl;
+  // std::cout<<"box1 h"<<box1_h.height()<<box1_h.width()<<std::endl;
+  // std::cout<<"box1 w"<<box1_w.height()<<box1_w.width()<<std::endl;
+  // std::cout<<"box2 h"<<box2_h.height()<<box2_h.width()<<std::endl;
+  // std::cout<<"box2 w"<<box2_w.height()<<box2_w.width()<<std::endl;
 
   float* iou_vec = inter_area.divide(box1_h.multiply(box1_w).add(box2_h.multiply(box2_w)).subtract(inter_area)).getData();
-  std::cout<<"hi3"<<std::endl;
   return std::vector<float>(iou_vec, iou_vec + num_anc);
 }
 
@@ -429,7 +429,8 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
   Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &gt = context.getLabel(SINGLE_INOUT_IDX);
-  std::cout << "refinedet forwarding 1.1" << std::endl;
+  // input.setRandUniform(1.0, 20.0);
+  // gt.setRandUniform(1.0, 20.0);
   std::vector<Tensor> input_split = input.split({2, 2, 2, 2, 2, num_classes}, 3);
   Tensor& arm_yx = input_split[0];
   Tensor& arm_hw = input_split[1];
@@ -437,15 +438,13 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
   Tensor& odm_yx = input_split[3];
   Tensor& odm_hw = input_split[4];
   Tensor& odm_conf = input_split[5];
-  std::cout << "refinedet forwarding 1.2" << std::endl;
   std::vector<Tensor> gt_split = gt.split({2, 2, num_classes}, 3);
   Tensor& gt_yx = gt_split[0];
   Tensor& gt_hw = gt_split[1];
   Tensor& gt_class = gt_split[2];
-  std::cout << "refinedet forwarding 1.3" << std::endl;
   std::vector<Tensor> anchors = create_anchors();
+  // for (auto& anc : anchors) {anc.setRandUniform(1.0, 50.0);}
   unsigned int anchors_num = anchors[0].height();
-  std::cout << "refinedet forwarding 2" << std::endl;
   for (unsigned int b = 0; b < arm_conf.batch(); b++) {
     Tensor arm_conf_ = arm_conf.getBatchSlice(b, 1);
     Tensor arm_yx_ = arm_yx.getBatchSlice(b, 1);
@@ -456,32 +455,30 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     Tensor gt_class_ = gt_class.getBatchSlice(b, 1);
     Tensor gt_yx_ = gt_yx.getBatchSlice(b, 1);
     Tensor gt_hw_ = gt_hw.getBatchSlice(b, 1);
-    // arm_conf_.reshape({arm_conf_.size() / 2, 2});
-    // arm_yx_.reshape({arm_yx_.size() / 2, 2});
-    // arm_hw.reshape({arm_hw_.size() / 2, 2});
-    // gt_class_.reshape({gt_class_.size() / num_classes, num_classes});
-    // gt_yx_.reshape({gt_yx_.size() / 2, 2});
-    // gt_hw_.reshape({gt_hw_.size() / 2, 2});
-    std::cout << "refinedet forwarding 3" << std::endl;
     // Search anchor with best iou or higher iou than 0.5
     std::set<unsigned int> positive_idx_set = {};
     std::vector<int> anchor_gt_label_idx(anchors_num, -1);
     std::vector<float> anchor_gt_label_iou(anchors_num);
+    std::vector<std::vector<float>> anchor_gt_label_yx(anchors_num, {0,0});
+    std::vector<std::vector<float>> anchor_gt_label_hw(anchors_num, {0,0});
 
     // std::cout << gt_yx_.batch() << " " << gt_yx_.channel() << " " << gt_yx_.height() << " " << gt_yx_.width() << " " << std::endl;
     std::vector<Tensor> gt_yx_boxes = gt_yx_.split(gt_class_.height(), 2);
     std::vector<Tensor> gt_hw_boxes = gt_hw_.split(gt_class_.height(), 2);
     for (unsigned int gt = 0; gt < gt_class_.height(); gt++) {
-      std::cout << "refinedet forwarding 4" << std::endl;
       std::vector<float> anc_gt_iou = calc_iou(anchors[0], anchors[3], gt_yx_boxes[gt], gt_hw_boxes[gt]);
       unsigned int max_idx = *std::max_element(anc_gt_iou.begin(), anc_gt_iou.end());
+      if (anc_gt_iou[max_idx]  > 0 )
+        std::cout << anc_gt_iou[max_idx] << std::endl;
       if (anchor_gt_label_iou[max_idx] < anc_gt_iou[max_idx]) {
         anchor_gt_label_idx[max_idx] = gt;
         anchor_gt_label_iou[max_idx] = anc_gt_iou[max_idx];
+        anchor_gt_label_yx[max_idx] = {gt_yx_boxes[gt].getValue(0, 0, 0, 0), gt_yx_boxes[gt].getValue(0, 0, 0, 1)};
+        anchor_gt_label_hw[max_idx] = {gt_hw_boxes[gt].getValue(0, 0, 0, 0), gt_hw_boxes[gt].getValue(0, 0, 0, 1)};
+        std::cout << gt_yx_boxes[gt].getValue(0, 0, 0, 0) << " " << gt_yx_boxes[gt].getValue(0, 0, 0, 1) << std::endl;
       }
       positive_idx_set.insert(max_idx);
       for (unsigned int i = 0; i < anchors_num; i++) {
-        std::cout << "refinedet forwarding 5" << std::endl;
         if (anc_gt_iou[i] > 0.5) {
           positive_idx_set.insert(i);
         }
@@ -492,17 +489,14 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     for (auto& i : positive_idx_set) {
       positive_mask[i] = 1;
     }
-    std::cout << "refinedet forwarding 6" << std::endl;
     // ARM loss
     output.add_i(cross_entropy(arm_conf_, positive_mask) / num_positive_anchors);
-
     auto log_ = [&](float val) {return (float)log(val);};
-    Tensor gt_yx_ratio = gt_yx_.subtract(anchors[0]).divide(anchors[1]);
-    Tensor gt_hw_log = gt_hw_.divide(anchors[1]).apply(log_);
-    Tensor gt_yxhw = Tensor::cat({gt_yx_ratio, gt_hw_log}, 1);
-    Tensor arm_yxhw = Tensor::cat({arm_yx_, arm_hw_}, 1);
+    Tensor gt_yx_ratio = Tensor(anchor_gt_label_yx).subtract(anchors[0]).divide(anchors[1]);
+    Tensor gt_hw_log = Tensor(anchor_gt_label_hw).divide(anchors[1]).apply(log_);
+    Tensor gt_yxhw = Tensor::cat({gt_yx_ratio, gt_hw_log}, 3);
+    Tensor arm_yxhw = Tensor::cat({arm_yx_, arm_hw_}, 3);
     output.add_i(smooth_l1(arm_yxhw, gt_yxhw, positive_mask) / num_positive_anchors);
-    std::cout << "refinedet forwarding 7" << std::endl;
     // ODM loss
     // get initial positive boxes from arm/gt iou??
     // Negative anchor filtering
@@ -517,7 +511,6 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         num_negative_anchors--;
       }
     }
-    std::cout << "refinedet forwarding 8" << std::endl;
     // Hard negative mining
     std::vector<std::pair<unsigned int, float>> arm_loss_per_anchor = cross_entropy_per_anchor(arm_conf_, positive_mask);
     sort(arm_loss_per_anchor.begin(), arm_loss_per_anchor.end(), 
@@ -526,14 +519,11 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
       num_negative_anchors = 3 * num_positive_anchors;
       arm_loss_per_anchor.resize(num_negative_anchors);
     }
-    std::cout << "refinedet forwarding 9" << std::endl;
     // Should NMS be done here??
     for (unsigned int i = 0; i < num_negative_anchors; i++) {
       unsigned int ith = arm_loss_per_anchor[i].first;
       Tensor ith_anchor_yx = anchors[0].getBatchSlice(ith, 1);
       Tensor ith_anchor_hw = anchors[3].getBatchSlice(ith, 1);
-      ith_anchor_yx.reshape({2});
-      ith_anchor_hw.reshape({2});
       std::vector<float> ith_anchor_iou = calc_iou(anchors[0], anchors[3], ith_anchor_yx, ith_anchor_hw);
       for(unsigned int j = 0; j < ith_anchor_iou.size(); j++) {
         if (i == j) {continue;}
@@ -543,7 +533,6 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         }
       }
     }
-    std::cout << "refinedet forwarding 10" << std::endl;
     Tensor odm_yxhw = Tensor::cat({odm_yx_, odm_hw_}, 1);
     std::vector<unsigned int> pos_neg_mask(anchors_num);
     std::vector<unsigned int> gt_class_labels(anchors_num);
@@ -556,13 +545,13 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         gt_class_labels[i] = gt_class_.argmax()[anchor_gt_label_idx[i]];
       }
     }
-    std::cout << "refinedet forwarding 1`" << std::endl;
     output.add_i(cross_entropy_with_mask(odm_conf_, pos_neg_mask, gt_class_labels) / num_positive_anchors);
     output.add_i(smooth_l1(odm_yxhw, gt_yxhw, pos_neg_mask) / num_positive_anchors);
   }
-    std::cout << "refinedet forwarding 12" << std::endl;
-    LossLayer::updateLoss(context, output);
-    std::cout << "refinedet forwarding 13" << std::endl;
+  std::cout << output.sum({0,1,2,3}).getData()[0] << std::endl;
+  std::cout << output.average({0,1,2,3}).getData()[0] << std::endl;
+  LossLayer::updateLoss(context, output);
+  std::cout << "refinedet forwarding 2" << std::endl;
 }
 
 void binary_cross_entropy_derivative(const Tensor& derivative, Tensor& dp, Tensor& x, Tensor& y) {

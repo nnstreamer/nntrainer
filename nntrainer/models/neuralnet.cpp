@@ -276,6 +276,7 @@ sharedConstTensors NeuralNetwork::forwarding(
     model_graph.flushCacheExcept(f);
     node->forwarding(training);
   };
+
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
 }
 
