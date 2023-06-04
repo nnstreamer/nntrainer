@@ -579,11 +579,10 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model->train();
   std::cout << "hi9" << std::endl;
 #if defined(ENABLE_TEST)
-  model->exports(ml::train::ExportMethods::METHOD_TFLITE, "refinedet_test.tflite");
+  // model->exports(ml::train::ExportMethods::METHOD_TFLITE, "refinedet_test.tflite");
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();
 #endif
-  std::cout << "hi10" << std::endl;
 }
 
 std::array<UserDataType, 2>
@@ -670,7 +669,7 @@ int main(int argc, char *argv[]) {
 
   try {
     if (data_dir == "fake") {
-      user_datas = createFakeDataGenerator(batch_size, 320, data_split);
+      user_datas = createFakeDataGenerator(batch_size, 1, data_split);
     } else {
       user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }

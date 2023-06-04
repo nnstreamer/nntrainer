@@ -42,6 +42,7 @@ const unsigned int num_anchors = num_ratios * (
   feature_map_size3 * feature_map_size3 + 
   feature_map_size4 * feature_map_size4);
 const unsigned int num_classes = 20;
+const unsigned int num_gt_boxes = 50;
 const float positive_anchor_threshold = 0.5;
 
 using nntrainer::Tensor;
@@ -89,19 +90,6 @@ void RefineDetLoss::finalize(nntrainer::InitLayerContext &context) {
   TensorDim out_dim = in_dim;
   out_dim.width(4 + num_classes);
   context.setOutputDimensions({out_dim});
-  std::cout << context.getName() << " out dim: " << out_dim.batch() << ":" << out_dim.channel() << ":" << out_dim.height() << ":" << out_dim.width()
-     << " in dim: "<< in_dim.batch() << ":" << in_dim.channel() << ":" << in_dim.height() << ":" << in_dim.width() << std::endl;
-
-//   TensorDim input_dim =
-//     context.getInputDimensions()[SINGLE_INOUT_IDX];
-//   const unsigned int batch_size = input_dim.batch();
-//   const unsigned int class_number = 20;
-//   const unsigned int grid_height_number = 4;
-//   const unsigned int grid_width_number = 4;
-//   const unsigned int max_object_number = 10;
-//   TensorDim label_dim(batch_size, 1, max_object_number, 5);
-//   context.setOutputDimensions({label_dim});
-
 //   TensorDim bbox_x_pred_dim({
 //     batch_size, num_anchors, 1});
 //   wt_idx[RefineDetLossParams::arm_yx_pred] = context.requestTensor(
@@ -425,12 +413,13 @@ std::vector<float> calc_iou(Tensor box1_yx, Tensor box1_hw, Tensor box2_yx, Tens
 }
 
 void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool training) { 
-  std::cout << "refinedet forwarding 1" << std::endl;
+  // std::cout << "refinedet forwarding 1" << std::endl;
   Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  // Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor output = Tensor({1});
   Tensor &gt = context.getLabel(SINGLE_INOUT_IDX);
-  // input.setRandUniform(1.0, 20.0);
-  // gt.setRandUniform(1.0, 20.0);
+  input.setRandUniform(0.0, 19.0);
+  gt.setRandUniform(0.0, 19.0);
   std::vector<Tensor> input_split = input.split({2, 2, 2, 2, 2, num_classes}, 3);
   Tensor& arm_yx = input_split[0];
   Tensor& arm_hw = input_split[1];
@@ -443,7 +432,7 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
   Tensor& gt_hw = gt_split[1];
   Tensor& gt_class = gt_split[2];
   std::vector<Tensor> anchors = create_anchors();
-  // for (auto& anc : anchors) {anc.setRandUniform(1.0, 50.0);}
+  for (auto& anc : anchors) {anc.setRandUniform(0.0, 19.0);}
   unsigned int anchors_num = anchors[0].height();
   for (unsigned int b = 0; b < arm_conf.batch(); b++) {
     Tensor arm_conf_ = arm_conf.getBatchSlice(b, 1);
@@ -475,7 +464,6 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         anchor_gt_label_iou[max_idx] = anc_gt_iou[max_idx];
         anchor_gt_label_yx[max_idx] = {gt_yx_boxes[gt].getValue(0, 0, 0, 0), gt_yx_boxes[gt].getValue(0, 0, 0, 1)};
         anchor_gt_label_hw[max_idx] = {gt_hw_boxes[gt].getValue(0, 0, 0, 0), gt_hw_boxes[gt].getValue(0, 0, 0, 1)};
-        std::cout << gt_yx_boxes[gt].getValue(0, 0, 0, 0) << " " << gt_yx_boxes[gt].getValue(0, 0, 0, 1) << std::endl;
       }
       positive_idx_set.insert(max_idx);
       for (unsigned int i = 0; i < anchors_num; i++) {
@@ -548,10 +536,8 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     output.add_i(cross_entropy_with_mask(odm_conf_, pos_neg_mask, gt_class_labels) / num_positive_anchors);
     output.add_i(smooth_l1(odm_yxhw, gt_yxhw, pos_neg_mask) / num_positive_anchors);
   }
-  std::cout << output.sum({0,1,2,3}).getData()[0] << std::endl;
-  std::cout << output.average({0,1,2,3}).getData()[0] << std::endl;
   LossLayer::updateLoss(context, output);
-  std::cout << "refinedet forwarding 2" << std::endl;
+  // std::cout << "refinedet forwarding 2" << std::endl;
 }
 
 void binary_cross_entropy_derivative(const Tensor& derivative, Tensor& dp, Tensor& x, Tensor& y) {
@@ -588,75 +574,38 @@ void smooth_l1_derivative(const Tensor& derivative, Tensor& dx, Tensor& x, Tenso
 }
 
 void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
-/// intended here to demonstrate that PowLayer::backwarding is being called
-#ifdef DEBUG
-  std::cout << "pow layer backward is called\n";
-#endif
+  // std::cout << "refinedet derivative 1" << std::endl;
   // Get the incoming derivative
   const Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  std::cout << "deriv" << std::endl;
+  incoming_derivative.print(std::cout);
 
-  Tensor &p = context.getInput(0);   // predicted binary confidence
-  Tensor &x = context.getInput(1);   // predicted coordinates by ARM
-  Tensor &c = context.getInput(2);   // predicted class confidence
-  Tensor &t = context.getInput(3);   // predicted coordinates by ODM
-  Tensor l, g;
-  if (context.isLabelAvailable(0)) {
-    Tensor &l = context.getLabel(0);   // ground truth label
-  }
-  if (context.isLabelAvailable(1)) {
-    Tensor &g = context.getLabel(1);   // ground truth coordinates
-  }
-
-  // Get the outgoing derivatives
-  Tensor &dp = context.getOutgoingDerivative(0);
-  Tensor &dx = context.getOutgoingDerivative(1);
-  Tensor &dc = context.getOutgoingDerivative(2);
-  Tensor &dt = context.getOutgoingDerivative(3);
-
-  for (unsigned int b = 0; b < dp.batch(); b++) {
-    
-    Tensor p_ = p.getBatchSlice(b, 1);  // (anchor, 2)
-    Tensor x_ = x.getBatchSlice(b, 1);  // (anchor, 4)
-    Tensor c_ = c.getBatchSlice(b, 1);  // (anchor, class)
-    Tensor t_ = t.getBatchSlice(b, 1);  // (anchor, 4)
-    Tensor l_ = l.getBatchSlice(b, 1);  // (anchor, class)
-    Tensor g_ = g.getBatchSlice(b, 1);  // (anchor, 4)
-
-    Tensor dp_ = dp.getBatchSlice(b, 1);  // (anchor, 2)
-    Tensor dx_ = dx.getBatchSlice(b, 1);  // (anchor, 4)
-    Tensor dc_ = dc.getBatchSlice(b, 1);  // (anchor, class)
-    Tensor dt_ = dt.getBatchSlice(b, 1);  // (anchor, 4)
-    binary_cross_entropy_derivative(incoming_derivative, dp, p_, l_);
-    categorical_cross_entropy_derivative(incoming_derivative, dc, c_, l_);
-    smooth_l1_derivative(incoming_derivative, dx, x_, g_);
-    smooth_l1_derivative(incoming_derivative, dt, t_, g_);
-  }
-
-#ifdef DEBUG
-  std::cout << "input: " << context.getOutput(SINGLE_INOUT_IDX);
-  std::cout << "output: " << context.getInput(SINGLE_INOUT_IDX);
-  /// PowUtil::pause();
-#endif
+// #ifdef DEBUG
+//   std::cout << "input: " << context.getOutput(SINGLE_INOUT_IDX);
+//   std::cout << "output: " << context.getInput(SINGLE_INOUT_IDX);
+//   /// PowUtil::pause();
+// #endif
+  // std::cout << "refinedet derivative 2" << std::endl;
 }
 
-#ifdef PLUGGABLE
+// #ifdef PLUGGABLE
 
-nntrainer::Layer *create_pow_layer() {
-  auto layer = new PowLayer();
-  std::cout << "power created\n";
-  return layer;
-}
+// nntrainer::Layer *create_pow_layer() {
+//   auto layer = new PowLayer();
+//   std::cout << "power created\n";
+//   return layer;
+// }
 
-void destory_pow_layer(nntrainer::Layer *layer) {
-  std::cout << "power deleted\n";
-  delete layer;
-}
+// void destory_pow_layer(nntrainer::Layer *layer) {
+//   std::cout << "power deleted\n";
+//   delete layer;
+// }
 
-extern "C" {
-nntrainer::LayerPluggable ml_train_layer_pluggable{create_pow_layer,
-                                                   destory_pow_layer};
-}
+// extern "C" {
+// nntrainer::LayerPluggable ml_train_layer_pluggable{create_pow_layer,
+//                                                    destory_pow_layer};
+// }
 
-#endif
+// #endif
 
 } // namespace custom

@@ -311,8 +311,6 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
   out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
   context.setOutputDimensions({out_dim});
-  std::cout << context.getName() << "out dim: " << out_dim.batch() << ":" << out_dim.channel() << ":" << out_dim.height() << ":" << out_dim.width()
-     << " in dim: "<< in_dim.batch() << ":" << in_dim.channel() << ":" << in_dim.height() << ":" << in_dim.width() << std::endl;
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
                 std::invalid_argument)
