@@ -469,7 +469,7 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
       out.reshape({filter_size, out_dim.width() * out_dim.height()});
       Tensor in_sub = transpose_input_.getBatchSlice(b, 1);
 
-      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      im2col(in_sub, filter_dim, transpose_padding, transpose_stride, dilation, result);
       filter_kernel.dot(result, out, false, true);
     }
     result.deallocate();
@@ -500,6 +500,33 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
   auto &dilation =
     std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
 
+  const TensorDim &in_dim = input_.getDim();
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
+  std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
+  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
+
+  auto &kernel_size=
+    std::get<std::array<props::KernelSize, CONVTRANSPOSE2D_DIM>>(conv_props);
+
+  padding = std::get<props::Padding2D>(conv_props)
+              .compute(in_dim, filter_kernel.getDim(), {stride[0], stride[1]},
+                       {dilation[0], dilation[1]});
+
+  std::array<unsigned int, 4> transpose_padding = {
+      kernel_size[0] - padding[0] - 1, 
+      kernel_size[0] - padding[1] - 1, 
+      kernel_size[1] - padding[2] - 1, 
+      kernel_size[1] - padding[3] - 1
+    };
+
+  const TensorDim &transpose_in_dim = {
+    in_dim.batch(),
+    in_dim.channel(),
+    (stride[0] - 1) * (in_dim.width() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
+    (stride[1] - 1) * (in_dim.height() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
+  };
+
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
@@ -525,7 +552,7 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
       filter_kernel.dot(deriv_sub, result, true, false);
-      col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      col2im(result, filter_dim, transpose_padding, transpose_stride, dilation, in_deriv_sub);
     }
       result.deallocate();
   };
@@ -641,7 +668,7 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
          * expense of memory. In this case, memory of im2col_result must be
          * saved for the whole batch. try this while benchmarking.
          */
-        im2col(in_sub, filter_dim, padding, stride, dilation, result);
+        im2col(in_sub, filter_dim, transpose_padding, transpose_stride, dilation, result);
         deriv_sub.dot(result, delK_sub, false, false);
       }
       result.deallocate();
@@ -674,7 +701,7 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
        * expense of memory. In this case, memory of im2col_result must be saved
        * for the whole batch. try this while benchmarking.
        */
-      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      im2col(in_sub, filter_dim, transpose_padding, transpose_stride, dilation, result);
       deriv_sub.dot(result, delK, false, false, b == 0 ? 0 : 1);
     }
     result.deallocate();
