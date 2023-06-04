@@ -78,17 +78,13 @@ static std::string withKey(const std::string &key,
   return ss.str();
 }
 
-const std::string input_shape = "3:32:32";
-const unsigned int feature_map_size1 = 4;
-const unsigned int feature_map_size2 = 2;
-const unsigned int feature_map_size3 = 1;
-const unsigned int feature_map_size4 = 1;
+const std::string input_shape = "3:320:320";
+const unsigned int feature_map_size1 = 40;
+const unsigned int feature_map_size2 = 20;
+const unsigned int feature_map_size3 = 5;
+const unsigned int feature_map_size4 = 3;
 const unsigned int num_ratios = 3;
-const unsigned int num_anchors = num_ratios * (
-  feature_map_size1 * feature_map_size1 + 
-  feature_map_size2 * feature_map_size2 + 
-  feature_map_size3 * feature_map_size3 + 
-  feature_map_size4 * feature_map_size4);
+const unsigned int num_anchors = num_ratios;
 const unsigned int num_classes = 20;
 
 /**
@@ -134,6 +130,7 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
     std::vector<std::string> props{
       with_name(name),
       withKey("pool_size", {pool_size, pool_size}),
+      withKey("stride", {pool_size, pool_size}),
       withKey("pooling", "max"),
       withKey("input_layers", input_layer)};
 
@@ -364,16 +361,34 @@ LayerHandle reshape_output(
   const unsigned int& feature_map_size,
   const unsigned int& shape) {
   using ml::train::createLayer;
-
+ 
   return createLayer(
     "reshape", {
       withKey("name", block_name),
-      withKey("target_shape", nntrainer::TensorDim({
-        batch_size, 
-        num_anchors * feature_map_size * feature_map_size,
-        shape}))
+      withKey("input_layers", {input_name}),
+      withKey("target_shape", std::to_string(num_anchors * feature_map_size * feature_map_size) + ":" +
+                std::to_string(shape))
     }
   );
+  
+  // return createLayer(
+  //   "reshape", {
+  //     withKey("name", block_name),
+  //     withKey("target_shape", std::to_string(batch_size) + ":" +
+  //               std::to_string(num_anchors * feature_map_size * feature_map_size) + ":" +
+  //               std::to_string(shape))
+  //   }
+  // );
+
+  // return createLayer(
+  //   "reshape", {
+  //     withKey("name", block_name),
+  //     withKey("target_shape", nntrainer::TensorDim({
+  //       batch_size, 
+  //       num_anchors * feature_map_size * feature_map_size,
+  //       shape}))
+  //   }
+  // );
 }
 
 /**
@@ -420,25 +435,25 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
-  layers.push_back(reshape_output("arm1_pconf", "arm1/pconf", batch_size, 4, 2));
-  layers.push_back(reshape_output("arm2_pconf", "arm2/pconf", batch_size, 2, 2));
-  layers.push_back(reshape_output("arm3_pconf", "arm3/pconf", batch_size, 1, 2));
-  layers.push_back(reshape_output("arm4_pconf", "arm4/pconf", batch_size, 1, 2));
+  layers.push_back(reshape_output("arm1_pconf", "arm1/pconf", batch_size, feature_map_size1, 2));
+  layers.push_back(reshape_output("arm2_pconf", "arm2/pconf", batch_size, feature_map_size2, 2));
+  layers.push_back(reshape_output("arm3_pconf", "arm3/pconf", batch_size, feature_map_size3, 2));
+  layers.push_back(reshape_output("arm4_pconf", "arm4/pconf", batch_size, feature_map_size4, 2));
 
-  layers.push_back(reshape_output("arm1_ploc", "arm1/ploc", batch_size, 4, 4));
-  layers.push_back(reshape_output("arm2_ploc", "arm2/ploc", batch_size, 2, 4));
-  layers.push_back(reshape_output("arm3_ploc", "arm3/ploc", batch_size, 1, 4));
-  layers.push_back(reshape_output("arm4_ploc", "arm4/ploc", batch_size, 1, 4));
+  layers.push_back(reshape_output("arm1_ploc", "arm1/ploc", batch_size, feature_map_size1, 4));
+  layers.push_back(reshape_output("arm2_ploc", "arm2/ploc", batch_size, feature_map_size2, 4));
+  layers.push_back(reshape_output("arm3_ploc", "arm3/ploc", batch_size, feature_map_size3, 4));
+  layers.push_back(reshape_output("arm4_ploc", "arm4/ploc", batch_size, feature_map_size4, 4));
 
-  layers.push_back(reshape_output("odm1_pconf", "odm1/pconf", batch_size, 4, false));
-  layers.push_back(reshape_output("odm2_pconf", "odm2/pconf", batch_size, 2, false));
-  layers.push_back(reshape_output("odm3_pconf", "odm3/pconf", batch_size, 1, false));
-  layers.push_back(reshape_output("odm4_pconf", "odm4/pconf", batch_size, 1, false));
+  layers.push_back(reshape_output("odm1_pconf", "odm1/pconf", batch_size, feature_map_size1, num_classes));
+  layers.push_back(reshape_output("odm2_pconf", "odm2/pconf", batch_size, feature_map_size2, num_classes));
+  layers.push_back(reshape_output("odm3_pconf", "odm3/pconf", batch_size, feature_map_size3, num_classes));
+  layers.push_back(reshape_output("odm4_pconf", "odm4/pconf", batch_size, feature_map_size4, num_classes));
 
-  layers.push_back(reshape_output("odm1_ploc", "odm1/ploc", batch_size, 4, true));
-  layers.push_back(reshape_output("odm2_ploc", "odm2/ploc", batch_size, 2, true));
-  layers.push_back(reshape_output("odm3_ploc", "odm3/ploc", batch_size, 1, true));
-  layers.push_back(reshape_output("odm4_ploc", "odm4/ploc", batch_size, 1, true));
+  layers.push_back(reshape_output("odm1_ploc", "odm1/ploc", batch_size, feature_map_size1, 4));
+  layers.push_back(reshape_output("odm2_ploc", "odm2/ploc", batch_size, feature_map_size2, 4));
+  layers.push_back(reshape_output("odm3_ploc", "odm3/ploc", batch_size, feature_map_size3, 4));
+  layers.push_back(reshape_output("odm4_ploc", "odm4/ploc", batch_size, feature_map_size4, 4));
 
   // auto createSplit = [](
   //   const std::string& block_name, 
@@ -472,7 +487,7 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
           module + "2_" + predict, 
           module + "3_" + predict, 
           module + "4_" + predict}),
-        withKey("axis", 1)
+        withKey("axis", 2)
       });
   };
   layers.push_back(createConcat("arm", "ploc"));
@@ -483,7 +498,7 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
   layers.push_back(createLayer("concat", {
     withKey("name", "output"), 
     withKey("input_layers", {"arm_ploc", "arm_pconf", "odm_ploc", "odm_pconf"}),
-    withKey("axis", 2)
+    withKey("axis", 3)
   }));
 
   layers.push_back(createLayer("refinedet_loss", {withKey("name", "refinedet_loss")}));

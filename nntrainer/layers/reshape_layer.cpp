@@ -17,6 +17,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <reshape_layer.h>
+#include <iostream>
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -37,6 +38,9 @@ void ReshapeLayer::finalize(InitLayerContext &context) {
     out_dim.channel(1);
     out_dim.width(in_dim.getFeatureLen());
   } else if (out_dim.getFeatureLen() != in_dim.getFeatureLen()) {
+    std::cout << context.getName() << "out dim: " << out_dim.batch() << ":" << out_dim.channel() << ":" << out_dim.height() << ":" << out_dim.width()
+     << " in dim: "<< in_dim.batch() << ":" << in_dim.channel() << ":" << in_dim.height() << ":" << in_dim.width() << std::endl;
+
     throw std::invalid_argument(
       "Target and input size mismatch for reshape layer");
   }

@@ -271,12 +271,11 @@ sharedConstTensors NeuralNetwork::forwarding(
                               bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
-
+    std::cout << "Forwarding for layer: " + node->getName() << std::endl;
     auto f = std::get<0>(node->getExecutionOrder());
     model_graph.flushCacheExcept(f);
     node->forwarding(training);
   };
-
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
 }
 

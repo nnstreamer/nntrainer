@@ -16,6 +16,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <utility>
+#include <iostream>
 
 #include <activation_layer.h>
 #include <app_context.h>
@@ -501,7 +502,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     throw std::runtime_error(
       "Trying to finalizing a layer which is already finalized in layer: " +
       getName());
-
+  
   std::vector<TensorDim> actual_input_dims;
   auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
   auto &prop_in_layers =
@@ -511,6 +512,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   if (!input_dims.empty()) {
     actual_input_dims = input_dims;
     if (hasInputShapeProperty()) {
+      printShapeInfo(std::cout);
       std::vector<TensorDim> actual_prop_dims(prop_dims.begin(),
                                               prop_dims.end());
       /// if prop_dims exist, check if it's same with given input_dims
@@ -570,7 +572,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
                                   scope, max_norm);
 
   layer->finalize(context);
-
+  
 #ifdef ENABLE_TEST
   init_context = std::make_unique<InitLayerContext>(context);
 #endif // ENABLE_TEST
@@ -596,6 +598,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
   PROFILE_TIME_START(forward_event_key);
+  // std::cout << getName() << std::endl;
   layer->forwarding(*run_context, training);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
