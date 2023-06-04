@@ -367,7 +367,6 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
 
   /* Modified code */
   const TensorDim &in_dim = input_.getDim();
-  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
   std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
   std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
 
@@ -497,12 +496,13 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
 void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
-  auto &dilation =
-    std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
+  auto &dilation = std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
+
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   const TensorDim &in_dim = input_.getDim();
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
-  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
   std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
   std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
 
@@ -529,7 +529,6 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
   TensorDim filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
@@ -571,6 +570,7 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
 void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONVTRANSPOSE2D_DIM>>(conv_props);
+  auto &dilation = std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
   // auto &dilation =
   //   std::get<std::array<props::Dilation, CONVTRANSPOSE2D_DIM>>(conv_props);
   // auto &kernel_size = std::get<std::array<props::KernelSize, CONVTRANSPOSE2D_DIM>>(conv_props);
@@ -581,7 +581,6 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
   /* Modified code */
   const TensorDim &in_dim = input_.getDim();
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
-  std::array<props::Dilation, CONVTRANSPOSE2D_DIM> dilation = {props::Dilation(), props::Dilation()};
   std::array<props::Stride, CONVTRANSPOSE2D_DIM> transpose_stride = {props::Stride(), props::Stride()};
   std::array<props::Dilation, CONVTRANSPOSE2D_DIM> transpose_dilation = {props::Dilation(), props::Dilation()};
 
