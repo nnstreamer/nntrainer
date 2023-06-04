@@ -388,8 +388,8 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
   const TensorDim &transpose_in_dim = TensorDim(
     in_dim.batch(),
     in_dim.channel(),
-    (stride[0] - 1) * (in_dim.height() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
-    (stride[1] - 1) * (in_dim.width() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
+    (stride[0] - 1) * (in_dim.height() - 1) + 1,
+    (stride[1] - 1) * (in_dim.width() - 1) + 1
   );
 
   // TODO: transpose input without allocating additional memory?
@@ -402,8 +402,8 @@ void ConvTranspose2DLayer::forwarding(RunLayerContext &context, bool training) {
           for (unsigned int h = 0; h < in_dim.height(); h++) {
               for(unsigned int w = 0; w < in_dim.width(); w++) {
                   transpose_input_.setValue(b, c, 
-                    h * (stride[0] - 1) + transpose_padding[0], 
-                    w * (stride[1] - 1) + transpose_padding[2], 
+                    h * (stride[0] - 1), 
+                    w * (stride[1] - 1), 
                     input_.getValue(b, c, h, w));
               }
           }
@@ -523,8 +523,8 @@ void ConvTranspose2DLayer::calcDerivative(RunLayerContext &context) {
   const TensorDim &transpose_in_dim = {
     in_dim.batch(),
     in_dim.channel(),
-    (stride[0] - 1) * (in_dim.width() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
-    (stride[1] - 1) * (in_dim.height() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
+    (stride[0] - 1) * (in_dim.width() - 1) + 1,
+    (stride[1] - 1) * (in_dim.height() - 1) + 1
   };
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
@@ -602,8 +602,8 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
   const TensorDim &transpose_in_dim = {
     in_dim.batch(),
     in_dim.channel(),
-    (stride[0] - 1) * (in_dim.width() - 1) + 1 + transpose_padding[0] + transpose_padding[1],
-    (stride[1] - 1) * (in_dim.height() - 1) + 1 + transpose_padding[2] + transpose_padding[3]
+    (stride[0] - 1) * (in_dim.width() - 1) + 1,
+    (stride[1] - 1) * (in_dim.height() - 1) + 1
   };
   Tensor transpose_input_ = Tensor(transpose_in_dim);
   transpose_input_.setZero();
@@ -613,8 +613,8 @@ void ConvTranspose2DLayer::calcGradient(RunLayerContext &context) {
           for (unsigned int h = 0; h < in_dim.height(); h++) {
               for(unsigned int w = 0; w < in_dim.width(); w++) {
                   transpose_input_.setValue(b, c, 
-                    h * (stride[0] - 1) + transpose_padding[0], 
-                    w * (stride[1] - 1) + transpose_padding[2], 
+                    h * (stride[0] - 1), 
+                    w * (stride[1] - 1), 
                     input_.getValue(b, c, h, w));
               }
           }
