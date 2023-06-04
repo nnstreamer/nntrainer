@@ -412,6 +412,13 @@ std::vector<float> calc_iou(Tensor box1_yx, Tensor box1_hw, Tensor box2_yx, Tens
 
   Tensor inter_area = inter_x2.subtract(inter_x1).apply(nntrainer::ActiFunc::relu).multiply(
     inter_y2.subtract(inter_y1).apply(nntrainer::ActiFunc::relu));
+  
+  std::cout<<"inter area"<<inter_area.height()<<inter_area.width()<<std::endl;
+  std::cout<<"box1 h"<<box1_h.height()<<box1_h.width()<<std::endl;
+  std::cout<<"box1 w"<<box1_w.height()<<box1_w.width()<<std::endl;
+  std::cout<<"box2 h"<<box2_h.height()<<box2_h.width()<<std::endl;
+  std::cout<<"box2 w"<<box2_w.height()<<box2_w.width()<<std::endl;
+
   float* iou_vec = inter_area.divide(box1_h.multiply(box1_w).add(box2_h.multiply(box2_w)).subtract(inter_area)).getData();
   std::cout<<"hi3"<<std::endl;
   return std::vector<float>(iou_vec, iou_vec + num_anc);
