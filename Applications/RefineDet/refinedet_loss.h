@@ -83,11 +83,12 @@ public:
   inline static const std::string type = "refinedet_loss";
 
 private:
-  // std::array<unsigned int, 8> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 8> wt_idx; /**< indices of the weights */
   std::vector<unsigned int> positive_mask;
   std::vector<unsigned int> pos_neg_mask;
   std::vector<std::vector<float>> anchor_gt_label_yx;
   std::vector<std::vector<float>> anchor_gt_label_hw;
+  std::vector<unsigned int> gt_class_labels;
   unsigned int num_positive_anchors;
 };
 
