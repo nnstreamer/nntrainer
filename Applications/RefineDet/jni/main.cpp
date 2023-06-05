@@ -669,7 +669,7 @@ int main(int argc, char *argv[]) {
 
   try {
     if (data_dir == "fake") {
-      user_datas = createFakeDataGenerator(batch_size, 1, data_split);
+      user_datas = createFakeDataGenerator(batch_size, 4, data_split);
     } else {
       user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }
