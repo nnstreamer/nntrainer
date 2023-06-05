@@ -398,6 +398,7 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     output.add_i(cross_entropy_with_mask(odm_conf_, pos_neg_mask[b], gt_class_labels[b]) / num_positive_anchors[b]);
     output.add_i(smooth_l1(odm_yxhw, gt_yxhw, pos_neg_mask[b]) / num_positive_anchors[b]);
   }
+  output.divide_i(arm_conf.batch());
   LossLayer::updateLoss(context, output);
   // std::cout << "refinedet forwarding end" << std::endl;
 }
@@ -462,8 +463,6 @@ void smooth_l1_derivative(Tensor& x, Tensor& y, const std::vector<unsigned int> 
 
 void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
   // std::cout << "refinedet derivative start" << std::endl;
-  // Get the incoming derivative
-  const Tensor &incoming_derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   std::vector<Tensor> outgoing_derivative_split = outgoing_derivative.split({2, 2, 2, 2, 2, num_classes}, 3);
   Tensor& arm_yx_deriv = outgoing_derivative_split[0];
@@ -483,8 +482,10 @@ void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
   Tensor& odm_hw = input_split[4];
   Tensor& odm_conf = input_split[5];
   std::vector<Tensor> gt_split = gt.split({2, 2, num_classes}, 3);
-  Tensor& gt_yx = gt_split[0];
-  Tensor& gt_hw = gt_split[1];
+  Tensor& gt_yx1 = gt_split[0];
+  Tensor& gt_yx2 = gt_split[1];
+  Tensor gt_yx = gt_yx1.add(gt_yx2).divide(2);
+  Tensor gt_hw = gt_yx2.subtract(gt_yx1);
   Tensor& gt_class = gt_split[2];
   std::array<Tensor, 2> anchors = create_anchors();
 
@@ -514,7 +515,6 @@ void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
     Tensor odm_yxhw = Tensor::cat({odm_yx_, odm_hw_}, 1);
     smooth_l1_derivative(arm_yxhw, gt_yxhw, pos_neg_mask[b], odm_yx_deriv_, odm_hw_deriv_, num_positive_anchors[b]);
   }
-  
   // std::cout << "refinedet derivative end" << std::endl;
 }
 

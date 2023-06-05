@@ -1,5 +1,6 @@
 refinedet_sources = [
   'jni/main.cpp',
+  'jni/det_dataloader.cpp',
   'refinedet_loss.cpp',
   cifar_path / 'cifar_dataloader.cpp'
 ]

@@ -27,9 +27,9 @@
 #include <model.h>
 #include <optimizer.h>
 #include <app_context.h>
-#include "../refinedet_loss.h"
+#include <refinedet_loss.h>
 
-#include <cifar_dataloader.h>
+#include <det_dataloader.h>
 
 #ifdef PROFILE
 #include <profiler.h>
@@ -38,7 +38,7 @@
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
-using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
+using UserDataType = std::unique_ptr<nntrainer::util::DirDataLoader>;
 
 /** cache loss values post training for test */
 float training_loss = 0.0;
@@ -375,25 +375,6 @@ LayerHandle reshape_output(
                 std::to_string(shape))
     }
   );
-  
-  // return createLayer(
-  //   "reshape", {
-  //     withKey("name", block_name),
-  //     withKey("target_shape", std::to_string(batch_size) + ":" +
-  //               std::to_string(num_anchors * feature_map_size * feature_map_size) + ":" +
-  //               std::to_string(shape))
-  //   }
-  // );
-
-  // return createLayer(
-  //   "reshape", {
-  //     withKey("name", block_name),
-  //     withKey("target_shape", nntrainer::TensorDim({
-  //       batch_size, 
-  //       num_anchors * feature_map_size * feature_map_size,
-  //       shape}))
-  //   }
-  // );
 }
 
 /**
@@ -460,30 +441,6 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
   layers.push_back(reshape_output("odm3_ploc", "odm3/ploc", batch_size, feature_map_size3, 4));
   layers.push_back(reshape_output("odm4_ploc", "odm4/ploc", batch_size, feature_map_size4, 4));
 
-  // auto createSplit = [](
-  //   const std::string& block_name, 
-  //   const std::string& input_name,
-  //   const std::string& output_yx,
-  //   const std::string& output_hw) {
-  //   return createLayer("split", {
-  //       withKey("name", block_name), 
-  //       withKey("input_layers", {input_name}),
-  //       withKey("output_layers", {output_yx, output_hw}),
-  //       withKey("split_number", 2),
-  //       withKey("split_dimension", 2),
-  //     });
-  // };
-
-  // layers.push_back(createSplit("split_arm1", "arm1_ploc", "arm1_yx", "arm1_hw"));
-  // layers.push_back(createSplit("split_arm2", "arm2_ploc", "arm2_yx", "arm2_hw"));
-  // layers.push_back(createSplit("split_arm3", "arm3_ploc", "arm3_yx", "arm3_hw"));
-  // layers.push_back(createSplit("split_arm4", "arm4_ploc", "arm4_yx", "arm4_hw"));
-
-  // layers.push_back(createSplit("split_odm1", "odm1_ploc", "odm1_yx", "odm1_hw"));
-  // layers.push_back(createSplit("split_odm2", "odm2_ploc", "odm2_yx", "odm2_hw"));
-  // layers.push_back(createSplit("split_odm3", "odm3_ploc", "odm3_yx", "odm3_hw"));
-  // layers.push_back(createSplit("split_odm4", "odm4_ploc", "odm4_yx", "odm4_hw"));
-
   auto createConcat = [](const std::string& module, const std::string& predict) {
     return createLayer("concat", {
         withKey("name", module + "_" + predict), 
@@ -525,13 +482,13 @@ ModelHandle createRefineDet(const unsigned int& batch_size) {
 }
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
   data->next(input, label, last);
   return 0;
 }
 
 int validData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<nntrainer::util::DataLoader *>(user_data);
+  auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
 
   data->next(input, label, last);
   return 0;
@@ -553,7 +510,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                       withKey("epochs", epochs),
                       withKey("save_path", "refinedet_full.bin")});
 
-  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
+  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.01"});
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
@@ -585,36 +542,28 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 #endif
 }
 
-std::array<UserDataType, 2>
-createFakeDataGenerator(unsigned int batch_size,
-                        unsigned int simulated_data_size,
-                        unsigned int data_split) {
-  // UserDataType train_data(new nntrainer::util::RandomDataLoader(
-  //   {{batch_size, 3, 32, 32}}, {{
-  //     {batch_size, 4, 4, 2 * num_anchors}, {batch_size, 2, 2, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 4, 2 * num_anchors},
-  //     {batch_size, 4, 4, 4 * num_anchors}, {batch_size, 2, 2, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 4, 4 * num_anchors},
-  //     {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 1, 2 * num_anchors}, {batch_size, 1, 4, 2 * num_anchors},
-  //     {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 1, 4 * num_anchors}, {batch_size, 1, 4, 4 * num_anchors},
-  //     }},
-  //   simulated_data_size / data_split));
-  UserDataType train_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
-    simulated_data_size / data_split));
-  UserDataType valid_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
-    simulated_data_size / data_split));
+// std::array<UserDataType, 2>
+// createFakeDataGenerator(unsigned int batch_size,
+//                         unsigned int simulated_data_size,
+//                         unsigned int data_split) {
+//   UserDataType train_data(new nntrainer::util::RandomDataLoader(
+//     {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
+//     simulated_data_size / data_split));
+//   UserDataType valid_data(new nntrainer::util::RandomDataLoader(
+//     {{batch_size, 3, 320, 320}}, {{batch_size, 1, num_anchors , 10 + num_classes}},
+//     simulated_data_size / data_split));
 
-  return {std::move(train_data), std::move(valid_data)};
-}
+//   return {std::move(train_data), std::move(valid_data)};
+// }
 
-std::array<UserDataType, 2>
-createRealDataGenerator(const std::string &directory, unsigned int batch_size,
-                        unsigned int data_split) {
-
-  UserDataType train_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/train.bin", batch_size, data_split));
-  UserDataType valid_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/test.bin", batch_size, data_split));
+std::array<UserDataType, 2> createDetDataGenerator(const char *train_dir,
+                                                   const char *valid_dir,
+                                                   int max_num_label, int c,
+                                                   int h, int w) {
+  UserDataType train_data(new nntrainer::util::DirDataLoader(
+    train_dir, max_num_label, c, h, w, true));
+  UserDataType valid_data(new nntrainer::util::DirDataLoader(
+    valid_dir, max_num_label, c, h, w, false));
 
   return {std::move(train_data), std::move(valid_data)};
 }
@@ -668,11 +617,19 @@ int main(int argc, char *argv[]) {
   std::array<UserDataType, 2> user_datas;
 
   try {
-    if (data_dir == "fake") {
-      user_datas = createFakeDataGenerator(batch_size, 4, data_split);
-    } else {
-      user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
-    }
+    // if (data_dir == "fake") {
+    //   user_datas = createFakeDataGenerator(batch_size, 4, data_split);
+    // } else {
+    //   user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
+    // }
+    const char *train_dir = "../Applications/RefineDet/train/";
+    const char *valid_dir = "../Applications/RefineDet/test/";
+    const int max_num_label = 5;
+    const int channel = 3;
+    const int width = 320;
+    const int height = 320;
+    user_datas = createDetDataGenerator(train_dir, valid_dir, max_num_label,
+                                        channel, width, height);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while creating data generator! details: "
               << e.what() << std::endl;
