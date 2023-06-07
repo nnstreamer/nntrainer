@@ -255,7 +255,16 @@ std::shared_ptr<ml::train::Model> genModel() {
   return model;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+
+  if (argc < 2) {
+    std::cout << "Usage: " << argv[0] << " <text>\n";
+    return 1;
+  }
+
+  const std::vector<std::string> args(argv + 1, argv + argc);
+  std::string text = args[0];
+
   auto model = genModel();
 
   try {
@@ -287,10 +296,11 @@ int main() {
   memset(wte_input, 0, sizeof(float) * MAX_TOKEN_LEN);
   memset(wpe_input, 0, sizeof(float) * MAX_TOKEN_LEN);
 
-  auto tokenizer = unwrap(GPT2Tokenizer::load("./vocab.json", "./merges.txt"),
+  std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
+  std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
+
+  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
                           "Error initialising GPT2 tokenizer\n");
-  std::string text =
-    "Alan Turing theorized that computers would one day become";
 
   auto init_input = tokenizer.encode(text);
   init_input_seq_len = init_input.size();
@@ -341,14 +351,13 @@ int main() {
     ((uint *)(wte_input))[i] = ids[0];
     ((uint *)(wpe_input))[i] = i;
 
-    std::cerr << ids[0] << "\n";
     std::vector<int64_t> token_ids;
-    for(auto element : ids)
-    {
+    for (auto element : ids) {
       token_ids.push_back(static_cast<int64_t>(element));
     }
     auto decoded_str = tokenizer.decode(token_ids);
-    
+    std::cerr << decoded_str << " " << std::flush;
+
     std::shared_ptr<ml::train::Layer> wte_input_layer;
     model->getLayer("wte_input", &wte_input_layer);
     wte_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
@@ -358,6 +367,6 @@ int main() {
 
     model->reinitialize();
   }
-
+  std::cout << std::endl;
   return 0;
 }
