@@ -71,7 +71,7 @@ typedef void *ml_train_optimizer_h;
 
 /**
  * @brief A handle of a NNTrainer learning rate scheduler.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  */
 typedef void *ml_train_lr_scheduler_h;
 
@@ -407,7 +407,7 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * @details Use this function to set learning rate scheduler. This transfers
  * the ownership of the scheduler to the optimizer. No need to destroy the
  * optimizer if it is to a model.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * @remarks Unsets the previously set lr_scheduler, if any. The previously set
  * lr_scheduler must be freed using ml_train_lr_scheduler_destroy().
  * @param[in] optimizer The NNTrainer optimizer handle.
@@ -426,7 +426,7 @@ int ml_train_optimizer_set_lr_scheduler(ml_train_optimizer_h optimizer,
  * If not set to a optimizer, @a lr_scheduler should be released using
  * ml_train_lr_scheduler_destroy(). If set to a optimizer, @a lr_scheduler is
  * available until optimizer is released.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * @remarks If the function succeeds, @a lr_scheduler must be released using
  * ml_train_lr_scheduler_destroy(), if not set to a optimizer. If set to a
  * optimizer, @a lr_scheduler is available until the optimizer is released.
@@ -444,7 +444,7 @@ int ml_train_lr_scheduler_create(ml_train_lr_scheduler_h *lr_scheduler,
  * @brief Frees the learning rate scheduler.
  * @details Use this function to destroy learning rate scheduler. Fails if
  * learning rate scheduler is owned by a optimizer.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * @param[in] lr_scheduler The NNTrainer learning rate scheduler handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -456,7 +456,7 @@ int ml_train_lr_scheduler_destroy(ml_train_lr_scheduler_h lr_scheduler);
 /**
  * @brief Sets the learning rate scheduler property.
  * @details Use this function to set learning rate scheduler property.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * @param[in] lr_scheduler The NNTrainer learning rate scheduler handle.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -711,7 +711,7 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
  * @details Use this function to get weight tensors and information of the
  * layer. destroy @a info with ml_tensors_info_destroy() after use. destroy
  * @a weight with ml_tensors_data_destroy() after use.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * @remarks @a model must be compiled before calling this function.
  * @remarks the returned @a info @a weight are newly created so it does not
  * reflect future changes in the model

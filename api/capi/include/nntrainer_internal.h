@@ -462,7 +462,7 @@ int ml_train_optimizer_set_property_with_single_param(
 /**
  * @brief Sets the learning rate scheduler property with single param.
  * @details Use this function to set learning rate scheduler property.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  * API to solve va_list issue of Dllimport of C# interop.
  * The input format of single_param must be 'key = value' format, and it
  * received as shown in the example below. delimiter is '|'. e.g)
