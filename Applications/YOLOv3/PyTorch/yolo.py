@@ -10,6 +10,7 @@
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 import sys
 import os
@@ -29,7 +30,7 @@ class ConvBlock(nn.Module):
     def __init__(self, num_channel_in, num_channel_out, kernel_size, stride, padding):
         super(ConvBlock, self).__init__()
 
-        self.conv = nn.Conv2d(num_channel_in, num_channel_out, kernel_size, stride, padding)
+        self.conv = nn.Conv2d(num_channel_in, num_channel_out, kernel_size, stride, padding, bias=False)
         self.bn = nn.BatchNorm2d(num_channel_out, eps=1e-3)
         self.leaky_relu = nn.LeakyReLU()
     
@@ -84,7 +85,56 @@ class Darknet53(nn.Module):
 
         return x
 
+    def load_weights_of_convblock(self, block, weights, pointer):
+        # load bias of batch norm
+        num_weights = block.bn.bias.numel()
+        bn_bias = torch.from_numpy(
+            weights[pointer: pointer + num_weights]).view_as(block.bn.bias)
+        block.bn.bias.data.copy_(bn_bias)
+        pointer += num_weights
+        # load weight of batch norm
+        bn_weights = torch.from_numpy(
+            weights[pointer: pointer + num_weights]).view_as(block.bn.weight)
+        block.bn.weight.data.copy_(bn_weights)
+        pointer += num_weights
+        # load running mean of batch norm
+        bn_running_mean = torch.from_numpy(
+            weights[pointer: pointer + num_weights]).view_as(block.bn.running_mean)
+        block.bn.running_mean.data.copy_(bn_running_mean)
+        pointer += num_weights
+        # load running var of batch norm
+        bn_running_var = torch.from_numpy(
+            weights[pointer: pointer + num_weights]).view_as(block.bn.running_var)
+        block.bn.running_var.data.copy_(bn_running_var)
+        pointer += num_weights
+        
+        # load weight of convolutional layer
+        num_weights = block.conv.weight.numel()
+        conv_weights = torch.from_numpy(
+            weights[pointer: pointer + num_weights]).view_as(block.conv.weight)
+        block.conv.weight.data.copy_(conv_weights)
+        pointer += num_weights
+        
+        return pointer
+        
+    def load_pretrained_weights(self, path):
+        with open(path, "rb") as f:
+            # read header info (useless in this func)
+            _ = np.fromfile(f, dtype=np.int32, count=5)
+            # read weights
+            weights = np.fromfile(f, dtype=np.float32)
+
+        pointer = 0
+        for module in self.module_list:            
+            if isinstance(module, ConvBlock):    
+                pointer = self.load_weights_of_convblock(module, weights, pointer)
+            elif isinstance(module, DarkNetBlock):
+                for res_block in module.module_list:
+                    for conv_block in res_block:
+                        pointer = self.load_weights_of_convblock(conv_block, weights, pointer)
+
+
 if __name__ == '__main__':
     model = Darknet53()
-    torch.save(model.state_dict(), './init_model.pt')
-    save_bin(model, 'init_model')
+    model.load_pretrained_weights('darknet53.conv.74')
+    save_bin(model, 'pre_trained_darknet53.bin')
