@@ -24,6 +24,8 @@
 #include <model.h>
 #include <optimizer.h>
 
+#include <upsample_layer.h>
+
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DirDataLoader>;
@@ -243,6 +245,15 @@ int main(int argc, char *argv[]) {
   // set training config and print it
   std::cout << "batch_size: " << BATCH_SIZE << " epochs: " << EPOCHS
             << std::endl;
+
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(nntrainer::createLayer<custom::UpsampleLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
 
   try {
     // create Darknet53 model
