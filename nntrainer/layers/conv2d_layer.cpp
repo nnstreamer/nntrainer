@@ -15,7 +15,6 @@
 #include <cstring>
 #include <limits>
 #include <string>
-#include <iostream>
 
 #include <blas_interface.h>
 #include <conv2d_layer.h>
