@@ -48,9 +48,9 @@ class DarkNetBlock(nn.Module):
         super(DarkNetBlock, self).__init__()
         self.repeat = repeat
 
-        self.module_list = nn.ModuleList()
+        self.module_list = nn.Sequential()
         for _ in range(self.repeat):
-            self.module_list.add_module('block', nn.Sequential(
+            self.module_list.append(nn.Sequential(
                 ConvBlock(num_channel, num_channel // 2, 1, 1, 0),
                 ConvBlock(num_channel // 2, num_channel, 3, 1, 1)
             ))
@@ -148,6 +148,8 @@ class YoloV3(nn.Module):
         self.backbone = Darknet53()
         if pretrained_darknet_path:
             self.backbone.load_pretrained_weights(pretrained_darknet_path)
+            for param in self.backbone.parameters():
+                param.requires_grad = False
 
         # feature pyramid for route3 (large object)
         self.fp3 = nn.Sequential(
@@ -225,7 +227,7 @@ class YoloV3(nn.Module):
         small = self.fp1(small)
         small = self.head1(small)
 
-        return small, medium, large
+        return large, medium, small
 
 
 if __name__ == '__main__':
@@ -234,5 +236,4 @@ if __name__ == '__main__':
 
     # inference logic test for yolo v3
     X = torch.ones((1, 3, 416, 416))
-    y_small, y_medium, y_large = model(X)
-    print(y_small.shape, y_medium.shape, y_large.shape)
+    y_large, y_medium, y_small = model(X)
