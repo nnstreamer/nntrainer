@@ -282,7 +282,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     if ((*iter)->isFinalized()) {
       /// resize tensors spec
-      /// @todo remove below, if cutsom tensor needs to change dimension
+      /// @todo remove below, if custom tensor needs to change dimension
       /// according to the tensor, it must be done explicitly, or at least have
       /// a property to control the behavior
       const RunLayerContext &context = (*iter)->getRunContext();
@@ -331,7 +331,7 @@ void NetworkGraph::applyGradients(
     if (!rc.isGradientLastAccess(i)) {
       /// @note instead of checking the last access of the weight, checking
       /// if weights are dependent to others to minimize overhead.
-      /// this logic assums that the source of the dependent weight must be
+      /// this logic assume that the source of the dependent weight must be
       /// prior to the dependent.
       continue;
     }

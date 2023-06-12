@@ -128,7 +128,7 @@ public:
   /**
    * @brief   iterator_traits types definition
    *
-   * @note    these are not requried to be explicitly defined now, but maintains
+   * @note    these are not required to be explicitly defined now, but maintains
    *          forward compatibility for c++17 and later
    *
    * @note    value_type, pointer and reference are different from standard

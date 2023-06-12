@@ -245,7 +245,7 @@ public:
    *
    * @param value float to validate
    * @retval true if it is greater than 0.0 and smaller than 1.0
-   * @retval false if it is samller or equal than 0.0
+   * @retval false if it is smaller or equal than 0.0
    * or greater or equal than 1.0
    */
   bool isValid(const float &value) const override;
@@ -278,7 +278,7 @@ public:
    * @param v value to check
    * @retval true if it is greater equal to 0 and smaller than
    * ml::train::TensorDim::MAXDIM
-   * @retval false if it is samller than 0 or greater than
+   * @retval false if it is smaller than 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
@@ -296,7 +296,7 @@ public:
    * @param v value to check
    * @retval true if it is greater than 0 and smaller than
    * ml::train::TensorDim::MAXDIM
-   * @retval false if it is samller or equal to 0 or greate than
+   * @retval false if it is smaller or equal to 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
@@ -519,7 +519,7 @@ public:
    *
    * @param v float to validate
    * @retval true if it is greater or equal than 0.0
-   * @retval false if it is samller than 0.0
+   * @retval false if it is smaller than 0.0
    */
   bool isValid(const float &v) const override;
 };

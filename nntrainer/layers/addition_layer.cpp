@@ -45,7 +45,7 @@ void AdditionLayer::calcDerivative(RunLayerContext &context) {
   for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
     /**
      * TODO: replace this with tensor assignment during optimization.
-     * Tensor assignement needs to make sure that the previous connected layers
+     * Tensor assignment needs to make sure that the previous connected layers
      * are not inplace
      */
     context.getOutgoingDerivative(idx).copy(
