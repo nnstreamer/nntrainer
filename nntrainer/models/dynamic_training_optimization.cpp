@@ -107,7 +107,7 @@ bool DynamicTrainingOptimization::checkIfApply(float reduced_ratio,
                                                float learning_rate) {
   /**
    * If the reduced update ratio is higher than 1, then always apply update.
-   * If the reduced update raito is less than 1, then apply it with
+   * If the reduced update ratio is less than 1, then apply it with
    * probability = update ratio
    */
   if (dist(rng) < reduced_ratio * learning_rate / threshold)
@@ -126,7 +126,7 @@ float DynamicTrainingOptimization::reduceByMax(Tensor const &ratio) {
 
 /**
  * @brief     Operation to decide if update should be skipped
- * @note      Calcalate l2 norm of the tensor averaged by its size
+ * @note      Calculate l2 norm of the tensor averaged by its size
  */
 float DynamicTrainingOptimization::reduceByNorm(Tensor const &ratio) {
   float l2norm = ratio.l2norm();

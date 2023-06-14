@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /**
- * NNStreamer tensor_trainer subplugin for nntrainer
+ * NNStreamer tensor_trainer sub-plugin for nntrainer
  * Copyright (C) 2022 Hyunil Park <hyunil46.park@samsung.com>
  */
 /**
  * @file   tensor_trainer_nntrainer.cc
  * @date   02 Dec 2022
- * @brief  NNStreamer tensor_trainer subplugin
+ * @brief  NNStreamer tensor_trainer sub-plugin
  * @see    http://github.com/nnstreamer/nntrainer
  * @see    http://github.com/nnstreamer/nnstreamer
  * @author Hyunil Park <hyunil46.park@samsung.com>
@@ -15,7 +15,7 @@
 
 /**
  * # Action description and constraints
- * tensor_trainer_nntrainer.cc is a nnstreamer sub-plugine be used by
+ * tensor_trainer_nntrainer.cc is a nnstreamer sub-plugin be used by
  * nnstreamer(tensor_trainer) for training model.
  *
  * ## Notice
@@ -24,7 +24,7 @@
  * 3. The current feature behavior has been tested with MNIST.
  * 4. mnist.json has 'gst_caps' containing the information below.
  * "gst_caps":"other/tensors, format=(string)static, framerate=(fraction)0/1,
- *  num_tensors=(int)2, dimensions=(string)1:1:784:1.1:1:10:1,
+ *  num_tensors=(int)2, dimensions=(string)1:1:784:1,1:1:10:1,
  *  types=(string)float32.float32"
  *
  * ## Example launch line is as below
@@ -55,11 +55,11 @@
  *   multiple inputs and labels in tensors(in case of MNIST, all is 1), set how
  *   many samples are taken for validation model.
  * 7. epochs: epochs are repetitions of training samples and validation
- *   smaples. number of samples received for model training is
+ *   samples. number of samples received for model training is
  *   (num-training-samples + num-validation-samples) * epochs
  *
  * ## Action
- * When a subplugin is loaded at runtime,
+ * When a sub-plugin is loaded at runtime,
  * NNTrainerTrain's num_inputs, num_labels, num_training_samples,
  * num_validation_samples, model_save_path and num_epochs is set by
  * getNNStreamerProperties() and each tensor size is set.
@@ -116,7 +116,7 @@ void nntrainer_thread_func(NNTrainer::NNTrainerTrain *nntrainer) {
 /**
  * @brief push_data function
  * tensor_trainer call this function to push tensor data.
- * For epoch, (number of trin samples + number of valid samples) * epoch
+ * For epoch, (number of train samples + number of valid samples) * epoch
  * data should be received.
  * Sub-plugin don't keep dataset for epoch.
  */
@@ -217,10 +217,10 @@ void NNTrainer::InputTensorsInfo::getSample(float **input, float **label,
   pid_t pid = getpid();
   pid_t tid = syscall(SYS_gettid);
 
-  /* After the epoch ends, the subplugin has no data yet to send. */
+  /* After the epoch ends, the sub-plugin has no data yet to send. */
   if (push_count == 0) {
     ml_logd("locked, need to wait for more data, "
-            "After the epoch ends, the subplugin has no data yet to send.");
+            "After the epoch ends, the sub-plugin has no data yet to send.");
     std::unique_lock<std::mutex> lock(data_wait_lock);
     is_data_wait_locked = TRUE;
     data_wait.wait(lock);
