@@ -483,7 +483,7 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
 
   auto pos = config_realpath.find_last_of("/");
   if (pos == std::string::npos) {
-    ml_loge("resolved model path does not contain any path seperater. %s",
+    ml_loge("resolved model path does not contain any path separator. %s",
             config_realpath.c_str());
     return ML_ERROR_UNKNOWN;
   }
