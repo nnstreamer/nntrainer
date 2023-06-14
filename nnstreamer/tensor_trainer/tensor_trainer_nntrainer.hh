@@ -32,13 +32,13 @@ struct TensorData {
 class InputTensorsInfo;
 
 /**
- * @brief NNTrainer interface for nnstreamer trainer subplugin
+ * @brief NNTrainer interface for nnstreamer trainer sub-plugin
  */
 class NNTrainerTrain {
 public:
   /**
    * @brief Construct a new NNTrainerTrain object
-   * @param prop tensor trainer subplugin properties
+   * @param prop tensor trainer sub-plugin properties
    * @param _model_config model configuration file path
    */
   NNTrainerTrain(const GstTensorTrainerProperties *prop,
@@ -73,7 +73,7 @@ public:
 
   /**
    * @brief Get NNStreamer tensor_trainer properties
-   * @param prop Tensor trainer subplugin properties
+   * @param prop Tensor trainer sub-plugin properties
    */
   void getNNStreamerProperties(const GstTensorTrainerProperties *prop);
 
