@@ -15,6 +15,7 @@
 #include <cstring>
 #include <limits>
 #include <string>
+#include <iostream>
 
 #include <blas_interface.h>
 #include <conv2d_layer.h>
@@ -310,6 +311,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
   out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
   context.setOutputDimensions({out_dim});
+
+  // std::cout << "in dim: " << in_dim[0] << ":" << in_dim[1] << ":" << in_dim[2] << ":" << in_dim[3]
+  //    << " out dim: " << out_dim[0] << ":" << out_dim[1] << ":" << out_dim[2] << ":" << out_dim[3] << std::endl;
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
                 std::invalid_argument)

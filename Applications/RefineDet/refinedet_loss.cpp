@@ -19,6 +19,7 @@
 #include <math.h>
 #include <acti_func.h>
 #include <vector>
+#include <iostream>
 
 #include "concat_layer.h"
 #include "layer_context.h"
@@ -134,7 +135,7 @@ float cross_entropy(Tensor& x, std::vector<unsigned int> l) {
     loss += log(output.getValue(0, 0, a, l[a]) + 1e-10);
   }
   // return -loss / output.height();
-  return -loss;
+  return 0;
 }
 
 float cross_entropy_with_mask(Tensor& x, std::vector<unsigned int> mask, std::vector<unsigned int> l) {
@@ -178,7 +179,7 @@ float smooth_l1(Tensor& x, Tensor& y, const std::vector<unsigned int> l) {
       }
     }
   }
-  return x.sum(2).getValue(0);
+  return 0;
 }
 
 // box2 dim=1
@@ -332,6 +333,7 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     }
 
     // ARM loss
+    // std::cout << "loss: " << output.getValue(0) << std::endl;
     output.add_i(cross_entropy(arm_conf_, positive_mask[b]) / num_positive_anchors[b]);
     auto log_ = [&](float val) {return (float)log(1e-10 + val);};
     Tensor gt_yx_ratio = Tensor(anchor_gt_label_yx[b]).subtract(anchors[0]).divide(anchors[1]);
@@ -398,8 +400,10 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         gt_class_labels[b][i] = gt_class_argmax;
       }
     }
+    std::cout << "loss: " << output.getValue(0) << std::endl;
     output.add_i(cross_entropy_with_mask(odm_conf_, pos_neg_mask[b], gt_class_labels[b]) / num_positive_anchors[b]);
     output.add_i(smooth_l1(odm_yxhw, gt_yxhw, pos_neg_mask[b]) / num_positive_anchors[b]);
+    std::cout << "loss: " << output.getValue(0) << std::endl;
   }
   output.divide_i(arm_conf.batch());
   LossLayer::updateLoss(context, output);
