@@ -29,7 +29,8 @@ public:
    * @brief Construct a new Dir Data Loader object
    */
   DirDataLoader(const char *directory_, unsigned int max_num_label,
-                unsigned int c, unsigned int w, unsigned int h, bool is_train_);
+                unsigned int c, unsigned int w, unsigned int h, bool is_train_,
+                const std::vector<TensorDim> &output_shapes);
   /**
    * @brief Destroy the Dir Data Loader object
    */
@@ -53,12 +54,14 @@ public:
 
 private:
   std::string dir_path;
+  unsigned int iteration;
   unsigned int data_size;
   unsigned int max_num_label;
   unsigned int channel;
   unsigned int height;
   unsigned int width;
   bool is_train;
+  std::vector<TensorDim> output_shapes;
 
   std::vector<std::pair<std::string, std::string>> data_list;
   std::vector<unsigned int> idxes;

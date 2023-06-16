@@ -17,6 +17,7 @@ upsample_layer_dep = declare_dependency(
 yolo_sources = [
   'main.cpp',
   'det_dataloader.cpp',
+  'yolo_v3_loss.cpp',
   upsample_layer_src
 ]
 
