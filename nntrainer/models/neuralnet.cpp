@@ -456,6 +456,7 @@ void NeuralNetwork::load(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      std::cout << (*iter)->getName() << std::endl;
       (*iter)->read(model_file);
     }
     try {
@@ -469,6 +470,7 @@ void NeuralNetwork::load(const std::string &file_path,
           for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
                iter++) {
             (*iter)->read(model_file, true);
+            // std::cout << (*iter)->getName() << std::endl;
           }
         }
       }
@@ -742,6 +744,7 @@ int NeuralNetwork::train_run(std::function<bool(void *userdata)> stop_cb,
     iter = 0;
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->clearOptVar();
+      // std::cout << (*iter)->getName() << std::endl;
     }
   }
 

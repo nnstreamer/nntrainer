@@ -41,7 +41,7 @@ const unsigned int num_anchors = num_ratios * (
   feature_map_size2 * feature_map_size2 + 
   feature_map_size3 * feature_map_size3 + 
   feature_map_size4 * feature_map_size4);
-const unsigned int num_classes = 20;
+const unsigned int num_classes = 21;
 const unsigned int max_gt_boxes = 5;
 const float positive_anchor_threshold = 0.5;
 
@@ -81,13 +81,13 @@ std::vector<Tensor> create_anchors_(
   const std::vector<float> anchor_ratios = {0.5, 1, 2};
   
   // Coordinates of the center of anchor box
-  Tensor anchor_yx = Tensor(feature_map_size, feature_map_size, anchor_ratios.size(), 2);
+  Tensor anchor_yx = Tensor(1, anchor_ratios.size() * 2, feature_map_size, feature_map_size);
   for (unsigned int b = 0; b < anchor_yx.batch(); b++ ) {
     for (unsigned int c = 0; c < anchor_yx.channel(); c++) {
         for (unsigned int h = 0; h < anchor_yx.height(); h++) {
             for(unsigned int w = 0; w < anchor_yx.width(); w++) {
                 anchor_yx.setValue(b, c, h, w, 
-                ((b + 0.5) * (1 - w) + (c + 0.5) * w) * stride);
+                ((h + 0.5) * (1 - c % 2) + (w + 0.5) * (c % 2)) * stride);
             }
         }
     }
@@ -99,12 +99,12 @@ std::vector<Tensor> create_anchors_(
   }
 
   // Sizes of anchor box
-  Tensor anchor_hw = Tensor(feature_map_size, feature_map_size, anchor_ratios.size(), 2);
+  Tensor anchor_hw = Tensor(1, anchor_ratios.size() * 2, feature_map_size, feature_map_size);
   for (unsigned int b = 0; b < anchor_hw.batch(); b++ ) {
     for (unsigned int c = 0; c < anchor_hw.channel(); c++) {
         for (unsigned int h = 0; h < anchor_hw.height(); h++) {
             for(unsigned int w = 0; w < anchor_hw.width(); w++) {
-                anchor_hw.setValue(b, c, h, w, priors[h][w]);
+                anchor_hw.setValue(b, c, h, w, priors[c / 2][c % 2]);
             }
         }
     }
@@ -135,7 +135,7 @@ float cross_entropy(Tensor& x, std::vector<unsigned int> l) {
     loss += log(output.getValue(0, 0, a, l[a]) + 1e-10);
   }
   // return -loss / output.height();
-  return 0;
+  return -loss;
 }
 
 float cross_entropy_with_mask(Tensor& x, std::vector<unsigned int> mask, std::vector<unsigned int> l) {
@@ -154,7 +154,7 @@ std::vector<std::pair<unsigned int, float>> cross_entropy_per_anchor(Tensor& x, 
   Tensor output = Tensor(x.getDim());
   nntrainer::ActiFunc::softmax(x, output);
   for (unsigned int a = 0; a < output.height(); a++) {
-    idx_loss.push_back(std::pair<unsigned int, float>(a, log(output.getValue(0, 0, a, l[a]) + 1e-10)));
+    idx_loss.push_back(std::pair<unsigned int, float>(a, -log(output.getValue(0, 0, a, l[a]) + 1e-10)));
   }
   return idx_loss;
 }
@@ -179,7 +179,7 @@ float smooth_l1(Tensor& x, Tensor& y, const std::vector<unsigned int> l) {
       }
     }
   }
-  return 0;
+  return x.sum(2).getValue(0);
 }
 
 // box2 dim=1
@@ -247,7 +247,7 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
   input.copyData(input_);
   Tensor output = Tensor(1,1,1,1);
   output.setZero();
-  Tensor &gt = context.getLabel(SINGLE_INOUT_IDX);
+  Tensor &gt = context.getLabel(SINGLE_INOUT_IDX);  
   
   std::vector<Tensor> input_split = input.split({2, 2, 2, 2, 2, num_classes}, 3);
   Tensor& arm_yx = input_split[0];
@@ -265,7 +265,13 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
   gt_hw.subtract_i(gt_yx);
   gt_hw.multiply_i(2);
   Tensor& gt_class = gt_split[3];
+  gt_yx.setRandUniform(10, 20);
+  gt_hw.setRandUniform(5, 9);
+  gt_class.setRandUniform(0, 1);
   std::array<Tensor, 2> anchors = create_anchors();
+
+  // anchors[0].setRandUniform(10, 20);
+  // anchors[1].setRandUniform(10, 20);
 
   unsigned int num_gt_boxes = 0;
   for (unsigned int i = 0; i < max_gt_boxes; i++) {
@@ -333,14 +339,15 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     }
 
     // ARM loss
-    // std::cout << "loss: " << output.getValue(0) << std::endl;
     output.add_i(cross_entropy(arm_conf_, positive_mask[b]) / num_positive_anchors[b]);
+    // std::cout << "loss: " << output.getValue(0) << std::endl;
     auto log_ = [&](float val) {return (float)log(1e-10 + val);};
     Tensor gt_yx_ratio = Tensor(anchor_gt_label_yx[b]).subtract(anchors[0]).divide(anchors[1]);
     Tensor gt_hw_log = Tensor(anchor_gt_label_hw[b]).divide(anchors[1]).apply(log_);
     Tensor gt_yxhw = Tensor::cat({gt_yx_ratio, gt_hw_log}, 3);
     Tensor arm_yxhw = Tensor::cat({arm_yx_, arm_hw_}, 3);
     output.add_i(smooth_l1(arm_yxhw, gt_yxhw, positive_mask[b]) / num_positive_anchors[b]);
+    // std::cout << "loss: " << output.getValue(0) << std::endl;
 
     // ODM loss
     // Negative anchor filtering
@@ -359,26 +366,33 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
     sort(arm_loss_per_anchor.begin(), arm_loss_per_anchor.end(), 
       [&](std::pair<unsigned int, float> v1, std::pair<unsigned int, float>v2) {return v1.second < v2.second;});
     if (num_negative_anchors > 3 * num_positive_anchors[b]) {
-      num_negative_anchors = 3 * num_positive_anchors[b];
-      arm_loss_per_anchor.resize(num_negative_anchors);
-    }
-
-    // Should NMS be done here??
-    std::vector<Tensor> anchors_split0 = anchors[0].split(anchors[0].height(), 2);
-    std::vector<Tensor> anchors_split1 = anchors[1].split(anchors[1].height(), 2);
-    for (unsigned int i = 0; i < num_negative_anchors; i++) {
-      unsigned int ith = arm_loss_per_anchor[i].first;
-      Tensor& ith_anchor_yx = anchors_split0[ith];
-      Tensor& ith_anchor_hw = anchors_split1[ith];
-      std::vector<float> ith_anchor_iou = calc_iou(anchors[0], anchors[1], ith_anchor_yx, ith_anchor_hw);
-      for(unsigned int j = 0; j < ith_anchor_iou.size(); j++) {
-        if (i == j) {continue;}
-        if (ith_anchor_iou[j] > 0.7 && negative_mask[j]) {
-          negative_mask[j] = 0;
+      for (unsigned int i = 0; i < arm_loss_per_anchor.size() && 
+        num_negative_anchors > 3 * num_positive_anchors[b]; i++) { 
+        unsigned int idx = arm_loss_per_anchor[i].first;
+        if(negative_mask[idx]) {
+          negative_mask[idx] = 0;
           num_negative_anchors--;
         }
       }
     }
+
+    // // NMS for inference only??
+    // std::vector<Tensor> arm_yx_box = arm_yx_.split(arm_yx_.height(), 2);
+    // std::vector<Tensor> arm_hw_box = arm_hw_.split(arm_hw_.height(), 2);
+    // for (unsigned int i = 0; i < num_negative_anchors; i++) {
+    //   unsigned int ith = arm_loss_per_anchor[i].first;
+    //   Tensor& ith_arm_yx = arm_yx_box[ith];
+    //   Tensor& ith_arm_hw = arm_hw_box[ith];
+      
+    //   std::vector<float> ith_arm_iou = calc_iou(arm_yx_, arm_hw_, ith_arm_yx, ith_arm_hw);
+    //   for(unsigned int j = 0; j < ith_arm_iou.size(); j++) {
+    //     if (i == j) {continue;}
+    //     if (ith_arm_iou[j] > 0.7 && negative_mask[j] && num_negative_anchors > 0) {
+    //       negative_mask[j] = 0;
+    //       num_negative_anchors--;
+    //     }
+    //   }
+    // }
 
     Tensor odm_yxhw = Tensor::cat({odm_yx_, odm_hw_}, 3);
     // Reset ODM mask and create again
@@ -400,10 +414,8 @@ void RefineDetLoss::forwarding(nntrainer::RunLayerContext &context, bool trainin
         gt_class_labels[b][i] = gt_class_argmax;
       }
     }
-    std::cout << "loss: " << output.getValue(0) << std::endl;
     output.add_i(cross_entropy_with_mask(odm_conf_, pos_neg_mask[b], gt_class_labels[b]) / num_positive_anchors[b]);
     output.add_i(smooth_l1(odm_yxhw, gt_yxhw, pos_neg_mask[b]) / num_positive_anchors[b]);
-    std::cout << "loss: " << output.getValue(0) << std::endl;
   }
   output.divide_i(arm_conf.batch());
   LossLayer::updateLoss(context, output);
@@ -469,6 +481,7 @@ void smooth_l1_derivative(Tensor& x, Tensor& y, const std::vector<unsigned int> 
 
 void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  outgoing_derivative.setZero();
   std::vector<Tensor> outgoing_derivative_split = outgoing_derivative.split({2, 2, 2, 2, 2, num_classes}, 3);
   Tensor& arm_yx_deriv = outgoing_derivative_split[0];
   Tensor& arm_hw_deriv = outgoing_derivative_split[1];
@@ -496,13 +509,23 @@ void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
   gt_hw.multiply_i(2);
   Tensor& gt_class = gt_split[3];
   std::array<Tensor, 2> anchors = create_anchors();
-  for (unsigned int b = 0; b < input.batch(); b++) {
-    Tensor arm_yx_deriv_ = arm_yx_deriv.getBatchSlice(b, 1);
-    Tensor arm_hw_deriv_ = arm_hw_deriv.getBatchSlice(b, 1);
-    Tensor arm_conf_deriv_ = arm_conf_deriv.getBatchSlice(b, 1);
-    Tensor odm_yx_deriv_ = odm_yx_deriv.getBatchSlice(b, 1);
-    Tensor odm_hw_deriv_ = odm_hw_deriv.getBatchSlice(b, 1);
-    Tensor odm_conf_deriv_ = odm_conf_deriv.getBatchSlice(b, 1);
+
+  unsigned int batch_size = input.batch();
+
+  std::vector<Tensor> arm_yx_deriv_split = arm_yx_deriv.split(batch_size, 0);
+  std::vector<Tensor> arm_hw_deriv_split = arm_hw_deriv.split(batch_size, 0);
+  std::vector<Tensor> arm_conf_deriv_split = arm_conf_deriv.split(batch_size, 0);
+  std::vector<Tensor> odm_yx_deriv_split = odm_yx_deriv.split(batch_size, 0);
+  std::vector<Tensor> odm_hw_deriv_split = odm_hw_deriv.split(batch_size, 0);
+  std::vector<Tensor> odm_conf_deriv_split = odm_conf_deriv.split(batch_size, 0);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    Tensor arm_yx_deriv_ = arm_yx_deriv_split[b];
+    Tensor arm_hw_deriv_ = arm_hw_deriv_split[b];
+    Tensor arm_conf_deriv_ = arm_conf_deriv_split[b];
+    Tensor odm_yx_deriv_ = odm_yx_deriv_split[b];
+    Tensor odm_hw_deriv_ = odm_hw_deriv_split[b];
+    Tensor odm_conf_deriv_ = odm_conf_deriv_split[b];
 
     Tensor arm_yx_ = arm_yx.getBatchSlice(b, 1);
     Tensor arm_hw_ = arm_hw.getBatchSlice(b, 1);
@@ -526,6 +549,7 @@ void RefineDetLoss::calcDerivative(nntrainer::RunLayerContext &context) {
     odm_yx_deriv_.divide_i(num_positive_anchors[b]);
     odm_hw_deriv_.divide_i(num_positive_anchors[b]);
   }
+  // outgoing_derivative.print(std::cout);
 }
 
 } // namespace custom

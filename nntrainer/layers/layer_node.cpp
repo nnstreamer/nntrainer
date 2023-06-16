@@ -441,15 +441,19 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
         /// @note read optimizer variables
         for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
+          // run_context->getWeightOptVar(i, j).print(std::cout);
           run_context->getWeightOptVar(i, j).read(file);
         }
       }
     }
   } else {
+    std::cout << run_context->getNumWeights() << std::endl;
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
+        run_context->getWeight(i).print(std::cout);
         run_context->getWeight(i).read(file);
+        run_context->getWeight(i).print(std::cout);
       }
     }
   }

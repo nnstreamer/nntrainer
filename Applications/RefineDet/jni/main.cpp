@@ -90,7 +90,7 @@ const unsigned int total_feature_map = (
   feature_map_size4 * feature_map_size4);
 const unsigned int num_ratios = 3;
 const unsigned int num_anchors = num_ratios;
-const unsigned int num_classes = 20;
+const unsigned int num_classes = 21;
 
 /**
  * @brief Feature extractor
@@ -431,7 +431,7 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
 
   std::vector<std::vector<LayerHandle>> tcbBlocks;
   tcbBlocks.push_back(tcbBlock("tcb4", "feature_extractor/conv10_2", "", false));
-  tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4/conv3_bn", false));
+  tcbBlocks.push_back(tcbBlock("tcb3", "feature_extractor/conv8_2", "tcb4/conv3_bn", true));
   tcbBlocks.push_back(tcbBlock("tcb2", "feature_extractor/conv5_3", "tcb3/conv3_bn", true));
   tcbBlocks.push_back(tcbBlock("tcb1", "feature_extractor/conv4_3", "tcb2/conv3_bn", true));
 
@@ -461,7 +461,7 @@ std::vector<LayerHandle> createRefineDetGraph(const unsigned int& batch_size) {
       "reshape", {
         withKey("name", block_name),
         withKey("input_layers", {input_name}),
-        withKey("target_shape", std::to_string(num_anchors * feature_map_size * feature_map_size) + ":" +
+        withKey("target_shape", "1:1:" + std::to_string(num_anchors * feature_map_size * feature_map_size) + ":" +
                   std::to_string(shape))
       }
     );
@@ -544,7 +544,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                       withKey("epochs", epochs),
                       withKey("save_path", "refinedet_full.bin")});
 
-  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
+  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.0001"});
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
@@ -556,6 +556,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
+
+  // model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet.bin");
 
   auto dataset_train = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
