@@ -51,7 +51,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_yolov3
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
-LOCAL_SRC_FILES := main.cpp det_dataloader.cpp upsample_layer.cpp
+LOCAL_SRC_FILES := main.cpp det_dataloader.cpp upsample_layer.cpp yolo_v3_loss.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(NNTRAINER_ROOT)/Applications/YOLOv3/jni
