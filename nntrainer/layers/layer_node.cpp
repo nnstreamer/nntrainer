@@ -447,13 +447,13 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       }
     }
   } else {
-    std::cout << run_context->getNumWeights() << std::endl;
+    // std::cout << run_context->getNumWeights() << std::endl;
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).print(std::cout);
+        // run_context->getWeight(i).print(std::cout);
         run_context->getWeight(i).read(file);
-        run_context->getWeight(i).print(std::cout);
+        // run_context->getWeight(i).print(std::cout);
       }
     }
   }

@@ -112,6 +112,7 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
   auto createConv = [&with_name](const std::string &name,
                                            int kernel_size, int stride,
                                            int filters, bool use_relu,
+                                           bool trainable,
                                            const std::string &padding,
                                            const std::string &input_layer) {
     std::vector<std::string> props{
@@ -121,6 +122,10 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", padding),
       withKey("input_layers", input_layer)};
+
+    if (!trainable) {
+      props.push_back(withKey("trainable", "false"));
+    }
 
     if (use_relu) {
       props.push_back(withKey("activation", "relu"));
@@ -143,23 +148,23 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
   };
 
   return {
-    createConv("conv1_1", 3, 1, 64, true, "same", input_name),
-    createConv("conv1_2", 3, 1, 64, true, "same", scoped_name("conv1_1")),
+    createConv("conv1_1", 3, 1, 64, true, false, "same", input_name),
+    createConv("conv1_2", 3, 1, 64, true, false, "same", scoped_name("conv1_1")),
     createMaxpool("pool1", 2, scoped_name("conv1_2")),
-    createConv("conv2_1", 3, 1, 128, true, "same", scoped_name("pool1")),
-    createConv("conv2_2", 3, 1, 128, true, "same", scoped_name("conv2_1")),
+    createConv("conv2_1", 3, 1, 128, true, false, "same", scoped_name("pool1")),
+    createConv("conv2_2", 3, 1, 128, true, false, "same", scoped_name("conv2_1")),
     createMaxpool("pool2", 2, scoped_name("conv2_2")),
-    createConv("conv3_1", 3, 1, 256, true, "same", scoped_name("pool2")),
-    createConv("conv3_2", 3, 1, 256, true, "same", scoped_name("conv3_1")),
-    createConv("conv3_3", 3, 1, 256, true, "same", scoped_name("conv3_2")),
+    createConv("conv3_1", 3, 1, 256, true, false, "same", scoped_name("pool2")),
+    createConv("conv3_2", 3, 1, 256, true, false, "same", scoped_name("conv3_1")),
+    createConv("conv3_3", 3, 1, 256, true, false, "same", scoped_name("conv3_2")),
     createMaxpool("pool3", 2, scoped_name("conv3_3")),
-    createConv("conv4_1", 3, 1, 512, true, "same", scoped_name("pool3")),
-    createConv("conv4_2", 3, 1, 512, true, "same", scoped_name("conv4_1")),
-    createConv("conv4_3", 3, 1, 512, true, "same", scoped_name("conv4_2")),
+    createConv("conv4_1", 3, 1, 512, true, false, "same", scoped_name("pool3")),
+    createConv("conv4_2", 3, 1, 512, true, false, "same", scoped_name("conv4_1")),
+    createConv("conv4_3", 3, 1, 512, true, false, "same", scoped_name("conv4_2")),
     createMaxpool("pool4", 2, scoped_name("conv4_3")),
-    createConv("conv5_1", 3, 1, 512, true, "same", scoped_name("pool4")),
-    createConv("conv5_2", 3, 1, 512, true, "same", scoped_name("conv5_1")),
-    createConv("conv5_3", 3, 1, 512, true, "same", scoped_name("conv5_2")),
+    createConv("conv5_1", 3, 1, 512, true, false, "same", scoped_name("pool4")),
+    createConv("conv5_2", 3, 1, 512, true, false, "same", scoped_name("conv5_1")),
+    createConv("conv5_3", 3, 1, 512, true, false, "same", scoped_name("conv5_2")),
     createMaxpool("pool5", 2, scoped_name("conv5_3")),
     createLayer("conv2d", {
       with_name("conv6"),
@@ -170,13 +175,13 @@ std::vector<LayerHandle> featureExtractor(const std::string &input_name) {
       withKey("input_layers", scoped_name("pool5")),
       withKey("dilation", {2, 2})
       }),
-    createConv("conv7", 1, 1, 1024, true, "same", scoped_name("conv6")),
-    createConv("conv8_1", 1, 1, 256, true, "same", scoped_name("conv7")),
-    createConv("conv8_2", 3, 2, 512, true, "same", scoped_name("conv8_1")),
-    createConv("conv9_1", 1, 1, 256, true, "same", scoped_name("conv8_2")),
-    createConv("conv9_2", 3, 2, 512, true, "same", scoped_name("conv9_1")),
-    createConv("conv10_1", 1, 1, 256, true, "same", scoped_name("conv9_2")),
-    createConv("conv10_2", 3, 1, 256, true, "same", scoped_name("conv10_1")),
+    createConv("conv7", 1, 1, 1024, true, true, "same", scoped_name("conv6")),
+    createConv("conv8_1", 1, 1, 256, true, true, "same", scoped_name("conv7")),
+    createConv("conv8_2", 3, 2, 512, true, true, "same", scoped_name("conv8_1")),
+    createConv("conv9_1", 1, 1, 256, true, true, "same", scoped_name("conv8_2")),
+    createConv("conv9_2", 3, 2, 512, true, true, "same", scoped_name("conv9_1")),
+    createConv("conv10_1", 1, 1, 256, true, true, "same", scoped_name("conv9_2")),
+    createConv("conv10_2", 3, 1, 256, true, true, "same", scoped_name("conv10_1")),
   };
   
 }
@@ -331,13 +336,11 @@ std::vector<LayerHandle> tcbBlock(const std::string &block_name,
         });
     LayerHandle conv3 = createConv("conv3", 3, 1, 256, "same", scoped_name("add"));
     LayerHandle bn3 = createBN(true, scoped_name("conv3"));
-    ret = {conv1, bn1, conv2, bn2, conv3, bn3, add, upsample, upsample_bn};
+    return {conv1, bn1, conv2, bn2, conv3, bn3, add, upsample, upsample_bn};
   }
   LayerHandle conv3 = createConv("conv3", 3, 1, 256, "same", scoped_name("conv2_bn"));
   LayerHandle bn3 = createBN(true, scoped_name("conv3"));
-  ret = {conv1, bn1, conv2, bn2, conv3, bn3};
-
-  return ret;
+  return {conv1, bn1, conv2, bn2, conv3, bn3};
 }
 
 /**
@@ -557,7 +560,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  // model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet.bin");
+  // model->load("/home/bumkyu/nntrainer/Applications/RefineDet/pretrained.bin");
+  model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet2.bin");
 
   auto dataset_train = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
@@ -568,7 +572,11 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                     std::move(dataset_train));
   model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                     std::move(dataset_valid));
+
+
   model->train();
+
+  model->save("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet3.bin");
 #if defined(ENABLE_TEST)
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();

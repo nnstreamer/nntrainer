@@ -116,7 +116,7 @@ void DirDataLoader::next(float **input, float **label, bool *last) {
 
     // set label data
     std::string label_file = data_list[index].second;
-    std::memset(label_, 0.0, 24 * sizeof(float) * max_num_label);
+    std::memset(label_, 0.0, 26 * sizeof(float) * max_num_label);
 
     std::ifstream file(label_file);
     std::string cur_line;
@@ -127,8 +127,12 @@ void DirDataLoader::next(float **input, float **label, bool *last) {
       std::string cur_value;
 
       int row_idx = 0;
+      label_[line_idx * 26] = 1.0; 
       while (getline(ss, cur_value, ' ')) {
-        label_[line_idx * 24 + row_idx] = std::stof(cur_value);
+        if (row_idx == 4) {
+          row_idx++;
+        }
+        label_[line_idx * 26 + row_idx + 1] = std::stof(cur_value);
         row_idx++;
       }
 
