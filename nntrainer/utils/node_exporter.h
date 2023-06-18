@@ -24,6 +24,7 @@
 #include <common_properties.h>
 #include <nntrainer_error.h>
 #include <util_func.h>
+#include <iostream>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <flatbuffers/flatbuffers.h>
@@ -146,6 +147,9 @@ public:
     case ml::train::ExportMethods::METHOD_TFLITE:
       saveTflResult(props, self);
       break;
+    case ml::train::ExportMethods::METHOD_FLATBUFFER:
+      std::cout << "HERE" << std::endl;
+      break; 
     case ml::train::ExportMethods::METHOD_UNDEFINED:
     /// fall through intended
     default:

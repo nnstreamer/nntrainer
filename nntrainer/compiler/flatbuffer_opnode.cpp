@@ -22,8 +22,8 @@ FlatBufferOpNode::FlatBufferOpNode() :
   is_input(false),
   is_output(false),
   is_virtual(false),
-  op_type(nntr::BuiltinOperator_ADD),
-  builtin_option_type(nntr::BuiltinOptions_NONE){};
+  layer_type(nntr::LayerTypes_FULLY_CONNECTED),
+  layer_option_type(nntr::LayerOptions_NONE){};
 
 void FlatBufferOpNode::setLayerNode(const LayerNode &layer) {
   is_input = (layer.getNumInputConnections() == 0);
@@ -69,21 +69,21 @@ void FlatBufferOpNode::setLayerNode(const LayerNode &layer) {
     context.getNumWeights());
 }
 
-flatbuffers::Offset<void> FlatBufferOpNode::getBuiltinOps() const {
-  switch (op_type) {
+flatbuffers::Offset<void> FlatBufferOpNode::getLayerOps() const {
+  switch (layer_type) {
   // Now support only fully connected Layer for test
-  case nntr::BuiltinOperator_FULLY_CONNECTED:
-    return builtin_ops;
+  case nntr::LayerTypes_FULLY_CONNECTED:
+    return layer_ops;
   default:
     throw std::runtime_error("Unsupported operator");
   }
 }
 
-void FlatBufferOpNode::setBuiltinOptions(
-  nntr::BuiltinOptions builtin_option_type_,
-  const flatbuffers::Offset<void> &builtin_ops_) {
-  builtin_ops = builtin_ops_;
-  builtin_option_type = builtin_option_type_;
+void FlatBufferOpNode::setLayerOptions(
+  nntr::LayerOptions layer_option_type_,
+  const flatbuffers::Offset<void> &layer_ops_) {
+  layer_ops = layer_ops_;
+  layer_option_type = layer_option_type_;
 }
 
 } // namespace nntrainer

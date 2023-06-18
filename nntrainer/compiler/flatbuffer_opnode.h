@@ -51,7 +51,7 @@ public:
    *
    * @param op_type_
    */
-  void setOpType(nntr::BuiltinOperator op_type_) { op_type = op_type_; }
+  void setLayerType(nntr::LayerTypes layer_type_) { layer_type = layer_type_; }
 
   /**
    * @brief Set the Builtin Options object
@@ -59,8 +59,8 @@ public:
    * @param builtin_option_type_ builtin option type
    * @param builtin_ops_ flatbuffer offset of builtin ops
    */
-  void setBuiltinOptions(nntr::BuiltinOptions builtin_option_type_,
-                         const flatbuffers::Offset<void> &builtin_ops_);
+  void setLayerOptions(nntr::LayerOptions layer_option_type_,
+                       const flatbuffers::Offset<void> &layer_ops_);
 
   /**
    * @brief Get the Inputs object
@@ -133,16 +133,14 @@ public:
    *
    * @return const nntr::BuiltinOperator
    */
-  const nntr::BuiltinOperator getOpType() const { return op_type; }
+  const nntr::LayerTypes getOpType() const { return layer_type; }
 
   /**
    * @brief Get the Option Type object
    *
    * @return const nntr::BuiltinOptions
    */
-  const nntr::BuiltinOptions getOptionType() const {
-    return builtin_option_type;
-  }
+  const nntr::LayerOptions getOptionType() const { return layer_option_type; }
 
   /**
    * @brief Get the Builtin Ops object
@@ -150,7 +148,7 @@ public:
    *
    * @return flatbuffers::Offset<void>
    */
-  flatbuffers::Offset<void> getBuiltinOps() const;
+  flatbuffers::Offset<void> getLayerOps() const;
 
   /**
    * @brief Get the Input Nodes object
@@ -199,13 +197,13 @@ private:
   Variables weights;                           /**< weight variables */
   std::vector<FlatBufferOpNode *> input_nodes; /**< input nodes */
 
-  bool is_input;   /**< true if given input is model input */
-  bool is_output;  /**< true if given output is model output */
-  bool is_virtual; /**< true if given node is virtual */
+  bool is_input;               /**< true if given input is model input */
+  bool is_output;              /**< true if given output is model output */
+  bool is_virtual;             /**< true if given node is virtual */
 
-  nntr::BuiltinOperator op_type;            /**< op type */
-  nntr::BuiltinOptions builtin_option_type; /**< builtin option type */
-  flatbuffers::Offset<void> builtin_ops;    /**< builtin ops */
+  nntr::LayerTypes layer_type; /**< op type */
+  nntr::LayerOptions layer_option_type; /**< builtin option type */
+  flatbuffers::Offset<void> layer_ops;  /**< builtin ops */
 };
 
 } // namespace nntrainer

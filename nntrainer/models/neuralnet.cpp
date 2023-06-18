@@ -53,6 +53,7 @@
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
+#include <flatbuffer_interpreter.h>
 #endif
 
 /**
@@ -1327,9 +1328,12 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     break;
   }
   case ml::train::ExportMethods::METHOD_FLATBUFFER: {
+    nntrainer::FlatBufferInterpreter interpreter;
 
     model_graph.deallocateTensors();
-    model_graph.allocateTensors(ExecutionMode::TRAIN);
+    model_graph.allocateTensors(ExecutionMode::INFERENCE); //TODO : Will be ExecutionMode::TRAIN
+    interpreter.serialize(graph_representation, file_path);
+    model_graph.deallocateTensors();
     break;
   }
   default:
