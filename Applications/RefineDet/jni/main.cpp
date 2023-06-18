@@ -547,7 +547,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                       withKey("epochs", epochs),
                       withKey("save_path", "refinedet_full.bin")});
 
-  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.0001"});
+  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.00001"});
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
@@ -561,7 +561,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   }
 
   // model->load("/home/bumkyu/nntrainer/Applications/RefineDet/pretrained.bin");
-  model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet2.bin");
+  model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet5.bin");
 
   auto dataset_train = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
@@ -576,7 +576,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   model->train();
 
-  model->save("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet3.bin");
+  model->save("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet6.bin");
 #if defined(ENABLE_TEST)
   training_loss = model->getTrainingLoss();
   validation_loss = model->getValidationLoss();
