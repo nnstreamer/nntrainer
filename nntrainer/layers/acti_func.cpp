@@ -297,7 +297,7 @@ float ActiFunc::sigmoidPrime(float x) {
 }
 
 float ActiFunc::tanhFloat(float x) {
-  // return (float)tanh(x); Using sigmoid implementaion for latency reason.
+  // return (float)tanh(x); Using sigmoid implementation for latency reason.
   return 2.0 * sigmoid(2.0 * x) - 1.0;
 }
 

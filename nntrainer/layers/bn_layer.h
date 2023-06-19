@@ -40,7 +40,7 @@ namespace nntrainer {
 class BatchNormalizationLayer : public Layer {
 public:
   /**
-   * @brief     Constructor of Batch Noramlization Layer
+   * @brief     Constructor of Batch Normalization Layer
    */
   BatchNormalizationLayer();
 
