@@ -220,7 +220,7 @@ public:
    *
    * @param value float to validate
    * @retval true if it is greater or equal than 0.0
-   * @retval false if it is samller than 0.0
+   * @retval false if it is smaller than 0.0
    */
   bool isValid(const float &value) const override;
 };
