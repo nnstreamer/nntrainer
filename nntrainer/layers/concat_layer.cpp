@@ -71,7 +71,7 @@ void ConcatLayer::finalize(InitLayerContext &context) {
    * to facilitate easier processing.
    *
    * The helper shape consolidates all the dimensions before the axis
-   * together and all the dimensions after the axis to faciliate
+   * together and all the dimensions after the axis to facilitate
    * easier splitting of the data.
    */
   leading_helper_dim = 1;
