@@ -22,7 +22,6 @@
 namespace nntrainer {
 
 AttentionLayer::AttentionLayer() {
-
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 

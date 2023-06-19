@@ -77,7 +77,6 @@ public:
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
     bool is_wgrad = false);
-
   /**
    * @brief Get the allocated cache
    *
