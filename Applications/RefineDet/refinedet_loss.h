@@ -85,6 +85,7 @@ public:
 private:
   int sum = 0;
   unsigned int input_tensor_idx;
+  unsigned int gt_tensor_idx;
   std::vector<std::vector<unsigned int>> positive_mask;
   std::vector<std::vector<unsigned int>> pos_neg_mask;
   std::vector<std::vector<std::vector<float>>> anchor_gt_label_yx;

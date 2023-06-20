@@ -18,6 +18,7 @@
 #include <fstream>
 #include <nntrainer_error.h>
 #include <random>
+#include <iostream>
 
 namespace nntrainer::util {
 
@@ -34,6 +35,7 @@ DirDataLoader::DirDataLoader(const char *directory_, unsigned int max_num_label,
 
   // set data list
   std::filesystem::directory_iterator itr(dir_path + "bmp_images");
+  int cnt = 0;
   while (itr != std::filesystem::end(itr)) {
     // get image file name
     std::string img_file = itr->path().string();
@@ -108,9 +110,11 @@ void read_image(const std::string path, float *input, uint &width,
 }
 
 void DirDataLoader::next(float **input, float **label, bool *last) {
+  // std::cout << "next start" << std::endl;
   auto fill_one_sample = [this](float *input_, float *label_, int index) {
     // set input data
     std::string img_file = data_list[index].first;
+    std::cout << img_file << std::endl;
 
     read_image(img_file, input_, width, height);
 
@@ -137,7 +141,17 @@ void DirDataLoader::next(float **input, float **label, bool *last) {
       }
 
       line_idx++;
+      if (line_idx >= (int)max_num_label) {
+        break;
+      }
     }
+
+    // for (int i = 0; i < line_idx; i++) {
+    //   for (int j = 0; j < 26; j++) {
+    //     std::cout << label_[i * 26 + j] << " ";
+    //   }
+    //   std::cout << std::endl;
+    // }
 
     file.close();
   };
@@ -153,6 +167,7 @@ void DirDataLoader::next(float **input, float **label, bool *last) {
     count = 0;
     std::shuffle(idxes.begin(), idxes.end(), rng);
   }
+  // std::cout << "next end" << std::endl;
 }
 
 } // namespace nntrainer::util

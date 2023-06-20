@@ -560,7 +560,6 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  // model->load("/home/bumkyu/nntrainer/Applications/RefineDet/pretrained.bin");
   model->load("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet5.bin");
 
   auto dataset_train = ml::train::createDataset(
@@ -572,8 +571,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                     std::move(dataset_train));
   model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                     std::move(dataset_valid));
-
-
+                    
   model->train();
 
   model->save("/home/bumkyu/nntrainer/Applications/RefineDet/refinedet6.bin");
@@ -632,8 +630,8 @@ int main(int argc, char *argv[]) {
   std::array<UserDataType, 2> user_datas;
 
   try {
-    const char *train_dir = "../Applications/RefineDet/train-small/";
-    const char *valid_dir = "../Applications/RefineDet/test-small/";
+    const char *train_dir = "../Applications/RefineDet/train-2000/";
+    const char *valid_dir = "../Applications/RefineDet/train-small/";
     const int max_num_label = 5;
     const int channel = 3;
     const int width = 224;
