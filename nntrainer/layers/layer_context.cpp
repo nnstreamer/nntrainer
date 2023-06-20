@@ -445,6 +445,9 @@ Weight &RunLayerContext::getWeightObject(unsigned int idx) {
  * @return true if label is available else false
  */
 bool RunLayerContext::isLabelAvailable(unsigned int idx) const {
+  if (idx >= outputs.size())
+    return false;
+
   return outputs[idx]->getGradientRef().isAllocated();
 }
 
