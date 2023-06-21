@@ -398,7 +398,9 @@ std::vector<Weight *> Manager::requestWeights(
      */
     if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm)) {
       grad_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
-      var_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
+      // TODO: We need double check if it is OK not to add PERSIST_END_ORDER
+      // here or add other conditions
+      // var_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
     }
 
     Tensor *var = nullptr, *grad = nullptr;
