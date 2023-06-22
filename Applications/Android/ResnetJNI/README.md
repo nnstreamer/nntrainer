@@ -2,19 +2,37 @@
 title: Android NNtrainer Applicaiton Sample
 ...
 
+## Prerequisistics
 
-## Install NDK-Build
-https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-example-android.md
+### Install Android Studio on Ubuntu
+
+https://developer.android.com/studio/install?hl=ko
+
+export platform tool path (for adb)
 
 ```bash
+export PATH=$PATH:~/Android/Sdk/platfrom-tools
+```
+
+### Install JDK on Ubuntu
+
+```bash
+$ sudo apt install openjdk-17-jdk-headless
+```
+
+### Install NDK-Build
+https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-example-android.md
+
+NDK 
+```bash
 $ ls
-android-ndk-r21d-linux-x86_64.zip
-$ unzip android-ndk-r21d-linux-86_64.zip
+android-ndk-r25c-linux-x86_64.zip
+$ unzip android-ndk-r25c-linux-86_64.zip
 $ ls
-android-ndk-r21d
-$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/android-ndk-r21d/
-$ export PATH=$PATH:${PWD}/android-ndk-r21d/
-$ export ANDROID_NDK=${PWD}/android-ndk-r21d/
+android-ndk-r25c
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/android-ndk-r25c/
+$ export PATH=$PATH:${PWD}/android-ndk-r25c/
+$ export ANDROID_NDK=${PWD}/android-ndk-r25c/
 ```
 
 ##  Build NNTrainer with NDK-Build
