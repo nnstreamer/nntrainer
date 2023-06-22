@@ -364,7 +364,7 @@ NNTrainer::InputTensorsInfo::InputTensorsInfo(unsigned int _total_num_samples,
 NNTrainer::InputTensorsInfo::~InputTensorsInfo() {
   g_print("%s:%d:%s: <called>\n", __FILE__, __LINE__, __func__);
 
-  for (auto data : tensor_data) {
+  for (auto &data : tensor_data) {
     for (auto inputs : data.inputs) {
       ml_logd("free: ##I addr:%p", inputs);
       delete inputs;
@@ -441,7 +441,16 @@ nntrainer_model_start_training(const GstTensorTrainerFramework *fw,
   ml_logd("<called>");
   if (!nntrainer) {
     ml_loge("Failed get nntrainer");
+    return -1;
   }
+  if (!notifier) {
+    ml_loge("Failed get notify");
+    return -1;
+  }
+
+  nntrainer->notifier = notifier;
+  nntrainer->notifier->version = GST_TENSOR_TRAINER_FRAMEWORK_V1;
+
   try {
     std::thread train_thread(nntrainer_thread_func, nntrainer);
     train_thread.detach();
@@ -524,7 +533,8 @@ NNTrainer::NNTrainerTrain::NNTrainerTrain(
   training_loss(0),
   validation_loss(0),
   num_push_data(0),
-  model_config(_model_config) {
+  model_config(_model_config),
+  notifier(nullptr) {
   ml_logd("<called>");
   getNNStreamerProperties(prop);
   createDataset();
