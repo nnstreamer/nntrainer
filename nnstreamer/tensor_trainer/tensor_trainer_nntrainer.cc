@@ -403,7 +403,7 @@ NNTrainer::InputTensorsInfo::InputTensorsInfo(unsigned int _total_num_samples,
 NNTrainer::InputTensorsInfo::~InputTensorsInfo() {
   g_print("%s:%d:%s: <called>\n", __FILE__, __LINE__, __func__);
 
-  for (auto data : tensor_data) {
+  for (auto &data : tensor_data) {
     for (auto inputs : data.inputs) {
       ml_logd("free: ##I addr:%p", inputs);
       delete inputs;
@@ -476,10 +476,12 @@ static int nntrainer_model_start_training(
   ml_logd("<called>");
   if (!nntrainer) {
     ml_loge("Failed get nntrainer");
+    return -1;
   }
 
   if (!notifier) {
     ml_loge("Failed get notify");
+    return -1;
   }
 
   nntrainer->notifier = notifier;
@@ -597,12 +599,12 @@ NNTrainer::NNTrainerTrain::NNTrainerTrain(
   training_loss(0),
   validation_loss(0),
   num_push_data(0),
-  model_config(_model_config) {
+  model_config(_model_config),
+  notifier(nullptr) {
   ml_logd("<called>");
   getNNStreamerProperties(prop);
   createModel();
   createDataset();
-  // properties = prop;
   ml_logd("<leave>");
 }
 

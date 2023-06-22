@@ -57,7 +57,7 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
    **/
   /// assume that loss layers have single output
   if (layer.getNumOutputConnections() == 1) {
-    for (auto loss : loss_type) {
+    for (auto &loss : loss_type) {
       if (layer.getOutputConnections()[0].find(loss) != std::string::npos) {
         is_output = true;
       }
