@@ -1,6 +1,3 @@
----
-title: Android NNtrainer Applicaiton Sample
-...
 
 ## Prerequisistics
 
