@@ -222,7 +222,7 @@ ModelHandle YOLO() {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
-  for (auto layer : layers) {
+  for (auto &layer : layers) {
     model->addLayer(layer);
   }
 

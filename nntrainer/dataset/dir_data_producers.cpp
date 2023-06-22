@@ -115,7 +115,7 @@ DirDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   size_t id = 0;
   size_t num_data = 0;
-  for (auto c_name : class_names) {
+  for (auto &c_name : class_names) {
     num_data = 0;
     std::filesystem::directory_iterator itr(c_name);
     while (itr != std::filesystem::end(itr)) {
