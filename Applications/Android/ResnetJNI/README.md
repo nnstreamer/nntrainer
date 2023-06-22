@@ -1,6 +1,22 @@
 
 ## Prerequisistics
 
+### Install meson build
+
+Add nnstreamer ppa for some of the dependencies.
+
+```bash
+sudo add-apt-repository ppa:nnstreamer/ppa
+sudo apt-get update
+```
+
+Install the required packages.
+
+```bash
+sudo apt install meson ninja-build
+sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev
+```
+
 ### Install Android Studio on Ubuntu
 
 https://developer.android.com/studio/install?hl=ko
@@ -8,7 +24,7 @@ https://developer.android.com/studio/install?hl=ko
 export platform tool path (for adb)
 
 ```bash
-export PATH=$PATH:~/Android/Sdk/platfrom-tools
+export PATH=$PATH:~/Android/Sdk/platform-tools
 ```
 
 ### Install JDK on Ubuntu
