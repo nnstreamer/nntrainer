@@ -607,7 +607,6 @@ NNTrainer::NNTrainerTrain::NNTrainerTrain(
   getNNStreamerProperties(prop);
   createModel();
   createDataset();
-  // properties = prop;
   ml_logd("<leave>");
 }
 
