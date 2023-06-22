@@ -59,7 +59,7 @@ $cd {$APP_HOME}/app/src/main/jni
 ### Download cifar100 data and convert into images
 https://github.com/knjcode/cifar2png
 
-```
+```bash
 $ pip install cifar2png 
 Collecting cifar2png
   Downloading cifar2png-0.0.4.tar.gz (5.8 kB)
@@ -67,9 +67,11 @@ Collecting cifar2png
 $ cifar2png cifar100 cifar-png
 cifar-100-python.tar.gz does not exists.
 Downloading cifar-100-python.tar.gz
-
+```
 
 ### copy images in to assets
+
+```bash
 $cd {$APP_HOME}/app/src/main/asset
 $ls
 test  train
@@ -99,7 +101,7 @@ BUILD SUCCESSFUL in 10s
 Install the application and run
 
 ``` bash
-$adb install {$APP_HOME}/app/build/outputs/apk/debug/app-debug.apk
+$adb install ~/gitworkspace/nntrainer/Applications/Android/ResnetJNI/app/build/outputs/apk/debug/app-debug.apk
 
 ```
 
