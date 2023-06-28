@@ -37,6 +37,22 @@
 #define feature_size 62720
 
 static std::mt19937 rng(0);
+constexpr const char *default_error_msg =
+  "[util::checkeFile] file operation failed";
+
+template <typename T>
+static void checkFile(const T &file, const char *error_msg) {
+  if (file.bad() | file.eof() | !file.good() | file.fail()) {
+    throw std::runtime_error(error_msg);
+  }
+}
+
+void checkedRead(std::ifstream &file, char *array, std::streamsize size,
+                 const char *error_msg = default_error_msg) {
+  file.read(array, size);
+
+  checkFile(file, error_msg);
+}
 
 /**
  * @brief replace string and save it in file
@@ -157,10 +173,10 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int batch,
-                           unsigned int channel, unsigned int height,
-                           unsigned int width) {
-  nntrainer::Tensor t(batch, channel, height, width);
+nntrainer::Tensor constant(float value, unsigned int d0, unsigned int d1,
+                           unsigned int d2, unsigned int d3,
+                           nntrainer::Tformat fm) {
+  nntrainer::Tensor t(d0, d1, d2, d3, fm);
   t.setValue(value);
 
   return t;
@@ -176,8 +192,8 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
 
 nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
                               unsigned int height, unsigned int width,
-                              float min, float max) {
-  nntrainer::Tensor t(batch, channel, height, width);
+                              float min, float max, nntrainer::Tformat fm) {
+  nntrainer::Tensor t(batch, channel, height, width, fm);
   t.setRandUniform(min, max);
   return t;
 }
