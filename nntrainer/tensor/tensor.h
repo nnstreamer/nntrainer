@@ -46,10 +46,6 @@
 namespace nntrainer {
 
 using TensorDim = ml::train::TensorDim;
-
-/**
- * @brief    NHWC is WIP
- */
 using Tformat = ml::train::TensorDim::Format;
 
 class LazyTensor;
@@ -111,9 +107,9 @@ public:
   /**
    * @brief     Constructor of Tensor
    * @param[in] d0 Batch of Tensor
-   * @param[in] d1 Channel (NCHW) or Height (NHWC)
-   * @param[in] d2 Height (NCHW) or Width (NHWC)
-   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] d1 Channel
+   * @param[in] d2 Height
+   * @param[in] d3 Width
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
          Tformat fm = Tformat::NCHW) :
@@ -121,9 +117,9 @@ public:
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] d1 Channel (NCHW) or Height (NHWC)
-   * @param[in] d2 Height (NCHW) or Width (NHWC)
-   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] d1 Channel
+   * @param[in] d2 Height
+   * @param[in] d3 Width
    */
   Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
     Tensor(1, d1, d2, d3, fm){};
@@ -134,36 +130,40 @@ public:
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
   Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
-    Tensor(1, 1, d2, d3, fm){};
+    Tensor(1, (fm == Tformat::NCHW) ? 1 : d3, (fm == Tformat::NCHW) ? d2 : 1,
+           (fm == Tformat::NCHW) ? d3 : d2, fm){};
 
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
   explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW) :
-    Tensor(1, 1, 1, d3, fm){};
+    Tensor(1, (fm == Tformat::NCHW) ? 1 : d3, 1, (fm == Tformat::NCHW) ? d3 : 1,
+           fm){};
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] d data for the Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
    */
-  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
+  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+         Tformat fm = Tformat::NCHW);
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
-   * @param[in] d data for the Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &d) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+  Tensor(std::vector<std::vector<std::vector<float>>> const &d,
+         Tformat fm = Tformat::NCHW) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, fm){};
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
    */
-  Tensor(std::vector<std::vector<float>> const &d) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+  Tensor(std::vector<std::vector<float>> const &d, Tformat fm = Tformat::NCHW) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, fm){};
 
   /**
    *  @brief  Copy constructor of Tensor.
@@ -604,25 +604,6 @@ public:
   Tensor &pow(float exponent, Tensor &out) const;
 
   /**
-   * @brief  gaussian error function
-   * @return int ML_ERROR_NONE if successful
-   */
-  int erf_i();
-
-  /**
-   * @brief    gaussian error function
-   * @retval Calculated Tensor
-   */
-  Tensor erf() const;
-
-  /**
-   * @brief    gaussian error function
-   * @param[out] out out to store the result
-   * @retval Calculated Tensor
-   */
-  Tensor &erf(Tensor &out) const;
-
-  /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and second-last
    * dimension of passed tensor m.
@@ -939,6 +920,15 @@ public:
    * @retval    Tensor
    */
   void print(std::ostream &out) const;
+
+  /**
+   * @brief     Print element
+   * @param[in] out out stream
+   * @param[in] opt print formatting option. opt=0 would pretty print the data,
+   * else it would print the raw data.
+   * @retval    Tensor
+   */
+  void print_(std::ostream &out, uint opt = 0) const;
 
   /**
    * @brief     Get size of current tensor
@@ -1361,7 +1351,28 @@ public:
    */
   inline size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
                          unsigned int w) const noexcept {
-    return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
+    if (getFormat() == Tformat::NCHW)
+      return (b * strides[0] + c * strides[1] + h * strides[2] +
+              w * strides[3]);
+    else
+      return (b * strides[0] + h * strides[1] + w * strides[2] +
+              c * strides[3]);
+  }
+
+  /**
+   * @brief Check if two given axes are contiguous
+   */
+  bool checkContinuous(unsigned int n, unsigned int np1) const {
+    std::vector<unsigned int> continuous_order_nhwc = {0, 3, 1, 2};
+    bool continuous = false;
+    if (getFormat() == Tformat::NHWC) {
+      if (continuous_order_nhwc[np1] == continuous_order_nhwc[n] + 1)
+        continuous = true;
+    } else {
+      if (n + 1 == np1)
+        continuous = true;
+    }
+    return continuous;
   }
 
   /**
@@ -1420,7 +1431,6 @@ private:
   bool contiguous;
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
-
   std::shared_ptr<MemoryData<float>> data;
   unsigned int offset;
 

@@ -169,17 +169,11 @@ void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
 
 size_t TensorDim::batch() const { return dim[0]; };
 
-size_t TensorDim::channel() const {
-  return format == Format::NCHW ? dim[1] : dim[3];
-};
+size_t TensorDim::channel() const { return dim[1]; };
 
-size_t TensorDim::height() const {
-  return format == Format::NCHW ? dim[2] : dim[1];
-};
+size_t TensorDim::height() const { return dim[2]; };
 
-size_t TensorDim::width() const {
-  return format == Format::NCHW ? dim[3] : dim[2];
-};
+size_t TensorDim::width() const { return dim[3]; };
 
 size_t TensorDim::getDataLen() const { return len; };
 
@@ -187,20 +181,11 @@ size_t TensorDim::getFeatureLen() const { return feature_len; };
 
 void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
-void TensorDim::channel(size_t c) {
-  uint i = (format == Format::NCHW) ? 1 : 3;
-  setTensorDim(i, c);
-}
+void TensorDim::channel(size_t c) { setTensorDim(1, c); }
 
-void TensorDim::height(size_t h) {
-  uint i = (format == Format::NCHW) ? 2 : 1;
-  setTensorDim(i, h);
-}
+void TensorDim::height(size_t h) { setTensorDim(2, h); }
 
-void TensorDim::width(size_t w) {
-  uint i = (format == Format::NCHW) ? 3 : 2;
-  setTensorDim(i, w);
-}
+void TensorDim::width(size_t w) { setTensorDim(3, w); }
 
 const size_t *TensorDim::getDim() const { return dim; }
 
@@ -272,7 +257,10 @@ const size_t &TensorDim::operator[](const unsigned int index) const {
 }
 
 std::array<size_t, TensorDim::MAXDIM> TensorDim::computeStrides() const {
-  return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
+  if (getFormat() == TensorDim::Format::NCHW)
+    return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
+  else
+    return {height() * channel() * width(), width() * channel(), channel(), 1};
 }
 
 void TensorDim::reverse() { std::reverse(dim, dim + MAXDIM); }
@@ -303,8 +291,8 @@ std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
 bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
-  out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
-      << ":" << d.width() << std::endl;
+  out << "Shape: " << d[0] << ":" << d[1] << ":" << d[2] << ":" << d[3]
+      << std::endl;
   return out;
 }
 

@@ -102,6 +102,20 @@ private:
   nntrainer::IniWrapper ini;
 };
 
+#define GEN_TEST_INPUT_NHWC(input, eqation_i_j_k_l) \
+  do {                                              \
+    for (int i = 0; i < batch; ++i) {               \
+      for (int j = 0; j < height; ++j) {            \
+        for (int k = 0; k < width; ++k) {           \
+          for (int l = 0; l < channel; ++l) {       \
+            float val = eqation_i_j_k_l;            \
+            input.setValue(i, l, j, k, val);        \
+          }                                         \
+        }                                           \
+      }                                             \
+    }                                               \
+  } while (0)
+
 #define GEN_TEST_INPUT(input, eqation_i_j_k_l) \
   do {                                         \
     for (int i = 0; i < batch; ++i) {          \
@@ -119,8 +133,9 @@ private:
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
-                           unsigned height, unsigned width);
+nntrainer::Tensor constant(float value, unsigned int d0, unsigned d1,
+                           unsigned d2, unsigned d3,
+                           nntrainer::Tformat fm = nntrainer::Tformat::NCHW);
 
 /**
  * @brief return a tensor filled with ranged value with given dimension
@@ -134,7 +149,8 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
  */
 nntrainer::Tensor randUniform(unsigned int batch, unsigned channel,
                               unsigned height, unsigned width, float min = -1,
-                              float max = 1);
+                              float max = 1,
+                              nntrainer::Tformat fm = nntrainer::Tformat::NCHW);
 
 /**
  * @brief replace string and save in file
