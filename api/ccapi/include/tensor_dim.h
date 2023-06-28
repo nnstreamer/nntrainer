@@ -62,8 +62,8 @@ public:
    * @param dims std::initialize_list
    * @param fm format NCHW | HNWC
    *
-   * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW are accepted
-   * formats of {c}, {w, c}, {h, w, c}, {b, h, w, c} for the NHWC are accepted
+   * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW & NHWC are
+   * accepted
    */
   TensorDim(std::initializer_list<size_t> dims, Format fm = Format::NCHW);
 
