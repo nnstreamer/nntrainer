@@ -60,16 +60,8 @@ TensorDim::TensorDim(std::initializer_list<size_t> dims, TensorType t_type_) :
   }
 }
 
-// TensorDim::TensorDim(std::initializer_list<size_t> dims, TensorDim::Format fm,
-//                      TensorDim::DataType d_type) :
-//   TensorDim(dims, TensorType{fm, d_type}) {}
-
 TensorDim::TensorDim(const std::array<size_t, 3> &shapes, TensorType t_type_) :
   TensorDim({shapes[0], shapes[1], shapes[2]}, t_type_) {}
-
-// TensorDim::TensorDim(const std::array<size_t, 3> &shapes, TensorDim::Format fm,
-//                      TensorDim::DataType d_type) :
-  // TensorDim({shapes[0], shapes[1], shapes[2]}, TensorType{fm, d_type}) {}
 
 TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3,
                      TensorType t_type_,
@@ -218,17 +210,11 @@ void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
 
 size_t TensorDim::batch() const { return dim[0]; };
 
-size_t TensorDim::channel() const {
-  return t_type.format == Format::NCHW ? dim[1] : dim[3];
-};
+size_t TensorDim::channel() const { return dim[1]; };
 
-size_t TensorDim::height() const {
-  return t_type.format == Format::NCHW ? dim[2] : dim[1];
-};
+size_t TensorDim::height() const { return dim[2]; };
 
-size_t TensorDim::width() const {
-  return t_type.format == Format::NCHW ? dim[3] : dim[2];
-};
+size_t TensorDim::width() const { return dim[3]; };
 
 size_t TensorDim::getDataLen() const { return len; };
 
@@ -236,20 +222,11 @@ size_t TensorDim::getFeatureLen() const { return feature_len; };
 
 void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
-void TensorDim::channel(size_t c) {
-  uint i = (t_type.format == Format::NCHW) ? 1 : 3;
-  setTensorDim(i, c);
-}
+void TensorDim::channel(size_t c) { setTensorDim(1, c); }
 
-void TensorDim::height(size_t h) {
-  uint i = (t_type.format == Format::NCHW) ? 2 : 1;
-  setTensorDim(i, h);
-}
+void TensorDim::height(size_t h) { setTensorDim(2, h); }
 
-void TensorDim::width(size_t w) {
-  uint i = (t_type.format == Format::NCHW) ? 3 : 2;
-  setTensorDim(i, w);
-}
+void TensorDim::width(size_t w) { setTensorDim(3, w); }
 
 const size_t *TensorDim::getDim() const { return dim; }
 
@@ -358,6 +335,7 @@ std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
 bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
+
   std::string type_ =
     (d.getDataType() == ml::train::TensorDim::DataType::FP16) ? "FP16" : "FP32";
   std::string format_ =

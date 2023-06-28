@@ -38,6 +38,7 @@ test_target = [
   ['unittest_nntrainer_lazy_tensor', []],
   ['unittest_nntrainer_tensor', []],
   ['unittest_nntrainer_tensor_fp16', []],
+  ['unittest_nntrainer_tensor_nhwc', []],
   ['unittest_util_func', []],
   ['unittest_nntrainer_modelfile', []],
   ['unittest_nntrainer_models', [
