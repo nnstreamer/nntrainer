@@ -98,7 +98,7 @@ struct Tensor::BroadcastInfo {
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
                std::string name_) :
-  Tensor(name_) {
+  Tensor(name_, d.getFormat()) {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();

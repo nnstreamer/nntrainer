@@ -324,7 +324,7 @@ public:
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
-   * @param[in] d data for the Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
    */
   Tensor(std::vector<std::vector<std::vector<_FP16>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
