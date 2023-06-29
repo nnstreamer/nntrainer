@@ -801,6 +801,13 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
+  /**
+   * @brief Set Tensor type for layer
+   *
+   * @param type NCHW : NHWC
+   */
+  void setTensorType(const std::string type_ = "NCHW");
+
 private:
   /**
    * @brief     Get the Input Layers object
@@ -827,6 +834,8 @@ private:
 
   std::vector<std::unique_ptr<Connection>>
     output_connections; /**< output layer names */
+
+  TensorDim::Format tensor_type;
 
 #ifdef ENABLE_TEST
   /**

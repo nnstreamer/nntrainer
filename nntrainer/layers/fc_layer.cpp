@@ -75,9 +75,8 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   /** set weight specifications */
   // @todo : This NCHW format setting is just temporal, it needs to be set by
   // global configuration
-  TensorDim bias_dim(1, 1, 1, unit, ml::train::TensorDim::Format::NCHW, 0b0001);
-  TensorDim weight_dim(1, 1, in_dim.width(), unit,
-                       ml::train::TensorDim::Format::NCHW, 0b0011);
+  TensorDim bias_dim(1, 1, 1, unit, getTensorType(), 0b0001);
+  TensorDim weight_dim(1, 1, in_dim.width(), unit, getTensorType(), 0b0011);
 
   weight_idx[FCParams::weight] = context.requestWeight(
     weight_dim, weight_initializer, weight_regularizer,
