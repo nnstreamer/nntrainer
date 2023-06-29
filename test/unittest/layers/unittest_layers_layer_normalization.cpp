@@ -26,32 +26,38 @@ GTEST_PARAMETER_TEST(LayerNormalization, LayerSemantics,
 
 auto ln_axis_1 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=1"},
-  "2:4:2:3", "ln_axis_1.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_1.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_2 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=2"},
-  "2:4:2:3", "ln_axis_2.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_2.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_3 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=3"},
-  "2:4:2:3", "ln_axis_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_1_2 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=1, 2"},
-  "2:4:2:3", "ln_axis_1_2.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_1_2.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_2_3 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=2, 3"},
-  "2:4:2:3", "ln_axis_2_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_2_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_1_3 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=1, 3"},
-  "2:4:2:3", "ln_axis_1_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+  "2:4:2:3", "ln_axis_1_3.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
+  "nchw");
 
 auto ln_axis_1_2_3 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LayerNormalizationLayer>, {"axis=1, 2, 3"},
   "2:4:2:3", "ln_axis_1_2_3.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT);
+  LayerGoldenTestParamOptions::DEFAULT, "nchw");
 
 GTEST_PARAMETER_TEST(LayerNormalization, LayerGoldenTest,
                      ::testing::Values(ln_axis_1, ln_axis_2, ln_axis_3,

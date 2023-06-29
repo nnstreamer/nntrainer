@@ -257,6 +257,8 @@ bool LayerGoldenTest::shouldSkipCalcGrad() {
 TEST_P(LayerGoldenTest, run) {
   auto f = std::get<0>(GetParam());
   auto layer = f(std::get<1>(GetParam()));
+  std::string type = std::get<5>(GetParam());
+  layer->setTensorType(type);
   auto golden_file = checkedOpenStream<std::ifstream>(
     getGoldenPath(std::get<3>(GetParam())), std::ios::in | std::ios::binary);
   auto &input_dims = std::get<2>(GetParam());

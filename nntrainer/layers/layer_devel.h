@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <common.h>
+#include <tensor_dim.h>
 
 namespace ml::train {
 class Layer;
@@ -239,6 +240,37 @@ public:
    * @return true if supports backwarding, else false
    */
   virtual bool supportBackwarding() const = 0;
+
+  /**
+   * @brief Set the Tensor Type for the layer
+   * @param     Tensor Type : TensorDim::Format::NCHW or TneosrDim::Format::NHWC
+   */
+  virtual void setTensorType(
+    ml::train::TensorDim::Format type = ml::train::TensorDim::Format::NCHW) {
+    tensor_type = type;
+  }
+
+  /**
+   * @brief set the Tensor Type for the layer
+   * @param     Tensor Type : NCHW or NHWC
+   */
+  void setTensorType(const std::string &values) {
+    if (values.compare("NCHW") || values.compare("nchw")) {
+      tensor_type = ml::train::TensorDim::Format::NCHW;
+    } else {
+      tensor_type = ml::train::TensorDim::Format::NHWC;
+    }
+  }
+
+  /**
+   * @brief get the Tensor Type for the layer
+   * @return     Tensor Type : TensorDim::Format::NCHW or
+   * TneosrDim::Format::NHWC
+   */
+  virtual ml::train::TensorDim::Format getTensorType() { return tensor_type; }
+
+private:
+  ml::train::TensorDim::Format tensor_type;
 };
 
 /// @todo Decide where to put and how to implement(#986)

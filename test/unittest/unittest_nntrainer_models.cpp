@@ -50,6 +50,9 @@ static nntrainer::IniSection relu_base = act_base + "Activation = relu";
 static nntrainer::IniSection bn_base("bn", "Type=batch_normalization");
 static nntrainer::IniSection sgd_base("optimizer", "Type = sgd");
 
+static nntrainer::IniSection nn_base_nhwc = nn_base + "tensor_type=NHWC";
+static nntrainer::IniSection nn_base_nchw = nn_base + "tensor_type=NCHW";
+
 using I = nntrainer::IniSection;
 using INI = nntrainer::IniWrapper;
 
@@ -92,7 +95,7 @@ using INI = nntrainer::IniWrapper;
 
 INI fc_sigmoid_baseline(
   "fc_sigmoid",
-  {nn_base + "batch_size = 3",
+  {nn_base_nchw + "batch_size = 3",
    sgd_base + "learning_rate = 1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 5",
