@@ -641,6 +641,48 @@ void from_string(const std::string &value, std::vector<T> &property) {
   std::transform(v.begin(), v.end(), std::back_inserter(property),
                  from_string_helper_<T>);
 }
+/******** below section is for enumerations ***************/
+/**
+ * @brief     Enumeration of Data Type for model & layer
+ */
+struct TensorDataTypeInfo {
+  using Enum = nntrainer::TensorDim::DataType;
+  static constexpr std::initializer_list<Enum> EnumList = {Enum::FP16,
+                                                           Enum::FP32};
+
+  static constexpr const char *EnumStr[] = {"fp16", "fp32"};
+};
+
+namespace props {
+
+/**
+ * @brief Activation Enumeration Information
+ *
+ */
+class TensorDataType final : public EnumProperty<TensorDataTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "tensor_type";
+};
+
+/**
+ * @brief model tensor type : NCHW or NHWC
+ *
+ */
+class TensorFormat : public nntrainer::Property<std::string> {
+public:
+  static constexpr const char *key =
+    "tensor_format";             /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to false
+   */
+  TensorFormat(const std::string &value = "NCHW") { set(value); };
+};
+  }
 
 } // namespace nntrainer
 

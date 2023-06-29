@@ -38,7 +38,8 @@ TEST(nntrainer_TensorDim, ctor_initializer_p) {
 }
 
 TEST(nntrianer_TensorDim, effective_dimension_p) {
-  nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32);
+  nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NCHW,
+                         nntrainer::Tdatatype::FP32);
   EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
 
   t.setEffDimFlag(0b1101);
@@ -108,7 +109,6 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   EXPECT_EQ(d.width(), 7u);
 }
 
-
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);
@@ -118,7 +118,6 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
-
 
 // TEST(nntrainer_Tensor, Tensor_02_p) {
 //   int status = ML_ERROR_NONE;
@@ -167,6 +166,7 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
   int height = 3;
   int width = 10;
   std::vector<std::vector<std::vector<float>>> in;
+
   for (int k = 0; k < batch; ++k) {
     std::vector<std::vector<float>> ttv;
     for (int i = 0; i < height; ++i) {
@@ -179,10 +179,11 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
     in.push_back(ttv);
   }
 
-  nntrainer::Tensor tensor = nntrainer::Tensor(in);
-  ASSERT_NE(nullptr, tensor.getData());
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  ASSERT_NE(nullptr, tensor.getData<float>());
 
-  if (tensor.getValue(0, 0, 0, 1) != 1.0)
+  if (tensor.getValue<float>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -201,7 +202,7 @@ TEST(nntrainer_Tensor, multiply_i_01_p) {
 
   nntrainer::Tensor original;
   original.copy(input);
-  original.print(std::cout);  
+  original.print(std::cout);
 
   status = input.multiply_i(2.0);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1827,7 +1828,8 @@ TEST(nntrainer_Tensor, sum_02_p) {
       {{{{39, 42, 45, 48, 51, 54, 57, 60, 63, 66},
          {69, 72, 75, 78, 81, 84, 87, 90, 93, 96}},
         {{57, 60, 63, 66, 69, 72, 75, 78, 81, 84},
-         {87, 90, 93, 96, 99, 102, 105, 108, 111, 114}}}}));
+         {87, 90, 93, 96, 99, 102, 105, 108, 111, 114}}}}),
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
 
   nntrainer::Tensor ans1(
     std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -1836,7 +1838,8 @@ TEST(nntrainer_Tensor, sum_02_p) {
        {{{32, 34, 36, 38, 40, 42, 44, 46, 48, 50},
          {52, 54, 56, 58, 60, 62, 64, 66, 68, 70}}},
        {{{56, 58, 60, 62, 64, 66, 68, 70, 72, 74},
-         {76, 78, 80, 82, 84, 86, 88, 90, 92, 94}}}}));
+         {76, 78, 80, 82, 84, 86, 88, 90, 92, 94}}}}),
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
 
   nntrainer::Tensor ans2(
     std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -1845,13 +1848,15 @@ TEST(nntrainer_Tensor, sum_02_p) {
        {{{36, 38, 40, 42, 44, 46, 48, 50, 52, 54}},
         {{48, 50, 52, 54, 56, 58, 60, 62, 64, 66}}},
        {{{60, 62, 64, 66, 68, 70, 72, 74, 76, 78}},
-        {{72, 74, 76, 78, 80, 82, 84, 86, 88, 90}}}}));
+        {{72, 74, 76, 78, 80, 82, 84, 86, 88, 90}}}}),
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
 
   nntrainer::Tensor ans3(
     std::vector<std::vector<std::vector<std::vector<float>>>>(
       {{{{55}, {155}}, {{115}, {215}}},
        {{{175}, {275}}, {{235}, {335}}},
-       {{{295}, {395}}, {{355}, {455}}}}));
+       {{{295}, {395}}, {{355}, {455}}}}),
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height * channel) + j * (batch * height) +
@@ -1882,13 +1887,17 @@ TEST(nntrainer_Tensor, sum_03_p) {
     nntrainer::Tensor ans_0_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{63, 66, 69, 72, 75, 78, 81, 84, 87, 90}},
-          {{93, 96, 99, 102, 105, 108, 111, 114, 117, 120}}}}));
+          {{93, 96, 99, 102, 105, 108, 111, 114, 117, 120}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_1_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{12, 14, 16, 18, 20, 22, 24, 26, 28, 30}}},
          {{{52, 54, 56, 58, 60, 62, 64, 66, 68, 70}}},
-         {{{92, 94, 96, 98, 100, 102, 104, 106, 108, 110}}}}));
+         {{{92, 94, 96, 98, 100, 102, 104, 106, 108, 110}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_2_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -1897,11 +1906,15 @@ TEST(nntrainer_Tensor, sum_03_p) {
          {{{21, 22, 23, 24, 25, 26, 27, 28, 29, 30}},
           {{31, 32, 33, 34, 35, 36, 37, 38, 39, 40}}},
          {{{41, 42, 43, 44, 45, 46, 47, 48, 49, 50}},
-          {{51, 52, 53, 54, 55, 56, 57, 58, 59, 60}}}}));
+          {{51, 52, 53, 54, 55, 56, 57, 58, 59, 60}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_3_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
-        {{{{55}}, {{155}}}, {{{255}}, {{355}}}, {{{455}}, {{555}}}}));
+        {{{{55}}, {{155}}}, {{{255}}, {{355}}}, {{{455}}, {{555}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor result_0_1_0 = input.sum(0, 1);
     nntrainer::Tensor result_1_1_0 = input.sum(1, 1);
@@ -1919,13 +1932,17 @@ TEST(nntrainer_Tensor, sum_03_p) {
     nntrainer::Tensor ans_0_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{65, 70, 75, 80, 85, 90, 95, 100, 105, 110}},
-          {{115, 120, 125, 130, 135, 140, 145, 150, 155, 160}}}}));
+          {{115, 120, 125, 130, 135, 140, 145, 150, 155, 160}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_1_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{14, 18, 22, 26, 30, 34, 38, 42, 46, 50}}},
          {{{74, 78, 82, 86, 90, 94, 98, 102, 106, 110}}},
-         {{{134, 138, 142, 146, 150, 154, 158, 162, 166, 170}}}}));
+         {{{134, 138, 142, 146, 150, 154, 158, 162, 166, 170}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_2_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -1934,11 +1951,15 @@ TEST(nntrainer_Tensor, sum_03_p) {
          {{{63, 66, 69, 72, 75, 78, 81, 84, 87, 90}},
           {{93, 96, 99, 102, 105, 108, 111, 114, 117, 120}}},
          {{{123, 126, 129, 132, 135, 138, 141, 144, 147, 150}},
-          {{153, 156, 159, 162, 165, 168, 171, 174, 177, 180}}}}));
+          {{153, 156, 159, 162, 165, 168, 171, 174, 177, 180}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_3_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
-        {{{{57}}, {{159}}}, {{{261}}, {{363}}}, {{{465}}, {{567}}}}));
+        {{{{57}}, {{159}}}, {{{261}}, {{363}}}, {{{465}}, {{567}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor output_0_1_2(1, channel, height, width);
     {
@@ -1984,13 +2005,17 @@ TEST(nntrainer_Tensor, sum_03_p) {
     nntrainer::Tensor ans_0_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{126, 132, 138, 144, 150, 156, 162, 168, 174, 180}},
-          {{186, 192, 198, 204, 210, 216, 222, 228, 234, 240}}}}));
+          {{186, 192, 198, 204, 210, 216, 222, 228, 234, 240}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_1_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{24, 28, 32, 36, 40, 44, 48, 52, 56, 60}}},
          {{{104, 108, 112, 116, 120, 124, 128, 132, 136, 140}}},
-         {{{184, 188, 192, 196, 200, 204, 208, 212, 216, 220}}}}));
+         {{{184, 188, 192, 196, 200, 204, 208, 212, 216, 220}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_2_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -1999,11 +2024,15 @@ TEST(nntrainer_Tensor, sum_03_p) {
          {{{42, 44, 46, 48, 50, 52, 54, 56, 58, 60}},
           {{62, 64, 66, 68, 70, 72, 74, 76, 78, 80}}},
          {{{82, 84, 86, 88, 90, 92, 94, 96, 98, 100}},
-          {{102, 104, 106, 108, 110, 112, 114, 116, 118, 120}}}}));
+          {{102, 104, 106, 108, 110, 112, 114, 116, 118, 120}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_3_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
-        {{{{110}}, {{310}}}, {{{510}}, {{710}}}, {{{910}}, {{1110}}}}));
+        {{{{110}}, {{310}}}, {{{510}}, {{710}}}, {{{910}}, {{1110}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor result_0_2_0 = input.sum(0, 2);
     nntrainer::Tensor result_1_2_0 = input.sum(1, 2);
@@ -2021,13 +2050,17 @@ TEST(nntrainer_Tensor, sum_03_p) {
     nntrainer::Tensor ans_0_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{128, 136, 144, 152, 160, 168, 176, 184, 192, 200}},
-          {{208, 216, 224, 232, 240, 248, 256, 264, 272, 280}}}}));
+          {{208, 216, 224, 232, 240, 248, 256, 264, 272, 280}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_1_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{26, 32, 38, 44, 50, 56, 62, 68, 74, 80}}},
          {{{126, 132, 138, 144, 150, 156, 162, 168, 174, 180}}},
-         {{{226, 232, 238, 244, 250, 256, 262, 268, 274, 280}}}}));
+         {{{226, 232, 238, 244, 250, 256, 262, 268, 274, 280}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_2_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2036,11 +2069,15 @@ TEST(nntrainer_Tensor, sum_03_p) {
          {{{84, 88, 92, 96, 100, 104, 108, 112, 116, 120}},
           {{124, 128, 132, 136, 140, 144, 148, 152, 156, 160}}},
          {{{164, 168, 172, 176, 180, 184, 188, 192, 196, 200}},
-          {{204, 208, 212, 216, 220, 224, 228, 232, 236, 240}}}}));
+          {{204, 208, 212, 216, 220, 224, 228, 232, 236, 240}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor ans_3_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
-        {{{{112}}, {{314}}}, {{{516}}, {{718}}}, {{{920}}, {{1122}}}}));
+        {{{{112}}, {{314}}}, {{{516}}, {{718}}}, {{{920}}, {{1122}}}}),
+      {ml::train::TensorDim::Format::NCHW,
+       ml::train::TensorDim::DataType::FP32});
 
     nntrainer::Tensor output_0_2_2(1, channel, height, width);
     {

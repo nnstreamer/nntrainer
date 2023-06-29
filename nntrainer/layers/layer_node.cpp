@@ -248,12 +248,12 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   con = std::make_unique<Connection>(name, index);
 }
 
-void LayerNode::setTensorType(const std::string &type_) {
-  TensorDim::Format type =
-    (type_.compare("NCHW") == 0 || type_.compare("nchw") == 0)
-      ? TensorDim::Format::NCHW
-      : TensorDim::Format::NHWC;
-  getLayer()->setTensorType(type);
+void LayerNode::setTensorType(const std::string form_, const std::string ty_) {
+  setTensorType({std::move(form_), std::move(ty_)});
+}
+
+void LayerNode::setTensorType(std::array<const std::string, 2> t_type) {
+  getLayer()->setTensorType(t_type);
 }
 
 const std::string LayerNode::getName() const noexcept {

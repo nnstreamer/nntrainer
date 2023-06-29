@@ -29,20 +29,20 @@ auto grucell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRUCellLayer>,
   {"unit=5", "integrate_bias=true", "reset_after=false"}, "3:1:1:7,3:1:1:5",
   "grucell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 auto grucell_reset_after_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRUCellLayer>,
   {"unit=5", "integrate_bias=false", "reset_after=true"}, "3:1:1:7,3:1:1:5",
   "grucell_reset_after_single_step.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto grucell_single_step_act = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::GRUCellLayer>,
   {"unit=5", "integrate_bias=true", "reset_after=false",
    "hidden_state_activation=sigmoid", "recurrent_activation=tanh"},
   "3:1:1:7,3:1:1:5", "grucell_single_step_act.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(GRUCell, LayerGoldenTest,
                      ::testing::Values(grucell_single_step,

@@ -557,7 +557,7 @@ private:
                props::ContinueTrain, props::SaveBestPath,
                props::MemoryOptimization, props::MemorySwap,
                props::MemorySwapPath, props::MemorySwapLookahead,
-               props::ModelTensorType>;
+               props::TensorFormat, props::TensorDataType>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;

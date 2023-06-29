@@ -804,9 +804,18 @@ public:
   /**
    * @brief Set Tensor type for layer
    *
-   * @param type NCHW : NHWC
+   * @param format NCHW : NHWC
+   * @param type FP16, FP32
    */
-  void setTensorType(const std::string &type_ = "NCHW");
+  void setTensorType(const std::string form_ = "NCHW",
+                     const std::string type_ = "FP32");
+  /**
+   * @brief Set Tensor type for layer
+   *
+   * @param format NCHW : NHWC
+   * @param type FP16, FP32
+   */
+  void setTensorType(std::array<const std::string, 2> t_type);
 
 private:
   /**
@@ -835,7 +844,9 @@ private:
   std::vector<std::unique_ptr<Connection>>
     output_connections; /**< output layer names */
 
-  TensorDim::Format tensor_type;
+  TensorDim::Format tensor_format;
+
+  TensorDim::DataType tensor_dtype;
 
 #ifdef ENABLE_TEST
   /**

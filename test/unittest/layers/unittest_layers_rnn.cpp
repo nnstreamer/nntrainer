@@ -27,6 +27,6 @@ auto rnn_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::RNNLayer>,
   {"unit=5", "return_sequences=false", "integrate_bias=true"}, "3:1:1:7",
   "rnn_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(RNN, LayerGoldenTest, ::testing::Values(rnn_single_step));

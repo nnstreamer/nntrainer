@@ -31,20 +31,20 @@ auto bn_inference_option = LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
 auto bn_basic_channels_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
   "bn_channels_training.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 auto bn_basic_channels_inference = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
-  "bn_channels_inference.nnlayergolden", bn_inference_option, "nchw");
+  "bn_channels_inference.nnlayergolden", bn_inference_option, "nchw", "fp32");
 
 auto bn_basic_width_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
   "bn_width_training.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 auto bn_basic_width_inference = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
-  "bn_width_inference.nnlayergolden", bn_inference_option, "nchw");
+  "bn_width_inference.nnlayergolden", bn_inference_option, "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(BatchNormalization, LayerGoldenTest,
                      ::testing::Values(bn_basic_channels_training,
