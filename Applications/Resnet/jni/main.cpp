@@ -254,7 +254,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
                   UserDataType &valid_user_data) {
   // set option for transfer learning
-  bool transfer_learning = false;
+  const bool transfer_learning = false;
   std::string pretrained_bin_path = "./pretrained_resnet18.bin";
 
   // setup model
