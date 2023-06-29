@@ -37,13 +37,13 @@ auto multi_head_attention_single_batch = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   {"num_heads=2", "projected_key_dim=3"}, "1:1:5:7,1:1:3:7,1:1:3:7",
   "multi_head_attention_single_batch.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto multi_head_attention = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   {"num_heads=2", "projected_key_dim=3"}, "2:1:5:7,2:1:3:7,2:1:3:7",
   "multi_head_attention.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 auto multi_head_attention_return_attention_scores = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
@@ -51,19 +51,19 @@ auto multi_head_attention_return_attention_scores = LayerGoldenTestParamType(
    "average_attention_weight=false"},
   "2:1:5:7,2:1:3:7,2:1:3:7",
   "multi_head_attention_return_attention_scores.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto multi_head_attention_value_dim = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   {"num_heads=2", "projected_key_dim=3", "projected_value_dim=5"},
   "2:1:5:7,2:1:3:7,2:1:3:7", "multi_head_attention_value_dim.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto multi_head_attention_output_shape = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
   {"num_heads=2", "projected_key_dim=3", "output_shape=5"},
   "2:1:5:7,2:1:3:7,2:1:3:7", "multi_head_attention_output_shape.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(
   MultiHeadAttention, LayerGoldenTest,

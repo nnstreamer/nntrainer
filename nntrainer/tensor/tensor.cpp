@@ -69,12 +69,7 @@
           }                                                           \
   } while (0);
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty()) {                 \
-      tensor = Tensor(__VA_ARGS__);       \
-    }                                     \
-  } while (0);
+
 namespace nntrainer {
 
 /**
@@ -106,7 +101,7 @@ struct Tensor::BroadcastInfo {
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
                std::string name_) :
-  Tensor(name_, d.getFormat()) {
+  Tensor(name_) {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();
@@ -324,22 +319,22 @@ Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
 Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
                                  const float beta) const {
   /** TODO: throw than create new dimenions */
-  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
       "Strided multiplication does not support broadcasting");
-  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
-  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
-    << getName() << " is not allocated";
-  NNTR_THROW_IF(m.getData() == nullptr, std::invalid_argument)
-    << m.getName() << " is not allocated";
-  NNTR_THROW_IF(output.getData() == nullptr, std::invalid_argument)
-    << output.getName() << " is not allocated";
 
   // Format NCHW Case
   if (this->getFormat() == Tformat::NCHW) {
-    if (getDataType() == DataType::FP32) {
+    if (getDataType() == Tdatatype::FP32) {
+      NNTR_THROW_IF(getData<float>() == nullptr, std::invalid_argument)
+        << getName() << " is not allocated";
+      NNTR_THROW_IF(m.getData<float>() == nullptr, std::invalid_argument)
+        << m.getName() << " is not allocated";
+      NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+        << output.getName() << " is not allocated";
+
       if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
           beta != 0.0) {
         for (unsigned int b = 0; b < batch(); ++b) {
@@ -355,7 +350,8 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
           }
         }
       } else {
-        /** @todo optimize this with combining these loops where stride is 1 */
+        /** @todo optimize this with combining these loops where stride is 1
+         */
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
             for (unsigned int h = 0; h < height(); ++h) {
@@ -369,6 +365,13 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
         }
       }
     } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+      NNTR_THROW_IF(getData<__fp16>() == nullptr, std::invalid_argument)
+        << getName() << " is not allocated";
+      NNTR_THROW_IF(m.getData<__fp16>() == nullptr, std::invalid_argument)
+        << m.getName() << " is not allocated";
+      NNTR_THROW_IF(output.getData<__fp16>() == nullptr, std::invalid_argument)
+        << output.getName() << " is not allocated";
+
       if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
           beta != 0.0) {
         for (unsigned int b = 0; b < batch(); ++b) {
@@ -398,7 +401,7 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
       }
     }
   } else { // Format NHWC Case
-    if (getDataType() == DataType::FP32) {
+    if (getDataType() == Tdatatype::FP32) {
       if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
           beta != 0.0) {
         for (unsigned int b = 0; b < batch(); ++b) {
@@ -419,9 +422,9 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int h = 0; h < height(); ++h) {
             for (unsigned int w = 0; w < width(); ++w) {
-              float *out_data = output.getAddress<float>(b, c, h, 0);
-              const float *m_data = m.getAddress<float>(b, c, h, 0);
-              const float *in_data = getAddress<float>(b, c, h, 0);
+              float *out_data = output.getAddress<float>(b, 0, h, w);
+              const float *m_data = m.getAddress<float>(b, 0, h, w);
+              const float *in_data = getAddress<float>(b, 0, h, w);
               std::transform(in_data, in_data + channel(), m_data, out_data,
                              std::multiplies<float>());
             }
@@ -449,9 +452,9 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int h = 0; h < height(); ++h) {
             for (unsigned int w = 0; w < width(); ++w) {
-              __fp16 *out_data = output.getAddress<__fp16>(b, c, h, 0);
-              const __fp16 *m_data = m.getAddress<__fp16>(b, c, h, 0);
-              const __fp16 *in_data = getAddress<__fp16>(b, c, h, 0);
+              __fp16 *out_data = output.getAddress<__fp16>(b, 0, h, w);
+              const __fp16 *m_data = m.getAddress<__fp16>(b, 0, h, w);
+              const __fp16 *in_data = getAddress<__fp16>(b, 0, h, w);
               std::transform(in_data, in_data + channel(), m_data, out_data,
                              std::multiplies<__fp16>());
             }
@@ -490,7 +493,7 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
       "Strided addition does not support broadcasting");
   // Format NCHW Case
   if (this->getFormat() == Tformat::NCHW) {
-    if (getDataType() == DataType::FP32) {
+    if (getDataType() == Tdatatype::FP32) {
       if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
           beta != 0.0) {
         for (unsigned int b = 0; b < batch(); ++b) {
@@ -547,7 +550,7 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
       }
     }
   } else { // Format NHWC Case
-    if (getDataType() == DataType::FP32) {
+    if (getDataType() == Tdatatype::FP32) {
       if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
           beta != 0.0) {
         for (unsigned int b = 0; b < batch(); ++b) {
@@ -567,9 +570,9 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int h = 0; h < height(); ++h) {
             for (unsigned int w = 0; w < width(); ++w) {
-              float *out_data = output.getAddress<float>(b, c, h, 0);
-              const float *m_data = m.getAddress<float>(b, c, h, 0);
-              const flaot *in_data = getAddress<float>(b, c, h, 0);
+              float *out_data = output.getAddress<float>(b, 0, h, w);
+              const float *m_data = m.getAddress<float>(b, 0, h, w);
+              const float *in_data = getAddress<float>(b, 0, h, w);
               std::transform(in_data, in_data + channel(), m_data, out_data,
                              std::plus<float>());
             }
@@ -584,9 +587,8 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
             for (unsigned int w = 0; w < width(); ++w) {
               for (unsigned int c = 0; c < channel(); ++c) {
                 output.setValue(b, c, h, w,
-                                getValue<__fp16>(b, c, h, w) *
-                                  m.getValue<__fp16>(b, c, h, w),
-                                beta);
+                                getValue<__fp16>(b, c, h, w) +
+                                  m.getValue<__fp16>(b, c, h, w) * beta);
               }
             }
           }
@@ -597,9 +599,9 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int h = 0; h < height(); ++h) {
             for (unsigned int w = 0; w < width(); ++w) {
-              __fp16 *out_data = output.getAddress<__fp16>(b, c, h, 0);
-              const __fp16 *m_data = m.getAddress<__fp16>(b, c, h, 0);
-              const __fp16 *in_data = getAddress<__fp16>(b, c, h, 0);
+              __fp16 *out_data = output.getAddress<__fp16>(b, 0, h, w);
+              const __fp16 *m_data = m.getAddress<__fp16>(b, 0, h, w);
+              const __fp16 *in_data = getAddress<__fp16>(b, 0, h, w);
               std::transform(in_data, in_data + channel(), m_data, out_data,
                              std::plus<__fp16>());
             }
@@ -1377,7 +1379,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
   switch (axis) {
   case 0: {
     CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width(),
-                         getTensorType());
+                         this->getTensorType());
     size_t feat_len = dim.getFeatureLen();
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, this->getFormat());
@@ -2129,7 +2131,7 @@ void Tensor::print_(std::ostream &out, uint opt) const {
     }
   } else {
     for (uint i = 0; i < len; ++i) {
-      out << getData()<float>[i] << ", ";
+      out << getData<float>()[i] << ", ";
     }
   }
 }
@@ -2319,7 +2321,8 @@ Tensor &Tensor::average(const std::vector<unsigned int> &axes,
   if (axes.empty())
     return this->average(output);
 
-  TensorDim ret_shape(getFormat());
+  TensorDim ret_shape(getTensorType());
+  
   for (const auto &idx : axes) {
     if (idx >= TensorDim::MAXDIM) {
       throw std::out_of_range("axis more then MAXDIM is invalid");
@@ -2337,10 +2340,10 @@ Tensor Tensor::average() const {
   Tensor result = *this;
   unsigned int axis = 0;
   if (this->getFormat() == Tformat::NHWC) {
-    result.reshape({1, dim.getDataLen(), 1, 1, this->getFormat()});
+    result.reshape({1, dim.getDataLen(), 1, 1, this->getTensorType()});
     axis = 1;
   } else {
-    result.reshape({1, 1, 1, dim.getDataLen(), this->getFormat()});
+    result.reshape({1, 1, 1, dim.getDataLen(), this->getTensorType()});
     axis = 3;
   }
   return result.average(axis);

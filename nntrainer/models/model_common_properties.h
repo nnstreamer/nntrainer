@@ -179,22 +179,6 @@ public:
   MemorySwapLookahead(const unsigned int &value = 0);
 };
 
-/**
- * @brief model tensor type : NCHW or NHWC
- *
- */
-class ModelTensorType : public Property<std::string> {
-public:
-  static constexpr const char *key = "tensor_type"; /**< unique key to access */
-  using prop_tag = str_prop_tag;                    /**< property type */
-
-  /**
-   * @brief Constructor
-   *
-   * @param value value to set, defaults to false
-   */
-  ModelTensorType(const std::string &value = "NCHW");
-};
 
 } // namespace nntrainer::props
 

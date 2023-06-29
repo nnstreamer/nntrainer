@@ -66,11 +66,11 @@ namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::ModelTensorType()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::TensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -84,11 +84,11 @@ NeuralNetwork::NeuralNetwork() :
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::ModelTensorType()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::TensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -173,11 +173,14 @@ int NeuralNetwork::compile() {
   unsigned int lookahead =
     std::get<props::MemorySwapLookahead>(model_flex_props);
 
-  const std::string tensor_type =
-    std::get<props::ModelTensorType>(model_flex_props);
+  const std::string tensor_format =
+    std::get<props::TensorFormat>(model_flex_props);
 
-  model_graph =
-    NetworkGraph(memory_swap, memory_swap_path, lookahead, tensor_type);
+  const std::string tensor_type =
+    to_string(std::get<props::TensorDataType>(model_flex_props));
+
+  model_graph = NetworkGraph(memory_swap, memory_swap_path, lookahead,
+                             tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));

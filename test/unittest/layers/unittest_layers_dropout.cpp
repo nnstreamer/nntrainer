@@ -34,22 +34,22 @@ auto dropout_20_training = LayerGoldenTestParamType(
   "2:3:2:3", "dropout_20_training.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT |
     LayerGoldenTestParamOptions::DROPOUT_MATCH_60_PERCENT,
-  "nchw");
+  "nchw", "fp32");
 
 auto dropout_20_inference = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=0.2"},
   "2:3:2:3", "dropout_20_inference.nnlayergolden", dropout_inference_option,
-  "nchw");
+  "nchw", "fp32");
 
 auto dropout_0_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=0.0"},
   "2:3:2:3", "dropout_0_training.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto dropout_100_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=1.0"},
   "2:3:2:3", "dropout_100_training.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(Dropout, LayerGoldenTest,
                      ::testing::Values(dropout_20_training, dropout_0_training,

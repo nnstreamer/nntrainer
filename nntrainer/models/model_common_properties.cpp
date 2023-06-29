@@ -36,7 +36,4 @@ MemorySwapPath::MemorySwapPath(const std::string &value) { set(value); }
 MemorySwapLookahead::MemorySwapLookahead(const unsigned int &value) {
   set(value);
 }
-
-ModelTensorType::ModelTensorType(const std::string &value) { set(value); }
-
 } // namespace nntrainer::props

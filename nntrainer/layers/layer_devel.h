@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include <base_properties.h>
 #include <common.h>
 #include <tensor_dim.h>
 
@@ -242,33 +243,63 @@ public:
   virtual bool supportBackwarding() const = 0;
 
   /**
-   * @brief Set the Tensor Type for the layer
-   * @param     Tensor Type : TensorDim::Format::NCHW or TneosrDim::Format::NHWC
+   * @brief Set the Tensor format for the layer
+   * @param     Tensor format : TensorDim::Format::NCHW or
+   * TneosrDim::Format::NHWC
    */
-  virtual void setTensorType(
-    ml::train::TensorDim::Format type = ml::train::TensorDim::Format::NCHW) {
-    tensor_type = type;
+  virtual void setTensorFormat(
+    ml::train::TensorDim::Format form = ml::train::TensorDim::Format::NCHW) {
+    tensor_format = form;
+  }
+
+  /**
+   * @brief Set the Tensor Type for the layer
+   * @param     Tensor Type : FP32, FP16
+   */
+
+  virtual void setTensorDataType(
+    ml::train::TensorDim::DataType ty = ml::train::TensorDim::DataType::FP32) {
+    tensor_dtype = ty;
   }
 
   /**
    * @brief set the Tensor Type for the layer
    * @param     Tensor Type : NCHW or NHWC
    */
-  void setTensorType(const std::string &values) {
-    tensor_type = (values.compare("NCHW") == 0 || values.compare("nchw") == 0)
-                    ? ml::train::TensorDim::Format::NCHW
-                    : ml::train::TensorDim::Format::NHWC;
+  void setTensorType(std::array<const std::string, 2> t_type) {
+    if (t_type[0].compare("NCHW") == 0 || t_type[0].compare("nchw") == 0) {
+      tensor_format = ml::train::TensorDim::Format::NCHW;
+    } else {
+      tensor_format = ml::train::TensorDim::Format::NHWC;
+    }
+
+    nntrainer::props::TensorDataType type_;
+
+    from_string(t_type[1], type_);
+
+    tensor_dtype = type_;
+  }
+
+  /**
+   * @brief get the Tensor Format for the layer
+   * @return     Tensor Format : TensorDim::Format::NCHW or
+   * TneosrDim::Format::NHWC
+   */
+  virtual ml::train::TensorDim::Format getTensorFormat() {
+    return tensor_format;
   }
 
   /**
    * @brief get the Tensor Type for the layer
-   * @return     Tensor Type : TensorDim::Format::NCHW or
-   * TneosrDim::Format::NHWC
+   * @return     Tensor Type : FP16, Fp32
    */
-  virtual ml::train::TensorDim::Format getTensorType() { return tensor_type; }
+  virtual ml::train::TensorDim::DataType getTensorDataType() {
+    return tensor_dtype;
+  }
 
 private:
-  ml::train::TensorDim::Format tensor_type;
+  ml::train::TensorDim::Format tensor_format;
+  ml::train::TensorDim::DataType tensor_dtype;
 };
 
 /// @todo Decide where to put and how to implement(#986)
