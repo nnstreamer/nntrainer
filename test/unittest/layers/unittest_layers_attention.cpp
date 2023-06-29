@@ -32,12 +32,12 @@ auto attention_shared_kv = LayerGoldenTestParamType(
 auto attention_shared_kv_batched = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "2:1:5:7,2:1:3:7",
   "attention_shared_kv_batched.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto attention_batched = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::AttentionLayer>, {},
   "2:1:5:7,2:1:3:7,2:1:3:7", "attention_batched.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(Attention, LayerGoldenTest,
                      ::testing::Values(attention_shared_kv,

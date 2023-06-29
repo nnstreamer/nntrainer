@@ -81,17 +81,11 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   inPlaceOptimize();
 
-  TensorDim::Format type =
-    (getModelTensorType().compare("NCHW") ||
-     getModelTensorType().compare("nchw") || getModelTensorType().compare(""))
-      ? TensorDim::Format::NCHW
-      : TensorDim::Format::NHWC;
-
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
     /// @todo  later, we can set layer tensor type differenctly with model
     /// tensor type
-    lnode->setTensorType(getModelTensorType());
+    lnode->setTensorType(getTensorType());
   }
 
   status = checkCompiledGraph();

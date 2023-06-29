@@ -28,12 +28,12 @@ INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerSemantics,
 auto positional_encoding_partial = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
   {"max_timestep=10"}, "3:1:7:6", "positional_encoding_partial.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 auto positional_encoding = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
   {"max_timestep=10"}, "3:1:10:6", "positional_encoding.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
 
 INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerGoldenTest,
                         ::testing::Values(positional_encoding_partial,

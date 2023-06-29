@@ -133,18 +133,21 @@ public:
   Manager() :
     enable_optimizations(true),
     swap_lookahead(0),
-    tensor_type("nchw") {}
+    tensor_format("nchw"),
+    tensor_dtype("fp32") {}
 
   /**
    * @brief     Constructor of Manager
    */
   Manager(bool enable_swap, const std::string &swap_path = "",
-          unsigned int lookahead = 0, const std::string tensor_type_ = "nchw") :
+          unsigned int lookahead = 0, const std::string tensor_format_ = "nchw",
+          const std::string tensor_dtype_ = "fp32") :
     weight_pool(enable_swap, swap_path, "weight_pool"),
     tensor_pool(enable_swap, swap_path, "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
-    tensor_type(tensor_type_) {}
+    tensor_format(tensor_format_),
+    tensor_dtype(tensor_dtype_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -505,7 +508,9 @@ private:
 
   unsigned int swap_lookahead; /** lookahead for memory swap */
 
-  std::string tensor_type;
+  std::string tensor_format;
+
+  std::string tensor_dtype;
 
   /**
    * @brief Finalize the given tensor pool

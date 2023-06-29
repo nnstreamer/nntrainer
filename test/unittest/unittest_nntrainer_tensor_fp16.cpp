@@ -22,7 +22,7 @@
 TEST(nntrainer_Tensor, Tensor_01_fp16_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    1, 2, 3, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+    1, 2, 3, nntrainer::Tformfat::NCHW, nntrainer::Tdatatype::FP16);
   tensor.setZero();
   ASSERT_NE(nullptr, tensor.getData<__fp16>());
   if (tensor.getValue(0, 0, 0, 0) != 0.0)
@@ -54,7 +54,8 @@ TEST(nntrainer_Tensor, Tensor_02_fp16_p) {
     in.push_back(tv);
   }
 
-  nntrainer::Tensor tensor = nntrainer::Tensor(in);
+  nntrainer::Tensor tensor = nntrainer::Tensor(in, {ml::train::TensorDim::Format::NCHW,
+                           ml::train::TensorDim::DataType::FP16});
   ASSERT_NE(nullptr, tensor.getData<__fp16>());
 
   if (tensor.getValue<__fp16>(0, 0, 0, 1) != 1.0)
@@ -80,7 +81,8 @@ TEST(nntrainer_Tensor, Tensor_03_fp16_p) {
     in.push_back(ttv);
   }
 
-  nntrainer::Tensor tensor = nntrainer::Tensor(in);
+  nntrainer::Tensor tensor = nntrainer::Tensor(in, {ml::train::TensorDim::Format::NCHW,
+                           ml::train::TensorDim::DataType::FP16});
   ASSERT_NE(nullptr, tensor.getData<__fp16>());
 
   if (tensor.getValue<__fp16>(0, 0, 0, 1) != 1.0)

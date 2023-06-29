@@ -28,7 +28,7 @@ auto lstmcell_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
   {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5,3:1:1:5",
   "lstmcell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw");
+  "nchw", "fp32");
 
 GTEST_PARAMETER_TEST(LSTMCell, LayerGoldenTest,
                      ::testing::Values(lstmcell_single_step));

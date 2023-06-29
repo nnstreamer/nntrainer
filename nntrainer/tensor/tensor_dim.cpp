@@ -17,11 +17,11 @@
 #include <sstream>
 #include <stdio.h>
 
+#include <iostream>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <tensor_dim.h>
 #include <util_func.h>
-#include <iostream>
 
 namespace ml {
 namespace train {
@@ -114,7 +114,7 @@ TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
   return *this;
 }
 
-uint TensorDim::getDataTypeSize()const {
+uint TensorDim::getDataTypeSize() const {
   switch (t_type.data_type) {
   case TensorDim::DataType::FP16:
     return sizeof(__fp16);
@@ -178,7 +178,8 @@ int TensorDim::setTensorDim(const std::string &input_shape,
 }
 
 // int TensorDim::setTensorDim(const std::string &input_shape,
-//                             TensorDim::Format fm, TensorDim::DataType d_type) {
+//                             TensorDim::Format fm, TensorDim::DataType d_type)
+//                             {
 //   return setTensorDim(input_shape, TensorType{fm, d_type});
 // }
 
@@ -301,10 +302,11 @@ const size_t &TensorDim::operator[](const unsigned int index) const {
 }
 
 std::array<size_t, TensorDim::MAXDIM> TensorDim::computeStrides() const {
-  if (getFormat() == TensorDim::Format::NCHW)
+  if (getFormat() == TensorDim::Format::NCHW) {
     return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
-  else
+  } else {
     return {height() * channel() * width(), width() * channel(), channel(), 1};
+  }
 }
 
 void TensorDim::reverse() { std::reverse(dim, dim + MAXDIM); }

@@ -168,11 +168,11 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
-   * @brief     Set Tensor Type : NCHW or NHWC
+   * @brief     Set Tensor format & data type
    * @note      This is used mainly for the unittest case which does not have
    * model.
    */
-  virtual void setTensorType(const std::string &values){};
+  virtual void setTensorType(std::array<const std::string, 2> &type){};
 
   /**
    * @brief     Get name of the layer
