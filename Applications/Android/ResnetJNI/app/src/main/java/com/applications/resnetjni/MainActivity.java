@@ -267,8 +267,11 @@ public class MainActivity extends AppCompatActivity {
 							stop=false;
 							training_ing = true;
 							Log.d("nntrainer", "running "+model_pointer+" "+num_class);
-
+							long start = System.currentTimeMillis();
 							int status= trainResnet(args, model_pointer, false);
+							long end = System.currentTimeMillis();
+
+							Log.e("nntrainer", "time elapsed: " + ((end-start)/1000.0) + "sec. status=" + status);
 
 							training_finished=true;
 							training_started = false;
