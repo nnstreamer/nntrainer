@@ -283,7 +283,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                   bool load_pretrained) {
 
   //bool load_pretrained = false;
-  std::string pretrained_bin_path = "/data/user/0/com.applications.resnetjni/files/pretrained_resnet18.bin";
+  std::string pretrained_bin_path = "/data/user/0/com.applications.resnetjni/files/weight.bin";
   //"./pretrained_resnet18.bin";
 
   stop = false;
@@ -534,7 +534,7 @@ std::string testModel(int argc, char *argv[], ml::train::Model *model_) {
 
   model_->load(bin_best_path);
   user_datas =
-    createDirDataGenerator((std::string(data_dir) + "/test").c_str(), 0.0,
+    createDirDataGenerator((std::string(data_dir) + "/evaluate").c_str(), 0.0,
                            num_class, channel, width, height, false);
 
   auto &[test_user_data, dummy] = user_datas;

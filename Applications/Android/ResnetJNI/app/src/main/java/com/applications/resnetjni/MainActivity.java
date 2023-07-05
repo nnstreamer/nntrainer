@@ -165,8 +165,13 @@ public class MainActivity extends AppCompatActivity {
 
 
 	Button mkdir_btn =(Button)findViewById(R.id.mkdir_data);
-	String data_path= edit_data_path.getText().toString();
-	folder_name = getApplicationContext().getFilesDir().getPath().toString()+"/"+data_path;
+
+
+	mkdir_btn.setOnClickListener(new View.OnClickListener(){
+		@Override
+		public void onClick(View v){
+			String data_path= edit_data_path.getText().toString();
+			folder_name = getApplicationContext().getFilesDir().getPath().toString()+"/"+data_path;
 
 //		try {
 //			String[] files = getApplicationContext().getAssets().list("train");
@@ -177,13 +182,11 @@ public class MainActivity extends AppCompatActivity {
 //		} catch (IOException e) {
 //			throw new RuntimeException(e);
 //		}
-	Log.e( "MLOPS", "folder_name: " + folder_name);
-	train_folder = folder_name + "/train";
-	test_folder = folder_name + "/test";
+			Log.e( "MLOPS", "folder_name: " + folder_name);
+			train_folder = folder_name + "/train";
+			test_folder = folder_name + "/test";
+			String evaluate_folder = folder_name + "/evaluate";
 
-	mkdir_btn.setOnClickListener(new View.OnClickListener(){
-		@Override
-		public void onClick(View v){
 		    File newFolder = new File(folder_name);
 		    try{
 				newFolder.mkdir();
@@ -196,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
 		    try{
 				copyAssetFolder(getApplicationContext(), data_path+"/train", train_folder);
 				copyAssetFolder(getApplicationContext(), data_path+"/test", test_folder);
+				copyAssetFolder(getApplicationContext(), data_path+"/evaluate", evaluate_folder);
 
 		    }catch (Exception e){
 				e.printStackTrace();
@@ -291,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
 					Thread th_ui = new Thread(new Runnable(){
 						@Override
 						public void run(){
-
+							String lastlog="";
 							while (!training_finished){
 								try{
 									Thread.sleep(1000);
@@ -313,14 +317,21 @@ public class MainActivity extends AppCompatActivity {
 									}
 
 									if(!s.equals("-")){
+										lastlog = s;
 										Training_log += s;
 										data_view.setText(Training_log);
 										cur_iter++;
+										if (lastlog.indexOf("Accuracy") >= 0)
+											Log.e("nntrainer", "last training log: "+lastlog.substring(lastlog.indexOf("Accuracy")));
+//										if (lastlog.indexOf("Training Loss") >= 0)
+//											Log.e("nntrainer", "last training log: "+lastlog.substring(lastlog.indexOf("Training Loss")));
 									}
+
 								}catch(Exception e){
 									e.printStackTrace();
 								}
 							}
+
 						}
 					});
 					th_ui.start();
@@ -349,55 +360,60 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v) {
-		Log.d("nntrainer", "Training Fished : "+String.valueOf(training_finished));
-		testing_done=false;
-		stop = false;
+//				data_view.setText("Start testing (loading models...)");
+
+				Log.d("nntrainer", "Training Fished : "+String.valueOf(training_finished));
+				testing_done=false;
+				stop = false;
                 String program_name = "nntrainer_resnet";
                 String batch_size = edit_batch.getText().toString();
                 String data_split = edit_split.getText().toString();
                 String epoch = edit_epoch.getText().toString();
-		String bin_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save.getText().toString();
-		String bin_best_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save_best.getText().toString();
-		String in_shape = channel+":"+height+":"+width;
+				String bin_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save.getText().toString();
+				String bin_best_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save_best.getText().toString();
+				String in_shape = channel+":"+height+":"+width;
 
-		if(!training_ing && !testing_ing && modelDestroyed()){
+				if(!training_ing && !testing_ing && modelDestroyed()){
 
-		    Testing_log = "NNTrainer Testing\n";
-		    model_pointer = createModel(in_shape, num_class, false);
-		    String[] args = {program_name, folder_name, batch_size, data_split, epoch, channel, height, width, bin_path, bin_best_path, String.valueOf(num_class)};
-		    
-		    Thread th_test = new Thread(new Runnable(){
-			    @Override
-			    public void run(){
-				testing_ing = true;
-				Log.d("nnttrainer", String.valueOf(testing_done));				
-				Testing_log=testResnet(args, model_pointer);
-				testing_done=true;
-				testing_ing = false;
-			    }
-			});
+					Testing_log = "NNTrainer Testing\n";
+					model_pointer = createModel(in_shape, num_class, false);
+					String[] args = {program_name, folder_name, batch_size, data_split, epoch, channel, height, width, bin_path, bin_best_path, String.valueOf(num_class)};
 
-		    th_test.start();
-		    Thread th_test_ui = new Thread(new Runnable(){
-			    @Override
-			    public void run(){
-				while(!testing_done){
-				    try{
-					Thread.sleep(1000);
-					if(!stop){
-					    Testing_log = getTestingResult();
-					    data_view.setText(Testing_log);
-					}
-				    } catch (Exception e){
-					e.printStackTrace();
-				    }
+					Thread th_test = new Thread(new Runnable(){
+						@Override
+						public void run(){
+						testing_ing = true;
+						Log.d("nnttrainer", String.valueOf(testing_done));
+						Testing_log=testResnet(args, model_pointer);
+						testing_done=true;
+						testing_ing = false;
+						}
+					});
+
+					th_test.start();
+					Thread th_test_ui = new Thread(new Runnable(){
+						@Override
+						public void run(){
+							String lastlog = "";
+							while(!testing_done){
+								try{
+									Thread.sleep(1000);
+									if(!stop){
+										Testing_log = getTestingResult();
+										data_view.setText(Testing_log);
+									}
+									lastlog = Testing_log.toString();
+								} catch (Exception e){
+									e.printStackTrace();
+								}
+							}
+							if (lastlog.indexOf("Accuarcy (") > 0)
+								Log.e("nntrainer", "last test log: "+lastlog.substring(lastlog.indexOf("Accuarcy (")));
+						}
+					});
+					th_test_ui.start();
 				}
-
-			    }
-			});
-		    th_test_ui.start();
-		}
-	    }
+	    	}
 	    });
 
 	Button infer_btn = (Button)findViewById(R.id.infer_resnet);
