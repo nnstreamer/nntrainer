@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
 
     public native long createModel(String in_shape, int unit, boolean cnn_trainable);
 
-    public native int trainResnet(String[] args, long model_pointer, boolean transfer_learning);
+    public native int trainResnet(String[] args, long model_pointer, boolean load_pretrained);
 
     public native String testResnet(String[] args, long model_pointer);
 
@@ -247,9 +247,12 @@ public class MainActivity extends AppCompatActivity {
 				String bin_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save.getText().toString();
 				String bin_best_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save_best.getText().toString();
 				String in_shape = channel+":"+height+":"+width;
-				boolean cnn_train = ((EditText) findViewById(R.id.et_cnn_train)).getText().toString() == "1"? true: false;
-				boolean load_pretrained = ((EditText) findViewById(R.id.et_load_pretrained)).getText().toString() == "1"? true: false;
+				boolean cnn_train = "1".equals(((EditText) findViewById(R.id.et_cnn_train)).getText().toString())? true: false;
+				boolean load_pretrained = "1".equals(((EditText) findViewById(R.id.et_load_pretrained)).getText().toString())? true: false;
 
+				Log.d("nntrainer", "check training_started: "+training_started+", testing_ing: "+testing_done+
+						", modelDestroyed(): "+modelDestroyed()+", load_pretrained:" + load_pretrained +
+						", cnn_train: "+cnn_train);
 				if(!training_started && !testing_ing && modelDestroyed()){
 					Training_log = "NNTrainer Start Training\n";
 					Log.d("nntrainer", "create Model @ activity");
@@ -268,9 +271,9 @@ public class MainActivity extends AppCompatActivity {
 						public void run(){
 							stop=false;
 							training_ing = true;
-							Log.d("nntrainer", "running "+model_pointer+" "+num_class);
+							Log.e("nntrainer", "running "+model_pointer+" "+num_class+", load_pretrained: " + load_pretrained);
 							long start = System.currentTimeMillis();
-							int status= trainResnet(args, model_pointer, false);
+							int status= trainResnet(args, model_pointer, load_pretrained);
 							long end = System.currentTimeMillis();
 
 							Log.e("nntrainer", "time elapsed: " + ((end-start)/1000.0) + "sec. status=" + status);

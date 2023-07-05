@@ -35,7 +35,7 @@ Java_com_applications_resnetjni_MainActivity_createModel(JNIEnv *env,
 
 JNIEXPORT jint JNICALL
 Java_com_applications_resnetjni_MainActivity_trainResnet(
-  JNIEnv *env, jobject j_obj, jobjectArray args, jlong model_pointer, jboolean transfer_learning) {
+  JNIEnv *env, jobject j_obj, jobjectArray args, jlong model_pointer, jboolean load_pretrained) {
   const int argc = env->GetArrayLength(args);
   char **argv = new char *[argc];
   for (unsigned int i = 0; i < argc; ++i) {
@@ -50,7 +50,7 @@ Java_com_applications_resnetjni_MainActivity_trainResnet(
   ml::train::Model *model_ =
     reinterpret_cast<ml::train::Model *>(model_pointer);
 
-  jint status = init(argc, argv, model_, transfer_learning);
+  jint status = init(argc, argv, model_, load_pretrained);
 
   for (unsigned int i = 0; i < argc; ++i) {
     delete[] argv[i];

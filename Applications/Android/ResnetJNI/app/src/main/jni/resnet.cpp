@@ -280,10 +280,11 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data, UserDataType &valid_user_data,
                   std::string bin_path, std::string best_path,
                   ml::train::Model *model_,
-                  bool transfer_learning) {
+                  bool load_pretrained) {
 
-  //bool transfer_learning = false;
-  std::string pretrained_bin_path = "./pretrained_resnet18.bin";
+  //bool load_pretrained = false;
+  std::string pretrained_bin_path = "/data/user/0/com.applications.resnetjni/files/pretrained_resnet18.bin";
+  //"./pretrained_resnet18.bin";
 
   stop = false;
 
@@ -323,8 +324,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model_->setDataset(ml::train::DatasetModeType::MODE_VALID,
                      std::move(dataset_valid));
 
-  if (transfer_learning) {
-    ANDROID_LOG_D("load model: %s", pretrained_bin_path.c_str());
+  if (load_pretrained) {
+    ANDROID_LOG_E("load model: %s", pretrained_bin_path.c_str());
     model_->load(pretrained_bin_path);
   }
 
@@ -359,7 +360,7 @@ createDirDataGenerator(const std::string dir, float split_ratio,
   return {std::move(train_data), std::move(valid_data)};
 }
 
-int init(int argc, char *argv[], ml::train::Model *model_, bool transfer_learning) {
+int init(int argc, char *argv[], ml::train::Model *model_, bool load_pretrained) {
   if (argc < 11) {
     std::cerr
       << "usage: ./main [{data_directory}|\"fake\"] [batchsize] [data_split] "
@@ -422,7 +423,7 @@ int init(int argc, char *argv[], ml::train::Model *model_, bool transfer_learnin
 
   try {
     createAndRun(epoch, batch_size, train_user_data, valid_user_data, bin_path,
-                 bin_best_path, model_, transfer_learning);
+                 bin_best_path, model_, load_pretrained);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;
