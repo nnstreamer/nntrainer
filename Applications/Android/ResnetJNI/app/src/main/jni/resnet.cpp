@@ -89,7 +89,9 @@ bool stop_cb(void *userdata) {
  */
 std::vector<LayerHandle> resnetBlock(const std::string &block_name,
                                      const std::string &input_name, int filters,
-                                     int kernel_size, bool downsample) {
+                                     int kernel_size, bool downsample,
+                                     bool pre_trained
+                                     ) {
   using ml::train::createLayer;
 
   auto scoped_name = [&block_name](const std::string &layer_name) {
@@ -99,17 +101,19 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     return withKey("name", scoped_name(layer_name));
   };
 
-  auto create_conv = [&with_name, filters](const std::string &name,
-                                           int kernel_size, int stride,
-                                           const std::string &padding,
-                                           const std::string &input_layer) {
+  auto create_conv = [&with_name, filters,
+                      pre_trained](const std::string &name, int kernel_size, 
+                      int stride, const std::string &padding,
+                      const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
       withKey("stride", {stride, stride}),
       withKey("filters", filters),
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", padding),
-      withKey("input_layers", input_layer)};
+      withKey("input_layers", input_layer),
+      withKey("trainable", pre_trained ? "true" : "false")
+      };
 
     return createLayer("conv2d", props);
   };
@@ -117,7 +121,11 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   /** residual path */
   LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, "same", input_name);
   LayerHandle a2 = createLayer(
-    "batch_normalization", {with_name("a2"), withKey("activation", "relu")});
+    "batch_normalization", {
+      with_name("a2"), withKey("activation", "relu"),
+      withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
+      withKey("trainable", pre_trained ? "true" : "false")
+      });
   LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
   /** skip path */
@@ -134,7 +142,10 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
 
   LayerHandle c2 =
     createLayer("batch_normalization",
-                {withKey("name", block_name), withKey("activation", "relu")});
+                {withKey("name", block_name), withKey("activation", "relu"),
+                  withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
+                  withKey("trainable", "false")           
+                });
 
   if (downsample) {
     return {b1, a1, a2, a3, c1, c2};
@@ -149,7 +160,9 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
  * @return vector of layers that contain full graph of resnet18
  */
 std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
-                                             unsigned int unit) {
+                                             unsigned int unit,
+                                             bool pre_trained
+                                             ) {
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
@@ -159,31 +172,59 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
   layers.push_back(createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", input_shape)}));
 
-  layers.push_back(
-    createLayer("conv2d", {
-                            withKey("name", "conv0"),
-                            withKey("filters", 64),
-                            withKey("kernel_size", {3, 3}),
-                            withKey("stride", {1, 1}),
-                            withKey("padding", "same"),
-                            withKey("bias_initializer", "zeros"),
-                            withKey("weight_initializer", "xavier_uniform"),
-                          }));
+  // layers.push_back(
+  //   createLayer("conv2d", {
+  //                           withKey("name", "conv0"),
+  //                           withKey("filters", 64),
+  //                           withKey("kernel_size", {3, 3}),
+  //                           withKey("stride", {1, 1}),
+  //                           withKey("padding", "same"),
+  //                           withKey("bias_initializer", "zeros"),
+  //                           withKey("weight_initializer", "xavier_uniform"),
+  //                         }));
+
+  layers.push_back(createLayer(
+    "conv2d", {withKey("name", "conv0"), withKey("filters", 64),
+               withKey("kernel_size", {3, 3}), withKey("stride", {1, 1}),
+               withKey("padding", "same"), withKey("bias_initializer", "zeros"),
+               withKey("weight_initializer", "xavier_uniform"),
+               withKey("trainable", pre_trained ? "true" : "false")}));
 
   layers.push_back(
     createLayer("batch_normalization", {withKey("name", "first_bn_relu"),
-                                        withKey("activation", "relu")}));
+                                        withKey("activation", "relu"),
+                                        withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
+                                        withKey("trainable", pre_trained ? "true" : "false")                                     
+                                        
+                                        }));
 
   std::vector<std::vector<LayerHandle>> blocks;
 
-  blocks.push_back(resnetBlock("conv1_0", "first_bn_relu", 64, 3, false));
-  blocks.push_back(resnetBlock("conv1_1", "conv1_0", 64, 3, false));
-  blocks.push_back(resnetBlock("conv2_0", "conv1_1", 128, 3, true));
-  blocks.push_back(resnetBlock("conv2_1", "conv2_0", 128, 3, false));
-  blocks.push_back(resnetBlock("conv3_0", "conv2_1", 256, 3, true));
-  blocks.push_back(resnetBlock("conv3_1", "conv3_0", 256, 3, false));
-  blocks.push_back(resnetBlock("conv4_0", "conv3_1", 512, 3, true));
-  blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false));
+  // blocks.push_back(resnetBlock("conv1_0", "first_bn_relu", 64, 3, false));
+  // blocks.push_back(resnetBlock("conv1_1", "conv1_0", 64, 3, false));
+  // blocks.push_back(resnetBlock("conv2_0", "conv1_1", 128, 3, true));
+  // blocks.push_back(resnetBlock("conv2_1", "conv2_0", 128, 3, false));
+  // blocks.push_back(resnetBlock("conv3_0", "conv2_1", 256, 3, true));
+  // blocks.push_back(resnetBlock("conv3_1", "conv3_0", 256, 3, false));
+  // blocks.push_back(resnetBlock("conv4_0", "conv3_1", 512, 3, true));
+  // blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false));
+
+  blocks.push_back(
+    resnetBlock("conv1_0", "first_bn_relu", 64, 3, false, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv1_1", "conv1_0", 64, 3, false, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv2_0", "conv1_1", 128, 3, true, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv2_1", "conv2_0", 128, 3, false, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv3_0", "conv2_1", 256, 3, true, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv3_1", "conv3_0", 256, 3, false, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv4_0", "conv3_1", 512, 3, true, pre_trained));
+  blocks.push_back(
+    resnetBlock("conv4_1", "conv4_0", 512, 3, false, pre_trained));
 
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -202,13 +243,15 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
 }
 
 /// @todo update createResnet18 to be more generic
-ml::train::Model *createResnet18(std::string input_shape, unsigned int unit) {
+ml::train::Model *createResnet18(std::string input_shape, unsigned int unit, bool pre_trained = false) {
   /// @todo support "LOSS : cross" for TF_Lite Exporter
-  ANDROID_LOG_D("create Model in JNI");
+  ANDROID_LOG_D("createResnet18 in JNI, pre_trained: %d", pre_trained);
+  //ANDROID_LOG_D(pre_trained);
+
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                  {withKey("loss", "cross")});
 
-  for (auto layer : createResnet18Graph(input_shape, unit)) {
+  for (auto layer : createResnet18Graph(input_shape, unit, pre_trained)) {
     model->addLayer(layer);
   }
   ANDROID_LOG_D("create Model in JNI DONE");
@@ -235,7 +278,11 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data, UserDataType &valid_user_data,
                   std::string bin_path, std::string best_path,
-                  ml::train::Model *model_) {
+                  ml::train::Model *model_,
+                  bool transfer_learning) {
+
+  //bool transfer_learning = false;
+  std::string pretrained_bin_path = "./pretrained_resnet18.bin";
 
   stop = false;
 
@@ -275,6 +322,11 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model_->setDataset(ml::train::DatasetModeType::MODE_VALID,
                      std::move(dataset_valid));
 
+  if (transfer_learning) {
+    ANDROID_LOG_D("load model: %s", pretrained_bin_path.c_str());
+    model_->load(pretrained_bin_path);
+  }
+
   ANDROID_LOG_D("start train");
   model_->train({}, stop_cb, &stop);
   ANDROID_LOG_D("train finished");
@@ -306,7 +358,7 @@ createDirDataGenerator(const std::string dir, float split_ratio,
   return {std::move(train_data), std::move(valid_data)};
 }
 
-int init(int argc, char *argv[], ml::train::Model *model_) {
+int init(int argc, char *argv[], ml::train::Model *model_, bool transfer_learning) {
   if (argc < 11) {
     std::cerr
       << "usage: ./main [{data_directory}|\"fake\"] [batchsize] [data_split] "
@@ -369,7 +421,7 @@ int init(int argc, char *argv[], ml::train::Model *model_) {
 
   try {
     createAndRun(epoch, batch_size, train_user_data, valid_user_data, bin_path,
-                 bin_best_path, model_);
+                 bin_best_path, model_, transfer_learning);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;

@@ -29,7 +29,8 @@ extern "C" {
  */
 JNIEXPORT jlong JNICALL
 Java_com_applications_resnetjni_MainActivity_createModel(JNIEnv *, jobject,
-                                                         jstring, jint);
+                                                         jstring, jint,
+                                                         jboolean pre_trained);
 
 /**
  * @brief Train Model
@@ -38,8 +39,7 @@ Java_com_applications_resnetjni_MainActivity_createModel(JNIEnv *, jobject,
  * @return status
  */
 JNIEXPORT jint JNICALL
-Java_com_applications_resnetjni_MainActivity_train_1resnet(JNIEnv *, jobject,
-                                                           jobjectArray, jlong);
+Java_com_applications_resnetjni_MainActivity_trainResnet( JNIEnv *, jobject , jobjectArray , jlong , jboolean);
 
 /**
  * @brief Test Model

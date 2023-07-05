@@ -98,7 +98,7 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
  * @param input shape input dimension of model
  * @return Model return model
  */
-ml::train::Model *createResnet18(std::string input_shape, unsigned int unit);
+ml::train::Model *createResnet18(std::string input_shape, unsigned int unit, bool pre_trained);
 
 /**
  * @brief callback to get the one training data
@@ -173,7 +173,7 @@ createDirDataGenerator(const std::string dir, float split_ratio,
  * @param argv argment list
  * @param model model pointer
  */
-int init(int argc, char *argv[], ml::train::Model *model);
+int init(int argc, char *argv[], ml::train::Model *model, bool transfer_learning);
 
 /**
  * @brief display iteration status
