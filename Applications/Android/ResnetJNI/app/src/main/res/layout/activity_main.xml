@@ -202,7 +202,7 @@
                   android:layout_height="wrap_content"
                   android:layout_gravity="center"
                   android:padding="10dp"
-                  android:text="1" />
+                  android:text="0" />
 
               <TextView
                   android:id="@+id/tv_load_pretrained"
@@ -233,7 +233,7 @@
                   android:text="TBD" />
 
               <TextView
-                  android:id="@+id/tv_reserved"
+                  android:id="@+id/tv_classes"
                   android:layout_width="60dp"
                   android:layout_height="wrap_content"
                   android:layout_gravity="center"
@@ -316,7 +316,7 @@
           android:orientation="horizontal"	  
           android:layout_width="200dp"
           android:layout_height="wrap_content"
-          android:text="Data" />
+          android:text="Dataset2" />
       
       <TextView
           android:text="Data Directory Path"

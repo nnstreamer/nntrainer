@@ -165,7 +165,8 @@ public class MainActivity extends AppCompatActivity {
 
 
 	Button mkdir_btn =(Button)findViewById(R.id.mkdir_data);
-	folder_name = getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_data_path.getText();
+	String data_path= edit_data_path.getText().toString();
+	folder_name = getApplicationContext().getFilesDir().getPath().toString()+"/"+data_path;
 
 //		try {
 //			String[] files = getApplicationContext().getAssets().list("train");
@@ -185,19 +186,19 @@ public class MainActivity extends AppCompatActivity {
 		public void onClick(View v){
 		    File newFolder = new File(folder_name);
 		    try{
-			newFolder.mkdir();
-			Log.d("nntrainer", "Create NNTrainer Data Folder"+folder_name);
+				newFolder.mkdir();
+				Log.d("nntrainer", "Create NNTrainer Data Folder: "+folder_name);
 			
 		    }catch (Exception e){
-			Log.d("nntrainer", "Already Exist"+folder_name);
+				Log.d("nntrainer", "Already Exist: "+folder_name);
 		    }
 		    
 		    try{
-			copyAssetFolder(getApplicationContext(), "train", train_folder);
-			copyAssetFolder(getApplicationContext(), "test", test_folder);			
+				copyAssetFolder(getApplicationContext(), data_path+"/train", train_folder);
+				copyAssetFolder(getApplicationContext(), data_path+"/test", test_folder);
 
 		    }catch (Exception e){
-			e.printStackTrace();
+				e.printStackTrace();
 		    }
 		    
 		    Log.d("nntrainer", "Training Data is Ready");
