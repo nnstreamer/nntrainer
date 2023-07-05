@@ -90,7 +90,7 @@ bool stop_cb(void *userdata) {
 std::vector<LayerHandle> resnetBlock(const std::string &block_name,
                                      const std::string &input_name, int filters,
                                      int kernel_size, bool downsample,
-                                     bool pre_trained
+                                     bool trainable
                                      ) {
   using ml::train::createLayer;
 
@@ -102,7 +102,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   };
 
   auto create_conv = [&with_name, filters,
-                      pre_trained](const std::string &name, int kernel_size, 
+                      trainable](const std::string &name, int kernel_size,
                       int stride, const std::string &padding,
                       const std::string &input_layer) {
     std::vector<std::string> props{
@@ -112,7 +112,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", padding),
       withKey("input_layers", input_layer),
-      withKey("trainable", pre_trained ? "true" : "false")
+      withKey("trainable", trainable ? "true" : "false")
       };
 
     return createLayer("conv2d", props);
@@ -124,7 +124,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     "batch_normalization", {
       with_name("a2"), withKey("activation", "relu"),
       withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
-      withKey("trainable", pre_trained ? "true" : "false")
+      withKey("trainable", trainable ? "true" : "false")
       });
   LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
@@ -144,7 +144,8 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     createLayer("batch_normalization",
                 {withKey("name", block_name), withKey("activation", "relu"),
                   withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
-                  withKey("trainable", "false")           
+                  //withKey("trainable", "false")
+                  withKey("trainable", trainable ? "true" : "false")
                 });
 
   if (downsample) {
@@ -161,7 +162,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
  */
 std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
                                              unsigned int unit,
-                                             bool pre_trained
+                                             bool cnn_trainable
                                              ) {
   using ml::train::createLayer;
 
@@ -188,13 +189,13 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
                withKey("kernel_size", {3, 3}), withKey("stride", {1, 1}),
                withKey("padding", "same"), withKey("bias_initializer", "zeros"),
                withKey("weight_initializer", "xavier_uniform"),
-               withKey("trainable", pre_trained ? "true" : "false")}));
+               withKey("trainable", cnn_trainable ? "true" : "false")}));
 
   layers.push_back(
     createLayer("batch_normalization", {withKey("name", "first_bn_relu"),
                                         withKey("activation", "relu"),
                                         withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
-                                        withKey("trainable", pre_trained ? "true" : "false")                                     
+                                        withKey("trainable", cnn_trainable ? "true" : "false")
                                         
                                         }));
 
@@ -210,21 +211,21 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
   // blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false));
 
   blocks.push_back(
-    resnetBlock("conv1_0", "first_bn_relu", 64, 3, false, pre_trained));
+    resnetBlock("conv1_0", "first_bn_relu", 64, 3, false, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv1_1", "conv1_0", 64, 3, false, pre_trained));
+    resnetBlock("conv1_1", "conv1_0", 64, 3, false, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv2_0", "conv1_1", 128, 3, true, pre_trained));
+    resnetBlock("conv2_0", "conv1_1", 128, 3, true, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv2_1", "conv2_0", 128, 3, false, pre_trained));
+    resnetBlock("conv2_1", "conv2_0", 128, 3, false, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv3_0", "conv2_1", 256, 3, true, pre_trained));
+    resnetBlock("conv3_0", "conv2_1", 256, 3, true, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv3_1", "conv3_0", 256, 3, false, pre_trained));
+    resnetBlock("conv3_1", "conv3_0", 256, 3, false, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv4_0", "conv3_1", 512, 3, true, pre_trained));
+    resnetBlock("conv4_0", "conv3_1", 512, 3, true, cnn_trainable));
   blocks.push_back(
-    resnetBlock("conv4_1", "conv4_0", 512, 3, false, pre_trained));
+    resnetBlock("conv4_1", "conv4_0", 512, 3, false, cnn_trainable));
 
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -243,15 +244,15 @@ std::vector<LayerHandle> createResnet18Graph(std::string input_shape,
 }
 
 /// @todo update createResnet18 to be more generic
-ml::train::Model *createResnet18(std::string input_shape, unsigned int unit, bool pre_trained = false) {
+ml::train::Model *createResnet18(std::string input_shape, unsigned int unit, bool cnn_trainable = false) {
   /// @todo support "LOSS : cross" for TF_Lite Exporter
-  ANDROID_LOG_D("createResnet18 in JNI, pre_trained: %d", pre_trained);
+  ANDROID_LOG_D("createResnet18 in JNI, cnn_trainable: %d", cnn_trainable);
   //ANDROID_LOG_D(pre_trained);
 
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                  {withKey("loss", "cross")});
 
-  for (auto layer : createResnet18Graph(input_shape, unit, pre_trained)) {
+  for (auto layer : createResnet18Graph(input_shape, unit, cnn_trainable)) {
     model->addLayer(layer);
   }
   ANDROID_LOG_D("create Model in JNI DONE");

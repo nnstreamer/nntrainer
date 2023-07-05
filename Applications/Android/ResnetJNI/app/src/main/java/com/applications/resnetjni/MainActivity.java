@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("resnet_jni");
     }
 
-    public native long createModel(String in_shape, int unit, boolean pre_trained);
+    public native long createModel(String in_shape, int unit, boolean cnn_trainable);
 
     public native int trainResnet(String[] args, long model_pointer, boolean transfer_learning);
 
@@ -254,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 					training_started=true;
 					training_finished=false;
 					cur_iter=0;
-					model_pointer = createModel(in_shape, num_class, false);
+					model_pointer = createModel(in_shape, num_class, true);
 					Training_log += "Model Created \n";
 					Log.d("nntrainer", "create Model Done "+model_pointer);
 
