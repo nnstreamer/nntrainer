@@ -247,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
 				String bin_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save.getText().toString();
 				String bin_best_path=getApplicationContext().getFilesDir().getPath().toString()+"/"+edit_save_best.getText().toString();
 				String in_shape = channel+":"+height+":"+width;
+				boolean cnn_train = ((EditText) findViewById(R.id.et_cnn_train)).getText().toString() == "1"? true: false;
+				boolean load_pretrained = ((EditText) findViewById(R.id.et_load_pretrained)).getText().toString() == "1"? true: false;
 
 				if(!training_started && !testing_ing && modelDestroyed()){
 					Training_log = "NNTrainer Start Training\n";
@@ -254,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
 					training_started=true;
 					training_finished=false;
 					cur_iter=0;
-					model_pointer = createModel(in_shape, num_class, true);
+					model_pointer = createModel(in_shape, num_class, cnn_train);
 					Training_log += "Model Created \n";
 					Log.d("nntrainer", "create Model Done "+model_pointer);
 
