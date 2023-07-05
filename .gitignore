@@ -5,6 +5,16 @@
 /build
 /builddir
 .cache/
+build
+
+# models
+models
+
+# ide
+.idea
+
+# gradle
+.gradle
 
 # jni build files
 iniparser/
