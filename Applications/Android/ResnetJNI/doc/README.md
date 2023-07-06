@@ -1,3 +1,5 @@
+<img src="images/class2_training_config.png" width="30%">
+
 # STEP for training
 
 ## 1. Prepare data
@@ -35,8 +37,26 @@ In this step, training dataset in `assets` is copyed to file space for this appl
 
 ## 2. Strart test.
 
-1. Click "TEST" button
+1. Check `Save Best File Path` to make sure the model file to be used for test
+
+2. Click "TEST" button
 For testing, the model is loaded from `Save Best File Path`, and it will use the data at `{Data Directory Path}/evaluate`
 
 
-![screenshot](images/class2_training_config.png)
+
+# STEP for inference
+
+
+## 1. Strart test.
+
+1. Check `Save Best File Path` to make sure the model file to be used for test
+
+2. Click "INFER" button
+For testing, the model is loaded from `Save Best File Path`
+
+
+# Experiments
+
+# training full layers (cnn + fcl) with Dataset2 (two classes)
+<img src="images/class2_training_config.png" width="30%">
+
