@@ -176,7 +176,7 @@
                   android:layout_height="wrap_content"
                   android:layout_gravity="center"
                   android:padding="10dp"
-                  android:text="1" />
+                  android:text="0" />
 
               <TextView
                   android:id="@+id/tv_cnn_train"
@@ -202,7 +202,7 @@
                   android:layout_height="wrap_content"
                   android:layout_gravity="center"
                   android:padding="10dp"
-                  android:text="0" />
+                  android:text="1" />
 
               <TextView
                   android:id="@+id/tv_load_pretrained"
