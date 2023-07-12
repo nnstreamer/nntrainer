@@ -255,11 +255,9 @@ public:
    * @param     Tensor Type : NCHW or NHWC
    */
   void setTensorType(const std::string &values) {
-    if (values.compare("NCHW") || values.compare("nchw")) {
-      tensor_type = ml::train::TensorDim::Format::NCHW;
-    } else {
-      tensor_type = ml::train::TensorDim::Format::NHWC;
-    }
+    tensor_type = (values.compare("NCHW") == 0 || values.compare("nchw") == 0)
+                    ? ml::train::TensorDim::Format::NCHW
+                    : ml::train::TensorDim::Format::NHWC;
   }
 
   /**

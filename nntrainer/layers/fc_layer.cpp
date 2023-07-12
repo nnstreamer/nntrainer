@@ -66,17 +66,22 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   context.setEffDimFlagInputDimension(0, 0b1001);
   context.setDynDimFlagInputDimension(0, 0b1000);
 
+  bool is_nchw = (getTensorType() == Tformat::NCHW) ? true : false;
   /** set output dimensions */
   auto const &in_dim = context.getInputDimensions()[0];
   output_dims[0] = in_dim;
-  output_dims[0].width(unit);
+  is_nchw ? output_dims[0].width(unit) : output_dims[0].channel(unit);
   context.setOutputDimensions(output_dims);
 
   /** set weight specifications */
   // @todo : This NCHW format setting is just temporal, it needs to be set by
   // global configuration
-  TensorDim bias_dim(1, 1, 1, unit, getTensorType(), 0b0001);
-  TensorDim weight_dim(1, 1, in_dim.width(), unit, getTensorType(), 0b0011);
+
+  TensorDim bias_dim(1, is_nchw ? 1 : unit, 1, is_nchw ? unit : 1,
+                     getTensorType(), is_nchw ? 0b0001 : 0b0100);
+  TensorDim weight_dim(1, is_nchw ? 1 : unit, is_nchw ? in_dim.width() : 1,
+                       is_nchw ? unit : in_dim.channel(), getTensorType(),
+                       is_nchw ? 0b0011 : 0b0101);
 
   weight_idx[FCParams::weight] = context.requestWeight(
     weight_dim, weight_initializer, weight_regularizer,
