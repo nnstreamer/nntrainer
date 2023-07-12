@@ -64,7 +64,8 @@ DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
   producer(std::move(producer_)),
   db_props(new Props()),
   user_data(nullptr) {
-  rng.seed(getSeed());
+  // rng.seed(getSeed());
+  rng.seed(0);
 }
 
 DataBuffer::~DataBuffer(){};

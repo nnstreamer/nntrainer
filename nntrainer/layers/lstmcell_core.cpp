@@ -144,11 +144,11 @@ void LSTMCore::calcGradientLSTM(
   } else {
     for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
       unsigned int out_width = d_weight_ih.width();
-      float in_ih = input.getValue(i);
+      float in_ih = input.getValue<float>(i);
 
-      float *d_weight_ih_address = d_weight_ih.getAddress(i * out_width);
+      float *d_weight_ih_address = d_weight_ih.getAddress<float>(i * out_width);
 
-      float *d_ifgo_address = d_ifgo.getData();
+      float *d_ifgo_address = d_ifgo.getData<float>();
 #ifdef USE_BLAS
       cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address, 1);
 #else
@@ -164,11 +164,11 @@ void LSTMCore::calcGradientLSTM(
   } else {
     for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
       unsigned int out_width = d_weight_hh.width();
-      float in_hh = prev_hidden_state.getValue(i);
+      float in_hh = prev_hidden_state.getValue<float>(i);
 
-      float *d_weight_hh_address = d_weight_hh.getAddress(i * out_width);
+      float *d_weight_hh_address = d_weight_hh.getAddress<float>(i * out_width);
 
-      float *d_ifgo_address = d_ifgo.getData();
+      float *d_ifgo_address = d_ifgo.getData<float>();
 
 #ifdef USE_CBLAS
       cblas_saxpy(out_width, in_hh, d_ifgo_address, 1, d_weight_hh_address, 1);
