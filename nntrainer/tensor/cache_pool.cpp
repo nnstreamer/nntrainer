@@ -168,7 +168,7 @@ unsigned int CachePool::requestMemory(size_t bytes, unsigned int start_time,
   return id;
 }
 
-std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
+std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   NNTR_THROW_IF(!swap_device->isOperating(), std::invalid_argument)
     << "Allocate memory before allocation";
 
@@ -176,7 +176,7 @@ std::shared_ptr<MemoryData<float>> CachePool::getMemory(unsigned int id) {
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
-  auto mem_data = std::make_shared<MemoryData<float>>(
+  auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
   auto elem =

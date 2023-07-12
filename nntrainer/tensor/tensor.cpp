@@ -30,15 +30,12 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
-#include <random>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
 
-#include <blas_interface.h>
 #include <lazy_tensor.h>
-#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <tensor.h>
 #include <util_func.h>
@@ -57,11 +54,6 @@
           }                                                           \
   } while (0);
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty())                   \
-      tensor = Tensor(__VA_ARGS__);       \
-  } while (0);
 namespace nntrainer {
 
 /**
@@ -86,27 +78,24 @@ struct Tensor::BroadcastInfo {
     strides; /**< modified strides for the loop */
 };
 
-static auto rng = [] {
-  std::mt19937 rng;
-  rng.seed(getSeed());
-  return rng;
-}();
-
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
-               std::string name_) :
+               std::string name_, nntrainer::DataType d_type) :
   Tensor(name_) {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();
     initializer = init;
-
+    setDataType(d_type);
     if (alloc_now)
       allocate();
   }
 }
 
-Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor(d, true) {
+Tensor::Tensor(const TensorDim &d, const void *buf,
+               nntrainer::DataType d_type) :
+  Tensor(d, true) {
   if (d.getDataLen() != 0) {
+    setDataType(d_type);
     if (buf != nullptr)
       copy(buf);
   }
@@ -159,37 +148,25 @@ void Tensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
-    data = std::shared_ptr<MemoryData<float>>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->getAddr();
-      delete mem_data;
-    });
+    MemoryData *mem_data;
+
+    if (getDataType() == DataType::FP32) {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]()));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[](float *) mem_data->getAddr();
+        delete mem_data;
+      });
+
+    } else if (getDataType() == DataType::FP16) {
+      mem_data = new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[](__fp16 *) mem_data->getAddr();
+        delete mem_data;
+      });
+    }
     offset = 0;
     initialize();
   }
-}
-
-Tensor Tensor::Map(float *buf, unsigned int bytes, const TensorDim &d,
-                   size_t offset) {
-  if (d.getDataLen() == 0 || buf == nullptr) {
-    throw std::invalid_argument(
-      "[Tensor::Map] empty tensor dim is not allowed");
-  }
-
-  if (d.getDataLen() * sizeof(float) + offset > bytes) {
-    throw std::invalid_argument(
-      "Creating shared tensor of size bigger than tensor memory.");
-  }
-
-  Tensor tmp;
-  tmp.dim = d;
-  tmp.strides = d.computeStrides();
-  /// Tensor does not own the memory
-  tmp.data = std::shared_ptr<MemoryData<float>>(
-    new MemoryData<float>(buf), std::default_delete<MemoryData<float>>());
-  tmp.offset = offset;
-
-  return tmp;
 }
 
 bool Tensor::operator==(const Tensor &rhs) const {
@@ -201,50 +178,49 @@ bool Tensor::operator==(const Tensor &rhs) const {
   if (len != rhs.size())
     return false;
 
-  const float *data = getData();
-  const float *rdata = rhs.getData();
-
   if (contiguous != rhs.contiguous)
     return false;
 
   if (strides != rhs.strides)
     return false;
 
-  for (size_t i = 0; i < len; ++i) {
-    /** not checking sign change is intentional to avoid float calculation
-     * errors around 0 */
-    if ((std::isnan(data[i]) && !std::isnan(rdata[i])) ||
-        (!std::isnan(data[i]) && std::isnan(rdata[i])) ||
-        std::fabs(data[i] - rdata[i]) > epsilon)
-      return false;
+  if (data_type == nntrainer::DataType::FP32) {
+    const float *_data = getData<float>();
+    const float *_rdata = rhs.getData<float>();
+    for (size_t i = 0; i < len; ++i) {
+      /** not checking sign change is intentional to avoid float calculation
+       * errors around 0 */
+      if ((std::isnan(_data[i]) && !std::isnan(_rdata[i])) ||
+          (!std::isnan(_data[i]) && std::isnan(_rdata[i])) ||
+          std::fabs(_data[i] - _rdata[i]) > epsilon)
+        return false;
+    }
+  } else if (data_type == nntrainer::DataType::FP16) {
+    const __fp16 *_data = getData<__fp16>();
+    const __fp16 *_rdata = rhs.getData<__fp16>();
+    for (size_t i = 0; i < len; ++i) {
+      if ((std::isnan(_data[i]) && !std::isnan(_rdata[i])) ||
+          (!std::isnan(_data[i]) && std::isnan(_rdata[i])) ||
+          std::fabs(_data[i] - _rdata[i]) > epsilon)
+        return false;
+    }
   }
 
   return true;
 }
 
-template <typename T> void Tensor::setDist(T dist) {
-  NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << getName() << " Tensor is not contiguous, cannot set distribution";
-
-  float *data = getData();
-  unsigned int len = size();
-  for (unsigned int i = 0; i < len; ++i) {
-    data[i] = dist(rng);
-  }
-}
-
 void Tensor::setRandNormal(float mean, float std) {
-  setDist<std::normal_distribution<float>>(
+  setDist<float, std::normal_distribution<float>>(
     std::normal_distribution<float>(mean, std));
 }
 
 void Tensor::setRandUniform(float min, float max) {
-  setDist<std::uniform_real_distribution<float>>(
+  setDist<float, std::uniform_real_distribution<float>>(
     std::uniform_real_distribution<float>(min, max));
 }
 
 void Tensor::setRandBernoulli(float probability) {
-  setDist<std::bernoulli_distribution>(
+  setDist<float, std::bernoulli_distribution>(
     std::bernoulli_distribution(probability));
 }
 
@@ -306,33 +282,6 @@ void Tensor::initialize() {
   putData();
 }
 
-Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
-
-  if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
-    throw std::out_of_range(
-      "[Tensor] trying to initialize Tensor from empty vector");
-  }
-
-  dim.batch(d.size());
-  dim.channel(d[0].size());
-  dim.height(d[0][0].size());
-  dim.width(d[0][0][0].size());
-  strides = dim.computeStrides();
-  auto mem_data = new MemoryData<float>(new float[dim.getDataLen()]);
-  data = std::shared_ptr<MemoryData<float>>(
-    mem_data, [](auto *mem_data) { delete[] mem_data->getAddr(); });
-  offset = 0;
-  contiguous = true;
-  initializer = Initializer::NONE;
-
-  for (unsigned int i = 0; i < dim.batch(); ++i)
-    for (unsigned int j = 0; j < dim.channel(); ++j)
-      for (unsigned int k = 0; k < dim.height(); ++k)
-        for (unsigned int l = 0; l < dim.width(); ++l)
-          this->setValue(i, j, k, l, d[i][j][k][l]);
-}
-
 int Tensor::multiply_i_strided(Tensor const &m, const float beta) {
   try {
     this->multiply_strided(m, *this, beta);
@@ -352,34 +301,66 @@ Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
 Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
                                  const float beta) const {
   /** TODO: throw than create new dimenions */
-  CREATE_IF_EMPTY_DIMS(output, dim);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
       "Strided multiplication does not support broadcasting");
-
-  if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
-      beta != 0.0) {
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          for (unsigned int w = 0; w < width(); ++w) {
-            output.addValue(
-              b, c, h, w, getValue(b, c, h, w) * m.getValue(b, c, h, w), beta);
+  if (data_type == DataType::FP32) {
+    if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+        beta != 0.0) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.addValue(b, c, h, w,
+                              getValue<float>(b, c, h, w) *
+                                m.getValue<float>(b, c, h, w),
+                              beta);
+            }
+          }
+        }
+      }
+    } else {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            float *out_data = output.getAddress(b, c, h, 0);
+            const float *m_data = m.getAddress(b, c, h, 0);
+            const float *in_data = getAddress(b, c, h, 0);
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::multiplies<float>());
           }
         }
       }
     }
-  } else {
-    /** @todo optimize this with combining these loops where stride is 1 */
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          float *out_data = output.getAddress(b, c, h, 0);
-          const float *m_data = m.getAddress(b, c, h, 0);
-          const float *in_data = getAddress(b, c, h, 0);
-          std::transform(in_data, in_data + width(), m_data, out_data,
-                         std::multiplies<float>());
+  } else if (data_type == DataType::FP16) {
+    if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+        beta != 0.0) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.addValue(b, c, h, w,
+                              getValue<__fp16>(b, c, h, w) *
+                                m.getValue<__fp16>(b, c, h, w),
+                              beta);
+            }
+          }
+        }
+      }
+    } else {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            __fp16 *out_data = output.getAddress<__fp16>(b, c, h, 0);
+            const __fp16 *m_data = m.getAddress<__fp16>(b, c, h, 0);
+            const __fp16 *in_data = getAddress<__fp16>(b, c, h, 0);
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::multiplies<__fp16>());
+          }
         }
       }
     }
@@ -407,39 +388,68 @@ Tensor Tensor::add_strided(Tensor const &m, const float beta) const {
 Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
                             const float beta) const {
   /** TODO: throw than create new dimenions */
-  CREATE_IF_EMPTY_DIMS(output, dim);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
       "Strided addition does not support broadcasting");
-
-  if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
-      beta != 0.0) {
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          for (unsigned int w = 0; w < width(); ++w) {
-            output.setValue(
-              b, c, h, w, getValue(b, c, h, w) + m.getValue(b, c, h, w) * beta);
+  if (data_type == DataType::FP32) {
+    if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+        beta != 0.0) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.setValue(b, c, h, w,
+                              getValue<float>(b, c, h, w) +
+                                m.getValue<float>(b, c, h, w) * beta);
+            }
+          }
+        }
+      }
+    } else {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            float *out_data = output.getAddress<float>(b, c, h, 0);
+            const float *m_data = m.getAddress<float>(b, c, h, 0);
+            const float *in_data = getAddress<float>(b, c, h, 0);
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::plus<float>());
           }
         }
       }
     }
-  } else {
-    /** @todo optimize this with combining these loops where stride is 1 */
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          float *out_data = output.getAddress(b, c, h, 0);
-          const float *m_data = m.getAddress(b, c, h, 0);
-          const float *in_data = getAddress(b, c, h, 0);
-          std::transform(in_data, in_data + width(), m_data, out_data,
-                         std::plus<float>());
+  } else if (data_type == DataType::FP16) {
+    if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+        beta != 0.0) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.setValue(b, c, h, w,
+                              getValue<__fp16>(b, c, h, w) +
+                                m.getValue<__fp16>(b, c, h, w) * beta);
+            }
+          }
+        }
+      }
+    } else {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            __fp16 *out_data = output.getAddress<__fp16>(b, c, h, 0);
+            const __fp16 *m_data = m.getAddress<__fp16>(b, c, h, 0);
+            const __fp16 *in_data = getAddress<__fp16>(b, c, h, 0);
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::plus<__fp16>());
+          }
         }
       }
     }
   }
-
   return output;
 }
 
@@ -449,10 +459,16 @@ int Tensor::multiply_i(float const &value) {
 
   /// @note this is not depending on multiply_i as there is an optimized
   /// version for multiply_i
-  float *data = getData();
-  unsigned int len = size();
+  if (data_type == DataType::FP32) {
+    float *data = getData<float>();
+    unsigned int len = size();
 
-  sscal(len, value, data, 1);
+    sscal(len, value, data, 1);
+  } else if (data_type == DataType::FP16) {
+    __fp16 *data = getData<__fp16>();
+    unsigned int len = size();
+    sscal(len, value, data, 1);
+  }
   return ML_ERROR_NONE;
 }
 
@@ -463,8 +479,13 @@ Tensor Tensor::multiply(float const &value) const {
 
 Tensor &Tensor::multiply(float const &value, Tensor &out) const {
   /// @todo add unittest
-  auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
-  return apply(f, out);
+  if (data_type == DataType::FP32) {
+    auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
+    return apply(f, out);
+  } else if (data_type == DataType::FP16) {
+    auto f = std::bind(std::multiplies<__fp16>(), std::placeholders::_1, value);
+    return apply(f, out);
+  }
 }
 
 int Tensor::multiply_i(Tensor const &m, const float beta) {
@@ -489,28 +510,53 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
    * @note this does not work correctly with differently strided inputs.
    * Use multiply_strided alternatively
    */
-  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
-               float *out_buf) {
-    if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
-        beta == 0.0) {
-      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                     std::multiplies<float>());
-    } else {
-      for (unsigned int i = 0; i < e.buffer_size; ++i) {
-        *out_buf = *buf * *m_buf + beta * *out_buf;
-        buf += strides[3];
-        m_buf += e.strides[3];
-        out_buf += output.strides[3];
+  if (data_type == DataType::FP32) {
+    auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+                 float *out_buf) {
+      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
+          beta == 0.0) {
+        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                       std::multiplies<float>());
+      } else {
+        for (unsigned int i = 0; i < e.buffer_size; ++i) {
+          *out_buf = *buf * *m_buf + beta * *out_buf;
+          buf += strides[3];
+          m_buf += e.strides[3];
+          out_buf += output.strides[3];
+        }
       }
-    }
-  };
+    };
 
-  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                std::invalid_argument)
-    << getName() << " is not contiguous, cannot multiply";
+    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                  std::invalid_argument)
+      << getName() << " is not contiguous, cannot multiply";
 
-  apply_broadcast(m, f, output);
-  return output;
+    apply_broadcast(m, f, output);
+    return output;
+  } else if (data_type == DataType::FP16) {
+    auto f = [&](const BroadcastInfo &e, const __fp16 *buf, const __fp16 *m_buf,
+                 __fp16 *out_buf) {
+      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
+          beta == 0.0) {
+        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                       std::multiplies<__fp16>());
+      } else {
+        for (unsigned int i = 0; i < e.buffer_size; ++i) {
+          *out_buf = *buf * *m_buf + beta * *out_buf;
+          buf += strides[3];
+          m_buf += e.strides[3];
+          out_buf += output.strides[3];
+        }
+      }
+    };
+
+    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                  std::invalid_argument)
+      << getName() << " is not contiguous, cannot multiply";
+
+    apply_broadcast(m, f, output);
+    return output;
+  }
 }
 
 int Tensor::divide_i(float const &value) {
@@ -885,7 +931,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
   auto iter_value = [](std::array<unsigned, 4> &loc,
                        std::array<unsigned, 4> &start_loc, Tensor &t,
                        const TensorDim &ref_dim) -> float & {
-    auto &value = t.getValue(loc[0], loc[1], loc[2], loc[3]);
+    auto &value = t.getValue<float>(loc[0], loc[1], loc[2], loc[3]);
     for (int i = 3; i >= 0; --i) {
       loc[i]++;
       if (loc[i] - start_loc[i] == ref_dim.getTensorDim(i)) {
@@ -906,7 +952,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
   for (auto &t : tensors) {
     std::array<unsigned, 4> start_loc = loc;
     for (size_t i = 0u, sz = t.size(); i < sz; ++i) {
-      iter_value(loc, start_loc, ret, t.getDim()) = t.getValue(i);
+      iter_value(loc, start_loc, ret, t.getDim()) = t.getValue<float>(i);
     }
     loc[axis] += t.getDim().getTensorDim(axis);
   }
@@ -959,6 +1005,35 @@ void Tensor::apply_broadcast(
   return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
 }
 
+void Tensor::apply_broadcast(
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
+                     __fp16 *)>
+    v_func,
+  Tensor &output) const {
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+
+  NNTR_THROW_IF(getData<__fp16>() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData<__fp16>() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<__fp16>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
+  if (dim == m.dim) {
+    BroadcastInfo e;
+    e.buffer_size = size();
+    e.strides[3] = 1;
+    v_func(e, getData<__fp16>(), m.getData<__fp16>(), output.getData<__fp16>());
+    return;
+  }
+
+  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
 void Tensor::apply_broadcast_util(
   Tensor const &m,
   std::function<void(const BroadcastInfo &e, const float *, const float *,
@@ -970,6 +1045,32 @@ void Tensor::apply_broadcast_util(
   const float *buf = this->getData();
   const float *m_buf = m.getData();
   float *out_buf = output.getData();
+
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    return;
+  }
+
+  cur_axis++;
+  for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
+    size_t next_offset = offset + i * strides[cur_axis];
+    size_t next_m_offset = m_offset + i * e.strides[cur_axis];
+    apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
+                         next_m_offset);
+  }
+}
+
+void Tensor::apply_broadcast_util(
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
+                     __fp16 *)>
+    v_func,
+  Tensor &output, const BroadcastInfo &e, int cur_axis, size_t offset,
+  size_t m_offset) const {
+
+  const __fp16 *buf = this->getData<__fp16>();
+  const __fp16 *m_buf = m.getData<__fp16>();
+  __fp16 *out_buf = output.getData<__fp16>();
 
   if (e.buffer_axis == cur_axis) {
     v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
@@ -1017,7 +1118,7 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
 }
 Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
                     float beta) const {
-  const float *data = getData();
+  const float *data = getData<float>();
 
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
@@ -1047,7 +1148,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     unsigned int channel = dim.channel();
     Tensor ones(1, 1, 1, channel);
     ones.setValue(alpha);
-    float *rdata = ret.getData();
+    float *rdata = ret.getData<float>();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       sgemv(CblasRowMajor, CblasTrans, channel, feat_len, 1,
             &data[k * dim.getFeatureLen()], feat_len, ones.getData(), 1, beta,
@@ -1060,7 +1161,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     unsigned int height = dim.height();
     Tensor ones(1, 1, 1, height);
     ones.setValue(alpha);
-    float *rdata = ret.getData();
+    float *rdata = ret.getData<float>();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       for (unsigned int c = 0; c < dim.channel(); ++c) {
         unsigned int idx =
@@ -1072,13 +1173,14 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     }
   } break;
   case 3: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1);
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1,
+                         Tformat::NCHW, DataType::FP32);
     unsigned int m = ret.dim.getDataLen();
     unsigned int n = dim.width();
     Tensor ones(1, 1, 1, n);
     ones.setValue(alpha);
-    sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(), 1,
-          beta, ret.getData(), 1);
+    sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData<float>(),
+          1, beta, ret.getData<float>(), 1);
   } break;
   default:
     throw std::out_of_range("Error: Dimension cannot exceed 3");
@@ -1451,56 +1553,56 @@ void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
   }
 }
 
-int Tensor::apply_i(std::function<float(float)> f) {
-  Tensor result = *this;
-  apply(f, result);
+// int Tensor::apply_i(std::function<float(float)> f) {
+//   Tensor result = *this;
+//   apply(f, result);
 
-  return ML_ERROR_NONE;
-}
+//   return ML_ERROR_NONE;
+// }
 
-Tensor Tensor::apply(std::function<float(float)> f) const {
-  Tensor result;
-  return apply(f, result);
-}
+// Tensor Tensor::apply(std::function<float(float)> f) const {
+//   Tensor result;
+//   return apply(f, result);
+// }
 
-Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
-  CREATE_IF_EMPTY_DIMS(output, dim);
+// Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
+//   CREATE_IF_EMPTY_DIMS(output, dim);
 
-  if (dim != output.dim) {
-    /// @todo add unittest
-    throw std::invalid_argument(
-      "[Tensor::apply] output dimension does not match");
-  }
+//   if (dim != output.dim) {
+//     /// @todo add unittest
+//     throw std::invalid_argument(
+//       "[Tensor::apply] output dimension does not match");
+//   }
 
-  if (contiguous && output.contiguous) {
-    const float *data = getData();
-    float *rdata = output.getData();
-    std::transform(data, data + size(), rdata, f);
-  } else if (strides[3] == 1 && output.strides[3] == 1) {
-    /** @todo optimize this with combining these loops where stride is 1 */
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          float *out_data = output.getAddress(b, c, h, 0);
-          const float *in_data = getAddress(b, c, h, 0);
-          std::transform(in_data, in_data + width(), out_data, f);
-        }
-      }
-    }
-  } else {
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          for (unsigned int w = 0; w < width(); ++w) {
-            output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
-          }
-        }
-      }
-    }
-  }
+//   if (contiguous && output.contiguous) {
+//     const float *data = getData();
+//     float *rdata = output.getData();
+//     std::transform(data, data + size(), rdata, f);
+//   } else if (strides[3] == 1 && output.strides[3] == 1) {
+//     /** @todo optimize this with combining these loops where stride is 1 */
+//     for (unsigned int b = 0; b < batch(); ++b) {
+//       for (unsigned int c = 0; c < channel(); ++c) {
+//         for (unsigned int h = 0; h < height(); ++h) {
+//           float *out_data = output.getAddress(b, c, h, 0);
+//           const float *in_data = getAddress(b, c, h, 0);
+//           std::transform(in_data, in_data + width(), out_data, f);
+//         }
+//       }
+//     }
+//   } else {
+//     for (unsigned int b = 0; b < batch(); ++b) {
+//       for (unsigned int c = 0; c < channel(); ++c) {
+//         for (unsigned int h = 0; h < height(); ++h) {
+//           for (unsigned int w = 0; w < width(); ++w) {
+//             output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  return output;
-}
+//   return output;
+// }
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
@@ -1531,7 +1633,7 @@ void Tensor::print(std::ostream &out) const {
       for (unsigned int i = 0; i < dim.height(); i++) {
         for (unsigned int j = 0; j < dim.width(); j++) {
           out << std::setw(10) << std::setprecision(10)
-              << this->getValue(k, l, i, j) << " ";
+              << this->getValue<float>(k, l, i, j) << " ";
         }
         out << std::endl;
       }
@@ -1547,7 +1649,7 @@ std::ostream &operator<<(std::ostream &out, Tensor const &m) {
   return out;
 }
 
-void Tensor::copy(const float *buf) {
+void Tensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << "Tensor is not contiguous, cannot copy.";
 
@@ -1555,7 +1657,7 @@ void Tensor::copy(const float *buf) {
     return;
   }
 
-  scopy(size(), buf, 1, getData(), 1);
+  scopy(size(), buf, 1, getData(), 1, getDataType());
 }
 
 void Tensor::copy_with_stride(const Tensor &from) {
@@ -1565,7 +1667,7 @@ void Tensor::copy_with_stride(const Tensor &from) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
           for (unsigned int w = 0; w < width(); ++w) {
-            setValue(b, c, h, w, from.getValue(b, c, h, w));
+            setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
           }
         }
       }
@@ -1576,7 +1678,7 @@ void Tensor::copy_with_stride(const Tensor &from) {
       for (unsigned int c = 0; c < t.channel(); ++c) {
         for (unsigned int h = 0; h < t.height(); ++h) {
           for (unsigned int w = 0; w < t.width(); ++w) {
-            t.setValue(b, c, h, w, from.getValue(b, c, h, w));
+            t.setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
           }
         }
       }
@@ -1752,15 +1854,22 @@ void Tensor::setValue(float val) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot set value.";
 
-  float *data = getData();
+  float *data = getData<float>();
   std::fill(data, data + size(), val);
 }
 
 void Tensor::setZero() {
-  if (contiguous)
-    sscal(size(), 0, getData(), 1);
-  else
-    apply_i([](float val) -> float { return 0; });
+  if (data_type == nntrainer::DataType::FP32) {
+    if (contiguous)
+      sscal(size(), 0, getData<float>(), 1);
+    else
+      apply_i([](float val) -> float { return 0; });
+  } else if (data_type == nntrainer::DataType::FP16) {
+    if (contiguous)
+      sscal(size(), 0, getData<__fp16>(), 1);
+    else
+      apply_i([](__fp16 val) -> __fp16 { return 0; });
+  }
 }
 
 std::vector<unsigned int> Tensor::argmax() const {
@@ -1930,6 +2039,23 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
   }
 
   return e;
+}
+
+Tensor Tensor::rotate_180(Tensor in) {
+  Tensor output(in.getDim());
+  output.setZero();
+  for (unsigned int i = 0; i < in.batch(); ++i) {
+    for (unsigned int j = 0; j < in.channel(); ++j) {
+      for (unsigned int k = 0; k < in.height(); ++k) {
+        for (unsigned int l = 0; l < in.width(); ++l) {
+          output.setValue(i, j, k, l,
+                          in.getValue<float>(i, j, (in.height() - k - 1),
+                                             (in.width() - l - 1)));
+        }
+      }
+    }
+  }
+  return output;
 }
 
 } /* namespace nntrainer */

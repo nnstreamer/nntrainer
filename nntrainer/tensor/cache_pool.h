@@ -86,7 +86,7 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  virtual std::shared_ptr<MemoryData<float>> getMemory(unsigned int id);
+  virtual std::shared_ptr<MemoryData> getMemory(unsigned int id);
 
   /**
    * @brief Is the cache pool allocated

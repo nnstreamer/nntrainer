@@ -29,11 +29,16 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
+#include <blas_interface.h>
+#include <iostream>
 #include <memory_data.h>
+#include <nntrainer_error.h>
 #include <tensor_dim.h>
+#include <util_func.h>
 
 #ifdef DEBUG
 #define EXCEPT_WHEN_DEBUG
@@ -42,6 +47,11 @@
 #endif
 
 #define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
+#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
+  do {                                    \
+    if (tensor.empty())                   \
+      tensor = Tensor(__VA_ARGS__);       \
+  } while (0);
 
 namespace nntrainer {
 
@@ -77,18 +87,35 @@ public:
     NONE            /** No initialization */
   };
 
+  void setSizeOf(nntrainer::DataType d_type) {
+    switch (d_type) {
+    case nntrainer::DataType::FP16:
+      sizeof_d = sizeof(__fp16);
+      return;
+    case nntrainer::DataType::FP32:
+      sizeof_d = sizeof(float);
+      return;
+    default:
+      return;
+    }
+  }
+
   /**
    * @brief     Basic Constructor of Tensor
    */
-  Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW) :
+  Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
+         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
     dim(TensorDim(fm)),
     strides(dim.computeStrides()),
     contiguous(true),
     initializer(Initializer::NONE),
     name(name_),
+    data_type(d_type),
     data(nullptr),
     offset(0),
-    src_tensor() {}
+    src_tensor() {
+    setSizeOf(d_type);
+  }
 
   /**
    * @brief     Constructor of Tensor with dimension, possibly lazily
@@ -98,7 +125,8 @@ public:
    * @param name Name of the tensor
    */
   Tensor(const TensorDim &d, bool alloc_now,
-         Initializer init = Initializer::NONE, std::string name = "");
+         Initializer init = Initializer::NONE, std::string name = "",
+         nntrainer::DataType d_type = nntrainer::DataType::FP32);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -106,7 +134,8 @@ public:
    * @param buf buffer
    * @note Memory for this tensor is instantaneously allocated
    */
-  Tensor(const TensorDim &d, const float *buf = nullptr);
+  Tensor(const TensorDim &d, const void *buf = nullptr,
+         nntrainer::DataType d_type = nntrainer::DataType::FP32);
 
   /**
    * @brief     Constructor of Tensor
@@ -115,9 +144,9 @@ public:
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
-         Tformat fm = Tformat::NCHW) :
-    Tensor(TensorDim(d0, d1, d2, d3, fm)){};
+  Tensor(size_t d0, size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+    Tensor(TensorDim(d0, d1, d2, d3, fm), nullptr, d_type){};
 
   /**
    * @brief     Constructor of Tensor
@@ -125,29 +154,60 @@ public:
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
-    Tensor(1, d1, d2, d3, fm){};
+  Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+    Tensor(1, d1, d2, d3, fm, d_type){};
 
   /**
    * @brief     Constructor of Tensor with batch size one and d1 size one
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
-    Tensor(1, 1, d2, d3, fm){};
+  Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+    Tensor(1, 1, d2, d3, fm, d_type){};
 
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW) :
-    Tensor(1, 1, 1, d3, fm){};
+  explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
+                  nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+    Tensor(1, 1, 1, d3, fm, d_type){};
 
   /**
    * @brief     Constructor of Tensor
    * @param[in] d data for the Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
+  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
+
+    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
+      throw std::out_of_range(
+        "[Tensor] trying to initialize Tensor from empty vector");
+    }
+
+    dim.batch(d.size());
+    dim.channel(d[0].size());
+    dim.height(d[0][0].size());
+    dim.width(d[0][0][0].size());
+    strides = dim.computeStrides();
+
+    auto mem_data = new MemoryData((void *)(new float[dim.getDataLen()]()));
+    data = std::shared_ptr<MemoryData>(
+      mem_data, [](auto *mem_data) { delete[](float *) mem_data->getAddr(); });
+    offset = 0;
+    contiguous = true;
+    initializer = Initializer::NONE;
+
+    setDataType(DataType::FP32);
+
+    for (unsigned int i = 0; i < dim.batch(); ++i)
+      for (unsigned int j = 0; j < dim.channel(); ++j)
+        for (unsigned int k = 0; k < dim.height(); ++k)
+          for (unsigned int l = 0; l < dim.width(); ++l) {
+            this->setValue(i, j, k, l, d[i][j][k][l]);
+          }
+  };
 
   /**
    * @brief     Constructor of Tensor
@@ -163,6 +223,51 @@ public:
    * @param[in] d data for the Tensor with batch size one
    */
   Tensor(std::vector<std::vector<float>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+
+  Tensor(std::vector<std::vector<std::vector<std::vector<__fp16>>>> const &d) {
+
+    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
+      throw std::out_of_range(
+        "[Tensor] trying to initialize Tensor from empty vector");
+    }
+
+    dim.batch(d.size());
+    dim.channel(d[0].size());
+    dim.height(d[0][0].size());
+    dim.width(d[0][0][0].size());
+    strides = dim.computeStrides();
+
+    auto mem_data = new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
+    data = std::shared_ptr<MemoryData>(
+      mem_data, [](auto *mem_data) { delete[](__fp16 *) mem_data->getAddr(); });
+    offset = 0;
+    contiguous = true;
+    initializer = Initializer::NONE;
+
+    setDataType(DataType::FP16);
+
+    for (unsigned int i = 0; i < dim.batch(); ++i)
+      for (unsigned int j = 0; j < dim.channel(); ++j)
+        for (unsigned int k = 0; k < dim.height(); ++k)
+          for (unsigned int l = 0; l < dim.width(); ++l)
+            this->setValue(i, j, k, l, d[i][j][k][l]);
+  };
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor
+   */
+  Tensor(std::vector<std::vector<std::vector<__fp16>>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   */
+  Tensor(std::vector<std::vector<__fp16>> const &d) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
 
   /**
@@ -200,8 +305,29 @@ public:
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
-                    size_t offset = 0);
+  template <typename T = float>
+  static Tensor Map(T *buf, unsigned int bytes, const TensorDim &d,
+                    size_t offset = 0) {
+    if (d.getDataLen() == 0 || buf == nullptr) {
+      throw std::invalid_argument(
+        "[Tensor::Map] empty tensor dim is not allowed");
+    }
+
+    if (d.getDataLen() * sizeof(T) + offset > bytes) {
+      throw std::invalid_argument(
+        "Creating shared tensor of size bigger than tensor memory.");
+    }
+
+    Tensor tmp;
+    tmp.dim = d;
+    tmp.strides = d.computeStrides();
+    /// Tensor does not own the memory
+    tmp.data = std::shared_ptr<MemoryData>(new MemoryData((void *)buf),
+                                           std::default_delete<MemoryData>());
+    tmp.offset = offset;
+
+    return tmp;
+  };
 
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
@@ -250,29 +376,34 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  const float &getValue(unsigned int batch, unsigned int c, unsigned int h,
-                        unsigned int w) const noexcept {
-    return getValue(getIndex(batch, c, h, w));
+  template <typename T = float>
+  const T &getValue(unsigned int batch, unsigned int c, unsigned int h,
+                    unsigned int w) const noexcept {
+    return getValue<T>(getIndex(batch, c, h, w));
   }
 
-  float &getValue(unsigned int batch, unsigned int c, unsigned int h,
-                  unsigned int w) noexcept {
-    return getValue(getIndex(batch, c, h, w));
-  }
-
-  /**
-   * @brief     return value at specific location
-   * @param[in] idx location
-   */
-  const float &getValue(unsigned int idx) const noexcept {
-    return getData()[idx];
+  template <typename T = float>
+  T &getValue(unsigned int batch, unsigned int c, unsigned int h,
+              unsigned int w) noexcept {
+    return getValue<T>(getIndex(batch, c, h, w));
   }
 
   /**
    * @brief     return value at specific location
    * @param[in] idx location
    */
-  float &getValue(unsigned int idx) noexcept { return getData()[idx]; }
+  template <typename T = float>
+  const T &getValue(unsigned int idx) const noexcept {
+    return getData<T>()[idx];
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   */
+  template <typename T = float> T &getValue(unsigned int idx) noexcept {
+    return getData<T>()[idx];
+  }
 
   /**
    * @brief Get the Value thinking that it is padded
@@ -292,9 +423,11 @@ public:
    * @param pw padding width
    * @return float value
    */
-  float getValuePaddedVirtual(unsigned int b, unsigned int c, unsigned int h,
-                              unsigned int w, unsigned int ph, unsigned int pw,
-                              float pad_value = 0) const EXCEPT_WHEN_DEBUG {
+  template <typename T = float>
+  const T getValuePaddedVirtual(unsigned int b, unsigned int c, unsigned int h,
+                                unsigned int w, unsigned int ph,
+                                unsigned int pw,
+                                T pad_value = 0) const EXCEPT_WHEN_DEBUG {
 #if DEBUG
     unsigned int padded_h = 2 * ph + h;
     unsigned int padded_w = 2 * pw + w;
@@ -305,7 +438,7 @@ public:
 #endif
 
     if (ph <= h && h < ph + height() && pw <= w && w < pw + width()) {
-      return getValue(b, c, h - ph, w - pw);
+      return getValue<T>(b, c, h - ph, w - pw);
     }
 
     return pad_value;
@@ -622,6 +755,8 @@ public:
    */
   Tensor &erf(Tensor &out) const;
 
+  unsigned int sizeofData() { return sizeof_d; }
+
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and second-last
@@ -894,20 +1029,67 @@ public:
    */
   void standardization_i();
 
+  template <typename T = float> T *getAddress(unsigned int i) {
+    size_t index = getIndex(batch(), channel(), height(), width());
+    if (i > index) {
+      return nullptr;
+    }
+    return &getData<T>()[i];
+  }
+
+  /**
+   * @brief     i data index
+   * @retval    address of ith data
+   */
+  template <typename T = float> const T *getAddress(unsigned int i) const {
+    size_t index = getIndex(batch(), channel(), height(), width());
+    if (i > index) {
+      return nullptr;
+    }
+
+    return &getData<T>()[i];
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                unsigned int w) {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                      unsigned int w) const {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
   /**
    * @brief Apply instantly to the element
    *
    * @param f function to apply
    * @return int ML_ERROR_NONE if successful
    */
-  int apply_i(std::function<float(float)> f);
+  int apply_i(std::function<float(float)> f) {
+    Tensor result = *this;
+    apply(f, result);
+
+    return ML_ERROR_NONE;
+  };
 
   /**
    * @brief     Apply function element by element
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  Tensor apply(std::function<float(float)> f) const;
+  Tensor apply(std::function<float(float)> f) const {
+    Tensor result;
+    return apply(f, result);
+  };
 
   /**
    * @brief     Apply function element by element
@@ -915,7 +1097,76 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const;
+  Tensor &apply(std::function<float(float)> f, Tensor &output) const {
+    CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+
+    if (dim != output.dim) {
+      /// @todo add unittest
+      throw std::invalid_argument(
+        "[Tensor::apply] output dimension does not match");
+    }
+
+    if (data_type == nntrainer::DataType::FP32) {
+      if (contiguous && output.contiguous) {
+        const float *data = (getData<float>());
+        float *rdata = (output.getData<float>());
+
+        std::transform(data, data + size(), rdata, f);
+      } else if (strides[3] == 1 && output.strides[3] == 1) {
+        /** @todo optimize this with combining these loops where stride is 1 */
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            for (unsigned int h = 0; h < height(); ++h) {
+              float *out_data = output.getAddress<float>(b, c, h, 0);
+              const float *in_data = getAddress<float>(b, c, h, 0);
+              std::transform(in_data, in_data + width(), out_data, f);
+            }
+          }
+        }
+      } else {
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            for (unsigned int h = 0; h < height(); ++h) {
+              for (unsigned int w = 0; w < width(); ++w) {
+                output.setValue(b, c, h, w, f(getValue<float>(b, c, h, w)));
+              }
+            }
+          }
+        }
+      }
+    } else if (data_type == nntrainer::DataType::FP16) {
+      if (contiguous && output.contiguous) {
+        const __fp16 *data = (getData<__fp16>());
+        __fp16 *rdata = (output.getData<__fp16>());
+
+        std::transform(data, data + size(), rdata, f);
+      } else if (strides[3] == 1 && output.strides[3] == 1) {
+        /** @todo optimize this with combining these loops where stride is 1 */
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            for (unsigned int h = 0; h < height(); ++h) {
+              __fp16 *out_data = (__fp16 *)output.getAddress(b, c, h, 0);
+              const __fp16 *in_data = (__fp16 *)getAddress(b, c, h, 0);
+              std::transform(in_data, in_data + width(), out_data, f);
+            }
+          }
+        }
+      } else {
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            for (unsigned int h = 0; h < height(); ++h) {
+              for (unsigned int w = 0; w < width(); ++w) {
+                output.setValue(b, c, h, w,
+                                f((float)((__fp16)getValue(b, c, h, w))));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return output;
+  };
 
   /**
    * @brief     Apply function to Tensor
@@ -956,7 +1207,7 @@ public:
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const { return size() * sizeof(float); }
+  size_t bytes() const { return size() * sizeof_d; }
 
   /**
    * @brief     Set the element value
@@ -968,7 +1219,11 @@ public:
    */
   void setValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value) noexcept {
-    getData()[getIndex(batch, c, h, w)] = value;
+    if (data_type == nntrainer::DataType::FP32) {
+      getData<float>()[getIndex(batch, c, h, w)] = value;
+    } else if (data_type == nntrainer::DataType::FP16) {
+      getData<__fp16>()[getIndex(batch, c, h, w)] = value;
+    }
   }
 
   /**
@@ -983,7 +1238,11 @@ public:
   void addValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value, float beta) noexcept {
     auto const &idx = getIndex(batch, c, h, w);
-    getData()[idx] = value + getData()[idx] * beta;
+    if (data_type == nntrainer::DataType::FP32) {
+      *(float *)(getData(idx)) = value + *(float *)(getData(idx)) * beta;
+    } else if (data_type == nntrainer::DataType::FP16) {
+      *(__fp16 *)(getData(idx)) = value + *(__fp16 *)(getData(idx)) * beta;
+    }
   }
 
   /**
@@ -1009,6 +1268,23 @@ public:
    * @brief     Fill the Tensor elements with zero
    */
   void setZero();
+
+  /**
+   * @brief Set the Dist object
+   *
+   * @tparam T distrubution engine
+   * @param dist distribution engine
+   */
+  template <typename T, typename Engine> void setDist(Engine dist) {
+    NNTR_THROW_IF(!contiguous, std::invalid_argument)
+      << getName() << " Tensor is not contiguous, cannot set distribution";
+
+    T *data_ = getData<T>();
+    unsigned int len = size();
+    for (unsigned int i = 0; i < len; ++i) {
+      data_[i] = (T)dist(rng);
+    }
+  };
 
   /**
    * @brief     Set the tensor with random normal distribution
@@ -1248,7 +1524,7 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)((float *)data->getAddr() + offset);
+    return (T *)((T *)(data->getAddr()) + offset);
   }
 
   /**
@@ -1260,7 +1536,26 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)((float *)data->getAddr() + offset);
+    return (T *)((T *)data->getAddr() + offset);
+  }
+
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  template <typename T = float> T *getData(size_t idx) const {
+    if (!data)
+      return nullptr;
+
+    size_t index = idx * sizeof_d;
+
+    data->validate();
+    return (T *)((T *)data->getAddr() + offset + index);
+  }
+
+  void setDataType(nntrainer::DataType d_type) {
+    data_type = d_type;
+    setSizeOf(data_type);
   }
 
   /**
@@ -1279,10 +1574,7 @@ public:
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
-  template <typename T = float>
-  const std::shared_ptr<MemoryData<T>> getMemoryData() const {
-    return data;
-  }
+  const std::shared_ptr<MemoryData> getMemoryData() const { return data; }
 
   /**
    * @brief     return offset
@@ -1293,44 +1585,6 @@ public:
    * @brief     i data index
    * @retval    address of ith data
    */
-  template <typename T = float> T *getAddress(unsigned int i) {
-    if (i > getIndex(batch(), channel(), height(), width())) {
-      return nullptr;
-    }
-
-    return &getData<T>()[i];
-  }
-
-  /**
-   * @brief     i data index
-   * @retval    address of ith data
-   */
-  template <typename T = float> const T *getAddress(unsigned int i) const {
-    if (i > getIndex(batch(), channel(), height(), width())) {
-      return nullptr;
-    }
-
-    return &getData<T>()[i];
-  }
-
-  /**
-   * @brief    get address of n-d data
-   */
-  template <typename T = float>
-  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                unsigned int w) {
-    return getAddress<T>(getIndex(b, c, h, w));
-  }
-
-  /**
-   * @brief    get address of n-d data
-   */
-  template <typename T = float>
-  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                      unsigned int w) const {
-    return getAddress<T>(getIndex(b, c, h, w));
-  }
-
   /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
@@ -1384,8 +1638,8 @@ public:
    * @param buf the memory buffer
    * @param init intialize the buffer
    */
-  void setData(const std::shared_ptr<MemoryData<float>> buf,
-               unsigned int off = 0, bool init = false) {
+  void setData(const std::shared_ptr<MemoryData> buf, unsigned int off = 0,
+               bool init = false) {
     if (buf) {
       data = buf;
       offset = off;
@@ -1411,6 +1665,13 @@ public:
    */
   TensorDim::Format getFormat() const { return dim.getFormat(); }
 
+  /**
+   * @brief Get data type for the tensor
+   *
+   * @return data type of the tensor
+   */
+  nntrainer::DataType getDataType() const { return data_type; }
+
   static constexpr float epsilon = 1e-5;
 
 private:
@@ -1420,9 +1681,10 @@ private:
   bool contiguous;
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
-
-  std::shared_ptr<MemoryData<float>> data;
+  nntrainer::DataType data_type;
+  std::shared_ptr<MemoryData> data;
   unsigned int offset;
+  unsigned int sizeof_d;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source
@@ -1454,6 +1716,14 @@ private:
                        int cur_axis = -1, size_t offset = 0,
                        size_t m_offset = 0) const;
 
+  void apply_broadcast_util(
+    Tensor const &m,
+    std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
+                       __fp16 *)>
+      v_func,
+    Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
+    size_t offset = 0, size_t m_offset = 0) const;
+
   /**
    * @brief Applies the given operator to the tensor with the passed argument
    *
@@ -1468,6 +1738,13 @@ private:
                          v_func,
                        Tensor &output) const;
 
+  void
+  apply_broadcast(Tensor const &m,
+                  std::function<void(const BroadcastInfo &e, const __fp16 *,
+                                     const __fp16 *, __fp16 *)>
+                    v_func,
+                  Tensor &output) const;
+
   /**
    * @brief compute Loop info for broadcasting and vectorization
    *
@@ -1477,20 +1754,12 @@ private:
   BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
 
   /**
-   * @brief Set the Dist object
-   *
-   * @tparam T distrubution engine
-   * @param dist distribution engine
-   */
-  template <typename T> void setDist(T dist);
-
-  /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
    * initialized otherwise undefined behavior
    *
    * @param buf buffer to copy from
    */
-  void copy(const float *buf);
+  void copy(const void *buf);
 
   /**
    * @brief Update destination tensor to share memory with source tensor
@@ -1525,6 +1794,14 @@ private:
    * @param axis2 second axis to merge
    */
   void mergeAxis(unsigned int axis1, unsigned int axis2);
+
+  /**
+   * @brief     rotate 180 dgree
+   * @param[in] in input Tensor
+   * @retVal Tensor rotated tensor (180 degree)
+   */
+  Tensor rotate_180(Tensor in);
+
 }; // namespace nntrainer
 
 /**

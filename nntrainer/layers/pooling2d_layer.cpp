@@ -207,7 +207,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
         for (int j = -pt; j <= height_stride_end; j += stride[0]) {
           K = 0;
           for (int k = -pl; k <= width_stride_end; k += stride[1]) {
-            float del = deriv.getValue(b, i, J, K) / *iter;
+            float del = deriv.getValue<float>(b, i, J, K) / *iter;
             int patch_height_end =
               std::min(static_cast<int>(j + p_height), height);
             int patch_width_end =
@@ -216,7 +216,8 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
             int start_w = std::max(0, k);
             for (int h = start_h; h < patch_height_end; ++h) {
               for (int w = start_w; w < patch_width_end; ++w) {
-                result.setValue(b, i, h, w, result.getValue(b, i, h, w) + del);
+                result.setValue(b, i, h, w,
+                                result.getValue<float>(b, i, h, w) + del);
               }
             }
             iter++;

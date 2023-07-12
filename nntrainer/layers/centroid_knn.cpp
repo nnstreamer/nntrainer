@@ -95,7 +95,7 @@ void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
 
       //  nntrainer::Tensor::Map(map.getData(), {feature_len},
       // ans[b] * feature_len);
-      auto num_sample = num_samples.getValue(0, 0, 0, ans[b]);
+      float num_sample = num_samples.getValue<float>(0, 0, 0, ans[b]);
       auto current_feature = input_.getBatchSlice(b, 1);
       saved_feature.multiply_i(num_sample);
       saved_feature.add_i(current_feature);
