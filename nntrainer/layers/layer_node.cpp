@@ -249,9 +249,10 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
 }
 
 void LayerNode::setTensorType(const std::string &type_) {
-  TensorDim::Format type = (type_.compare("NCHW") || type_.compare("nchw"))
-                             ? TensorDim::Format::NCHW
-                             : TensorDim::Format::NHWC;
+  TensorDim::Format type =
+    (type_.compare("NCHW") == 0 || type_.compare("nchw") == 0)
+      ? TensorDim::Format::NCHW
+      : TensorDim::Format::NHWC;
   getLayer()->setTensorType(type);
 }
 

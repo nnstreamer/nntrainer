@@ -50,6 +50,10 @@ static InitLayerContext createInitContext(Layer *layer,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
+  for (auto &p : parsed) {
+    p.get().setFormat(layer->getTensorType());
+  }
+
   InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
                            "golden_test");
   layer->finalize(context);
