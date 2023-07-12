@@ -56,7 +56,7 @@ public:
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
                      size_t off, size_t len,
-                     std::shared_ptr<MemoryData<float>> data,
+                     std::shared_ptr<MemoryData> data,
                      CachePolicy pol = CachePolicy::ALWAYS_SYNCED) :
     initial_opt(Options::FIRST_ACCESS),
     device(dev),
@@ -123,7 +123,7 @@ private:
   size_t offset;                      /**< element offset from swap device */
   size_t length;                      /**< element size */
   CachePolicy policy;                 /**< cache policy */
-  std::shared_ptr<MemoryData<float>> mem_data; /**< allocated memory data */
+  std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
 };
 
 } // namespace nntrainer

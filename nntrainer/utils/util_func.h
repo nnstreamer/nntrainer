@@ -30,7 +30,13 @@
 #include <sstream>
 
 #include <nntrainer_error.h>
-#include <tensor.h>
+#include <random>
+
+// /**
+//  * @brief     get the seed
+//  * @return    seed
+//  */
+// unsigned int getSeed() { return 0; }
 
 namespace nntrainer {
 
@@ -64,11 +70,12 @@ inline void throw_status(int status) {
   }
 }
 
-/**
- * @brief     get the seed
- * @return    seed
- */
-unsigned int getSeed();
+static auto rng = [] {
+  std::mt19937 rng;
+  // rng.seed(getSeed());
+  rng.seed(0);
+  return rng;
+}();
 
 /**
  * @brief     sqrt function for float type
@@ -95,13 +102,6 @@ float logFloat(float x);
  * @param[in] x float
  */
 float exp_util(float x);
-
-/**
- * @brief     rotate 180 dgree
- * @param[in] in input Tensor
- * @retVal Tensor rotated tensor (180 degree)
- */
-Tensor rotate_180(Tensor in);
 
 /**
  * @brief     Check Existance of File

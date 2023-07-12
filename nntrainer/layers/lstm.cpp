@@ -662,22 +662,23 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
     unsigned int end_timestep = return_sequences ? max_timestep : 1;
     for (unsigned int batch = 0; batch < batch_size; ++batch) {
       for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
-        float *hidden_state_data = hidden_state.getAddress(
+        float *hidden_state_data = hidden_state.getAddress<float>(
           batch * max_timestep * unit +
           (return_sequences ? 0 : (max_timestep - 1) * unit) + timestep * unit);
-        float *output_data =
-          output.getAddress(batch * (return_sequences ? max_timestep : 1) *
-                              bidirectional_constant * unit +
-                            timestep * bidirectional_constant * unit);
+        float *output_data = output.getAddress<float>(
+          batch * (return_sequences ? max_timestep : 1) *
+            bidirectional_constant * unit +
+          timestep * bidirectional_constant * unit);
         std::copy(hidden_state_data, hidden_state_data + unit, output_data);
 
         if (bidirectional) {
           Tensor &reverse_hidden_state =
             context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
-          float *reverse_hidden_state_data = reverse_hidden_state.getAddress(
-            batch * max_timestep * unit +
-            (return_sequences ? 0 : (max_timestep - 1) * unit) +
-            timestep * unit);
+          float *reverse_hidden_state_data =
+            reverse_hidden_state.getAddress<float>(
+              batch * max_timestep * unit +
+              (return_sequences ? 0 : (max_timestep - 1) * unit) +
+              timestep * unit);
           std::copy(reverse_hidden_state_data, reverse_hidden_state_data + unit,
                     output_data + unit);
         }

@@ -234,9 +234,9 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
 
   if (!return_sequences) {
     for (unsigned int batch = 0; batch < input_dim.batch(); ++batch) {
-      float *hidden_state_data = hidden_state.getAddress(
+      float *hidden_state_data = hidden_state.getAddress<float>(
         batch * unit * max_timestep + (max_timestep - 1) * unit);
-      float *output_data = output.getAddress(batch * unit);
+      float *output_data = output.getAddress<float>(batch * unit);
       std::copy(hidden_state_data, hidden_state_data + unit, output_data);
     }
   } else {
@@ -301,10 +301,11 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
 
   if (!return_sequences) {
     for (unsigned int batch = 0; batch < batch_size; ++batch) {
-      float *hidden_state_derivative_data = hidden_state_derivative.getAddress(
-        batch * unit * max_timestep + (max_timestep - 1) * unit);
+      float *hidden_state_derivative_data =
+        hidden_state_derivative.getAddress<float>(batch * unit * max_timestep +
+                                                  (max_timestep - 1) * unit);
       const float *incoming_derivative_data =
-        incoming_derivative.getAddress(batch * unit);
+        (float *)incoming_derivative.getAddress<float>(batch * unit);
       std::copy(incoming_derivative_data, incoming_derivative_data + unit,
                 hidden_state_derivative_data);
     }

@@ -126,10 +126,10 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     for (unsigned int batch = 0; batch < output.batch(); batch++) {
       /** loop over the concat dimension itself */
       for (unsigned int count = 0; count < irh.height(); count++) {
-        Tensor dest_tensor = Tensor::Map(
-          output.getAddress(batch, 0, output_height_offset + count, 0),
+        Tensor dest_tensor = Tensor::Map<float>(
+          output.getAddress<float>(batch, 0, output_height_offset + count, 0),
           data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
-        const Tensor source_tensor = Tensor::Map(
+        const Tensor source_tensor = Tensor::Map<float>(
           input.getAddress(batch, 0, count, 0), data_copy_size * sizeof(float),
           {1, 1, 1, data_copy_size});
         dest_tensor.copy(source_tensor);
@@ -164,10 +164,10 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
     for (unsigned int batch = 0; batch < output.batch(); batch++) {
       /** loop over the concat dimension itself */
       for (unsigned int count = 0; count < irh.height(); count++) {
-        const Tensor source_tensor = Tensor::Map(
+        const Tensor source_tensor = Tensor::Map<float>(
           output.getAddress(batch, 0, output_height_offset + count, 0),
           data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
-        Tensor dest_tensor = Tensor::Map(input.getAddress(batch, 0, count, 0),
+        Tensor dest_tensor = Tensor::Map<float>(input.getAddress(batch, 0, count, 0),
                                          data_copy_size * sizeof(float),
                                          {1, 1, 1, data_copy_size});
         dest_tensor.copy(source_tensor);

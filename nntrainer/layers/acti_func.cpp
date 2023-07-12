@@ -224,9 +224,9 @@ Tensor &ActiFunc::softmax(Tensor const &input, Tensor &output) {
 
   for (unsigned int i = 0; i < bch_size; i++) {
     float *ptr = output_data + i * width;
-    std::transform(
-      ptr, ptr + width, ptr,
-      std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(i)));
+    std::transform(ptr, ptr + width, ptr,
+                   std::bind(std::divides<float>(), std::placeholders::_1,
+                             sum.getValue<float>(i)));
   }
 
   return output;
