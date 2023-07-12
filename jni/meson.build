@@ -5,6 +5,10 @@ if get_option('debug')
     flags += '-g'
 endif
 
+if get_option('enable-fp16')
+   flags += '-march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp'
+endif
+
 flags += '-O@0@'.format(get_option('optimization'))
 message('compile flags are:' + ' '.join(flags))
 
@@ -35,11 +39,11 @@ else
   and_conf.set('MESON_HAS_TFLITE', 0)
 endif
 
-if blas_dep.found()
-  and_conf.set('MESON_BLAS_ROOT', blas_root)
-else
-  error('blas is needed for the android build')
-endif
+# if blas_dep.found()
+#   and_conf.set('MESON_BLAS_ROOT', blas_root)
+# else
+#   error('blas is needed for the android build')
+# endif
 
 if ml_api_common_dep.found()
   and_conf.set('MESON_ML_API_COMMON_ROOT', ml_api_common_root)

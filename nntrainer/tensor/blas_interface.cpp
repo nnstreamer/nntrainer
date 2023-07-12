@@ -13,6 +13,7 @@
 
 #include <blas_interface.h>
 #include <nntrainer_error.h>
+#include <iostream>
 
 #include <cmath>
 
@@ -49,6 +50,7 @@ static void sgemv_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
+
   if (TransA == CblasTrans) {
     sgemv_loop(i, j, N, M);
   } else {
@@ -75,12 +77,56 @@ static void scopy_raw(const unsigned int N, const float *X, const int incX,
     Y[i * incy] = X[i * incx];
 }
 
+static void scopy_FP16(const unsigned int N, const __fp16 *X, const int incX,
+                       __fp16 *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+  for (unsigned int i = 0; i < N; ++i)
+    Y[i * incy] = X[i * incx];
+}
+
 static void sscal_raw(const unsigned int N, const float alpha, float *X,
                       const int incX) {
   unsigned int incx = abs(incX);
 
   for (unsigned int i = 0; i < N; ++i)
     X[i * incx] = alpha * X[i * incx];
+}
+
+void sscal(const unsigned int N, const float alpha, __fp16 *X, const int incX) {
+  unsigned int incx = abs(incX);
+
+  for (unsigned int i = 0; i < N; ++i)
+    X[i * incx] = alpha * X[i * incx];
+}
+
+void sscal(const unsigned int N, const float alpha, void *X, const int incX,
+           DataType d_type) {
+#ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
+  if (d_type == DataType::FP32)
+    cblas_sscal(N, alpha, (float *)X, incX);
+#else
+  if (d_type == DataType::FP32) {
+    sscal_raw(N, alpha, (float *)X, incX);
+  } else if (d_type == DataType::FP16) {
+    sscal(N, alpha, (__fp16 *)X, incX);
+  }
+#endif
+}
+
+void sscal(const unsigned int N, const float alpha, float *X, const int incX) {
+#ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
+  cblas_sscal(N, alpha, (float *)X, incX);
+#else
+  sscal_raw(N, alpha, (float *)X, incX);
+#endif
 }
 
 static float snrm2_raw(const unsigned int N, const float *X, const int incX) {
@@ -193,6 +239,24 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 #endif
 }
 
+void scopy(const unsigned int N, const void *X, const int incX, void *Y,
+           const int incY, DataType d_type) {
+#ifdef USE_BLAS
+#ifdef BLAS_NUM_THREADS
+  openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
+  if (d_type == DataType::FP32) {
+    cblas_scopy(N, (float *)X, incX, (float *)Y, incY);
+  }
+#else
+  if (d_type == DataType::FP32) {
+    scopy_raw(N, (float *)X, incX, (float *)Y, incY);
+  } else if (d_type == DataType::FP16) {
+    scopy_FP16(N, (__fp16 *)X, incX, (__fp16 *)Y, incY);
+  }
+#endif
+} // namespace nntrainer
+
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int incY) {
 #ifdef USE_BLAS
@@ -203,18 +267,13 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 #else
   scopy_raw(N, X, incX, Y, incY);
 #endif
-}
+} // namespace nntrainer
 
-void sscal(const int N, const float alpha, float *X, const int incX) {
-#ifdef USE_BLAS
-#ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
-#endif
-  cblas_sscal(N, alpha, X, incX);
-#else
-  sscal_raw(N, alpha, X, incX);
-#endif
-}
+void scopy(const unsigned int N, const __fp16 *X, const int incX, __fp16 *Y,
+           const int incY) {
+  scopy_FP16(N, X, incX, Y, incY);
+
+} // namespace nntrainer
 
 float snrm2(const int N, const float *X, const int incX) {
 #ifdef USE_BLAS

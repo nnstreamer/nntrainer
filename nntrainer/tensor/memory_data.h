@@ -23,13 +23,13 @@ using MemoryDataValidateCallback = std::function<void(unsigned int)>;
 /**
  * @brief  MemoryData Class
  */
-template <typename T = float> class MemoryData {
+class MemoryData {
 public:
   /**
    * @brief  Constructor of Memory Data
    * @param[in] addr Memory data
    */
-  explicit MemoryData(T *addr) :
+  explicit MemoryData(void *addr) :
     valid(true),
     id(0),
     address(addr),
@@ -63,7 +63,7 @@ public:
   /**
    * @brief  Constructor of MemoryData
    */
-  explicit MemoryData(T *addr, MemoryDataValidateCallback v_cb,
+  explicit MemoryData(void *addr, MemoryDataValidateCallback v_cb,
                       MemoryDataValidateCallback i_cb) = delete;
 
   /**
@@ -74,12 +74,12 @@ public:
   /**
    * @brief  Set address
    */
-  void setAddr(T *addr) { address = addr; }
+  void setAddr(void *addr) { address = addr; }
 
   /**
    * @brief  Get address
    */
-  T *getAddr() const { return address; }
+  void *getAddr() const { return address; }
 
   /**
    * @brief  Validate memory data
@@ -107,7 +107,7 @@ public:
 private:
   bool valid;
   unsigned int id;
-  T *address;
+  void *address;
   MemoryDataValidateCallback validate_cb;
   MemoryDataValidateCallback invalidate_cb;
 };

@@ -27,6 +27,7 @@ enum CBLAS_TRANSPOSE {
   CblasTrans = 112,
   CblasConjTrans = 113
 };
+
 #endif
 
 #ifdef USE_CUBLAS
@@ -36,11 +37,27 @@ enum CBLAS_TRANSPOSE {
 
 namespace nntrainer {
 
-void sscal(const int N, const float alpha, float *X, const int incX);
+enum class DataType {
+  FP16, /** half precion */
+  FP32  /** single precision */
+};
+
+void sscal(const unsigned int N, const float alpha, void *X, const int incX,
+           DataType d_type);
+
+void sscal(const unsigned int N, const float alpha, float *X, const int incX);
+
+void sscal(const unsigned int N, const float alpha, __fp16 *X, const int incX);
 
 float snrm2(const int N, const float *X, const int incX);
 
+void scopy(const unsigned int N, const void *X, const int incX, void *Y,
+           const int incY, DataType d_type);
+
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
+           const int intY);
+
+void scopy(const unsigned int N, const __fp16 *X, const int incX, __fp16 *Y,
            const int intY);
 
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
