@@ -84,23 +84,20 @@ struct Tensor::BroadcastInfo {
 };
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
-               std::string name_, nntrainer::DataType d_type) :
+               std::string name_) :
   Tensor(name_) {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();
     initializer = init;
-    setDataType(d_type);
     if (alloc_now)
       allocate();
   }
 }
 
-Tensor::Tensor(const TensorDim &d, const void *buf,
-               nntrainer::DataType d_type) :
+Tensor::Tensor(const TensorDim &d, const void *buf) :
   Tensor(d, true) {
   if (d.getDataLen() != 0) {
-    setDataType(d_type);
     if (buf != nullptr)
       copy(buf);
   }
@@ -155,14 +152,14 @@ void Tensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-    if (getDataType() == DataType::FP32) {
+    if (getDataType() == ml::train::TensorDim::DataType::FP32) {
       mem_data = new MemoryData((void *)(new float[dim.getDataLen()]()));
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
         delete[](float *) mem_data->getAddr();
         delete mem_data;
       });
 
-    } else if (getDataType() == DataType::FP16) {
+    } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
       mem_data = new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
         delete[](__fp16 *) mem_data->getAddr();
@@ -189,7 +186,7 @@ bool Tensor::operator==(const Tensor &rhs) const {
   if (strides != rhs.strides)
     return false;
 
-  if (data_type == nntrainer::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     const float *_data = getData<float>();
     const float *_rdata = rhs.getData<float>();
     for (size_t i = 0; i < len; ++i) {
@@ -200,7 +197,7 @@ bool Tensor::operator==(const Tensor &rhs) const {
           std::fabs(_data[i] - _rdata[i]) > epsilon)
         return false;
     }
-  } else if (data_type == nntrainer::DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     const __fp16 *_data = getData<__fp16>();
     const __fp16 *_rdata = rhs.getData<__fp16>();
     for (size_t i = 0; i < len; ++i) {
@@ -306,12 +303,12 @@ Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
 Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
                                  const float beta) const {
   /** TODO: throw than create new dimenions */
-  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
       "Strided multiplication does not support broadcasting");
-  if (data_type == DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
         beta != 0.0) {
       for (unsigned int b = 0; b < batch(); ++b) {
@@ -340,7 +337,7 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
         }
       }
     }
-  } else if (data_type == DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
         beta != 0.0) {
       for (unsigned int b = 0; b < batch(); ++b) {
@@ -393,12 +390,12 @@ Tensor Tensor::add_strided(Tensor const &m, const float beta) const {
 Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
                             const float beta) const {
   /** TODO: throw than create new dimenions */
-  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
       "Strided addition does not support broadcasting");
-  if (data_type == DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
         beta != 0.0) {
       for (unsigned int b = 0; b < batch(); ++b) {
@@ -426,7 +423,7 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
         }
       }
     }
-  } else if (data_type == DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
         beta != 0.0) {
       for (unsigned int b = 0; b < batch(); ++b) {
@@ -464,12 +461,12 @@ int Tensor::multiply_i(float const &value) {
 
   /// @note this is not depending on multiply_i as there is an optimized
   /// version for multiply_i
-  if (data_type == DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     float *data = getData<float>();
     unsigned int len = size();
 
     sscal(len, value, data, 1);
-  } else if (data_type == DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     __fp16 *data = getData<__fp16>();
     unsigned int len = size();
     sscal(len, value, data, 1);
@@ -484,13 +481,14 @@ Tensor Tensor::multiply(float const &value) const {
 
 Tensor &Tensor::multiply(float const &value, Tensor &out) const {
   /// @todo add unittest
-  if (data_type == DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
     return apply(f, out);
-  } else if (data_type == DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     auto f = std::bind(std::multiplies<__fp16>(), std::placeholders::_1, value);
     return apply(f, out);
   }
+  return out;
 }
 
 int Tensor::multiply_i(Tensor const &m, const float beta) {
@@ -515,7 +513,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
    * @note this does not work correctly with differently strided inputs.
    * Use multiply_strided alternatively
    */
-  if (data_type == DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                  float *out_buf) {
       if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
@@ -538,7 +536,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
 
     apply_broadcast(m, f, output);
     return output;
-  } else if (data_type == DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     auto f = [&](const BroadcastInfo &e, const __fp16 *buf, const __fp16 *m_buf,
                  __fp16 *out_buf) {
       if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
@@ -562,6 +560,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
     apply_broadcast(m, f, output);
     return output;
   }
+  return output;
 }
 
 int Tensor::divide_i(float const &value) {
@@ -1060,7 +1059,7 @@ void Tensor::apply_broadcast(
                      __fp16 *)>
     v_func,
   Tensor &output) const {
-  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   NNTR_THROW_IF(getData<__fp16>() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
@@ -1189,8 +1188,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
 
   switch (axis) {
   case 0: {
-    CREATE_IF_EMPTY_DIMS(ret, 1, dim[1], dim[2], dim[3], this->getFormat());
-
+    CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width(),getTensorType());
     size_t feat_len = dim.getFeatureLen();
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, this->getFormat());
@@ -1199,7 +1197,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
           ones.getData(), 1, beta, ret.getData(), 1);
   } break;
   case 1: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width(),getTensorType());
     unsigned int feat_len = dim.height() * dim.width();
     unsigned int channel = dim.channel();
     Tensor ones(1, 1, 1, channel);
@@ -1212,7 +1210,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     }
   } break;
   case 2: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width(),getTensorType());
     unsigned int width = dim.width();
     unsigned int height = dim.height();
     Tensor ones(1, 1, 1, height);
@@ -1229,8 +1227,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     }
   } break;
   case 3: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1,
-                         Tformat::NCHW, DataType::FP32);
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1, getTensorType());
     unsigned int m = ret.dim.getDataLen();
     unsigned int n = dim.width();
     Tensor ones(1, 1, 1, n);
@@ -1425,12 +1422,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim1; /** == dim2 */
     N = mdim2;
     M = dim1;
-    if (getFormat() == Tformat::NHWC) {
-      CREATE_IF_EMPTY_DIMS(result, batch(), N, height(), width(),
-                           Tformat::NHWC); //  NHWC Result Tensor
-    } else {
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
-    }
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N, getTensorType());
 
     // We are not set zero the result because of performnace reason.
     // However, result is not initialized properly. There might include
@@ -1444,14 +1436,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim2; /** == dim2 */
     N = mdim1;
     M = dim1;
-    if (getFormat() == Tformat::NHWC) {
-      CREATE_IF_EMPTY_DIMS(result, batch(), N, height(), width(),
-                           Tformat::NHWC);
-    } else {
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
-    }
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N, getTensorType());
   } else if (trans && !trans_m) {
     if (dim1 != mdim1)
       throw std::runtime_error(
@@ -1459,12 +1444,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim1; /** == dim1 */
     N = mdim2;
     M = dim2;
-
-    if (getFormat() == Tformat::NHWC) {
-      CREATE_IF_EMPTY_DIMS(result, 1, N, M, 1, Tformat::NHWC);
-    } else {
-      CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N);
-    }
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N, getTensorType());
   } else {
     if (dim1 != mdim2)
       throw std::runtime_error(
@@ -1472,11 +1452,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim2; /** == dim1 */
     N = mdim1;
     M = dim2;
-    if (getFormat() == Tformat::NHWC) {
-      CREATE_IF_EMPTY_DIMS(result, 1, N, M, 1, Tformat::NHWC);
-    } else {
-      CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N);
-    }
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N,getTensorType());
   }
   lda = dim2;
   ldb = mdim2;
@@ -1727,8 +1703,8 @@ Tensor &Tensor::apply(std::function<Tensor &(Tensor, Tensor &)> f,
 
 void Tensor::print(std::ostream &out) const {
   printInstance(out, this);
-  const float *data = getData();
-
+  if (getDataType() == ml::train::TensorDim::DataType::FP32){
+    const __fp16 *data = getData<__fp16>();
   unsigned int len = size();
   out << "data addr: " << data << '\n';
   out << dim;
@@ -1798,6 +1774,36 @@ void Tensor::print(std::ostream &out) const {
     }
   }
   out.copyfmt(init);
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+    const __fp16 *data = getData<__fp16>();
+    unsigned int len = size();
+    out << "data addr: " << data << '\n';
+    out << dim;
+
+    if (len > 100) {
+      out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
+          << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1]
+          << ']' << std::endl;
+      return;
+    }
+
+    std::ios init(NULL);
+    init.copyfmt(out);
+    for (unsigned int k = 0; k < dim.batch(); k++) {
+      for (unsigned int l = 0; l < dim.channel(); l++) {
+        for (unsigned int i = 0; i < dim.height(); i++) {
+          for (unsigned int j = 0; j < dim.width(); j++) {
+            out << std::setw(10) << std::setprecision(10)
+                << this->getValue<__fp16>(k, l, i, j) << " ";
+          }
+          out << std::endl;
+        }
+        out << std::endl;
+      }
+      out << "-------" << std::endl;
+    }
+    out.copyfmt(init);
+  }
 }
 
 std::ostream &operator<<(std::ostream &out, Tensor const &m) {
@@ -1812,8 +1818,15 @@ void Tensor::copy(const void *buf) {
   if (buf == getData()) {
     return;
   }
+  // std::string type_ =
+  //   (getDataType() == ml::train::TensorDim::DataType::FP16) ? "FP16" : "NO";
+  // std::cout << type_ << std::endl;
 
-  scopy(size(), buf, 1, getData(), 1, getDataType());
+  if(getDataType() == ml::train::TensorDim::DataType::FP16){
+    scopy(size(), (__fp16*)buf, 1, getData<__fp16>(), 1);
+  }else if(getDataType() == ml::train::TensorDim::DataType::FP32){
+    scopy(size(), (float*)buf, 1, getData<float>(), 1);
+  }
 }
 
 void Tensor::copy_with_stride(const Tensor &from) {
@@ -1849,7 +1862,8 @@ void Tensor::copy(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  if (from.size() != 0 && size() == from.size()) {
+  if (from.size() != 0 && size() == from.size() &&
+      getDataType() == from.getDataType()) {
     reshape(from.getDim());
     copy(from.getData());
   } else {
@@ -2022,12 +2036,12 @@ void Tensor::setValue(float val) {
 }
 
 void Tensor::setZero() {
-  if (data_type == nntrainer::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     if (contiguous)
       sscal(size(), 0, getData<float>(), 1);
     else
       apply_i([](float val) -> float { return 0; });
-  } else if (data_type == nntrainer::DataType::FP16) {
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     if (contiguous)
       sscal(size(), 0, getData<__fp16>(), 1);
     else

@@ -79,7 +79,7 @@ public:
   /**
    * @brief  Get address
    */
-  void *getAddr() const { return address; }
+  template <typename T = float> T *getAddr() const { return (T *)address; }
 
   /**
    * @brief  Validate memory data

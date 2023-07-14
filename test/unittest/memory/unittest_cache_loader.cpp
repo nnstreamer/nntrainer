@@ -46,7 +46,7 @@ public:
  * @brief load synchronously
  */
 TEST_F(CacheLoaderTest, load_01_p) {
-  std::shared_ptr<nntrainer::MemoryData<float>> mem;
+  std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
   EXPECT_NO_THROW(pool->allocate());
@@ -85,7 +85,7 @@ TEST_F(CacheLoaderTest, load_01_p) {
  * @brief load synchronously multiple
  */
 TEST_F(CacheLoaderTest, load_02_p) {
-  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
@@ -162,7 +162,7 @@ TEST_F(CacheLoaderTest, load_02_p) {
  * @brief load asynchronously
  */
 TEST_F(CacheLoaderTest, load_async_01_p) {
-  std::shared_ptr<nntrainer::MemoryData<float>> mem;
+  std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
   EXPECT_NO_THROW(pool->allocate());
@@ -192,7 +192,7 @@ TEST_F(CacheLoaderTest, load_async_01_p) {
  * @brief load asynchronously
  */
 TEST_F(CacheLoaderTest, load_async_02_p) {
-  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
@@ -411,7 +411,7 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
  * @brief load asynchronously (discontinous order)
  */
 TEST_F(CacheLoaderTest, load_async_03_p) {
-  std::shared_ptr<nntrainer::MemoryData<float>> mem1, mem2, mem3;
+  std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
