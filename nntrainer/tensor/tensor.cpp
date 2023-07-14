@@ -95,8 +95,7 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
   }
 }
 
-Tensor::Tensor(const TensorDim &d, const void *buf) :
-  Tensor(d, true) {
+Tensor::Tensor(const TensorDim &d, const void *buf) : Tensor(d, true) {
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
@@ -1188,7 +1187,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
 
   switch (axis) {
   case 0: {
-    CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width(),getTensorType());
+    CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width(),
+                         getTensorType());
     size_t feat_len = dim.getFeatureLen();
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, this->getFormat());
@@ -1197,7 +1197,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
           ones.getData(), 1, beta, ret.getData(), 1);
   } break;
   case 1: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width(),getTensorType());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width(),
+                         getTensorType());
     unsigned int feat_len = dim.height() * dim.width();
     unsigned int channel = dim.channel();
     Tensor ones(1, 1, 1, channel);
@@ -1210,7 +1211,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     }
   } break;
   case 2: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width(),getTensorType());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width(),
+                         getTensorType());
     unsigned int width = dim.width();
     unsigned int height = dim.height();
     Tensor ones(1, 1, 1, height);
@@ -1227,7 +1229,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     }
   } break;
   case 3: {
-    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1, getTensorType());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1,
+                         getTensorType());
     unsigned int m = ret.dim.getDataLen();
     unsigned int n = dim.width();
     Tensor ones(1, 1, 1, n);
@@ -1422,7 +1425,8 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim1; /** == dim2 */
     N = mdim2;
     M = dim1;
-    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N, getTensorType());
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
+                         getTensorType());
 
     // We are not set zero the result because of performnace reason.
     // However, result is not initialized properly. There might include
@@ -1436,7 +1440,8 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim2; /** == dim2 */
     N = mdim1;
     M = dim1;
-    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N, getTensorType());
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
+                         getTensorType());
   } else if (trans && !trans_m) {
     if (dim1 != mdim1)
       throw std::runtime_error(
@@ -1452,7 +1457,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     K = mdim2; /** == dim1 */
     N = mdim1;
     M = dim2;
-    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N,getTensorType());
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N, getTensorType());
   }
   lda = dim2;
   ldb = mdim2;
@@ -1703,61 +1708,28 @@ Tensor &Tensor::apply(std::function<Tensor &(Tensor, Tensor &)> f,
 
 void Tensor::print(std::ostream &out) const {
   printInstance(out, this);
-  if (getDataType() == ml::train::TensorDim::DataType::FP32){
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
     const __fp16 *data = getData<__fp16>();
-  unsigned int len = size();
-  out << "data addr: " << data << '\n';
-  out << dim;
+    unsigned int len = size();
+    out << "data addr: " << data << '\n';
+    out << dim;
 
-  if (len > 100000) {
-    out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
-        << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1] << ']'
-        << std::endl;
-    return;
-  }
+    if (len > 100) {
+      out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
+          << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1]
+          << ']' << std::endl;
+      return;
+    }
 
-  std::ios init(NULL);
-  init.copyfmt(out);
-  for (unsigned int k = 0; k < dim.batch(); k++) {
-    for (unsigned int l = 0; l < dim.channel(); l++) {
-      for (unsigned int i = 0; i < dim.height(); i++) {
-        for (unsigned int j = 0; j < dim.width(); j++) {
-          out << std::setw(10) << std::setprecision(10)
-              << this->getValue<float>(k, l, i, j) << " ";
-        }
-        if (k < batch() - 1)
-          out << "},";
-        else
-          out << "}";
-        out << std::endl;
-      }
-      out << "}";
-    } else {
-      out << "{";
-      for (unsigned int k = 0; k < batch(); k++) {
-        out << "{";
-        for (unsigned int i = 0; i < height(); i++) {
-          out << "{";
-          for (unsigned int j = 0; j < width(); j++) {
-            out << "{";
-            for (unsigned int l = 0; l < channel(); l++) {
-              if (l < channel() - 1)
-                out << std::setw(10) << std::setprecision(10)
-                    << this->getValue(k, l, i, j) << ", ";
-              else
-                out << std::setw(10) << std::setprecision(10)
-                    << this->getValue(k, l, i, j);
-            }
-            if (j < width() - 1)
-              out << "},";
-            else
-              out << "}";
-            out << std::endl;
+    std::ios init(NULL);
+    init.copyfmt(out);
+    for (unsigned int k = 0; k < dim.batch(); k++) {
+      for (unsigned int l = 0; l < dim.channel(); l++) {
+        for (unsigned int i = 0; i < dim.height(); i++) {
+          for (unsigned int j = 0; j < dim.width(); j++) {
+            out << std::setw(10) << std::setprecision(10)
+                << this->getValue<float>(k, l, i, j) << " ";
           }
-          if (i < height() - 1)
-            out << "},";
-          else
-            out << "}";
           out << std::endl;
         }
         if (k < batch() - 1)
@@ -1766,14 +1738,9 @@ void Tensor::print(std::ostream &out) const {
           out << "}";
         out << std::endl;
       }
-      out << "}";
+      out << "-------" << std::endl;
     }
-  } else {
-    for (uint i = 0; i < len; ++i) {
-      out << getData()[i] << ", ";
-    }
-  }
-  out.copyfmt(init);
+    out.copyfmt(init);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
     const __fp16 *data = getData<__fp16>();
     unsigned int len = size();
@@ -1822,10 +1789,10 @@ void Tensor::copy(const void *buf) {
   //   (getDataType() == ml::train::TensorDim::DataType::FP16) ? "FP16" : "NO";
   // std::cout << type_ << std::endl;
 
-  if(getDataType() == ml::train::TensorDim::DataType::FP16){
-    scopy(size(), (__fp16*)buf, 1, getData<__fp16>(), 1);
-  }else if(getDataType() == ml::train::TensorDim::DataType::FP32){
-    scopy(size(), (float*)buf, 1, getData<float>(), 1);
+  if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+    scopy(size(), (__fp16 *)buf, 1, getData<__fp16>(), 1);
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    scopy(size(), (float *)buf, 1, getData<float>(), 1);
   }
 }
 
