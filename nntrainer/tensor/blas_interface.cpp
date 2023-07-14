@@ -102,17 +102,17 @@ void sscal(const unsigned int N, const float alpha, __fp16 *X, const int incX) {
 }
 
 void sscal(const unsigned int N, const float alpha, void *X, const int incX,
-           DataType d_type) {
+           ml::train::TensorDim::DataType d_type) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  if (d_type == DataType::FP32)
+  if (d_type == ml::train::TensorDim::DataType::FP32)
     cblas_sscal(N, alpha, (float *)X, incX);
 #else
-  if (d_type == DataType::FP32) {
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
     sscal_raw(N, alpha, (float *)X, incX);
-  } else if (d_type == DataType::FP16) {
+  } else if (d_type == ml::train::TensorDim::DataType::FP16) {
     sscal(N, alpha, (__fp16 *)X, incX);
   }
 #endif
@@ -240,18 +240,18 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 }
 
 void scopy(const unsigned int N, const void *X, const int incX, void *Y,
-           const int incY, DataType d_type) {
+           const int incY, ml::train::TensorDim::DataType d_type) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  if (d_type == DataType::FP32) {
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
     cblas_scopy(N, (float *)X, incX, (float *)Y, incY);
   }
 #else
-  if (d_type == DataType::FP32) {
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
     scopy_raw(N, (float *)X, incX, (float *)Y, incY);
-  } else if (d_type == DataType::FP16) {
+  } else if (d_type == ml::train::TensorDim::DataType::FP16) {
     scopy_FP16(N, (__fp16 *)X, incX, (__fp16 *)Y, incY);
   }
 #endif

@@ -57,6 +57,7 @@ namespace nntrainer {
 
 using TensorDim = ml::train::TensorDim;
 using Tformat = ml::train::TensorDim::Format;
+using Tdatatype = ml::train::TensorDim::DataType;
 
 class LazyTensor;
 class SrcSharedTensor;
@@ -83,35 +84,19 @@ public:
     NONE            /** No initialization */
   };
 
-  void setSizeOf(nntrainer::DataType d_type) {
-    switch (d_type) {
-    case nntrainer::DataType::FP16:
-      sizeof_d = sizeof(__fp16);
-      return;
-    case nntrainer::DataType::FP32:
-      sizeof_d = sizeof(float);
-      return;
-    default:
-      return;
-    }
-  }
-
   /**
    * @brief     Basic Constructor of Tensor
    */
   Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
-         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
-    dim(TensorDim(fm)),
+         Tdatatype d_type = Tdatatype::FP32) :
+    dim(TensorDim(fm, d_type)),
     strides(dim.computeStrides()),
     contiguous(true),
     initializer(Initializer::NONE),
     name(name_),
-    data_type(d_type),
     data(nullptr),
     offset(0),
-    src_tensor() {
-    setSizeOf(d_type);
-  }
+    src_tensor() {}
 
   /**
    * @brief     Constructor of Tensor with dimension, possibly lazily
@@ -121,8 +106,7 @@ public:
    * @param name Name of the tensor
    */
   Tensor(const TensorDim &d, bool alloc_now,
-         Initializer init = Initializer::NONE, std::string name = "",
-         nntrainer::DataType d_type = nntrainer::DataType::FP32);
+         Initializer init = Initializer::NONE, std::string name = "");
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -130,8 +114,7 @@ public:
    * @param buf buffer
    * @note Memory for this tensor is instantaneously allocated
    */
-  Tensor(const TensorDim &d, const void *buf = nullptr,
-         nntrainer::DataType d_type = nntrainer::DataType::FP32);
+  Tensor(const TensorDim &d, const void *buf = nullptr);
 
   /**
    * @brief     Constructor of Tensor
@@ -141,8 +124,9 @@ public:
    * @param[in] d3 Width
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
-    Tensor(TensorDim(d0, d1, d2, d3, fm), nullptr, d_type){};
+         Tdatatype d_type = Tdatatype::FP32) :
+    Tensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr){
+  };
 
   /**
    * @brief     Constructor of Tensor
@@ -151,7 +135,7 @@ public:
    * @param[in] d3 Width
    */
   Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+         Tdatatype d_type = Tdatatype::FP32) :
     Tensor(1, d1, d2, d3, fm, d_type){};
 
   /**
@@ -160,7 +144,7 @@ public:
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
   Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+         Tdatatype d_type = Tdatatype::FP32) :
     Tensor(1, 1, d2, d3, fm, d_type){};
 
   /**
@@ -168,8 +152,45 @@ public:
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
   explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
-                  nntrainer::DataType d_type = nntrainer::DataType::FP32) :
+                  Tdatatype d_type = Tdatatype::FP32) :
     Tensor(1, 1, 1, d3, fm, d_type){};
+
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d0 Batch of Tensor
+   * @param[in] d1 Channel (NCHW) or Height (NHWC)
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   */
+  Tensor(size_t d0, size_t d1, size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type) :
+    Tensor(TensorDim(d0, d1, d2, d3, t_type), nullptr){
+  };
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d1 Channel (NCHW) or Height (NHWC)
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   */
+  Tensor(size_t d1, size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type) :
+    Tensor(1, d1, d2, d3, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor with batch size one and d1 size one
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   */
+  Tensor(size_t d2, size_t d3,ml::train::TensorDim::TensorType t_type) :
+    Tensor(1, 1, d2, d3, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor with just Width or Channel
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   */
+  explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type) :
+    Tensor(1, 1, 1, d3, t_type){};
+  
 
   /**
    * @brief     Constructor of Tensor
@@ -188,14 +209,15 @@ public:
     dim.width(d[0][0][0].size());
     strides = dim.computeStrides();
 
-    auto mem_data = new MemoryData((void *)(new float[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(
-      mem_data, [](auto *mem_data) { delete[](float *) mem_data->getAddr(); });
+    MemoryData* mem_data = new MemoryData((void *)(new float[dim.getDataLen()]()));
+    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
+      delete[] mem_data->getAddr<float>();
+    });
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
 
-    setDataType(DataType::FP32);
+    setDataType(Tdatatype::FP32);
 
     for (unsigned int i = 0; i < dim.batch(); ++i)
       for (unsigned int j = 0; j < dim.channel(); ++j)
@@ -235,14 +257,15 @@ public:
     dim.width(d[0][0][0].size());
     strides = dim.computeStrides();
 
-    auto mem_data = new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(
-      mem_data, [](auto *mem_data) { delete[](__fp16 *) mem_data->getAddr(); });
+    MemoryData* mem_data = new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
+    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
+      delete[] mem_data->getAddr<__fp16>();
+    });
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
 
-    setDataType(DataType::FP16);
+    setDataType(Tdatatype::FP16);
 
     for (unsigned int i = 0; i < dim.batch(); ++i)
       for (unsigned int j = 0; j < dim.channel(); ++j)
@@ -752,7 +775,7 @@ public:
    */
   Tensor &erf(Tensor &out) const;
 
-  unsigned int sizeofData() { return sizeof_d; }
+  unsigned int sizeofData() { return dim.getDataTypeSize(); }
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -1095,7 +1118,7 @@ public:
    * @retval    Tensor
    */
   Tensor &apply(std::function<float(float)> f, Tensor &output) const {
-    CREATE_IF_EMPTY_DIMS(output, dim, nullptr, data_type);
+    CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
     if (dim != output.dim) {
       /// @todo add unittest
@@ -1103,7 +1126,7 @@ public:
         "[Tensor::apply] output dimension does not match");
     }
 
-    if (data_type == nntrainer::DataType::FP32) {
+    if (dim.getDataType() == Tdatatype::FP32) {
       if (contiguous && output.contiguous) {
         const float *data = (getData<float>());
         float *rdata = (output.getData<float>());
@@ -1131,7 +1154,7 @@ public:
           }
         }
       }
-    } else if (data_type == nntrainer::DataType::FP16) {
+    } else if (dim.getDataType() == Tdatatype::FP16) {
       if (contiguous && output.contiguous) {
         const __fp16 *data = (getData<__fp16>());
         __fp16 *rdata = (output.getData<__fp16>());
@@ -1213,7 +1236,7 @@ public:
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const { return size() * sizeof_d; }
+  size_t bytes() const { return size() * dim.getDataTypeSize(); }
 
   /**
    * @brief     Set the element value
@@ -1225,9 +1248,9 @@ public:
    */
   void setValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value) noexcept {
-    if (data_type == nntrainer::DataType::FP32) {
+    if (dim.getDataType() == Tdatatype::FP32) {
       getData<float>()[getIndex(batch, c, h, w)] = value;
-    } else if (data_type == nntrainer::DataType::FP16) {
+    } else if (dim.getDataType() == Tdatatype::FP16) {
       getData<__fp16>()[getIndex(batch, c, h, w)] = value;
     }
   }
@@ -1244,9 +1267,9 @@ public:
   void addValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value, float beta) noexcept {
     auto const &idx = getIndex(batch, c, h, w);
-    if (data_type == nntrainer::DataType::FP32) {
+    if (dim.getDataType() == Tdatatype::FP32) {
       *(float *)(getData(idx)) = value + *(float *)(getData(idx)) * beta;
-    } else if (data_type == nntrainer::DataType::FP16) {
+    } else if (dim.getDataType() == Tdatatype::FP16) {
       *(__fp16 *)(getData(idx)) = value + *(__fp16 *)(getData(idx)) * beta;
     }
   }
@@ -1466,6 +1489,9 @@ public:
    */
   size_t getTensorDim(unsigned int axis);
 
+
+  ml::train::TensorDim::TensorType getTensorType() const {return dim.getTensorType();}
+
   /**
    * @brief     return Tensor batch size
    * @retval    batch size
@@ -1489,6 +1515,13 @@ public:
    * @retval    width size
    */
   size_t width() const { return dim.width(); }
+
+  /**
+   * @brief     return Tensor Data Type Size
+   * @retval    data type size
+   */
+  uint getDataTypeSize() const { return dim.getDataTypeSize(); }
+  
 
   /**
    * @brief     update batch size for this tensor
@@ -1530,7 +1563,7 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)((T *)(data->getAddr()) + offset);
+    return (T *)((data->getAddr<T>()) + offset);
   }
 
   /**
@@ -1542,7 +1575,7 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)((T *)data->getAddr() + offset);
+    return (T *)(data->getAddr<T>() + offset);
   }
 
   /**
@@ -1553,16 +1586,13 @@ public:
     if (!data)
       return nullptr;
 
-    size_t index = idx * sizeof_d;
+    size_t index = idx * sizeof(T);
 
     data->validate();
-    return (T *)((T *)data->getAddr() + offset + index);
+    return (T *)(data->getAddr<T>() + offset + index);
   }
 
-  void setDataType(nntrainer::DataType d_type) {
-    data_type = d_type;
-    setSizeOf(data_type);
-  }
+  void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
 
   /**
    * @brief     put data of Tensor
@@ -1697,7 +1727,7 @@ public:
    *
    * @return data type of the tensor
    */
-  nntrainer::DataType getDataType() const { return data_type; }
+  Tdatatype getDataType() const { return dim.getDataType(); }
 
   static constexpr float epsilon = 1e-5;
 
@@ -1708,10 +1738,8 @@ private:
   bool contiguous;
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
-  nntrainer::DataType data_type;
   std::shared_ptr<MemoryData> data;
   unsigned int offset;
-  unsigned int sizeof_d;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source

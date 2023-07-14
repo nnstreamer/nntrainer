@@ -21,13 +21,20 @@
 #include <nntrainer_log.h>
 #include <tensor_dim.h>
 #include <util_func.h>
+#include <iostream>
 
 namespace ml {
 namespace train {
 
-TensorDim::TensorDim(Format fm, const std::bitset<MAXDIM> &eff_dim_flag_,
+TensorDim::TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
-  format(fm),
+  TensorDim(TensorDim::TensorType(fm, d_type), eff_dim_flag_, dyn_dim_flag_) {}
+
+TensorDim::TensorDim(TensorType t_type_,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  t_type(t_type_),
   eff_dim_flag(eff_dim_flag_),
   dyn_dim_flag(dyn_dim_flag_) {
   for (size_t i = 0; i < MAXDIM; ++i) {
@@ -37,8 +44,8 @@ TensorDim::TensorDim(Format fm, const std::bitset<MAXDIM> &eff_dim_flag_,
   feature_len = 0;
 }
 
-TensorDim::TensorDim(std::initializer_list<size_t> dims, Format fm) :
-  TensorDim(fm) {
+TensorDim::TensorDim(std::initializer_list<size_t> dims, TensorType t_type_) :
+  TensorDim(t_type_) {
   int shift_size = MAXDIM - dims.size();
 
   if (shift_size < 0) {
@@ -53,13 +60,22 @@ TensorDim::TensorDim(std::initializer_list<size_t> dims, Format fm) :
   }
 }
 
-TensorDim::TensorDim(const std::array<size_t, 3> &shapes, Format fm) :
-  TensorDim({shapes[0], shapes[1], shapes[2]}, fm) {}
+// TensorDim::TensorDim(std::initializer_list<size_t> dims, TensorDim::Format fm,
+//                      TensorDim::DataType d_type) :
+//   TensorDim(dims, TensorType{fm, d_type}) {}
 
-TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3, Format fm,
+TensorDim::TensorDim(const std::array<size_t, 3> &shapes, TensorType t_type_) :
+  TensorDim({shapes[0], shapes[1], shapes[2]}, t_type_) {}
+
+// TensorDim::TensorDim(const std::array<size_t, 3> &shapes, TensorDim::Format fm,
+//                      TensorDim::DataType d_type) :
+  // TensorDim({shapes[0], shapes[1], shapes[2]}, TensorType{fm, d_type}) {}
+
+TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3,
+                     TensorType t_type_,
                      const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
-  TensorDim(fm, eff_dim_flag_, dyn_dim_flag_) {
+  TensorDim(t_type_, eff_dim_flag_, dyn_dim_flag_) {
 
   setTensorDim(0, d0);
   setTensorDim(1, d1);
@@ -69,8 +85,24 @@ TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3, Format fm,
   len = d0 * feature_len;
 }
 
-TensorDim::TensorDim(const std::string &shape, Format fm) : TensorDim() {
-  if (setTensorDim(shape, fm) != ML_ERROR_NONE) {
+TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3,
+                     TensorDim::Format fm, TensorDim::DataType d_type,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  TensorDim(d0, d1, d2, d3, TensorType(fm, d_type), eff_dim_flag_,
+            dyn_dim_flag_) {}
+
+TensorDim::TensorDim(const std::string &shape, TensorType t_type_) :
+  TensorDim() {
+  if (setTensorDim(shape, t_type_) != ML_ERROR_NONE) {
+    throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
+  }
+}
+
+TensorDim::TensorDim(const std::string &shape, TensorDim::Format fm,
+                     TensorDim::DataType d_type) :
+  TensorDim() {
+  if (setTensorDim(shape, TensorType(fm, d_type)) != ML_ERROR_NONE) {
     throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
   }
 }
@@ -88,6 +120,17 @@ TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
 
   swap(*this, rhs);
   return *this;
+}
+
+uint TensorDim::getDataTypeSize()const {
+  switch (t_type.data_type) {
+  case TensorDim::DataType::FP16:
+    return sizeof(__fp16);
+  case TensorDim::DataType::FP32:
+    return sizeof(float);
+  default:
+    return sizeof(float);
+  }
 }
 
 void TensorDim::resetLen() {
@@ -122,7 +165,8 @@ void TensorDim::setTensorDim(unsigned int idx, size_t value) {
   resetLen();
 }
 
-int TensorDim::setTensorDim(const std::string &input_shape, Format fm) {
+int TensorDim::setTensorDim(const std::string &input_shape,
+                            TensorType t_type_) {
   int status = ML_ERROR_NONE;
   static const std::regex words_regex("[^\\s.,:;!?]+");
   auto words_begin =
@@ -137,9 +181,14 @@ int TensorDim::setTensorDim(const std::string &input_shape, Format fm) {
   for (std::sregex_iterator i = words_begin; i != words_end; ++i, ++cn) {
     setTensorDim(MAXDIM - cur_dim + cn, std::stoul((*i).str()));
   }
-  format = fm;
+  t_type = t_type_;
   return status;
 }
+
+// int TensorDim::setTensorDim(const std::string &input_shape,
+//                             TensorDim::Format fm, TensorDim::DataType d_type) {
+//   return setTensorDim(input_shape, TensorType{fm, d_type});
+// }
 
 void TensorDim::setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
   eff_dim_flag = dim_flag_;
@@ -164,16 +213,22 @@ void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
   std::swap(lhs.feature_len, rhs.feature_len);
   std::swap(lhs.eff_dim_flag, rhs.eff_dim_flag);
   std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
-  std::swap(lhs.format, rhs.format);
+  std::swap(lhs.t_type, rhs.t_type);
 }
 
 size_t TensorDim::batch() const { return dim[0]; };
 
-size_t TensorDim::channel() const { return dim[1]; };
+size_t TensorDim::channel() const {
+  return t_type.format == Format::NCHW ? dim[1] : dim[3];
+};
 
-size_t TensorDim::height() const { return dim[2]; };
+size_t TensorDim::height() const {
+  return t_type.format == Format::NCHW ? dim[2] : dim[1];
+};
 
-size_t TensorDim::width() const { return dim[3]; };
+size_t TensorDim::width() const {
+  return t_type.format == Format::NCHW ? dim[3] : dim[2];
+};
 
 size_t TensorDim::getDataLen() const { return len; };
 
@@ -181,11 +236,20 @@ size_t TensorDim::getFeatureLen() const { return feature_len; };
 
 void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
-void TensorDim::channel(size_t c) { setTensorDim(1, c); }
+void TensorDim::channel(size_t c) {
+  uint i = (t_type.format == Format::NCHW) ? 1 : 3;
+  setTensorDim(i, c);
+}
 
-void TensorDim::height(size_t h) { setTensorDim(2, h); }
+void TensorDim::height(size_t h) {
+  uint i = (t_type.format == Format::NCHW) ? 2 : 1;
+  setTensorDim(i, h);
+}
 
-void TensorDim::width(size_t w) { setTensorDim(3, w); }
+void TensorDim::width(size_t w) {
+  uint i = (t_type.format == Format::NCHW) ? 3 : 2;
+  setTensorDim(i, w);
+}
 
 const size_t *TensorDim::getDim() const { return dim; }
 
@@ -215,7 +279,10 @@ TensorDim TensorDim::transpose(const std::array<size_t, MAXDIM> &axes) const {
 }
 
 bool TensorDim::operator==(const TensorDim &rhs) const {
-  if (this->format != rhs.format)
+  if (this->t_type.format != rhs.t_type.format)
+    return false;
+
+  if (this->t_type.data_type != rhs.t_type.data_type)
     return false;
 
   for (size_t i = 0; i < MAXDIM; ++i) {
@@ -291,7 +358,12 @@ std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
 bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
-  out << "Shape: " << d[0] << ":" << d[1] << ":" << d[2] << ":" << d[3]
+  std::string type_ =
+    (d.getDataType() == ml::train::TensorDim::DataType::FP16) ? "FP16" : "FP32";
+  std::string format_ =
+    (d.getFormat() == ml::train::TensorDim::Format::NCHW) ? "NCHW" : "NHWC";
+  out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
+      << ":" << d.width() << " [ " << type_ << " : " << format_ << " ]"
       << std::endl;
   return out;
 }
