@@ -28,6 +28,7 @@
 
 #include "neuralnet.h"
 #include "nntrainer_test_util.h"
+#include <set>
 
 nntrainer::NeuralNetwork
 genModel(const std::vector<LayerRepresentation> &layers) {

@@ -38,7 +38,35 @@ TEST(nntrainer_TensorDim, ctor_initializer_p) {
 }
 
 TEST(nntrianer_TensorDim, effective_dimension_p) {
-  nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NCHW);
+  nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
+
+  t.setEffDimFlag(0b1101);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 5}));
+
+  t.setEffDimFlag(0b0011);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({4, 5}));
+
+  t.setEffDimFlag(0b1111);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
+
+  t.setEffDimFlag(0b1100);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2}));
+
+  t.setDynDimFlag(0b1100);
+  EXPECT_EQ(t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+
+  auto copied_t = t;
+  EXPECT_EQ(copied_t.getEffectiveDimension(), std::vector<int>({3, 2}));
+  EXPECT_EQ(copied_t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+
+  auto moved_t = std::move(copied_t);
+  EXPECT_EQ(moved_t.getEffectiveDimension(), std::vector<int>({3, 2}));
+  EXPECT_EQ(moved_t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+}
+
+TEST(nntrianer_TensorDim, effective_dimension_nhwc_p) {
+  nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32);
   EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
 
   t.setEffDimFlag(0b1101);
@@ -69,11 +97,25 @@ TEST(nntrainer_TensorDim, ctor_initializer_n) {
   EXPECT_THROW(nntrainer::TensorDim t({1, 2, 3, 4, 5}), std::invalid_argument);
 }
 
+TEST(nntrainer_TensorDim, ctor_initializer_nhwc_n) {
+  EXPECT_THROW(
+    nntrainer::TensorDim t({1, 2, 3, 4, 5}, nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32),
+    std::invalid_argument);
+}
+
 TEST(nntrainer_TensorDim, setTensorDim_01_p) {
   int status = ML_ERROR_NONE;
 
   nntrainer::TensorDim tensor_dim;
   status = tensor_dim.setTensorDim("1:2:3:4");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_01_nhwc_p) {
+  int status = ML_ERROR_NONE;
+
+  nntrainer::TensorDim tensor_dim;
+  status = tensor_dim.setTensorDim("1:2:3:4", {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -85,8 +127,25 @@ TEST(nntrainer_TensorDim, setTensorDim_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_TensorDim, setTensorDim_02__nhwc_n) {
+  int status = ML_ERROR_NONE;
+
+  nntrainer::TensorDim tensor_dim;
+  status = tensor_dim.setTensorDim("1:2:3:4:5", {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_TensorDim, setTensorDim_03_n) {
   nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(0, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(1, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(2, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(3, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_03_nhwc_n) {
+  nntrainer::TensorDim d(nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32);
 
   EXPECT_THROW(d.setTensorDim(0, 0), std::invalid_argument);
   EXPECT_THROW(d.setTensorDim(1, 0), std::invalid_argument);
@@ -108,6 +167,20 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   EXPECT_EQ(d.width(), 7u);
 }
 
+TEST(nntrainer_TensorDim, setTensorDim_04_nhwc_p) {
+  nntrainer::TensorDim d(nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32);
+
+  d.setTensorDim(0, 4);
+  d.setTensorDim(1, 5);
+  d.setTensorDim(2, 6);
+  d.setTensorDim(3, 7);
+
+  EXPECT_EQ(d.batch(), 4u);
+  EXPECT_EQ(d.height(), 5u);
+  EXPECT_EQ(d.width(), 6u);
+  EXPECT_EQ(d.channel(), 7u);
+}
+
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);
@@ -118,26 +191,32 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-// TEST(nntrainer_Tensor, Tensor_02_p) {
-//   int status = ML_ERROR_NONE;
-//   int height = 3;
-//   int width = 10;
-//   std::vector<std::vector<float>> in;
-//   for (int i = 0; i < height; ++i) {
-//     std::vector<float> tv;
-//     for (int j = 0; j < width; ++j) {
-//       tv.push_back(i * 2.0 + j);
-//     }
-//     in.push_back(tv);
-//   }
+TEST(nntrainer_Tensor, Tensor_01_nhwc_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(1, 2, 3, nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32);
+  tensor.setZero();
+  ASSERT_NE(nullptr, tensor.getData());
+  if (tensor.getValue(0, 0, 0, 0) != 0.0)
+    status = ML_ERROR_INVALID_PARAMETER;
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
-//   nntrainer::Tensor tensor = nntrainer::Tensor(in);
-//   ASSERT_NE(nullptr, tensor.getData());
+TEST(nntrainer_Tensor, Tensor_02_p) {
+  int status = ML_ERROR_NONE;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<float>> in;
+  for (int i = 0; i < height; ++i) {
+    std::vector<float> tv;
+    for (int j = 0; j < width; ++j) {
+      tv.push_back(i * 2.0 + j);
+    }
+    in.push_back(tv);
+  }
 
-//   if (tensor.getValue(0, 0, 0, 1) != 1.0)
-//     status = ML_ERROR_INVALID_PARAMETER;
-//   EXPECT_EQ(status, ML_ERROR_NONE);
-// }
+  nntrainer::Tensor tensor = nntrainer::Tensor(in);
+  ASSERT_NE(nullptr, tensor.getData());
 
 // TEST(nntrainer_Tensor, Tensor_02_nhwc_p) {
 //   int status = ML_ERROR_NONE;
@@ -158,7 +237,7 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
 //   if (tensor.getValue(0, 0, 0, 1) != 1.0)
 //     status = ML_ERROR_INVALID_PARAMETER;
 //   EXPECT_EQ(status, ML_ERROR_NONE);
-// }
+}
 
 TEST(nntrainer_Tensor, Tensor_03_p) {
   int status = ML_ERROR_NONE;
@@ -196,8 +275,11 @@ TEST(nntrainer_Tensor, multiply_i_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
+  input.print(std::cout);
+
   nntrainer::Tensor original;
   original.copy(input);
+  original.print(std::cout);  
 
   status = input.multiply_i(2.0);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -3080,7 +3162,7 @@ TEST(nntrainer_Tensor, print_small_size) {
 
   expected << '<' << typeid(target).name() << " at " << &target << ">\n"
            << "data addr: " << target.getData() << '\n'
-           << "Shape: 3:1:2:3\n"
+           << "Shape: 3:1:2:3 [ FP32 : NCHW ]\n"
            << "         1          1          1 \n"
            << "         1          1          1 \n"
            << "\n"

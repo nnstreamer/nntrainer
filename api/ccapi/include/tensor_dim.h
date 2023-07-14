@@ -33,10 +33,24 @@ class TensorDim {
 public:
   static constexpr const size_t MAXDIM = 4;
 
-  /**
-   * @brief     Tensor Formant : Default is NCHW
-   */
   enum class Format { NCHW, NHWC };
+
+  enum class DataType {
+    FP16, /** half precion */
+    FP32  /** single precision */
+  };
+
+  struct TensorType {
+    /**
+     * @brief     Tensor Formant : Default is NCHW
+     */
+    Format format;
+    DataType data_type;
+
+    TensorType() : format(Format::NCHW), data_type(DataType::FP32) {};
+
+    TensorType(Format fm, DataType d_type) : format(fm), data_type(d_type) {};
+  };
 
   /**
    * @brief Get the Num Dim object
@@ -45,6 +59,10 @@ public:
    */
   static unsigned int getNumDim();
 
+  TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+
   /**
    * @brief Construct a new Tensor Dim object
    *
@@ -52,7 +70,7 @@ public:
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
-  explicit TensorDim(Format fm = Format::NCHW,
+  explicit TensorDim(TensorType t_type_=TensorType(),
                      const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
                      const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
@@ -65,7 +83,11 @@ public:
    * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW & NHWC are
    * accepted
    */
-  TensorDim(std::initializer_list<size_t> dims, Format fm = Format::NCHW);
+  TensorDim(std::initializer_list<size_t> dims,
+            TensorType t_type_ = TensorType());
+
+  // TensorDim(std::initializer_list<size_t> dims, TensorDim::Format fm=Format::NCHW,
+  //           TensorDim::DataType d_type=DataType::FP32);
 
   /**
    * @brief Construct a new Tensor Dim object without batch dimension
@@ -73,7 +95,10 @@ public:
    * @param shapes shapes without batch dimension
    * @param fm format NCHW | HNWC
    */
-  TensorDim(const std::array<size_t, 3> &shapes, Format fm = Format::NCHW);
+  TensorDim(const std::array<size_t, 3> &shapes, TensorType t_type_ = TensorType());
+
+  // TensorDim(const std::array<size_t, 3> &shapes, TensorDim::Format fm = Format::NCHW,
+  //           TensorDim::DataType d_type=DataType::FP32);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -86,7 +111,13 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t b, size_t c, size_t h, size_t w, Format fm = Format::NCHW,
+  TensorDim(size_t b, size_t c, size_t h, size_t w,
+            TensorType t_type_ = TensorType(),
+            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+
+  TensorDim(size_t d0, size_t d1, size_t d2, size_t d3, TensorDim::Format fm,
+            TensorDim::DataType d_type,
             const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
             const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
@@ -103,7 +134,11 @@ public:
    * @param shape shape of format
    * @param fm format NCHW | HNWC
    */
-  TensorDim(const std::string &shape, Format fm = Format::NCHW);
+  TensorDim(const std::string &shape, TensorType t_type_ = TensorType());
+
+  TensorDim(const std::string &shape,
+            TensorDim::Format fm,
+            TensorDim::DataType d_type = TensorDim::DataType::FP32);
 
   /**
    * @brief Destroy the Tensor Dim object
@@ -122,6 +157,11 @@ public:
    * @parma[in] rhs Optimizer to be moved.
    */
   TensorDim &operator=(TensorDim &&rhs) noexcept;
+
+  /**
+   * @brief  get data type size
+   */
+  uint getDataTypeSize() const ;
 
   /**
    * @brief Set the Dim Flag to retrieve effective dimension
@@ -291,7 +331,10 @@ public:
    * @param fm NCHW | NHWC
    * @return int ML_ERROR_NONE if successs
    */
-  int setTensorDim(const std::string &input_shape, Format fm = Format::NCHW);
+  int setTensorDim(const std::string &input_shape, TensorType t_type_=TensorType());
+
+  // int setTensorDim(const std::string &input_shape, TensorDim::Format fm,
+  //                  TensorDim::DataType d_type);
 
   /**
    * @brief copy assign a dimension
@@ -383,13 +426,37 @@ public:
    * @brief getFormat
    *
    */
-  TensorDim::Format getFormat() const { return format; };
+  TensorDim::Format getFormat() const { return t_type.format; };
+
+  /**
+   * @brief getType
+   *
+   */
+ TensorDim::DataType getDataType() const { return t_type.data_type; };
 
   /**
    * @brief setFormat
    *
    */
-  void setFormat(TensorDim::Format fm) { format = fm; };
+  void setFormat(TensorDim::Format fm) { t_type.format = fm; };
+
+  /**
+   * @brief setDataType
+   *
+   */
+  void setDataType(TensorDim::DataType ty) { t_type.data_type = ty; };
+
+  /**
+   * @brief getFormat
+   *
+   */
+  TensorType getTensorType() const { return t_type; };
+
+  /**
+   * @brief setTensorType
+   *
+   */
+  void setTensorType(TensorType tt) { t_type = tt; };
 
 private:
   /**
@@ -398,7 +465,7 @@ private:
    */
   void resetLen();
 
-  Format format;
+  TensorType t_type;
 
   std::bitset<MAXDIM> eff_dim_flag; /**< dimension bit flag to define effective
           dimension size */
