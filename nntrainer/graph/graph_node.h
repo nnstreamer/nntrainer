@@ -122,7 +122,8 @@ public:
  */
 template <typename LayerNodeType, typename GraphNodeType>
 class GraphNodeIterator
-  : public std::iterator<std::random_access_iterator_tag, GraphNodeType> {
+  : public std::iterator<std::random_access_iterator_tag, GraphNodeType,
+                         std::ptrdiff_t, GraphNodeType *, GraphNodeType &> {
   GraphNodeType *p; /** underlying object of GraphNode */
 
 public:
