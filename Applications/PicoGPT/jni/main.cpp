@@ -24,13 +24,15 @@ const unsigned int BATCH_SIZE = 1;
 const unsigned int NUM_LAYERS = 12;
 const unsigned int NUM_HEADS = 12;
 const unsigned int MODEL_DIM = 768;
-const unsigned int FC_UNIT = 3072; // 768*4
+// @Todo: Need to check
+const unsigned int FC_UNIT = MODEL_DIM * 4;
 
 const unsigned int NUM_VOCAB = 50257;
 const unsigned int NUM_CTX = 1024;
 const unsigned int NUM_TOKENS_TO_GENERATE = 40;
 
-unsigned int init_input_seq_len = 10;
+unsigned int init_input_seq_len;
+// Todo: fix this
 const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
 bool swap = false;
@@ -49,11 +51,11 @@ std::shared_ptr<ml::train::Model> genModel() {
   std::shared_ptr<ml::train::Model> model;
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
+                      "memory_optimization=false",
                       swap ? "memory_swap=true" : "memory_swap=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
-    {"name=wte_input",
-     "input_shape=1:1:" + std::to_string(init_input_seq_len)});
+    {"name=wte_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
   model->addLayer(wte_input);
 
   std::shared_ptr<ml::train::Layer> wte = ml::train::layer::Embedding(
@@ -62,8 +64,7 @@ std::shared_ptr<ml::train::Model> genModel() {
   model->addLayer(wte);
 
   std::shared_ptr<ml::train::Layer> wpe_input = ml::train::layer::Input(
-    {"name=wpe_input",
-     "input_shape=1:1:" + std::to_string(init_input_seq_len)});
+    {"name=wpe_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
   model->addLayer(wpe_input);
 
   std::shared_ptr<ml::train::Layer> wpe = ml::train::layer::Embedding(
@@ -283,18 +284,10 @@ int main(int argc, char *argv[]) {
 
   std::string weight_file_name = "./res/app/PicoGPT/pico_gpt_124.bin";
 
-  //   std::string train_dataset_file_name = base + "pico_gpt_input.dat";
-
   model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-
-  // std::ifstream model_file(train_dataset_file_name,
-  //                          std::ios::in | std::ios::binary);
 
   float *wte_input = new float[MAX_TOKEN_LEN];
   float *wpe_input = new float[MAX_TOKEN_LEN];
-
-  memset(wte_input, 0, sizeof(float) * MAX_TOKEN_LEN);
-  memset(wpe_input, 0, sizeof(float) * MAX_TOKEN_LEN);
 
   std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
   std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
@@ -305,9 +298,6 @@ int main(int argc, char *argv[]) {
   auto init_input = tokenizer.encode(text);
   init_input_seq_len = init_input.size();
 
-  // uint init_input[init_input_seq_len] = {36235, 39141, 18765, 1143, 326,
-  //                                        9061,  561,   530,   1110, 1716};
-
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
     ((uint *)(wte_input))[i] = init_input[i];
   }
@@ -316,23 +306,12 @@ int main(int argc, char *argv[]) {
     ((uint *)(wpe_input))[i] = i;
   }
 
-  // model_file.read((char *)input, DECODER_INPUT_SIZE * sizeof(float));
+  std::vector<float *> output_bufs;
 
   for (unsigned int i = init_input_seq_len;
        i < init_input_seq_len + NUM_TOKENS_TO_GENERATE; ++i) {
-    std::vector<float *> output_bufs;
-
-    for (unsigned int layer = 0; layer < NUM_LAYERS; ++layer) {
-      for (unsigned int head = 0; head < NUM_HEADS; ++head) {
-        std::shared_ptr<ml::train::Layer> attention_layer;
-        std::string layer_name = "layer" + std::to_string(layer) +
-                                 "/multi_head_attention/attention" +
-                                 std::to_string(NUM_HEADS - 1 - head);
-        model->getLayer(layer_name.c_str(), &attention_layer);
-      }
-    }
-
-    output_bufs = model->inference(BATCH_SIZE, {wte_input, wpe_input}, {});
+    output_bufs = model->incremental_inference(
+      BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1);
 
     nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
 
@@ -357,15 +336,6 @@ int main(int argc, char *argv[]) {
     }
     auto decoded_str = tokenizer.decode(token_ids);
     std::cerr << decoded_str << " " << std::flush;
-
-    std::shared_ptr<ml::train::Layer> wte_input_layer;
-    model->getLayer("wte_input", &wte_input_layer);
-    wte_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
-    std::shared_ptr<ml::train::Layer> wpe_input_layer;
-    model->getLayer("wpe_input", &wpe_input_layer);
-    wpe_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
-
-    model->reinitialize();
   }
   std::cout << std::endl;
   return 0;
