@@ -236,6 +236,27 @@ public:
                                 bool training = true);
 
   /**
+   * @brief     Incremental forward Propagation of the neural network
+   */
+  sharedConstTensors
+  incremental_forwarding(unsigned int from, unsigned int to,
+                         bool training = true,
+                         std::function<bool(void *userdata)> stop_cb =
+                           [](void *user_data) { return false; },
+                         void *user_data = nullptr);
+
+  /**
+   * @brief     Incremental forward Propagation of the neural network
+   * @param[in] input List of Input Tensors taken by the neural network
+   * @param[in] label List of Label Tensors for the model
+   * @retval    List of Output Tensors
+   */
+  sharedConstTensors incremental_forwarding(unsigned int from, unsigned int to,
+                                            sharedConstTensors input,
+                                            sharedConstTensors label = {},
+                                            bool training = true);
+
+  /**
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
@@ -344,6 +365,46 @@ public:
   std::vector<float *> inference(unsigned int batch,
                                  const std::vector<float *> &input,
                                  const std::vector<float *> &label) override;
+
+  /**
+   * @brief     Run NeuralNetwork incremental inference
+   * @param[in] X input tensor
+   * @param[in] init_seq_len initial sequence length
+   * @param[in] cur_step current working step index (zero based index)
+s   * @retval shared_ptr<const Tensor>
+   */
+  sharedConstTensors incremental_inference(sharedConstTensors X,
+                                           unsigned int init_seq_len,
+                                           unsigned int step);
+
+  /**
+   * @brief     Run NeuralNetwork incremental inference
+   * @param[in] X input tensor
+   * @param[in] label label tensor
+   * @param[in] init_seq_len initial sequence length
+   * @param[in] cur_step current working step index (zero based index)
+   * @retval shared_ptr<const Tensor>
+   */
+  sharedConstTensors incremental_inference(sharedConstTensors X,
+                                           sharedConstTensors label,
+                                           unsigned int init_seq_len,
+                                           unsigned int step);
+
+  /**
+   * @brief     Run the incremental inference of the model
+   * @param[in] batch batch size of current input
+   * @param[in] input inputs as a list of each input data
+   * @param[in] label labels as a list of each label data
+   * @param[in] init_seq_len initial sequence length
+   * @param[in] cur_step current working step index (zero based index)
+   * @retval list of output as float *
+   * @note The output memory must not be freed by the caller
+   */
+  std::vector<float *> incremental_inference(unsigned int batch,
+                                             const std::vector<float *> &input,
+                                             const std::vector<float *> &label,
+                                             unsigned int init_seq_len,
+                                             unsigned int step) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
