@@ -124,6 +124,39 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
+void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
+                                                 unsigned int from,
+                                                 unsigned int to,
+                                                 bool training) {
+  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
+
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+
+  TensorDim input_dim = input_.getDim();
+  TensorDim hidden_dim = hidden_.getDim();
+
+  TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(), to - from,
+                              input_dim.width()};
+  TensorDim hidden_step_dim = {hidden_dim.batch(), hidden_dim.channel(),
+                               to - from, hidden_dim.width()};
+
+  // @todo: set reset stride as false. This implementation only works when batch
+  // size is 1
+  Tensor input_step =
+    input_.getSharedDataTensor(input_step_dim, from * input_dim.width(), true);
+  Tensor hidden_step = hidden_.getSharedDataTensor(
+    hidden_step_dim, from * hidden_dim.width(), true);
+
+  input_step.dot(weight, hidden_step, false, false);
+
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
+    hidden_step.add_i(bias);
+  }
+}
+
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
 

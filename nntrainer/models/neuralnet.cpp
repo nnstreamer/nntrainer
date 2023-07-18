@@ -353,6 +353,43 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
+sharedConstTensors NeuralNetwork::incremental_forwarding(
+  unsigned int from, unsigned int to, bool training,
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+    [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
+                                        bool training) -> void {
+    (void)this;
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+
+    auto f = std::get<0>(node->getExecutionOrder());
+    model_graph.flushCacheExcept(f);
+
+    node->incremental_forwarding(from, to, training);
+  };
+
+  return model_graph.incremental_forwarding(from, to, training, forwarding_op,
+                                            stop_cb, userdata);
+}
+
+sharedConstTensors
+NeuralNetwork::incremental_forwarding(unsigned int from, unsigned int to,
+                                      sharedConstTensors input,
+                                      sharedConstTensors label, bool training) {
+  auto current_batch = model_graph.getBatchSize();
+  NNTR_THROW_IF(input[0]->batch() != current_batch ||
+                  (!label.empty() && label[0]->batch() != current_batch),
+                std::logic_error)
+    << "Error: mismatch in batchsize for data and model."
+    << " input_batch: " << input[0]->batch()
+    << " label_batch: " << label[0]->batch()
+    << " target_batch: " << current_batch;
+
+  model_graph.setInputsLabels(input, label);
+
+  return incremental_forwarding(from, to, training);
+}
+
 /**
  * @brief     back propagation
  *            Call backwarding function of layer in reverse order
@@ -729,6 +766,93 @@ NeuralNetwork::inference(unsigned int batch_size,
 
   return output;
 }
+
+sharedConstTensors NeuralNetwork::incremental_inference(
+  sharedConstTensors X, unsigned int init_seq_len, unsigned int cur_step) {
+  return incremental_inference(X, {}, init_seq_len, cur_step);
+}
+
+sharedConstTensors NeuralNetwork::incremental_inference(
+  sharedConstTensors X, sharedConstTensors label, unsigned int init_seq_len,
+  unsigned int cur_step) {
+  if (model_graph.getBatchSize() != X[0]->batch()) {
+    model_graph.setBatchSize(X[0]->batch());
+  }
+
+  bool isInitInference = false;
+  if (init_seq_len == cur_step + 1) {
+    isInitInference = true;
+  }
+
+  sharedConstTensors out;
+  if (!validateInput(X))
+    throw std::invalid_argument("Input validation failed.");
+
+  if (isInitInference) {
+    allocate(ExecutionMode::INFERENCE);
+  }
+
+  int nn_foward;
+  PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
+  PROFILE_TIME_START(nn_foward);
+  if (isInitInference) {
+    out = incremental_forwarding(0, init_seq_len, X, label, false);
+  } else {
+    out = incremental_forwarding(cur_step, cur_step + 1, X, label, false);
+  }
+  PROFILE_TIME_END(nn_foward);
+
+  // @todo: deallocate tensor after incremental inference
+
+  /** Clear the set inputs and labels */
+  model_graph.setInputsLabels({}, {});
+
+  return out;
+}
+
+std::vector<float *> NeuralNetwork::incremental_inference(
+  unsigned int batch_size, const std::vector<float *> &input,
+  const std::vector<float *> &label, unsigned int init_seq_len,
+  unsigned int cur_step) {
+  sharedConstTensors input_tensors, output_tensors;
+  auto in_dim = getInputDimension();
+
+  input_tensors.reserve(input.size());
+  for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
+    in_dim[idx].batch(batch_size);
+    input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
+      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
+  }
+
+  if (!label.empty()) {
+    sharedConstTensors label_tensors;
+    auto label_dim = getOutputDimension();
+    label_tensors.reserve(label.size());
+    for (unsigned int idx = 0; idx < label_dim.size(); idx++) {
+      label_dim[idx].batch(batch_size);
+      label_tensors.emplace_back(MAKE_SHARED_TENSOR(
+        Tensor::Map(label[idx], label_dim[idx].getDataLen() * sizeof(float),
+                    label_dim[idx], 0)));
+    }
+    output_tensors = incremental_inference(input_tensors, label_tensors,
+                                           init_seq_len, cur_step);
+  } else {
+    output_tensors =
+      incremental_inference(input_tensors, init_seq_len, cur_step);
+  }
+
+  std::vector<float *> output;
+  output.reserve(output_tensors.size());
+
+  for (auto &out : output_tensors) {
+    auto out_t = *out.get();
+    output.push_back(out_t.getData());
+  }
+
+  return output;
+}
+
+//
 
 int NeuralNetwork::setDataset(const DatasetModeType &mode,
                               std::shared_ptr<ml::train::Dataset> dataset) {

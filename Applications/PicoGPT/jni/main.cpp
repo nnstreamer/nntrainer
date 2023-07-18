@@ -24,16 +24,19 @@ const unsigned int BATCH_SIZE = 1;
 const unsigned int NUM_LAYERS = 12;
 const unsigned int NUM_HEADS = 12;
 const unsigned int MODEL_DIM = 768;
-const unsigned int FC_UNIT = 3072; // 768*4
+// @Todo: Need to check
+const unsigned int FC_UNIT = MODEL_DIM * 4;
 
 const unsigned int NUM_VOCAB = 50257;
 const unsigned int NUM_CTX = 1024;
 const unsigned int NUM_TOKENS_TO_GENERATE = 40;
 
-unsigned int init_input_seq_len = 10;
+unsigned int init_input_seq_len;
+// Todo: fix this
 const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
 bool swap = false;
+bool optimize = false;
 bool optimize_attention = false;
 
 template <typename T>
@@ -49,11 +52,11 @@ std::shared_ptr<ml::train::Model> genModel() {
   std::shared_ptr<ml::train::Model> model;
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
+                      "memory_optimization=false",
                       swap ? "memory_swap=true" : "memory_swap=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
-    {"name=wte_input",
-     "input_shape=1:1:" + std::to_string(init_input_seq_len)});
+    {"name=wte_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
   model->addLayer(wte_input);
 
   std::shared_ptr<ml::train::Layer> wte = ml::train::layer::Embedding(
@@ -62,8 +65,7 @@ std::shared_ptr<ml::train::Model> genModel() {
   model->addLayer(wte);
 
   std::shared_ptr<ml::train::Layer> wpe_input = ml::train::layer::Input(
-    {"name=wpe_input",
-     "input_shape=1:1:" + std::to_string(init_input_seq_len)});
+    {"name=wpe_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
   model->addLayer(wpe_input);
 
   std::shared_ptr<ml::train::Layer> wpe = ml::train::layer::Embedding(
@@ -89,122 +91,133 @@ std::shared_ptr<ml::train::Model> genModel() {
       {"name=layer" + std::to_string(i) + "/multi_out1"});
     model->addLayer(multiout1);
 
-    std::string concat_input = "";
+    if (optimize) {
+      std::string concat_input = "";
 
-    for (unsigned int j = 0; j < NUM_HEADS; ++j) {
-      std::shared_ptr<ml::train::Layer> multi_head_attention_v_fc =
-        ml::train::layer::FullyConnected(
-          {"name=layer" + std::to_string(i) + "/multi_head_attention/v_fc" +
-             std::to_string(NUM_HEADS - 1 - j),
-           "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
-             std::to_string(2 * NUM_HEADS + j) + ")",
-           "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
-      model->addLayer(multi_head_attention_v_fc);
-    }
-
-    for (unsigned int j = 0; j < NUM_HEADS; ++j) {
-      std::shared_ptr<ml::train::Layer> multi_head_attention_k_fc =
-        ml::train::layer::FullyConnected(
-          {"name=layer" + std::to_string(i) + "/multi_head_attention/k_fc" +
-             std::to_string(NUM_HEADS - 1 - j),
-           "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
-             std::to_string(NUM_HEADS + j) + ")",
-           "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
-      model->addLayer(multi_head_attention_k_fc);
-    }
-
-    for (unsigned int j = 0; j < NUM_HEADS; ++j) {
-      std::shared_ptr<ml::train::Layer> multi_head_attention_q_fc =
-        ml::train::layer::FullyConnected(
-          {"name=layer" + std::to_string(i) + "/multi_head_attention/q_fc" +
-             std::to_string(NUM_HEADS - 1 - j),
-           "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
-             std::to_string(j) + ")",
-           "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
-      model->addLayer(multi_head_attention_q_fc);
-    }
-
-    for (unsigned int j = 0; j < NUM_HEADS; ++j) {
-      if (optimize_attention) {
-        //   std::shared_ptr<ml::train::Layer> multi_head_attention_bwdp1 =
-        //     ml::train::layer::BatchwiseDotproduct(
-        //       {"name=layer" + std::to_string(i) +
-        //          "/multi_head_attention/bwdp1" +
-        //          std::to_string(NUM_HEADS - 1 - j),
-        //        "input_layers=layer" + std::to_string(i) +
-        //          "/multi_head_attention/q_fc" +
-        //          std::to_string(NUM_HEADS - 1 - j) + ",layer" +
-        //          std::to_string(i) + "/multi_head_attention/k_fc" +
-        //          std::to_string(NUM_HEADS - 1 - j),
-        //        "transpose_key=true", "scaled_dot_product=true",
-        //        "activation=softmax"});
-        //   model->addLayer(multi_head_attention_bwdp1);
-
-        //   std::shared_ptr<ml::train::Layer> multi_head_attention_bwdp2 =
-        //     ml::train::layer::BatchwiseDotproduct(
-        //       {"name=layer" + std::to_string(i) +
-        //          "/multi_head_attention/bwdp2" +
-        //          std::to_string(NUM_HEADS - 1 - j),
-        //        "input_layers=layer" + std::to_string(i) +
-        //          "/multi_head_attention/bwdp1" +
-        //          std::to_string(NUM_HEADS - 1 - j) + ",layer" +
-        //          std::to_string(i) + "/multi_head_attention/v_fc" +
-        //          std::to_string(NUM_HEADS - 1 - j)});
-        //   model->addLayer(multi_head_attention_bwdp2);
-
-        //   std::shared_ptr<ml::train::Layer>
-        //     multi_head_attention_attention = ml::train::layer::Identity(
-        //       {"name=layer" + std::to_string(i) +
-        //          "/multi_head_attention/attention" +
-        //          std::to_string(NUM_HEADS - 1 - j),
-        //        "input_layers=layer" + std::to_string(i) +
-        //          "/multi_head_attention/bwdp2" +
-        //          std::to_string(NUM_HEADS - 1 - j)});
-        //   model->addLayer(multi_head_attention_attention);
-      } else {
-        std::shared_ptr<ml::train::Layer> multi_head_attention_attention =
-          ml::train::layer::Attention(
-            {"name=layer" + std::to_string(i) +
-               "/multi_head_attention/attention" +
+      for (unsigned int j = 0; j < NUM_HEADS; ++j) {
+        std::shared_ptr<ml::train::Layer> multi_head_attention_v_fc =
+          ml::train::layer::FullyConnected(
+            {"name=layer" + std::to_string(i) + "/multi_head_attention/v_fc" +
                std::to_string(NUM_HEADS - 1 - j),
-             "input_layers=layer" + std::to_string(i) +
-               "/multi_head_attention/q_fc" +
-               std::to_string(NUM_HEADS - 1 - j) + ",layer" +
-               std::to_string(i) + "/multi_head_attention/v_fc" +
-               std::to_string(NUM_HEADS - 1 - j) + ",layer" +
-               std::to_string(i) + "/multi_head_attention/k_fc" +
-               std::to_string(NUM_HEADS - 1 - j),
-             "scaled_dot_product=true", "causal_mask=true"});
-        model->addLayer(multi_head_attention_attention);
+             "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
+               std::to_string(2 * NUM_HEADS + j) + ")",
+             "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
+        model->addLayer(multi_head_attention_v_fc);
       }
 
-      concat_input += "layer" + std::to_string(i) +
-                      "/multi_head_attention/attention" + std::to_string(j);
-      if (j != NUM_HEADS - 1) {
-        concat_input += ",";
+      for (unsigned int j = 0; j < NUM_HEADS; ++j) {
+        std::shared_ptr<ml::train::Layer> multi_head_attention_k_fc =
+          ml::train::layer::FullyConnected(
+            {"name=layer" + std::to_string(i) + "/multi_head_attention/k_fc" +
+               std::to_string(NUM_HEADS - 1 - j),
+             "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
+               std::to_string(NUM_HEADS + j) + ")",
+             "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
+        model->addLayer(multi_head_attention_k_fc);
       }
+
+      for (unsigned int j = 0; j < NUM_HEADS; ++j) {
+        std::shared_ptr<ml::train::Layer> multi_head_attention_q_fc =
+          ml::train::layer::FullyConnected(
+            {"name=layer" + std::to_string(i) + "/multi_head_attention/q_fc" +
+               std::to_string(NUM_HEADS - 1 - j),
+             "input_layers=layer" + std::to_string(i) + "/multi_out1(" +
+               std::to_string(j) + ")",
+             "unit=" + std::to_string(MODEL_DIM / NUM_HEADS)});
+        model->addLayer(multi_head_attention_q_fc);
+      }
+
+      for (unsigned int j = 0; j < NUM_HEADS; ++j) {
+        if (optimize_attention) {
+          //   std::shared_ptr<ml::train::Layer> multi_head_attention_bwdp1 =
+          //     ml::train::layer::BatchwiseDotproduct(
+          //       {"name=layer" + std::to_string(i) +
+          //          "/multi_head_attention/bwdp1" +
+          //          std::to_string(NUM_HEADS - 1 - j),
+          //        "input_layers=layer" + std::to_string(i) +
+          //          "/multi_head_attention/q_fc" +
+          //          std::to_string(NUM_HEADS - 1 - j) + ",layer" +
+          //          std::to_string(i) + "/multi_head_attention/k_fc" +
+          //          std::to_string(NUM_HEADS - 1 - j),
+          //        "transpose_key=true", "scaled_dot_product=true",
+          //        "activation=softmax"});
+          //   model->addLayer(multi_head_attention_bwdp1);
+
+          //   std::shared_ptr<ml::train::Layer> multi_head_attention_bwdp2 =
+          //     ml::train::layer::BatchwiseDotproduct(
+          //       {"name=layer" + std::to_string(i) +
+          //          "/multi_head_attention/bwdp2" +
+          //          std::to_string(NUM_HEADS - 1 - j),
+          //        "input_layers=layer" + std::to_string(i) +
+          //          "/multi_head_attention/bwdp1" +
+          //          std::to_string(NUM_HEADS - 1 - j) + ",layer" +
+          //          std::to_string(i) + "/multi_head_attention/v_fc" +
+          //          std::to_string(NUM_HEADS - 1 - j)});
+          //   model->addLayer(multi_head_attention_bwdp2);
+
+          //   std::shared_ptr<ml::train::Layer>
+          //     multi_head_attention_attention = ml::train::layer::Identity(
+          //       {"name=layer" + std::to_string(i) +
+          //          "/multi_head_attention/attention" +
+          //          std::to_string(NUM_HEADS - 1 - j),
+          //        "input_layers=layer" + std::to_string(i) +
+          //          "/multi_head_attention/bwdp2" +
+          //          std::to_string(NUM_HEADS - 1 - j)});
+          //   model->addLayer(multi_head_attention_attention);
+        } else {
+          std::shared_ptr<ml::train::Layer> multi_head_attention_attention =
+            ml::train::layer::Attention(
+              {"name=layer" + std::to_string(i) +
+                 "/multi_head_attention/attention" +
+                 std::to_string(NUM_HEADS - 1 - j),
+               "input_layers=layer" + std::to_string(i) +
+                 "/multi_head_attention/q_fc" +
+                 std::to_string(NUM_HEADS - 1 - j) + ",layer" +
+                 std::to_string(i) + "/multi_head_attention/v_fc" +
+                 std::to_string(NUM_HEADS - 1 - j) + ",layer" +
+                 std::to_string(i) + "/multi_head_attention/k_fc" +
+                 std::to_string(NUM_HEADS - 1 - j),
+               "scaled_dot_product=true", "causal_mask=true"});
+          model->addLayer(multi_head_attention_attention);
+        }
+
+        concat_input += "layer" + std::to_string(i) +
+                        "/multi_head_attention/attention" + std::to_string(j);
+        if (j != NUM_HEADS - 1) {
+          concat_input += ",";
+        }
+      }
+
+      std::shared_ptr<ml::train::Layer> multi_head_attention_concat =
+        ml::train::layer::Concat(
+          {"name=layer" + std::to_string(i) + "/multi_head_attention/concat",
+           "input_layers=" + concat_input, "axis=3"});
+      model->addLayer(multi_head_attention_concat);
+
+      std::shared_ptr<ml::train::Layer> multi_head_attention_fc =
+        ml::train::layer::FullyConnected(
+          {"name=layer" + std::to_string(i) + "/multi_head_attention/fc",
+           "input_layers=layer" + std::to_string(i) +
+             "/multi_head_attention/concat",
+           "unit=" + std::to_string(MODEL_DIM)});
+      model->addLayer(multi_head_attention_fc);
+
+      std::shared_ptr<ml::train::Layer> multi_head_attention =
+        ml::train::layer::Identity(
+          {"name=layer" + std::to_string(i) + "/multi_head_attention",
+           "input_layers=layer" + std::to_string(i) +
+             "/multi_head_attention/fc"});
+      model->addLayer(multi_head_attention);
+    } else {
+      std::shared_ptr<ml::train::Layer> masked_multi_head_attention =
+        ml::train::layer::MultiHeadAttention(
+          {"name=layer" + std::to_string(i) + "/multi_head_attention",
+           "input_layers=layer" + std::to_string(i) + "/multi_out1(0), layer" +
+             std::to_string(i) + "/multi_out1(1), layer" + std::to_string(i) +
+             "/multi_out1(2)",
+           "num_heads=" + std::to_string(NUM_HEADS)});
+      model->addLayer(masked_multi_head_attention);
     }
-
-    std::shared_ptr<ml::train::Layer> multi_head_attention_concat =
-      ml::train::layer::Concat(
-        {"name=layer" + std::to_string(i) + "/multi_head_attention/concat",
-         "input_layers=" + concat_input, "axis=3"});
-    model->addLayer(multi_head_attention_concat);
-
-    std::shared_ptr<ml::train::Layer> multi_head_attention_fc =
-      ml::train::layer::FullyConnected(
-        {"name=layer" + std::to_string(i) + "/multi_head_attention/fc",
-         "input_layers=layer" + std::to_string(i) +
-           "/multi_head_attention/concat",
-         "unit=" + std::to_string(MODEL_DIM)});
-    model->addLayer(multi_head_attention_fc);
-
-    std::shared_ptr<ml::train::Layer> multi_head_attention =
-      ml::train::layer::Identity(
-        {"name=layer" + std::to_string(i) + "/multi_head_attention",
-         "input_layers=layer" + std::to_string(i) +
-           "/multi_head_attention/fc"});
-    model->addLayer(multi_head_attention);
 
     std::shared_ptr<ml::train::Layer> add1 = ml::train::layer::Addition(
       {"name=layer" + std::to_string(i) + "/add1",
@@ -281,20 +294,14 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  std::string weight_file_name = "./res/app/PicoGPT/pico_gpt_124.bin";
-
-  //   std::string train_dataset_file_name = base + "pico_gpt_input.dat";
+  std::string weight_file_name = optimize
+                                   ? "./res/app/PicoGPT/pico_gpt_124.bin"
+                                   : "./res/app/PicoGPT/pico_gpt_124_mha.bin";
 
   model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
 
-  // std::ifstream model_file(train_dataset_file_name,
-  //                          std::ios::in | std::ios::binary);
-
   float *wte_input = new float[MAX_TOKEN_LEN];
   float *wpe_input = new float[MAX_TOKEN_LEN];
-
-  memset(wte_input, 0, sizeof(float) * MAX_TOKEN_LEN);
-  memset(wpe_input, 0, sizeof(float) * MAX_TOKEN_LEN);
 
   std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
   std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
@@ -305,9 +312,6 @@ int main(int argc, char *argv[]) {
   auto init_input = tokenizer.encode(text);
   init_input_seq_len = init_input.size();
 
-  // uint init_input[init_input_seq_len] = {36235, 39141, 18765, 1143, 326,
-  //                                        9061,  561,   530,   1110, 1716};
-
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
     ((uint *)(wte_input))[i] = init_input[i];
   }
@@ -316,7 +320,7 @@ int main(int argc, char *argv[]) {
     ((uint *)(wpe_input))[i] = i;
   }
 
-  // model_file.read((char *)input, DECODER_INPUT_SIZE * sizeof(float));
+  std::vector<float *> output_bufs;
 
   std::shared_ptr<ml::train::Layer> wte_embedding_layer;
   model->getLayer("wte", &wte_embedding_layer);
@@ -327,19 +331,8 @@ int main(int argc, char *argv[]) {
 
   for (unsigned int i = init_input_seq_len;
        i < init_input_seq_len + NUM_TOKENS_TO_GENERATE; ++i) {
-    std::vector<float *> output_bufs;
-
-    for (unsigned int layer = 0; layer < NUM_LAYERS; ++layer) {
-      for (unsigned int head = 0; head < NUM_HEADS; ++head) {
-        std::shared_ptr<ml::train::Layer> attention_layer;
-        std::string layer_name = "layer" + std::to_string(layer) +
-                                 "/multi_head_attention/attention" +
-                                 std::to_string(NUM_HEADS - 1 - head);
-        model->getLayer(layer_name.c_str(), &attention_layer);
-      }
-    }
-
-    output_bufs = model->inference(BATCH_SIZE, {wte_input, wpe_input}, {});
+    output_bufs = model->incremental_inference(
+      BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1);
 
     nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
     nntrainer::Tensor incremented_output = output.getSharedDataTensor(
@@ -357,15 +350,6 @@ int main(int argc, char *argv[]) {
     }
     auto decoded_str = tokenizer.decode(token_ids);
     std::cerr << decoded_str << " " << std::flush;
-
-    std::shared_ptr<ml::train::Layer> wte_input_layer;
-    model->getLayer("wte_input", &wte_input_layer);
-    wte_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
-    std::shared_ptr<ml::train::Layer> wpe_input_layer;
-    model->getLayer("wpe_input", &wpe_input_layer);
-    wpe_input_layer->setProperty({"input_shape=1:1:" + std::to_string(i + 1)});
-
-    model->reinitialize();
   }
   std::cout << std::endl;
   return 0;

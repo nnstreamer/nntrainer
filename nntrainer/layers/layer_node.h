@@ -274,6 +274,19 @@ public:
   void forwarding(bool training = true);
 
   /**
+   * @brief     Incremental forward Propagation of a layer
+   * @param     from start step
+   * @param     to end step
+   * @param     training true if training, false if inference
+   *
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  void incremental_forwarding(unsigned int from, unsigned int to,
+                              bool training = true);
+
+  /**
    * @brief     calc the derivative to be passed to the previous layer
    *
    * @details   context provides access to the weights (if any), inputs,

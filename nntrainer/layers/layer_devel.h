@@ -173,6 +173,24 @@ public:
   virtual void forwarding(RunLayerContext &context, bool training) = 0;
 
   /**
+   * @brief     Incremental forward Propagation of a layer
+   * @param     context Context of the layer
+   * @param     from start step
+   * @param     to end step
+   * @param     training true if training, false if inference
+   *
+   * @note      Output must be set in the output tensors.
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  virtual void incremental_forwarding(RunLayerContext &context,
+                                      unsigned int from, unsigned int to,
+                                      bool training) {
+    forwarding(context, training);
+  };
+
+  /**
    * @brief     calc the derivative to be passed to the previous layer
    * @param     context Context of the layer
    * @note      Return derivatives must be set in input gradient tensors.
