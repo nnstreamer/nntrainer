@@ -185,6 +185,21 @@ public:
     void *user_data = nullptr);
 
   /**
+   * @brief     forwarding network graph
+   * @param[in] from start step
+   * @param[in] to end step
+   * @param[in] training true if forwarding is on training
+   * @retval output tensors
+   */
+  sharedConstTensors incremental_forwarding(
+    unsigned int from, unsigned int to, bool training = false,
+    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+      [](std::shared_ptr<LayerNode>, bool) {},
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
+
+  /**
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
    * @param[in] backwarding_op operation for the backwarding

@@ -127,6 +127,58 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
+void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
+                                            unsigned int from, unsigned int to,
+                                            bool training) {
+  /// @todo get input and output dimension from input_ and hidden itself
+  unsigned int in_dim = std::get<props::InDim>(embedding_props);
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+
+  Tensor &weight = context.getWeight(weight_idx);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
+
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
+    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+
+    Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+    for (unsigned int i = from; i < to; ++i) {
+      uint embed_idx = ((uint *)(in_data))[i];
+      if (embed_idx >= in_dim) {
+        throw std::invalid_argument("input word index is greater than in_dim");
+      }
+
+      Tensor cur_weight =
+        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+      Tensor out_tensor =
+        batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
+      // float *out_data =
+      //   hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i *
+      //   out_dim);
+      // float *weight_data =
+      //   weight.getAddress(embed_idx * out_dim);
+      // Tensor cur_weight = Tensor::Map(weight_data,
+      // out_tensor_dim.getDataLen() * 4, out_tensor_dim); Tensor out_tensor =
+      // Tensor::Map(out_data, out_tensor_dim.getDataLen() * 4, out_tensor_dim);
+      out_tensor.copyData(cur_weight);
+
+      // Assume padding is 0 and index always start from 1.
+      // If in_data[i] - 1 < 0, then it skips.
+      // if (embed_idx == 0)
+      //   continue;
+
+      // float *weight_data =
+      //   weight.getAddress(embed_idx * out_dim);
+      // float *out_data =
+      //   hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i *
+      //   out_dim);
+
+      // std::copy(weight_data, weight_data + out_dim, out_data);
+    }
+  }
+}
+
 void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for Embedding layer is not supported");
