@@ -300,6 +300,21 @@ public:
                                          const std::vector<float *> &label) = 0;
 
   /**
+   * @brief     Run the incremental inference of the model
+   * @param[in] batch batch size of current input
+   * @param[in] input inputs as a list of each input data
+   * @param[in] label labels as a list of each label data
+   * @param[in] init_seq_len initial sequence length
+   * @param[in] cur_step current working step index (zero based index)
+   * @retval list of output as float *
+   * @note The output memory must not be freed by the caller
+   */
+  virtual std::vector<float *>
+  incremental_inference(unsigned int batch, const std::vector<float *> &input,
+                        const std::vector<float *> &label,
+                        unsigned int init_seq_len, unsigned int cur_step) = 0;
+
+  /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary
