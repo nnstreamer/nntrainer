@@ -266,7 +266,14 @@ int NeuralNetwork::initialize() {
 /**
  * @brief     free layers
  */
-NeuralNetwork::~NeuralNetwork() { deallocate(); }
+NeuralNetwork::~NeuralNetwork() {
+  try {
+    deallocate();
+  } catch (const std::runtime_error &e) {
+    std::cerr << "Error occured during destroying NeuralNetwork: " << e.what()
+              << std::endl;
+  }
+}
 
 /**
  * @brief     forward propagation using layers object which has layer

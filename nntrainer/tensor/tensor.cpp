@@ -1863,7 +1863,7 @@ void Tensor::print_(std::ostream &out, uint opt) const {
           for (unsigned int j = 0; j < height(); j++) {
             out << "{";
             for (unsigned int l = 0; l < width(); l++) {
-              if (l < channel() - 1)
+              if (l < width() - 1)
                 out << std::setw(10) << std::setprecision(10)
                     << this->getValue(k, l, i, j) << ", ";
               else
