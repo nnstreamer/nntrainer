@@ -3,7 +3,7 @@
  * Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
  *
  * @file   rms_norm.h
- * @date   18 July 2023
+ * @date   19 July 2023
  * @brief  Implementation of RMS normalization function
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Seungbaek Hong <sb92.hong@samsung.com>
@@ -19,7 +19,37 @@
 #include <node_exporter.h>
 #include <utility>
 
+#include <base_properties.h>
+#include <connection.h>
+#include <tensor.h>
+#include <tensor_wrap_specs.h>
+
 namespace custom {
+
+namespace props {
+
+/**
+ * @brief RMS_NORM_GAMMA_INIT Initialization Enumeration Information
+ *
+ */
+class RMS_NORM_GAMMA_INIT final
+  : public nntrainer::EnumProperty<nntrainer::props::InitializerInfo> {
+public:
+  /**
+   * @brief Construct a RMS_NORM_GAMMA_INIT object
+   */
+  RMS_NORM_GAMMA_INIT(nntrainer::Tensor::Initializer value =
+                        nntrainer::Tensor::Initializer::ONES) {
+    set(value);
+  };
+
+  using prop_tag = nntrainer::enum_class_prop_tag;
+  static constexpr const char *key = "gamma_initializer";
+};
+
+}; // namespace props
+
+enum RMSParams { gamma };
 
 /**
  * @brief A RMS normalization layer for llama.
@@ -68,7 +98,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return ReorgLayer::type; };
+  const std::string getType() const override { return RMSNormLayer::type; };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
@@ -78,8 +108,8 @@ public:
   inline static const std::string type = "rms_norm";
 
 private:
-  unsigned int wt_idx = 0;
-
+  std::array<unsigned int, 1> wt_idx;
+  std::tuple<props::RMS_NORM_GAMMA_INIT> rms_props;
 };
 
 } // namespace custom
