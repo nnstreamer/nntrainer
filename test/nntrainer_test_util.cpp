@@ -175,8 +175,9 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
  */
 nntrainer::Tensor constant(float value, unsigned int d0, unsigned int d1,
                            unsigned int d2, unsigned int d3,
-                           nntrainer::Tformat fm) {
-  nntrainer::Tensor t(d0, d1, d2, d3, fm);
+                           nntrainer::Tformat fm, nntrainer::Tdatatype d_type) {
+  nntrainer::TensorDim::TensorType t_type(fm, d_type);
+  nntrainer::Tensor t(d0, d1, d2, d3, t_type);
   t.setValue(value);
 
   return t;
@@ -184,16 +185,19 @@ nntrainer::Tensor constant(float value, unsigned int d0, unsigned int d1,
 
 nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
                          unsigned int height, unsigned int width,
-                         nntrainer::Tformat fm) {
-  nntrainer::Tensor t(batch, channel, height, width, fm);
+                         nntrainer::Tformat fm, nntrainer::Tdatatype d_type) {
+  nntrainer::TensorDim::TensorType t_type(fm, d_type);
+  nntrainer::Tensor t(batch, channel, height, width, t_type);
   unsigned int i = 0;
   return t.apply([&](float in) { return i++; });
 }
 
 nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
                               unsigned int height, unsigned int width,
-                              float min, float max, nntrainer::Tformat fm) {
-  nntrainer::Tensor t(batch, channel, height, width, fm);
+                              float min, float max, nntrainer::Tformat fm,
+                              nntrainer::Tdatatype d_type) {
+  nntrainer::TensorDim::TensorType t_type(fm, d_type);                              
+  nntrainer::Tensor t(batch, channel, height, width, t_type);
   t.setRandUniform(min, max);
   return t;
 }
