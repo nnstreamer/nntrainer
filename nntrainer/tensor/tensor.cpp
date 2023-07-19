@@ -384,9 +384,9 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
             for (unsigned int h = 0; h < height(); ++h) {
-              float *out_data = output.getAddress<__fp16>(b, c, h, 0);
-              const float *m_data = m.getAddress<__fp16>(b, c, h, 0);
-              const float *in_data = getAddress<__fp16>(b, c, h, 0);
+              __fp16 *out_data = output.getAddress<__fp16>(b, c, h, 0);
+              const __fp16 *m_data = m.getAddress<__fp16>(b, c, h, 0);
+              const __fp16 *in_data = getAddress<__fp16>(b, c, h, 0);
               std::transform(in_data, in_data + width(), m_data, out_data,
                              std::multiplies<__fp16>());
             }
@@ -834,7 +834,7 @@ Tensor &Tensor::add(float const &value, Tensor &out) const {
     return apply(f, out);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
     auto f = std::bind(std::plus<__fp16>(), std::placeholders::_1, value);
-    return apply(f, out)
+    return apply(f, out);
   }
   return out;
 }
@@ -1181,10 +1181,10 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
     return ret;
   }
   if (getDataType() == ml::train::TensorDim::DataType::FP16) {
-    auto iter_value = [this, is_format_nchw](
-                        std::array<size_t, 4> &loc,
-                        const std::array<size_t, 4> &end_loc,
-                        const std::array<size_t, 4> &reset_dim_arr) -> float & {
+    auto iter_value =
+      [this, is_format_nchw](
+        std::array<size_t, 4> &loc, const std::array<size_t, 4> &end_loc,
+        const std::array<size_t, 4> &reset_dim_arr) -> __fp16 & {
       auto &value = (is_format_nchw)
                       ? getValue<__fp16>(loc[0], loc[1], loc[2], loc[3])
                       : getValue<__fp16>(loc[0], loc[3], loc[1], loc[2]);
@@ -1567,8 +1567,8 @@ Tensor Tensor::sum_by_batch() const {
     sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
           ones.getData(), 1, 0.0, rdata, 1);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
-    const __fp16 *data = getData();
-    __fp16 *rdata = ret.getData();
+    const __fp16 *data = getData<__fp16>();
+    __fp16 *rdata = ret.getData<__fp16>();
 
     Tensor ones(1, 1, 1, feat_len, this->getFormat());
     ones.setValue((__fp16)1.0);
