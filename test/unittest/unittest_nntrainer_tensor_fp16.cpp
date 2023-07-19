@@ -174,16 +174,16 @@ TEST(nntrainer_Tensor, multiply_i_03_fp16_n) {
 //     nntrainer::Tensor m =
 //       ranged(1, 2, 4, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
 //     __fp16 answer_data[] = {
-//       0,    1,    4,    9,    16,   25,   36,   49,   64,   81,   100,  121,
-//       144,  169,  196,  225,  256,  289,  324,  361,  400,  441,  484,  529,
-//       576,  625,  676,  729,  784,  841,  900,  961,  1024, 1089, 1156, 1225,
-//       1296, 1369, 1444, 1521, 0,    41,   84,   129,  176,  225,  276,  329,
-//       384,  441,  500,  561,  624,  689,  756,  825,  896,  969,  1044, 1121,
-//       1200, 1281, 1364, 1449, 1536, 1625, 1716, 1809, 1904, 2001, 2100, 2201,
-//       2304, 2409, 2516, 2625, 2736, 2849, 2964, 3081, 0,    81,   164,  249,
-//       336,  425,  516,  609,  704,  801,  900,  1001, 1104, 1209, 1316, 1425,
-//       1536, 1649, 1764, 1881, 2000, 2121, 2244, 2369, 2496, 2625, 2756, 2889,
-//       3024, 3161, 3300, 3441, 3584, 3729, 3876, 4025, 4176, 4329, 4484, 4641};
+//       static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(16), static_cast<__fp16>(25), static_cast<__fp16>(36), static_cast<__fp16>(49), static_cast<__fp16>(64), static_cast<__fp16>(81), static_cast<__fp16>(100), static_cast<__fp16>(121),
+//       static_cast<__fp16>(144), static_cast<__fp16>(169), static_cast<__fp16>(196), static_cast<__fp16>(225), static_cast<__fp16>(256), static_cast<__fp16>(289), static_cast<__fp16>(324), static_cast<__fp16>(361), static_cast<__fp16>(400), static_cast<__fp16>(441), static_cast<__fp16>(484), static_cast<__fp16>(529),
+//       static_cast<__fp16>(576), static_cast<__fp16>(625), static_cast<__fp16>(676), static_cast<__fp16>(729), static_cast<__fp16>(784), static_cast<__fp16>(841), static_cast<__fp16>(900), static_cast<__fp16>(961), static_cast<__fp16>(1024), static_cast<__fp16>(1089), static_cast<__fp16>(1156), static_cast<__fp16>(1225),
+//       static_cast<__fp16>(1296), static_cast<__fp16>(1369), static_cast<__fp16>(1444), static_cast<__fp16>(1521), static_cast<__fp16>(0), static_cast<__fp16>(41), static_cast<__fp16>(84), static_cast<__fp16>(129), static_cast<__fp16>(176), static_cast<__fp16>(225), static_cast<__fp16>(276), static_cast<__fp16>(329),
+//       static_cast<__fp16>(384), static_cast<__fp16>(441), static_cast<__fp16>(500), static_cast<__fp16>(561), static_cast<__fp16>(624), static_cast<__fp16>(689), static_cast<__fp16>(756), static_cast<__fp16>(825), static_cast<__fp16>(896), static_cast<__fp16>(969), static_cast<__fp16>(1044), static_cast<__fp16>(1121),
+//       static_cast<__fp16>(1200), static_cast<__fp16>(1281), static_cast<__fp16>(1364), static_cast<__fp16>(1449), static_cast<__fp16>(1536), static_cast<__fp16>(1625), static_cast<__fp16>(1716), static_cast<__fp16>(1809), static_cast<__fp16>(1904), static_cast<__fp16>(2001), static_cast<__fp16>(2100), static_cast<__fp16>(2201),
+//       static_cast<__fp16>(2304), static_cast<__fp16>(2409), static_cast<__fp16>(2516), static_cast<__fp16>(2625), static_cast<__fp16>(2736), static_cast<__fp16>(2849), static_cast<__fp16>(2964), static_cast<__fp16>(3081), static_cast<__fp16>(0), static_cast<__fp16>(81), static_cast<__fp16>(164), static_cast<__fp16>(249),
+//       static_cast<__fp16>(336), static_cast<__fp16>(425), static_cast<__fp16>(516), static_cast<__fp16>(609), static_cast<__fp16>(704), static_cast<__fp16>(801), static_cast<__fp16>(900), static_cast<__fp16>(1001), static_cast<__fp16>(1104), static_cast<__fp16>(1209), static_cast<__fp16>(1316), static_cast<__fp16>(1425),
+//       static_cast<__fp16>(1536), static_cast<__fp16>(1649), static_cast<__fp16>(1764), static_cast<__fp16>(1881), static_cast<__fp16>(2000), static_cast<__fp16>(2121), static_cast<__fp16>(2244), static_cast<__fp16>(2369), static_cast<__fp16>(2496), static_cast<__fp16>(2625), static_cast<__fp16>(2756), static_cast<__fp16>(2889),
+//       static_cast<__fp16>(3024), static_cast<__fp16>(3161), static_cast<__fp16>(3300), static_cast<__fp16>(3441), static_cast<__fp16>(3584), static_cast<__fp16>(3729), static_cast<__fp16>(3876), static_cast<__fp16>(4025), static_cast<__fp16>(4176), static_cast<__fp16>(4329), static_cast<__fp16>(4484), static_cast<__fp16>(4641)};
 //     nntrainer::Tensor answer(ref_dim, answer_data, nntrainer::Tdatatype::FP16);
 //     int status = t.multiply_i(m);
 //     EXPECT_EQ(status, ML_ERROR_NONE);
@@ -194,171 +194,171 @@ TEST(nntrainer_Tensor, multiply_i_03_fp16_n) {
 //     nntrainer::Tensor t = ranged(3, 2, 4, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
 //     nntrainer::Tensor m = ranged(3, 1, 4, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
 //     __fp16 answer_data[] = {
-//       0,    1,    4,    9,    16,   25,   36,   49,   64,   81,   100,  121,
-//       144,  169,  196,  225,  256,  289,  324,  361,  0,    21,   44,   69,
-//       96,   125,  156,  189,  224,  261,  300,  341,  384,  429,  476,  525,
-//       576,  629,  684,  741,  800,  861,  924,  989,  1056, 1125, 1196, 1269,
-//       1344, 1421, 1500, 1581, 1664, 1749, 1836, 1925, 2016, 2109, 2204, 2301,
-//       1200, 1281, 1364, 1449, 1536, 1625, 1716, 1809, 1904, 2001, 2100, 2201,
-//       2304, 2409, 2516, 2625, 2736, 2849, 2964, 3081, 3200, 3321, 3444, 3569,
-//       3696, 3825, 3956, 4089, 4224, 4361, 4500, 4641, 4784, 4929, 5076, 5225,
-//       5376, 5529, 5684, 5841, 4000, 4141, 4284, 4429, 4576, 4725, 4876, 5029,
-//       5184, 5341, 5500, 5661, 5824, 5989, 6156, 6325, 6496, 6669, 6844, 7021};
+//       static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(16), static_cast<__fp16>(25), static_cast<__fp16>(36), static_cast<__fp16>(49), static_cast<__fp16>(64), static_cast<__fp16>(81), static_cast<__fp16>(100), static_cast<__fp16>(121),
+//       static_cast<__fp16>(144), static_cast<__fp16>(169), static_cast<__fp16>(196), static_cast<__fp16>(225), static_cast<__fp16>(256), static_cast<__fp16>(289), static_cast<__fp16>(324), static_cast<__fp16>(361), static_cast<__fp16>(0), static_cast<__fp16>(21), static_cast<__fp16>(44), static_cast<__fp16>(69),
+//       static_cast<__fp16>(96), static_cast<__fp16>(125), static_cast<__fp16>(156), static_cast<__fp16>(189), static_cast<__fp16>(224), static_cast<__fp16>(261), static_cast<__fp16>(300), static_cast<__fp16>(341), static_cast<__fp16>(384), static_cast<__fp16>(429), static_cast<__fp16>(476), static_cast<__fp16>(525),
+//       static_cast<__fp16>(576), static_cast<__fp16>(629), static_cast<__fp16>(684), static_cast<__fp16>(741), static_cast<__fp16>(800), static_cast<__fp16>(861), static_cast<__fp16>(924), static_cast<__fp16>(989), static_cast<__fp16>(1056), static_cast<__fp16>(1125), static_cast<__fp16>(1196), static_cast<__fp16>(1269),
+//       static_cast<__fp16>(1344), static_cast<__fp16>(1421), static_cast<__fp16>(1500), static_cast<__fp16>(1581), static_cast<__fp16>(1664), static_cast<__fp16>(1749), static_cast<__fp16>(1836), static_cast<__fp16>(1925), static_cast<__fp16>(2016), static_cast<__fp16>(2109), static_cast<__fp16>(2204), static_cast<__fp16>(2301),
+//       static_cast<__fp16>(1200), static_cast<__fp16>(1281), static_cast<__fp16>(1364), static_cast<__fp16>(1449), static_cast<__fp16>(1536), static_cast<__fp16>(1625), static_cast<__fp16>(1716), static_cast<__fp16>(1809), static_cast<__fp16>(1904), static_cast<__fp16>(2001), static_cast<__fp16>(2100), static_cast<__fp16>(2201),
+//       static_cast<__fp16>(2304), static_cast<__fp16>(2409), static_cast<__fp16>(2516), static_cast<__fp16>(2625), static_cast<__fp16>(2736), static_cast<__fp16>(2849), static_cast<__fp16>(2964), static_cast<__fp16>(3081), static_cast<__fp16>(3200), static_cast<__fp16>(3321), static_cast<__fp16>(3444), static_cast<__fp16>(3569),
+//       static_cast<__fp16>(3696), static_cast<__fp16>(3825), static_cast<__fp16>(3956), static_cast<__fp16>(4089), static_cast<__fp16>(4224), static_cast<__fp16>(4361), static_cast<__fp16>(4500), static_cast<__fp16>(4641), static_cast<__fp16>(4784), static_cast<__fp16>(4929), static_cast<__fp16>(5076), static_cast<__fp16>(5225),
+//       static_cast<__fp16>(5376), static_cast<__fp16>(5529), static_cast<__fp16>(5684), static_cast<__fp16>(5841), static_cast<__fp16>(4000), static_cast<__fp16>(4141), static_cast<__fp16>(4284), static_cast<__fp16>(4429), static_cast<__fp16>(4576), static_cast<__fp16>(4725), static_cast<__fp16>(4876), static_cast<__fp16>(5029),
+//       static_cast<__fp16>(5184), static_cast<__fp16>(5341), static_cast<__fp16>(5500), static_cast<__fp16>(5661), static_cast<__fp16>(5824), static_cast<__fp16>(5989), static_cast<__fp16>(6156), static_cast<__fp16>(6325), static_cast<__fp16>(6496), static_cast<__fp16>(6669), static_cast<__fp16>(6844), static_cast<__fp16>(7021)};
 //     nntrainer::Tensor answer(ref_dim, answer_data, nntrainer::Tdatatype::FP16);
 //     int status = t.multiply_i(m);
 //     EXPECT_EQ(status, ML_ERROR_NONE);
 //     EXPECT_EQ(t, answer);
 //   }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(3, 2, 4, 1);
-  //   __fp16 answer_data[] = {
-  //     0,    0,    0,    0,    0,    5,    6,    7,    8,    9,    20,   22,
-  //     24,   26,   28,   45,   48,   51,   54,   57,   80,   84,   88,   92,
-  //     96,   125,  130,  135,  140,  145,  180,  186,  192,  198,  204,  245,
-  //     252,  259,  266,  273,  320,  328,  336,  344,  352,  405,  414,  423,
-  //     432,  441,  500,  510,  520,  530,  540,  605,  616,  627,  638,  649,
-  //     720,  732,  744,  756,  768,  845,  858,  871,  884,  897,  980,  994,
-  //     1008, 1022, 1036, 1125, 1140, 1155, 1170, 1185, 1280, 1296, 1312, 1328,
-  //     1344, 1445, 1462, 1479, 1496, 1513, 1620, 1638, 1656, 1674, 1692, 1805,
-  //     1824, 1843, 1862, 1881, 2000, 2020, 2040, 2060, 2080, 2205, 2226, 2247,
-  //     2268, 2289, 2420, 2442, 2464, 2486, 2508, 2645, 2668, 2691, 2714, 2737};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(3, 1, 1, 5);
-  //   __fp16 answer_data[] = {
-  //     0,    1,    4,    9,    16,   0,    6,    14,   24,   36,   0,    11,
-  //     24,   39,   56,   0,    16,   34,   54,   76,   0,    21,   44,   69,
-  //     96,   0,    26,   54,   84,   116,  0,    31,   64,   99,   136,  0,
-  //     36,   74,   114,  156,  200,  246,  294,  344,  396,  225,  276,  329,
-  //     384,  441,  250,  306,  364,  424,  486,  275,  336,  399,  464,  531,
-  //     300,  366,  434,  504,  576,  325,  396,  469,  544,  621,  350,  426,
-  //     504,  584,  666,  375,  456,  539,  624,  711,  800,  891,  984,  1079,
-  //     1176, 850,  946,  1044, 1144, 1246, 900,  1001, 1104, 1209, 1316, 950,
-  //     1056, 1164, 1274, 1386, 1000, 1111, 1224, 1339, 1456, 1050, 1166, 1284,
-  //     1404, 1526, 1100, 1221, 1344, 1469, 1596, 1150, 1276, 1404, 1534, 1666};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(1, 2, 1, 5);
-  //   __fp16 answer_data[] = {
-  //     0,   1,   4,    9,   16,  0,   6,   14,  24,  36,  0,   11,  24,  39,
-  //     56,  0,   16,   34,  54,  76,  100, 126, 154, 184, 216, 125, 156, 189,
-  //     224, 261, 150,  186, 224, 264, 306, 175, 216, 259, 304, 351, 0,   41,
-  //     84,  129, 176,  0,   46,  94,  144, 196, 0,   51,  104, 159, 216, 0,
-  //     56,  114, 174,  236, 300, 366, 434, 504, 576, 325, 396, 469, 544, 621,
-  //     350, 426, 504,  584, 666, 375, 456, 539, 624, 711, 0,   81,  164, 249,
-  //     336, 0,   86,   174, 264, 356, 0,   91,  184, 279, 376, 0,   96,  194,
-  //     294, 396, 500,  606, 714, 824, 936, 525, 636, 749, 864, 981, 550, 666,
-  //     784, 904, 1026, 575, 696, 819, 944, 1071};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(3, 1, 4, 1);
-  //   __fp16 answer_data[] = {
-  //     0,    0,    0,    0,    0,    5,    6,    7,    8,    9,    20,   22,
-  //     24,   26,   28,   45,   48,   51,   54,   57,   0,    0,    0,    0,
-  //     0,    25,   26,   27,   28,   29,   60,   62,   64,   66,   68,   105,
-  //     108,  111,  114,  117,  160,  164,  168,  172,  176,  225,  230,  235,
-  //     240,  245,  300,  306,  312,  318,  324,  385,  392,  399,  406,  413,
-  //     240,  244,  248,  252,  256,  325,  330,  335,  340,  345,  420,  426,
-  //     432,  438,  444,  525,  532,  539,  546,  553,  640,  648,  656,  664,
-  //     672,  765,  774,  783,  792,  801,  900,  910,  920,  930,  940,  1045,
-  //     1056, 1067, 1078, 1089, 800,  808,  816,  824,  832,  945,  954,  963,
-  //     972,  981,  1100, 1110, 1120, 1130, 1140, 1265, 1276, 1287, 1298, 1309};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(1, 1, 1, 5);
-  //   __fp16 answer_data[] = {
-  //     0, 1,   4,   9,   16,  0, 6,   14,  24,  36,  0, 11,  24,  39,  56,
-  //     0, 16,  34,  54,  76,  0, 21,  44,  69,  96,  0, 26,  54,  84,  116,
-  //     0, 31,  64,  99,  136, 0, 36,  74,  114, 156, 0, 41,  84,  129, 176,
-  //     0, 46,  94,  144, 196, 0, 51,  104, 159, 216, 0, 56,  114, 174, 236,
-  //     0, 61,  124, 189, 256, 0, 66,  134, 204, 276, 0, 71,  144, 219, 296,
-  //     0, 76,  154, 234, 316, 0, 81,  164, 249, 336, 0, 86,  174, 264, 356,
-  //     0, 91,  184, 279, 376, 0, 96,  194, 294, 396, 0, 101, 204, 309, 416,
-  //     0, 106, 214, 324, 436, 0, 111, 224, 339, 456, 0, 116, 234, 354, 476};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(1, 2, 1, 1);
-  //   __fp16 answer_data[] = {
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-  //     0,   0,   0,   0,   0,   0,   20,  21,  22,  23,  24,  25,  26,  27,
-  //     28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  0,   0,
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-  //     0,   0,   0,   0,   60,  61,  62,  63,  64,  65,  66,  67,  68,  69,
-  //     70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  0,   0,   0,   0,
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-  //     0,   0,   100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-  //     112, 113, 114, 115, 116, 117, 118, 119};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 2, 4, 5);
-  //   nntrainer::Tensor t = ranged(3, 2, 4, 5);
-  //   nntrainer::Tensor m = ranged(3, 1, 1, 1);
-  //   __fp16 answer_data[] = {
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-  //     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   40,  41,
-  //     42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,
-  //     56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,  69,
-  //     70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  160, 162, 164, 166,
-  //     168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 188, 190, 192, 194,
-  //     196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218, 220, 222,
-  //     224, 226, 228, 230, 232, 234, 236, 238};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
-  // {
-  //   nntrainer::TensorDim ref_dim(3, 5, 1, 4);
-  //   nntrainer::Tensor t = ranged(3, 5, 1, 4);
-  //   nntrainer::Tensor m = ranged(3, 1, 1, 4);
-  //   __fp16 answer_data[] = {0,   1,   4,   9,   0,   5,   12,  21,  0,   9,
-  //                          20,  33,  0,   13,  28,  45,  0,   17,  36,  57,
-  //                          80,  105, 132, 161, 96,  125, 156, 189, 112, 145,
-  //                          180, 217, 128, 165, 204, 245, 144, 185, 228, 273,
-  //                          320, 369, 420, 473, 352, 405, 460, 517, 384, 441,
-  //                          500, 561, 416, 477, 540, 605, 448, 513, 580, 649};
-  //   nntrainer::Tensor answer(ref_dim, answer_data);
-  //   int status = t.multiply_i(m);
-  //   EXPECT_EQ(status, ML_ERROR_NONE);
-  //   EXPECT_EQ(t, answer);
-  // }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(3, 2, 4, 1);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(5), static_cast<__fp16>(6), static_cast<__fp16>(7), static_cast<__fp16>(8), static_cast<__fp16>(9), static_cast<__fp16>(20), static_cast<__fp16>(22),
+//       static_cast<__fp16>(24), static_cast<__fp16>(26), static_cast<__fp16>(28), static_cast<__fp16>(45), static_cast<__fp16>(48), static_cast<__fp16>(51), static_cast<__fp16>(54), static_cast<__fp16>(57), static_cast<__fp16>(80), static_cast<__fp16>(84), static_cast<__fp16>(88), static_cast<__fp16>(92),
+//       static_cast<__fp16>(96), static_cast<__fp16>(125), static_cast<__fp16>(130), static_cast<__fp16>(135), static_cast<__fp16>(140), static_cast<__fp16>(145), static_cast<__fp16>(180), static_cast<__fp16>(186), static_cast<__fp16>(192), static_cast<__fp16>(198), static_cast<__fp16>(204), static_cast<__fp16>(245),
+//       static_cast<__fp16>(252), static_cast<__fp16>(259), static_cast<__fp16>(266), static_cast<__fp16>(273), static_cast<__fp16>(320), static_cast<__fp16>(328), static_cast<__fp16>(336), static_cast<__fp16>(344), static_cast<__fp16>(352), static_cast<__fp16>(405), static_cast<__fp16>(414), static_cast<__fp16>(423),
+//       static_cast<__fp16>(432), static_cast<__fp16>(441), static_cast<__fp16>(500), static_cast<__fp16>(510), static_cast<__fp16>(520), static_cast<__fp16>(530), static_cast<__fp16>(540), static_cast<__fp16>(605), static_cast<__fp16>(616), static_cast<__fp16>(627), static_cast<__fp16>(638), static_cast<__fp16>(649),
+//       static_cast<__fp16>(720), static_cast<__fp16>(732), static_cast<__fp16>(744), static_cast<__fp16>(756), static_cast<__fp16>(768), static_cast<__fp16>(845), static_cast<__fp16>(858), static_cast<__fp16>(871), static_cast<__fp16>(884), static_cast<__fp16>(897), static_cast<__fp16>(980), static_cast<__fp16>(994),
+//       static_cast<__fp16>(1008), static_cast<__fp16>(1022), static_cast<__fp16>(1036), static_cast<__fp16>(1125), static_cast<__fp16>(1140), static_cast<__fp16>(1155), static_cast<__fp16>(1170), static_cast<__fp16>(1185), static_cast<__fp16>(1280), static_cast<__fp16>(1296), static_cast<__fp16>(1312), static_cast<__fp16>(1328),
+//       static_cast<__fp16>(1344), static_cast<__fp16>(1445), static_cast<__fp16>(1462), static_cast<__fp16>(1479), static_cast<__fp16>(1496), static_cast<__fp16>(1513), static_cast<__fp16>(1620), static_cast<__fp16>(1638), static_cast<__fp16>(1656), static_cast<__fp16>(1674), static_cast<__fp16>(1692), static_cast<__fp16>(1805),
+//       static_cast<__fp16>(1824), static_cast<__fp16>(1843), static_cast<__fp16>(1862), static_cast<__fp16>(1881), static_cast<__fp16>(2000), static_cast<__fp16>(2020), static_cast<__fp16>(2040), static_cast<__fp16>(2060), static_cast<__fp16>(2080), static_cast<__fp16>(2205), static_cast<__fp16>(2226), static_cast<__fp16>(2247),
+//       static_cast<__fp16>(2268), static_cast<__fp16>(2289), static_cast<__fp16>(2420), static_cast<__fp16>(2442), static_cast<__fp16>(2464), static_cast<__fp16>(2486), static_cast<__fp16>(2508), static_cast<__fp16>(2645), static_cast<__fp16>(2668), static_cast<__fp16>(2691), static_cast<__fp16>(2714), static_cast<__fp16>(2737)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(3, 1, 1, 5);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(16), static_cast<__fp16>(0), static_cast<__fp16>(6), static_cast<__fp16>(14), static_cast<__fp16>(24), static_cast<__fp16>(36), static_cast<__fp16>(0), static_cast<__fp16>(11),
+//       static_cast<__fp16>(24), static_cast<__fp16>(39), static_cast<__fp16>(56), static_cast<__fp16>(0), static_cast<__fp16>(16), static_cast<__fp16>(34), static_cast<__fp16>(54), static_cast<__fp16>(76), static_cast<__fp16>(0), static_cast<__fp16>(21), static_cast<__fp16>(44), static_cast<__fp16>(69),
+//       static_cast<__fp16>(96), static_cast<__fp16>(0), static_cast<__fp16>(26), static_cast<__fp16>(54), static_cast<__fp16>(84), static_cast<__fp16>(116), static_cast<__fp16>(0), static_cast<__fp16>(31), static_cast<__fp16>(64), static_cast<__fp16>(99), static_cast<__fp16>(136), static_cast<__fp16>(0),
+//       static_cast<__fp16>(36), static_cast<__fp16>(74), static_cast<__fp16>(114), static_cast<__fp16>(156), static_cast<__fp16>(200), static_cast<__fp16>(246), static_cast<__fp16>(294), static_cast<__fp16>(344), static_cast<__fp16>(396), static_cast<__fp16>(225), static_cast<__fp16>(276), static_cast<__fp16>(329),
+//       static_cast<__fp16>(384), static_cast<__fp16>(441), static_cast<__fp16>(250), static_cast<__fp16>(306), static_cast<__fp16>(364), static_cast<__fp16>(424), static_cast<__fp16>(486), static_cast<__fp16>(275), static_cast<__fp16>(336), static_cast<__fp16>(399), static_cast<__fp16>(464), static_cast<__fp16>(531),
+//       static_cast<__fp16>(300), static_cast<__fp16>(366), static_cast<__fp16>(434), static_cast<__fp16>(504), static_cast<__fp16>(576), static_cast<__fp16>(325), static_cast<__fp16>(396), static_cast<__fp16>(469), static_cast<__fp16>(544), static_cast<__fp16>(621), static_cast<__fp16>(350), static_cast<__fp16>(426),
+//       static_cast<__fp16>(504), static_cast<__fp16>(584), static_cast<__fp16>(666), static_cast<__fp16>(375), static_cast<__fp16>(456), static_cast<__fp16>(539), static_cast<__fp16>(624), static_cast<__fp16>(711), static_cast<__fp16>(800), static_cast<__fp16>(891), static_cast<__fp16>(984), static_cast<__fp16>(1079),
+//       static_cast<__fp16>(1176), static_cast<__fp16>(850), static_cast<__fp16>(946), static_cast<__fp16>(1044), static_cast<__fp16>(1144), static_cast<__fp16>(1246), static_cast<__fp16>(900), static_cast<__fp16>(1001), static_cast<__fp16>(1104), static_cast<__fp16>(1209), static_cast<__fp16>(1316), static_cast<__fp16>(950),
+//       static_cast<__fp16>(1056), static_cast<__fp16>(1164), static_cast<__fp16>(1274), static_cast<__fp16>(1386), static_cast<__fp16>(1000), static_cast<__fp16>(1111), static_cast<__fp16>(1224), static_cast<__fp16>(1339), static_cast<__fp16>(1456), static_cast<__fp16>(1050), static_cast<__fp16>(1166), static_cast<__fp16>(1284),
+//       static_cast<__fp16>(1404), static_cast<__fp16>(1526), static_cast<__fp16>(1100), static_cast<__fp16>(1221), static_cast<__fp16>(1344), static_cast<__fp16>(1469), static_cast<__fp16>(1596), static_cast<__fp16>(1150), static_cast<__fp16>(1276), static_cast<__fp16>(1404), static_cast<__fp16>(1534), static_cast<__fp16>(1666)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(1, 2, 1, 5);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(16), static_cast<__fp16>(0), static_cast<__fp16>(6), static_cast<__fp16>(14), static_cast<__fp16>(24), static_cast<__fp16>(36), static_cast<__fp16>(0), static_cast<__fp16>(11), static_cast<__fp16>(24), static_cast<__fp16>(39),
+//       static_cast<__fp16>(56), static_cast<__fp16>(0), static_cast<__fp16>(16), static_cast<__fp16>(34), static_cast<__fp16>(54), static_cast<__fp16>(76), static_cast<__fp16>(100), static_cast<__fp16>(126), static_cast<__fp16>(154), static_cast<__fp16>(184), static_cast<__fp16>(216), static_cast<__fp16>(125), static_cast<__fp16>(156), static_cast<__fp16>(189),
+//       static_cast<__fp16>(224), static_cast<__fp16>(261), static_cast<__fp16>(150), static_cast<__fp16>(186), static_cast<__fp16>(224), static_cast<__fp16>(264), static_cast<__fp16>(306), static_cast<__fp16>(175), static_cast<__fp16>(216), static_cast<__fp16>(259), static_cast<__fp16>(304), static_cast<__fp16>(351), static_cast<__fp16>(0), static_cast<__fp16>(41),
+//       static_cast<__fp16>(84), static_cast<__fp16>(129), static_cast<__fp16>(176), static_cast<__fp16>(0), static_cast<__fp16>(46), static_cast<__fp16>(94), static_cast<__fp16>(144), static_cast<__fp16>(196), static_cast<__fp16>(0), static_cast<__fp16>(51), static_cast<__fp16>(104), static_cast<__fp16>(159), static_cast<__fp16>(216), static_cast<__fp16>(0),
+//       static_cast<__fp16>(56), static_cast<__fp16>(114), static_cast<__fp16>(174), static_cast<__fp16>(236), static_cast<__fp16>(300), static_cast<__fp16>(366), static_cast<__fp16>(434), static_cast<__fp16>(504), static_cast<__fp16>(576), static_cast<__fp16>(325), static_cast<__fp16>(396), static_cast<__fp16>(469), static_cast<__fp16>(544), static_cast<__fp16>(621),
+//       static_cast<__fp16>(350), static_cast<__fp16>(426), static_cast<__fp16>(504), static_cast<__fp16>(584), static_cast<__fp16>(666), static_cast<__fp16>(375), static_cast<__fp16>(456), static_cast<__fp16>(539), static_cast<__fp16>(624), static_cast<__fp16>(711), static_cast<__fp16>(0), static_cast<__fp16>(81), static_cast<__fp16>(164), static_cast<__fp16>(249),
+//       static_cast<__fp16>(336), static_cast<__fp16>(0), static_cast<__fp16>(86), static_cast<__fp16>(174), static_cast<__fp16>(264), static_cast<__fp16>(356), static_cast<__fp16>(0), static_cast<__fp16>(91), static_cast<__fp16>(184), static_cast<__fp16>(279), static_cast<__fp16>(376), static_cast<__fp16>(0), static_cast<__fp16>(96), static_cast<__fp16>(194),
+//       static_cast<__fp16>(294), static_cast<__fp16>(396), static_cast<__fp16>(500), static_cast<__fp16>(606), static_cast<__fp16>(714), static_cast<__fp16>(824), static_cast<__fp16>(936), static_cast<__fp16>(525), static_cast<__fp16>(636), static_cast<__fp16>(749), static_cast<__fp16>(864), static_cast<__fp16>(981), static_cast<__fp16>(550), static_cast<__fp16>(666),
+//       static_cast<__fp16>(784), static_cast<__fp16>(904), static_cast<__fp16>(1026), static_cast<__fp16>(575), static_cast<__fp16>(696), static_cast<__fp16>(819), static_cast<__fp16>(944), static_cast<__fp16>(1071)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(3, 1, 4, 1);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(5), static_cast<__fp16>(6), static_cast<__fp16>(7), static_cast<__fp16>(8), static_cast<__fp16>(9), static_cast<__fp16>(20), static_cast<__fp16>(22),
+//       static_cast<__fp16>(24), static_cast<__fp16>(26), static_cast<__fp16>(28), static_cast<__fp16>(45), static_cast<__fp16>(48), static_cast<__fp16>(51), static_cast<__fp16>(54), static_cast<__fp16>(57), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(25), static_cast<__fp16>(26), static_cast<__fp16>(27), static_cast<__fp16>(28), static_cast<__fp16>(29), static_cast<__fp16>(60), static_cast<__fp16>(62), static_cast<__fp16>(64), static_cast<__fp16>(66), static_cast<__fp16>(68), static_cast<__fp16>(105),
+//       static_cast<__fp16>(108), static_cast<__fp16>(111), static_cast<__fp16>(114), static_cast<__fp16>(117), static_cast<__fp16>(160), static_cast<__fp16>(164), static_cast<__fp16>(168), static_cast<__fp16>(172), static_cast<__fp16>(176), static_cast<__fp16>(225), static_cast<__fp16>(230), static_cast<__fp16>(235),
+//       static_cast<__fp16>(240), static_cast<__fp16>(245), static_cast<__fp16>(300), static_cast<__fp16>(306), static_cast<__fp16>(312), static_cast<__fp16>(318), static_cast<__fp16>(324), static_cast<__fp16>(385), static_cast<__fp16>(392), static_cast<__fp16>(399), static_cast<__fp16>(406), static_cast<__fp16>(413),
+//       static_cast<__fp16>(240), static_cast<__fp16>(244), static_cast<__fp16>(248), static_cast<__fp16>(252), static_cast<__fp16>(256), static_cast<__fp16>(325), static_cast<__fp16>(330), static_cast<__fp16>(335), static_cast<__fp16>(340), static_cast<__fp16>(345), static_cast<__fp16>(420), static_cast<__fp16>(426),
+//       static_cast<__fp16>(432), static_cast<__fp16>(438), static_cast<__fp16>(444), static_cast<__fp16>(525), static_cast<__fp16>(532), static_cast<__fp16>(539), static_cast<__fp16>(546), static_cast<__fp16>(553), static_cast<__fp16>(640), static_cast<__fp16>(648), static_cast<__fp16>(656), static_cast<__fp16>(664),
+//       static_cast<__fp16>(672), static_cast<__fp16>(765), static_cast<__fp16>(774), static_cast<__fp16>(783), static_cast<__fp16>(792), static_cast<__fp16>(801), static_cast<__fp16>(900), static_cast<__fp16>(910), static_cast<__fp16>(920), static_cast<__fp16>(930), static_cast<__fp16>(940), static_cast<__fp16>(1045),
+//       static_cast<__fp16>(1056), static_cast<__fp16>(1067), static_cast<__fp16>(1078), static_cast<__fp16>(1089), static_cast<__fp16>(800), static_cast<__fp16>(808), static_cast<__fp16>(816), static_cast<__fp16>(824), static_cast<__fp16>(832), static_cast<__fp16>(945), static_cast<__fp16>(954), static_cast<__fp16>(963),
+//       static_cast<__fp16>(972), static_cast<__fp16>(981), static_cast<__fp16>(1100), static_cast<__fp16>(1110), static_cast<__fp16>(1120), static_cast<__fp16>(1130), static_cast<__fp16>(1140), static_cast<__fp16>(1265), static_cast<__fp16>(1276), static_cast<__fp16>(1287), static_cast<__fp16>(1298), static_cast<__fp16>(1309)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(1, 1, 1, 5);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(16), static_cast<__fp16>(0), static_cast<__fp16>(6), static_cast<__fp16>(14), static_cast<__fp16>(24), static_cast<__fp16>(36), static_cast<__fp16>(0), static_cast<__fp16>(11), static_cast<__fp16>(24), static_cast<__fp16>(39), static_cast<__fp16>(56),
+//       static_cast<__fp16>(0), static_cast<__fp16>(16), static_cast<__fp16>(34), static_cast<__fp16>(54), static_cast<__fp16>(76), static_cast<__fp16>(0), static_cast<__fp16>(21), static_cast<__fp16>(44), static_cast<__fp16>(69), static_cast<__fp16>(96), static_cast<__fp16>(0), static_cast<__fp16>(26), static_cast<__fp16>(54), static_cast<__fp16>(84), static_cast<__fp16>(116),
+//       static_cast<__fp16>(0), static_cast<__fp16>(31), static_cast<__fp16>(64), static_cast<__fp16>(99), static_cast<__fp16>(136), static_cast<__fp16>(0), static_cast<__fp16>(36), static_cast<__fp16>(74), static_cast<__fp16>(114), static_cast<__fp16>(156), static_cast<__fp16>(0), static_cast<__fp16>(41), static_cast<__fp16>(84), static_cast<__fp16>(129), static_cast<__fp16>(176),
+//       static_cast<__fp16>(0), static_cast<__fp16>(46), static_cast<__fp16>(94), static_cast<__fp16>(144), static_cast<__fp16>(196), static_cast<__fp16>(0), static_cast<__fp16>(51), static_cast<__fp16>(104), static_cast<__fp16>(159), static_cast<__fp16>(216), static_cast<__fp16>(0), static_cast<__fp16>(56), static_cast<__fp16>(114), static_cast<__fp16>(174), static_cast<__fp16>(236),
+//       static_cast<__fp16>(0), static_cast<__fp16>(61), static_cast<__fp16>(124), static_cast<__fp16>(189), static_cast<__fp16>(256), static_cast<__fp16>(0), static_cast<__fp16>(66), static_cast<__fp16>(134), static_cast<__fp16>(204), static_cast<__fp16>(276), static_cast<__fp16>(0), static_cast<__fp16>(71), static_cast<__fp16>(144), static_cast<__fp16>(219), static_cast<__fp16>(296),
+//       static_cast<__fp16>(0), static_cast<__fp16>(76), static_cast<__fp16>(154), static_cast<__fp16>(234), static_cast<__fp16>(316), static_cast<__fp16>(0), static_cast<__fp16>(81), static_cast<__fp16>(164), static_cast<__fp16>(249), static_cast<__fp16>(336), static_cast<__fp16>(0), static_cast<__fp16>(86), static_cast<__fp16>(174), static_cast<__fp16>(264), static_cast<__fp16>(356),
+//       static_cast<__fp16>(0), static_cast<__fp16>(91), static_cast<__fp16>(184), static_cast<__fp16>(279), static_cast<__fp16>(376), static_cast<__fp16>(0), static_cast<__fp16>(96), static_cast<__fp16>(194), static_cast<__fp16>(294), static_cast<__fp16>(396), static_cast<__fp16>(0), static_cast<__fp16>(101), static_cast<__fp16>(204), static_cast<__fp16>(309), static_cast<__fp16>(416),
+//       static_cast<__fp16>(0), static_cast<__fp16>(106), static_cast<__fp16>(214), static_cast<__fp16>(324), static_cast<__fp16>(436), static_cast<__fp16>(0), static_cast<__fp16>(111), static_cast<__fp16>(224), static_cast<__fp16>(339), static_cast<__fp16>(456), static_cast<__fp16>(0), static_cast<__fp16>(116), static_cast<__fp16>(234), static_cast<__fp16>(354), static_cast<__fp16>(476)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(1, 2, 1, 1);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(20), static_cast<__fp16>(21), static_cast<__fp16>(22), static_cast<__fp16>(23), static_cast<__fp16>(24), static_cast<__fp16>(25), static_cast<__fp16>(26), static_cast<__fp16>(27),
+//       static_cast<__fp16>(28), static_cast<__fp16>(29), static_cast<__fp16>(30), static_cast<__fp16>(31), static_cast<__fp16>(32), static_cast<__fp16>(33), static_cast<__fp16>(34), static_cast<__fp16>(35), static_cast<__fp16>(36), static_cast<__fp16>(37), static_cast<__fp16>(38), static_cast<__fp16>(39), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(60), static_cast<__fp16>(61), static_cast<__fp16>(62), static_cast<__fp16>(63), static_cast<__fp16>(64), static_cast<__fp16>(65), static_cast<__fp16>(66), static_cast<__fp16>(67), static_cast<__fp16>(68), static_cast<__fp16>(69),
+//       static_cast<__fp16>(70), static_cast<__fp16>(71), static_cast<__fp16>(72), static_cast<__fp16>(73), static_cast<__fp16>(74), static_cast<__fp16>(75), static_cast<__fp16>(76), static_cast<__fp16>(77), static_cast<__fp16>(78), static_cast<__fp16>(79), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(100), static_cast<__fp16>(101), static_cast<__fp16>(102), static_cast<__fp16>(103), static_cast<__fp16>(104), static_cast<__fp16>(105), static_cast<__fp16>(106), static_cast<__fp16>(107), static_cast<__fp16>(108), static_cast<__fp16>(109), static_cast<__fp16>(110), static_cast<__fp16>(111),
+//       static_cast<__fp16>(112), static_cast<__fp16>(113), static_cast<__fp16>(114), static_cast<__fp16>(115), static_cast<__fp16>(116), static_cast<__fp16>(117), static_cast<__fp16>(118), static_cast<__fp16>(119)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+//     nntrainer::Tensor t = ranged(3, 2, 4, 5);
+//     nntrainer::Tensor m = ranged(3, 1, 1, 1);
+//     __fp16 answer_data[] = {
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0),
+//       static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(0), static_cast<__fp16>(40), static_cast<__fp16>(41),
+//       static_cast<__fp16>(42), static_cast<__fp16>(43), static_cast<__fp16>(44), static_cast<__fp16>(45), static_cast<__fp16>(46), static_cast<__fp16>(47), static_cast<__fp16>(48), static_cast<__fp16>(49), static_cast<__fp16>(50), static_cast<__fp16>(51), static_cast<__fp16>(52), static_cast<__fp16>(53), static_cast<__fp16>(54), static_cast<__fp16>(55),
+//       static_cast<__fp16>(56), static_cast<__fp16>(57), static_cast<__fp16>(58), static_cast<__fp16>(59), static_cast<__fp16>(60), static_cast<__fp16>(61), static_cast<__fp16>(62), static_cast<__fp16>(63), static_cast<__fp16>(64), static_cast<__fp16>(65), static_cast<__fp16>(66), static_cast<__fp16>(67), static_cast<__fp16>(68), static_cast<__fp16>(69),
+//       static_cast<__fp16>(70), static_cast<__fp16>(71), static_cast<__fp16>(72), static_cast<__fp16>(73), static_cast<__fp16>(74), static_cast<__fp16>(75), static_cast<__fp16>(76), static_cast<__fp16>(77), static_cast<__fp16>(78), static_cast<__fp16>(79), static_cast<__fp16>(160), static_cast<__fp16>(162), static_cast<__fp16>(164), static_cast<__fp16>(166),
+//       static_cast<__fp16>(168), static_cast<__fp16>(170), static_cast<__fp16>(172), static_cast<__fp16>(174), static_cast<__fp16>(176), static_cast<__fp16>(178), static_cast<__fp16>(180), static_cast<__fp16>(182), static_cast<__fp16>(184), static_cast<__fp16>(186), static_cast<__fp16>(188), static_cast<__fp16>(190), static_cast<__fp16>(192), static_cast<__fp16>(194),
+//       static_cast<__fp16>(196), static_cast<__fp16>(198), static_cast<__fp16>(200), static_cast<__fp16>(202), static_cast<__fp16>(204), static_cast<__fp16>(206), static_cast<__fp16>(208), static_cast<__fp16>(210), static_cast<__fp16>(212), static_cast<__fp16>(214), static_cast<__fp16>(216), static_cast<__fp16>(218), static_cast<__fp16>(220), static_cast<__fp16>(222),
+//       static_cast<__fp16>(224), static_cast<__fp16>(226), static_cast<__fp16>(228), static_cast<__fp16>(230), static_cast<__fp16>(232), static_cast<__fp16>(234), static_cast<__fp16>(236), static_cast<__fp16>(238)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
+//   {
+//     nntrainer::TensorDim ref_dim(3, 5, 1, 4);
+//     nntrainer::Tensor t = ranged(3, 5, 1, 4);
+//     nntrainer::Tensor m = ranged(3, 1, 1, 4);
+//     __fp16 answer_data[] = {static_cast<__fp16>(0), static_cast<__fp16>(1), static_cast<__fp16>(4), static_cast<__fp16>(9), static_cast<__fp16>(0), static_cast<__fp16>(5), static_cast<__fp16>(12), static_cast<__fp16>(21), static_cast<__fp16>(0), static_cast<__fp16>(9),
+//                         static_cast<__fp16>(20), static_cast<__fp16>(33), static_cast<__fp16>(0), static_cast<__fp16>(13), static_cast<__fp16>(28), static_cast<__fp16>(45), static_cast<__fp16>(0), static_cast<__fp16>(17), static_cast<__fp16>(36), static_cast<__fp16>(57),
+//                         static_cast<__fp16>(80), static_cast<__fp16>(105), static_cast<__fp16>(132), static_cast<__fp16>(161), static_cast<__fp16>(96), static_cast<__fp16>(125), static_cast<__fp16>(156), static_cast<__fp16>(189), static_cast<__fp16>(112), static_cast<__fp16>(145),
+//                         static_cast<__fp16>(180), static_cast<__fp16>(217), static_cast<__fp16>(128), static_cast<__fp16>(165), static_cast<__fp16>(204), static_cast<__fp16>(245), static_cast<__fp16>(144), static_cast<__fp16>(185), static_cast<__fp16>(228), static_cast<__fp16>(273),
+//                         static_cast<__fp16>(320), static_cast<__fp16>(369), static_cast<__fp16>(420), static_cast<__fp16>(473), static_cast<__fp16>(352), static_cast<__fp16>(405), static_cast<__fp16>(460), static_cast<__fp16>(517), static_cast<__fp16>(384), static_cast<__fp16>(441),
+//                         static_cast<__fp16>(500), static_cast<__fp16>(561), static_cast<__fp16>(416), static_cast<__fp16>(477), static_cast<__fp16>(540), static_cast<__fp16>(605), static_cast<__fp16>(448), static_cast<__fp16>(513), static_cast<__fp16>(580), static_cast<__fp16>(649)};
+//     nntrainer::Tensor answer(ref_dim, answer_data);
+//     int status = t.multiply_i(m);
+//     EXPECT_EQ(status, ML_ERROR_NONE);
+//     EXPECT_EQ(t, answer);
+//   }
 // }
 
 // TEST(nntrainer_Tensor, multiply_i_broadcast_not_supported_01_n) {
