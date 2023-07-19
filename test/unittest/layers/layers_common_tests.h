@@ -110,7 +110,7 @@ using LayerGoldenTestParamType =
              const char * /**< Golden file name */,
              int /**< LayerGoldenTestParamOptions */,
              std::string /** < TensorFormat */,
-             std::string /** < TensorTeyp */>;
+             std::string /** < TensorType */>;
 
 /**
  * @brief Golden Layer Test with designated format
