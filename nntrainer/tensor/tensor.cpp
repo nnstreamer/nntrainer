@@ -1355,7 +1355,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
     auto iter_value =
       [is_format_nchw](std::array<unsigned, 4> &loc,
                        const std::array<unsigned, 4> &start_loc, Tensor &t,
-                       const std::array<unsigned, 4> &ref_dim_arr) -> float & {
+                       const std::array<unsigned, 4> &ref_dim_arr) -> __fp16 & {
       auto &value = is_format_nchw
                       ? t.getValue<__fp16>(loc[0], loc[1], loc[2], loc[3])
                       : t.getValue<__fp16>(loc[0], loc[3], loc[1], loc[2]);
@@ -2090,7 +2090,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     const __fp16 *data = getData<__fp16>();
     const __fp16 *mdata = m.getData<__fp16>();
     __fp16 *rdata = result.getData<__fp16>();
-    const __fp16 alpha = 1.0f;
+    const float alpha = 1.0f;
     enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
     enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
 
@@ -2117,7 +2117,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
       sgemv(CblasRowMajor, transB, mdim1, mdim2, alpha, mdata, ldb, data, 1,
             beta, rdata, 1);
     }
-    /// case others: use gemm
+    /// case others: use sgemm
     else {
       sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
             ldb, beta, rdata, ldc);
