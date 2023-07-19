@@ -69,11 +69,7 @@ TEST(nntrianer_TensorDim, effective_dimension_nhwc_p) {
 }
 
 TEST(nntrainer_TensorDim, ctor_initializer_nhwc_n) {
-<<<<<<< HEAD
-  EXPECT_THROW(nntrainer::TensorDim t({1, 2, 3, 4, 5}, NHWC_),
-=======
   EXPECT_THROW(nntrainer::TensorDim t({1, 2, 3, 4, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                std::invalid_argument);
 }
 
@@ -81,11 +77,7 @@ TEST(nntrainer_TensorDim, setTensorDim_01_nhwc_p) {
   int status = ML_ERROR_NONE;
 
   nntrainer::TensorDim tensor_dim;
-<<<<<<< HEAD
-  status = tensor_dim.setTensorDim("1:2:3:4", NHWC_);
-=======
-  status = tensor_dim.setTensorDim("1:2:3:4", NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+  status = tensor_dim.setTensorDim("1:2:3:4", {NHWC_, FP32_});
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -93,20 +85,12 @@ TEST(nntrainer_TensorDim, setTensorDim_02__nhwc_n) {
   int status = ML_ERROR_NONE;
 
   nntrainer::TensorDim tensor_dim;
-<<<<<<< HEAD
-  status = tensor_dim.setTensorDim("1:2:3:4:5", NHWC_);
-=======
-  status = tensor_dim.setTensorDim("1:2:3:4:5", NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+  status = tensor_dim.setTensorDim("1:2:3:4:5", {NHWC_, FP32_});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_TensorDim, setTensorDim_03_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::TensorDim d(NHWC_);
-=======
   nntrainer::TensorDim d(NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW(d.setTensorDim(0, 0), std::invalid_argument);
   EXPECT_THROW(d.setTensorDim(1, 0), std::invalid_argument);
@@ -115,11 +99,7 @@ TEST(nntrainer_TensorDim, setTensorDim_03_nhwc_n) {
 }
 
 TEST(nntrainer_TensorDim, setTensorDim_04_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::TensorDim d(NHWC_);
-=======
   nntrainer::TensorDim d(NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   d.setTensorDim(0, 4);
   d.setTensorDim(1, 5);
@@ -134,11 +114,7 @@ TEST(nntrainer_TensorDim, setTensorDim_04_nhwc_p) {
 
 TEST(nntrainer_Tensor, Tensor_01_nhwc_p) {
   int status = ML_ERROR_NONE;
-<<<<<<< HEAD
-  nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3, NHWC_);
-=======
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   tensor.setZero();
   ASSERT_NE(nullptr, tensor.getData());
   if (tensor.getValue(0, 0, 0, 0) != 0.0)
@@ -164,11 +140,7 @@ TEST(nntrainer_Tensor, Tensor_03_nhwc_p) {
     in.push_back(ttv);
   }
 
-<<<<<<< HEAD
-  nntrainer::Tensor tensor = nntrainer::Tensor(in, NHWC_);
-=======
-  nntrainer::Tensor tensor = nntrainer::Tensor(in, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+  nntrainer::Tensor tensor = nntrainer::Tensor(in, {NHWC_, FP32_});
   ASSERT_NE(nullptr, tensor.getData());
 
   if (tensor.getValue(0, 1, 0, 0) != 1.0)
@@ -183,11 +155,7 @@ TEST(nntrainer_Tensor, multiply_i_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
 
@@ -214,11 +182,7 @@ TEST(nntrainer_Tensor, multiply_i_02_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (channel * height * width) +
                                j * (width * channel) + k * channel + l);
 
@@ -245,19 +209,11 @@ TEST(nntrainer_Tensor, multiply_i_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT(input, i * (channel * height * width) + j * (width * channel) +
-                          k * channel + l);
-
-  nntrainer::Tensor target2(batch, channel, height - 2, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT(input, i * (channel * height * width) + j * (width * channel) +
                           k * channel + l);
 
   nntrainer::Tensor target2(batch, channel, height - 2, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   status = input.multiply_i(target2);
 
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -270,15 +226,9 @@ TEST(nntrainer_Tensor, multiply_i_03_nhwc_n) {
 
 TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor m = ranged(1, 2, 4, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 2, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
     float answer_data[] = {
       0,    1,    4,    9,    16,   25,   36,   49,   64,   81,   100,  121,
@@ -297,15 +247,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 5, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 5, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,    0,    0,    0,    4,    5,    6,    7,    16,   18,   20,   22,
       36,   39,   42,   45,   64,   68,   72,   76,   100,  105,  110,  115,
@@ -323,15 +267,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 4, 5, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 4, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,    1,    4,    9,    0,    5,    12,   21,   32,   45,   60,   77,
       48,   65,   84,   105,  128,  153,  180,  209,  160,  189,  220,  253,
@@ -350,15 +288,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   0,   0,   0,   4,   5,   6,   7,   0,   0,   0,   0,   12,  13,
       14,  15,  0,   0,   0,   0,   20,  21,  22,  23,  0,   0,   0,   0,
@@ -375,15 +307,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 4, 1, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 4, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   4,   9,   16,  25,  36,  49,  0,   9,   20,  33,  48,  65,
       84,  105, 0,   17,  36,  57,  80,  105, 132, 161, 0,   25,  52,  81,
@@ -400,15 +326,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 5, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,    0,    0,    0,    0,    0,    0,    0,    8,    9,    10,   11,
       12,   13,   14,   15,   32,   34,   36,   38,   40,   42,   44,   46,
@@ -427,15 +347,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 1, 1, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 1, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  0,  0,  0,   4,   5,   6,   7,  0,  0,  0,   0,   12,  13,  14,
       15, 0,  0,  0,   0,   20,  21,  22, 23, 0,  0,   0,   0,   28,  29,
@@ -452,15 +366,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 4, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 4, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0, 1,   4,   9,   0, 5,   12,  21,  0, 9,   20,  33,  0, 13,  28,  45,
       0, 17,  36,  57,  0, 21,  44,  69,  0, 25,  52,  81,  0, 29,  60,  93,
@@ -476,15 +384,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -501,15 +403,9 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 1, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 1, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {0,   0,   0,   0,   0,   5,   6,   7,   8,   9,
                            20,  22,  24,  26,  28,  45,  48,  51,  54,  57,
                            80,  84,  88,  92,  96,  125, 130, 135, 140, 145,
@@ -524,25 +420,15 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_01_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, multiply_i_broadcast_not_supported_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 1, 3, 1, NHWC_);
-  nntrainer::Tensor target2(3, 1, 3, 3, NHWC_);
-=======
   nntrainer::Tensor target(3, 1, 3, 1, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 1, 3, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, multiply_i_broadcast_not_broadcastable_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 2, 4, 5, NHWC_);
-  nntrainer::Tensor target2(3, 2, 3, 1, NHWC_);
-=======
   nntrainer::Tensor target(3, 2, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 2, 3, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
@@ -554,11 +440,7 @@ TEST(nntrainer_Tensor, multiply_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
 
@@ -575,11 +457,7 @@ TEST(nntrainer_Tensor, multiply_02_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT(input,
                  i * (batch * height * width) + j * (height * width) + k + 1);
 
@@ -606,19 +484,11 @@ TEST(nntrainer_Tensor, multiply_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT(input,
-                 i * (height * width) + j * (height * width) + k * width + l);
-
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT(input,
                  i * (height * width) + j * (height * width) + k * width + l);
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.multiply(test); }, std::invalid_argument);
 }
@@ -629,15 +499,9 @@ TEST(nntrainer_Tensor, multiply_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
   nntrainer::Tensor test(dim);
   // shared_input is not continuous
@@ -650,17 +514,10 @@ TEST(nntrainer_Tensor, multiply_05_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(dim);
-  nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(dim);
   nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
 
   EXPECT_THROW(input.multiply(shared_test), std::invalid_argument);
@@ -672,11 +529,7 @@ TEST(nntrainer_Tensor, multiply_06_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   // input is not allocated now : alloc_now == false
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -692,11 +545,7 @@ TEST(nntrainer_Tensor, multiply_07_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT(input, i * (height * width * channel) + j * (width * channel) +
@@ -713,11 +562,7 @@ TEST(nntrainer_Tensor, multiply_08_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT(input, i * (height * width * channel) + j * (width * channel) +
@@ -737,19 +582,11 @@ TEST(nntrainer_Tensor, multiply_float_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor expected(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor expected(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(expected, (i * (height * width * channel) +
                                  j * (width * channel) + k * channel + 1) *
                                   2);
@@ -766,11 +603,7 @@ TEST(nntrainer_Tensor, divide_i_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
 
@@ -797,11 +630,7 @@ TEST(nntrainer_Tensor, divide_i_02_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
@@ -822,11 +651,7 @@ TEST(nntrainer_Tensor, divide_i_01_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
@@ -841,19 +666,11 @@ TEST(nntrainer_Tensor, divide_i_02_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + l + 1);
-
-  nntrainer::Tensor original(batch, channel, height - 2, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
   nntrainer::Tensor original(batch, channel, height - 2, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   status = input.divide_i(original);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -865,11 +682,7 @@ TEST(nntrainer_Tensor, divide_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
@@ -891,11 +704,7 @@ TEST(nntrainer_Tensor, divide_02_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
@@ -908,19 +717,11 @@ TEST(nntrainer_Tensor, divide_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + l + 1);
-
-  nntrainer::Tensor test(batch - 1, channel - 1, height - 1, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
   nntrainer::Tensor test(batch - 1, channel - 1, height - 1, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.divide(test); }, std::invalid_argument);
 }
@@ -931,15 +732,9 @@ TEST(nntrainer_Tensor, divide_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
   nntrainer::Tensor test(dim);
 
@@ -952,17 +747,10 @@ TEST(nntrainer_Tensor, divide_05_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(dim);
-  nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(dim);
   nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
 
   EXPECT_THROW(input.divide(shared_test), std::invalid_argument);
@@ -974,11 +762,7 @@ TEST(nntrainer_Tensor, divide_06_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -995,11 +779,7 @@ TEST(nntrainer_Tensor, divide_07_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -1015,11 +795,7 @@ TEST(nntrainer_Tensor, divide_08_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -1034,17 +810,10 @@ TEST(nntrainer_Tensor, divide_08_nhwc_n) {
 
 TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(1, 2, 4, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(1, 2, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
@@ -1073,17 +842,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(3, 1, 4, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(3, 1, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
 
@@ -1103,17 +865,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(3, 2, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(3, 2, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1,         1,         3,         2,         5,         3,
@@ -1142,17 +897,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(1, 2, 4, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(1, 2, 4, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1,         1,         3,         2,         5,         3,
@@ -1181,17 +929,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(3, 1, 1, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(3, 1, 1, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1,         2,         1.5,       2,         1.6666666, 2,
@@ -1220,17 +961,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(1, 2, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(1, 2, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
 
@@ -1248,17 +982,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(1, 1, 4, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(1, 1, 4, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1,         2,         3,     4,         5,         6,
@@ -1287,17 +1014,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 4, 5, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
 
@@ -1327,17 +1047,10 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 2, 5, 1, NHWC_);
-    nntrainer::Tensor t = ranged(3, 2, 5, 1, NHWC_);
-    t.add_i(1);
-    nntrainer::Tensor m = ranged(3, 2, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 2, 5, 1, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 2, 5, 1, NHWC_, FP32_);
     t.add_i(1);
     nntrainer::Tensor m = ranged(3, 2, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1);
     float answer_data[] = {
       1,       1,       3,       2,   5, 3,       7,       4,       9,       5,
@@ -1352,25 +1065,15 @@ TEST(nntrainer_Tensor, divide_i_broadcast_01_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, divide_i_broadcast_not_supported_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 1, 3, 1, NHWC_);
-  nntrainer::Tensor target2(3, 1, 3, 3, NHWC_);
-=======
   nntrainer::Tensor target(3, 1, 3, 1, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 1, 3, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 2, 4, 5, NHWC_);
-  nntrainer::Tensor target2(3, 2, 3, 1, NHWC_);
-=======
   nntrainer::Tensor target(3, 2, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 2, 3, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
@@ -1385,17 +1088,10 @@ TEST(nntrainer_Tensor, add_i_01_nhwc_n) {
   int width = 10;
   int channel = 1;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1);
-
-  nntrainer::Tensor target2(batch, height - 2, width - 3, NHWC_);
-=======
   nntrainer::Tensor target(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1);
 
   nntrainer::Tensor target2(batch, height - 2, width - 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   status = target.add_i(target2);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -1408,11 +1104,7 @@ TEST(nntrainer_Tensor, add_i_01_nhwc_p) {
   int width = 10;
   int channel = 3;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, height, width, channel, NHWC_);
-=======
   nntrainer::Tensor target(batch, height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + 1 + l);
 
@@ -1439,19 +1131,11 @@ TEST(nntrainer_Tensor, add_i_02_nhwc_p) {
   int width = 10;
   int channel = 2;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, height, width, channel, NHWC_);
-  GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
-                                j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor original(height, width, channel, NHWC_);
-=======
   nntrainer::Tensor target(batch, height, width, channel, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor original(height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   original.copy(target);
 
   status = target.add_i(target, 3.0);
@@ -1468,17 +1152,10 @@ TEST(nntrainer_Tensor, add_i_02_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_);
-  {
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 4, 5, 2, NHWC_);
-=======
   nntrainer::TensorDim ref_dim(3, 4, 5, 2, NHWC_, FP32_);
   {
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 4, 5, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   2,   4,   6,   8,   10,  12,  14,  16,  18,  20,  22,  24,  26,
       28,  30,  32,  34,  36,  38,  40,  42,  44,  46,  48,  50,  52,  54,
@@ -1495,13 +1172,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 5, 2, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 5, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   5,   6,   7,   8,   10,  11,  12,  13,  15,  16,
       17,  18,  20,  21,  22,  23,  25,  26,  27,  28,  30,  31,  32,  33,
@@ -1518,13 +1190,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 4, 5, 1, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 4, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   2,   4,   6,   4,   6,   8,   10,  12,  14,  16,  18,  16,  18,
       20,  22,  24,  26,  28,  30,  28,  30,  32,  34,  36,  38,  40,  42,
@@ -1541,13 +1208,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 2, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   5,   6,   7,   8,   8,   9,   10,  11,  13,  14,
       15,  16,  16,  17,  18,  19,  21,  22,  23,  24,  24,  25,  26,  27,
@@ -1564,13 +1226,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 4, 1, 2, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 4, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   2,   4,   6,   8,   10,  12,  14,  8,   10,  12,  14,  16,  18,
       20,  22,  16,  18,  20,  22,  24,  26,  28,  30,  24,  26,  28,  30,
@@ -1587,13 +1244,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 5, 1, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   9,   10,  11,  12,  13,  14,
       15,  16,  18,  19,  20,  21,  22,  23,  24,  25,  27,  28,  29,  30,
@@ -1610,13 +1262,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 1, 1, 2, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 1, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   5,   6,   7,   8,   8,   9,   10,  11,  13,  14,
       15,  16,  16,  17,  18,  19,  21,  22,  23,  24,  24,  25,  26,  27,
@@ -1633,13 +1280,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 4, 1, 1, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 4, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   2,   4,   6,   4,   6,   8,   10,  8,   10,  12,  14,  12,  14,
       16,  18,  16,  18,  20,  22,  20,  22,  24,  26,  24,  26,  28,  30,
@@ -1656,13 +1298,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
       14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,
@@ -1679,13 +1316,8 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_);
-    nntrainer::Tensor m = ranged(1, 1, 1, 1, NHWC_);
-=======
     nntrainer::Tensor t = ranged(3, 4, 5, 2, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     m.add_i(1.0);
     float answer_data[] = {
       1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
@@ -1703,15 +1335,9 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 1, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 1, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 1, 1, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 1, 1, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {0,  1,  2,  3,  4,  6,  7,  8,  9,  10, 12, 13,
                            14, 15, 16, 18, 19, 20, 21, 22, 24, 25, 26, 27,
                            28, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 42,
@@ -1723,15 +1349,9 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(1, 1, 2, 1, NHWC_);
-    nntrainer::Tensor t = ranged(1, 1, 2, 1, NHWC_);
-    nntrainer::Tensor m = ranged(1, 1, 2, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(1, 1, 2, 1, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(1, 1, 2, 1, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 1, 2, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {0.0, 2.0};
     nntrainer::Tensor answer(ref_dim, answer_data);
     int status = t.add_i(m);
@@ -1739,15 +1359,9 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
     EXPECT_EQ(t, answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(16, 1, 1, 1, NHWC_);
-    nntrainer::Tensor t = ranged(16, 1, 1, 1, NHWC_);
-    nntrainer::Tensor m = ranged(1, 1, 1, 1, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(16, 1, 1, 1, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(16, 1, 1, 1, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {0.0, 1.0, 2.0,  3.0,  4.0,  5.0,  6.0,  7.0,
                            8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0};
     nntrainer::Tensor answer(ref_dim, answer_data);
@@ -1758,25 +1372,15 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, add_i_broadcast_not_supported_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 1, 3, 1, NHWC_);
-  nntrainer::Tensor target2(3, 1, 3, 3, NHWC_);
-=======
   nntrainer::Tensor target(3, 1, 3, 1, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 1, 3, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 2, 4, 5, NHWC_);
-  nntrainer::Tensor target2(3, 2, 3, 1, NHWC_);
-=======
   nntrainer::Tensor target(3, 2, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor target2(3, 2, 3, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
@@ -1788,11 +1392,7 @@ TEST(nntrainer_Tensor, add_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
@@ -1821,11 +1421,7 @@ TEST(nntrainer_Tensor, add_02_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
   nntrainer::Tensor result = input.add(input);
@@ -1853,19 +1449,11 @@ TEST(nntrainer_Tensor, add_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.add(test); }, std::invalid_argument);
 }
@@ -1876,15 +1464,9 @@ TEST(nntrainer_Tensor, add_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(batch, channel * 2, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(batch, channel * 2, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
   nntrainer::Tensor test(dim);
 
@@ -1897,17 +1479,10 @@ TEST(nntrainer_Tensor, add_05_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, height, width, channel, NHWC_);
-
-  nntrainer::Tensor input(dim);
-  nntrainer::Tensor test(batch, height, width, channel * 2, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, height, width, channel, NHWC_, FP32_);
 
   nntrainer::Tensor input(dim);
   nntrainer::Tensor test(batch, height, width, channel * 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
 
   EXPECT_THROW(input.add(shared_test), std::invalid_argument);
@@ -1919,11 +1494,7 @@ TEST(nntrainer_Tensor, add_06_nhw_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, height, width, channel, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -1939,11 +1510,7 @@ TEST(nntrainer_Tensor, add_08_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, height, width, channel, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -1960,26 +1527,11 @@ TEST(nntrainer_Tensor, add_08_nhwc_n) {
 
 TEST(nntrainer_Tensor, pow_01_nhwc_p) {
 
-<<<<<<< HEAD
-  nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5, NHWC_);
-=======
   nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor actual, expected;
 
   actual = input.pow(0.5f);
-<<<<<<< HEAD
-  expected = constant(2.0, 3, 2, 4, 5, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = input.pow(2.0f);
-  expected = constant(16.0, 3, 2, 4, 5, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = input.pow(-0.5f);
-  expected = constant(0.5, 3, 2, 4, 5, NHWC_);
-=======
   expected = constant(2.0, 3, 2, 4, 5, NHWC_, FP32_);
   EXPECT_EQ(actual, expected);
 
@@ -1989,7 +1541,6 @@ TEST(nntrainer_Tensor, pow_01_nhwc_p) {
 
   actual = input.pow(-0.5f);
   expected = constant(0.5, 3, 2, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 }
 
@@ -2000,11 +1551,7 @@ TEST(nntrainer_Tensor, subtract_i_01_nhwc_p) {
   int width = 10;
   int channel = 3;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor target(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + l);
 
@@ -2031,11 +1578,7 @@ TEST(nntrainer_Tensor, subtract_i_02_nhwc_p) {
   int width = 10;
   int channel = 3;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor target(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + l);
 
@@ -2057,19 +1600,11 @@ TEST(nntrainer_Tensor, subtract_i_03_nhwc_n) {
   int width = 10;
   int channel = 3;
 
-<<<<<<< HEAD
-  nntrainer::Tensor target(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
-                                j * (width * channel) + k * channel + l);
-
-  nntrainer::Tensor target2(batch, height, width - 3, channel - 1, NHWC_);
-=======
   nntrainer::Tensor target(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + l);
 
   nntrainer::Tensor target2(batch, height, width - 3, channel - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   status = target.subtract_i(target2);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -2082,11 +1617,7 @@ TEST(nntrainer_Tensor, subtract_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
@@ -2113,21 +1644,13 @@ TEST(nntrainer_Tensor, subtract_02_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor result = input.subtract(input);
 
-<<<<<<< HEAD
-  EXPECT_EQ(constant(0.0, batch, channel, height, width, NHWC_), result);
-=======
   EXPECT_EQ(constant(0.0, batch, channel, height, width, NHWC_, FP32_), result);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 }
 
 TEST(nntrainer_Tensor, subtract_03_nhwc_n) {
@@ -2136,19 +1659,11 @@ TEST(nntrainer_Tensor, subtract_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor test(batch - 1, channel - 1, height, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor test(batch - 1, channel - 1, height, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.subtract(test); }, std::invalid_argument);
 }
@@ -2159,15 +1674,9 @@ TEST(nntrainer_Tensor, subtract_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_input = input.getSharedDataTensor(dim, 0, false);
   nntrainer::Tensor test(dim);
 
@@ -2180,17 +1689,10 @@ TEST(nntrainer_Tensor, subtract_05_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-
-  nntrainer::Tensor input(dim);
-  nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
 
   nntrainer::Tensor input(dim);
   nntrainer::Tensor test(batch, 2 * channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor shared_test = test.getSharedDataTensor(dim, 0, false);
 
   EXPECT_THROW(input.subtract(shared_test), std::invalid_argument);
@@ -2202,11 +1704,7 @@ TEST(nntrainer_Tensor, subtract_06_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -2222,11 +1720,7 @@ TEST(nntrainer_Tensor, subtract_07_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -2243,11 +1737,7 @@ TEST(nntrainer_Tensor, subtract_08_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -2268,19 +1758,11 @@ TEST(nntrainer_Tensor, subtract_float_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor expected(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor expected(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(expected, i * (height * width * channel) +
                                   j * (width * channel) + k * channel);
 
@@ -2295,11 +1777,7 @@ TEST(nntrainer_Tensor, sum_01_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
@@ -2313,11 +1791,7 @@ TEST(nntrainer_Tensor, sum_02_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l);
 
@@ -2351,11 +1825,7 @@ TEST(nntrainer_Tensor, sum_02_nhwc_p) {
                                                                  {225, 228},
                                                                  {231, 234},
                                                                  {237, 240}}}}),
-<<<<<<< HEAD
-    NHWC_);
-=======
-    NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    {NHWC_, FP32_});
 
   nntrainer::Tensor ans1(
     std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2374,11 +1844,7 @@ TEST(nntrainer_Tensor, sum_02_nhwc_p) {
          {231},
          {235},
          {239}}}}),
-<<<<<<< HEAD
-    NHWC_);
-=======
-    NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    {NHWC_, FP32_});
 
   nntrainer::Tensor ans2(
     std::vector<std::vector<std::vector<std::vector<float>>>>({{{{22, 24},
@@ -2411,26 +1877,16 @@ TEST(nntrainer_Tensor, sum_02_nhwc_p) {
                                                                  {210, 212},
                                                                  {214, 216},
                                                                  {218, 220}}}}),
-<<<<<<< HEAD
-    NHWC_);
-=======
-    NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    {NHWC_, FP32_});
 
   nntrainer::Tensor ans3(
     std::vector<std::vector<std::vector<std::vector<float>>>>(
       {{{{100, 110}}, {{300, 310}}},
        {{{500, 510}}, {{700, 710}}},
        {{{900, 910}}, {{1100, 1110}}}}),
-<<<<<<< HEAD
-    NHWC_);
-
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
-    NHWC_, FP32_);
+    {NHWC_, FP32_});
 
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * (channel) + l + 1);
 
@@ -2451,11 +1907,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
   const int height = 2;
   const int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * channel * width) +
                                j * (width * channel) + k * (channel) + l + 1);
   // Test for alpha == 1 and beta == 0 and dimension of reduced axis == 1
@@ -2482,11 +1934,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {225, 228},
            {231, 234},
            {237, 240}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_1_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2524,11 +1972,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {231},
            {235},
            {239}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_2_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2563,22 +2007,14 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {210, 212},
            {214, 216},
            {218, 220}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_3_1_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{100, 110}}, {{300, 310}}},
          {{{500, 510}}, {{700, 710}}},
          {{{900, 910}}, {{1100, 1110}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor result_0_1_0 = input.sum(0, 1);
     nntrainer::Tensor result_1_1_0 = input.sum(1, 1);
@@ -2615,11 +2051,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {295, 300},
            {305, 310},
            {315, 320}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_1_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2665,11 +2097,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {347},
            {353},
            {359}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_2_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2703,11 +2131,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {320, 324},
            {328, 332},
            {336, 340}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_3_1_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2715,48 +2139,30 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
         {{{{102, 114}}, {{306, 318}}},
          {{{510, 522}}, {{714, 726}}},
          {{{918, 930}}, {{1122, 1134}}}}),
-<<<<<<< HEAD
-      NHWC_);
-
-    nntrainer::Tensor output_0_1_2(1, channel, height, width, NHWC_);
-=======
-      NHWC_, FP32_);
+      {NHWC_, FP32_});
 
     nntrainer::Tensor output_0_1_2(1, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int batch = 1;
       GEN_TEST_INPUT_NHWC(output_0_1_2, i * (channel * height * width) +
                                           j * (width * channel) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_1_1_2(batch, 1, height, width, NHWC_);
-=======
     nntrainer::Tensor output_1_1_2(batch, 1, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int channel = 1;
       GEN_TEST_INPUT_NHWC(output_1_1_2, i * (channel * height * width) +
                                           j * (width * channel) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_2_1_2(batch, channel, 1, width, NHWC_);
-=======
     nntrainer::Tensor output_2_1_2(batch, channel, 1, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int height = 1;
       GEN_TEST_INPUT_NHWC(output_2_1_2, i * (channel * height * width) +
                                           j * (width * channel) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_3_1_2(batch, channel, height, 1, NHWC_);
-=======
     nntrainer::Tensor output_3_1_2(batch, channel, height, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int width = 1;
       GEN_TEST_INPUT_NHWC(output_3_1_2, i * (channel * height * width) +
@@ -2798,11 +2204,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {450, 456},
            {462, 468},
            {474, 480}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_1_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2848,11 +2250,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {462},
            {470},
            {478}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_2_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2887,11 +2285,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {420, 424},
            {428, 432},
            {436, 440}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_3_2_0(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2899,11 +2293,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
         {{{{200, 220}}, {{600, 620}}},
          {{{1000, 1020}}, {{1400, 1420}}},
          {{{1800, 1820}}, {{2200, 2220}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor result_0_2_0 = input.sum(0, 2);
     nntrainer::Tensor result_1_2_0 = input.sum(1, 2);
@@ -2940,11 +2330,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {520, 528},
            {536, 544},
            {552, 560}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_1_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -2999,11 +2385,7 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {578},
            {588},
            {598}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_2_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
@@ -3037,59 +2419,37 @@ TEST(nntrainer_Tensor, sum_03_nhwc_p) {
            {530, 536},
            {542, 548},
            {554, 560}}}}),
-<<<<<<< HEAD
-      NHWC_);
-=======
-      NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      {NHWC_, FP32_});
 
     nntrainer::Tensor ans_3_2_2(
       std::vector<std::vector<std::vector<std::vector<float>>>>(
         {{{{202, 224}}, {{606, 628}}},
          {{{1010, 1032}}, {{1414, 1436}}},
          {{{1818, 1840}}, {{2222, 2244}}}}),
-<<<<<<< HEAD
-      NHWC_);
-
-    nntrainer::Tensor output_0_2_2(1, channel, height, width, NHWC_);
-=======
-      NHWC_, FP32_);
+      {NHWC_, FP32_});
 
     nntrainer::Tensor output_0_2_2(1, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int batch = 1;
       GEN_TEST_INPUT_NHWC(output_0_2_2, i * (channel * height * width) +
                                           j * (channel * width) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_1_2_2(batch, 1, height, width, NHWC_);
-=======
     nntrainer::Tensor output_1_2_2(batch, 1, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int channel = 1;
       GEN_TEST_INPUT_NHWC(output_1_2_2, i * (channel * height * width) +
                                           j * (channel * width) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_2_2_2(batch, channel, 1, width, NHWC_);
-=======
     nntrainer::Tensor output_2_2_2(batch, channel, 1, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int height = 1;
       GEN_TEST_INPUT_NHWC(output_2_2_2, i * (channel * height * width) +
                                           j * (channel * width) +
                                           k * (channel) + l + 1);
     }
-<<<<<<< HEAD
-    nntrainer::Tensor output_3_2_2(batch, channel, height, 1, NHWC_);
-=======
     nntrainer::Tensor output_3_2_2(batch, channel, height, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     {
       const int width = 1;
       GEN_TEST_INPUT_NHWC(output_3_2_2, i * (channel * height * width) +
@@ -3114,11 +2474,7 @@ TEST(nntrainer_Tensor, sum_04_nhwc_p) {
   int height = 2;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (channel * width) + k * channel + l + 1);
 
@@ -3132,43 +2488,16 @@ TEST(nntrainer_Tensor, sum_04_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_hnwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.sum(std::vector<unsigned int>()), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, multiple_sum_out_of_range_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.sum({7}), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, multiple_sum_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_);
-  nntrainer::Tensor actual, expected;
-
-  actual = t.sum({0, 1});
-  expected = constant(2 * 3, 1, 1, 5, 7, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.sum({1, 2, 3});
-  expected = constant(3 * 5 * 7, 2, 1, 1, 1, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.sum({3, 1});
-  expected = constant(7 * 3, 2, 1, 5, 1, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.sum({3, 1}, 0.5);
-  expected = constant(7 * 3 * 0.5, 2, 1, 5, 1, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_, FP32_);
   nntrainer::Tensor actual, expected;
 
@@ -3186,45 +2515,28 @@ TEST(nntrainer_Tensor, multiple_sum_nhwc_p) {
 
   actual = t.sum({3, 1}, 0.5);
   expected = constant(7 * 3 * 0.5, 2, 1, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 }
 
 TEST(nntrainer_Tensor, average_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor actual, expected;
 
   actual = t.average();
-<<<<<<< HEAD
-  expected = constant(1.0, 1, 1, 1, 1, NHWC_);
-=======
   expected = constant(1.0, 1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 
   int idx = 0;
-  t = t.apply([&](float in) { return idx++ % 2; });
+  t = t.apply((std::function<float (float)>)[&](float in) { return idx++ % 2; });
 
   actual = t.average();
-<<<<<<< HEAD
-  expected = constant(0.5, 1, 1, 1, 1, NHWC_);
-=======
   expected = constant(0.5, 1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 }
 
 TEST(nntrainer_Tensor, average_axis_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   int idx = 0;
   std::function<float(float)> f = [&](float in) { return idx++ % 2; };
   t = t.apply(f);
@@ -3232,21 +2544,6 @@ TEST(nntrainer_Tensor, average_axis_nhwc_p) {
   nntrainer::Tensor actual, expected;
 
   actual = t.average(0);
-<<<<<<< HEAD
-  expected = constant(0, 1, 2, 2, 2, NHWC_).apply(f);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average(1);
-  expected = constant(0.5, 2, 1, 2, 2, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average(2);
-  expected = constant(0, 2, 2, 1, 2, NHWC_).apply(f);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average(3);
-  expected = constant(0, 2, 2, 2, 1, NHWC_).apply(f);
-=======
   expected = constant(0, 1, 2, 2, 2, NHWC_, FP32_).apply(f);
   EXPECT_EQ(actual, expected);
 
@@ -3260,48 +2557,20 @@ TEST(nntrainer_Tensor, average_axis_nhwc_p) {
 
   actual = t.average(3);
   expected = constant(0, 2, 2, 2, 1, NHWC_, FP32_).apply(f);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 }
 
 TEST(nntrainer_Tensor, average_axis_out_of_range_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.average(-1), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, average_axis_out_of_range_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.average(7), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, average_multiple_axes_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_);
-  nntrainer::Tensor actual, expected;
-
-  actual = t.average({0, 1, 2});
-  expected = constant(1.0, 1, 1, 1, 7, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average({0, 1, 2, 3});
-  expected = constant(1.0, 1, 1, 1, 1, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average({3, 1});
-  expected = constant(1.0, 2, 1, 5, 1, NHWC_);
-  EXPECT_EQ(actual, expected);
-
-  actual = t.average({3, 1, 1, 1, 3});
-  expected = constant(1.0, 2, 1, 5, 1, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_, FP32_);
   nntrainer::Tensor actual, expected;
 
@@ -3319,16 +2588,11 @@ TEST(nntrainer_Tensor, average_multiple_axes_nhwc_p) {
 
   actual = t.average({3, 1, 1, 1, 3});
   expected = constant(1.0, 2, 1, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(actual, expected);
 }
 
 TEST(nntrainer_Tensor, average_multiple_axes_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_);
-=======
   nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.average({5, 7}), std::out_of_range);
 }
 
@@ -3337,11 +2601,7 @@ TEST(nntrainer_Tensor, average_multiple_axes_01_nhwc_n) {
 TEST(nntrainer_Tensor,
      constructor_from_shared_const_ptr_shares_variable_nhwc_n) {
   nntrainer::sharedConstTensor A =
-<<<<<<< HEAD
-    MAKE_SHARED_TENSOR(constant(1.0f, 3, 4, 5, 6, NHWC_));
-=======
     MAKE_SHARED_TENSOR(constant(1.0f, 3, 4, 5, 6, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor B = *A;
   nntrainer::Tensor C = A->clone();
@@ -3350,68 +2610,39 @@ TEST(nntrainer_Tensor,
   EXPECT_EQ(*A, B);
   EXPECT_NE(*A, C);
 
-<<<<<<< HEAD
-  C.reshape(nntrainer::TensorDim(3, 4, 6, 5, NHWC_));
-=======
   C.reshape(nntrainer::TensorDim(3, 4, 6, 5, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(A->getDim(), B.getDim());
   EXPECT_NE(A->getDim(), C.getDim());
 }
 
 TEST(nntrainer_Tensor, dot_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor input(2, 4, 5, 3, NHWC_);
-  nntrainer::Tensor m(1, 4, 5, 3, NHWC_);
-=======
   nntrainer::Tensor input(2, 4, 5, 3, NHWC_, FP32_);
   nntrainer::Tensor m(1, 4, 5, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, dot_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor input(2, 3, 4, 5, NHWC_);
-  nntrainer::Tensor m(1, 3, 4, 5, NHWC_);
-=======
   nntrainer::Tensor input(2, 3, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor m(1, 3, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(nntrainer::Tensor result = input.dot(m, true),
                std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, dot_02_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor input(2, 3, 4, 5, NHWC_);
-  nntrainer::Tensor m(1, 3, 4, 5, NHWC_);
-=======
   nntrainer::Tensor input(2, 3, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor m(1, 3, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, false, true));
 }
 
 TEST(nntrainer_Tensor, dot_03_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor input(1, 3, 4, 5, NHWC_);
-  nntrainer::Tensor m(1, 3, 4, 5, NHWC_);
-=======
   nntrainer::Tensor input(1, 3, 4, 5, NHWC_, FP32_);
   nntrainer::Tensor m(1, 3, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, true));
 }
 
 TEST(nntrainer_Tensor, dot_04_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor input(2, 4, 5, 3, NHWC_);
-  nntrainer::Tensor m(1, 4, 5, 1, NHWC_);
-=======
   nntrainer::Tensor input(2, 4, 5, 3, NHWC_, FP32_);
   nntrainer::Tensor m(1, 4, 5, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
   EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, false, true));
 }
@@ -3424,28 +2655,16 @@ TEST(nntrainer_Tensor, dot_05_nhwc_p) {
   int width = 5;
   float ans[2][4][5][40] = {0};
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * (channel) + l + 1);
 
-<<<<<<< HEAD
-  nntrainer::Tensor weight(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(weight, i * (height * width * channel) +
-                                j * (width * channel) + k * (channel) + l + 1);
-
-  weight.reshape(nntrainer::TensorDim(1, 3, 8, 5, NHWC_));
-=======
   nntrainer::Tensor weight(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(weight, i * (height * width * channel) +
                                 j * (width * channel) + k * (channel) + l + 1);
 
   weight.reshape(nntrainer::TensorDim(1, 3, 8, 5, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor result = input.dot(weight, false, true);
 
@@ -3491,11 +2710,7 @@ TEST(nntrainer_Tensor, dot_06_nhwc_p) {
   float ans[3][1][1][3] = {
     {{{30, 36, 42}}}, {{{66, 81, 96}}}, {{{102, 126, 150}}}};
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * (channel) + l + 1);
 
@@ -3518,312 +2733,180 @@ end_dot_01_p:
 TEST(nntrainer_Tensor, dot_transpose_nhwc_p) {
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
-                           92, 113, 134, 155, 128, 158, 188, 218};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
                            92, 113, 134, 155, 128, 158, 188, 218};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
-                           92, 113, 134, 155, 128, 158, 188, 218};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
                            92, 113, 134, 155, 128, 158, 188, 218};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
-                           92, 113, 134, 155, 128, 158, 188, 218};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
                            92, 113, 134, 155, 128, 158, 188, 218};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
-                           92, 113, 134, 155, 128, 158, 188, 218};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
                            92, 113, 134, 155, 128, 158, 188, 218};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13, 28, 40};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13, 28, 40};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
@@ -3833,456 +2916,264 @@ TEST(nntrainer_Tensor, dot_transpose_nhwc_p) {
 TEST(nntrainer_Tensor, dot_shortcuts_nhwc_p) {
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 1, 4, 2, 5};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14, 23, 32};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14, 23, 32};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14, 23, 32};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14, 23, 32};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14, 23, 32};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14, 23, 32};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), b_data);
-    float answer_data[] = {5, 14, 23, 32};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {5, 14, 23, 32};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 4, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_), b_data);
-    float answer_data[] = {20, 23, 26, 29};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 4, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {20, 23, 26, 29};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 4, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 1, 2, 3, 4, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 1, 2, 3, 4, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 2, 3, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, false);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 3, 1, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, false, true);
     EXPECT_EQ(ret, answer);
   }
   {
     float a_data[] = {0, 1, 2};
-<<<<<<< HEAD
-    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_), a_data);
-    float b_data[] = {0, 2, 4, 1, 3, 5};
-    nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_), b_data);
-    float answer_data[] = {10, 13};
-    nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_),
-=======
     nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 1, NHWC_, FP32_), a_data);
     float b_data[] = {0, 2, 4, 1, 3, 5};
     nntrainer::Tensor b(nntrainer::TensorDim(1, 3, 2, 1, NHWC_, FP32_), b_data);
     float answer_data[] = {10, 13};
     nntrainer::Tensor answer(nntrainer::TensorDim(1, 2, 1, 1, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                              answer_data);
     nntrainer::Tensor ret = a.dot(b, true, true);
     EXPECT_EQ(ret, answer);
@@ -4296,21 +3187,13 @@ TEST(nntrainer_Tensor, empty_nhwc_01) {
 }
 
 TEST(nntrainer_Tensor, empty_nhwc_02) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), false);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), false);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_FALSE(t.empty());
 }
 
 TEST(nntrainer_Tensor, empty_nhwc_03) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_FALSE(t.empty());
 }
@@ -4318,13 +3201,8 @@ TEST(nntrainer_Tensor, empty_nhwc_03) {
 TEST(nntrainer_Tensor, fill_p) {
   /// same dimension, buffer size
   {
-<<<<<<< HEAD
-    nntrainer::Tensor target(3, 2, 4, 5, NHWC_);
-    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_);
-=======
     nntrainer::Tensor target(3, 2, 4, 5, NHWC_, FP32_);
     nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     target.fill(original, false);
 
     EXPECT_EQ(target, original);
@@ -4339,11 +3217,7 @@ TEST(nntrainer_Tensor, fill_p) {
   /// uninitialized with initialized flag is true
   {
     nntrainer::Tensor target;
-<<<<<<< HEAD
-    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_);
-=======
     nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     target.fill(original, true);
 
     EXPECT_EQ(target, original);
@@ -4352,22 +3226,13 @@ TEST(nntrainer_Tensor, fill_p) {
 
 TEST(nntrainer_Tensor, fill_uninitialized_n) {
   nntrainer::Tensor target;
-<<<<<<< HEAD
-  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_);
-=======
   nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(target.fill(original, false), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, fill_different_dimension_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 1, 3, 2, NHWC_);
-  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_);
-=======
   nntrainer::Tensor target(3, 1, 3, 2, NHWC_, FP32_);
   nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(target.fill(original, false), std::invalid_argument);
 }
 
@@ -4389,11 +3254,7 @@ TEST(nntrainer_Tensor, add_strided_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
   nntrainer::Tensor result = input.add_strided(input);
@@ -4427,19 +3288,11 @@ TEST(nntrainer_Tensor, add_strided_02_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
-                               j * (width * channel) + k * channel + 1);
-
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.add_strided(test); }, std::invalid_argument);
 }
@@ -4450,11 +3303,7 @@ TEST(nntrainer_Tensor, add_strided_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, height, width, channel, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -4470,11 +3319,7 @@ TEST(nntrainer_Tensor, add_strided_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, height, width, channel, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, height, width, channel, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -4496,11 +3341,7 @@ TEST(nntrainer_Tensor, add_strided_05_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
   nntrainer::Tensor result = input.add_strided(input, 10.0);
@@ -4541,11 +3382,7 @@ TEST(nntrainer_Tensor, multiply_strided_01_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(input, i * (batch * height * width) +
                                j * (height * width) + k + 1);
 
@@ -4579,19 +3416,11 @@ TEST(nntrainer_Tensor, multiply_strided_02_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (height * width) + j * (height * width) +
-                               k * width + l);
-
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (height * width) + j * (height * width) +
                                k * width + l);
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW({ input.multiply_strided(test); }, std::invalid_argument);
 }
@@ -4602,11 +3431,7 @@ TEST(nntrainer_Tensor, multiply_strided_03_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   // input is not allocated now : alloc_now == false
   nntrainer::Tensor input(dim, false);
   nntrainer::Tensor test(dim);
@@ -4622,11 +3447,7 @@ TEST(nntrainer_Tensor, multiply_strided_04_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -4643,11 +3464,7 @@ TEST(nntrainer_Tensor, multiply_strided_05_nhwc_n) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::TensorDim dim(batch, channel, height, width, NHWC_);
-=======
   nntrainer::TensorDim dim(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   nntrainer::Tensor input(dim);
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
@@ -4668,19 +3485,11 @@ TEST(nntrainer_Tensor, multiply_strided_06_nhwc_p) {
   int height = 3;
   int width = 10;
 
-<<<<<<< HEAD
-  nntrainer::Tensor input(batch, channel, height, width, NHWC_);
-  GEN_TEST_INPUT_NHWC(input, i * (batch * height * width) +
-                               j * (height * width) + k + 1);
-
-  nntrainer::Tensor output(batch, channel, height, width, NHWC_);
-=======
   nntrainer::Tensor input(batch, channel, height, width, NHWC_, FP32_);
   GEN_TEST_INPUT_NHWC(input, i * (batch * height * width) +
                                j * (height * width) + k + 1);
 
   nntrainer::Tensor output(batch, channel, height, width, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   GEN_TEST_INPUT_NHWC(output, i * (batch * height * width) +
                                 j * (height * width) + k + 1);
 
@@ -4728,11 +3537,7 @@ TEST(nntrainer_Tensor, allocate_01_nhwc_n) {
 }
 
 TEST(nntrainer_Tensor, allocate_02_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), false);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), false);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_FALSE(t.isAllocated());
 
   t.allocate();
@@ -4740,11 +3545,7 @@ TEST(nntrainer_Tensor, allocate_02_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, allocate_03_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_TRUE(t.isAllocated());
 
   t.allocate();
@@ -4752,32 +3553,19 @@ TEST(nntrainer_Tensor, allocate_03_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, initialize_01_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true,
-                      nntrainer::Tensor::Initializer::ONES);
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true,
                       nntrainer::Tensor::Initializer::ONES);
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_EQ(golden, t);
 }
 
 TEST(nntrainer_Tensor, initialize_02_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true);
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true);
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_NE(golden, t);
@@ -4787,55 +3575,32 @@ TEST(nntrainer_Tensor, initialize_02_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, initialize_03_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), false,
-                      nntrainer::Tensor::Initializer::ONES);
-  t.allocate();
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), false,
                       nntrainer::Tensor::Initializer::ONES);
   t.allocate();
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_EQ(golden, t);
 }
 
 TEST(nntrainer_Tensor, initialize_04_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), false);
-  t.initialize(nntrainer::Tensor::Initializer::ONES);
-  t.allocate();
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), false);
   t.initialize(nntrainer::Tensor::Initializer::ONES);
   t.allocate();
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_EQ(golden, t);
 }
 
 TEST(nntrainer_Tensor, initialize_05_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), false);
-  t.allocate();
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), false);
   t.allocate();
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1.f);
 
   /**
@@ -4848,15 +3613,9 @@ TEST(nntrainer_Tensor, initialize_05_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, initialize_06_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true,
-                      nntrainer::Tensor::Initializer::ONES);
-  nntrainer::Tensor golden(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true,
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true,
                       nntrainer::Tensor::Initializer::ONES);
   nntrainer::Tensor golden(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true,
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                            nntrainer::Tensor::Initializer::ZEROS);
 
   EXPECT_NE(golden, t);
@@ -4866,17 +3625,10 @@ TEST(nntrainer_Tensor, initialize_06_nhwc_n) {
 }
 
 TEST(nntrainer_Tensor, initialize_07_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true,
-                      nntrainer::Tensor::Initializer::ONES);
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true,
                       nntrainer::Tensor::Initializer::ONES);
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_EQ(golden, t);
@@ -4890,17 +3642,10 @@ TEST(nntrainer_Tensor, initialize_07_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, initialize_08_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_), true,
-                      nntrainer::Tensor::Initializer::ONES);
-
-  nntrainer::Tensor golden(1, 2, 3, 4, NHWC_);
-=======
   nntrainer::Tensor t(nntrainer::TensorDim(1, 2, 3, 4, NHWC_, FP32_), true,
                       nntrainer::Tensor::Initializer::ONES);
 
   nntrainer::Tensor golden(1, 2, 3, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   golden.setValue(1);
 
   EXPECT_EQ(golden, t);
@@ -4919,24 +3664,14 @@ TEST(nntrainer_Tensor, initialize_08_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, reshape_01_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_);
-
-  EXPECT_THROW(A.reshape(nntrainer::TensorDim(9, 9, 9, 9, NHWC_)),
-=======
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_, FP32_);
 
   EXPECT_THROW(A.reshape(nntrainer::TensorDim(9, 9, 9, 9, NHWC_, FP32_)),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, reshape_02_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_);
-=======
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::TensorDim A_dim = A.getDim();
 
   /** Changing the dim of a tensor only affects local copy of the dim */
@@ -4952,13 +3687,8 @@ TEST(nntrainer_Tensor, save_read_01_nhwc_p) {
   int channel = 4;
   int height = 5;
   int width = 6;
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 4, 5, 6, NHWC_);
-  nntrainer::Tensor readed(3, 4, 5, 6, NHWC_);
-=======
   nntrainer::Tensor target(3, 4, 5, 6, NHWC_, FP32_);
   nntrainer::Tensor readed(3, 4, 5, 6, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + 1);
@@ -4983,13 +3713,8 @@ TEST(nntrainer_Tensor, save_read_02_nhwc_n) {
   int channel = 4;
   int height = 5;
   int width = 6;
-<<<<<<< HEAD
-  nntrainer::Tensor target(3, 4, 5, 6, NHWC_);
-  nntrainer::Tensor readed(3, 4, 1, 1, NHWC_);
-=======
   nntrainer::Tensor target(3, 4, 5, 6, NHWC_, FP32_);
   nntrainer::Tensor readed(3, 4, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + 1);
@@ -5010,11 +3735,7 @@ TEST(nntrainer_Tensor, save_read_02_nhwc_n) {
 }
 
 TEST(nntrainer_Tensor, set_01_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor tensor = nntrainer::Tensor(1, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   tensor.setZero();
   EXPECT_EQ(tensor.getValue(0, 0, 0, 0), 0.0);
@@ -5025,18 +3746,14 @@ TEST(nntrainer_Tensor, set_01_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, print_small_size_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor target = constant(1.0, 3, 3, 1, 2, NHWC_);
-=======
   nntrainer::Tensor target = constant(1.0, 3, 3, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   std::stringstream ss, expected;
   ss << target;
 
   expected << '<' << typeid(target).name() << " at " << &target << ">\n"
            << "data addr: " << target.getData() << '\n'
-           << "Shape: 3:3:1:2\n"
+           << "Shape: 3:3:1:2 [ FP32 : NHWC ]\n"
            << "         1          1          1 \n"
            << "         1          1          1 \n"
            << "\n"
@@ -5054,28 +3771,16 @@ TEST(nntrainer_Tensor, print_small_size_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, copy_and_reshape_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_);
-  nntrainer::Tensor B = A;
-  nntrainer::Tensor C = A.clone();
-
-  EXPECT_THROW(B.reshape(nntrainer::TensorDim(9, 9, 9, 9, NHWC_)),
-=======
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_, FP32_);
   nntrainer::Tensor B = A;
   nntrainer::Tensor C = A.clone();
 
   EXPECT_THROW(B.reshape(nntrainer::TensorDim(9, 9, 9, 9, NHWC_, FP32_)),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
                std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, copy_and_shares_variable_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_);
-=======
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor B = A.clone();
   nntrainer::Tensor C = A;
 
@@ -5084,11 +3789,7 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_nhwc_p) {
   EXPECT_EQ(A, C);
   EXPECT_NE(B, C);
 
-<<<<<<< HEAD
-  C.reshape(nntrainer::TensorDim(3, 4, 6, 5, NHWC_));
-=======
   C.reshape(nntrainer::TensorDim(3, 4, 6, 5, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_EQ(A.getDim(), B.getDim());
   EXPECT_NE(A.getDim(), C.getDim());
 }
@@ -5097,30 +3798,18 @@ TEST(nntrainer_Tensor, cat_01_nhwc_p) {
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
-<<<<<<< HEAD
-    inputs.emplace_back(ranged(2, 2, 1, 1, NHWC_));
-    inputs.emplace_back(ranged(2, 2, 2, 1, NHWC_));
-    float answer_data[] = {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 6, 7};
-    nntrainer::Tensor answer(ml::train::TensorDim({2, 2, 3, 1}, NHWC_),
-=======
     inputs.emplace_back(ranged(2, 2, 1, 1, NHWC_, FP32_));
     inputs.emplace_back(ranged(2, 2, 2, 1, NHWC_, FP32_));
     float answer_data[] = {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 6, 7};
-    nntrainer::Tensor answer(ml::train::TensorDim({2, 2, 3, 1}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({2, 2, 3, 1}, {NHWC_, FP32_}),
                              answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 2), answer);
   }
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
-<<<<<<< HEAD
-    inputs.emplace_back(ranged(3, 2, 4, 5, NHWC_));
-    inputs.emplace_back(ranged(2, 2, 4, 5, NHWC_));
-=======
     inputs.emplace_back(ranged(3, 2, 4, 5, NHWC_, FP32_));
     inputs.emplace_back(ranged(2, 2, 4, 5, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
       15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
@@ -5136,24 +3825,15 @@ TEST(nntrainer_Tensor, cat_01_nhwc_p) {
       45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
       60,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,
       75,  76,  77,  78,  79};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({5, 2, 4, 5}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({5, 2, 4, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({5, 2, 4, 5}, {NHWC_, FP32_}),
                              answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 0), answer);
   }
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
-<<<<<<< HEAD
-    inputs.emplace_back(ranged(3, 5, 3, 4, NHWC_));
-    inputs.emplace_back(ranged(3, 5, 2, 4, NHWC_));
-=======
     inputs.emplace_back(ranged(3, 5, 3, 4, NHWC_, FP32_));
     inputs.emplace_back(ranged(3, 5, 2, 4, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
       14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,
@@ -5177,50 +3857,31 @@ TEST(nntrainer_Tensor, cat_01_nhwc_p) {
       86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
       100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
       114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 5, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 5, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 5, 4}, {NHWC_, FP32_}),
                              answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 2), answer);
   }
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
-<<<<<<< HEAD
-    inputs.emplace_back(ranged(3, 5, 2, 1, NHWC_));
-    inputs.emplace_back(ranged(3, 5, 2, 2, NHWC_));
-=======
     inputs.emplace_back(ranged(3, 5, 2, 1, NHWC_, FP32_));
     inputs.emplace_back(ranged(3, 5, 2, 2, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  1,  2,  3,  4,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  5,  6,  7,
       8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 10, 11, 12, 13, 14, 20,
       21, 22, 23, 24, 25, 26, 27, 28, 29, 15, 16, 17, 18, 19, 30, 31, 32, 33,
       34, 35, 36, 37, 38, 39, 20, 21, 22, 23, 24, 40, 41, 42, 43, 44, 45, 46,
       47, 48, 49, 25, 26, 27, 28, 29, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 3}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 3}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 3}, {NHWC_, FP32_}),
                              answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 3), answer);
   }
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(3);
-<<<<<<< HEAD
-    inputs.emplace_back(ranged(3, 1, 2, 4, NHWC_));
-    inputs.emplace_back(ranged(3, 3, 2, 4, NHWC_));
-    inputs.emplace_back(ranged(3, 2, 2, 4, NHWC_));
-=======
     inputs.emplace_back(ranged(3, 1, 2, 4, NHWC_, FP32_));
     inputs.emplace_back(ranged(3, 3, 2, 4, NHWC_, FP32_));
     inputs.emplace_back(ranged(3, 2, 2, 4, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  0,  1,  2,  0,  1,  1,  3,  4,  5,  2,  3,  2,  6,  7,  8,  4,  5,
       3,  9,  10, 11, 6,  7,  4,  12, 13, 14, 8,  9,  5,  15, 16, 17, 10, 11,
@@ -5230,11 +3891,7 @@ TEST(nntrainer_Tensor, cat_01_nhwc_p) {
       15, 45, 46, 47, 30, 31, 16, 48, 49, 50, 32, 33, 17, 51, 52, 53, 34, 35,
       18, 54, 55, 56, 36, 37, 19, 57, 58, 59, 38, 39, 20, 60, 61, 62, 40, 41,
       21, 63, 64, 65, 42, 43, 22, 66, 67, 68, 44, 45, 23, 69, 70, 71, 46, 47};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 6, 2, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 6, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 6, 2, 4}, {NHWC_, FP32_}),
                              answer_data);
     EXPECT_EQ(nntrainer::Tensor::cat(inputs, 1), answer);
   }
@@ -5244,13 +3901,8 @@ TEST(nntrainer_Tensor, cat_02_nhwc_n) {
   {
     std::vector<nntrainer::Tensor> inputs;
     inputs.reserve(2);
-<<<<<<< HEAD
-    inputs.emplace_back(nntrainer::Tensor(2, 1, 1, 2, NHWC_));
-    inputs.emplace_back(nntrainer::Tensor(2, 2, 1, 2, NHWC_));
-=======
     inputs.emplace_back(nntrainer::Tensor(2, 1, 1, 2, NHWC_, FP32_));
     inputs.emplace_back(nntrainer::Tensor(2, 2, 1, 2, NHWC_, FP32_));
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     EXPECT_THROW(nntrainer::Tensor::cat(inputs, 2), std::invalid_argument);
   }
 }
@@ -5284,11 +3936,7 @@ TEST(nntrainer_Tensor, TensorWrap_02_nhwc_n) {
 }
 
 TEST(nntrainer_Tensor, TensorPaddedValue_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::Tensor a = ranged(1, 1, 3, 3, NHWC_);
-=======
   nntrainer::Tensor a = ranged(1, 1, 3, 3, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   float default_padded = -1;
 
   for (int i = 0; i < 5; ++i) {
@@ -5305,23 +3953,14 @@ TEST(nntrainer_Tensor, TensorPaddedValue_nhwc_p) {
 
 TEST(nntrainer_Tensor, zoneout_mask_01_nhwc_n) {
   const float zoneout_rate = 0.3f;
-<<<<<<< HEAD
-  nntrainer::Tensor t(10, 10, 10, 10, NHWC_);
-  nntrainer::Tensor opposite(20, 20, 20, 20, NHWC_);
-=======
   nntrainer::Tensor t(10, 10, 10, 10, NHWC_, FP32_);
   nntrainer::Tensor opposite(20, 20, 20, 20, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.zoneout_mask(opposite, zoneout_rate), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, zoneout_mask_02_nhwc_p) {
   const float zoneout_rate = 0.3f;
-<<<<<<< HEAD
-  nntrainer::Tensor t(10, 10, 10, 10, NHWC_);
-=======
   nntrainer::Tensor t(10, 10, 10, 10, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
   constexpr float epsilon = 1e-3;
 
@@ -5344,11 +3983,7 @@ TEST(nntrainer_Tensor, zoneout_mask_02_nhwc_p) {
 
 TEST(nntrainer_Tensor, zoneout_mask_03_nhwc_p) {
   const float zoneout_rate = 0.3f;
-<<<<<<< HEAD
-  nntrainer::Tensor t(10, 10, 100, 100, NHWC_);
-=======
   nntrainer::Tensor t(10, 10, 100, 100, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
   constexpr float epsilon = 1e-3;
 
@@ -5399,11 +4034,7 @@ TEST(nntrainer_Tensor, zoneout_mask_03_nhwc_p) {
 
 TEST(nntrainer_Tensor, zoneout_mask_04_nhwc_n) {
   const float zoneout_rate = 0.3f;
-<<<<<<< HEAD
-  nntrainer::Tensor t(10, 10, 100, 100, NHWC_);
-=======
   nntrainer::Tensor t(10, 10, 100, 100, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   nntrainer::Tensor opposite = t.zoneout_mask(zoneout_rate);
   constexpr float epsilon = 1e-3;
 
@@ -5448,13 +4079,8 @@ TEST(nntrainer_Tensor, zoneout_mask_04_nhwc_n) {
 
 TEST(nntrainer_Tensor, split_01_nhwc_p) {
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(3);
     {
@@ -5462,11 +4088,7 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
                              10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
                              20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
                              30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5474,11 +4096,7 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
                              50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
                              60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
                              70, 71, 72, 73, 74, 75, 76, 77, 78, 79};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5486,23 +4104,14 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
                              90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split(3, 0), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5511,11 +4120,7 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
                              44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
                              56, 57, 58, 59, 80, 81, 82, 83, 84, 85, 86, 87,
                              88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5525,23 +4130,14 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
                              70,  71,  72,  73,  74,  75,  76,  77,  78,  79,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split(2, 2), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5550,11 +4146,7 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
         25, 26, 27, 28, 29, 40,  41,  42,  43,  44,  45,  46,  47,  48,  49,
         60, 61, 62, 63, 64, 65,  66,  67,  68,  69,  80,  81,  82,  83,  84,
         85, 86, 87, 88, 89, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5563,108 +4155,66 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
         35, 36, 37, 38, 39, 50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
         70, 71, 72, 73, 74, 75,  76,  77,  78,  79,  90,  91,  92,  93,  94,
         95, 96, 97, 98, 99, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split(2, 3), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(5);
     {
       float answer_data[] = {0,  5,  10, 15, 20,  25,  30,  35,
                              40, 45, 50, 55, 60,  65,  70,  75,
                              80, 85, 90, 95, 100, 105, 110, 115};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {1,  6,  11, 16, 21,  26,  31,  36,
                              41, 46, 51, 56, 61,  66,  71,  76,
                              81, 86, 91, 96, 101, 106, 111, 116};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {2,  7,  12, 17, 22,  27,  32,  37,
                              42, 47, 52, 57, 62,  67,  72,  77,
                              82, 87, 92, 97, 102, 107, 112, 117};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {3,  8,  13, 18, 23,  28,  33,  38,
                              43, 48, 53, 58, 63,  68,  73,  78,
                              83, 88, 93, 98, 103, 108, 113, 118};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split(5, 1), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(1, 6, 1, 4, NHWC_);
-    nntrainer::Tensor t = ranged(1, 6, 1, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(1, 6, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(1, 6, 1, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
       float answer_data[] = {0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {3, 4, 5, 9, 10, 11, 15, 16, 17, 21, 22, 23};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split(2, 1), answer);
@@ -5672,32 +4222,19 @@ TEST(nntrainer_Tensor, split_01_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, split_02_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(1, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t(1, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.split(0, 0), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, split_03_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(3, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.split(2, 0), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, split_04_nhwc_p) {
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5707,11 +4244,7 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
         48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
         64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({2, 5, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({2, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({2, 5, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5719,23 +4252,14 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
                              90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 5, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({2, 1}, 0), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5744,11 +4268,7 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
                              44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
                              56, 57, 58, 59, 80, 81, 82, 83, 84, 85, 86, 87,
                              88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5758,23 +4278,14 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
                              70,  71,  72,  73,  74,  75,  76,  77,  78,  79,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({1, 1}, 2), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5783,11 +4294,7 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         25, 26, 27, 28, 29, 40,  41,  42,  43,  44,  45,  46,  47,  48,  49,
         60, 61, 62, 63, 64, 65,  66,  67,  68,  69,  80,  81,  82,  83,  84,
         85, 86, 87, 88, 89, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5796,34 +4303,21 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         35, 36, 37, 38, 39, 50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
         70, 71, 72, 73, 74, 75,  76,  77,  78,  79,  90,  91,  92,  93,  94,
         95, 96, 97, 98, 99, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 5, 2, 2}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({2, 2}, 3), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(3);
     {
       float answer_data[] = {0,  5,  10, 15, 20,  25,  30,  35,
                              40, 45, 50, 55, 60,  65,  70,  75,
                              80, 85, 90, 95, 100, 105, 110, 115};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5833,34 +4327,21 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         51,  52,  53,  56,  57,  58,  61,  62,  63,  66,  67,  68, 71, 72, 73,
         76,  77,  78,  81,  82,  83,  86,  87,  88,  91,  92,  93, 96, 97, 98,
         101, 102, 103, 106, 107, 108, 111, 112, 113, 116, 117, 118};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({1, 3, 1}, 1), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(3);
     {
@@ -5868,11 +4349,7 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         0,  1,  5,  6,  10, 11, 15, 16, 20,  21,  25,  26,  30,  31,  35,  36,
         40, 41, 45, 46, 50, 51, 55, 56, 60,  61,  65,  66,  70,  71,  75,  76,
         80, 81, 85, 86, 90, 91, 95, 96, 100, 101, 105, 106, 110, 111, 115, 116};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5880,34 +4357,21 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         2,  3,  7,  8,  12, 13, 17, 18, 22,  23,  27,  28,  32,  33,  37,  38,
         42, 43, 47, 48, 52, 53, 57, 58, 62,  63,  67,  68,  72,  73,  77,  78,
         82, 83, 87, 88, 92, 93, 97, 98, 102, 103, 107, 108, 112, 113, 117, 118};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 1, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({2, 2, 1}, 1), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(2);
     {
@@ -5915,11 +4379,7 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         0,  1,  5,  6,  10, 11, 15, 16, 20,  21,  25,  26,  30,  31,  35,  36,
         40, 41, 45, 46, 50, 51, 55, 56, 60,  61,  65,  66,  70,  71,  75,  76,
         80, 81, 85, 86, 90, 91, 95, 96, 100, 101, 105, 106, 110, 111, 115, 116};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 2, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
@@ -5929,50 +4389,29 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
         52,  53,  54,  57,  58,  59,  62,  63,  64,  67,  68,  69, 72, 73, 74,
         77,  78,  79,  82,  83,  84,  87,  88,  89,  92,  93,  94, 97, 98, 99,
         102, 103, 104, 107, 108, 109, 112, 113, 114, 117, 118, 119};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({3, 3, 2, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({2, 3}, 1), answer);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(1, 6, 1, 4, NHWC_);
-    nntrainer::Tensor t = ranged(1, 6, 1, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(1, 6, 1, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(1, 6, 1, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     std::vector<nntrainer::Tensor> answer;
     answer.reserve(3);
     {
       float answer_data[] = {0, 6, 12, 18};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 1, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 1, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 1, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {1, 2, 3, 7, 8, 9, 13, 14, 15, 19, 20, 21};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 3, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     {
       float answer_data[] = {4, 5, 10, 11, 16, 17, 22, 23};
-<<<<<<< HEAD
-      answer.emplace_back(ml::train::TensorDim({1, 2, 1, 4}, NHWC_),
-=======
-      answer.emplace_back(ml::train::TensorDim({1, 2, 1, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+      answer.emplace_back(ml::train::TensorDim({1, 2, 1, 4}, {NHWC_, FP32_}),
                           answer_data);
     }
     EXPECT_EQ(t.split({1, 3, 2}, 1), answer);
@@ -5980,48 +4419,27 @@ TEST(nntrainer_Tensor, split_04_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, split_05_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(3, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.split({1, 1}, 0), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, split_06_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(3, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.split({2, 0, 1}, 0), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, split_07_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor t(3, 1, 1, 1, NHWC_);
-=======
   nntrainer::Tensor t(3, 1, 1, 1, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
   EXPECT_THROW(t.split({}, 0), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, transpose_nhwc_p) {
-<<<<<<< HEAD
-  nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-
-  /// plain transpose
-  {
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
   nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
 
   /// plain transpose
   {
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
       14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,
@@ -6032,23 +4450,14 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,
       98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
       112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("0:1:2");
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   5,   10,  15,  1,   6,   11,  16,  2,   7,   12,  17,  3,   8,
       13,  18,  4,   9,   14,  19,  20,  25,  30,  35,  21,  26,  31,  36,
@@ -6059,23 +4468,14 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       81,  86,  91,  96,  82,  87,  92,  97,  83,  88,  93,  98,  84,  89,
       94,  99,  100, 105, 110, 115, 101, 106, 111, 116, 102, 107, 112, 117,
       103, 108, 113, 118, 104, 109, 114, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("2:1:0");
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   20,  21,  22,  23,  24,  5,   6,   7,   8,
       9,   25,  26,  27,  28,  29,  10,  11,  12,  13,  14,  30,  31,  32,
@@ -6086,23 +4486,14 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       84,  100, 101, 102, 103, 104, 85,  86,  87,  88,  89,  105, 106, 107,
       108, 109, 90,  91,  92,  93,  94,  110, 111, 112, 113, 114, 95,  96,
       97,  98,  99,  115, 116, 117, 118, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("0:2:1");
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  20,  1,  21,  2,  22,  3,  23,  4,  24,  5,  25,  6,  26,  7,  27,
       8,  28,  9,  29,  10, 30,  11, 31,  12, 32,  13, 33,  14, 34,  15, 35,
@@ -6112,23 +4503,14 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       80, 100, 81, 101, 82, 102, 83, 103, 84, 104, 85, 105, 86, 106, 87, 107,
       88, 108, 89, 109, 90, 110, 91, 111, 92, 112, 93, 113, 94, 114, 95, 115,
       96, 116, 97, 117, 98, 118, 99, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("1:2:0");
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  5,  10,  15,  20,  25,  30,  35, 1,  6,   11,  16,  21,  26,  31,
       36, 2,  7,   12,  17,  22,  27,  32, 37, 3,   8,   13,  18,  23,  28,
@@ -6138,23 +4520,14 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       59, 64, 69,  74,  79,  80,  85,  90, 95, 100, 105, 110, 115, 81,  86,
       91, 96, 101, 106, 111, 116, 82,  87, 92, 97,  102, 107, 112, 117, 83,
       88, 93, 98,  103, 108, 113, 118, 84, 89, 94,  99,  104, 109, 114, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("2:0:1");
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  20,  5,  25,  10, 30,  15, 35,  1,  21,  6,  26,  11, 31,  16, 36,
       2,  22,  7,  27,  12, 32,  17, 37,  3,  23,  8,  28,  13, 33,  18, 38,
@@ -6164,11 +4537,7 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       80, 100, 85, 105, 90, 110, 95, 115, 81, 101, 86, 106, 91, 111, 96, 116,
       82, 102, 87, 107, 92, 112, 97, 117, 83, 103, 88, 108, 93, 113, 98, 118,
       84, 104, 89, 109, 94, 114, 99, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, {NHWC_, FP32_}),
                              answer_data);
     nntrainer::Tensor m = t.transpose("1:0:2");
     EXPECT_EQ(answer, m);
@@ -6176,15 +4545,9 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
 
   /// outplace transpose
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 5, 2, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 5, 2, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
       14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,
@@ -6195,25 +4558,15 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,
       98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
       112, 113, 114, 115, 116, 117, 118, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 2, 4}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("0:1:2", m);
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 4, 2, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 4, 2, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   5,   10,  15,  1,   6,   11,  16,  2,   7,   12,  17,  3,   8,
       13,  18,  4,   9,   14,  19,  20,  25,  30,  35,  21,  26,  31,  36,
@@ -6224,25 +4577,15 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       81,  86,  91,  96,  82,  87,  92,  97,  83,  88,  93,  98,  84,  89,
       94,  99,  100, 105, 110, 115, 101, 106, 111, 116, 102, 107, 112, 117,
       103, 108, 113, 118, 104, 109, 114, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 2, 5}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("2:1:0", m);
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 5, 4, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 5, 4, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,   1,   2,   3,   4,   20,  21,  22,  23,  24,  5,   6,   7,   8,
       9,   25,  26,  27,  28,  29,  10,  11,  12,  13,  14,  30,  31,  32,
@@ -6253,25 +4596,15 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       84,  100, 101, 102, 103, 104, 85,  86,  87,  88,  89,  105, 106, 107,
       108, 109, 90,  91,  92,  93,  94,  110, 111, 112, 113, 114, 95,  96,
       97,  98,  99,  115, 116, 117, 118, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 5, 4, 2}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("0:2:1", m);
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 2, 4, 5, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 2, 4, 5, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  20,  1,  21,  2,  22,  3,  23,  4,  24,  5,  25,  6,  26,  7,  27,
       8,  28,  9,  29,  10, 30,  11, 31,  12, 32,  13, 33,  14, 34,  15, 35,
@@ -6281,25 +4614,15 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       80, 100, 81, 101, 82, 102, 83, 103, 84, 104, 85, 105, 86, 106, 87, 107,
       88, 108, 89, 109, 90, 110, 91, 111, 92, 112, 93, 113, 94, 114, 95, 115,
       96, 116, 97, 117, 98, 118, 99, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 4, 5}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("1:2:0", m);
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 4, 5, 2, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 4, 5, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  5,  10,  15,  20,  25,  30,  35, 1,  6,   11,  16,  21,  26,  31,
       36, 2,  7,   12,  17,  22,  27,  32, 37, 3,   8,   13,  18,  23,  28,
@@ -6309,25 +4632,15 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       59, 64, 69,  74,  79,  80,  85,  90, 95, 100, 105, 110, 115, 81,  86,
       91, 96, 101, 106, 111, 116, 82,  87, 92, 97,  102, 107, 112, 117, 83,
       88, 93, 98,  103, 108, 113, 118, 84, 89, 94,  99,  104, 109, 114, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 4, 5, 2}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("2:0:1", m);
     EXPECT_EQ(answer, m);
   }
   {
-<<<<<<< HEAD
-    nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_);
-    nntrainer::Tensor m = ranged(3, 2, 5, 4, NHWC_);
-=======
     nntrainer::TensorDim ref_dim(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor t = ranged(3, 5, 2, 4, NHWC_, FP32_);
     nntrainer::Tensor m = ranged(3, 2, 5, 4, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
     float answer_data[] = {
       0,  20,  5,  25,  10, 30,  15, 35,  1,  21,  6,  26,  11, 31,  16, 36,
       2,  22,  7,  27,  12, 32,  17, 37,  3,  23,  8,  28,  13, 33,  18, 38,
@@ -6337,11 +4650,7 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
       80, 100, 85, 105, 90, 110, 95, 115, 81, 101, 86, 106, 91, 111, 96, 116,
       82, 102, 87, 107, 92, 112, 97, 117, 83, 103, 88, 108, 93, 113, 98, 118,
       84, 104, 89, 109, 94, 114, 99, 119};
-<<<<<<< HEAD
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, NHWC_),
-=======
-    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, NHWC_, FP32_),
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
+    nntrainer::Tensor answer(ml::train::TensorDim({3, 2, 5, 4}, {NHWC_, FP32_}),
                              answer_data);
     t.transpose("1:0:2", m);
     EXPECT_EQ(answer, m);
@@ -6349,13 +4658,8 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
 }
 
 TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_n) {
-<<<<<<< HEAD
-  nntrainer::Tensor a(3, 5, 2, 4, NHWC_);
-  nntrainer::Tensor b(3, 3, 1, 2, NHWC_);
-=======
   nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
   nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
->>>>>>> 4bea9510... [ Tensor ] Support NHWC for dot, add/multiply_strided and other ops
 
   EXPECT_THROW(a.transpose("0:1:2", b), std::invalid_argument);
 }
