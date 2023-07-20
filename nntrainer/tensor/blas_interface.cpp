@@ -29,6 +29,18 @@
     }                                        \
   } while (0);
 
+// #define sgemv_loop_fp16(ci, cj, cM, cN)      \
+//   do {                                       \
+//     __fp16 y0;                               \
+//     unsigned int i, j;                       \
+//     for (ci = 0; ci != cM; ci++) {           \
+//       y0 = Y[ci * incy] * beta;              \
+//       for (cj = 0; cj != cN; cj++)           \
+//         y0 += A[i + j * lda] * X[cj * incx]; \
+//       Y[ci * incy] = y0;                     \
+//     }                                        \
+//   } while (0);
+
 namespace nntrainer {
 
 #ifndef USE_BLAS
@@ -48,7 +60,7 @@ static void saxpy_FP16(const unsigned int N, const float alpha, const __fp16 *X,
     throw std::invalid_argument(
       "Error: negative inc not supported without cblas");
   for (unsigned int i = 0; i < N; ++i)
-    Y[i * incY] = Y[i * incY] + X[i * incX] * alpha;
+    Y[i * incY] = Y[i * incY] + alpha * X[i * incX];
 }
 
 static void sgemv_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
@@ -222,7 +234,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
   for (unsigned int m = 0; m < M; ++m) {
     for (unsigned int n = 0; n < N; ++n) {
-      double c = 0.0;
+      __fp16 c = 0.0;
       __fp16 c_old = C[m * ldc + n];
       for (unsigned int k = 0; k < K; ++k) {
         __fp16 a, b;
