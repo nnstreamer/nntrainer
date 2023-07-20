@@ -1315,9 +1315,11 @@ public:
                 unsigned int w, float value, float beta) noexcept {
     auto const &idx = getIndex(batch, c, h, w);
     if (dim.getDataType() == Tdatatype::FP32) {
-      *(float *)(getData(idx)) = value + *(float *)(getData(idx)) * beta;
+      getData<float>()[idx] *= beta;
+      getData<float>()[idx] += value;
     } else if (dim.getDataType() == Tdatatype::FP16) {
-      *(__fp16 *)(getData(idx)) = value + *(__fp16 *)(getData(idx)) * beta;
+      getData<__fp16>()[idx] *= beta;
+      getData<__fp16>()[idx] += value;
     }
   }
 
