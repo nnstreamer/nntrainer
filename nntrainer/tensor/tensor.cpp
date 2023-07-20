@@ -84,14 +84,17 @@ struct Tensor::BroadcastInfo {
    *
    */
   BroadcastInfo() :
-    buffer_size(0), buffer_axis(-1), strides{0, 0, 0, 0}, fm(Tformat::NCHW) {}
+    buffer_size(0),
+    buffer_axis(-1),
+    strides{0, 0, 0, 0},
+    tensor_type(nntrainer::TensorDim::TensorType()) {}
 
   unsigned int buffer_size; /**< virtual size of the buffer */
   int buffer_axis;          /**< the smallest axis that should be looped.
                                  -1 means no loop needed*/
   std::array<unsigned int, TensorDim::MAXDIM>
     strides;                /**< modified strides for the loop */
-  Tformat fm;
+  nntrainer::TensorDim::TensorType tensor_type;
 };
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
@@ -222,18 +225,33 @@ bool Tensor::operator==(const Tensor &rhs) const {
 }
 
 void Tensor::setRandNormal(float mean, float std) {
-  setDist<float, std::normal_distribution<float>>(
-    std::normal_distribution<float>(mean, std));
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    setDist<float, std::normal_distribution<float>>(
+      std::normal_distribution<float>(mean, std));
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+    throw std::invalid_argument(
+      "__fp16 is not supported by std::normal_distribution");
+  }
 }
 
 void Tensor::setRandUniform(float min, float max) {
-  setDist<float, std::uniform_real_distribution<float>>(
-    std::uniform_real_distribution<float>(min, max));
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    setDist<float, std::uniform_real_distribution<float>>(
+      std::uniform_real_distribution<float>(min, max));
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+    throw std::invalid_argument(
+      "__fp16 is not supported by std::uniform_real_distribution");
+  }
 }
 
 void Tensor::setRandBernoulli(float probability) {
-  setDist<float, std::bernoulli_distribution>(
-    std::bernoulli_distribution(probability));
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    setDist<float, std::bernoulli_distribution>(
+      std::bernoulli_distribution(probability));
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+    setDist<__fp16, std::bernoulli_distribution>(
+      std::bernoulli_distribution((__fp16)probability));
+  }
 }
 
 void Tensor::initialize() {
@@ -1393,7 +1411,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
       }
 
       for (size_t i = 0u, sz = t.size(); i < sz; ++i) {
-        iter_value(loc, start_loc, ret, tensor_dim_arr) = t.getValue<float>(i);
+        iter_value(loc, start_loc, ret, tensor_dim_arr) = t.getValue<__fp16>(i);
       }
 
       if (is_format_nchw) {
@@ -1451,7 +1469,7 @@ void Tensor::apply_broadcast(
     BroadcastInfo e;
     e.buffer_size = size();
     e.strides[3] = 1;
-    e.fm = getFormat();
+    e.tensor_type = getTensorType();
     v_func(e, getData(), m.getData(), output.getData());
     return;
   }
@@ -1554,7 +1572,7 @@ Tensor Tensor::sum_by_batch() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
 
-  Tensor ret(dim.batch(), 1, 1, 1, this->getFormat());
+  Tensor ret(dim.batch(), 1, 1, 1, this->getFormat(), getDataType());
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
@@ -1565,12 +1583,12 @@ Tensor Tensor::sum_by_batch() const {
     Tensor ones(1, 1, 1, feat_len, this->getFormat());
     ones.setValue(1.0);
     sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
-          ones.getData(), 1, 0.0, rdata, 1);
+          ones.getData<float>(), 1, 0.0, rdata, 1);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
     const __fp16 *data = getData<__fp16>();
     __fp16 *rdata = ret.getData<__fp16>();
 
-    Tensor ones(1, 1, 1, feat_len, this->getFormat());
+    Tensor ones(1, 1, 1, feat_len, this->getTensorType());
     ones.setValue((__fp16)1.0);
     sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
           ones.getData<__fp16>(), 1, 0.0, rdata, 1);
@@ -1583,7 +1601,7 @@ Tensor Tensor::sum_by_batch() const {
  * @brief Calculate sum according to the axis.
  */
 Tensor Tensor::sum(unsigned int axis, float alpha) const {
-  Tensor ret("", this->getFormat());
+  Tensor ret("", this->getFormat(), this->getDataType());
   return sum(axis, ret, alpha, 0);
 }
 
@@ -1614,7 +1632,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       Tensor ones(1, 1, 1, batch, this->getFormat());
       ones.setValue(alpha);
       sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
-            ones.getData(), 1, beta, ret.getData(), 1);
+            ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
     } break;
     case 1: {
       CREATE_IF_EMPTY_DIMS(ret, dim[0], 1, dim[2], dim[3], getTensorType());
@@ -1690,8 +1708,8 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int n = dim[3];
         Tensor ones(1, 1, 1, n);
         ones.setValue(alpha);
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(), 1,
-              beta, ret.getData(), 1);
+        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+              ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
       }
     } break;
     default:
@@ -1719,7 +1737,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
                            this->getTensorType());
       size_t feat_len = dim.getFeatureLen();
       size_t batch = dim.batch();
-      Tensor ones(1, 1, 1, batch, this->getFormat());
+      Tensor ones(1, 1, 1, batch, this->getTensorType());
       ones.setValue(alpha);
       sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
             ones.getData<__fp16>(), 1, beta, ret.getData<__fp16>(), 1);
@@ -1752,7 +1770,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       if (this->getFormat() == Tformat::NHWC) {
         unsigned int feat_len = dim[1] * dim[3];
         unsigned int t_axis = dim[2];
-        Tensor ones(1, 1, 1, t_axis, this->getTensorType());
+        Tensor ones(1, 1, 1, t_axis, getTensorType());
         ones.setValue(alpha);
         __fp16 *rdata = ret.getData<__fp16>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -1763,7 +1781,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       } else {
         unsigned int t_3 = dim[3];
         unsigned int t_axis = dim[2];
-        Tensor ones(1, 1, 1, t_axis, this->getTensorType());
+        Tensor ones(1, 1, 1, t_axis, getTensorType());
         ones.setValue(alpha);
         __fp16 *rdata = ret.getData<__fp16>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -1777,12 +1795,11 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       }
     } break;
     case 3: {
-      CREATE_IF_EMPTY_DIMS(ret, dim[0], dim[1], dim[2], 1,
-                           this->getTensorType());
+      CREATE_IF_EMPTY_DIMS(ret, dim[0], dim[1], dim[2], 1, getTensorType());
       if (this->getFormat() == Tformat::NHWC) {
         unsigned int t_3 = dim[1];
         unsigned int t_axis = dim[3];
-        Tensor ones(1, 1, 1, t_axis, this->getTensorType());
+        Tensor ones(1, 1, 1, t_axis, getTensorType());
         ones.setValue(alpha);
         __fp16 *rdata = ret.getData<__fp16>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -1796,7 +1813,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       } else {
         unsigned int m = ret.dim.getDataLen();
         unsigned int n = dim[3];
-        Tensor ones(1, 1, 1, n);
+        Tensor ones(1, 1, 1, n, getTensorType());
         ones.setValue(alpha);
         sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
               ones.getData<__fp16>(), 1, beta, ret.getData<__fp16>(), 1);
@@ -1876,7 +1893,7 @@ Tensor &Tensor::dotBatched(Tensor const &m, Tensor &result, bool trans,
 }
 
 Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
-  Tensor output("", this->getFormat());
+  Tensor output("", this->getFormat(), this->getDataType());
   dot(m, output, trans, trans_m);
 
   return output;
@@ -2326,8 +2343,9 @@ void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
       "[Tensor::zoneout_mask] opposite dimension does not match");
   }
 
-  opposite.setRandBernoulli(zoneout);
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    opposite.setRandBernoulli(zoneout);
+
     float *data = getData();
     float *opposite_data = opposite.getData();
 
@@ -2339,6 +2357,9 @@ void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
       }
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+    __fp16 zoneout_fp16 = (__fp16)zoneout;
+    opposite.setRandBernoulli(zoneout_fp16);
+
     __fp16 *data = getData<__fp16>();
     __fp16 *opposite_data = opposite.getData<__fp16>();
 
@@ -2601,7 +2622,11 @@ void Tensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << "Tensor is not contiguous, cannot copy.";
 
-  if (buf == getData()) {
+  if (getDataType() == ml::train::TensorDim::DataType::FP16 &&
+      buf == getData<__fp16>()) {
+    return;
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP32 &&
+             buf == getData()) {
     return;
   }
   // std::string type_ =
@@ -2675,7 +2700,12 @@ void Tensor::copy(const Tensor &from) {
   if (from.size() != 0 && size() == from.size() &&
       getDataType() == from.getDataType()) {
     reshape(from.getDim());
-    copy(from.getData());
+    if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+      copy(from.getData());
+    } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+      copy(from.getData<__fp16>());
+    }
+
   } else {
     Tensor t = Tensor(from.getDim(), from.getData());
     swap(t, *this);
@@ -2774,7 +2804,7 @@ void Tensor::read(std::ifstream &file) {
  * @brief Calculate average value according to the axis.
  */
 Tensor Tensor::average(unsigned int axis) const {
-  Tensor t("", this->getFormat());
+  Tensor t("", this->getFormat(), this->getDataType());
   return average(axis, t);
 }
 
@@ -2796,7 +2826,7 @@ Tensor &Tensor::average(unsigned int axis, Tensor &output) const {
 }
 
 Tensor Tensor::average(const std::vector<unsigned int> &axes) const {
-  Tensor t("", this->getFormat());
+  Tensor t("", this->getFormat(), this->getDataType());
   return average(axes, t);
 }
 
@@ -3032,7 +3062,7 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
   const TensorDim m_dim = m.getDim();
 
   BroadcastInfo e;
-  e.fm = getFormat();
+  e.tensor_type = getTensorType();
 
   uint continuity[4] = {0, 1, 2, 3};
   if (getFormat() == Tformat::NHWC) {
