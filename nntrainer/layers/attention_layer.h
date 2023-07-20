@@ -15,6 +15,8 @@
 #define __ATTENTION_LAYER_H__
 #ifdef __cplusplus
 
+#include <limits>
+
 #include <acti_func.h>
 #include <layer_devel.h>
 
