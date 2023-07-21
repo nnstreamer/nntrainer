@@ -248,7 +248,7 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   con = std::make_unique<Connection>(name, index);
 }
 
-void LayerNode::setTensorType(const std::string type_) {
+void LayerNode::setTensorType(const std::string &type_) {
   TensorDim::Format type = (type_.compare("NCHW") || type_.compare("nchw"))
                              ? TensorDim::Format::NCHW
                              : TensorDim::Format::NHWC;

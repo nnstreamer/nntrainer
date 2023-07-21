@@ -806,7 +806,7 @@ public:
    *
    * @param type NCHW : NHWC
    */
-  void setTensorType(const std::string type_ = "NCHW");
+  void setTensorType(const std::string &type_ = "NCHW");
 
 private:
   /**
