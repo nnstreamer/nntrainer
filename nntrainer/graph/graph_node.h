@@ -121,8 +121,7 @@ public:
  * @note    GraphNodeType is to enable for both GraphNode and const GraphNode
  */
 template <typename LayerNodeType, typename GraphNodeType>
-class GraphNodeIterator
-  : public std::iterator<std::random_access_iterator_tag, GraphNodeType> {
+class GraphNodeIterator {
   GraphNodeType *p; /** underlying object of GraphNode */
 
 public:

@@ -17,6 +17,7 @@
 
 #include <acti_func.h>
 #include <layer_devel.h>
+#include <limits>
 
 namespace nntrainer {
 

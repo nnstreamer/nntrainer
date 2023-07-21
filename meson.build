@@ -40,7 +40,12 @@ warning_flags = [
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
-  '-Wno-unused-variable'
+  '-Wno-unused-variable',
+  '-Wno-unused-result',
+  '-Wno-array-bounds',
+  '-Wno-maybe-uninitialized',
+  '-Wno-overloaded-virtual',
+  '-Wno-pessimizing-move'
 ]
 
 warning_c_flags = [
