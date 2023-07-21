@@ -315,8 +315,7 @@ TEST(BasicProperty, valid_p) {
     nntrainer::Exporter e;
     e.saveResult(props, ml::train::ExportMethods::METHOD_STRINGVECTOR);
 
-    auto result =
-      std::move(e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>());
+    auto result = e.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
 
     auto pair = std::pair<std::string, std::string>("num_banana", "1");
     EXPECT_EQ(result->at(0), pair);
