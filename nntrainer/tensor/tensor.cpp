@@ -1847,7 +1847,6 @@ void Tensor::print(std::ostream &out) const {
 
 void Tensor::print_(std::ostream &out, uint opt) const {
   printInstance(out, this);
-  const float *data = getData();
 
   unsigned int len = size();
 
