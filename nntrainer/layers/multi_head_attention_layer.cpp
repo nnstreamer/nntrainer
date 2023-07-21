@@ -92,14 +92,12 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     std::get<props::DisableBias>(*layer_impl_props).get();
   auto &weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
-  auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =
     std::get<props::WeightRegularizerConstant>(*layer_impl_props);
   const float &weight_decay =
     std::get<props::WeightDecay>(*layer_impl_props).get();
-  const float &bias_decay = std::get<props::BiasDecay>(*layer_impl_props).get();
 
   NNTR_THROW_IF(std::get<props::NumHeads>(multi_head_attention_props).empty(),
                 std::invalid_argument)
@@ -374,13 +372,10 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   const TensorDim query_dim = query.getDim();
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
-  const unsigned int query_width = query_dim.width();
   const TensorDim key_dim = key.getDim();
   const unsigned int key_height = key_dim.height();
-  const unsigned int input_key_width_size = key_dim.width();
   const TensorDim value_dim = value.getDim();
   const unsigned int value_height = value_dim.height();
-  const unsigned int input_value_width_size = value_dim.width();
 
   query.dot(query_fc_weight, projected_query);
   if (!disable_bias) {
@@ -519,8 +514,6 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
     std::get<props::ProjectedKeyDim>(multi_head_attention_props).get();
   const unsigned int projected_value_dim_prop =
     std::get<props::ProjectedValueDim>(multi_head_attention_props).get();
-  const unsigned int output_shape =
-    std::get<props::OutputShape>(multi_head_attention_props).get();
   const float dropout_rate =
     std::get<props::DropOutRate>(multi_head_attention_props).get();
   const props::ReturnAttentionWeightInfo::Enum return_attention_weight =
@@ -534,11 +527,8 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   Tensor empty_tensor;
 
   Tensor &query = context.getInput(INOUT_INDEX::QUERY);
-  Tensor &d_query = context.getOutgoingDerivative(INOUT_INDEX::QUERY);
   Tensor &key = context.getInput(INOUT_INDEX::KEY);
-  Tensor &d_key = context.getOutgoingDerivative(INOUT_INDEX::KEY);
   Tensor &value = context.getInput(INOUT_INDEX::VALUE);
-  Tensor &d_value = context.getOutgoingDerivative(INOUT_INDEX::VALUE);
   const Tensor &incoming_derivative =
     context.getIncomingDerivative(INOUT_INDEX::OUTPUT);
   const Tensor &d_ret_attention_weight =
@@ -571,13 +561,10 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   const TensorDim query_dim = query.getDim();
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
-  const unsigned int query_width = query_dim.width();
   const TensorDim key_dim = key.getDim();
   const unsigned int key_height = key_dim.height();
-  const unsigned int input_key_width_size = key_dim.width();
   const TensorDim value_dim = value.getDim();
   const unsigned int value_height = value_dim.height();
-  const unsigned int input_value_width_size = value_dim.width();
 
   d_attention_output.dot_deriv_wrt_1(fc_weight, incoming_derivative);
 
@@ -689,15 +676,6 @@ void MultiHeadAttentionLayer::calcDerivative(RunLayerContext &context) {
     calcCommonDerivative(context);
   }
 
-  const unsigned int num_heads =
-    std::get<props::NumHeads>(multi_head_attention_props).get();
-  const unsigned int projected_key_dim_prop =
-    std::get<props::ProjectedKeyDim>(multi_head_attention_props).get();
-  const unsigned int projected_value_dim_prop =
-    std::get<props::ProjectedValueDim>(multi_head_attention_props).get();
-
-  const unsigned int projected_query_dim_prop = projected_key_dim_prop;
-
   Tensor &query = context.getInput(INOUT_INDEX::QUERY);
   Tensor &d_query = context.getOutgoingDerivative(INOUT_INDEX::QUERY);
   Tensor &key = context.getInput(INOUT_INDEX::KEY);
@@ -721,15 +699,8 @@ void MultiHeadAttentionLayer::calcDerivative(RunLayerContext &context) {
     context.getTensorGrad(weight_idx[AttentionParams::projected_value]);
 
   const TensorDim query_dim = query.getDim();
-  const unsigned int batch_size = query_dim.batch();
-  const unsigned int query_height = query_dim.height();
-  const unsigned int query_width = query_dim.width();
   const TensorDim key_dim = key.getDim();
-  const unsigned int key_height = key_dim.height();
-  const unsigned int input_key_width_size = key_dim.width();
   const TensorDim value_dim = value.getDim();
-  const unsigned int value_height = value_dim.height();
-  const unsigned int input_value_width_size = value_dim.width();
 
   d_query.dot_deriv_wrt_1(query_fc_weight, d_projected_query);
   d_key.dot_deriv_wrt_1(key_fc_weight, d_projected_key);
@@ -798,13 +769,10 @@ void MultiHeadAttentionLayer::calcGradient(RunLayerContext &context) {
   const TensorDim query_dim = query.getDim();
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
-  const unsigned int query_width = query_dim.width();
   const TensorDim key_dim = key.getDim();
   const unsigned int key_height = key_dim.height();
-  const unsigned int input_key_width_size = key_dim.width();
   const TensorDim value_dim = value.getDim();
   const unsigned int value_height = value_dim.height();
-  const unsigned int input_value_width_size = value_dim.width();
 
   attention_output.dot_deriv_wrt_2(
     d_fc_weight, incoming_derivative, false, false,

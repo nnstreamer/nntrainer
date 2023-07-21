@@ -101,7 +101,6 @@ TEST(nntrainer_activation, softmax_prime_02_n) {
   int channel = 1;
   int height = 1;
   int width = 10;
-  float results[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (i * (width) + k + 1));

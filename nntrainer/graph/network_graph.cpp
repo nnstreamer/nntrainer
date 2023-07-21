@@ -81,12 +81,6 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   inPlaceOptimize();
 
-  TensorDim::Format type =
-    (getModelTensorType().compare("NCHW") ||
-     getModelTensorType().compare("nchw") || getModelTensorType().compare(""))
-      ? TensorDim::Format::NCHW
-      : TensorDim::Format::NHWC;
-
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
     /// @todo  later, we can set layer tensor type differenctly with model
@@ -867,7 +861,6 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
 std::map<std::string, std::vector<unsigned int>>
 NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
-  const GraphNode &gnode = *lnode.get();
   auto init_context = lnode->getInitContext();
   auto out_specs = init_context.getOutSpecs();
   auto weight_specs = init_context.getWeightsSpec();
