@@ -16,6 +16,7 @@
  * Fill in "GstTensorFilterFramework" for tensor_filter.h/c
  *
  */
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <vector>
