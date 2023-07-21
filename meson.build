@@ -34,18 +34,12 @@ warning_flags = [
   '-Wformat-security',
   '-Winit-self',
   '-Waddress',
-  '-Wno-multichar',
   '-Wvla',
   '-Wpointer-arith',
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
-  '-Wno-unused-variable',
-  '-Wno-unused-result',
-  '-Wno-array-bounds',
-  '-Wno-maybe-uninitialized',
-  '-Wno-overloaded-virtual',
-  '-Wno-pessimizing-move'
+  '-Wno-unused-variable'
 ]
 
 warning_c_flags = [
