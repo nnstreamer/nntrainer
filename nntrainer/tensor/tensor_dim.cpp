@@ -117,7 +117,11 @@ TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
 uint TensorDim::getDataTypeSize() const {
   switch (t_type.data_type) {
   case TensorDim::DataType::FP16:
+#ifdef ENABLE_FP16
     return sizeof(__fp16);
+#else
+    return 2;
+#endif
   case TensorDim::DataType::FP32:
     return sizeof(float);
   default:

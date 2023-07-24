@@ -650,7 +650,7 @@ struct TensorDataTypeInfo {
   static constexpr std::initializer_list<Enum> EnumList = {Enum::FP16,
                                                            Enum::FP32};
 
-  static constexpr const char *EnumStr[] = {"fp16", "fp32"};
+  static constexpr const char *EnumStr[] = {"FP16", "FP32"};
 };
 
 namespace props {
@@ -663,6 +663,10 @@ class TensorDataType final : public EnumProperty<TensorDataTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "tensor_type";
+  TensorDataType(
+    TensorDataTypeInfo::Enum value = TensorDataTypeInfo::Enum::FP32) {
+    set(value);
+  };
 };
 
 /**
@@ -682,7 +686,7 @@ public:
    */
   TensorFormat(const std::string &value = "NCHW") { set(value); };
 };
-  }
+} // namespace props
 
 } // namespace nntrainer
 

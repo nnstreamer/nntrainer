@@ -79,7 +79,9 @@ public:
   /**
    * @brief  Get address
    */
-  template <typename T = float> T *getAddr() const { return (T *)address; }
+  template <typename T = float> T *getAddr() const {
+    return static_cast<T *>(address);
+  }
 
   /**
    * @brief  Validate memory data
