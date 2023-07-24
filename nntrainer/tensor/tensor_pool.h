@@ -197,7 +197,7 @@ public:
   Tensor *view(const std::string &name, const std::string &reference,
                const TensorDim &dim,
                const std::vector<unsigned int> &exec_order,
-               TensorLifespan lifespan, const unsigned int offset = 0);
+               TensorLifespan lifespan, const size_t offset = 0);
 
   /**
    * @brief extend a tensor life as tensor is being shared.

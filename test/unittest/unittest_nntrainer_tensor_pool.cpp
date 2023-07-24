@@ -395,8 +395,8 @@ TEST(TensorPool, allocate_deallocate_03_p) {
   EXPECT_TRUE(t2->isAllocated());
   EXPECT_TRUE(t3->isAllocated());
 
-  EXPECT_EQ(t1->getData(), t2->getData());
-  EXPECT_EQ(t1->getData(), t3->getData());
+  EXPECT_EQ(t1->getData<float>(), t2->getData<float>());
+  EXPECT_EQ(t1->getData<float>(), t3->getData<float>());
 
   EXPECT_NO_THROW(pool.deallocate());
   EXPECT_FALSE(t1->isAllocated());
@@ -441,11 +441,11 @@ TEST(TensorPool, validate_memory) {
  * @param t2 tensor2
  */
 static void testNoOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
-  char *t1_start = t1->getData<char>();
-  char *t1_end = t1_start + t1->bytes();
+  float *t1_start = t1->getData<float>();
+  float *t1_end = t1_start + t1->size();
 
-  char *t2_start = t2->getData<char>();
-  char *t2_end = t2_start + t2->bytes();
+  float *t2_start = t2->getData<float>();
+  float *t2_end = t2_start + t2->size();
 
   EXPECT_NE(t1_start, nullptr);
   EXPECT_NE(t2_start, nullptr);
@@ -460,11 +460,11 @@ static void testNoOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
  * @param t2 t2 tensor 2
  */
 static void testSubset(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
-  char *t1_start = t1->getData<char>();
-  char *t1_end = t1_start + t1->bytes();
+  float *t1_start = t1->getData<float>();
+  float *t1_end = t1_start + t1->size();
 
-  char *t2_start = t2->getData<char>();
-  char *t2_end = t2_start + t2->bytes();
+  float *t2_start = t2->getData<float>();
+  float *t2_end = t2_start + t2->size();
 
   EXPECT_NE(t1_start, nullptr);
   EXPECT_NE(t2_start, nullptr);
@@ -519,7 +519,7 @@ TEST(TensorPool, view_is_same_p) {
 
   EXPECT_NE(t1, t2);
   EXPECT_EQ(t1->getDim(), t2->getDim());
-  EXPECT_EQ(t1->getData(), t2->getData());
+  EXPECT_EQ(t1->getData<float>(), t2->getData<float>());
   pool.deallocate();
 }
 
@@ -593,8 +593,8 @@ TEST(TensorPool, view_of_placeholder_p) {
   pool.allocate();
 
   EXPECT_NE(t1, t2);
-  EXPECT_EQ(t1->getData(), nullptr);
-  EXPECT_EQ(t2->getData(), nullptr);
+  EXPECT_EQ(t1->getData<float>(), nullptr);
+  EXPECT_EQ(t2->getData<float>(), nullptr);
 
   /// t_original: 0 1 2 3 4 5 6 7 8 9
   /// t1        : 0 1 2 3 4 5 6 7 8 9
@@ -609,8 +609,8 @@ TEST(TensorPool, view_of_placeholder_p) {
   testSubset(t1, t3);
 
   EXPECT_EQ(*t1, t_original);
-  EXPECT_FLOAT_EQ(*t2->getData(), 1.0f);
-  EXPECT_FLOAT_EQ(*t3->getData(), 3.0f);
+  EXPECT_FLOAT_EQ(t2->getData<float>()[0], 1.0f);
+  EXPECT_FLOAT_EQ(t3->getData<float>()[0], 3.0f);
 
   pool.deallocate();
 }

@@ -37,6 +37,7 @@
 #include <iostream>
 #include <memory_data.h>
 #include <nntrainer_error.h>
+#include <nntrainer_log.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -267,6 +268,7 @@ public:
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
+#ifdef ENABLE_FP16
   Tensor(std::vector<std::vector<std::vector<std::vector<__fp16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
 
@@ -336,6 +338,8 @@ public:
   Tensor(std::vector<std::vector<__fp16>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+#endif
 
   /**
    *  @brief  Copy constructor of Tensor.
@@ -1202,6 +1206,7 @@ public:
         }
       }
     } else if (dim.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
       if (contiguous && output.contiguous) {
         const __fp16 *data = (getData<__fp16>());
         __fp16 *rdata = (output.getData<__fp16>());
@@ -1230,8 +1235,10 @@ public:
           }
         }
       }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
-
     return output;
   };
 
@@ -1298,7 +1305,11 @@ public:
     if (getDataType() == Tdatatype::FP32) {
       getData<float>()[getIndex(batch, c, h, w)] = value;
     } else if (getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
       getData<__fp16>()[getIndex(batch, c, h, w)] = value;
+#else
+      ml_loge("%s", "Error: enable-fp16 is not enabled");
+#endif
     }
   }
 
@@ -1318,8 +1329,12 @@ public:
       getData<float>()[idx] *= beta;
       getData<float>()[idx] += value;
     } else if (dim.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
       getData<__fp16>()[idx] *= beta;
       getData<__fp16>()[idx] += value;
+#else
+      ml_loge("%s", "Error: enable-fp16 is not enabled");
+#endif
     }
   }
 
@@ -1613,7 +1628,7 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)((data->getAddr<T>()) + offset);
+    return data->getAddr<T>() + offset;
   }
 
   /**
@@ -1625,7 +1640,7 @@ public:
       return nullptr;
 
     data->validate();
-    return (T *)(data->getAddr<T>() + offset);
+    return data->getAddr<T>() + offset;
   }
 
   /**
@@ -1636,10 +1651,10 @@ public:
     if (!data)
       return nullptr;
 
-    size_t index = idx * sizeof(T);
+    size_t index = idx;
 
     data->validate();
-    return (T *)(data->getAddr<T>() + offset + index);
+    return data->getAddr<T>() + offset + index;
   }
 
   void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
@@ -1669,7 +1684,7 @@ public:
   /**
    * @brief     return offset
    */
-  unsigned int getOffset() const { return offset; }
+  size_t getOffset() const { return offset; }
 
   /**
    * @brief     i data index
@@ -1750,7 +1765,7 @@ public:
    * @param buf the memory buffer
    * @param init intialize the buffer
    */
-  void setData(const std::shared_ptr<MemoryData> buf, unsigned int off = 0,
+  void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
                bool init = false) {
     if (buf) {
       data = buf;
@@ -1794,7 +1809,7 @@ private:
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
-  unsigned int offset;
+  size_t offset;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source
@@ -1826,14 +1841,6 @@ private:
                        int cur_axis = -1, size_t offset = 0,
                        size_t m_offset = 0) const;
 
-  void apply_broadcast_util(
-    Tensor const &m,
-    std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
-                       __fp16 *)>
-      v_func,
-    Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
-    size_t offset = 0, size_t m_offset = 0) const;
-
   /**
    * @brief Applies the given operator to the tensor with the passed argument
    *
@@ -1847,6 +1854,14 @@ private:
                                           const float *, float *)>
                          v_func,
                        Tensor &output) const;
+#ifdef ENABLE_FP16
+  void apply_broadcast_util(
+    Tensor const &m,
+    std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
+                       __fp16 *)>
+      v_func,
+    Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
+    size_t offset = 0, size_t m_offset = 0) const;
 
   void
   apply_broadcast(Tensor const &m,
@@ -1854,7 +1869,7 @@ private:
                                      const __fp16 *, __fp16 *)>
                     v_func,
                   Tensor &output) const;
-
+#endif
   /**
    * @brief compute Loop info for broadcasting and vectorization
    *

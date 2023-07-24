@@ -377,7 +377,7 @@ public:
    * @return TensorDim::Format NCHW or NHWC
    */
   std::array<const std::string, 2> getTensorType() {
-    return {std::move(tensor_format), std::move(tensor_dtype)};
+    return {tensor_format, tensor_dtype};
   };
 
   /**
