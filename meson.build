@@ -72,6 +72,10 @@ warning_c_flags = [
 #    endforeach
 # enfif
 
+if get_option('enable-fp16')
+  extra_defines += '-DENABLE_FP16=1'
+endif
+
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
     add_project_arguments([extra_arg], language: 'c')

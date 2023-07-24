@@ -60,7 +60,7 @@ Tensor *TensorPool::placeholder(const std::string &name, const TensorDim &dim) {
 Tensor *TensorPool::view(const std::string &name, const std::string &reference,
                          const TensorDim &dim,
                          const std::vector<unsigned int> &exec_order,
-                         TensorLifespan lifespan, const unsigned int offset) {
+                         TensorLifespan lifespan, const size_t offset) {
   auto &spec = getSourceSpec(reference);
   unsigned adjusted_offset = std::visit(
     [](const auto &s) {

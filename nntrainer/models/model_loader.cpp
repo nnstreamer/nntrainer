@@ -121,10 +121,10 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::vector<std::string> properties =
-    parseProperties(ini, "Model",
-                    {"optimizer", "learning_rate", "decay_steps", "decay_rate",
-                     "beta1", "beta2", "epsilon", "type", "save_path"});
+  std::vector<std::string> properties = parseProperties(
+    ini, "Model",
+    {"optimizer", "learning_rate", "decay_steps", "decay_rate", "beta1",
+     "beta2", "epsilon", "type", "save_path", "tensor_type", "tensor_format"});
   try {
     model.setProperty(properties);
   } catch (std::exception &e) {
