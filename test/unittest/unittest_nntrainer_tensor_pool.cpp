@@ -601,6 +601,7 @@ TEST(TensorPool, view_of_placeholder_p) {
   /// t2        : 0 1 2 3 4 5 6 7 8 9
   /// t3        :     2 3
   nntrainer::Tensor t_original(t1->getDim());
+  t_original.apply_i((std::function<float (float)>)[i = 0u](float _) mutable { return ++i; });
   pool.fillPlaceholder("t1", t_original);
 
   testSubset(t1, &t_original);
