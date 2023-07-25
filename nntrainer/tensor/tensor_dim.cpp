@@ -118,7 +118,7 @@ uint TensorDim::getDataTypeSize() const {
   switch (t_type.data_type) {
   case TensorDim::DataType::FP16:
 #ifdef ENABLE_FP16
-    return sizeof(__fp16);
+    return sizeof(_Float16);
 #else
     return 2;
 #endif

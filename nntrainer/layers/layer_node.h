@@ -807,6 +807,7 @@ public:
    * @param format NCHW : NHWC
    * @param type FP16, FP32
    */
+  using Layer::setTensorType;
   void setTensorType(const std::string form_ = "NCHW",
                      const std::string type_ = "FP32");
   /**
