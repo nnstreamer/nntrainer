@@ -441,7 +441,7 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor hidden_state_zoneout_mask = hs_zoneout_mask.getBatchSlice(timestep, 1);
   hidden_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
   Tensor prev_hidden_state_zoneout_mask = hidden_state_zoneout_mask.apply(
-    [epsilon = epsilon](float x) { return x < epsilon; });
+    (std::function<float (float)>) [epsilon = epsilon](float x) { return x < epsilon; });
 
   d_hidden_state.multiply(prev_hidden_state_zoneout_mask,
                           d_prev_hidden_state_residual);
@@ -456,7 +456,7 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor cell_state_zoneout_mask = cs_zoneout_mask.getBatchSlice(timestep, 1);
   cell_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
   Tensor prev_cell_state_zoneout_mask = cell_state_zoneout_mask.apply(
-    [epsilon = epsilon](float x) { return x < epsilon; });
+    (std::function<float (float)>) [epsilon = epsilon](float x) { return x < epsilon; });
 
   d_cell_state.multiply(prev_cell_state_zoneout_mask,
                         d_prev_cell_state_residual);

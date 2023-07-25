@@ -40,24 +40,24 @@ enum CBLAS_TRANSPOSE {
 namespace nntrainer {
 
 #ifdef ENABLE_FP16
-void sscal(const unsigned int N, const float alpha, __fp16 *X, const int incX);
-__fp16 snrm2(const int N, const __fp16 *X, const int incX);
-void scopy(const unsigned int N, const __fp16 *X, const int incX, __fp16 *Y,
+void sscal(const unsigned int N, const float alpha, _Float16 *X, const int incX);
+_Float16 snrm2(const int N, const _Float16 *X, const int incX);
+void scopy(const unsigned int N, const _Float16 *X, const int incX, _Float16 *Y,
            const int intY);
-__fp16 sdot(const unsigned int N, const __fp16 *X, const unsigned int incX,
-            const __fp16 *Y, const unsigned int incY);
-void saxpy(const unsigned int N, const float alpha, const __fp16 *X,
-           const int incX, __fp16 *Y, const int incY);
+_Float16 sdot(const unsigned int N, const _Float16 *X, const unsigned int incX,
+            const _Float16 *Y, const unsigned int incY);
+void saxpy(const unsigned int N, const float alpha, const _Float16 *X,
+           const int incX, _Float16 *Y, const int incY);
 void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
-           const float alpha, const __fp16 *A, const unsigned int lda,
-           const __fp16 *B, const unsigned int ldb, const float beta, __fp16 *C,
+           const float alpha, const _Float16 *A, const unsigned int lda,
+           const _Float16 *B, const unsigned int ldb, const float beta, _Float16 *C,
            const unsigned int ldc);
 void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
-           const unsigned int N, const float alpha, const __fp16 *A,
-           const unsigned int lda, const __fp16 *X, const int incX,
-           const float beta, __fp16 *Y, const int incY);
-unsigned int isamax(const unsigned int N, const __fp16 *X, const int incX);
+           const unsigned int N, const float alpha, const _Float16 *A,
+           const unsigned int lda, const _Float16 *X, const int incX,
+           const float beta, _Float16 *Y, const int incY);
+unsigned int isamax(const unsigned int N, const _Float16 *X, const int incX);
 #endif
 
 void sscal(const unsigned int N, const float alpha, void *X, const int incX,
