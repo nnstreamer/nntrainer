@@ -269,7 +269,7 @@ public:
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
 #ifdef ENABLE_FP16
-  Tensor(std::vector<std::vector<std::vector<std::vector<__fp16>>>> const &d,
+  Tensor(std::vector<std::vector<std::vector<std::vector<_Float16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
 
     if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
@@ -293,9 +293,9 @@ public:
     strides = dim.computeStrides();
 
     MemoryData *mem_data =
-      new MemoryData((void *)(new __fp16[dim.getDataLen()]()));
+      new MemoryData((void *)(new _Float16[dim.getDataLen()]()));
     data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<__fp16>();
+      delete[] mem_data->getAddr<_Float16>();
     });
     offset = 0;
     contiguous = true;
@@ -326,7 +326,7 @@ public:
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<__fp16>>> const &d,
+  Tensor(std::vector<std::vector<std::vector<_Float16>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
@@ -335,7 +335,7 @@ public:
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
    */
-  Tensor(std::vector<std::vector<__fp16>> const &d,
+  Tensor(std::vector<std::vector<_Float16>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
@@ -1205,11 +1205,52 @@ public:
           }
         }
       }
-    } else if (dim.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
+    } 
+    return output;
+  };
+
+  /**
+   * @brief Apply instantly to the element
+   *
+   * @param f function to apply
+   * @return int ML_ERROR_NONE if successful
+   */
+  int apply_i(std::function<_Float16(_Float16)> f) {
+    Tensor result = *this;
+    apply(f, result);
+
+    return ML_ERROR_NONE;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  Tensor apply(std::function<_Float16(_Float16)> f) const {
+    Tensor result;
+    return apply(f, result);
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  Tensor &apply(std::function<_Float16(_Float16)> f, Tensor &output) const {
+    CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
+
+    if (dim != output.dim) {
+      /// @todo add unittest
+      throw std::invalid_argument(
+        "[Tensor::apply] output dimension does not match");
+    }
+
+    #ifdef ENABLE_FP16
       if (contiguous && output.contiguous) {
-        const __fp16 *data = (getData<__fp16>());
-        __fp16 *rdata = (output.getData<__fp16>());
+        const _Float16 *data = (getData<_Float16>());
+        _Float16 *rdata = (output.getData<_Float16>());
 
         std::transform(data, data + size(), rdata, f);
       } else if (strides[3] == 1 && output.strides[3] == 1) {
@@ -1217,8 +1258,8 @@ public:
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
             for (unsigned int h = 0; h < height(); ++h) {
-              __fp16 *out_data = (__fp16 *)output.getAddress(b, c, h, 0);
-              const __fp16 *in_data = (__fp16 *)getAddress(b, c, h, 0);
+              _Float16 *out_data = (_Float16 *)output.getAddress(b, c, h, 0);
+              const _Float16 *in_data = (_Float16 *)getAddress(b, c, h, 0);
               std::transform(in_data, in_data + width(), out_data, f);
             }
           }
@@ -1229,16 +1270,16 @@ public:
             for (unsigned int h = 0; h < height(); ++h) {
               for (unsigned int w = 0; w < width(); ++w) {
                 output.setValue(b, c, h, w,
-                                f((float)((__fp16)getValue(b, c, h, w))));
+                                ((_Float16)((_Float16)getValue(b, c, h, w))));
               }
             }
           }
         }
       }
-#else
+    #else
       throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-    }
+    #endif
+  
     return output;
   };
 
@@ -1306,7 +1347,7 @@ public:
       getData<float>()[getIndex(batch, c, h, w)] = value;
     } else if (getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-      getData<__fp16>()[getIndex(batch, c, h, w)] = value;
+      getData<_Float16>()[getIndex(batch, c, h, w)] = static_cast<_Float16>(value);
 #else
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
@@ -1330,8 +1371,8 @@ public:
       getData<float>()[idx] += value;
     } else if (dim.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-      getData<__fp16>()[idx] *= beta;
-      getData<__fp16>()[idx] += value;
+      getData<_Float16>()[idx] *= static_cast<_Float16>(beta);
+      getData<_Float16>()[idx] += static_cast<_Float16>(value);
 #else
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
@@ -1857,16 +1898,16 @@ private:
 #ifdef ENABLE_FP16
   void apply_broadcast_util(
     Tensor const &m,
-    std::function<void(const BroadcastInfo &e, const __fp16 *, const __fp16 *,
-                       __fp16 *)>
+    std::function<void(const BroadcastInfo &e, const _Float16 *, const _Float16 *,
+                       _Float16 *)>
       v_func,
     Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
     size_t offset = 0, size_t m_offset = 0) const;
 
   void
   apply_broadcast(Tensor const &m,
-                  std::function<void(const BroadcastInfo &e, const __fp16 *,
-                                     const __fp16 *, __fp16 *)>
+                  std::function<void(const BroadcastInfo &e, const _Float16 *,
+                                     const _Float16 *, _Float16 *)>
                     v_func,
                   Tensor &output) const;
 #endif

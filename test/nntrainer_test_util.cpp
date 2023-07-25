@@ -189,7 +189,7 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
   nntrainer::TensorDim::TensorType t_type(fm, d_type);
   nntrainer::Tensor t(batch, channel, height, width, t_type);
   unsigned int i = 0;
-  return t.apply([&](float in) { return i++; });
+  return t.apply((std::function<float (float)>)[&](float in) { return i++; });
 }
 
 nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,

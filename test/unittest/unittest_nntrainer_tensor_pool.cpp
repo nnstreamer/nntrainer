@@ -70,7 +70,7 @@ TEST(TensorPool, request_03_n) {
  */
 TEST(TensorPool, request_04_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t;
+  nntrainer::Tensor *t = nullptr;
 
   EXPECT_NO_THROW(t = pool.request("abc", nntrainer::TensorDim({1}), {},
                                    nntrainer::TensorLifespan::UNMANAGED));
@@ -165,7 +165,7 @@ TEST(TensorPool, view_06_n) {
  */
 TEST(TensorPool, view_07_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(t1 = pool.request("abc", nntrainer::TensorDim({1}), {},
                                     nntrainer::TensorLifespan::UNMANAGED));
@@ -185,7 +185,7 @@ TEST(TensorPool, view_07_p) {
  */
 TEST(TensorPool, view_08_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(t1 = pool.request("abc", nntrainer::TensorDim({1}), {},
                                     nntrainer::TensorLifespan::UNMANAGED));
@@ -212,7 +212,7 @@ TEST(TensorPool, view_08_p) {
  */
 TEST(TensorPool, set_batch_01_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1;
+  nntrainer::Tensor *t1 = nullptr;
 
   EXPECT_NO_THROW(t1 = pool.request("abc", nntrainer::TensorDim({1}), {},
                                     nntrainer::TensorLifespan::UNMANAGED));
@@ -229,7 +229,7 @@ TEST(TensorPool, set_batch_01_p) {
  */
 TEST(TensorPool, set_batch_02_n) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1;
+  nntrainer::Tensor *t1 = nullptr;
 
   EXPECT_NO_THROW(t1 = pool.request("abc", nntrainer::TensorDim({1}), {},
                                     nntrainer::TensorLifespan::UNMANAGED));
@@ -245,7 +245,7 @@ TEST(TensorPool, set_batch_02_n) {
  */
 TEST(TensorPool, set_batch_03_n) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1;
+  nntrainer::Tensor *t1 = nullptr;
   nntrainer::BasicPlanner basic_planner;
 
   EXPECT_NO_THROW(
@@ -263,7 +263,7 @@ TEST(TensorPool, set_batch_03_n) {
  */
 TEST(TensorPool, finalize_01_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(t1 = pool.request("abc1", nntrainer::TensorDim({1}), {},
                                     nntrainer::TensorLifespan::UNMANAGED));
@@ -289,7 +289,7 @@ TEST(TensorPool, finalize_01_p) {
  */
 TEST(TensorPool, finalize_02_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(
     t1 = pool.request("abc1", nntrainer::TensorDim({1}), {0}, max_ls));
@@ -326,7 +326,7 @@ TEST(TensorPool, finalize_03_p) {
  */
 TEST(TensorPool, allocate_deallocate_01_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(
     t1 = pool.request("abc1", nntrainer::TensorDim({1}), {0}, max_ls));
@@ -367,7 +367,7 @@ TEST(TensorPool, allocate_deallocate_02_n) {
  */
 TEST(TensorPool, allocate_deallocate_03_p) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2, *t3;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
 
   EXPECT_NO_THROW(
     t1 = pool.request("abc", nntrainer::TensorDim({1}), {0}, max_ls));
@@ -601,7 +601,6 @@ TEST(TensorPool, view_of_placeholder_p) {
   /// t2        : 0 1 2 3 4 5 6 7 8 9
   /// t3        :     2 3
   nntrainer::Tensor t_original(t1->getDim());
-  t_original.apply_i([i = 0u](float _) mutable { return ++i; });
   pool.fillPlaceholder("t1", t_original);
 
   testSubset(t1, &t_original);
