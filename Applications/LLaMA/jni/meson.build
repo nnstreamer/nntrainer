@@ -26,18 +26,34 @@ swiglu_dep = declare_dependency(
   include_directories: include_directories('./')
 )
 
+rotary_emb_src = files('rotary_embedding.cpp')
+rotary_emb_layer = shared_library('rotary_embedding',
+  rotary_emb_src,
+  dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+  include_directories: include_directories('./'),
+  install: true,
+  install_dir: application_install_dir,
+  cpp_args: '-DPLUGGABLE'
+)
+rotary_emb_dep = declare_dependency(
+  link_with: rotary_emb_layer,
+  include_directories: include_directories('./')
+)
+
 llama_sources = [
   'main.cpp',
   cifar_path / 'cifar_dataloader.cpp',
   rms_norm_src,
-  swiglu_src
+  swiglu_src,
+  rotary_emb_src
 ]
 
 llama_dependencies = [app_utils_dep,
   nntrainer_dep,
   nntrainer_ccapi_dep,
   rms_norm_dep,
-  swiglu_dep
+  swiglu_dep,
+  rotary_emb_dep
 ]
 
 e = executable('nntrainer_llama',
