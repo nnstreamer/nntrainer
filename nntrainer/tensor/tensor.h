@@ -1270,7 +1270,7 @@ public:
             for (unsigned int h = 0; h < height(); ++h) {
               for (unsigned int w = 0; w < width(); ++w) {
                 output.setValue(b, c, h, w,
-                                ((_Float16)((_Float16)getValue(b, c, h, w))));
+                                f((_Float16)((_Float16)getValue(b, c, h, w))));
               }
             }
           }
