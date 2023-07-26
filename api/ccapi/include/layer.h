@@ -172,7 +172,7 @@ public:
    * @note      This is used mainly for the unittest case which does not have
    * model.
    */
-  virtual void setTensorType(std::array<const std::string, 2> &type){};
+  virtual void setTensorType(std::array<const std::string, 2> type){};
 
   /**
    * @brief     Get name of the layer
