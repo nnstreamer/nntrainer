@@ -499,8 +499,8 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
   if (tensor_map.empty() || !tensor_map[inputs[0]->getName()]) {
     auto filler = [this](const auto &vec) {
       for (auto const &val : vec) {
-        tensor_map[val->getName()] = val->getVariableRef().getData();
-        tensor_map[val->getGradientName()] = val->getGradientRef().getData();
+        tensor_map[val->getName()] = val->getVariableRef().getData<float>();
+        tensor_map[val->getGradientName()] = val->getGradientRef().getData<float>();
       }
     };
 

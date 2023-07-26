@@ -249,7 +249,7 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
 }
 
 void LayerNode::setTensorType(const std::string form_, const std::string ty_) {
-  setTensorType({std::move(form_), std::move(ty_)});
+  setTensorType({form_, ty_});
 }
 
 void LayerNode::setTensorType(std::array<const std::string, 2> t_type) {
