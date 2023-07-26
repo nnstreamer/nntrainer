@@ -830,14 +830,25 @@ Tensor Tensor::divide(float const &value) const {
 }
 
 Tensor &Tensor::divide(float const &value, Tensor &out) const {
-  auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
   /// @todo add unittest, _Float16 ZeroDivisionError
   if (value == 0.0f) {
     std::stringstream ss;
     ss << "[Tensor] divide by value failed, value: " << value;
     throw std::invalid_argument(ss.str().c_str());
   }
-  return apply(f, out);
+
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
+    return apply(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = std::bind(std::divides<_Float16>(), std::placeholders::_1, static_cast<_Float16>(value));
+    return apply(f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+  return out;
 }
 
 int Tensor::divide_i(Tensor const &m) {
@@ -3038,7 +3049,7 @@ void Tensor::setValue(float val) {
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     _Float16 *data = getData<_Float16>();
-    std::fill(data, data + size(), (_Float16)val);
+    std::fill(data, data + size(), static_cast<_Float16>(val));
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
