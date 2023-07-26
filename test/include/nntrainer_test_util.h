@@ -133,27 +133,27 @@ private:
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int d0, unsigned d1,
-                           unsigned d2, unsigned d3,
-                           nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
-                           nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+nntrainer::Tensor
+constant(float value, unsigned int d0, unsigned d1, unsigned d2, unsigned d3,
+         nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+         nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
 
 /**
  * @brief return a tensor filled with ranged value with given dimension
  */
-nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
-                         unsigned width,
-                         nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
-                           nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+nntrainer::Tensor
+ranged(unsigned int batch, unsigned channel, unsigned height, unsigned width,
+       nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+       nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
 
 /**
  * @brief return a tensor filled with random value with given dimension
  */
-nntrainer::Tensor randUniform(unsigned int batch, unsigned channel,
-                              unsigned height, unsigned width, float min = -1,
-                              float max = 1,
-                              nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
-                           nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+nntrainer::Tensor
+randUniform(unsigned int batch, unsigned channel, unsigned height,
+            unsigned width, float min = -1, float max = 1,
+            nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+            nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
 
 /**
  * @brief replace string and save in file
