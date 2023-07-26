@@ -188,8 +188,16 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
                          nntrainer::Tformat fm, nntrainer::Tdatatype d_type) {
   nntrainer::TensorDim::TensorType t_type(fm, d_type);
   nntrainer::Tensor t(batch, channel, height, width, t_type);
-  unsigned int i = 0;
-  return t.apply((std::function<float (float)>)[&](float in) { return i++; });
+  if (t_type.data_type == nntrainer::Tdatatype::FP32) {
+    float i = 0;
+    t = t.apply((std::function<float(float)>)[&](float in) { return i++; });
+  } else if (t_type.data_type == nntrainer::Tdatatype::FP16) {
+    _Float16 i = 0;
+    t = t.apply(
+      (std::function<_Float16(_Float16)>)[&](_Float16 in) { return i++; });
+  }
+
+  return t;
 }
 
 nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
