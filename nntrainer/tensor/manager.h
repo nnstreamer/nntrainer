@@ -479,6 +479,11 @@ public:
    */
   void flushCacheExcept(unsigned int order);
 
+  /**
+   * @brief     reinitialize manager
+   */
+  void reinitialize();
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers

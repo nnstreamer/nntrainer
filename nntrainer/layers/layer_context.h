@@ -749,6 +749,13 @@ public:
    */
   bool executeInPlace() const { return in_place; }
 
+  /**
+   * @brief   get layer weights
+   *
+   * @return weights
+   */
+  std::vector<Weight *> getWeights() { return weights; }
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
