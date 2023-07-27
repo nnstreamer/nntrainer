@@ -51,7 +51,38 @@ public:
   InitLayerContext(const std::vector<TensorDim> &dim,
                    const std::vector<bool> &req_out_connected, bool in_place_,
                    const std::string &n = "", const std::string &prefix_ = "",
-                   const float max_norm = 0.0);
+                   const float max_norm = 0.0,
+                   std::array<const std::string, 3> tensor_type_ = {
+                     "NCHW", "FP32", "FP32"});
+  /**
+   * @brief   get Tensor Format of Layer
+   *
+   * @return Tensor Format of the layer
+   */
+  TensorDim::Format getFormat() {
+    return str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
+      from_string(tensor_type[0]);
+  };
+
+  /**
+   * @brief   get Tensor DataType of the Weight
+   *
+   * @return Tensor DataType of the the Weight
+   */
+  TensorDim::DataType getWeightDataType() {
+    return str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+      from_string(tensor_type[1]);
+  };
+
+  /**
+   * @brief   get Tensor DataType of the Activation
+   *
+   * @return Tensor DataType of the the Activation
+   */
+  TensorDim::DataType getActivationDataType() {
+    return str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+      from_string(tensor_type[2]);
+  };
 
   /**
    * @brief   get name by the layer
@@ -298,6 +329,7 @@ private:
   /**< a bool vector to tell if requested out is actually connected to others */
   std::string name;   /**< name of the layer */
   std::string prefix; /**< prefix of the layer */
+  std::array<const std::string, 3> tensor_type;
 };
 
 /**

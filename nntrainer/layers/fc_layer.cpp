@@ -78,12 +78,12 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   // global configuration
   TensorDim bias_dim(
     1, 1, 1, unit,
-    TensorDim::TensorType(getTensorFormat(), TensorDim::DataType::FP32),
+    TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
     0b0001);
 
   TensorDim weight_dim(
     1, 1, in_dim.width(), unit,
-    TensorDim::TensorType(getTensorFormat(), TensorDim::DataType::FP32),
+    TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
     0b0011);
 
   weight_idx[FCParams::weight] = context.requestWeight(
