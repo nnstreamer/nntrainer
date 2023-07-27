@@ -140,6 +140,13 @@ MMapedMemory::~MMapedMemory() noexcept {
   ml_logd("[MMapedMemory] buf released");
 }
 
+void Manager::reinitialize() {
+  inputs_v2.clear();
+  outputs_v2.clear();
+  tensors_v2.clear();
+  tensor_pool.reinitialize();
+}
+
 void Manager::allocateWeights(unsigned int max_exec_order_) {
   if (!weight_pool.isAllocated()) {
     finalizeTensorPool(weight_pool, 0, max_exec_order_);
