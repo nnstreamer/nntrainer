@@ -288,6 +288,18 @@ public:
                  const std::vector<Connection> &model_label_names = {});
 
   /**
+   * @brief reinitialize network graph
+   *
+   * @param model_input_names model input connection if empty list given, all of
+   * node that can be inputs will be identified in the sort order
+   * @param model_label_names model label names if empty list given, all of node
+   * that can be labels will be identified in the sort order
+   * @return int ML_ERROR_NONE if successful
+   */
+  int reinitialize(const std::vector<Connection> &model_input_names = {},
+                   const std::vector<Connection> &model_label_names = {});
+
+  /**
    * @brief Create run layer context from the given init layer context
    *
    * @param lnode layer node to finalize and set run context
@@ -296,6 +308,16 @@ public:
   std::vector<Var_Grad *>
   finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                   const std::vector<Var_Grad *> &prev_inputs);
+
+  /**
+   * @brief Recreate run layer context from the given init layer context
+   *
+   * @param lnode layer node to finalize and set run context
+   * @param prev_inputs previous input information
+   */
+  std::vector<Var_Grad *>
+  refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                    const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
