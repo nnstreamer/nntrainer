@@ -37,18 +37,18 @@ static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
   }
 }
 
-InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
-                                   const std::vector<bool> &req_out_connected,
-                                   bool in_place_, const std::string &n,
-                                   const std::string &prefix_,
-                                   const float max_norm) :
+InitLayerContext::InitLayerContext(
+  const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
+  bool in_place_, const std::string &n, const std::string &prefix_,
+  const float max_norm, std::array<const std::string, 3> tensor_type_) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
   output_specs(),
   req_out_is_connected(req_out_connected),
   name(n),
-  prefix(prefix_) {
+  prefix(prefix_),
+  tensor_type(tensor_type_) {
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();
@@ -67,6 +67,21 @@ void InitLayerContext::setOutputDimensions(
 
   for (unsigned i = 0u, sz = out_dim.size(); i < sz; ++i) {
     auto spec = outSpec(out_dim.at(i));
+
+    spec.variable_spec.dim.setFormat(
+      str_converter<enum_class_prop_tag,
+                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
+    spec.variable_spec.dim.setDataType(
+      str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+        from_string(tensor_type[2]));
+
+    spec.gradient_spec->dim.setFormat(
+      str_converter<enum_class_prop_tag,
+                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
+    spec.gradient_spec->dim.setDataType(
+      str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+        from_string(tensor_type[2]));
+
     specs.push_back(std::move(spec));
   }
 
@@ -499,8 +514,18 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
   if (tensor_map.empty() || !tensor_map[inputs[0]->getName()]) {
     auto filler = [this](const auto &vec) {
       for (auto const &val : vec) {
-        tensor_map[val->getName()] = val->getVariableRef().getData<float>();
-        tensor_map[val->getGradientName()] = val->getGradientRef().getData<float>();
+        if (val->getVariableRef().getTensorType().data_type ==
+            TensorDim::DataType::FP32) {
+          tensor_map[val->getName()] = val->getVariableRef().getData<float>();
+          tensor_map[val->getGradientName()] =
+            val->getGradientRef().getData<float>();
+        } else if (val->getVariableRef().getTensorType().data_type ==
+                   TensorDim::DataType::FP32) {
+          tensor_map[val->getName()] =
+            val->getVariableRef().getData<_Float16>();
+          tensor_map[val->getGradientName()] =
+            val->getGradientRef().getData<_Float16>();
+        }
       }
     };
 

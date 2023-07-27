@@ -50,7 +50,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype("FP32") {}
+    tensor_dtype(split("FP32_FP32", std::regex("\\_"))) {}
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
@@ -60,7 +60,7 @@ public:
   NetworkGraph(bool enable_swap, const std::string &swap_path = "",
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
-               const std::string &tensor_dtype_ = "FP32") :
+               const std::string &tensor_dtype_ = "FP32_FP32") :
     tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
                                              tensor_format_, tensor_dtype_)),
     graph(),
@@ -72,7 +72,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format(tensor_format_),
-    tensor_dtype(tensor_dtype_) {}
+    tensor_dtype(split(tensor_dtype_, std::regex("\\_"))) {}
 
   /**
    * @brief   Destructor of the NeuralNetwork Graph class
@@ -376,8 +376,9 @@ public:
    *
    * @return TensorDim::Format NCHW or NHWC
    */
-  std::array<const std::string, 2> getTensorType() {
-    return {tensor_format, tensor_dtype};
+  std::array<const std::string, 3> getTensorType() {
+
+    return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
   };
 
   /**
@@ -435,7 +436,7 @@ private:
 
   std::string tensor_format; /**< Model Tensor Format: NCHW or NHWC */
 
-  std::string tensor_dtype; /**< Model Tensor Type: FP32, FP16 */
+  std::vector<std::string> tensor_dtype; /**< Model Tensor Type: FP32, FP16 */
 
   std::unordered_map<std::string, int>
     profile_keys; /**< profile keys based on the layer type */

@@ -81,13 +81,6 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   inPlaceOptimize();
 
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    auto lnode = (*iter);
-    /// @todo  later, we can set layer tensor type differenctly with model
-    /// tensor type
-    lnode->setTensorType(getTensorType());
-  }
-
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
@@ -719,7 +712,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                  [](const Var_Grad *vg) { return vg->getDim(); });
 
   /** finalize the layer and get the final context */
-  auto init_context = lnode->finalize(input_dims);
+  auto init_context = lnode->finalize(input_dims, getTensorType());
 
   /**
    * Request manager for either a pre-allocated output as input or a newly

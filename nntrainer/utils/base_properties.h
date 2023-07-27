@@ -653,6 +653,14 @@ struct TensorDataTypeInfo {
   static constexpr const char *EnumStr[] = {"FP16", "FP32"};
 };
 
+struct TensorFormatInfo {
+  using Enum = nntrainer::TensorDim::Format;
+  static constexpr std::initializer_list<Enum> EnumList = {Enum::NCHW,
+                                                           Enum::NHWC};
+
+  static constexpr const char *EnumStr[] = {"NCHW", "NHWC"};
+};
+
 namespace props {
 
 /**
@@ -673,18 +681,20 @@ public:
  * @brief model tensor type : NCHW or NHWC
  *
  */
-class TensorFormat : public nntrainer::Property<std::string> {
+class TensorFormat final : public EnumProperty<TensorFormatInfo> {
 public:
   static constexpr const char *key =
     "tensor_format";             /**< unique key to access */
-  using prop_tag = str_prop_tag; /**< property type */
+  using prop_tag = enum_class_prop_tag; /**< property type */
 
   /**
    * @brief Constructor
    *
    * @param value value to set, defaults to false
    */
-  TensorFormat(const std::string &value = "NCHW") { set(value); };
+  TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
+    set(value);
+  };
 };
 } // namespace props
 

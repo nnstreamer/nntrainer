@@ -243,7 +243,9 @@ public:
    * will be made available during execution of the layer with the context.
    * @note configureRunContext() is expected to called right after this.
    */
-  InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {});
+  InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {},
+                            std::array<const std::string, 3> tensor_type = {
+                              "NCHW", "FP32", "FP32"});
 
   /**
    * @brief     Forward Propagation of a layer
@@ -801,23 +803,6 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
-  /**
-   * @brief Set Tensor type for layer
-   *
-   * @param format NCHW : NHWC
-   * @param type FP16, FP32
-   */
-  using Layer::setTensorType;
-  void setTensorType(const std::string form_ = "NCHW",
-                     const std::string type_ = "FP32");
-  /**
-   * @brief Set Tensor type for layer
-   *
-   * @param format NCHW : NHWC
-   * @param type FP16, FP32
-   */
-  void setTensorType(std::array<const std::string, 2> t_type);
-
 private:
   /**
    * @brief     Get the Input Layers object
@@ -844,10 +829,6 @@ private:
 
   std::vector<std::unique_ptr<Connection>>
     output_connections; /**< output layer names */
-
-  TensorDim::Format tensor_format;
-
-  TensorDim::DataType tensor_dtype;
 
 #ifdef ENABLE_TEST
   /**

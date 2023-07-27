@@ -248,14 +248,6 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   con = std::make_unique<Connection>(name, index);
 }
 
-void LayerNode::setTensorType(const std::string form_, const std::string ty_) {
-  setTensorType({form_, ty_});
-}
-
-void LayerNode::setTensorType(std::array<const std::string, 2> t_type) {
-  getLayer()->setTensorType(t_type);
-}
-
 const std::string LayerNode::getName() const noexcept {
   auto &name = std::get<props::Name>(*layer_node_props);
   return name.empty() ? "" : name.get();
@@ -505,7 +497,13 @@ void LayerNode::clearOptVar() {
 /**
  * @brief     Finalize creating the layer node
  */
-InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
+InitLayerContext
+LayerNode::finalize(const std::vector<TensorDim> &input_dims,
+                    std::array<const std::string, 3> tensor_type) {
+  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType {
+  // 			       return from_string(ty);
+  // };
+  
   if (run_context)
     throw std::runtime_error(
       "Trying to finalizing a layer which is already finalized in layer: " +
@@ -526,6 +524,14 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
       NNTR_THROW_IF(input_dims != actual_prop_dims, std::invalid_argument)
         << "calculated input dimension is different from given input_shape "
            "property";
+      for (auto d : actual_prop_dims) {
+        d.setDataType(
+          str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+            from_string(tensor_type[2]));
+        d.setFormat(
+          str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
+            from_string(tensor_type[0]));
+      }
     }
   } else {
     NNTR_THROW_IF(!hasInputShapeProperty(), std::invalid_argument)
@@ -540,6 +546,15 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
       << prop_dims.size();
     actual_input_dims =
       std::vector<TensorDim>(prop_dims.begin(), prop_dims.end());
+    for (auto d : actual_input_dims) {
+      /// Input Tensor type of input layer needs to be float.
+      d.setDataType(
+        str_converter<enum_class_prop_tag,
+                      nntrainer::TensorDataTypeInfo>::from_string("FP32"));
+      d.setFormat(
+        str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
+          from_string(tensor_type[0]));
+    }
   }
 
   NNTR_THROW_IF(actual_input_dims.size() < getNumInputConnections(),
@@ -576,7 +591,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
 
   auto context = InitLayerContext(actual_input_dims, out_info,
                                   executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm);
+                                  scope, max_norm, tensor_type);
 
   layer->finalize(context);
 
