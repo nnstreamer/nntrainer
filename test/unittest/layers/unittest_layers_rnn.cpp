@@ -26,7 +26,7 @@ GTEST_PARAMETER_TEST(RNN, LayerSemantics, ::testing::Values(semantic_rnn));
 auto rnn_single_step = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::RNNLayer>,
   {"unit=5", "return_sequences=false", "integrate_bias=true"}, "3:1:1:7",
-  "rnn_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw", "fp32");
+  "rnn_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
+  "fp32", "fp32");
 
 GTEST_PARAMETER_TEST(RNN, LayerGoldenTest, ::testing::Values(rnn_single_step));

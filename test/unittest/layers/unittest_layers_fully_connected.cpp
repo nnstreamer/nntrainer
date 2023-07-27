@@ -28,16 +28,16 @@ GTEST_PARAMETER_TEST(FullyConnected, LayerSemantics,
 auto fc_basic_plain = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},
   "3:1:1:10", "fc_plain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw", "fp32");
+  "nchw", "fp32", "fp32");
 auto fc_basic_single_batch = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=4"},
   "1:1:1:10", "fc_single_batch.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32", "fp32");
 auto fc_basic_no_decay = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>,
   {"unit=5", "weight_decay=0.0", "bias_decay=0.0"}, "3:1:1:10",
   "fc_plain.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
-  "fp32");
+  "fp32", "fp32");
 
 auto fc_basic_plain_nhwc = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},

@@ -41,8 +41,9 @@ static const std::string getGoldenPath(const std::string &file_name) {
   return getResPath(file_name, {"test", "unittest_layers"});
 }
 
-static InitLayerContext createInitContext(Layer *layer,
-                                          const std::string &input_shape_str) {
+static InitLayerContext
+createInitContext(Layer *layer, const std::string &input_shape_str,
+                  std::array<const std::string, 3> tensor_type) {
   struct shape_parser_ : Property<TensorDim> {
     using prop_tag = dimension_prop_tag;
   };
@@ -55,7 +56,7 @@ static InitLayerContext createInitContext(Layer *layer,
   }
 
   InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
-                           "golden_test");
+                           "golden_test", "", 0.0, tensor_type);
   layer->finalize(context);
 
   return context;
@@ -262,13 +263,15 @@ TEST_P(LayerGoldenTest, run) {
   auto f = std::get<0>(GetParam());
   auto layer = f(std::get<1>(GetParam()));
   std::string format = std::get<5>(GetParam());
-  std::string type = std::get<6>(GetParam());  
-  layer->setTensorType({format, type});
+  std::string type_w = std::get<6>(GetParam());
+  std::string type_a = std::get<7>(GetParam());
+
   auto golden_file = checkedOpenStream<std::ifstream>(
     getGoldenPath(std::get<3>(GetParam())), std::ios::in | std::ios::binary);
   auto &input_dims = std::get<2>(GetParam());
 
-  auto ic = createInitContext(layer.get(), input_dims);
+  auto ic =
+    createInitContext(layer.get(), input_dims, {format, type_w, type_a});
   auto tensors = prepareTensors(ic, golden_file);
   auto rc = prepareRunContext(tensors);
 

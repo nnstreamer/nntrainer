@@ -168,13 +168,6 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
-   * @brief     Set Tensor format & data type
-   * @note      This is used mainly for the unittest case which does not have
-   * model.
-   */
-  virtual void setTensorType(std::array<const std::string, 2> type){};
-
-  /**
    * @brief     Get name of the layer
    * @retval    name of the layer
    * @note      This name is unique to this layer in a model

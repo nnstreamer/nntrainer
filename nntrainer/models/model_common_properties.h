@@ -179,6 +179,31 @@ public:
   MemorySwapLookahead(const unsigned int &value = 0);
 };
 
+/**
+ * @brief     Enumeration of Data Type for model & layer
+ */
+struct ModelTensorDataTypeInfo {
+  enum Enum { W16A16, W16A32, W32A16, W32A32 };
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::W16A16, Enum::W16A32, Enum::W32A16, Enum::W32A32};
+
+  static constexpr const char *EnumStr[] = {"FP16_FP16", "FP16_FP32",
+                                            "FP32_FP16", "FP32_FP32"};
+};
+
+/**
+ * @brief Activation Enumeration Information
+ *
+ */
+class ModelTensorDataType final : public EnumProperty<ModelTensorDataTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "model_tensor_type";
+  ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
+                        ModelTensorDataTypeInfo::Enum::W32A32) {
+    set(value);
+  };
+};
 
 } // namespace nntrainer::props
 
