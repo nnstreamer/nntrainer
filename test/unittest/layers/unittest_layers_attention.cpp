@@ -39,10 +39,32 @@ auto attention_batched = LayerGoldenTestParamType(
   "2:1:5:7,2:1:3:7,2:1:3:7", "attention_batched.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32", "fp32");
 
-GTEST_PARAMETER_TEST(Attention, LayerGoldenTest,
-                     ::testing::Values(attention_shared_kv,
-                                       attention_shared_kv_batched,
-                                       attention_batched));
+auto attention_shared_kv_nhwc = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "1:7:1:5,1:7:1:3",
+  "attention_shared_kv.nnlayergolden",
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+    LayerGoldenTestParamOptions::SKIP_CALC_GRAD,
+  "nhwc", "fp32", "fp32");
+
+auto attention_shared_kv_batched_nhwc = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "2:7:1:5,2:7:1:3",
+  "attention_shared_kv_batched.nnlayergolden",
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+    LayerGoldenTestParamOptions::SKIP_CALC_GRAD,
+  "nhwc", "fp32", "fp32");
+
+auto attention_batched_nhwc = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {},
+  "2:7:1:5,2:7:1:3,2:7:1:3", "attention_batched.nnlayergolden",
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+    LayerGoldenTestParamOptions::SKIP_CALC_GRAD,
+  "nhwc", "fp32", "fp32");
+
+GTEST_PARAMETER_TEST(
+  Attention, LayerGoldenTest,
+  ::testing::Values(attention_shared_kv, attention_shared_kv_batched,
+                    attention_batched, attention_shared_kv_nhwc,
+                    attention_shared_kv_batched_nhwc, attention_batched_nhwc));
 
 #ifdef ENABLE_FP16
 auto attention_shared_kv_w16a16 = LayerGoldenTestParamType(

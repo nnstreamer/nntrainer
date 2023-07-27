@@ -150,8 +150,9 @@ public:
       throw std::invalid_argument(
         "Softmax does not support operating on strided tensors");
 
-    unsigned int width = input.width();
-    unsigned int bch_size = input.getDim().getDataLen() / width;
+    bool is_nchw = (input.getFormat() == Tformat::NCHW);
+    unsigned int dim_last = is_nchw ? input.width() : input.channel();
+    unsigned int dim_first_three_size = input.getDim().getDataLen() / dim_last;
 
     // copy will not executed in inplace case
     output.copy(input);
@@ -159,26 +160,26 @@ public:
     T *output_data = output.getData<T>();
 
     // prevent overflow
-    Tensor tmp(width, input.getTensorType());
-    for (unsigned int i = 0; i < bch_size; i++) {
-      T *ptr = output_data + i * width;
+    Tensor tmp(dim_last, input.getTensorType());
+    for (unsigned int i = 0; i < dim_first_three_size; i++) {
+      T *ptr = output_data + i * dim_last;
 
       // find max value and subtract it
-      T max_value = *std::max_element(ptr, ptr + width);
+      T max_value = *std::max_element(ptr, ptr + dim_last);
 
       tmp.setValue(max_value);
-      saxpy(width, -1, tmp.getData<T>(), 1, ptr, 1);
+      saxpy(dim_last, -1, tmp.getData<T>(), 1, ptr, 1);
     }
 
     // take exp
     output.apply<T>(exp_util<T>, output);
 
     // take sum over the last dimension
-    Tensor sum = output.sum(3);
+    Tensor sum = is_nchw ? output.sum(3) : output.sum(1);
 
-    for (unsigned int i = 0; i < bch_size; i++) {
-      T *ptr = output_data + i * width;
-      std::transform(ptr, ptr + width, ptr,
+    for (unsigned int i = 0; i < dim_first_three_size; i++) {
+      T *ptr = output_data + i * dim_last;
+      std::transform(ptr, ptr + dim_last, ptr,
                      std::bind(std::divides<T>(), std::placeholders::_1,
                                sum.getValue<T>(i)));
     }

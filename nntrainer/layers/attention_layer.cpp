@@ -38,9 +38,16 @@ void AttentionLayer::finalizeCommon(InitLayerContext &context) {
   auto const &all_dims = context.getInputDimensions();
   auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
+  bool is_nchw = (context.getFormat() == Tformat::NCHW);
 
-  NNTR_THROW_IF(query_dim.width() != value_dim.width(), std::invalid_argument)
-    << "Query and Value dimension mismatch for layer " << context.getName();
+  if (is_nchw) {
+    NNTR_THROW_IF(query_dim.width() != value_dim.width(), std::invalid_argument)
+      << "Query and Value dimension mismatch for layer " << context.getName();
+  } else {
+    NNTR_THROW_IF(query_dim.channel() != value_dim.channel(),
+                  std::invalid_argument)
+      << "Query and Value dimension mismatch for layer " << context.getName();
+  }
 
   wt_idx[AttentionParams::query] = AttentionParams::query;
   wt_idx[AttentionParams::value] = AttentionParams::value;
@@ -62,8 +69,11 @@ void AttentionLayer::finalize(InitLayerContext &context) {
   auto const &query_dim = all_dims[AttentionParams::query];
   auto const &value_dim = all_dims[AttentionParams::value];
 
+  bool is_nchw = (context.getFormat() == Tformat::NCHW);
+
   auto weights_dim = query_dim;
-  weights_dim.width(value_dim.height());
+  is_nchw ? weights_dim.width(value_dim.height())
+          : weights_dim.channel(value_dim.width());
   wt_idx[AttentionParams::weights] =
     context.requestTensor(weights_dim, "weights", Tensor::Initializer::NONE,
                           false, TensorLifespan::ITERATION_LIFESPAN);
