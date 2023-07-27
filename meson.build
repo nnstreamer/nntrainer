@@ -39,6 +39,7 @@ warning_flags = [
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
+  '-Wno-maybe-uninitialized',
   '-Wno-unused-variable'
 ]
 
