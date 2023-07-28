@@ -36,7 +36,7 @@ protected:
    */
   nntrainer::Tensor constant_(float value) {
     nntrainer::Tensor t(batch, channel, height, width);
-    return t.apply([value](float) { return value; });
+    return t.apply<float>([value](float) { return value; });
   }
 
   nntrainer::Tensor target;

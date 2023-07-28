@@ -1145,9 +1145,10 @@ public:
    * @param f function to apply
    * @return int ML_ERROR_NONE if successful
    */
-  int apply_i(std::function<float(float)> f) {
+  template <typename T = float>
+  int apply_i(std::function<T(T)> f) {
     Tensor result = *this;
-    apply(f, result);
+    apply<T>(f, result);
 
     return ML_ERROR_NONE;
   };
@@ -1157,9 +1158,10 @@ public:
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  Tensor apply(std::function<float(float)> f) const {
+  template <typename T = float>
+  Tensor apply(std::function<T(T)> f) const {
     Tensor result;
-    return apply(f, result);
+    return apply<T>(f, result);
   };
 
   /**
@@ -1168,8 +1170,8 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const {
+  template <typename T = float>
+  Tensor &apply(std::function<T(T)> f, Tensor &output) const {
     CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
     if (dim != output.dim) {
@@ -1178,73 +1180,101 @@ public:
         "[Tensor::apply] output dimension does not match");
     }
 
-    if (dim.getDataType() == Tdatatype::FP32) {
-      if (contiguous && output.contiguous) {
-        const float *data = (getData<float>());
-        float *rdata = (output.getData<float>());
+    if (contiguous && output.contiguous) {
+      const T *data = (getData<T>());
+      T *rdata = (output.getData<T>());
 
-        std::transform(data, data + size(), rdata, f);
-      } else if (strides[3] == 1 && output.strides[3] == 1) {
-        /** @todo optimize this with combining these loops where stride is 1 */
-        for (unsigned int b = 0; b < batch(); ++b) {
-          for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              float *out_data = output.getAddress<float>(b, c, h, 0);
-              const float *in_data = getAddress<float>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), out_data, f);
-            }
-          }
-        }
-      } else {
-        for (unsigned int b = 0; b < batch(); ++b) {
-          for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              for (unsigned int w = 0; w < width(); ++w) {
-                output.setValue(b, c, h, w, f(getValue<float>(b, c, h, w)));
-              }
-            }
+      std::transform(data, data + size(), rdata, f);
+    } else if (strides[3] == 1 && output.strides[3] == 1) {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            T *out_data = output.getAddress<T>(b, c, h, 0);
+            const T *in_data = getAddress<T>(b, c, h, 0);
+            std::transform(in_data, in_data + width(), out_data, f);
           }
         }
       }
-    } else if (dim.getDataType() == Tdatatype::FP16) {
-
-      auto f_16 = [f](_FP16 x) -> _FP16 {
-        return static_cast<_FP16>(f(static_cast<float>(x)));
-      };
-
-      // std::function<_FP16(_FP16)> f_16 =
-      //   static_cast<std::function<_FP16(_FP16)>>(f);
-
-
-      
-      if (contiguous && output.contiguous) {
-        const _FP16 *data = (getData<_FP16>());
-        _FP16 *rdata = (output.getData<_FP16>());
-
-        std::transform(data, data + size(), rdata, f_16);
-      } else if (strides[3] == 1 && output.strides[3] == 1) {
-        /** @todo optimize this with combining these loops where stride is 1 */
-        for (unsigned int b = 0; b < batch(); ++b) {
-          for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
-              const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), out_data, f_16);
-            }
-          }
-        }
-      } else {
-        for (unsigned int b = 0; b < batch(); ++b) {
-          for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              for (unsigned int w = 0; w < width(); ++w) {
-                output.setValue(b, c, h, w, f_16(getValue<_FP16>(b, c, h, w)));
-              }
+    } else {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.setValue(b, c, h, w, f(getValue<T>(b, c, h, w)));
             }
           }
         }
       }
     }
+
+    // if (dim.getDataType() == Tdatatype::FP32) {
+    //   if (contiguous && output.contiguous) {
+    //     const float *data = (getData<float>());
+    //     float *rdata = (output.getData<float>());
+
+    //     std::transform(data, data + size(), rdata, f);
+    //   } else if (strides[3] == 1 && output.strides[3] == 1) {
+    //     /** @todo optimize this with combining these loops where stride is 1 */
+    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //       for (unsigned int c = 0; c < channel(); ++c) {
+    //         for (unsigned int h = 0; h < height(); ++h) {
+    //           float *out_data = output.getAddress<float>(b, c, h, 0);
+    //           const float *in_data = getAddress<float>(b, c, h, 0);
+    //           std::transform(in_data, in_data + width(), out_data, f);
+    //         }
+    //       }
+    //     }
+    //   } else {
+    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //       for (unsigned int c = 0; c < channel(); ++c) {
+    //         for (unsigned int h = 0; h < height(); ++h) {
+    //           for (unsigned int w = 0; w < width(); ++w) {
+    //             output.setValue(b, c, h, w, f(getValue<float>(b, c, h, w)));
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // } else if (dim.getDataType() == Tdatatype::FP16) {
+
+    //   auto f_16 = [f](_FP16 x) -> _FP16 {
+    //     return static_cast<_FP16>(f(static_cast<float>(x)));
+    //   };
+
+    //   // std::function<_FP16(_FP16)> f_16 =
+    //   //   static_cast<std::function<_FP16(_FP16)>>(f);
+
+
+      
+    //   if (contiguous && output.contiguous) {
+    //     const _FP16 *data = (getData<_FP16>());
+    //     _FP16 *rdata = (output.getData<_FP16>());
+
+    //     std::transform(data, data + size(), rdata, f_16);
+    //   } else if (strides[3] == 1 && output.strides[3] == 1) {
+    //     /** @todo optimize this with combining these loops where stride is 1 */
+    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //       for (unsigned int c = 0; c < channel(); ++c) {
+    //         for (unsigned int h = 0; h < height(); ++h) {
+    //           _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
+    //           const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
+    //           std::transform(in_data, in_data + width(), out_data, f_16);
+    //         }
+    //       }
+    //     }
+    //   } else {
+    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //       for (unsigned int c = 0; c < channel(); ++c) {
+    //         for (unsigned int h = 0; h < height(); ++h) {
+    //           for (unsigned int w = 0; w < width(); ++w) {
+    //             output.setValue(b, c, h, w, f_16(getValue<_FP16>(b, c, h, w)));
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
     return output;
   };
 

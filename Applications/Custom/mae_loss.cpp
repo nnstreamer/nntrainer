@@ -43,7 +43,7 @@ void MaeLossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   unsigned int size = predicted.size();
   float deriv_val = 1.0f / (float)size;
 
-  deriv.apply_i([deriv_val](float x) {
+  deriv.apply_i<float>([deriv_val](float x) {
     if (fabs(x) < EPSILON_) {
       return 0.0f;
     }
