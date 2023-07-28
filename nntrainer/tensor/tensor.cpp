@@ -258,12 +258,8 @@ void Tensor::setRandBernoulli(float probability) {
     setDist<float, std::bernoulli_distribution>(
       std::bernoulli_distribution(probability));
   } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     setDist<_FP16, std::bernoulli_distribution>(
-      std::bernoulli_distribution((_FP16)probability));
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
+      std::bernoulli_distribution(probability));
   }
 }
 
@@ -711,18 +707,18 @@ Tensor Tensor::multiply(float const &value) const {
 
 Tensor &Tensor::multiply(float const &value, Tensor &out) const {
   /// @todo add unittest
-  // if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
-    return apply(f, out);
-//   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-// #ifdef ENABLE_FP16
-//     auto f = std::bind(std::multiplies<_FP16>(), std::placeholders::_1,
-//                        static_cast<_FP16>(value));
-//     return apply(f, out);
-// #else
-//     throw std::invalid_argument("Error: enable-fp16 is not enabled");
-// #endif
-  // }
+    return apply<float>(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = std::bind(std::multiplies<_FP16>(), std::placeholders::_1,
+                       static_cast<_FP16>(value));
+    return apply<_FP16>(f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
   return out;
 }
 
@@ -838,17 +834,17 @@ Tensor &Tensor::divide(float const &value, Tensor &out) const {
     throw std::invalid_argument(ss.str().c_str());
   }
 
-  // if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
-    return apply(f, out);
-//   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-// #ifdef ENABLE_FP16
-//     auto f = std::bind(std::divides<_FP16>(), std::placeholders::_1, static_cast<_FP16>(value));
-//     return apply(f, out);
-// #else
-//     throw std::invalid_argument("Error: enable-fp16 is not enabled");
-// #endif
-//   }
+    return apply<float>(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = std::bind(std::divides<_FP16>(), std::placeholders::_1, static_cast<_FP16>(value));
+    return apply<_FP16>(f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
   return out;
 }
 
@@ -931,18 +927,18 @@ Tensor Tensor::add(float const &value) const {
 
 Tensor &Tensor::add(float const &value, Tensor &out) const {
   /// @todo add unittest
-  // if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
-    return apply(f, out);
-//   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-// #ifdef ENABLE_FP16
-//     auto f = std::bind(std::plus<_FP16>(), std::placeholders::_1,
-//                        static_cast<_FP16>(value));
-//     return apply(f, out);
-// #else
-//     throw std::invalid_argument("Error: enable-fp16 is not enabled");
-// #endif
-//   }
+    return apply<float>(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = std::bind(std::plus<_FP16>(), std::placeholders::_1,
+                       static_cast<_FP16>(value));
+    return apply<_FP16>(f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
   return out;
 }
 
@@ -1057,18 +1053,18 @@ Tensor Tensor::subtract(float const &value) const {
 
 Tensor &Tensor::subtract(float const &value, Tensor &out) const {
   /// @todo add unittest
-  // if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
-    return apply(f, out);
-//   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-// #ifdef ENABLE_FP16
-//     auto f = std::bind(std::minus<_FP16>(), std::placeholders::_1,
-//                        static_cast<_FP16>(value));
-//     return apply(f, out);
-// #else
-//     ml_loge("%s", "Error: enable-fp16 is not enabled");
-// #endif
-//   }
+    return apply<float>(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = std::bind(std::minus<_FP16>(), std::placeholders::_1,
+                       static_cast<_FP16>(value));
+    return apply<_FP16>(f, out);
+#else
+    ml_loge("%s", "Error: enable-fp16 is not enabled");
+#endif
+  }
   return out; // shouldn't reach
 }
 
@@ -1091,21 +1087,21 @@ Tensor Tensor::pow(float exponent) const {
 }
 
 Tensor &Tensor::pow(float exponent, Tensor &out) const {
-  // if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = [exponent](float in) { return powf(in, exponent); };
-    return apply(f, out);
-  // }
-//   if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-// #ifdef ENABLE_FP16
-//     auto f = [exponent](_FP16 in) {
-//       return static_cast<_FP16>(powf(in, exponent));
-//     };
-//     return apply(f, out);
-// #else
-//     ml_loge("%s", "Error: enable-fp16 is not enabled");
-// #endif
-//   }
-  // return out;
+    return apply<float>(f, out);
+  }
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = [exponent](_FP16 in) {
+      return static_cast<_FP16>(powf(in, exponent));
+    };
+    return apply<_FP16>(f, out);
+#else
+    ml_loge("%s", "Error: enable-fp16 is not enabled");
+#endif
+  }
+  return out;
 }
 
 Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
@@ -1301,7 +1297,7 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
                          ret_dims[i].width(), ret_dims[i].channel()};
       }
 
-      ret_t.apply_i([&iter_value, &loc, &end_loc, &reset_dim_arr](float _) {
+      ret_t.apply_i<float>([&iter_value, &loc, &end_loc, &reset_dim_arr](float _) {
         return iter_value(loc, end_loc, reset_dim_arr);
       });
     }
@@ -1380,7 +1376,7 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
                          ret_dims[i].width(), ret_dims[i].channel()};
       }
 
-      ret_t.apply_i([&iter_value, &loc, &end_loc, &reset_dim_arr](float _) {
+      ret_t.apply_i<_FP16>([&iter_value, &loc, &end_loc, &reset_dim_arr](_FP16 _) {
         return iter_value(loc, end_loc, reset_dim_arr);
       });
     }
@@ -3069,13 +3065,13 @@ void Tensor::setZero() {
     if (contiguous)
       sscal(size(), 0, getData<float>(), 1);
     else
-      apply_i([](float val) -> float { return 0; });
+      apply_i<float>([](float val) -> float { return 0; });
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     if (contiguous)
       sscal(size(), 0, getData<_FP16>(), 1);
     else
-      apply_i([](float val) -> float { return 0; });
+      apply_i<_FP16>([](_FP16 val) -> _FP16 { return 0; });
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif

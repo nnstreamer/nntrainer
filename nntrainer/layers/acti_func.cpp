@@ -217,7 +217,7 @@ Tensor &ActiFunc::softmax(Tensor const &input, Tensor &output) {
   }
 
   // take exp
-  output.apply(exp_util, output);
+  output.apply<float>(exp_util, output);
 
   // take sum over the last dimension
   Tensor sum = output.sum(3);
@@ -337,7 +337,7 @@ float ActiFunc::leakyReluPrime(float x) {
 }
 
 Tensor &ActiFunc::swish(Tensor const &t_in, Tensor &t_out) {
-  t_in.apply([&](float x) { return sigmoid(x); }, t_out);
+  t_in.apply<float>([&](float x) { return sigmoid(x); }, t_out);
   t_out.multiply_i(t_in);
 
   return t_out;
@@ -350,8 +350,8 @@ Tensor &ActiFunc::swishPrime(Tensor const &t_in, Tensor const &t_out,
     outgoing_derivative = Tensor(t_out.getDim());
 
   Tensor tmp = Tensor(t_out.getDim());
-  t_in.apply([&](float x) { return sigmoid(x); }, outgoing_derivative);
-  t_out.apply([&](float x) { return 1 - x; }, tmp);
+  t_in.apply<float>([&](float x) { return sigmoid(x); }, outgoing_derivative);
+  t_out.apply<float>([&](float x) { return 1 - x; }, tmp);
   outgoing_derivative.multiply_i(tmp);
   outgoing_derivative.add_i(t_out);
 
@@ -362,7 +362,7 @@ Tensor &ActiFunc::swishPrime(Tensor const &t_in, Tensor const &t_out,
 
 Tensor &ActiFunc::gelu(Tensor const &t_in, Tensor &t_out) {
   float tmp = 1 / sqrt(2);
-  t_in.apply([&](float x) { return 0.5 * x * (1 + erf(x * tmp)); }, t_out);
+  t_in.apply<float>([&](float x) { return 0.5 * x * (1 + erf(x * tmp)); }, t_out);
   return t_out;
 }
 
@@ -374,7 +374,7 @@ Tensor &ActiFunc::geluPrime(Tensor const &t_in, Tensor const &t_out,
     outgoing_derivative = Tensor(t_out.getDim());
 
   float tmp = 1 / sqrt(2);
-  t_in.apply(
+  t_in.apply<float>(
     [&](float x) {
       return 0.5 * (1 + erf(x * tmp) +
                     x * ((2 / sqrt(M_PI)) * exp(-pow(x * tmp, 2))) * tmp);

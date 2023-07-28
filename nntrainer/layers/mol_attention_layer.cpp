@@ -200,8 +200,8 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   alpha_src.copy_with_stride(
     fc_proj_out.getSharedDataTensor({batch, 1, 1, mol_k}, mol_k * 2, false));
 
-  kappa_src.apply_i(&expf);
-  beta_src.apply_i(&expf);
+  kappa_src.apply_i<float>(&expf);
+  beta_src.apply_i<float>(&expf);
   Tensor kappa = kappa_src;
   Tensor beta = beta_src;
 

@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
       try {
         float answer =
           NN.inference({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
-            ->apply(stepFunction)
+	  ->apply<float>(stepFunction)
             .getValue(0, 0, 0, 0);
 
         std::cout << answer << " : " << l[0] << std::endl;

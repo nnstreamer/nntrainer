@@ -252,7 +252,9 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
+  void applyGradient(double lr) { 
+    var->add_i(*grad.get(), -lr); 
+    }
 
   /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
