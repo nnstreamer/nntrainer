@@ -661,6 +661,16 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     return InPlace::RESTRICTING;
   }
 
+  /**
+   * if the layer's input and output type is not FP32, then it cannot be
+   * inplace. We assume that the input is always FP32.
+   */
+  if (lnode->getInputConnections().empty()) {
+    if (!istrequal(getTensorType()[3], "FP32"))
+      return InPlace::NONE;
+
+  }
+
   return InPlace::NONE;
 }
 
