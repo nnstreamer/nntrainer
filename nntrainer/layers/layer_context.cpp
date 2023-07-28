@@ -522,9 +522,9 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
         } else if (val->getVariableRef().getTensorType().data_type ==
                    TensorDim::DataType::FP32) {
           tensor_map[val->getName()] =
-            val->getVariableRef().getData<_Float16>();
+            val->getVariableRef().getData<_FP16>();
           tensor_map[val->getGradientName()] =
-            val->getGradientRef().getData<_Float16>();
+            val->getGradientRef().getData<_FP16>();
         }
       }
     };

@@ -166,7 +166,8 @@ TEST(nntrainer_activation, DISABLED_sigmoidPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor sigmoid_result = input.apply(nntrainer::ActiFunc::sigmoid);
+  nntrainer::Tensor sigmoid_result =
+    input.apply(nntrainer::ActiFunc::sigmoid);
   float *data = sigmoid_result.getData();
   ASSERT_NE(nullptr, data);
 

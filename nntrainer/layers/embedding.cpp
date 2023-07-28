@@ -34,6 +34,8 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Embedding layer takes only one input";
 
+  context.setInputDataType(TensorDim::DataType::FP32);
+  
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
@@ -53,9 +55,13 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 
   output_dim.height(input_dim.width());
   output_dim.width(out_dim);
+  output_dim.setTensorType({context.getFormat(), context.getActivationDataType()});
   context.setOutputDimensions({output_dim});
 
   TensorDim dim = output_dim;
+
+  dim.setTensorType({context.getFormat(), context.getWeightDataType()});
+
   dim.height(in_dim);
   dim.width(out_dim);
   dim.batch(1);
