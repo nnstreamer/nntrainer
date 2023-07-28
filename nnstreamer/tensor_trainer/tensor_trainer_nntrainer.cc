@@ -24,7 +24,7 @@
  * 3. The current feature behavior has been tested with MNIST.
  * 4. mnist.json has 'gst_caps' containing the information below.
  * "gst_caps":"other/tensors, format=(string)static, framerate=(fraction)0/1,
- *  num_tensors=(int)2, dimensions=(string)1:1:784:1,1:1:10:1,
+ *  num_tensors=(int)2, dimensions=(string)1:1:784:1.1:1:10:1,
  *  types=(string)float32.float32"
  *
  * ## Example launch line is as below
@@ -432,7 +432,10 @@ void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
   num_labels = prop->num_labels;
   num_training_samples = prop->num_training_samples;
   num_validation_samples = prop->num_validation_samples;
-  model_save_path = prop->model_save_path;
+  if (prop->model_save_path)
+    model_save_path = prop->model_save_path;
+  if (prop->model_load_path)
+    model_load_path = prop->model_load_path;
   num_epochs = prop->num_epochs;
   total_num_samples =
     (num_training_samples + num_validation_samples) * num_epochs;
@@ -445,6 +448,7 @@ void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
   ml_logd("Total number of data to be received: %d", total_num_samples);
   ml_logd("model_config: %s", model_config.c_str());
   ml_logd("model_save_path: %s", model_save_path.c_str());
+  ml_logd("model_load_path: %s", model_load_path.c_str());
   ml_logd("<leave>");
 }
 
@@ -578,12 +582,12 @@ void NNTrainer::NNTrainerTrain::createModel() {
   }
   try {
 
-    model->load(model_config,
-                ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
+    model->load(model_config, ml::train::ModelFormat::MODEL_FORMAT_INI);
   } catch (const std::exception &e) {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return;
   }
+
   try {
     model->compile();
     model->initialize();
@@ -591,6 +595,17 @@ void NNTrainer::NNTrainerTrain::createModel() {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return;
   }
+
+  try {
+    if (!model_load_path.empty()) {
+      ml_logd("load path : %s", model_load_path.c_str());
+      model->load(model_load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    }
+  } catch (const std::exception &e) {
+    ml_loge("Error %s, %s", typeid(e).name(), e.what());
+    return;
+  }
+
   ml_logd("<leave>");
 }
 

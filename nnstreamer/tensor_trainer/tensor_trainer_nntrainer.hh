@@ -106,6 +106,8 @@ public:
                                           NNStreamer(tensor_trainer) */
   std::string model_config;
   std::string model_save_path; /**< Model is finally stored */
+  std::string model_load_path; /**< Path to load an exisiting model to use for
+                                  training a new model */
 
   ml::train::RunStats train_stats;
   ml::train::RunStats valid_stats;
