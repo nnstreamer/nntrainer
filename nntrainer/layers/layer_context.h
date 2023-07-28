@@ -112,6 +112,11 @@ public:
    */
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
 
+  void setInputDataType(TensorDim::DataType ty) {
+    for (auto d : input_dim)
+      d.setDataType(ty);
+  }
+
   /**
    * @brief Set the Dim Flag to retrieve effective dimension
    *

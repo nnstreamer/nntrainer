@@ -22,6 +22,12 @@
 #include <bitset>
 #include <vector>
 
+#ifdef USE__FP16
+#define  _FP16 __fp16
+#else
+#define  _FP16 _Float16
+#endif
+
 namespace ml {
 namespace train {
 
