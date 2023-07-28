@@ -31,10 +31,10 @@
 
 #define sgemv_loop_fp16(ci, cj, cM, cN)           \
   do {                                       \
-    _Float16 y0;                               \
+    _FP16 y0;                               \
     unsigned int i, j;                       \
     for (ci = 0; ci != cM; ci++) {           \
-      y0 = Y[ci * incy] * static_cast<_Float16>(beta);              \
+      y0 = Y[ci * incy] * static_cast<_FP16>(beta);              \
       for (cj = 0; cj != cN; cj++)           \
         y0 += A[i + j * lda] * X[cj * incx]; \
       Y[ci * incy] = y0;                     \
@@ -44,20 +44,20 @@
 namespace nntrainer {
 
 #ifdef ENABLE_FP16
-static void saxpy_FP16(const unsigned int N, const float alpha, const _Float16 *X,
-                       const int incX, _Float16 *Y, const int incY) {
+static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
+                       const int incX, _FP16 *Y, const int incY) {
   if (incX < 0 or incY < 0)
     throw std::invalid_argument(
       "Error: negative inc not supported without cblas");
   for (unsigned int i = 0; i < N; ++i)
-    Y[i * incY] = Y[i * incY] + static_cast<_Float16>(alpha) * X[i * incX];
+    Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX];
 }
 
 static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int M, const unsigned int N,
-                       const float alpha, const _Float16 *A,
-                       const unsigned int lda, const _Float16 *X, const int incX,
-                       const float beta, _Float16 *Y, const int incY) {
+                       const float alpha, const _FP16 *A,
+                       const unsigned int lda, const _FP16 *X, const int incX,
+                       const float beta, _FP16 *Y, const int incY) {
 
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
@@ -69,18 +69,18 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   }
 }
 
-static _Float16 sdot_FP16(const unsigned int N, const _Float16 *X,
-                        const unsigned int incX, const _Float16 *Y,
+static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
+                        const unsigned int incX, const _FP16 *Y,
                         const unsigned int incY) {
-  _Float16 ret = 0;
+  _FP16 ret = 0;
   for (unsigned int i = 0; i < N; ++i) {
     ret += X[i * incX] * Y[i * incY];
   }
   return ret;
 }
 
-static void scopy_FP16(const unsigned int N, const _Float16 *X, const int incX,
-                       _Float16 *Y, const int incY) {
+static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
+                       _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -88,56 +88,56 @@ static void scopy_FP16(const unsigned int N, const _Float16 *X, const int incX,
     Y[i * incy] = X[i * incx];
 }
 
-void sscal(const unsigned int N, const float alpha, _Float16 *X, const int incX) {
+void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
 
   for (unsigned int i = 0; i < N; ++i)
-    X[i * incx] = static_cast<_Float16>(alpha) * X[i * incx];
+    X[i * incx] = static_cast<_FP16>(alpha) * X[i * incx];
 }
 
-static _Float16 snrm2_FP16(const unsigned int N, const _Float16 *X, const int incX) {
+static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
-  _Float16 sum = 0;
-  _Float16 tmp;
+  _FP16 sum = 0;
+  _FP16 tmp;
 #pragma omp parallel for private(tmp) reduction(+ : sum)
   for (unsigned int i = 0; i < N; i++) {
     tmp = X[i * incx];
     sum += tmp * tmp;
   }
-  return static_cast<_Float16>(sqrt(sum));
+  return static_cast<_FP16>(sqrt(sum));
 }
 static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        CBLAS_TRANSPOSE TransB, const unsigned int M,
                        const unsigned int N, const unsigned int K,
-                       const float alpha, const _Float16 *A,
-                       const unsigned int lda, const _Float16 *B,
-                       const unsigned int ldb, const float beta, _Float16 *C,
+                       const float alpha, const _FP16 *A,
+                       const unsigned int lda, const _FP16 *B,
+                       const unsigned int ldb, const float beta, _FP16 *C,
                        const unsigned int ldc) {
 
   for (unsigned int m = 0; m < M; ++m) {
     for (unsigned int n = 0; n < N; ++n) {
-      _Float16 c = 0;
-      _Float16 c_old = C[m * ldc + n];
+      _FP16 c = 0;
+      _FP16 c_old = C[m * ldc + n];
       for (unsigned int k = 0; k < K; ++k) {
-        _Float16 a, b;
+        _FP16 a, b;
         a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]);
         b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]);
         c += a * b;
       }
-      C[m * ldc + n] = static_cast<_Float16>(alpha) * c;
+      C[m * ldc + n] = static_cast<_FP16>(alpha) * c;
       if (beta != 0.0)
-        C[m * ldc + n] += static_cast<_Float16>(beta) * c_old;
+        C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;
     }
   }
 }
 
-static unsigned int isamax_FP16(const unsigned int N, const _Float16 *X,
+static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
                                 const int incX) {
 
   unsigned int max_idx = 0;
-  _Float16 max_val = X[0];
+  _FP16 max_val = X[0];
   for (unsigned int n = 1; n < N; n += incX) {
-    _Float16 cur_val = (X[n] >= 0) ? X[n] : -1 * X[n];
+    _FP16 cur_val = (X[n] >= 0) ? X[n] : -1 * X[n];
     if (cur_val > max_val) {
       max_val = cur_val;
       max_idx = n;
@@ -147,43 +147,43 @@ static unsigned int isamax_FP16(const unsigned int N, const _Float16 *X,
   return max_idx;
 }
 
-void saxpy(const unsigned int N, const float alpha, const _Float16 *X,
-           const int incX, _Float16 *Y, const int incY) {
+void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
+           const int incX, _FP16 *Y, const int incY) {
   saxpy_FP16(N, alpha, X, incX, Y, incY);
 }
 
 void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
-           const float alpha, const _Float16 *A, const unsigned int lda,
-           const _Float16 *B, const unsigned int ldb, const float beta, _Float16 *C,
+           const float alpha, const _FP16 *A, const unsigned int lda,
+           const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
            const unsigned int ldc) {
   sgemm_FP16(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
              ldc);
 }
 
-void scopy(const unsigned int N, const _Float16 *X, const int incX, _Float16 *Y,
+void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
            const int incY) {
   scopy_FP16(N, X, incX, Y, incY);
 
 } // namespace nntrainer
 
-_Float16 snrm2(const int N, const _Float16 *X, const int incX) {
+_FP16 snrm2(const int N, const _FP16 *X, const int incX) {
   return snrm2_FP16(N, X, incX);
 }
 
-_Float16 sdot(const unsigned int N, const _Float16 *X, const unsigned int incX,
-            const _Float16 *Y, const unsigned int incY) {
+_FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
+            const _FP16 *Y, const unsigned int incY) {
   return sdot_FP16(N, X, incX, Y, incY);
 }
 
 void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
-           const unsigned int N, const float alpha, const _Float16 *A,
-           const unsigned int lda, const _Float16 *X, const int incX,
-           const float beta, _Float16 *Y, const int incY) {
+           const unsigned int N, const float alpha, const _FP16 *A,
+           const unsigned int lda, const _FP16 *X, const int incX,
+           const float beta, _FP16 *Y, const int incY) {
   sgemv_FP16(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
 }
 
-unsigned int isamax(const unsigned int N, const _Float16 *X, const int incX) {
+unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX) {
   /// @todo isamax_FP16 for BLAS_NUM_THREADS
   return isamax_FP16(N, X, incX);
 }
@@ -310,7 +310,7 @@ void sscal(const unsigned int N, const float alpha, void *X, const int incX,
     sscal_raw(N, alpha, (float *)X, incX);
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    sscal(N, alpha, (_Float16 *)X, incX);
+    sscal(N, alpha, (_FP16 *)X, incX);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -344,8 +344,8 @@ void saxpy(const unsigned int N, const float alpha, const void *X,
               static_cast<float *>(Y), incY);
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    saxpy_FP16(N, alpha, static_cast<const _Float16 *>(X), incX,
-               static_cast<_Float16 *>(Y), incY);
+    saxpy_FP16(N, alpha, static_cast<const _FP16 *>(X), incX,
+               static_cast<_FP16 *>(Y), incY);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -411,9 +411,9 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     sgemm_FP16(order, TransA, TransB, M, N, K, alpha,
-               static_cast<const _Float16 *>(A), lda,
-               static_cast<const _Float16 *>(B), ldb, beta,
-               static_cast<_Float16 *>(C), ldc);
+               static_cast<const _FP16 *>(A), lda,
+               static_cast<const _FP16 *>(B), ldb, beta,
+               static_cast<_FP16 *>(C), ldc);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -479,7 +479,7 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
     scopy_raw(N, (float *)X, incX, (float *)Y, incY);
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    scopy_FP16(N, (_Float16 *)X, incX, (_Float16 *)Y, incY);
+    scopy_FP16(N, (_FP16 *)X, incX, (_FP16 *)Y, incY);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -542,9 +542,9 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     return sgemv_FP16(order, TransA, M, N, alpha,
-                      static_cast<const _Float16 *>(A), lda,
-                      static_cast<const _Float16 *>(X), incX, beta,
-                      static_cast<_Float16 *>(Y), incY);
+                      static_cast<const _FP16 *>(A), lda,
+                      static_cast<const _FP16 *>(X), incX, beta,
+                      static_cast<_FP16 *>(Y), incY);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
