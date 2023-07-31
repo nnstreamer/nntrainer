@@ -62,7 +62,7 @@ typedef enum {
     27, /**< Layer Normalization Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING =
     28, /**< Positional Encoding Layer type (Since 7.0) */
-  ML_TRAIN_LAYER_TYPE_IDENTITY = 29, /**< Identity Layer type (Since 7.5) */
+  ML_TRAIN_LAYER_TYPE_IDENTITY = 29, /**< Identity Layer type (Since 8.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
@@ -90,7 +90,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for the learning rate scheduler type of NNTrainer.
- * @since_tizen 7.5
+ * @since_tizen 8.0
  */
 typedef enum {
   ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT = 0,    /**< Constant lr scheduler */
