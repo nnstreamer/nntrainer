@@ -11,8 +11,15 @@
 
 import numpy as np
 
-file = open("pico_gpt.bin", "wb")
+is_head_splitted = False
+if is_head_splitted:
+    file = open("pico_gpt.bin", "wb")
+else:
+    file = open("pico_gpt_mha.bin", "wb")
+
 def save_params(params, n_head):
+    if is_head_splitted == False:
+        n_head = 1
     def save_weight(weight):
         weight.tofile(file)
 
