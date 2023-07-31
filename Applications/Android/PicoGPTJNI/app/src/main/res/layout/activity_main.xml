@@ -32,7 +32,7 @@
           android:layout_height="186dp"
           android:orientation="horizontal"
           android:padding="10dp"
-          android:text="Alan Turing theorized that computers would one day become " />
+          android:text="Alan Turing theorized that computers would one day become" />
 
     </LinearLayout>
 
