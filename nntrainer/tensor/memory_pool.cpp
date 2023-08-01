@@ -95,7 +95,7 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
-  mem_pool = malloc(pool_size);
+  mem_pool = calloc(pool_size, 1);
   if (mem_pool == nullptr)
     throw std::runtime_error(
       "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
