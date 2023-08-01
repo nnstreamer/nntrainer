@@ -362,7 +362,9 @@ sharedConstTensors NetworkGraph::forwarding(
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
+    TRACE_TIME_START(ln->getName(), ln->getName());
     forwarding_op(*iter, training);
+    TRACE_TIME_END(ln->getName());
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 

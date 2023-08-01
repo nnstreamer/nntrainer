@@ -49,6 +49,7 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
+#include <tracer.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -836,8 +837,12 @@ int NeuralNetwork::train_run(
 
   auto train_for_iteration =
     [this, stop_cb, stop_user_data](RunStats &stat, DataBuffer &buffer) {
+      TRACE_TIME_START("Forwarding", "Forwarding");
       forwarding(true, stop_cb, stop_user_data);
+      TRACE_TIME_END("Forwarding");
+      TRACE_TIME_START("Backwarding", "Backwarding");
       backwarding(iter++, stop_cb, stop_user_data);
+      TRACE_TIME_END("Backwarding");
 
       // To avoid unconsidered memory leak, we need to clear the cache
       model_graph.flushCache();
