@@ -162,7 +162,6 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_derivative(false),
   needs_calc_gradient(false),
   output_connections(),
-  tensor_type(TensorDim::Format::NCHW),
   run_context(nullptr),
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
