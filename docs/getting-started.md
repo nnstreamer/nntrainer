@@ -146,7 +146,7 @@ ninja -C build install
 
 ## Build on Tizen
 
-Get GBS from <https://source.tizen.org/documentation/reference/git-build-system/usage/gbs-build>
+Get GBS from <https://docs.tizen.org/platform/developing/building/>
 
 First install the required packages.
 
