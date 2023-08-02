@@ -15,11 +15,15 @@
 #include <iostream>
 #include <nntrainer_error.h>
 
+#ifdef USE__FP16
+#include <blas_neon.h>
+#endif
+
 #include <cmath>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
   do {                                       \
-    float y0;                               \
+    float y0;                                \
     unsigned int i, j;                       \
     for (ci = 0; ci != cM; ci++) {           \
       y0 = Y[ci * incy] * beta;              \
@@ -29,16 +33,16 @@
     }                                        \
   } while (0);
 
-#define sgemv_loop_fp16(ci, cj, cM, cN)           \
-  do {                                       \
-    _FP16 y0;                               \
-    unsigned int i, j;                       \
-    for (ci = 0; ci != cM; ci++) {           \
-      y0 = Y[ci * incy] * static_cast<_FP16>(beta);              \
-      for (cj = 0; cj != cN; cj++)           \
-        y0 += A[i + j * lda] * X[cj * incx]; \
-      Y[ci * incy] = y0;                     \
-    }                                        \
+#define sgemv_loop_fp16(ci, cj, cM, cN)             \
+  do {                                              \
+    _FP16 y0;                                       \
+    unsigned int i, j;                              \
+    for (ci = 0; ci != cM; ci++) {                  \
+      y0 = Y[ci * incy] * static_cast<_FP16>(beta); \
+      for (cj = 0; cj != cN; cj++)                  \
+        y0 += A[i + j * lda] * X[cj * incx];        \
+      Y[ci * incy] = y0;                            \
+    }                                               \
   } while (0);
 
 namespace nntrainer {
@@ -63,15 +67,29 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   unsigned int incx = abs(incX);
 
   if (TransA == CblasTrans) {
+#ifdef USE__FP16
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+      nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
+    } else {
+      sgemv_loop(i, j, N, M);
+    }
+#endif
     sgemv_loop_fp16(i, j, N, M);
   } else {
+#ifdef USE__FP16
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+      nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
+    } else {
+      sgemv_loop(j, i, M, N);
+    }
+#endif
     sgemv_loop_fp16(j, i, M, N);
   }
 }
 
 static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
-                        const unsigned int incX, const _FP16 *Y,
-                        const unsigned int incY) {
+                       const unsigned int incX, const _FP16 *Y,
+                       const unsigned int incY) {
   _FP16 ret = 0;
   for (unsigned int i = 0; i < N; ++i) {
     ret += X[i * incX] * Y[i * incY];
@@ -172,7 +190,7 @@ _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
 }
 
 _FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
-            const _FP16 *Y, const unsigned int incY) {
+           const _FP16 *Y, const unsigned int incY) {
   return sdot_FP16(N, X, incX, Y, incY);
 }
 
@@ -410,10 +428,9 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
               ldb, beta, static_cast<float *>(C), ldc);
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    sgemm_FP16(order, TransA, TransB, M, N, K, alpha,
-               static_cast<const _FP16 *>(A), lda,
-               static_cast<const _FP16 *>(B), ldb, beta,
-               static_cast<_FP16 *>(C), ldc);
+    sgemm_FP16(
+      order, TransA, TransB, M, N, K, alpha, static_cast<const _FP16 *>(A), lda,
+      static_cast<const _FP16 *>(B), ldb, beta, static_cast<_FP16 *>(C), ldc);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -541,9 +558,8 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
                      static_cast<float *>(Y), incY);
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    return sgemv_FP16(order, TransA, M, N, alpha,
-                      static_cast<const _FP16 *>(A), lda,
-                      static_cast<const _FP16 *>(X), incX, beta,
+    return sgemv_FP16(order, TransA, M, N, alpha, static_cast<const _FP16 *>(A),
+                      lda, static_cast<const _FP16 *>(X), incX, beta,
                       static_cast<_FP16 *>(Y), incY);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
