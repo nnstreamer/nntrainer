@@ -778,6 +778,28 @@ TEST(MultioutRealizer, multiout_p) {
     EXPECT_NO_THROW(realizeAndEqual(r, before, after));
   }
 
+  { // source has single output, all are referred multiple times
+    std::vector<LayerRepresentation> before = {
+      {"split", {"name=a", "input_shape=1:1:1:2", "axis=3"}},
+      {"fully_connected", {"name=b", "input_layers=a"}},
+      {"fully_connected", {"name=c", "input_layers=a(0)"}},
+      {"fully_connected", {"name=d", "input_layers=a(1)"}},
+      {"fully_connected", {"name=e", "input_layers=a(1)"}},
+    };
+    std::vector<LayerRepresentation> after = {
+      {"split", {"name=a", "input_shape=1:1:1:2", "axis=3"}},
+      {"multiout", {"name=a/generated_out_0", "input_layers=a(0)"}},
+      {"multiout", {"name=a/generated_out_1", "input_layers=a(1)"}},
+      {"fully_connected", {"name=b", "input_layers=a/generated_out_0(0)"}},
+      {"fully_connected", {"name=c", "input_layers=a/generated_out_0(1)"}},
+      {"fully_connected", {"name=d", "input_layers=a/generated_out_1(0)"}},
+      {"fully_connected", {"name=e", "input_layers=a/generated_out_1(1)"}},
+    };
+
+    MultioutRealizer r;
+    EXPECT_NO_THROW(realizeAndEqual(r, before, after));
+  }
+
   { // source has single output, some are referred multiple times
     std::vector<LayerRepresentation> before = {
       {"split", {"name=a", "input_shape=1:1:1:2", "axis=3"}},
