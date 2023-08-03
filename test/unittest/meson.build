@@ -68,7 +68,9 @@ foreach target: test_target
     install: get_option('enable-test'),
     install_dir: application_install_dir
   )
-  test(target[0], exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])] )
+  test(target[0], exe,
+    args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])],
+    timeout: test_timeout)
 endforeach
 
 unittest_inc = include_directories('.')
