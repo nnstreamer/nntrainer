@@ -3752,7 +3752,9 @@ TEST(nntrainer_Tensor, average_axis_p) {
   nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::FP16);
   int idx = 0;
-  std::function<float(float)> f = [&](float in) { return idx++ % 2; };
+  std::function<_FP16(_FP16)> f = [&](_FP16 in) {
+    return static_cast<_FP16>(idx++ % 2);
+  };
   t = t.apply(f);
 
   nntrainer::Tensor actual, expected;
