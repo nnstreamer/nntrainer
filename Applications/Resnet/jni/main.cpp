@@ -88,7 +88,7 @@ static std::string withKey(const std::string &key,
 std::vector<LayerHandle> resnetBlock(const std::string &block_name,
                                      const std::string &input_name, int filters,
                                      int kernel_size, bool downsample,
-                                     bool pre_trained) {
+                                     bool trainable = true) {
   using ml::train::createLayer;
 
   auto scoped_name = [&block_name](const std::string &layer_name) {
@@ -99,9 +99,9 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   };
 
   auto create_conv = [&with_name, filters,
-                      pre_trained](const std::string &name, int kernel_size,
-                                   int stride, const std::string &padding,
-                                   const std::string &input_layer) {
+                      trainable](const std::string &name, int kernel_size,
+                                 int stride, const std::string &padding,
+                                 const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
       withKey("stride", {stride, stride}),
@@ -109,7 +109,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", padding),
       withKey("input_layers", input_layer),
-      withKey("trainable", pre_trained ? "true" : "false")};
+      withKey("trainable", trainable ? "true" : "false")};
 
     return createLayer("conv2d", props);
   };
@@ -121,7 +121,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     createLayer("batch_normalization",
                 {with_name("a2"), withKey("activation", "relu"),
                  withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
-                 withKey("trainable", pre_trained ? "true" : "false")});
+                 withKey("trainable", trainable ? "true" : "false")});
   LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
   /** skip path */
@@ -154,7 +154,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
  *
  * @return vector of layers that contain full graph of resnet18
  */
-std::vector<LayerHandle> createResnet18Graph(bool pre_trained) {
+std::vector<LayerHandle> createResnet18Graph(bool trainable = true) {
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
@@ -167,32 +167,25 @@ std::vector<LayerHandle> createResnet18Graph(bool pre_trained) {
                withKey("kernel_size", {3, 3}), withKey("stride", {1, 1}),
                withKey("padding", "same"), withKey("bias_initializer", "zeros"),
                withKey("weight_initializer", "xavier_uniform"),
-               withKey("trainable", pre_trained ? "true" : "false")}));
+               withKey("trainable", trainable ? "true" : "false")}));
 
   layers.push_back(createLayer(
     "batch_normalization",
     {withKey("name", "first_bn_relu"), withKey("activation", "relu"),
      withKey("momentum", "0.9"), withKey("epsilon", "0.00001"),
-     withKey("trainable", pre_trained ? "true" : "false")}));
+     withKey("trainable", trainable ? "true" : "false")}));
 
   std::vector<std::vector<LayerHandle>> blocks;
 
   blocks.push_back(
-    resnetBlock("conv1_0", "first_bn_relu", 64, 3, false, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv1_1", "conv1_0", 64, 3, false, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv2_0", "conv1_1", 128, 3, true, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv2_1", "conv2_0", 128, 3, false, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv3_0", "conv2_1", 256, 3, true, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv3_1", "conv3_0", 256, 3, false, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv4_0", "conv3_1", 512, 3, true, pre_trained));
-  blocks.push_back(
-    resnetBlock("conv4_1", "conv4_0", 512, 3, false, pre_trained));
+    resnetBlock("conv1_0", "first_bn_relu", 64, 3, false, trainable));
+  blocks.push_back(resnetBlock("conv1_1", "conv1_0", 64, 3, false, trainable));
+  blocks.push_back(resnetBlock("conv2_0", "conv1_1", 128, 3, true, trainable));
+  blocks.push_back(resnetBlock("conv2_1", "conv2_0", 128, 3, false, trainable));
+  blocks.push_back(resnetBlock("conv3_0", "conv2_1", 256, 3, true, trainable));
+  blocks.push_back(resnetBlock("conv3_1", "conv3_0", 256, 3, false, trainable));
+  blocks.push_back(resnetBlock("conv4_0", "conv3_1", 512, 3, true, trainable));
+  blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false, trainable));
 
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -211,7 +204,7 @@ std::vector<LayerHandle> createResnet18Graph(bool pre_trained) {
 }
 
 /// @todo update createResnet18 to be more generic
-ModelHandle createResnet18(bool pre_trained = false) {
+ModelHandle createResnet18(bool trainable = true) {
 /// @todo support "LOSS : cross" for TF_Lite Exporter
 #if (defined(ENABLE_TFLITE_INTERPRETER) && !defined(ENABLE_TEST))
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
@@ -221,7 +214,7 @@ ModelHandle createResnet18(bool pre_trained = false) {
                                              {withKey("loss", "cross")});
 #endif
 
-  for (auto &layer : createResnet18Graph(pre_trained)) {
+  for (auto &layer : createResnet18Graph(trainable)) {
     model->addLayer(layer);
   }
 
@@ -258,7 +251,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::string pretrained_bin_path = "./pretrained_resnet18.bin";
 
   // setup model
-  ModelHandle model = createResnet18(transfer_learning);
+  ModelHandle model = createResnet18(!transfer_learning);
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       withKey("save_path", "resnet_full.bin")});
