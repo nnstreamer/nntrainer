@@ -45,6 +45,13 @@
     }                                               \
   } while (0);
 
+#define saxpy_loop_fp16()                                                  \
+  do {                                                                     \
+    unsigned int i;                                                        \
+    for (i = 0; i < N; ++i)                                                \
+      Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX]; \
+  } while (0);
+
 namespace nntrainer {
 
 #ifdef ENABLE_FP16
@@ -53,8 +60,17 @@ static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
   if (incX < 0 or incY < 0)
     throw std::invalid_argument(
       "Error: negative inc not supported without cblas");
-  for (unsigned int i = 0; i < N; ++i)
-    Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX];
+
+#ifdef USE__FP16
+  // USE__FP16 is defined when platform is android
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::saxpy_neon_fp16(N, alpha, X, Y);
+  } else {
+    saxpy_loop_fp16();
+  }
+#else
+  saxpy_loop_fp16();
+#endif
 }
 
 static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
