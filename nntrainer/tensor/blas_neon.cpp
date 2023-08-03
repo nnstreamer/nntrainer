@@ -519,4 +519,36 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
   }
 }
 
+void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, __fp16 *Y) {
+
+  const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
+  const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
+
+  unsigned int idx = 0;
+
+  // processing batch of 8
+  for(; (N - idx) >= 8 ; idx += 8){
+    float16x8_t x = vld1q_f16(&X[idx]);
+    float16x8_t y = vld1q_f16(&Y[idx]);
+
+    // alpha*X + Y -> mulacc
+    float16x8_t mulacc = vfmaq_f16(y, v_alphaX8, x);
+    vst1q_f16(&Y[idx], mulacc);
+  }
+
+  // processing remaining batch of 4
+  for(; (N - idx) >= 4 ; idx += 4){
+    float16x4_t x = vld1_f16(&X[idx]);
+    float16x4_t y = vld1_f16(&Y[idx]);
+
+    // alpha*X + Y -> mulacc
+    float16x4_t mulacc = vfma_f16(y, v_alphaX4, x);
+    vst1_f16(&Y[idx], mulacc);
+  }
+
+  // pocessing remaining values
+  for (; idx < N; idx++)
+    Y[idx] = Y[idx] + alpha * X[idx];
+}
+
 } // namespace nntrainer::neon

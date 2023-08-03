@@ -76,6 +76,15 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
                                uint32_t rows, uint32_t cols, float alpha,
                                float beta);
 
+/**
+ * @brief     saxpy computation with neon: Y = alpha*X + Y
+ * @param[in] N number of elements in Y
+ * @param[in] alpha float number
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ */
+void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, __fp16 *Y);
+
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
