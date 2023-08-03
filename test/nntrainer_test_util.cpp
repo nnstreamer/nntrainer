@@ -188,13 +188,13 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
                          nntrainer::Tformat fm, nntrainer::Tdatatype d_type) {
   nntrainer::TensorDim::TensorType t_type(fm, d_type);
   nntrainer::Tensor t(batch, channel, height, width, t_type);
-  // if (t_type.data_type == nntrainer::Tdatatype::FP32) {
+  if (t_type.data_type == nntrainer::Tdatatype::FP32) {
     float i = 0;
     t = t.apply((std::function<float(float)>)[&](float in) { return i++; });
-  // } else if (t_type.data_type == nntrainer::Tdatatype::FP16) {
-  //   _FP16 i = 0;
-  //   t = t.apply((std::function<_FP16(_FP16)>)[&](_FP16 in) { return i++; });
-  // }
+  } else if (t_type.data_type == nntrainer::Tdatatype::FP16) {
+    _FP16 i = 0;
+    t = t.apply((std::function<_FP16(_FP16)>)[&](_FP16 in) { return i++; });
+  }
 
   return t;
 }
@@ -203,7 +203,7 @@ nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
                               unsigned int height, unsigned int width,
                               float min, float max, nntrainer::Tformat fm,
                               nntrainer::Tdatatype d_type) {
-  nntrainer::TensorDim::TensorType t_type(fm, d_type);                              
+  nntrainer::TensorDim::TensorType t_type(fm, d_type);
   nntrainer::Tensor t(batch, channel, height, width, t_type);
   t.setRandUniform(min, max);
   return t;
