@@ -17,6 +17,7 @@ tensor_sources = [
   'optimized_v2_planner.cpp',
   'optimized_v3_planner.cpp',
   'task_executor.cpp',
+  'blas_neon.cpp',
 ]
 
 tensor_headers = [
