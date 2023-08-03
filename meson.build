@@ -209,6 +209,7 @@ if get_option('enable-test') # and get_option('platform') != 'android'
   if gtest_dep.version().version_compare('<1.10.0')
      extra_defines += '-DGTEST_BACKPORT=1'
   endif
+  test_timeout = get_option('test-timeout')
 endif
 
 if get_option('reduce-tolerance')
