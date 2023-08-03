@@ -258,5 +258,36 @@ nntrainer::GraphRepresentation makeCompiledGraph(
 void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
                            const std::string &error_msg = "");
 
+template <typename Ta = float, typename Tb = float>
+double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
+                         uint32_t size) {
+  double dot = 0.0, denom_a = 0.0, denom_b = 0.0;
+  for (uint32_t i = 0u; i < size; ++i) {
+    Ta pred = A[i];
+    Tb ref = B[i];
+    dot += pred * ref;
+    denom_a += pred * pred;
+    denom_b += ref * ref;
+  }
+
+  double cosine_sim = dot / (sqrt(denom_a) * sqrt(denom_b));
+  return cosine_sim;
+}
+
+template <typename Ta = float, typename Tb = float>
+float mse(Ta *A /* Predicted */, Tb *B /* Reference */, uint32_t size) {
+  Ta pred;
+  Tb ref;
+  float mse_error = 0;
+  for (int i = 0; i < size; i++) {
+    pred = A[i];
+    ref = B[i];
+    float diff = pred - ref;
+    mse_error += pow(diff, 2);
+  }
+  float mse = mse_error / size;
+  return mse;
+}
+
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */
