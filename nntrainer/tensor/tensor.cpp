@@ -927,7 +927,7 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
     ret_dims[i].setTensorDim(axis, sizes[i]);
   }
 
-  bool is_format_nchw = (dim.getFormat() == Tformat::NCHW) ? true : false;
+  bool is_format_nchw = (dim.getFormat() == Tformat::NCHW);
 
   auto iter_value = [this, is_format_nchw](
                       std::array<size_t, 4> &loc,
@@ -1022,7 +1022,7 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
     << "given tensor vector is empty";
 
   auto ref_dim = tensors.front().getDim();
-  bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW) ? true : false;
+  bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW);
   ref_dim.setTensorDim(axis, 1);
   NNTR_THROW_IF(!std::all_of(tensors.begin(), tensors.end(),
                              [&ref_dim, axis](const Tensor &t) {
@@ -1611,7 +1611,7 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
 
   SL = dim.batch(), SI = dim.channel(), SJ = dim.height(), SK = dim.width();
 
-  bool is_format_nchw = (getFormat() == Tformat::NCHW) ? true : false;
+  bool is_format_nchw = (getFormat() == Tformat::NCHW);
 
   inptr = getData();
   outptr = out.getData();
