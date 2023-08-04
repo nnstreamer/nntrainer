@@ -284,7 +284,13 @@ nntrainer::GraphRepresentation makeCompiledGraph(
 void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
                            const std::string &error_msg) {
   unsigned int sz = 0;
-  nntrainer::checkedRead(file, (char *)&sz, sizeof(unsigned));
+
+  if (t.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    nntrainer::checkedRead(file, (char *)&sz, sizeof(unsigned));
+  } else if (t.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    nntrainer::checkedRead(file, (char *)&sz, sizeof(_FP16));
+  }
+
   NNTR_THROW_IF(t.getDim().getDataLen() != sz, std::invalid_argument)
     << "[ReadFail] dimension does not match at " << error_msg << " sz: " << sz
     << " dimsize: " << t.getDim().getDataLen() << '\n';
