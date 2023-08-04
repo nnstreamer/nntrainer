@@ -84,22 +84,24 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
   if (TransA == CblasTrans) {
 #ifdef USE__FP16
-    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0)) {
       nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
     } else {
-      sgemv_loop(i, j, N, M);
+      sgemv_loop_fp16(i, j, N, M);
     }
-#endif
+#else
     sgemv_loop_fp16(i, j, N, M);
+#endif
   } else {
 #ifdef USE__FP16
-    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0 || N % 4 == 0)) {
+    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0)) {
       nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
     } else {
-      sgemv_loop(j, i, M, N);
+      sgemv_loop_fp16(j, i, M, N);
     }
-#endif
+#else
     sgemv_loop_fp16(j, i, M, N);
+#endif
   }
 }
 
