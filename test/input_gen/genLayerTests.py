@@ -21,7 +21,7 @@ import warnings
 import random
 from functools import partial
 
-from recorder import record_single
+from recorder import record_single, record_single_fp16
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -33,14 +33,17 @@ with warnings.catch_warnings():
 # @brief inpsect if file is created correctly
 # @note this just checks if offset is corretly set, The result have to inspected
 # manually
-def inspect_file(file_name):
+def inspect_file(file_name, _dtype = "float32"):
     with open(file_name, "rb") as f:
         while True:
-            sz = int.from_bytes(f.read(4), byteorder="little")
+            if (_dtype == "float32"):
+                sz = int.from_bytes(f.read(4), byteorder="little")
+            elif (_dtype =="float16"):
+                sz = int.from_bytes(f.read(2), byteorder="little")
             if not sz:
                 break
             print("size: ", sz)
-            print(np.fromfile(f, dtype="float32", count=sz))
+            print(np.fromfile(f, dtype=_dtype, count=sz))
 
 class PositionalEncoding(tf.keras.layers.Layer):
     def __init__(self, position, d_model):
@@ -75,6 +78,11 @@ if __name__ == "__main__":
     record_single(fc, (3, 1, 1, 10), "fc_plain")
     fc = K.layers.Dense(4)
     record_single(fc, (1, 1, 1, 10), "fc_single_batch")
+
+    fc1616 = K.layers.Dense(5)
+    record_single_fp16(fc1616, (3, 1, 1, 10), "fc_plain_fp16fp16",input_type='float16')
+    fc1616 = K.layers.Dense(4)
+    record_single_fp16(fc1616, (1, 1, 1, 10), "fc_single_batch_fp16fp16",input_type='float16')
 
     bn = K.layers.BatchNormalization()
     record_single(bn, (2, 4, 2, 3), "bn_channels_training", {"training": True})
@@ -334,4 +342,4 @@ if __name__ == "__main__":
     record_single(positional_encoding, [(3, 1, 10, 6)], "positional_encoding")
 
 inspect_file("dropout_20_training.nnlayergolden")
-
+inspect_file("fc_plain_fp16fp16.nnlayergolden", _dtype = "float16")
