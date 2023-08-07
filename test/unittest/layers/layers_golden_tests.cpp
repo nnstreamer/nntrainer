@@ -25,6 +25,10 @@
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
+#define EXPECT_IN_RANGE(VAL, MIN, MAX) \
+  EXPECT_GE((VAL), (MIN));             \
+  EXPECT_LE((VAL), (MAX))
+
 using namespace nntrainer;
 
 using TensorPacks = std::tuple<
@@ -51,13 +55,21 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
-  for (auto &p : parsed) {
-    p.get().setFormat(layer->getTensorType());
+  if (tensor_type[2] == "fp16") {
+    for (auto &par : parsed) {
+      par.get().setDataType(ml::train::TensorDim::DataType::FP16);
+    }
   }
 
   InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
                            "golden_test", "", 0.0, tensor_type);
   layer->finalize(context);
+
+  if (tensor_type[2] == "fp16") {
+    for (auto dim : context.getInputDimensions()) {
+      dim.setDataType(ml::train::TensorDim::DataType::FP16);
+    }
+  }
 
   return context;
 }
@@ -153,33 +165,71 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                               bool skip_grad, bool skip_deriv,
                               bool dropout_match) {
   file.seekg(0, std::ios::beg);
+
   auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
                                        unsigned int match_percentage) -> bool {
-    if (match_percentage == 100) {
-      EXPECT_EQ(t1, t2);
-      return t1 == t2;
-    }
-
     if (t1.getDim() != t2.getDim())
       return false;
 
     unsigned int total = t1.size();
     unsigned int weak_match = 0;
 
-    for (unsigned int idx = 0; idx < total; idx++) {
-      auto d1 = t1.getValue(idx);
-      auto d2 = t2.getValue(idx);
-      auto float_eq = [](float a, float b) {
-        constexpr auto eps = 1e-6;
-        return std::abs(a - b) < eps;
-      };
-      /** either both the values must be equal or 1 must be zero */
-      weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
-                               (d1 != 0 && float_eq(d2, 0)),
-                             1);
-    }
+    if (t1.getDim().getDataType() == ml::train::TensorDim::DataType::FP32 &&
+        t2.getDim().getDataType() == ml::train::TensorDim::DataType::FP32) {
 
-    return (weak_match == total);
+      if (match_percentage == 100) {
+        EXPECT_EQ(t1, t2);
+        return t1 == t2;
+      }
+
+      for (unsigned int idx = 0; idx < total; idx++) {
+        auto d1 = t1.getValue(idx);
+        auto d2 = t2.getValue(idx);
+        auto float_eq = [](float a, float b) {
+          constexpr auto eps = 1e-6;
+          return std::abs(a - b) < eps;
+        };
+        /** either both the values must be equal or 1 must be zero */
+        weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
+                                 (d1 != 0 && float_eq(d2, 0)),
+                               1);
+      }
+      return (weak_match == total);
+    } else if (t1.getDim().getDataType() ==
+                 ml::train::TensorDim::DataType::FP16 &&
+               t2.getDim().getDataType() ==
+                 ml::train::TensorDim::DataType::FP16) {
+
+      for (unsigned int idx = 0; idx < total; idx++) {
+        auto d1 = t1.getValue<_FP16>(idx);
+        auto d2 = t2.getValue<_FP16>(idx);
+        auto float_eq = [](_FP16 a, _FP16 b) {
+          constexpr auto eps = 1e-2;
+          if (a < b)
+            std::swap(a, b);
+          return (a - b) < eps;
+        };
+        /** either both the values must be equal or 1 must be zero */
+        weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
+                                 (d1 != 0 && float_eq(d2, 0)),
+                               1);
+      }
+      const float epsilon = 1e-4;
+
+      auto tensor = t1.clone();
+      auto answer = t2.clone();
+
+      auto cos_sim = cosine_similarity<_FP16>(
+        answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
+      auto mean_squared_error = mse<_FP16>(
+        answer.getData<_FP16>(), answer.getData<_FP16>(), tensor.size());
+
+      EXPECT_IN_RANGE(cos_sim, 0.99, 1);
+      EXPECT_IN_RANGE(mean_squared_error, 0, epsilon);
+
+      return (weak_match == total);
+    } else
+      return false;
   };
 
   auto compare_tensors = [&file, compare_percentage_tensors](
@@ -213,24 +263,25 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   constexpr bool skip_compare = true;
 
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, skip_compare, "initial_weights");
-  compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getInput(idx); }, always_read,
-                  !skip_compare, "inputs");
-  compare_tensors(rc.getNumOutputs(),
-                  [&rc](unsigned idx) { return rc.getOutput(idx); },
-                  always_read, !skip_compare, "outputs", match_percentage);
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-                  only_read_trainable, skip_grad, "gradients");
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, !skip_compare, "weights");
-  compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always_read, skip_deriv, "derivatives", match_percentage);
+  compare_tensors(
+    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeight(idx); },
+    always_read, skip_compare, "initial_weights");
+  compare_tensors(
+    rc.getNumInputs(), [&rc](unsigned idx) { return rc.getInput(idx); },
+    always_read, !skip_compare, "inputs");
+  compare_tensors(
+    rc.getNumOutputs(), [&rc](unsigned idx) { return rc.getOutput(idx); },
+    always_read, !skip_compare, "outputs", match_percentage);
+  compare_tensors(
+    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
+    only_read_trainable, skip_grad, "gradients");
+  compare_tensors(
+    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeight(idx); },
+    always_read, !skip_compare, "weights");
+  compare_tensors(
+    rc.getNumInputs(),
+    [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); }, always_read,
+    skip_deriv, "derivatives", match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
