@@ -270,6 +270,9 @@ double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
     denom_b += ref * ref;
   }
 
+  if (sqrt(denom_a) == 0 && sqrt(denom_b) == 0)
+    return 1;
+
   double cosine_sim = dot / (sqrt(denom_a) * sqrt(denom_b));
   return cosine_sim;
 }
@@ -279,7 +282,7 @@ float mse(Ta *A /* Predicted */, Tb *B /* Reference */, uint32_t size) {
   Ta pred;
   Tb ref;
   float mse_error = 0;
-  for (int i = 0; i < size; i++) {
+  for (uint32_t i = 0; i < size; i++) {
     pred = A[i];
     ref = B[i];
     float diff = pred - ref;
