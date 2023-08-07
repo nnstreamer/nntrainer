@@ -66,7 +66,7 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   context.setEffDimFlagInputDimension(0, 0b1001);
   context.setDynDimFlagInputDimension(0, 0b1000);
 
-  bool is_nchw = (getTensorType() == Tformat::NCHW);
+  bool is_nchw = (context.getFormat() == Tformat::NCHW);
   /** set output dimensions */
   auto const &in_dim = context.getInputDimensions()[0];
   output_dims[0] = in_dim;
