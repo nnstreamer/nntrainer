@@ -79,6 +79,8 @@ if get_option('enable-fp16')
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DUSE__FP16=1'
+   elif arch == 'aarch64' or arch =='arm'
+     extra_defines += '-DUSE__FP16=1'
    else
      has_avx512fp16 = cc.has_argument('-mavx512fp16')
      if (has_avx512fp16)

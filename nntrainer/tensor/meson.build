@@ -17,7 +17,6 @@ tensor_sources = [
   'optimized_v2_planner.cpp',
   'optimized_v3_planner.cpp',
   'task_executor.cpp',
-  'blas_neon.cpp',
 ]
 
 tensor_headers = [
@@ -25,6 +24,12 @@ tensor_headers = [
   'tensor.h',
   'tensor_wrap_specs.h'
 ]
+
+arch = target_machine.cpu_family()
+
+if get_option('platform') == 'android' or arch == 'aarch64' or arch =='arm'
+  tensor_sources += 'blas_neon.cpp'
+endif
 
 foreach s : tensor_sources
   nntrainer_sources += meson.current_source_dir() / s
