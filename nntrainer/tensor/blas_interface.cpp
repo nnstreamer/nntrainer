@@ -108,10 +108,25 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
                        const unsigned int incX, const _FP16 *Y,
                        const unsigned int incY) {
+
+  if (incX < 0 or incY < 0)
+    throw std::invalid_argument("Error: negative inc not supported");
+
   _FP16 ret = 0;
+
+#ifdef USE__FP16
+  if (incX == 1 && incY == 1) {
+    ret = nntrainer::neon::sdot_neon_fp16(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      ret += X[i * incX] * Y[i * incY];
+    }
+  }
+#else
   for (unsigned int i = 0; i < N; ++i) {
     ret += X[i * incX] * Y[i * incY];
   }
+#endif
   return ret;
 }
 
