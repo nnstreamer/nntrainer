@@ -65,9 +65,63 @@ TEST(nntrainer_Tensor, add_i) {
 
   double cosSimNeon = cosine_similarity<__fp16>(
     input.getData<__fp16>(), input_fp32.getData<float>(), input.size());
-  
+
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE(cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, dot) {
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  // conditions for fp16 sdot call:
+  // this->(batch * channel * height) = arg->(width) = 1;
+
+  size_t width = 23;
+
+  __fp16 a_data[] = {0,  1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11,
+                     12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  nntrainer::Tensor input(
+    nntrainer::TensorDim(1, 1, 1, width, t_type_nchw_fp16), a_data);
+  __fp16 b_data[] = {0,  1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11,
+                     12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  nntrainer::Tensor input_2(
+    nntrainer::TensorDim(1, 1, width, 1, t_type_nchw_fp16), b_data);
+
+  float a_data_fp32[] = {0,  1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11,
+                         12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  nntrainer::Tensor input_fp32(
+    nntrainer::TensorDim(1, 1, 1, width, t_type_nchw_fp32), a_data_fp32);
+  float b_data_fp32[] = {0,  1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11,
+                         12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  nntrainer::Tensor input_fp32_2(
+    nntrainer::TensorDim(1, 1, width, 1, t_type_nchw_fp32), b_data_fp32);
+
+  nntrainer::Tensor result_neon;
+  nntrainer::Tensor result_fp32;
+
+  // NEON fp16
+  result_neon = input.dot(input_2, false, false);
+
+  // fp32
+  result_fp32 = input_fp32.dot(input_fp32_2, false, false);
+
+  float mseErrorNeon =
+    mse<__fp16>(result_neon.getData<__fp16>(), result_fp32.getData<float>(),
+                result_neon.size());
+
+  double cosSimNeon =
+    cosine_similarity<__fp16>(result_neon.getData<__fp16>(),
+                              result_fp32.getData<float>(), result_neon.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
 GTEST_API_ int main(int argc, char **argv) {
