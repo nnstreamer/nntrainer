@@ -113,6 +113,7 @@ public:
   ml::train::RunStats valid_stats;
 
   GstTensorTrainerEventNotifier *notifier; /**< a handle of event notify */
+  bool stop_model_training;
 
 private:
   std::unique_ptr<ml::train::Model> model;
