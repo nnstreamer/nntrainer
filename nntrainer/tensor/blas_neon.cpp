@@ -519,7 +519,8 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
   }
 }
 
-void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, __fp16 *Y) {
+void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
+                     __fp16 *Y) {
 
   const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
   const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
@@ -527,7 +528,7 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, _
   unsigned int idx = 0;
 
   // processing batch of 8
-  for(; (N - idx) >= 8 ; idx += 8){
+  for (; (N - idx) >= 8; idx += 8) {
     float16x8_t x = vld1q_f16(&X[idx]);
     float16x8_t y = vld1q_f16(&Y[idx]);
 
@@ -537,7 +538,7 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, _
   }
 
   // processing remaining batch of 4
-  for(; (N - idx) >= 4 ; idx += 4){
+  for (; (N - idx) >= 4; idx += 4) {
     float16x4_t x = vld1_f16(&X[idx]);
     float16x4_t y = vld1_f16(&Y[idx]);
 
@@ -549,6 +550,54 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X, _
   // pocessing remaining values
   for (; idx < N; idx++)
     Y[idx] = Y[idx] + alpha * X[idx];
+}
+
+__fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
+
+  float16x8_t accX8 = vmovq_n_f16(0);
+  float16x4_t accX4 = vmov_n_f16(0);
+
+  unsigned int idx = 0;
+  __fp16 ret = 0;
+
+  // processing batch of 8
+  for (; (N - idx) >= 8; idx += 8) {
+    float16x8_t x = vld1q_f16(&X[idx]);
+    float16x8_t y = vld1q_f16(&Y[idx]);
+
+    // x*y + accX8 -> accX8
+    accX8 = vfmaq_f16(accX8, x, y);
+  }
+
+  // check at least one batch of 8 is processed
+  if (N - 8 >= 0) {
+    __fp16 result[8];
+    vst1q_f16(result, accX8);
+    for (unsigned int i = 0; i < 8; i++)
+      ret += result[i];
+  }
+
+  // processing remaining batch of 4
+  for (; (N - idx) >= 4; idx += 4) {
+    float16x4_t x = vld1_f16(&X[idx]);
+    float16x4_t y = vld1_f16(&Y[idx]);
+
+    // x*y + accX4 -> accX4
+    accX4 = vfma_f16(accX4, x, y);
+  }
+
+  // check at least one batch of 4 is processed
+  if (N % 8 >= 4) {
+    __fp16 result[4];
+    vst1_f16(result, accX4);
+    ret += result[0] + result[1] + result[2] + result[3];
+  }
+
+  // pocessing remaining values
+  for (; idx < N; idx++)
+    ret += X[idx] * Y[idx];
+
+  return ret;
 }
 
 } // namespace nntrainer::neon
