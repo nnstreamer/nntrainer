@@ -263,8 +263,8 @@ double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
                          uint32_t size) {
   double dot = 0.0, denom_a = 0.0, denom_b = 0.0;
   for (uint32_t i = 0u; i < size; ++i) {
-    Ta pred = A[i];
-    Tb ref = B[i];
+    double pred = A[i];
+    double ref = B[i];
     dot += pred * ref;
     denom_a += pred * pred;
     denom_b += ref * ref;
@@ -279,8 +279,8 @@ double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
 
 template <typename Ta = float, typename Tb = float>
 float mse(Ta *A /* Predicted */, Tb *B /* Reference */, uint32_t size) {
-  Ta pred;
-  Tb ref;
+  float pred;
+  float ref;
   float mse_error = 0;
   for (uint32_t i = 0; i < size; i++) {
     pred = A[i];
