@@ -111,7 +111,7 @@ private:
   inline static constexpr int ImageSize = 3 * 32 * 32;
   inline static constexpr int NumClass = 100;
   inline static constexpr int SampleSize =
-    4 * (3 * 32 * 32 + 100); /**< 1 coarse label, 1 fine label, pixel size */
+    4 * (3 * 32 * 32 + 2); /**< 1 coarse label, 1 fine label, pixel size */
 
   unsigned int batch;
   unsigned int current_iteration;
