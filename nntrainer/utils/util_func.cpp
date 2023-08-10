@@ -41,8 +41,6 @@ double sqrtDouble(double x) { return sqrt(x); };
 
 float logFloat(float x) { return log(x + 1.0e-20); }
 
-float exp_util(float x) { return exp(x); }
-
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();

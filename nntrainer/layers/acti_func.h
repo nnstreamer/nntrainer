@@ -29,10 +29,17 @@ class Tensor;
 class ActiFunc {
 
 public:
+  constexpr static inline float NEGATIVE_SLOPE = 0.01f;
+
   /**
    * @brief     Constructor of ActiFunc
    */
-  ActiFunc(ActivationType at = ActivationType::ACT_NONE, bool in_place_ = true);
+  template <typename T = float>
+  ActiFunc(ActivationType at = ActivationType::ACT_NONE,
+           bool in_place_ = true) :
+    in_place(in_place_) {
+    setActiFunc<T>(at);
+  }
 
   /**
    * @brief     Destructor of ActiFunc
@@ -44,7 +51,41 @@ public:
    *
    * @param[in] ActivationType
    */
-  void setActiFunc(ActivationType acti_type);
+  template <typename T = float> void setActiFunc(ActivationType acti_type) {
+    activation_type = acti_type;
+
+    switch (acti_type) {
+    case ActivationType::ACT_TANH:
+      this->setActivation<T>(tanhFloat<T>, tanhPrime<T>);
+      break;
+    case ActivationType::ACT_SIGMOID:
+      this->setActivation<T>(sigmoid<T>, sigmoidPrime<T>);
+      break;
+    case ActivationType::ACT_SOFTMAX:
+      this->setActivation<Tensor>(softmax<T>, softmaxPrime<T>);
+      break;
+    case ActivationType::ACT_RELU:
+      this->setActivation<T>(relu<T>, reluPrime<T>);
+      break;
+    case ActivationType::ACT_LEAKY_RELU:
+      this->setActivation<T>(leakyRelu<T>, leakyReluPrime<T>);
+      break;
+    case ActivationType::ACT_SWISH:
+      in_place = false;
+      this->setActivation<Tensor>(swish<T>, swishPrime<T>);
+      break;
+    case ActivationType::ACT_GELU:
+      in_place = false;
+      this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
+      break;
+    case ActivationType::ACT_NONE:
+      this->setActivation<T>(no_op<T>, no_op_prime<T>);
+      break;
+    case ActivationType::ACT_UNKNOWN:
+    default:
+      throw std::runtime_error("Error: Not Supported Activation Type");
+    }
+  }
 
   /**
    * @brief run function
@@ -89,7 +130,55 @@ public:
    * @param[out] output output Tensor
    * @retval      Tensor
    */
-  static Tensor &softmax(Tensor const &input, Tensor &output);
+  template <typename T = float>
+  static Tensor &softmax(Tensor const &input, Tensor &output) {
+    /**
+     * shiftx_logit = logit - max_batch(logit)
+     * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
+     *
+     * @note softmax is applied on the last dimension
+     */
+    /** TODO: support strided operations */
+    if (input.size() == output.size() &&
+        input.getStrides() != output.getStrides())
+      throw std::invalid_argument(
+        "Softmax does not support operating on strided tensors");
+
+    unsigned int width = input.width();
+    unsigned int bch_size = input.getDim().getDataLen() / width;
+
+    // copy will not executed in inplace case
+    output.copy(input);
+
+    T *output_data = output.getData<T>();
+
+    // prevent overflow
+    Tensor tmp(width, input.getTensorType());
+    for (unsigned int i = 0; i < bch_size; i++) {
+      T *ptr = output_data + i * width;
+
+      // find max value and subtract it
+      T max_value = *std::max_element(ptr, ptr + width);
+
+      tmp.setValue(max_value);
+      saxpy(width, -1, tmp.getData<T>(), 1, ptr, 1);
+    }
+
+    // take exp
+    output.apply<T>(exp_util<T>, output);
+
+    // take sum over the last dimension
+    Tensor sum = output.sum(3);
+
+    for (unsigned int i = 0; i < bch_size; i++) {
+      T *ptr = output_data + i * width;
+      std::transform(ptr, ptr + width, ptr,
+                     std::bind(std::divides<T>(), std::placeholders::_1,
+                               sum.getValue<T>(i)));
+    }
+
+    return output;
+  }
 
   /**
    * @brief     Calculate derivative of softmax function
@@ -98,56 +187,129 @@ public:
    * @param[in] incoming_derivative incoming derivative tensor from next layer
    * @retVal    Tensor
    */
+
+  template <typename T = float>
   static Tensor &softmaxPrime(Tensor const &output, Tensor &outgoing_derivative,
-                              Tensor const &incoming_derivative = Tensor());
+                              Tensor const &incoming_derivative = Tensor()) {
+    /** TODO: support strided operations */
+
+    if ((output.size() == outgoing_derivative.size() &&
+         output.getStrides() != outgoing_derivative.getStrides()) ||
+        (output.size() == incoming_derivative.size() &&
+         output.getStrides() != incoming_derivative.getStrides()))
+      throw std::invalid_argument(
+        "SoftmaxPrime does not support operating on strided tensors");
+
+    unsigned int batch = output.batch();
+    unsigned int channel = output.channel();
+    unsigned int height = output.height();
+    unsigned int width = output.width();
+
+    if (outgoing_derivative.empty())
+      outgoing_derivative = Tensor(output.getDim());
+
+    const T *output_data = output.getData<T>();
+    const T *incoming_derivative_data = incoming_derivative.getData<T>();
+    T *outgoing_derivative_data = outgoing_derivative.getData<T>();
+
+    Tensor tmp = Tensor(width, output.getTensorType());
+    T *tmp_data = tmp.getData<T>();
+    unsigned int output_width_stride = output.getStrides()[3];
+    for (unsigned int b = 0; b < batch; ++b) {
+      int b_offset = b * channel * height * width;
+      for (unsigned int c = 0; c < channel; ++c) {
+        int bc_offset = b_offset + c * height * width;
+        for (unsigned int h = 0; h < height; ++h) {
+          int bch_offset = bc_offset + h * width;
+          for (unsigned int w1 = 0; w1 < width; ++w1) {
+            T sum = 0;
+            for (unsigned int w2 = 0; w2 < width; ++w2) {
+              T val;
+              if (w1 == w2) {
+                val = output_data[bch_offset + w2] *
+                      ((T)1 - output_data[bch_offset + w1]);
+              } else {
+                val =
+                  -output_data[bch_offset + w2] * output_data[bch_offset + w1];
+              }
+              if (!incoming_derivative.empty())
+                val *= incoming_derivative_data[bch_offset + w2];
+              sum += val;
+            }
+            tmp.setValue(0, 0, 0, w1, sum);
+          }
+          scopy(width, tmp_data, 1, outgoing_derivative_data + bch_offset,
+                output_width_stride);
+        }
+      }
+    }
+
+    return outgoing_derivative;
+  }
 
   /**
    * @brief     sigmoid activation function
    * @param[in] x input
    */
-  static float sigmoid(float x);
+  template <typename T = float> static T sigmoid(T x) {
+    return static_cast<T>(1.0 / (1.0 + exp_util<T>(-x)));
+  }
 
   /**
    * @brief     derivative sigmoid function
    * @param[in] x input
    */
-  static float sigmoidPrime(float x);
+  template <typename T = float> static T sigmoidPrime(T x) {
+    return static_cast<T>(x * (static_cast<T>(1.0) - x));
+  }
 
   /**
    * @brief     tanh function for float type
    * @param[in] x input
    */
-  static float tanhFloat(float x);
+  template <typename T = float> static T tanhFloat(T x) {
+    return static_cast<T>(2.0 * sigmoid<T>(static_cast<T>(2.0) * x) - 1.0);
+  }
 
   /**
    * @brief     derivative tanh function
    * @param[in] x input
    */
-  static float tanhPrime(float x);
+  template <typename T = float> static T tanhPrime(T x) {
+    return static_cast<T>(1.0 - x * x);
+  }
 
   /**
    * @brief     relu activation function
    * @param[in] x input
    */
-  static float relu(float x);
+  template <typename T = float> static T relu(T x) {
+    if (x <= 0)
+      return 0;
+    return x;
+  }
 
   /**
    * @brief     derivative relu function
    * @param[in] x input
    */
-  static float reluPrime(float x);
+  template <typename T = float> static T reluPrime(T x) {
+    if (x <= 0)
+      return 0;
+    return 1;
+  }
 
   /**
    * @brief     no_op function
    * @param[in] x input
    */
-  static float no_op(float x);
+  template <typename T = float> static T no_op(T x) { return x; }
 
   /**
    * @brief     no_op function
    * @param[in] x input
    */
-  static float no_op_prime(float x);
+  template <typename T = float> static T no_op_prime(T x) { return 1; }
 
   /**
    * @brief leaky relu function
@@ -158,7 +320,9 @@ public:
    * @param x input
    * @return float output
    */
-  static float leakyRelu(float x);
+  template <typename T = float> static T leakyRelu(T x) {
+    return x >= static_cast<T>(0.0) ? x : static_cast<T>(NEGATIVE_SLOPE) * x;
+  }
 
   /**
    * @brief leaky relu prime function
@@ -169,14 +333,23 @@ public:
    * @param x input
    * @return float output
    */
-  static float leakyReluPrime(float x);
+  template <typename T = float> static T leakyReluPrime(T x) {
+    return x >= static_cast<T>(0.0) ? static_cast<T>(1.0)
+                                    : static_cast<T>(NEGATIVE_SLOPE);
+  }
 
   /**
    * @brief     swish activation function
    * @param[in] t_in input tensor
    * @param[in] t_out output tensor
    */
-  static Tensor &swish(Tensor const &t_in, Tensor &t_out);
+  template <typename T = float>
+  static Tensor &swish(Tensor const &t_in, Tensor &t_out) {
+    t_in.apply<T>([&](T x) { return sigmoid<T>(x); }, t_out);
+    t_out.multiply_i(t_in);
+
+    return t_out;
+  }
 
   /**
    * @brief     derivative swish function
@@ -185,16 +358,36 @@ public:
    * @param[in] outgoing_derivative outgoing derivative
    * @param[in] incoming_derivative incoming derivative
    */
+  template <typename T = float>
   static Tensor &swishPrime(Tensor const &t_in, Tensor const &t_out,
                             Tensor &outgoing_derivative,
-                            Tensor const &incoming_derivative = Tensor());
+                            Tensor const &incoming_derivative = Tensor()) {
+    if (outgoing_derivative.empty())
+      outgoing_derivative = Tensor(t_out.getDim());
+
+    Tensor tmp = Tensor(t_out.getDim());
+    t_in.apply<T>([&](T x) { return sigmoid(x); }, outgoing_derivative);
+    t_out.apply<T>([&](T x) { return 1 - x; }, tmp);
+    outgoing_derivative.multiply_i(tmp);
+    outgoing_derivative.add_i(t_out);
+
+    outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+    return outgoing_derivative;
+  }
 
   /**
    * @brief     gelu activation function
    * @param[in] t_in input tensor
    * @param[in] t_out output tensor
    */
-  static Tensor &gelu(Tensor const &t_in, Tensor &t_out);
+  template <typename T = float>
+  static Tensor &gelu(Tensor const &t_in, Tensor &t_out) {
+    T tmp = static_cast<T>(1 / sqrt(2));
+    t_in.apply<T>(
+      [&](T x) { return static_cast<T>(0.5 * x * (1 + erf(x * tmp))); }, t_out);
+    return t_out;
+  }
 
   /**
    * @brief     derivative gelu function
@@ -203,9 +396,27 @@ public:
    * @param[in] outgoing_derivative outgoing derivative
    * @param[in] incoming_derivative incoming derivative
    */
+  template <typename T = float>
   static Tensor &geluPrime(Tensor const &t_in, Tensor const &t_out,
                            Tensor &outgoing_derivative,
-                           Tensor const &incoming_derivative = Tensor());
+                           Tensor const &incoming_derivative = Tensor()) {
+
+    if (outgoing_derivative.empty())
+      outgoing_derivative = Tensor(t_out.getDim());
+
+    T tmp = static_cast<T>(1 / sqrt(2));
+    t_in.apply<T>(
+      [&](T x) {
+        return static_cast<T>(
+          0.5 * (1 + erf(x * tmp) +
+                 x * ((2 / sqrt(M_PI)) * exp(-pow(x * tmp, 2))) * tmp));
+      },
+      outgoing_derivative);
+
+    outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+    return outgoing_derivative;
+  }
 
   /**
    * @brief setActivation by custom activation function
@@ -217,9 +428,23 @@ public:
    * activation_prime_fn activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
+  template <typename funcParam = Tensor>
   int setActivation(
-    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor &, Tensor &)> const &activation_prime_fn);
+    std::function<funcParam &(funcParam const &, funcParam &)> const
+      &activation_fn,
+    std::function<funcParam &(funcParam &, funcParam &,
+                              funcParam const &)> const &activation_prime_fn) {
+    _act_fn = activation_fn;
+    _act_prime_fn = [activation_prime_fn](
+                      funcParam const &t_in, funcParam &t_out,
+                      funcParam &outgoing_derivative,
+                      funcParam const &incoming_derivative) -> funcParam & {
+      return activation_prime_fn(t_out, outgoing_derivative,
+                                 incoming_derivative);
+    };
+
+    return ML_ERROR_NONE;
+  }
 
   /**
    * @brief setActivation by custom activation function
@@ -231,10 +456,20 @@ public:
    * activation_prime_fn activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
+  template <typename funcParam = Tensor>
   int setActivation(
-    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
-      &activation_prime_fn);
+    std::function<funcParam &(funcParam const &, funcParam &)> const
+      &activation_fn,
+    std::function<funcParam &(funcParam const &, funcParam const &, funcParam &,
+                              funcParam const &)> const &activation_prime_fn) {
+    if (in_place)
+      return ML_ERROR_INVALID_PARAMETER;
+
+    _act_fn = activation_fn;
+    _act_prime_fn = activation_prime_fn;
+
+    return ML_ERROR_NONE;
+  }
 
   /**
    * @brief setActivation by custom activation function
@@ -244,10 +479,37 @@ public:
    * @param[in] activtion_prime_fn activation prime function to be used
    * @retval #ML_ERROR_NONE when successful
    */
+  template <typename funcParam = Tensor>
   int setActivation(
-    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor const &, Tensor const &, Tensor &,
-                           Tensor const &)> const &activation_prime_fn);
+    std::function<funcParam &(funcParam const &, funcParam &)> const
+      &activation_fn,
+    std::function<funcParam &(funcParam &, funcParam &)> const
+      &activation_prime_fn) {
+    if (!in_place) {
+      _act_prime_fn = [activation_prime_fn](
+                        funcParam const &t_in, funcParam &t_out,
+                        funcParam &outgoing_derivative,
+                        funcParam const &incoming_derivative) -> funcParam & {
+        /** @todo update this based on supportInPlace */
+        activation_prime_fn(t_out, outgoing_derivative);
+        outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+        return outgoing_derivative;
+      };
+    } else {
+      _act_prime_fn = [activation_prime_fn](
+                        funcParam const &t_in, funcParam &t_out,
+                        funcParam &outgoing_derivative,
+                        funcParam const &incoming_derivative) -> funcParam & {
+        activation_prime_fn(t_out, t_out);
+        incoming_derivative.multiply_strided(t_out, outgoing_derivative);
+
+        return outgoing_derivative;
+      };
+    }
+
+    return ML_ERROR_NONE;
+  }
 
   /**
    * @brief setActivation by custom activation function
@@ -259,9 +521,38 @@ public:
    *            activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
+  template <typename funcParam = float>
   int setActivation(
-    std::function<float(float const)> const &activation_fn,
-    std::function<float(float const)> const &activation_prime_fn);
+    std::function<funcParam(funcParam const)> const &activation_fn,
+    std::function<funcParam(funcParam const)> const &activation_prime_fn) {
+    _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
+      return x.apply(activation_fn, hidden);
+    };
+    if (!in_place) {
+      _act_prime_fn =
+        [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                              Tensor &outgoing_derivative,
+                              Tensor const &incoming_derivative) -> Tensor & {
+        /** @todo update this based on supportInPlace */
+        t_out.apply(activation_prime_fn, outgoing_derivative);
+        outgoing_derivative.multiply_i_strided(incoming_derivative);
+
+        return outgoing_derivative;
+      };
+    } else {
+      _act_prime_fn =
+        [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
+                              Tensor &outgoing_derivative,
+                              Tensor const &incoming_derivative) -> Tensor & {
+        t_out.apply(activation_prime_fn, t_out);
+        incoming_derivative.multiply_strided(t_out, outgoing_derivative);
+
+        return outgoing_derivative;
+      };
+    }
+
+    return ML_ERROR_NONE;
+  }
 
   /**
    * @brief setActivation by custom activation function
