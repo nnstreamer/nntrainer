@@ -44,7 +44,7 @@ public:
   /**
    * @brief     Destructor of ActiFunc
    */
-  ~ActiFunc();
+  ~ActiFunc(){};
 
   /**
    * @brief setActivation by preset ActivationType
@@ -93,7 +93,7 @@ public:
    * @param[in] input : input
    * @param[out] output : output
    */
-  void run_fn(Tensor const &input, Tensor &output);
+  void run_fn(Tensor const &input, Tensor &output) { _act_fn(input, output); }
 
   /**
    * @brief run prime function
@@ -106,7 +106,10 @@ public:
    */
   Tensor &run_prime_fn(Tensor &input, Tensor &output,
                        Tensor &outgoing_derivative,
-                       Tensor const &incoming_derivative);
+                       Tensor const &incoming_derivative) {
+    return _act_prime_fn(input, output, outgoing_derivative,
+                         incoming_derivative);
+  }
 
   /**
    * @brief run prime function
@@ -117,12 +120,15 @@ public:
    * @retVal    Tensor
    */
   Tensor &run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
-                       Tensor const &incoming_derivative);
+                       Tensor const &incoming_derivative) {
+    return _act_prime_fn(Tensor(), output, outgoing_derivative,
+                         incoming_derivative);
+  }
 
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const;
+  bool supportInPlace() const { return in_place; }
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -573,7 +579,13 @@ public:
    *
    * @param val True if execute in-place, else false
    */
-  void executeInPlace(bool val);
+  void executeInPlace(bool val) {
+    if (val && !supportInPlace())
+      throw std::runtime_error(
+        "Error setting activation layer to work in-place");
+
+    in_place = val;
+  }
 
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
