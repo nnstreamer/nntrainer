@@ -18,7 +18,8 @@
 
 namespace nntrainer {
 
-AttentionLayer::AttentionLayer() : sm(ActivationType::ACT_SOFTMAX) {
+AttentionLayer::AttentionLayer() {
+
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -66,6 +67,13 @@ void AttentionLayer::finalize(InitLayerContext &context) {
                           false, TensorLifespan::ITERATION_LIFESPAN);
 
   context.setOutputDimensions({query_dim});
+
+  auto data_type = context.getActivationDataType();
+  if (data_type == ml::train::TensorDim::DataType::FP32) {
+    sm.setActiFunc<float>(ActivationType::ACT_SOFTMAX);
+  } else if (data_type == ml::train::TensorDim::DataType::FP16) {
+    sm.setActiFunc<_FP16>(ActivationType::ACT_SOFTMAX);
+  }
 }
 
 void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
@@ -97,7 +105,8 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
 
   Tensor dweight = Tensor(
-    TensorDim({derivative.batch(), 1, derivative.height(), value.height()}));
+    TensorDim({derivative.batch(), 1, derivative.height(), value.height()},
+              weights.getTensorType()));
 
   /** derivative for dot 2 */
   dweight.dot_batched_deriv_wrt_1(value, derivative);
