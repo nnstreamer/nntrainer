@@ -43,3 +43,21 @@ GTEST_PARAMETER_TEST(Attention, LayerGoldenTest,
                      ::testing::Values(attention_shared_kv,
                                        attention_shared_kv_batched,
                                        attention_batched));
+
+auto attention_shared_kv_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "1:1:5:7,1:1:3:7",
+  "attention_shared_kv_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+auto attention_shared_kv_batched_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "2:1:5:7,2:1:3:7",
+  "attention_shared_kv_batched_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+auto attention_batched_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {},
+  "2:1:5:7,2:1:3:7,2:1:3:7", "attention_batched_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(Attention16, LayerGoldenTest,
+                     ::testing::Values(attention_shared_kv_fp16fp16));
