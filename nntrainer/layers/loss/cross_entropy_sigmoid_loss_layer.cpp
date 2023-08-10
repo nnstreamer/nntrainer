@@ -41,7 +41,7 @@ void CrossEntropySigmoidLossLayer::forwarding(RunLayerContext &context,
                         .multiply(-1.0)
                         .apply<float>(static_cast<float (*)(float)>(&std::exp))
                         .add(1.0)
-                        .apply<float>(logFloat);
+                        .apply<float>(logFloat<float>);
     mid_term = mid_term.add(y.apply<float>(ActiFunc::relu<float>));
 
     // y * y2

@@ -39,8 +39,6 @@ float sqrtFloat(float x) { return sqrt(x); };
 
 double sqrtDouble(double x) { return sqrt(x); };
 
-float logFloat(float x) { return log(x + 1.0e-20); }
-
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();
