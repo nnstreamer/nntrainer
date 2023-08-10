@@ -1145,8 +1145,7 @@ public:
    * @param f function to apply
    * @return int ML_ERROR_NONE if successful
    */
-  template <typename T = float>
-  int apply_i(std::function<T(T)> f) {
+  template <typename T = float> int apply_i(std::function<T(T)> f) {
     Tensor result = *this;
     apply<T>(f, result);
 
@@ -1158,8 +1157,7 @@ public:
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  template <typename T = float>
-  Tensor apply(std::function<T(T)> f) const {
+  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
     Tensor result;
     return apply<T>(f, result);
   };
@@ -1215,8 +1213,8 @@ public:
 
     //     std::transform(data, data + size(), rdata, f);
     //   } else if (strides[3] == 1 && output.strides[3] == 1) {
-    //     /** @todo optimize this with combining these loops where stride is 1 */
-    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //     /** @todo optimize this with combining these loops where stride is 1
+    //     */ for (unsigned int b = 0; b < batch(); ++b) {
     //       for (unsigned int c = 0; c < channel(); ++c) {
     //         for (unsigned int h = 0; h < height(); ++h) {
     //           float *out_data = output.getAddress<float>(b, c, h, 0);
@@ -1245,16 +1243,14 @@ public:
     //   // std::function<_FP16(_FP16)> f_16 =
     //   //   static_cast<std::function<_FP16(_FP16)>>(f);
 
-
-      
     //   if (contiguous && output.contiguous) {
     //     const _FP16 *data = (getData<_FP16>());
     //     _FP16 *rdata = (output.getData<_FP16>());
 
     //     std::transform(data, data + size(), rdata, f_16);
     //   } else if (strides[3] == 1 && output.strides[3] == 1) {
-    //     /** @todo optimize this with combining these loops where stride is 1 */
-    //     for (unsigned int b = 0; b < batch(); ++b) {
+    //     /** @todo optimize this with combining these loops where stride is 1
+    //     */ for (unsigned int b = 0; b < batch(); ++b) {
     //       for (unsigned int c = 0; c < channel(); ++c) {
     //         for (unsigned int h = 0; h < height(); ++h) {
     //           _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
@@ -1268,7 +1264,8 @@ public:
     //       for (unsigned int c = 0; c < channel(); ++c) {
     //         for (unsigned int h = 0; h < height(); ++h) {
     //           for (unsigned int w = 0; w < width(); ++w) {
-    //             output.setValue(b, c, h, w, f_16(getValue<_FP16>(b, c, h, w)));
+    //             output.setValue(b, c, h, w, f_16(getValue<_FP16>(b, c, h,
+    //             w)));
     //           }
     //         }
     //       }
@@ -1323,8 +1320,8 @@ public:
 
   //       std::transform(data, data + size(), rdata, f);
   //     } else if (strides[3] == 1 && output.strides[3] == 1) {
-  //       /** @todo optimize this with combining these loops where stride is 1 */
-  //       for (unsigned int b = 0; b < batch(); ++b) {
+  //       /** @todo optimize this with combining these loops where stride is 1
+  //       */ for (unsigned int b = 0; b < batch(); ++b) {
   //         for (unsigned int c = 0; c < channel(); ++c) {
   //           for (unsigned int h = 0; h < height(); ++h) {
   //             _FP16 *out_data = (_FP16 *)output.getAddress(b, c, h, 0);
@@ -1348,7 +1345,7 @@ public:
   //   #else
   //     throw std::invalid_argument("Error: enable-fp16 is not enabled");
   //   #endif
-  
+
   //   return output;
   // };
 
@@ -1965,20 +1962,20 @@ private:
                          v_func,
                        Tensor &output) const;
 #ifdef ENABLE_FP16
-  void apply_broadcast_util(
-    Tensor const &m,
-    std::function<void(const BroadcastInfo &e, const _FP16 *, const _FP16 *,
-                       _FP16 *)>
-      v_func,
-    Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
-    size_t offset = 0, size_t m_offset = 0) const;
-
   void
-  apply_broadcast(Tensor const &m,
-                  std::function<void(const BroadcastInfo &e, const _FP16 *,
-                                     const _FP16 *, _FP16 *)>
-                    v_func,
-                  Tensor &output) const;
+  apply_broadcast_util(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const _FP16 *,
+                                          const _FP16 *, _FP16 *)>
+                         v_func,
+                       Tensor &output, const BroadcastInfo &e,
+                       int cur_axis = -1, size_t offset = 0,
+                       size_t m_offset = 0) const;
+
+  void apply_broadcast(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const _FP16 *,
+                                          const _FP16 *, _FP16 *)>
+                         v_func,
+                       Tensor &output) const;
 #endif
   /**
    * @brief compute Loop info for broadcasting and vectorization

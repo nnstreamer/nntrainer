@@ -55,8 +55,11 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
-  if (tensor_type[2] == "fp16") {
-    for (auto &par : parsed) {
+  for (auto &par : parsed) {
+    par.get().setFormat(
+      str_converter<enum_class_prop_tag,
+                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
+    if (tensor_type[2] == "fp16") {
       par.get().setDataType(ml::train::TensorDim::DataType::FP16);
     }
   }
@@ -65,10 +68,13 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
                            "golden_test", "", 0.0, tensor_type);
   layer->finalize(context);
 
-  if (tensor_type[2] == "fp16") {
-    for (auto dim : context.getInputDimensions()) {
+  for (auto dim : context.getInputDimensions()) {
+    if (tensor_type[2] == "fp16") {
       dim.setDataType(ml::train::TensorDim::DataType::FP16);
     }
+    dim.setFormat(
+      str_converter<enum_class_prop_tag,
+                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
   }
 
   return context;
@@ -263,25 +269,24 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   constexpr bool skip_compare = true;
 
-  compare_tensors(
-    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeight(idx); },
-    always_read, skip_compare, "initial_weights");
-  compare_tensors(
-    rc.getNumInputs(), [&rc](unsigned idx) { return rc.getInput(idx); },
-    always_read, !skip_compare, "inputs");
-  compare_tensors(
-    rc.getNumOutputs(), [&rc](unsigned idx) { return rc.getOutput(idx); },
-    always_read, !skip_compare, "outputs", match_percentage);
-  compare_tensors(
-    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-    only_read_trainable, skip_grad, "gradients");
-  compare_tensors(
-    rc.getNumWeights(), [&rc](unsigned idx) { return rc.getWeight(idx); },
-    always_read, !skip_compare, "weights");
-  compare_tensors(
-    rc.getNumInputs(),
-    [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); }, always_read,
-    skip_deriv, "derivatives", match_percentage);
+  compare_tensors(rc.getNumWeights(),
+                  [&rc](unsigned idx) { return rc.getWeight(idx); },
+                  always_read, skip_compare, "initial_weights");
+  compare_tensors(rc.getNumInputs(),
+                  [&rc](unsigned idx) { return rc.getInput(idx); }, always_read,
+                  !skip_compare, "inputs");
+  compare_tensors(rc.getNumOutputs(),
+                  [&rc](unsigned idx) { return rc.getOutput(idx); },
+                  always_read, !skip_compare, "outputs", match_percentage);
+  compare_tensors(rc.getNumWeights(),
+                  [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
+                  only_read_trainable, skip_grad, "gradients");
+  compare_tensors(rc.getNumWeights(),
+                  [&rc](unsigned idx) { return rc.getWeight(idx); },
+                  always_read, !skip_compare, "weights");
+  compare_tensors(rc.getNumInputs(),
+                  [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
+                  always_read, skip_deriv, "derivatives", match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
