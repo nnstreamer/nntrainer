@@ -50,7 +50,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32_FP32", std::regex("\\_"))) {}
+    tensor_dtype(split("FP32-FP32", std::regex("\\-"))) {}
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
@@ -60,7 +60,7 @@ public:
   NetworkGraph(bool enable_swap, const std::string &swap_path = "",
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
-               const std::string &tensor_dtype_ = "FP32_FP32") :
+               const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
                                              tensor_format_, tensor_dtype_)),
     graph(),
@@ -72,7 +72,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, std::regex("\\_"))) {}
+    tensor_dtype(split(tensor_dtype_, std::regex("\\-"))) {}
 
   /**
    * @brief   Destructor of the NeuralNetwork Graph class

@@ -134,20 +134,20 @@ public:
     enable_optimizations(true),
     swap_lookahead(0),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32_FP32", std::regex("\\_"))) {}
+    tensor_dtype(split("FP32-FP32", std::regex("\\-"))) {}
 
   /**
    * @brief     Constructor of Manager
    */
   Manager(bool enable_swap, const std::string &swap_path = "",
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
-          const std::string tensor_dtype_ = "FP32_FP32") :
+          const std::string tensor_dtype_ = "FP32-FP32") :
     weight_pool(enable_swap, swap_path, "weight_pool"),
     tensor_pool(enable_swap, swap_path, "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, std::regex("\\_"))) {}
+    tensor_dtype(split(tensor_dtype_, std::regex("\\-"))) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
