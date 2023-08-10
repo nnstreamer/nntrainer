@@ -44,6 +44,7 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
       LossLayer::updateLoss(context, l);
     }
   } else if (dataType == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
     hidden_ = y.apply(ActiFunc::softmax<_FP16>, hidden_);
 
     if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
@@ -55,6 +56,9 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
       // update the loss value
       LossLayer::updateLoss(context, l);
     }
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
   }
 }
 
@@ -70,7 +74,11 @@ void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   if (dataType == ml::train::TensorDim::DataType::FP32) {
     y.apply(ActiFunc::softmax<float>, ret);
   } else if (dataType == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
     y.apply(ActiFunc::softmax<_FP16>, ret);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
   }
 
   /// @note y and ret_derivative can be same here, so this has to be out-place

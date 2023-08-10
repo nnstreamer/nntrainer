@@ -47,6 +47,7 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
                           uint32_t rows, uint32_t cols, float alpha,
                           float beta);
 
+#ifdef ENABLE_FP16
 /**
  * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
  * @param[in] A __fp16 * for Matrix A
@@ -93,6 +94,7 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y);
+#endif
 
 } // namespace nntrainer::neon
 

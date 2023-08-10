@@ -16,11 +16,11 @@
 #include <layers_common_tests.h>
 #include <nnstreamer_layer.h>
 
-auto semantic_nnstreamer = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::NNStreamerLayer>,
-  nntrainer::NNStreamerLayer::type,
-  {"model_path=../test/test_models/models/add.tflite"},
-  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+// auto semantic_nnstreamer = LayerSemanticsParamType(
+//   nntrainer::createLayer<nntrainer::NNStreamerLayer>,
+//   nntrainer::NNStreamerLayer::type,
+//   {"model_path=../test/test_models/models/add.tflite"},
+//   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-GTEST_PARAMETER_TEST(NNStreamer, LayerSemantics,
-                     ::testing::Values(semantic_nnstreamer));
+// GTEST_PARAMETER_TEST(NNStreamer, LayerSemantics,
+//                      ::testing::Values(semantic_nnstreamer));

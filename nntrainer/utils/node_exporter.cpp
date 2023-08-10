@@ -177,8 +177,7 @@ void Exporter::saveTflResult(
     new_weights.push_back(filter);
 
     auto &bias_weight = *old_weights[1];
-    TensorDim bias_dim{ml::train::TensorDim::Format::NCHW,
-                       std::bitset<4>(0b0001)};
+    TensorDim bias_dim{bias_weight.getTensorType(), std::bitset<4>(0b0001)};
     bias_dim.setTensorDim(
       3 /** index **/,
       bias_weight
@@ -228,8 +227,7 @@ void Exporter::saveTflResult(
     // create "perm" tensor for Transpose operator
     // @todo : This NCHW format setting is just temporal, it needs to be set by
     //  global configuration
-    TensorDim perm_dim{ml::train::TensorDim::Format::NCHW,
-                       std::bitset<4>(0b0001)};
+    TensorDim perm_dim{inputs[0]->getTensorType(), std::bitset<4>(0b0001)};
     perm_dim.setTensorDim(3 /** index **/,
                           4 /** value **/); // effective dimension = {4}
     new_inputs.emplace_back(perm_dim);

@@ -516,15 +516,17 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
       for (auto const &val : vec) {
         if (val->getVariableRef().getTensorType().data_type ==
             TensorDim::DataType::FP32) {
-          tensor_map[val->getName()] = val->getVariableRef().getData<float>();
-          tensor_map[val->getGradientName()] =
-            val->getGradientRef().getData<float>();
+          tensor_map[val->getName()] = val->getVariableRef().getData();
+          tensor_map[val->getGradientName()] = val->getGradientRef().getData();
         } else if (val->getVariableRef().getTensorType().data_type ==
-                   TensorDim::DataType::FP32) {
-          tensor_map[val->getName()] =
-            val->getVariableRef().getData<_FP16>();
+                   TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+          tensor_map[val->getName()] = val->getVariableRef().getData<_FP16>();
           tensor_map[val->getGradientName()] =
             val->getGradientRef().getData<_FP16>();
+#else
+          throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
         }
       }
     };
