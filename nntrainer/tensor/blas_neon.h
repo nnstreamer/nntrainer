@@ -96,6 +96,14 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
 __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y);
 #endif
 
+/**
+ * @brief     sdot computation with neon: sum of all X * Y
+ * @param[in] N number of elements in Y
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ */
+__fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X);
+
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
