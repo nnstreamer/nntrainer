@@ -77,14 +77,15 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   // @todo : This NCHW format setting is just temporal, it needs to be set by
   // global configuration
   TensorDim bias_dim(
-    1, 1, 1, unit,
+    1, is_nchw ? 1 : unit, 1, is_nchw ? unit : 1,
     TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
-    0b0001);
+    is_nchw ? 0b0001 : 0b0100);
 
   TensorDim weight_dim(
-    1, 1, in_dim.width(), unit,
+    1, is_nchw ? 1 : unit, is_nchw ? in_dim.width() : 1,
+    is_nchw ? unit : in_dim.channel(),
     TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
-    0b0011);
+    is_nchw ? 0b0011 : 0b0101);
 
   weight_idx[FCParams::weight] = context.requestWeight(
     weight_dim, weight_initializer, weight_regularizer,
