@@ -30,14 +30,31 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   // fill the output
-  hidden_ = y.apply(ActiFunc::softmax, hidden_);
+  auto dataType = y.getDataType();
+  if (dataType == ml::train::TensorDim::DataType::FP32) {
+    hidden_ = y.apply(ActiFunc::softmax<float>, hidden_);
 
-  if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-    Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
-    l = y2.multiply(hidden_.apply<float>(logFloat)).sum_by_batch().multiply(-1);
+    if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+      Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
+      l = y2.multiply(hidden_.apply<float>(logFloat<float>))
+            .sum_by_batch()
+            .multiply(-1);
 
-    // update the loss value
-    LossLayer::updateLoss(context, l);
+      // update the loss value
+      LossLayer::updateLoss(context, l);
+    }
+  } else if (dataType == ml::train::TensorDim::DataType::FP16) {
+    hidden_ = y.apply(ActiFunc::softmax<_FP16>, hidden_);
+
+    if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+      Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
+      l = y2.multiply(hidden_.apply<_FP16>(logFloat<_FP16>))
+            .sum_by_batch()
+            .multiply(-1);
+
+      // update the loss value
+      LossLayer::updateLoss(context, l);
+    }
   }
 }
 
@@ -46,13 +63,20 @@ void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
+  auto dataType = y.getDataType();
+
   Tensor ret;
+  ret.setDataType(dataType);
+  if (dataType == ml::train::TensorDim::DataType::FP32) {
+    y.apply(ActiFunc::softmax<float>, ret);
+  } else if (dataType == ml::train::TensorDim::DataType::FP16) {
+    y.apply(ActiFunc::softmax<_FP16>, ret);
+  }
 
   /// @note y and ret_derivative can be same here, so this has to be out-place
   /// operation
   // TODO: verify y and ret_derivative must not be same as loss layer is not
   // working in-place
-  y.apply(ActiFunc::softmax, ret);
   ret.subtract(y2, ret_derivative);
   if (ret_derivative.divide_i(ret.batch()) != ML_ERROR_NONE) {
     throw std::runtime_error("[CrossEntropySoftmaxLossLayer::calcDerivative] "
