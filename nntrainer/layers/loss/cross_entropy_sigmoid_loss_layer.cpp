@@ -30,7 +30,7 @@ void CrossEntropySigmoidLossLayer::forwarding(RunLayerContext &context,
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   // fill the output
-  hidden_ = y.apply<float>(ActiFunc::sigmoid, hidden_);
+  hidden_ = y.apply<float>(ActiFunc::sigmoid<float>, hidden_);
 
   if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
     Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
@@ -42,7 +42,7 @@ void CrossEntropySigmoidLossLayer::forwarding(RunLayerContext &context,
                         .apply<float>(static_cast<float (*)(float)>(&std::exp))
                         .add(1.0)
                         .apply<float>(logFloat);
-    mid_term = mid_term.add(y.apply<float>(ActiFunc::relu));
+    mid_term = mid_term.add(y.apply<float>(ActiFunc::relu<float>));
 
     // y * y2
     Tensor end_term = y2.chain().multiply_i(y).run();
@@ -60,7 +60,7 @@ void CrossEntropySigmoidLossLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
-  y.apply<float>(ActiFunc::sigmoid, ret_derivative);
+  y.apply<float>(ActiFunc::sigmoid<float>, ret_derivative);
   ret_derivative.subtract_i(y2);
   if (ret_derivative.divide_i(ret_derivative.size()) != ML_ERROR_NONE) {
     throw std::runtime_error("[CrossEntropySigmoidLossLayer::calcDerivative] "

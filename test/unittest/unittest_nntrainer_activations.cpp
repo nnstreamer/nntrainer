@@ -136,7 +136,8 @@ TEST(nntrainer_activation, sigmoid_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply<float>(nntrainer::ActiFunc::sigmoid);
+  nntrainer::Tensor Results =
+    input.apply<float>(nntrainer::ActiFunc::sigmoid<float>);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -167,12 +168,12 @@ TEST(nntrainer_activation, DISABLED_sigmoidPrime_01_p) {
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
   nntrainer::Tensor sigmoid_result =
-    input.apply<float>(nntrainer::ActiFunc::sigmoid);
+    input.apply<float>(nntrainer::ActiFunc::sigmoid<float>);
   float *data = sigmoid_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    sigmoid_result.apply<float>(nntrainer::ActiFunc::sigmoidPrime);
+    sigmoid_result.apply<float>(nntrainer::ActiFunc::sigmoidPrime<float>);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -199,7 +200,8 @@ TEST(nntrainer_activation, tanhFloat_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply<float>(nntrainer::ActiFunc::tanhFloat);
+  nntrainer::Tensor Results =
+    input.apply<float>(nntrainer::ActiFunc::tanhFloat<float>);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -226,12 +228,13 @@ TEST(nntrainer_activation, DISABLED_tanhFloatPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor tanh_result = input.apply<float>(nntrainer::ActiFunc::tanhFloat);
+  nntrainer::Tensor tanh_result =
+    input.apply<float>(nntrainer::ActiFunc::tanhFloat<float>);
   float *data = tanh_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    tanh_result.apply<float>(nntrainer::ActiFunc::tanhPrime);
+    tanh_result.apply<float>(nntrainer::ActiFunc::tanhPrime<float>);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -252,7 +255,8 @@ TEST(nntrainer_activation, relu_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply<float>(nntrainer::ActiFunc::relu);
+  nntrainer::Tensor Results =
+    input.apply<float>(nntrainer::ActiFunc::relu<float>);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -275,12 +279,13 @@ TEST(nntrainer_activation, reluPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor relu_result = input.apply<float>(nntrainer::ActiFunc::relu);
+  nntrainer::Tensor relu_result =
+    input.apply<float>(nntrainer::ActiFunc::relu<float>);
   float *data = relu_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    relu_result.apply<float>(nntrainer::ActiFunc::reluPrime);
+    relu_result.apply<float>(nntrainer::ActiFunc::reluPrime<float>);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
