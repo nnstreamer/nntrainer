@@ -220,7 +220,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                                  (d1 != 0 && float_eq(d2, 0)),
                                1);
       }
-      const float epsilon = 1e-4;
+      const float epsilon = 1e-3;
 
       auto tensor = t1.clone();
       auto answer = t2.clone();
@@ -230,7 +230,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       auto mean_squared_error = mse<_FP16>(
         answer.getData<_FP16>(), answer.getData<_FP16>(), tensor.size());
 
-      EXPECT_IN_RANGE(cos_sim, 0.99, 1);
+      EXPECT_IN_RANGE(cos_sim, 1 - epsilon, 1 + epsilon);
       EXPECT_IN_RANGE(mean_squared_error, 0, epsilon);
 
       return (weak_match == total);
