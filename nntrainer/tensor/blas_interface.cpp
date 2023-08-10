@@ -150,13 +150,24 @@ static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
   _FP16 sum = 0;
   _FP16 tmp;
-#pragma omp parallel for private(tmp) reduction(+ : sum)
+#ifdef USE__FP16
+  if (incX == 1) {
+    sum = nntrainer::neon::snrm2_neon_fp16(N, X);
+  } else {
+    for (unsigned int i = 0; i < N; i++) {
+      tmp = X[i * incx];
+      sum += tmp * tmp;
+    }
+  }
+#else
   for (unsigned int i = 0; i < N; i++) {
     tmp = X[i * incx];
     sum += tmp * tmp;
   }
+#endif
   return static_cast<_FP16>(sqrt(sum));
 }
+
 static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        CBLAS_TRANSPOSE TransB, const unsigned int M,
                        const unsigned int N, const unsigned int K,
@@ -298,7 +309,7 @@ static float snrm2_raw(const unsigned int N, const float *X, const int incX) {
   unsigned int incx = abs(incX);
   float sum = 0.0f;
   float tmp;
-#pragma omp parallel for private(tmp) reduction(+ : sum)
+
   for (unsigned int i = 0; i < N; i++) {
     tmp = X[i * incx];
     sum += tmp * tmp;
