@@ -44,7 +44,7 @@ TEST(nntrainer_util_func, logFloat_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (width) + k + 1);
 
-  nntrainer::Tensor Results = input.apply<float>(nntrainer::logFloat);
+  nntrainer::Tensor Results = input.apply<float>(nntrainer::logFloat<float>);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
