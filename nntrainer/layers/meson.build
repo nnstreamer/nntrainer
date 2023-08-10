@@ -25,7 +25,6 @@ layer_sources = [
   'embedding.cpp',
   'rnn.cpp',
   'rnncell.cpp',
-  'acti_func.cpp',
   'lstm.cpp',
   'lstmcell.cpp',
   'lstmcell_core.cpp',
