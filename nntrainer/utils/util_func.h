@@ -97,6 +97,10 @@ double sqrtDouble(double x);
  */
 float logFloat(float x);
 
+template <typename T = float> T logFloat(T x) {
+  return static_cast<T>(log(x + 1.0e-20));
+}
+
 /**
  * @brief     exp function for float type
  * @param[in] x float
