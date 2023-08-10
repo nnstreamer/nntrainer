@@ -39,11 +39,11 @@ else
   and_conf.set('MESON_HAS_TFLITE', 0)
 endif
 
-# if blas_dep.found()
-#   and_conf.set('MESON_BLAS_ROOT', blas_root)
-# else
-#   error('blas is needed for the android build')
-# endif
+if blas_dep.found()
+  and_conf.set('MESON_BLAS_ROOT', blas_root)
+else
+  error('blas is needed for the android build')
+endif
 
 if ml_api_common_dep.found()
   and_conf.set('MESON_ML_API_COMMON_ROOT', ml_api_common_root)

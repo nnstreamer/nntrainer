@@ -72,7 +72,11 @@ void AttentionLayer::finalize(InitLayerContext &context) {
   if (data_type == ml::train::TensorDim::DataType::FP32) {
     sm.setActiFunc<float>(ActivationType::ACT_SOFTMAX);
   } else if (data_type == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
     sm.setActiFunc<_FP16>(ActivationType::ACT_SOFTMAX);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
   }
 }
 

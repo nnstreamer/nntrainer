@@ -61,6 +61,13 @@ auto fc_basic_no_decay_nhwc = LayerGoldenTestParamType(
     LayerGoldenTestParamOptions::SKIP_CALC_GRAD,
   "nhwc", "fp32", "fp32");
 
+GTEST_PARAMETER_TEST(FullyConnected, LayerGoldenTest,
+                     ::testing::Values(fc_basic_plain, fc_basic_single_batch,
+                                       fc_basic_no_decay, fc_basic_plain_nhwc,
+                                       fc_basic_single_batch_nhwc,
+                                       fc_basic_no_decay_nhwc));
+
+#ifdef ENABLE_FP16
 auto fc_basic_plain_fp16fp16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},
   "3:1:1:10", "fc_plain_fp16fp16.nnlayergolden",
@@ -77,11 +84,8 @@ auto fc_basic_no_decay_fp16fp16 = LayerGoldenTestParamType(
   "fc_plain_fp16fp16.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
   "nchw", "fp16", "fp16");
 
-GTEST_PARAMETER_TEST(FullyConnected, LayerGoldenTest,
-                     ::testing::Values(fc_basic_plain, fc_basic_single_batch,
-                                       fc_basic_no_decay, fc_basic_plain_nhwc,
-                                       fc_basic_single_batch_nhwc,
-                                       fc_basic_no_decay_nhwc,
-                                       fc_basic_plain_fp16fp16,
+GTEST_PARAMETER_TEST(FullyConnected16, LayerGoldenTest,
+                     ::testing::Values(fc_basic_plain_fp16fp16,
                                        fc_basic_single_batch_fp16fp16,
                                        fc_basic_no_decay_fp16fp16));
+#endif

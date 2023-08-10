@@ -350,15 +350,17 @@ static unsigned int isamax_raw(const unsigned int N, const float *X,
 
 void sscal(const unsigned int N, const float alpha, void *X, const int incX,
            ml::train::TensorDim::DataType d_type) {
+
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
+
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
-#endif
-  if (d_type == ml::train::TensorDim::DataType::FP32)
+    openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif // BLAS_NUM_THREADS
     cblas_sscal(N, alpha, (float *)X, incX);
-#else
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
+#else  // USE_BLAS else
     sscal_raw(N, alpha, (float *)X, incX);
+#endif //  USE_BLAS
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     sscal(N, alpha, (_FP16 *)X, incX);
@@ -366,7 +368,6 @@ void sscal(const unsigned int N, const float alpha, void *X, const int incX,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-#endif
 }
 
 void sscal(const unsigned int N, const float alpha, float *X, const int incX) {
@@ -383,16 +384,17 @@ void sscal(const unsigned int N, const float alpha, float *X, const int incX) {
 void saxpy(const unsigned int N, const float alpha, const void *X,
            const int incX, void *Y, const int incY,
            ml::train::TensorDim::DataType d_type) {
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
+    openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  cblas_saxpy(N, alpha, static_cast<const float *>(X), incX,
-              static_cast<float *>(Y), incY);
+    cblas_saxpy(N, alpha, static_cast<const float *>(X), incX,
+                static_cast<float *>(Y), incY);
 #else
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
     saxpy_raw(N, alpha, static_cast<const float *>(X), incX,
               static_cast<float *>(Y), incY);
+#endif
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     saxpy_FP16(N, alpha, static_cast<const _FP16 *>(X), incX,
@@ -401,7 +403,6 @@ void saxpy(const unsigned int N, const float alpha, const void *X,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-#endif
 }
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
@@ -421,44 +422,52 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const float alpha, const void *A, const unsigned int lda,
            const void *B, const unsigned int ldb, const float beta, void *C,
            const unsigned int ldc, ml::train::TensorDim::DataType d_type) {
-#ifdef USE_CUBLAS
-  int devID = 0;
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, devID);
-  float *d_A, *d_B, *d_C;
 
-  unsigned int size_A = M * K * sizeof(float);
-  unsigned int size_B = K * N * sizeof(float);
-  unsigned int size_C = M * N * sizeof(float);
-
-  cudaMalloc((void **)&d_A, size_A);
-  cudaMalloc((void **)&d_B, size_B);
-  cudaMemcpy(d_A, A, size_A, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_B, B, size_B, cudaMemcpyHostToDevice);
-  cudaMalloc((void **)&d_C, size_C);
-
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-
-  cublasOperation_t transA = (TransA == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t transB = (TransB == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasSgemm(handle, transA, transB, N, M, K, &alpha, d_B, N, d_A, K, &beta,
-              d_C, N);
-
-  cudaMemcpy(C, d_C, size_C, cudaMemcpyDeviceToHost);
-  cublasDestroy(handle);
-#elif defined USE_BLAS
-#ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
-#endif
-  cblas_sgemm(order, TransA, TransB, M, N, K, alpha,
-              static_cast<const float *>(A), lda, static_cast<const float *>(B),
-              ldb, beta, static_cast<float *>(C), ldc);
-#else
   if (d_type == ml::train::TensorDim::DataType::FP32) {
+#ifdef USE_CUBLAS
+    int devID = 0;
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, devID);
+    float *d_A, *d_B, *d_C;
+
+    unsigned int size_A = M * K * sizeof(float);
+    unsigned int size_B = K * N * sizeof(float);
+    unsigned int size_C = M * N * sizeof(float);
+
+    cudaMalloc((void **)&d_A, size_A);
+    cudaMalloc((void **)&d_B, size_B);
+    cudaMemcpy(d_A, A, size_A, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, size_B, cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_C, size_C);
+
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    cublasOperation_t transA =
+      (TransA == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+    cublasOperation_t transB =
+      (TransB == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+    cublasSgemm(handle, transA, transB, N, M, K, &alpha, d_B, N, d_A, K, &beta,
+                d_C, N);
+
+    cudaMemcpy(C, d_C, size_C, cudaMemcpyDeviceToHost);
+    cublasDestroy(handle);
+
+#elif defined USE_BLAS
+
+#ifdef BLAS_NUM_THREADS
+    openblas_set_num_threads(BLAS_NUM_THREADS);
+#endif
+
+    cblas_sgemm(
+      order, TransA, TransB, M, N, K, alpha, static_cast<const float *>(A), lda,
+      static_cast<const float *>(B), ldb, beta, static_cast<float *>(C), ldc);
+#else
     sgemm_raw(order, TransA, TransB, M, N, K, alpha,
               static_cast<const float *>(A), lda, static_cast<const float *>(B),
               ldb, beta, static_cast<float *>(C), ldc);
+#endif
+
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     sgemm_FP16(
@@ -468,8 +477,7 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-#endif
-}
+} // namespace nntrainer
 
 void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
@@ -517,16 +525,18 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 
 void scopy(const unsigned int N, const void *X, const int incX, void *Y,
            const int incY, ml::train::TensorDim::DataType d_type) {
+
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
+
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
+    openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
     cblas_scopy(N, (float *)X, incX, (float *)Y, incY);
-  }
 #else
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
     scopy_raw(N, (float *)X, incX, (float *)Y, incY);
+#endif
+
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     scopy_FP16(N, (_FP16 *)X, incX, (_FP16 *)Y, incY);
@@ -534,7 +544,7 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-#endif
+
 } // namespace nntrainer
 
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
@@ -577,18 +587,20 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
            const unsigned int lda, const void *X, const int incX,
            const float beta, void *Y, const int incY,
            ml::train::TensorDim::DataType d_type) {
+  if (d_type == ml::train::TensorDim::DataType::FP32) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
+    openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  return cblas_sgemv(order, TransA, M, N, alpha, static_cast<const float *>(A),
-                     lda, static_cast<const float *>(X), incX, beta,
-                     static_cast<float *>(Y), incY);
+    return cblas_sgemv(
+      order, TransA, M, N, alpha, static_cast<const float *>(A), lda,
+      static_cast<const float *>(X), incX, beta, static_cast<float *>(Y), incY);
 #else
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
+
     return sgemv_raw(order, TransA, M, N, alpha, static_cast<const float *>(A),
                      lda, static_cast<const float *>(X), incX, beta,
                      static_cast<float *>(Y), incY);
+#endif
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     return sgemv_FP16(order, TransA, M, N, alpha, static_cast<const _FP16 *>(A),
@@ -598,7 +610,6 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-#endif
 }
 
 void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
