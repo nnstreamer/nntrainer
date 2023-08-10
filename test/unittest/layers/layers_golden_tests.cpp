@@ -205,7 +205,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                  ml::train::TensorDim::DataType::FP16 &&
                t2.getDim().getDataType() ==
                  ml::train::TensorDim::DataType::FP16) {
-
+#ifdef ENABLE_FP16
       for (unsigned int idx = 0; idx < total; idx++) {
         auto d1 = t1.getValue<_FP16>(idx);
         auto d2 = t2.getValue<_FP16>(idx);
@@ -234,6 +234,9 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       EXPECT_IN_RANGE(mean_squared_error, 0, epsilon);
 
       return (weak_match == total);
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     } else
       return false;
   };

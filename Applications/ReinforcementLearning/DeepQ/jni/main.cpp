@@ -339,7 +339,8 @@ int main(int argc, char **argv) {
         nntrainer::Tensor in_tensor;
         nntrainer::sharedConstTensor test;
         try {
-          in_tensor = nntrainer::Tensor({input});
+          in_tensor = nntrainer::Tensor(
+            {input}, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
         } catch (...) {
           std::cerr << "Error while construct tensor" << std::endl;
           return 0;
@@ -440,8 +441,10 @@ int main(int argc, char **argv) {
 
         nntrainer::Tensor q_in, nq_in;
         try {
-          q_in = nntrainer::Tensor(inbatch);
-          nq_in = nntrainer::Tensor(next_inbatch);
+          q_in = nntrainer::Tensor(
+            inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+          nq_in = nntrainer::Tensor(next_inbatch, {nntrainer::Tformat::NCHW,
+                                                   nntrainer::Tdatatype::FP16});
         } catch (...) {
           std::cerr << "Error during tensor constructino" << std::endl;
           return 0;
@@ -498,7 +501,8 @@ int main(int argc, char **argv) {
         }
         nntrainer::Tensor in_tensor;
         try {
-          in_tensor = nntrainer::Tensor(inbatch);
+          in_tensor = nntrainer::Tensor(
+            inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
           mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q});
           mainNet.backwarding(iter);
         } catch (...) {

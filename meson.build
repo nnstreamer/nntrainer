@@ -55,37 +55,21 @@ warning_c_flags = [
 ]
 
 
-# arm_fp16_flags = [
-#     '-mfp16-format=alternative',
-#     '-mfpu=neon-fp16,
-#     '-mfloat-abi=softfp'
-# ]
-
-# if get_option('enable-fp16')
-#    foreach extra_arg : arm_fp16_flags
-#      if cc.has_argument (extra_arg)
-#        add_project_arguments([extra_arg], language: 'c')
-#      endif
-#      if cxx.has_argument (extra_arg)
-#        add_project_arguments([extra_arg], language: 'cpp')
-#      endif
-#    endforeach
-# enfif
-
 if get_option('enable-fp16')
    arch = target_machine.cpu_family()
-   extra_defines += '-DENABLE_FP16=1'
-
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
    elif arch == 'aarch64' or arch =='arm'
+     extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
    else
      has_avx512fp16 = cc.has_argument('-mavx512fp16')
      if (has_avx512fp16)
        # add_project_arguments(['-mavx512fp16'], language: ['c','cpp'])
        message ('Float16 for x86_64 enabled. Modern gcc-x64 genrally supports float16 with _Float16. -mavx512fp16 added for hardware acceleration')
+       extra_defines += '-DENABLE_FP16=1'
      else
        warning ('Float16 for x86_64 enabled. However, software emulation is applied for fp16, making it slower and inconsistent. Use GCC 12+ for AVX512 FP16 support. This build will probably fail unless you bring a compiler that supports fp16 for x64.')
      endif
@@ -366,10 +350,6 @@ if get_option('platform') != 'android'
   extra_defines += '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path)
 endif
 
-# if get_option('enable-fp16')
-#    extra_defines += '-march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp'
-# endif
-
 message('extra defines are:' + ' '.join(extra_defines))
 foreach defs: extra_defines
   add_project_arguments(defs, language: ['c', 'cpp'])
@@ -400,22 +380,22 @@ if get_option('enable-app')
     warning('android app is not supported for now, building app skipped')
   else
     # this is needed for reinforcement application. We can move this to reinforecement app dependency
-    # jsoncpp_dep = dependency('jsoncpp') # jsoncpp
-    # libcurl_dep = dependency('libcurl')
-    # if not tflite_dep.found()
-    #   error('Tensorflow-Lite dependency not found')
-    # endif
+    jsoncpp_dep = dependency('jsoncpp') # jsoncpp
+    libcurl_dep = dependency('libcurl')
+    if not tflite_dep.found()
+      error('Tensorflow-Lite dependency not found')
+    endif
     subdir('Applications')
   endif
 endif
 
-# if get_option('platform') != 'android'
-#   nnstreamer_dep = dependency('nnstreamer')
-#   message('building nnstreamer')
-#   subdir('nnstreamer')
-# else
-#   warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
-# endif
+if get_option('platform') != 'android'
+  nnstreamer_dep = dependency('nnstreamer')
+  message('building nnstreamer')
+  subdir('nnstreamer')
+else
+  warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
+endif
 
 if get_option('platform') == 'android'
   subdir('jni')

@@ -269,6 +269,11 @@ public:
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
 #ifdef ENABLE_FP16
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   */
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
 
@@ -826,6 +831,10 @@ public:
    */
   Tensor &erf(Tensor &out) const;
 
+  /**
+   * @brief  getter of size of data
+   * @retval size of data
+   */
   unsigned int sizeofData() { return dim.getDataTypeSize(); }
 
   /**
@@ -1100,6 +1109,10 @@ public:
    */
   void standardization_i();
 
+  /**
+   * @brief     i data index
+   * @retval    address of ith data
+   */
   template <typename T = float> T *getAddress(unsigned int i) {
     size_t index = getIndex(batch(), channel(), height(), width());
     if (i > index) {
@@ -1150,16 +1163,6 @@ public:
     apply<T>(f, result);
 
     return ML_ERROR_NONE;
-  };
-
-  /**
-   * @brief     Apply function element by element
-   * @param[in] *function function pointer applied
-   * @retval    Tensor
-   */
-  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
-    Tensor result;
-    return apply<T>(f, result);
   };
 
   /**
@@ -1275,6 +1278,18 @@ public:
     return output;
   };
 
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
+    Tensor result;
+    apply<T>(f, result);
+
+    return result;
+  };
+
   // /**
   //  * @brief Apply instantly to the element
   //  *
@@ -1294,6 +1309,16 @@ public:
   //  * @retval    Tensor
   //  */
   // Tensor apply(std::function<_FP16(_FP16)> f) const {
+  //   Tensor result;
+  //   return apply(f, result);
+  // };
+
+  // /**
+  //  * @brief     Apply function element by element
+  //  * @param[in] *function function pointer applied
+  //  * @retval    Tensor
+  //  */
+  // Tensor apply(std::function<float(float)> f) const {
   //   Tensor result;
   //   return apply(f, result);
   // };
@@ -1764,8 +1789,16 @@ public:
     return data->getAddr<T>() + offset + index;
   }
 
+  /**
+   * @brief     setter data type
+   * @param[in] Data Type
+   */
   void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
 
+  /**
+   * @brief     setter tensor type
+   * @param[in] tensor Type
+   */
   void setTensorType(ml::train::TensorDim::TensorType t_type) {
     dim.setTensorType(t_type);
   }
@@ -1962,6 +1995,17 @@ private:
                          v_func,
                        Tensor &output) const;
 #ifdef ENABLE_FP16
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @param e broadcast info.
+   * @param cur_axis current axis. pass default when calling outside.
+   * @param offset offset for this.  pass default when calling outside.
+   * @param m_offset offset for m.  pass default when calling outside.
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
   void
   apply_broadcast_util(Tensor const &m,
                        std::function<void(const BroadcastInfo &e, const _FP16 *,
@@ -1970,7 +2014,14 @@ private:
                        Tensor &output, const BroadcastInfo &e,
                        int cur_axis = -1, size_t offset = 0,
                        size_t m_offset = 0) const;
-
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   *
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
   void apply_broadcast(Tensor const &m,
                        std::function<void(const BroadcastInfo &e, const _FP16 *,
                                           const _FP16 *, _FP16 *)>

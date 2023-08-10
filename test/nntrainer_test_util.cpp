@@ -192,8 +192,12 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
     float i = 0;
     t = t.apply((std::function<float(float)>)[&](float in) { return i++; });
   } else if (t_type.data_type == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
     _FP16 i = 0;
     t = t.apply((std::function<_FP16(_FP16)>)[&](_FP16 in) { return i++; });
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
   }
 
   return t;
@@ -288,7 +292,11 @@ void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
   if (t.getDataType() == ml::train::TensorDim::DataType::FP32) {
     nntrainer::checkedRead(file, (char *)&sz, sizeof(unsigned));
   } else if (t.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
     nntrainer::checkedRead(file, (char *)&sz, sizeof(_FP16));
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
   }
 
   NNTR_THROW_IF(t.getDim().getDataLen() != sz, std::invalid_argument)

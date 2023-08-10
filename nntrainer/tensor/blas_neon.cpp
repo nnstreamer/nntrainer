@@ -10,6 +10,7 @@
  * @brief  This is Source for blas neon implementation
  *
  */
+
 #include <blas_neon.h>
 #include <nntrainer_error.h>
 
@@ -141,7 +142,8 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   const float32x4_t v_alpha = vdupq_n_f32(alpha);
 
   if (cols % 16 == 0) {
-    bool initialized[cols / 16];
+    unsigned int n = cols / 16;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
     unsigned int step;
     for (unsigned int i = 0; i < cols / 16; ++i) {
       initialized[i] = false;
@@ -188,9 +190,11 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
         vst1q_f32(&y[12], y12_15);
       }
     }
+    free(initialized);
     return;
   } else if (cols % 8 == 0) {
-    bool initialized[cols / 8];
+    unsigned int n = cols / 8;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
     unsigned int step;
     for (unsigned int i = 0; i < cols / 8; ++i) {
       initialized[i] = false;
@@ -227,9 +231,12 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
         vst1q_f32(&y[4], y4_7);
       }
     }
+    free(initialized);
     return;
   } else if (cols % 4 == 0) {
-    bool initialized[cols / 4];
+    unsigned int n = cols / 4;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 4; ++i) {
       initialized[i] = false;
@@ -259,10 +266,13 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
         vst1q_f32(&y[0], y0_3);
       }
     }
+    free(initialized);
   }
+
   return;
 }
 
+#ifdef ENABLE_FP16
 void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta) {
   const __fp16 *__restrict x;
@@ -390,7 +400,9 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
   const float16x8_t v_alpha = vmovq_n_f16(alpha);
 
   if (cols % 32 == 0) {
-    bool initialized[cols / 32];
+    unsigned int n = cols / 32;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 32; ++i) {
       initialized[i] = false;
@@ -438,9 +450,12 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         vst1q_f16(&y[24], y24_31);
       }
     }
+    free(initialized);
     return;
   } else if (cols % 16 == 0) {
-    bool initialized[cols / 16];
+    unsigned int n = cols / 16;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 16; ++i) {
       initialized[i] = false;
@@ -478,9 +493,11 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         vst1q_f16(&y[8], y8_15);
       }
     }
+    free(initialized);
     return;
   } else if (cols % 8 == 0) {
-    bool initialized[cols / 8];
+    unsigned int n = cols / 8;
+    bool *initialized = (bool *)malloc(sizeof(bool) * n);
 
     unsigned int step;
     for (unsigned int i = 0; i < cols / 8; ++i) {
@@ -515,6 +532,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         vst1q_f16(&y[0], y0_7);
       }
     }
+    free(initialized);
     return;
   }
 }
@@ -599,5 +617,6 @@ __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 
   return ret;
 }
+#endif
 
 } // namespace nntrainer::neon
