@@ -187,8 +187,8 @@ struct ModelTensorDataTypeInfo {
   static constexpr std::initializer_list<Enum> EnumList = {
     Enum::W16A16, Enum::W16A32, Enum::W32A16, Enum::W32A32};
 
-  static constexpr const char *EnumStr[] = {"FP16_FP16", "FP16_FP32",
-                                            "FP32_FP16", "FP32_FP32"};
+  static constexpr const char *EnumStr[] = {"FP16-FP16", "FP16-FP32",
+                                            "FP32-FP16", "FP32-FP32"};
 };
 
 /**
