@@ -497,4 +497,4 @@ def record_single_fp16(layer, input_shape, test_name, call_args={}, input_type='
         write_tensor_fp16(gradients)
         write_tensor_fp16(weights)
         write_tensor_fp16(derivatives)
-        
+
