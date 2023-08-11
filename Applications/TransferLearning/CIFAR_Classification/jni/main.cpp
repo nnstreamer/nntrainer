@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
     nntrainer::Tensor X;
     try {
       X = nntrainer::Tensor({featureVector}, {nntrainer::Tformat::NCHW,
-                                              nntrainer::Tdatatype::FP16});
+                                              nntrainer::Tdatatype::FP32});
       NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply<float>(stepFunction);
     } catch (...) {
       std::cerr << "Error while forwarding the model" << std::endl;
