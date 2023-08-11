@@ -44,7 +44,7 @@ TEST(nntrainer_activation, softmax_01_p) {
 
   GEN_TEST_INPUT(T, (i * (width) + l + 1));
 
-  Results = T.apply(nntrainer::ActiFunc::softmax, Results);
+  Results = T.apply(nntrainer::ActiFunc::softmax<float>, Results);
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
 
@@ -64,7 +64,7 @@ TEST(nntrainer_activation, softmax_02_n) {
   nntrainer::Tensor Result = Results.getSharedDataTensor(
     nntrainer::TensorDim(batch, channel, height, width), 0, false);
 
-  EXPECT_THROW(T.apply(nntrainer::ActiFunc::softmax, Result),
+  EXPECT_THROW(T.apply(nntrainer::ActiFunc::softmax<float>, Result),
                std::invalid_argument);
 }
 
@@ -79,7 +79,8 @@ TEST(nntrainer_activation, softmax_prime_01_p) {
   GEN_TEST_INPUT(input, (i * (width) + k + 1));
 
   nntrainer::Tensor softmax_result;
-  softmax_result = input.apply(nntrainer::ActiFunc::softmax, softmax_result);
+  softmax_result =
+    input.apply(nntrainer::ActiFunc::softmax<float>, softmax_result);
 
   float *data = softmax_result.getData();
   ASSERT_NE(nullptr, data);
@@ -106,7 +107,8 @@ TEST(nntrainer_activation, softmax_prime_02_n) {
   GEN_TEST_INPUT(input, (i * (width) + k + 1));
 
   nntrainer::Tensor softmax_result;
-  softmax_result = input.apply(nntrainer::ActiFunc::softmax, softmax_result);
+  softmax_result =
+    input.apply(nntrainer::ActiFunc::softmax<float>, softmax_result);
 
   float *data = softmax_result.getData();
   ASSERT_NE(nullptr, data);
