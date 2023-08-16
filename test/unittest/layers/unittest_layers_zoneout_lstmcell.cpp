@@ -30,7 +30,7 @@ auto zoneout_lstmcell_single_step = LayerGoldenTestParamType(
   {"unit=5", "integrate_bias=true", "hidden_state_zoneout_rate=0.1",
    "cell_state_zoneout_rate=0.0"},
   "3:1:1:7,3:1:1:5,3:1:1:5", "zoneout_lstmcell_single_step.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32");
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32", "fp32");
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerGoldenTest,
                         ::testing::Values(zoneout_lstmcell_single_step));

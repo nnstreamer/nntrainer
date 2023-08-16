@@ -95,8 +95,6 @@ double sqrtDouble(double x);
  * @brief     log function for float type
  * @param[in] x float
  */
-float logFloat(float x);
-
 template <typename T = float> T logFloat(T x) {
   return static_cast<T>(log(x + 1.0e-20));
 }
@@ -105,7 +103,6 @@ template <typename T = float> T logFloat(T x) {
  * @brief     exp function for float type
  * @param[in] x float
  */
-
 template <typename T = float> T exp_util(T x) { return static_cast<T>(exp(x)); }
 
 /**
