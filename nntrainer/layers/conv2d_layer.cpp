@@ -102,7 +102,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
               continue;
             }
 
-            float *val = (float *)image.getAddress(0, c, h, w);
+            float *val = image.getAddress<float>(0, c, h, w);
             *val += col_matrix.getValue<float>(0, 0, col_h, col_w);
             col_h++;
           }

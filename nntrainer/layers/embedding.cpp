@@ -88,7 +88,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data =
-      (float *)input_.getAddress(b * input_.getDim().getFeatureLen());
+      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = 0; i < input_.width(); ++i) {
@@ -146,7 +146,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // In order to accelerate, we need to better way like using index to weight.
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = (float*)input_.getAddress(b * input_.getDim().getFeatureLen());
+    float *in_data = input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
       uint embed_idx = ((uint *)(in_data))[i];
@@ -155,8 +155,8 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
       // if (embed_idx == 0)
       //   continue;
 
-      float *djdw_data = (float*)djdw.getAddress(embed_idx * out_dim);
-      const float *grad_data = (float*)derivative_.getAddress(
+      float *djdw_data = djdw.getAddress<float>(embed_idx * out_dim);
+      const float *grad_data = derivative_.getAddress<float>(
         b * derivative_.getDim().getFeatureLen() + i * out_dim);
 
       std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
