@@ -179,8 +179,8 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
     in.push_back(ttv);
   }
 
-  nntrainer::Tensor tensor =
-    nntrainer::Tensor(in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
   ASSERT_NE(nullptr, tensor.getData<float>());
 
   if (tensor.getValue<float>(0, 0, 0, 1) != 1.0)
@@ -198,11 +198,8 @@ TEST(nntrainer_Tensor, multiply_i_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
-  input.print(std::cout);
-
   nntrainer::Tensor original;
   original.copy(input);
-  original.print(std::cout);
 
   status = input.multiply_i(2.0);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -2180,7 +2177,7 @@ TEST(nntrainer_Tensor, average_p) {
   EXPECT_EQ(actual, expected);
 
   int idx = 0;
-  t = t.apply((std::function<float (float)>)[&](float in) { return idx++ % 2; });
+  t = t.apply((std::function<float(float)>)[&](float in) { return idx++ % 2; });
 
   actual = t.average();
   expected = constant(0.5, 1, 1, 1, 1);

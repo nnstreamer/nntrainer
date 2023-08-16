@@ -124,10 +124,6 @@ public:
   TensorDim(std::initializer_list<size_t> dims,
             TensorType t_type_ = TensorType());
 
-  // TensorDim(std::initializer_list<size_t> dims, TensorDim::Format
-  // fm=Format::NCHW,
-  //           TensorDim::DataType d_type=DataType::FP32);
-
   /**
    * @brief Construct a new Tensor Dim object without batch dimension
    *
@@ -136,10 +132,6 @@ public:
    */
   TensorDim(const std::array<size_t, 3> &shapes,
             TensorType t_type_ = TensorType());
-
-  // TensorDim(const std::array<size_t, 3> &shapes, TensorDim::Format fm =
-  // Format::NCHW,
-  //           TensorDim::DataType d_type=DataType::FP32);
 
   /**
    * @brief Construct a new Tensor Dim object

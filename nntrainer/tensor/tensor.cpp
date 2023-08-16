@@ -2607,7 +2607,7 @@ void Tensor::print(std::ostream &out) const {
     out << "data addr: " << data << '\n';
     out << dim;
 
-    if (len > 100000) {
+    if (len > 100) {
       out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
           << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1]
           << ']' << std::endl;
@@ -3250,7 +3250,8 @@ void Tensor::standardization_i() {
 
   this->subtract_i(mean_by_batch);
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    Tensor std_dev_by_batch(dim.batch(), 1, 1, 1);
+    Tensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat(),
+                            dim.getDataType());
     std_dev_by_batch.setZero();
     float *std_dev = std_dev_by_batch.getData();
 
@@ -3263,7 +3264,8 @@ void Tensor::standardization_i() {
     this->divide_i(std_dev_by_batch);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    Tensor std_dev_by_batch(dim.batch(), 1, 1, 1);
+    Tensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat(),
+                            dim.getDataType());
     std_dev_by_batch.setZero();
     _FP16 *std_dev = std_dev_by_batch.getData<_FP16>();
 
