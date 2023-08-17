@@ -12,7 +12,6 @@
  */
 
 #include <blas_interface.h>
-#include <iostream>
 #include <nntrainer_error.h>
 
 #ifdef USE__FP16
