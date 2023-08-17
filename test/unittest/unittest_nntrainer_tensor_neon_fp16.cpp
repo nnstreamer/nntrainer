@@ -162,6 +162,48 @@ TEST(nntrainer_Tensor, l2norm) {
   EXPECT_NEAR(result_neon, result_fp32, epsilon);
 }
 
+TEST(nntrainer_Tensor, sscal) {
+  int batch = 1;
+  int channel = 1;
+  int height = 2;
+  int width = 11;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_copy(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-5;
+  const float epsilon = 1e-4;
+
+  GEN_TEST_INPUT(input, i * (batch * height * channel) * alpha +
+                          j * (batch * height) * alpha + k * (width)*alpha + l +
+                          1);
+  GEN_TEST_INPUT(input_fp32, i * (batch * height * channel) * alpha +
+                               j * (batch * height) * alpha +
+                               k * (width)*alpha + l + 1);
+
+  // NEON fp16
+  int result = input.multiply_i(0.1);
+
+  // fp32
+  result = input_fp32.multiply_i(0.1);
+
+  float mseErrorNeon = mse<__fp16>(input.getData<__fp16>(),
+                                   input_fp32.getData<float>(), input.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    input.getData<__fp16>(), input_fp32.getData<float>(), input.size());
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE(cosSimNeon, 0.99, 1);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 

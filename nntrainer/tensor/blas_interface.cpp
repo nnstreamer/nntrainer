@@ -141,8 +141,17 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
 
+#ifdef USE__FP16
+  if (incX == 1) {
+    nntrainer::neon::sscal_neon_fp16(N, X, alpha);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      X[i * incx] = static_cast<_FP16>(alpha) * X[i * incx];
+  }
+#else
   for (unsigned int i = 0; i < N; ++i)
     X[i * incx] = static_cast<_FP16>(alpha) * X[i * incx];
+#endif
 }
 
 static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
