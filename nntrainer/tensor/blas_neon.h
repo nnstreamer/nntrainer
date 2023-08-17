@@ -97,12 +97,19 @@ __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y);
 #endif
 
 /**
- * @brief     sdot computation with neon: sum of all X * Y
- * @param[in] N number of elements in Y
+ * @brief     snrm2 computation with neon: Euclidean norm
+ * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
- * @param[in] Y __fp16 * for Vector Y
  */
 __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X);
+
+/**
+ * @brief     sscal computation with neon: X = alpha * X
+ * @param[in] N number of elements in X
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] alpha float number
+ */
+void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha);
 
 } // namespace nntrainer::neon
 
