@@ -127,8 +127,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -2540,57 +2539,6 @@ void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
 #endif
   }
 }
-
-// int Tensor::apply_i(std::function<float(float)> f) {
-//   Tensor result = *this;
-//   apply(f, result);
-
-//   return ML_ERROR_NONE;
-// }
-
-// Tensor Tensor::apply(std::function<float(float)> f) const {
-//   Tensor result;
-//   return apply(f, result);
-// }
-
-// Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
-//   CREATE_IF_EMPTY_DIMS(output, dim);
-
-//   if (dim != output.dim) {
-//     /// @todo add unittest
-//     throw std::invalid_argument(
-//       "[Tensor::apply] output dimension does not match");
-//   }
-
-//   if (contiguous && output.contiguous) {
-//     const float *data = getData();
-//     float *rdata = output.getData();
-//     std::transform(data, data + size(), rdata, f);
-//   } else if (strides[3] == 1 && output.strides[3] == 1) {
-//     /** @todo optimize this with combining these loops where stride is 1 */
-//     for (unsigned int b = 0; b < batch(); ++b) {
-//       for (unsigned int c = 0; c < channel(); ++c) {
-//         for (unsigned int h = 0; h < height(); ++h) {
-//           float *out_data = output.getAddress(b, c, h, 0);
-//           const float *in_data = getAddress(b, c, h, 0);
-//           std::transform(in_data, in_data + width(), out_data, f);
-//         }
-//       }
-//     }
-//   } else {
-//     for (unsigned int b = 0; b < batch(); ++b) {
-//       for (unsigned int c = 0; c < channel(); ++c) {
-//         for (unsigned int h = 0; h < height(); ++h) {
-//           for (unsigned int w = 0; w < width(); ++w) {
-//             output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   return output;
-// }
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
