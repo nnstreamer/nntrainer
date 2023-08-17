@@ -86,7 +86,7 @@ static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res, TensorDim &dim) {
     return status;
 
   for (size_t i = 0; i < ml::train::TensorDim::MAXDIM; i++)
-    dim.setTensorDim(i, dim_[i]);
+    dim.setTensorDim(i, dim_[i] > 0 ? dim_[i] : 1);
 
   /* reverse the dimension as nnstreamer stores dimension in reverse way */
   dim.reverse();
