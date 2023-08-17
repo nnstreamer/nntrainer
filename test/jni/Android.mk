@@ -65,6 +65,74 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := unittest_nntrainer_activations
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_activations.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_exe_order
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_exe_order.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_internal
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_internal.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_lazy_tensor
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_lazy_tensor.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := unittest_nntrainer_tensor
 LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
@@ -78,6 +146,24 @@ LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := googletest_main test_util
 include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_tensor_nhwc
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_tensor_nhwc.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
 
 include $(CLEAR_VARS)
 
@@ -98,6 +184,105 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := unittest_util_func
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_util_func.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_modelfile
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_modelfile.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_graph
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_graph.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_appcontext
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_appcontext.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_base_properties
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_base_properties.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_common_properties
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_common_properties.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := unittest_nntrainer_tensor_neon_fp16
 LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
@@ -112,24 +297,40 @@ LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := googletest_main test_util
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
 
-# include $(CLEAR_VARS)
+LOCAL_MODULE := unittest_nntrainer_tensor_pool
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
 
-# LOCAL_MODULE := unittest_ccapi
-# LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti
-# LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
-# LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_tensor_pool.cpp
 
-# LOCAL_SRC_FILES := \
-#     ../ccapi/unittest_ccapi.cpp
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-# LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
 
-# LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
-# LOCAL_STATIC_LIBRARIES := googletest_main test_util
-# include $(BUILD_EXECUTABLE)
 
-# include $(CLEAR_VARS)
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_lr_scheduler
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../unittest/unittest_nntrainer_lr_scheduler.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_compiler
 LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/compiler -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
@@ -147,3 +348,130 @@ LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := googletest_main test_util
 include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_models
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+	../unittest/unittest_nntrainer_models.cpp \
+	../unittest/models/models_test_utils.cpp \
+	../unittest/models/models_golden_test.cpp 
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_models
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+
+LOCAL_SRC_FILES := \
+	 ../unittest/models/models_test_utils.cpp \
+	 ../unittest/models/models_golden_test.cpp \
+	 ../unittest/models/unittest_models_recurrent.cpp \
+	 ../unittest/models/unittest_models_multiout.cpp \
+	 ../unittest/models/unittest_models.cpp \
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_datasets
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/datasets -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+
+LOCAL_SRC_FILES := \
+	 ../unittest/datasets/data_producer_common_tests.cpp \
+	 ../unittest/datasets/unittest_random_data_producers.cpp \
+	 ../unittest/datasets/unittest_func_data_producer.cpp \
+	 ../unittest/datasets/unittest_raw_file_data_producer.cpp \
+	 ../unittest/datasets/unittest_iteration_queue.cpp \
+	 ../unittest/datasets/unittest_databuffer.cpp \
+	 ../unittest/datasets/unittest_data_iteration.cpp \
+	 ../unittest/datasets/unittest_datasets.cpp \
+
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_layers
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+
+LOCAL_SRC_FILES := \
+	 ../unittest/layers/layers_dependent_common_tests.cpp \
+	 ../unittest/layers/layers_standalone_common_tests.cpp \
+	 ../unittest/layers/layers_golden_tests.cpp \
+	 ../unittest/layers/unittest_layer_node.cpp \
+	 ../unittest/layers/unittest_layers.cpp \
+	 ../unittest/layers/unittest_layers_impl.cpp \
+	 ../unittest/layers/unittest_layers_input.cpp \
+	 ../unittest/layers/unittest_layers_loss.cpp \
+	 ../unittest/layers/unittest_layers_fully_connected.cpp \
+	 ../unittest/layers/unittest_layers_batch_normalization.cpp \
+	 ../unittest/layers/unittest_layers_layer_normalization.cpp \
+	 ../unittest/layers/unittest_layers_convolution2d.cpp \
+	 ../unittest/layers/unittest_layers_convolution1d.cpp \
+	 ../unittest/layers/unittest_layers_pooling2d.cpp \
+	 ../unittest/layers/unittest_layers_flatten.cpp \
+	 ../unittest/layers/unittest_layers_activation.cpp \
+	 ../unittest/layers/unittest_layers_addition.cpp \
+	 ../unittest/layers/unittest_layers_multiout.cpp \
+	 ../unittest/layers/unittest_layers_rnn.cpp \
+	 ../unittest/layers/unittest_layers_rnncell.cpp \
+	 ../unittest/layers/unittest_layers_lstm.cpp \
+	 ../unittest/layers/unittest_layers_lstmcell.cpp \
+	 ../unittest/layers/unittest_layers_gru.cpp \
+	 ../unittest/layers/unittest_layers_grucell.cpp \
+	 ../unittest/layers/unittest_layers_preprocess_flip.cpp \
+	 ../unittest/layers/unittest_layers_split.cpp \
+	 ../unittest/layers/unittest_layers_embedding.cpp \
+	 ../unittest/layers/unittest_layers_concat.cpp \
+	 ../unittest/layers/unittest_layers_permute.cpp \
+	 ../unittest/layers/unittest_layers_attention.cpp \
+	 ../unittest/layers/unittest_layers_dropout.cpp \
+	 ../unittest/layers/unittest_layers_reshape.cpp \
+	 ../unittest/layers/unittest_layers_multi_head_attention.cpp \
+	 ../unittest/layers/unittest_layers_positional_encoding.cpp \
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
+
+# unittest_ccapi
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_ccapi
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -mfpu=neon-fp16 -mfloat-abi=softfp -O3 -frtti
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
+
+LOCAL_SRC_FILES := \
+    ../ccapi/unittest_ccapi.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util
+include $(BUILD_EXECUTABLE)
