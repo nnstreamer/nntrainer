@@ -3258,6 +3258,31 @@ std::vector<unsigned int> Tensor::argmax() const {
   return result;
 }
 
+int Tensor::erf_i() {
+  erf(*this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::erf() const {
+  Tensor t;
+  return erf(t);
+}
+
+Tensor &Tensor::erf(Tensor &out) const {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    auto f = [](float in) { return std::erf(in); };
+    apply<float>(f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = [](_FP16 in) { return std::erf(in); };
+    apply<_FP16>(f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+  return out;
+}
+
 float Tensor::l2norm() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot get l2norm.";
