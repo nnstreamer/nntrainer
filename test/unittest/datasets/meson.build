@@ -9,7 +9,8 @@ producer_targets = [
   'unittest_raw_file_data_producer.cpp',
   'unittest_iteration_queue.cpp',
   'unittest_databuffer.cpp',
-  'unittest_data_iteration.cpp'
+  'unittest_data_iteration.cpp',
+  'unittest_datasets.cpp'
 ]
 
 test_target += producer_targets
