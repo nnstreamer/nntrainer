@@ -340,39 +340,39 @@ if __name__ == "__main__":
     # fp16fp16
 
     fc1616 = K.layers.Dense(5)
-    record_single_fp16(fc1616, (3, 1, 1, 10), "fc_plain_fp16fp16",input_type='float16')
+    record_single_fp16(fc1616, (3, 1, 1, 10), "fc_plain_fp16fp16")
     fc1616 = K.layers.Dense(4)
-    record_single_fp16(fc1616, (1, 1, 1, 10), "fc_single_batch_fp16fp16",input_type='float16')
+    record_single_fp16(fc1616, (1, 1, 1, 10), "fc_single_batch_fp16fp16")
  
     bn = K.layers.BatchNormalization()
-    record_single_fp16(bn, (2, 4, 2, 3), "bn_channels_training_fp16fp16", {"training": True},input_type='float16')
-    record_single_fp16(bn, (2, 4, 2, 3), "bn_channels_inference_fp16fp16", {"training": False},input_type='float16')
+    record_single_fp16(bn, (2, 4, 2, 3), "bn_channels_training_fp16fp16", {"training": True}  )
+    record_single_fp16(bn, (2, 4, 2, 3), "bn_channels_inference_fp16fp16", {"training": False}  )
     bn = K.layers.BatchNormalization()
-    record_single_fp16(bn, (2, 10), "bn_width_training_fp16fp16", {"training": True},input_type='float16')
-    record_single_fp16(bn, (2, 10), "bn_width_inference_fp16fp16", {"training": False},input_type='float16')
+    record_single_fp16(bn, (2, 10), "bn_width_training_fp16fp16", {"training": True}  )
+    record_single_fp16(bn, (2, 10), "bn_width_inference_fp16fp16", {"training": False}  )
 
     ln = K.layers.LayerNormalization()
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_fp16fp16")
     ln = K.layers.LayerNormalization([1])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_2_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_2_fp16fp16")
     ln = K.layers.LayerNormalization([2])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_3_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_3_fp16fp16")
     ln = K.layers.LayerNormalization([1, 3])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_2_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_2_fp16fp16")
     ln = K.layers.LayerNormalization([1, 2])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_2_3_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_2_3_fp16fp16")
     ln = K.layers.LayerNormalization([2, 3])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_3_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_3_fp16fp16")
     ln = K.layers.LayerNormalization([1, 2, 3])
-    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_2_3_fp16fp16",input_type='float16')
+    record_single_fp16(ln, (2, 4, 2, 3), "ln_axis_1_2_3_fp16fp16")
 
     conv = K.layers.Conv2D(3, 2)
-    record_single_fp16(conv, (1, 1, 4, 4), "conv2d_sb_minimum_fp16fp16",input_type='float16')
-    record_single_fp16(conv, (3, 1, 4, 4), "conv2d_mb_minimum_fp16fp16",input_type='float16')
+    record_single_fp16(conv, (1, 1, 4, 4), "conv2d_sb_minimum_fp16fp16")
+    record_single_fp16(conv, (3, 1, 4, 4), "conv2d_mb_minimum_fp16fp16")
 
     conv = K.layers.Conv2D(2, 3, padding="same")
-    record_single_fp16(conv, (1, 1, 4, 4), "conv2d_sb_same_remain_fp16fp16",input_type='float16')
-    record_single_fp16(conv, (3, 1, 4, 4), "conv2d_mb_same_remain_fp16fp16",input_type='float16')
+    record_single_fp16(conv, (1, 1, 4, 4), "conv2d_sb_same_remain_fp16fp16")
+    record_single_fp16(conv, (3, 1, 4, 4), "conv2d_mb_same_remain_fp16fp16")
 
 
     conv = K.layers.Conv2D(2, 3, strides=2, padding="same")
@@ -402,28 +402,28 @@ if __name__ == "__main__":
     # use float data to generate input here
     attention = K.layers.Attention()
     record_single_fp16(attention, [(1, 5, 7), (1, 3, 7)],
-                 "attention_shared_kv_fp16fp16", {}, input_type='float16')
+                 "attention_shared_kv_fp16fp16", {} , input_type='float')
     attention = K.layers.Attention()
     record_single_fp16(attention, [(2, 5, 7), (2, 3, 7)],
-                 "attention_shared_kv_batched_fp16fp16", {}, input_type='float16')
+                 "attention_shared_kv_batched_fp16fp16", {} , input_type='float')
     attention = K.layers.Attention()
     record_single_fp16(attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
-                 "attention_batched_fp16fp16", {}, input_type='float16')
+                 "attention_batched_fp16fp16", {} , input_type='float')
 
     # use float data to generate input here
     multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3)
     record_single_fp16(multi_head_attention, [(1, 5, 7), (1, 3, 7), (1, 3, 7)],
-                 "multi_head_attention_single_batch_fp16fp16", {}, input_type='float16')
+                 "multi_head_attention_single_batch_fp16fp16", {} , input_type='float')
     record_single_fp16(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
                  "multi_head_attention_fp16fp16", {}, input_type='float')
     record_single_fp16(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
-                 "multi_head_attention_return_attention_scores_fp16fp16", {"return_attention_scores":True}, input_type='float16')
+                 "multi_head_attention_return_attention_scores_fp16fp16", {"return_attention_scores":True} , input_type='float')
     multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3, value_dim=5)
     record_single_fp16(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
-                 "multi_head_attention_value_dim_fp16fp16", {}, input_type='float16')
+                 "multi_head_attention_value_dim_fp16fp16", {} , input_type='float')
     multi_head_attention = K.layers.MultiHeadAttention(num_heads=2, key_dim=3, output_shape=5)
     record_single_fp16(multi_head_attention, [(2, 5, 7), (2, 3, 7), (2, 3, 7)],
-                 "multi_head_attention_output_shape_fp16fp16", {}, input_type='float16')
+                 "multi_head_attention_output_shape_fp16fp16", {} , input_type='float')
 
     rnn = K.layers.SimpleRNN(units=5,
                          activation="tanh",
@@ -482,7 +482,7 @@ if __name__ == "__main__":
                          return_state=False,
                          reset_after=False)
     record_single_fp16(gru, (3, 1, 7), "gru_single_step_seq_fp16fp16")
-    record_single_fp16(gru, (3, 4, 7), "gru_multi_step_seq_fp16fp16", input_type='float16')
+    record_single_fp16(gru, (3, 4, 7), "gru_multi_step_seq_fp16fp16" )
 
     gru = K.layers.GRU(units=5, activation="sigmoid", 
                          recurrent_activation="tanh",
@@ -490,7 +490,7 @@ if __name__ == "__main__":
                          return_sequences=True,
                          return_state=False,
                          reset_after=False,)
-    record_single_fp16(gru, (3, 4, 7), "gru_multi_step_seq_act_fp16fp16", input_type='float16')
+    record_single_fp16(gru, (3, 4, 7), "gru_multi_step_seq_act_fp16fp16" )
 
     # check reset_after
     gru = K.layers.GRU(units=5, activation="tanh", 
@@ -509,7 +509,7 @@ if __name__ == "__main__":
                          return_state=False,
                          reset_after=True)
     record_single_fp16(gru, (3, 1, 7), "gru_reset_after_single_step_seq_fp16fp16")
-    record_single_fp16(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_fp16fp16", input_type='float16')
+    record_single_fp16(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_fp16fp16" )
 
     gru = K.layers.GRU(units=5, activation="sigmoid", 
                          recurrent_activation="tanh",
@@ -517,27 +517,27 @@ if __name__ == "__main__":
                          return_sequences=True,
                          return_state=False,
                          reset_after=True)
-    record_single_fp16(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_act_fp16fp16", input_type='float16')
+    record_single_fp16(gru, (3, 4, 7), "gru_reset_after_multi_step_seq_act_fp16fp16" )
 
     unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
     grucell = K.layers.GRUCell(units=unit,
                          recurrent_activation='sigmoid',
                          bias_initializer='glorot_uniform')
-    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step_fp16fp16", input_type='float16')
+    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step_fp16fp16" )
 
     unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
     grucell = K.layers.GRUCell(units=unit,
                          recurrent_activation='sigmoid',
                          bias_initializer='glorot_uniform',
                          reset_after=True)
-    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_reset_after_single_step_fp16fp16", input_type='float16')
+    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_reset_after_single_step_fp16fp16" )
 
     unit, batch_size, unroll_for, feature_size = [5, 3, 1, 7]
     grucell = K.layers.GRUCell(units=unit,
                          activation="sigmoid",
                          recurrent_activation="tanh",
                          bias_initializer='glorot_uniform')
-    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step_act_fp16fp16", input_type='float16')
+    record_single_fp16(grucell, [(batch_size, feature_size), (batch_size, unit)], "grucell_single_step_act_fp16fp16" )
 
     dropout = K.layers.Dropout(rate=0.2)
     record_single_fp16(dropout, (2, 3, 2, 3), "dropout_20_training_fp16fp16", {"training": True})
@@ -602,5 +602,5 @@ if __name__ == "__main__":
     record_single_fp16(positional_encoding, [(3, 1, 7, 6)], "positional_encoding_partial_fp16fp16")
     record_single_fp16(positional_encoding, [(3, 1, 10, 6)], "positional_encoding_fp16fp16")
 
-inspect_file("dropout_20_training.nnlayergolden")
-inspect_file("fc_plain_fp16fp16.nnlayergolden", _dtype = "float16")
+inspect_file("ln_axis_1_fp16fp16.nnlayergolden", _dtype = "float16")
+# inspect_file("fc_plain_fp16fp16.nnlayergolden", _dtype = "float16")
