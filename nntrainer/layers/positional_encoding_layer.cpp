@@ -27,8 +27,7 @@ enum PositionalEncodingParams {
 };
 
 PositionalEncodingLayer::PositionalEncodingLayer() :
-  isPEcalculated(false),
-  positional_encoding_props(props::MaxTimestep()) {
+  isPEcalculated(false), positional_encoding_props(props::MaxTimestep()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -43,7 +42,9 @@ void PositionalEncodingLayer::finalize(InitLayerContext &context) {
 
   unsigned int model_dim = input_dims[SINGLE_INOUT_IDX].width();
 
-  ml::train::TensorDim pe_dim({max_token_size, model_dim});
+  ml::train::TensorDim pe_dim(
+    {max_token_size, model_dim},
+    {context.getFormat(), context.getWeightDataType()});
   weight_idx[PositionalEncodingParams::positional_encoding] =
     context.requestTensor(pe_dim, "positional_encoding",
                           nntrainer::Tensor::Initializer::NONE, false,
@@ -59,7 +60,8 @@ void PositionalEncodingLayer::forwarding(RunLayerContext &context,
     weight_idx[PositionalEncodingParams::positional_encoding]);
 
   TensorDim input_dim = input.getDim();
-  TensorDim pe_partial_dim({input_dim.height(), input_dim.width()});
+  TensorDim pe_partial_dim({input_dim.height(), input_dim.width()},
+                           context.getTensor(0).getTensorType());
   nntrainer::Tensor pe_partial = pe.getSharedDataTensor(pe_partial_dim, 0);
 
   if (!isPEcalculated) {

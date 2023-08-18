@@ -38,3 +38,18 @@ auto positional_encoding = LayerGoldenTestParamType(
 INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerGoldenTest,
                         ::testing::Values(positional_encoding_partial,
                                           positional_encoding));
+
+auto positional_encoding_partial_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
+  {"max_timestep=10"}, "3:1:7:6",
+  "positional_encoding_partial_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+auto positional_encoding_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
+  {"max_timestep=10"}, "3:1:10:6", "positional_encoding_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+INSTANTIATE_TEST_CASE_P(PositionalEncoding16, LayerGoldenTest,
+                        ::testing::Values(positional_encoding_partial_fp16fp16,
+                                          positional_encoding_fp16fp16));
