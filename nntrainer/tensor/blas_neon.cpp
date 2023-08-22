@@ -617,7 +617,6 @@ __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 
   return ret;
 }
-#endif
 
 __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X) {
 
@@ -693,5 +692,27 @@ void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha) {
   for (; idx < N; idx++)
     X[idx] = alpha * X[idx];
 }
+
+void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
+
+  unsigned int idx = 0;
+
+  // processing batch of 8
+  for (; (N - idx) >= 8; idx += 8) {
+    float16x8_t batch = vld1q_f16(&X[idx]);
+    vst1q_f16(&Y[idx], batch);
+  }
+
+  // processing remaining batch of 4
+  for (; (N - idx) >= 4; idx += 4) {
+    float16x4_t batch = vld1_f16(&X[idx]);
+    vst1_f16(&Y[idx], batch);
+  }
+
+  // pocessing remaining values
+  for (; idx < N; idx++)
+    Y[idx] = X[idx];
+}
+#endif
 
 } // namespace nntrainer::neon
