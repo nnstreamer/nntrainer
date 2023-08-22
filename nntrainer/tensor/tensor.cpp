@@ -127,7 +127,8 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor), off(offset) {}
+    src(tensor),
+    off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -2866,7 +2867,15 @@ void Tensor::copyData(const Tensor &from) {
   if (getDataType() != from.getDataType())
     throw std::invalid_argument("Data type of tensor to copy must match");
 
-  copy(from.getData());
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    copy(from.getData<float>());
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    copy(from.getData<_FP16>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 Tensor Tensor::clone() const {
@@ -2886,7 +2895,13 @@ void Tensor::reshape(const TensorDim &d) {
        "\nfrom "
     << getDim() << " to " << d;
 
-  dim = d;
+  /// @todo : need option to select whether to change TensorDim::TensorType or
+  /// not
+
+  dim.batch(d.batch());
+  dim.channel(d.channel());
+  dim.height(d.height());
+  dim.width(d.width());
   strides = d.computeStrides();
 }
 
@@ -2911,8 +2926,15 @@ void Tensor::fill(const Tensor &from, bool alloc) {
     /// get the buffer size
     throw std::invalid_argument("[Tensor::fill] buffer size must be the same");
   }
-
-  this->copy(from.getData());
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    this->copy(from.getData());
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    this->copy(from.getData<_FP16>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void Tensor::save(std::ostream &file) {
