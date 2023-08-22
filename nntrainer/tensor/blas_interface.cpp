@@ -134,8 +134,17 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
+#ifdef USE__FP16
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::scopy_neon_fp16(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      Y[i * incy] = X[i * incx];
+  }
+#else
   for (unsigned int i = 0; i < N; ++i)
     Y[i * incy] = X[i * incx];
+#endif
 }
 
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
