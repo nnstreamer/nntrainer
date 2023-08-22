@@ -62,6 +62,13 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
                          const std::vector<unsigned int> &exec_order,
                          TensorLifespan lifespan, const size_t offset) {
   auto &spec = getSourceSpec(reference);
+
+  NNTR_THROW_IF(spec.tensor->getDataType() != dim.getDataType() ||
+                  spec.tensor->getFormat() != dim.getFormat(),
+                std::invalid_argument)
+    << "view tensor type != source tensor type, view tensor type: " << dim
+    << " source tensor: " << spec.tensor->getDim();
+
   unsigned adjusted_offset = std::visit(
     [](const auto &s) {
       using T = std::decay_t<decltype(s)>;
