@@ -94,7 +94,6 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y);
-#endif
 
 /**
  * @brief     snrm2 computation with neon: Euclidean norm
@@ -110,6 +109,15 @@ __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X);
  * @param[in] alpha float number
  */
 void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha);
+
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ */
+void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y);
+#endif
 
 } // namespace nntrainer::neon
 
