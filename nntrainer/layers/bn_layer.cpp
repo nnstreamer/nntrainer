@@ -67,13 +67,11 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   auto &weight_decay = std::get<props::WeightDecay>(bn_props);
   auto &bias_decay = std::get<props::BiasDecay>(bn_props);
 
-  std::vector<TensorDim> output_dims(1);
-
   /** set output dimensions */
   auto const &in_dim = context.getInputDimensions()[0];
   context.setOutputDimensions(context.getInputDimensions());
 
-  TensorDim dim;
+  TensorDim dim(context.getFormat(), context.getWeightDataType());
 
   /// @note this logic cannot tell channel is actually 1 or it is just not used.
   auto &axis_prop = std::get<props::Axis>(bn_props);

@@ -99,6 +99,10 @@ typedef enum {
 
   DROPOUT_MATCH_60_PERCENT = 1 << 3, /**< set if only 60 percentage output
                                match is sufficient for dropout */
+
+  SKIP_COSINE_SIMILARITY =
+    1 << 4, /**< skip for zero error but large cos similarity case for now*/
+
   DEFAULT =
     0, /**< default set up, compare forward, backward in training mode */
 } LayerGoldenTestParamOptions;
@@ -167,6 +171,13 @@ public:
    * @return bool true if should skip calculating Gradient
    */
   bool shouldSkipCalcGrad();
+
+  /**
+   * @brief check if given test suite should skip cosine similarity check
+   *
+   * @return bool true if should skip cosine similarity check
+   */
+  bool shouldSkipCosineSimilarity();
 };
 
 #endif // __LAYERS_COMMON_TESTS_H__

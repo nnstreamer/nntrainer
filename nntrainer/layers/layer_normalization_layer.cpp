@@ -73,7 +73,7 @@ void LayerNormalizationLayer::finalize(InitLayerContext &context) {
     std::unique(normalize_axes.begin(), normalize_axes.end()),
     normalize_axes.end());
 
-  TensorDim normalize_dim;
+  TensorDim normalize_dim(context.getFormat(), context.getWeightDataType());
   for (unsigned int axis : normalize_axes) {
     normalize_dim.setTensorDim(axis, input_dim.getTensorDim(axis));
   }
@@ -85,7 +85,7 @@ void LayerNormalizationLayer::finalize(InitLayerContext &context) {
     normalize_dim, beta_initializer, WeightRegularizer::NONE, 1.0f, bias_decay,
     "beta", true);
 
-  TensorDim remain_dim;
+  TensorDim remain_dim(context.getFormat(), context.getWeightDataType());
   std::vector<unsigned int> total_axes;
   total_axes.resize(ml::train::TensorDim::MAXDIM);
   std::iota(total_axes.begin(), total_axes.end(), 0u);
@@ -148,11 +148,11 @@ void LayerNormalizationLayer::forwarding(RunLayerContext &context,
   input.average(normalize_axes, temp_norm_size);
   input.subtract(temp_norm_size, deviation);
 
-  deviation.pow(2.0f, temp_full_size);
+  deviation.pow(2.0, temp_full_size);
   temp_full_size.average(normalize_axes, variance);
 
   variance.add_i(epsilon);
-  variance.pow(-0.5f, inv_std_dev);
+  variance.pow(-0.5, inv_std_dev);
 
   deviation.multiply(inv_std_dev, output);
   output.multiply_i(gamma);
@@ -161,7 +161,12 @@ void LayerNormalizationLayer::forwarding(RunLayerContext &context,
 
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
   const bool trainable = context.getTrainable();
+
+  TensorDim::TensorType weight_tensor_type =
+    context.getWeight(wt_idx[LNParams::gamma]).getTensorType();
+
   Tensor empty;
+  empty.setTensorType(weight_tensor_type);
 
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   const Tensor &incoming_derivative =
@@ -200,7 +205,6 @@ void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
 void LayerNormalizationLayer::calcGradient(RunLayerContext &context) {
   /** d_gamma is calculated in calcDerivative. d_beta is calculated here */
-
   const Tensor &incoming_derivative =
     context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &d_beta = context.getWeightGrad(wt_idx[LNParams::beta]);
