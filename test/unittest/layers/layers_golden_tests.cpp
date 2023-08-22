@@ -55,6 +55,8 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
+  /// @todo tensor_type should not affect input layer data type since
+  /// technically a layer should not have information about its previous layer
   for (auto &par : parsed) {
     par.get().setFormat(
       str_converter<enum_class_prop_tag,
@@ -109,7 +111,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
     vg.reserve(specs.size());
 
     for (auto &spec : specs) {
-      /// todo initializer should be depending is as well
+      /// @todo initializer should be depending is as well
       vg.emplace_back(spec.variable_spec.dim, Tensor::Initializer::NONE, true,
                       true, "golden");
     }
@@ -169,11 +171,12 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
 
 static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                               bool skip_grad, bool skip_deriv,
-                              bool dropout_match) {
+                              bool dropout_match, bool skip_cos_sim) {
   file.seekg(0, std::ios::beg);
 
   auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
-                                       unsigned int match_percentage) -> bool {
+                                       unsigned int match_percentage,
+                                       bool skip_cos_sim) -> bool {
     if (t1.getDim() != t2.getDim())
       return false;
 
@@ -184,6 +187,17 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
         t2.getDim().getDataType() == ml::train::TensorDim::DataType::FP32) {
 
       if (match_percentage == 100) {
+
+        if (!skip_cos_sim) {
+          auto tensor = t1.clone();
+          auto answer = t2.clone();
+          const float epsilon = 1e-6;
+
+          auto cos_sim = cosine_similarity<float>(
+            answer.getData<float>(), tensor.getData<float>(), tensor.size());
+          EXPECT_IN_RANGE(cos_sim, 1 - epsilon, 1 + epsilon);
+        }
+
         EXPECT_EQ(t1, t2);
         return t1 == t2;
       }
@@ -200,6 +214,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                                  (d1 != 0 && float_eq(d2, 0)),
                                1);
       }
+
       return (weak_match == total);
     } else if (t1.getDim().getDataType() ==
                  ml::train::TensorDim::DataType::FP16 &&
@@ -209,11 +224,18 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       for (unsigned int idx = 0; idx < total; idx++) {
         auto d1 = t1.getValue<_FP16>(idx);
         auto d2 = t2.getValue<_FP16>(idx);
-        auto float_eq = [](_FP16 a, _FP16 b) {
-          constexpr auto eps = 1e-2;
-          if (a < b)
-            std::swap(a, b);
-          return (a - b) < eps;
+        auto float_eq = [skip_cos_sim](_FP16 a, _FP16 b) {
+          if (skip_cos_sim) {
+            constexpr auto eps = 1e-1;
+            if (a < b)
+              std::swap(a, b);
+            return (a - b) < eps;
+          } else {
+            constexpr auto eps = 1e-2;
+            if (a < b)
+              std::swap(a, b);
+            return (a - b) < eps;
+          }
         };
         /** either both the values must be equal or 1 must be zero */
         weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
@@ -225,12 +247,14 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       auto tensor = t1.clone();
       auto answer = t2.clone();
 
-      auto cos_sim = cosine_similarity<_FP16>(
-        answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
+      if (!skip_cos_sim) {
+        auto cos_sim = cosine_similarity<_FP16>(
+          answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
+        EXPECT_IN_RANGE(cos_sim, 1 - epsilon, 1 + epsilon);
+      }
+
       auto mean_squared_error = mse<_FP16>(
         answer.getData<_FP16>(), answer.getData<_FP16>(), tensor.size());
-
-      EXPECT_IN_RANGE(cos_sim, 1 - epsilon, 1 + epsilon);
       EXPECT_IN_RANGE(mean_squared_error, 0, epsilon);
 
       return (weak_match == total);
@@ -243,7 +267,8 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   auto compare_tensors = [&file, compare_percentage_tensors](
                            unsigned length, auto tensor_getter, auto pred,
-                           bool skip_compare, const std::string &name,
+                           bool skip_compare, bool skip_cos_sim,
+                           const std::string &name,
                            unsigned int match_percentage = 100) {
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
@@ -256,7 +281,8 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       if (skip_compare) {
         continue;
       }
-      EXPECT_TRUE(compare_percentage_tensors(tensor, answer, match_percentage))
+      EXPECT_TRUE(compare_percentage_tensors(tensor, answer, match_percentage,
+                                             skip_cos_sim))
         << name << " at " << std::to_string(i);
     }
   };
@@ -274,22 +300,23 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, skip_compare, "initial_weights");
+                  always_read, skip_compare, skip_cos_sim, "initial_weights");
   compare_tensors(rc.getNumInputs(),
                   [&rc](unsigned idx) { return rc.getInput(idx); }, always_read,
-                  !skip_compare, "inputs");
-  compare_tensors(rc.getNumOutputs(),
-                  [&rc](unsigned idx) { return rc.getOutput(idx); },
-                  always_read, !skip_compare, "outputs", match_percentage);
+                  !skip_compare, skip_cos_sim, "inputs");
+  compare_tensors(
+    rc.getNumOutputs(), [&rc](unsigned idx) { return rc.getOutput(idx); },
+    always_read, !skip_compare, skip_cos_sim, "outputs", match_percentage);
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-                  only_read_trainable, skip_grad, "gradients");
+                  only_read_trainable, skip_grad, skip_cos_sim, "gradients");
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, !skip_compare, "weights");
+                  always_read, !skip_compare, skip_cos_sim, "weights");
   compare_tensors(rc.getNumInputs(),
                   [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always_read, skip_deriv, "derivatives", match_percentage);
+                  always_read, skip_deriv, skip_cos_sim, "derivatives",
+                  match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
@@ -318,6 +345,11 @@ bool LayerGoldenTest::shouldSkipCalcGrad() {
          LayerGoldenTestParamOptions::SKIP_CALC_GRAD;
 }
 
+bool LayerGoldenTest::shouldSkipCosineSimilarity() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY;
+}
+
 TEST_P(LayerGoldenTest, run) {
   auto f = std::get<0>(GetParam());
   auto layer = f(std::get<1>(GetParam()));
@@ -337,6 +369,7 @@ TEST_P(LayerGoldenTest, run) {
   bool skip_calc_grad = shouldSkipCalcGrad();
   bool skip_calc_deriv = shouldSkipCalcDeriv();
   bool dropout_compare_60_percent = shouldMatchDropout60Percent();
+  bool skip_cos_sim = shouldSkipCosineSimilarity();
 
   for (int i = 0; i < 4; ++i) {
     /// warm layer multiple times
@@ -352,7 +385,7 @@ TEST_P(LayerGoldenTest, run) {
   }
 
   compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv,
-                    dropout_compare_60_percent);
+                    dropout_compare_60_percent, skip_cos_sim);
 
   EXPECT_TRUE(true); // stub test for tcm
 }

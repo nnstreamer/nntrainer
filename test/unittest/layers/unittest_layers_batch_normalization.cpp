@@ -28,10 +28,11 @@ auto bn_inference_option = LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
                            LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
                            LayerGoldenTestParamOptions::FORWARD_MODE_INFERENCE;
 
+auto bn_option = LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY;
+
 auto bn_basic_channels_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
-  "bn_channels_training.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT,
-  "nchw", "fp32", "fp32");
+  "bn_channels_training.nnlayergolden", bn_option, "nchw", "fp32", "fp32");
 
 auto bn_basic_channels_inference = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
@@ -53,3 +54,31 @@ GTEST_PARAMETER_TEST(BatchNormalization, LayerGoldenTest,
                                        bn_basic_channels_inference,
                                        bn_basic_width_training,
                                        bn_basic_width_inference));
+
+#ifdef ENABLE_FP16
+auto bn_basic_channels_training_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
+  "bn_channels_training_fp16fp16.nnlayergolden", bn_option, "nchw", "fp16",
+  "fp16");
+
+auto bn_basic_channels_inference_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
+  "bn_channels_inference_fp16fp16.nnlayergolden", bn_inference_option, "nchw",
+  "fp16", "fp16");
+
+auto bn_basic_width_training_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
+  "bn_width_training_fp16fp16.nnlayergolden", bn_option, "nchw", "fp16",
+  "fp16");
+
+auto bn_basic_width_inference_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
+  "bn_width_inference_fp16fp16.nnlayergolden", bn_inference_option, "nchw",
+  "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(BatchNormalization16, LayerGoldenTest,
+                     ::testing::Values(bn_basic_channels_training_fp16fp16,
+                                       bn_basic_channels_inference_fp16fp16,
+                                       bn_basic_width_training_fp16fp16,
+                                       bn_basic_width_inference_fp16fp16));
+#endif
