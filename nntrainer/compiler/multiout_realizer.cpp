@@ -57,7 +57,7 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
     std::vector<std::shared_ptr<LayerNode>> /**< created node */>
     multiout_nodes;
 
-  for (auto con : connections) {
+  for (auto &con : connections) {
     unsigned freq = freq_map[con];
     /// @note freq < 1 should never happen as the map entry is not created.
     /// but if it happens multiout realizer is not interested in checking if it
@@ -102,7 +102,7 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
   for (auto &node : processed) {
     ret.push_back(node);
     auto ranges = multiout_nodes[node->getName()];
-    for (auto it : ranges) {
+    for (auto &it : ranges) {
       ret.push_back(it);
     }
   }

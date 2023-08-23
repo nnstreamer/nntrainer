@@ -118,7 +118,7 @@ public:
    * @param ty data type to set
    */
   void setInputDataType(TensorDim::DataType ty) {
-    for (auto d : input_dim)
+    for (auto &d : input_dim)
       d.setDataType(ty);
   }
 

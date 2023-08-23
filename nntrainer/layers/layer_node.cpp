@@ -523,7 +523,7 @@ LayerNode::finalize(const std::vector<TensorDim> &input_dims,
       NNTR_THROW_IF(input_dims != actual_prop_dims, std::invalid_argument)
         << "calculated input dimension is different from given input_shape "
            "property";
-      for (auto d : actual_prop_dims) {
+      for (auto &d : actual_prop_dims) {
         d.setDataType(
           str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
             from_string(tensor_type[2]));
@@ -545,7 +545,7 @@ LayerNode::finalize(const std::vector<TensorDim> &input_dims,
       << prop_dims.size();
     actual_input_dims =
       std::vector<TensorDim>(prop_dims.begin(), prop_dims.end());
-    for (auto d : actual_input_dims) {
+    for (auto &d : actual_input_dims) {
       /// Input Tensor type of input layer needs to be float.
       d.setDataType(
         str_converter<enum_class_prop_tag,
