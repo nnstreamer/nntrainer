@@ -2649,8 +2649,8 @@ void Tensor::print(std::ostream &out) const {
         }
         out << "-------" << std::endl;
       }
-      out.copyfmt(init);
     }
+    out.copyfmt(init);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     const _FP16 *data = getData<_FP16>();
@@ -2696,8 +2696,8 @@ void Tensor::print(std::ostream &out) const {
         }
         out << "-------" << std::endl;
       }
-      out.copyfmt(init);
     }
+    out.copyfmt(init);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -2878,6 +2878,7 @@ void Tensor::print_(std::ostream &out, uint opt) const {
       out << getData<float>()[i] << ", ";
     }
   }
+  out.copyfmt(init);
 }
 
 std::ostream &operator<<(std::ostream &out, Tensor const &m) {
