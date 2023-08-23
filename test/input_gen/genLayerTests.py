@@ -21,7 +21,7 @@ import warnings
 import random
 from functools import partial
 
-from recorder import record_single, record_single_fp16
+from recorder import record_single, record_single_fp16, record_single_embedding_mixed, record_single_embedding_fp32
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -602,5 +602,11 @@ if __name__ == "__main__":
     record_single_fp16(positional_encoding, [(3, 1, 7, 6)], "positional_encoding_partial_fp16fp16")
     record_single_fp16(positional_encoding, [(3, 1, 10, 6)], "positional_encoding_fp16fp16")
 
-inspect_file("ln_axis_1_fp16fp16.nnlayergolden", _dtype = "float16")
-# inspect_file("fc_plain_fp16fp16.nnlayergolden", _dtype = "float16")
+    embedding = K.layers.Embedding(10,10)
+    record_single_embedding_mixed(embedding, (1, 1, 1, 10), "embedding_mixed_single_batch")
+
+    embedding = K.layers.Embedding(20,10)
+    record_single_embedding_mixed(embedding, (2, 1, 1, 10), "embedding_mixed_double_batch")
+
+    embedding = K.layers.Embedding(10,10)
+    record_single_embedding_fp32(embedding, (1, 1, 1, 10), "embedding_fp32_single_batch")

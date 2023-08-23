@@ -14,6 +14,7 @@ unzip_target = [
   ['testset.tar.gz', ''],
   ['unittest_layers.tar.gz', 'unittest_layers'],
   ['unittest_layers_fp16fp16.tar.gz', 'unittest_layers'],
+  ['unittest_layers_embedding.tar.gz', 'unittest_layers'],
   ['unittest_models.tar.gz', 'unittest_models'],
   ['unittest_models_v2.tar.gz', 'unittest_models'],
   ['unittest_models_v3.tar.gz', 'unittest_models'],
