@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include <basic_planner.h>
+#include <optimized_v1_planner.h>
 #include <tensor_pool.h>
 
 #define FP32_                       \
@@ -589,10 +590,154 @@ TEST(TensorPool, finalize_04_p) {
 /**
  * @brief max lifespan tensors
  */
-TEST(TensorPool, finalize_5_p) {
+TEST(TensorPool, finalize_05_p) {
   nntrainer::TensorPool pool;
 
   EXPECT_NO_THROW(pool.finalize(nntrainer::BasicPlanner(), 0, 2));
+}
+
+/**
+ * @brief cannot reuse fp32 tensor memory space
+ */
+TEST(TensorPool, finalize_06_n) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_NE(pool.minMemoryRequirement(), t1->bytes());
+}
+
+/**
+ * @brief cannot reuse fp32 tensor memory space
+ */
+TEST(TensorPool, finalize_07_n) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0}, max_ls));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {1}, max_ls));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1}, max_ls));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_NE(pool.minMemoryRequirement(), t1->bytes());
+}
+
+/**
+ * @brief reuse fp32 tensor memory space
+ */
+TEST(TensorPool, finalize_08_p) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+}
+
+/**
+ * @brief reuse fp32 tensor memory space
+ */
+TEST(TensorPool, finalize_09_p) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+}
+
+/**
+ * @brief reuse fp32 tensor memory space
+ */
+TEST(TensorPool, finalize_10_p) {
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::BasicPlanner(), 0, 2));
+  // This is the theoretical minimum memory requirement which differs from the
+  // actual memory layout. The actual memory required would be 16.
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
 }
 
 /**
@@ -834,6 +979,334 @@ TEST(TensorPool, validate_memory_03_p) {
 
   EXPECT_EQ(*t0, g1);
   EXPECT_EQ(*t1, g2);
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp16 tensors cannot reuse fp32 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_01_n) {
+  // |--------- t1 ---------|
+  //                        |--- t2 ---||--- t3 ---|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::BasicPlanner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_NE(t1, t2);
+  EXPECT_NE(t1, t3);
+  EXPECT_NE(t2, t3);
+
+  // BasicPlanner
+  EXPECT_NE(t1->getAddress<float>(0), (float *)t2->getAddress<_FP16>(0));
+  EXPECT_NE(t1->getAddress<float>(1), (float *)t3->getAddress<_FP16>(0));
+
+  EXPECT_EQ(t1->getAddress<float>(0) + t1->size(),
+            (float *)t2->getAddress<_FP16>(0));
+  EXPECT_EQ(t1->getAddress<float>(1) + t1->size(),
+            (float *)t3->getAddress<_FP16>(0));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp16 tensors reuse fp32 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_02_p) {
+  // |--------- t1 ---------|
+  // |--- t2 ---||--- t3 ---|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_NE(t1, t2);
+  EXPECT_NE(t1, t3);
+  EXPECT_NE(t2, t3);
+
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<_FP16>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<_FP16>(0));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp32 tensor reuses fp16 tensors memory spaces
+ */
+TEST(TensorPool, validate_memory_reuse_03_p) {
+  // |--- t1 ---||--- t2 ---|
+  // |--------- t3 ---------|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes() + t2->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_NE(t1, t2);
+  EXPECT_NE(t1, t3);
+  EXPECT_NE(t2, t3);
+
+  EXPECT_EQ((float *)t1->getAddress<_FP16>(0), t3->getAddress<float>(0));
+  EXPECT_EQ((float *)t2->getAddress<_FP16>(0), t3->getAddress<float>(1));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp32 and fp16 tensors reuse fp16 and fp32 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_04_p) {
+  // |--------- t1 ---------||--- t2 ---|
+  // |--- t3 ---||--------- t4 ---------|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(
+    t4 = pool.request("t4", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t4, nullptr);
+  EXPECT_FALSE(t4->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes() + t2->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t3->getAddress<_FP16>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), t4->getAddress<float>(0));
+  EXPECT_EQ((float *)t2->getAddress<_FP16>(0), t4->getAddress<float>(1));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp16 and fp32 tensors reuse fp32 and fp16 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_05_p) {
+  // |--- t1 ---||--------- t2 ---------|
+  // |--------- t3 ---------||--- t4 ---|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(
+    t4 = pool.request("t4", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t4, nullptr);
+  EXPECT_FALSE(t4->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes() + t2->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_EQ((float *)t1->getAddress<_FP16>(0), t3->getAddress<float>(0));
+  EXPECT_EQ(t2->getAddress<float>(0), t3->getAddress<float>(1));
+  EXPECT_EQ((float *)t4->getAddress<_FP16>(0), t2->getAddress<float>(1));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp16 and fp32 tensors reuse fp32 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_06_p) {
+  // |--------- t1 ---------||--------- t2 ---------|
+  // |--- t3 ---||--------- t4 ---------||--- t5 ---|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 = nullptr,
+                    *t5 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(
+    t4 = pool.request("t4", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t4, nullptr);
+  EXPECT_FALSE(t4->isAllocated());
+
+  EXPECT_NO_THROW(
+    t5 = pool.request("t5", nntrainer::TensorDim({2}, FP16_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t5, nullptr);
+  EXPECT_FALSE(t5->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes() + t2->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t3->getAddress<_FP16>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), t4->getAddress<float>(0));
+  EXPECT_EQ(t2->getAddress<float>(1), (float *)t5->getAddress<_FP16>(0));
+
+  EXPECT_NO_THROW(pool.deallocate());
+}
+
+/**
+ * @brief fp32 tensors reuse fp16 and fp32 tensors memory spaces
+ */
+TEST(TensorPool, validate_memory_reuse_07_p) {
+  // |--- t1 ---||--------- t2 ---------||--- t3 ---|
+  // |--------- t4 ---------||--------- t5 ---------|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 = nullptr,
+                    *t5 = nullptr;
+
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
+
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2", nntrainer::TensorDim({2}, FP32_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
+
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3", nntrainer::TensorDim({2}, FP16_), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
+
+  EXPECT_NO_THROW(
+    t4 = pool.request("t4", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t4, nullptr);
+  EXPECT_FALSE(t4->isAllocated());
+
+  EXPECT_NO_THROW(
+    t5 = pool.request("t5", nntrainer::TensorDim({2}, FP32_), {1},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t5, nullptr);
+  EXPECT_FALSE(t5->isAllocated());
+
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(),
+            t1->bytes() + t2->bytes() + t3->bytes());
+
+  EXPECT_NO_THROW(pool.allocate());
+
+  EXPECT_EQ((float *)t1->getAddress<_FP16>(0), t4->getAddress<float>(0));
+  EXPECT_EQ((float *)t2->getAddress<_FP16>(0), t4->getAddress<float>(1));
+  EXPECT_EQ(t2->getAddress<float>(1), t5->getAddress<float>(0));
+  EXPECT_EQ((float *)t3->getAddress<_FP16>(0), t5->getAddress<float>(1));
 
   EXPECT_NO_THROW(pool.deallocate());
 }
