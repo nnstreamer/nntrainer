@@ -35,7 +35,7 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
     << "Embedding layer takes only one input";
 
   context.setInputDataType(TensorDim::DataType::FP32);
-  
+
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
@@ -55,7 +55,8 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 
   output_dim.height(input_dim.width());
   output_dim.width(out_dim);
-  output_dim.setTensorType({context.getFormat(), context.getActivationDataType()});
+  output_dim.setTensorType(
+    {context.getFormat(), context.getActivationDataType()});
   context.setOutputDimensions({output_dim});
 
   TensorDim dim = output_dim;
@@ -84,7 +85,9 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight = context.getWeight(weight_idx);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
+  TensorDim::TensorType tensor_type =
+    context.getWeight(weight_idx).getTensorType();
+  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim}, tensor_type);
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data =
@@ -92,7 +95,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = ((uint *)(in_data))[i];
+      uint embed_idx = ((float *)(in_data))[i];
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
@@ -146,10 +149,11 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // In order to accelerate, we need to better way like using index to weight.
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+    float *in_data =
+      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = ((uint *)(in_data))[i];
+      uint embed_idx = ((float *)(in_data))[i];
       // Assume padding is 0 and index always start from 1.
       // If in_data[i] - 1 < 0, then it skips.
       // if (embed_idx == 0)
