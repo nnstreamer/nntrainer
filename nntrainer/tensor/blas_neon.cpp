@@ -13,6 +13,7 @@
 
 #include <blas_neon.h>
 #include <nntrainer_error.h>
+#include <nntrainer_log.h>
 
 namespace nntrainer::neon {
 
@@ -144,6 +145,11 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   if (cols % 16 == 0) {
     unsigned int n = cols / 16;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+    if (initialized == nullptr) {
+      ml_loge("failed to malloc");
+      return;
+    }
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 16; ++i) {
       initialized[i] = false;
@@ -195,6 +201,11 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   } else if (cols % 8 == 0) {
     unsigned int n = cols / 8;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+    if (initialized == nullptr) {
+      ml_loge("failed to malloc");
+      return;
+    }
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 8; ++i) {
       initialized[i] = false;
@@ -236,6 +247,10 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   } else if (cols % 4 == 0) {
     unsigned int n = cols / 4;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+    if (initialized == nullptr) {
+      ml_loge("failed to malloc");
+      return;
+    }
 
     unsigned int step;
     for (unsigned int i = 0; i < cols / 4; ++i) {
@@ -500,6 +515,17 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
       __fp16 x = alpha * X[i];
 
       for (unsigned int j = 0; j < cols; j += 8) {
+        __fp16 *__restrict y = &Y[j];
+
+        float16x8_t y0_7 = vld1q_f16(&Y[j]);
+        float16x8_t wvec0_7 = vld1q_f16(&A[i * cols + j]);
+
+        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
+
+        float16x8_t wvec0_7;
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + j];
 
         float16x8_t y0_7 = vld1q_f16(&Y[j]);
         float16x8_t wvec0_7 = vld1q_f16(&A[i * cols + j]);
