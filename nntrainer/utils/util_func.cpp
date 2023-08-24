@@ -189,6 +189,7 @@ std::vector<std::string> split(const std::string &s, const std::regex &reg) {
     str.erase(std::remove(str.begin(), str.end(), char_to_remove[i]),
               str.end());
   }
+
   std::regex_token_iterator<std::string::iterator> end;
   std::regex_token_iterator<std::string::iterator> iter(str.begin(), str.end(),
                                                         reg, -1);
@@ -225,6 +226,18 @@ tm *getLocaltime(tm *tp) {
 #else
   return localtime_r(&t, tp);
 #endif
+}
+
+std::regex getRegex(const std::string &str) {
+  std::regex result;
+
+  try {
+    result = std::regex(str);
+  } catch (const std::regex_error &e) {
+    ml_loge("regex_error caught: %s", e.what());
+  }
+
+  return result;
 }
 
 } // namespace nntrainer

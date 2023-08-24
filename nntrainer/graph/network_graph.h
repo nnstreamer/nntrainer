@@ -50,7 +50,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", std::regex("\\-"))) {}
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {}
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
@@ -72,7 +72,7 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, std::regex("\\-"))) {}
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {}
 
   /**
    * @brief   Destructor of the NeuralNetwork Graph class

@@ -134,7 +134,7 @@ public:
     enable_optimizations(true),
     swap_lookahead(0),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", std::regex("\\-"))) {}
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {}
 
   /**
    * @brief     Constructor of Manager
@@ -147,7 +147,7 @@ public:
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, std::regex("\\-"))) {}
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {}
 
   /**
    * @brief Construct a new Manager object (deleted)

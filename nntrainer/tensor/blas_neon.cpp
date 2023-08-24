@@ -515,17 +515,6 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
       __fp16 x = alpha * X[i];
 
       for (unsigned int j = 0; j < cols; j += 8) {
-        __fp16 *__restrict y = &Y[j];
-
-        float16x8_t y0_7 = vld1q_f16(&Y[j]);
-        float16x8_t wvec0_7 = vld1q_f16(&A[i * cols + j]);
-
-        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
-
-        float16x8_t wvec0_7;
-        const __fp16 *__restrict w;
-
-        w = &A[i * cols + j];
 
         float16x8_t y0_7 = vld1q_f16(&Y[j]);
         float16x8_t wvec0_7 = vld1q_f16(&A[i * cols + j]);

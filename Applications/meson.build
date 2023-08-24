@@ -12,9 +12,9 @@ subdir('Resnet/jni')
 subdir('YOLO/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
-if enable_capi
-  subdir('TransferLearning/Draw_Classification/jni')
-endif
+# if enable_capi
+#   subdir('TransferLearning/Draw_Classification/jni')
+# endif
 subdir('Custom')
 subdir('ProductRatings/jni')
 subdir('AlexNet/jni')
