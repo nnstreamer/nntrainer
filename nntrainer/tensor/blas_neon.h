@@ -117,6 +117,13 @@ void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha);
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y);
+
+/**
+ * @brief     isamax function with neon: index of firt maxima
+ * @param[in] N number of elements in X
+ * @param[in] X __fp16 * for Vector X
+ */
+unsigned int isamax_neon_fp16(const unsigned int N, const __fp16 *X);
 #endif
 
 } // namespace nntrainer::neon

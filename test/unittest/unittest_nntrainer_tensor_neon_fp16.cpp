@@ -132,9 +132,6 @@ TEST(nntrainer_Tensor, l2norm) {
   nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
-  // conditions for fp16 sdot call:
-  // this->(batch * channel * height) = arg->(width) = 1;
-
   size_t width = 23;
 
   __fp16 a_data[] = {0,   1.2, 2, 3.4, 4.1, 5.3, 2.9, 2.1, 1.4, 1.6, 0, 2.7,
@@ -246,6 +243,43 @@ TEST(nntrainer_Tensor, copy) {
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE(cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, max_abs) {
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  size_t width = 25;
+
+  __fp16 a_data[] = {0,   1.2, 2,   3.4, 4.1, 5.3, 2.9, 2.1, 1.4,
+                     1.6, 0,   2.7, 2.3, 1,   2,   1.1, 3.1, 1.1,
+                     2.8, 3.2, 2,   3.6, 1,   2.8, 7.9};
+  nntrainer::Tensor input(
+    nntrainer::TensorDim(1, 1, 1, width, t_type_nchw_fp16), a_data);
+
+  float a_data_fp32[] = {0,   1.2, 2,   3.4, 4.1, 5.3, 2.9, 2.1, 1.4,
+                         1.6, 0,   2.7, 2.3, 1,   2,   1.1, 3.1, 1.1,
+                         2.8, 3.2, 2,   3.6, 1,   2.8, 7.9};
+  nntrainer::Tensor input_fp32(
+    nntrainer::TensorDim(1, 1, 1, width, t_type_nchw_fp32), a_data_fp32);
+
+  __fp16 result_neon;
+  float result_fp32;
+
+  // NEON fp16
+  result_neon = input.max_abs();
+
+  // fp32
+  result_fp32 = input_fp32.max_abs();
+
+  // absolute error
+  const float epsilon = 1e-2;
+
+  EXPECT_NEAR(result_neon, result_fp32, epsilon);
 }
 
 GTEST_API_ int main(int argc, char **argv) {
