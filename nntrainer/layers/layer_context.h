@@ -113,6 +113,13 @@ public:
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
 
   /**
+   * @brief Get the Mutable Input Dimensions object
+   *
+   * @return std::vector<TensorDim>& Input dimensions
+   */
+  std::vector<TensorDim> &getMutableInputDimensions() { return input_dim; }
+
+  /**
    * @brief Set Data Type for Input Dimensions
    *
    * @param ty data type to set
