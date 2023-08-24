@@ -212,8 +212,22 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
 static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
                                 const int incX) {
-
   unsigned int max_idx = 0;
+
+#ifdef USE__FP16
+  if (incX == 1 && N >= 8) {
+    max_idx = nntrainer::neon::isamax_neon_fp16(N, X);
+  } else {
+    _FP16 max_val = X[0];
+    for (unsigned int n = 1; n < N; n += incX) {
+      _FP16 cur_val = (X[n] >= 0) ? X[n] : -1 * X[n];
+      if (cur_val > max_val) {
+        max_val = cur_val;
+        max_idx = n;
+      }
+    }
+  }
+#else
   _FP16 max_val = X[0];
   for (unsigned int n = 1; n < N; n += incX) {
     _FP16 cur_val = (X[n] >= 0) ? X[n] : -1 * X[n];
@@ -222,6 +236,7 @@ static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
       max_idx = n;
     }
   }
+#endif
 
   return max_idx;
 }

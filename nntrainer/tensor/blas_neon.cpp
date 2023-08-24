@@ -713,6 +713,58 @@ void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
   for (; idx < N; idx++)
     Y[idx] = X[idx];
 }
+
+unsigned int isamax_neon_fp16(const unsigned int N, const __fp16 *X) {
+
+  unsigned int retIdx;
+  __fp16 maxNum;
+
+  uint16_t indices[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  uint16x8_t stride = vmovq_n_u16(8);
+  float16x8_t batch = vld1q_f16(&X[0]);
+  uint16x8_t curr_index = vld1q_u16(indices);
+  uint16x8_t max_index = curr_index;
+
+  unsigned int idx = 8;
+
+  // processing batch of 8
+  for (; (N - idx) >= 8; idx += 8) {
+    float16x8_t values = vld1q_f16(&X[idx]);
+    curr_index = vaddq_u16(curr_index, stride);
+
+    // comparison
+    uint16x8_t mask = vcgtq_f16(batch, values);
+
+    // blend values and indices based on the mask
+    batch = vbslq_f16(mask, batch, values);
+    max_index = vbslq_u16(mask, max_index, curr_index);
+  }
+
+  // storing indices and max values
+  __fp16 maxVal[8];
+  vst1q_f16(maxVal, batch);
+  vst1q_u16(indices, max_index);
+
+  // getting the index of the maxima
+  maxNum = maxVal[0];
+  retIdx = max_index[0];
+  for (int i = 1; i < 8; i++) {
+    if (maxVal[i] > maxNum) {
+      maxNum = maxVal[i];
+      retIdx = max_index[i];
+    }
+  }
+
+  // processing remaining values
+  for (; idx < N; idx++) {
+    if (X[idx] > maxNum) {
+      maxNum = X[idx];
+      retIdx = idx;
+    }
+  }
+
+  return retIdx;
+}
 #endif
 
 } // namespace nntrainer::neon
