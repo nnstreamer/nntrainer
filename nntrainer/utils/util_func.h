@@ -300,6 +300,13 @@ char *getRealpath(const char *name, char *resolved);
  */
 tm *getLocaltime(tm *tp);
 
+/**
+ * @brief Create and return std::regex with the received string
+ * @param str String in regular expression form
+ * @return std::regex
+ */
+std::regex getRegex(const std::string &str);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
