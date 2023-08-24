@@ -70,7 +70,7 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
                            "golden_test", "", 0.0, tensor_type);
   layer->finalize(context);
 
-  for (auto dim : context.getInputDimensions()) {
+  for (auto &dim : context.getMutableInputDimensions()) {
     if (tensor_type[2] == "fp16") {
       dim.setDataType(ml::train::TensorDim::DataType::FP16);
     }
