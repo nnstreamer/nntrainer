@@ -200,9 +200,7 @@ public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "model_tensor_type";
   ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
-                        ModelTensorDataTypeInfo::Enum::W32A32) {
-    set(value);
-  };
+                        ModelTensorDataTypeInfo::Enum::W32A32);
 };
 
 } // namespace nntrainer::props

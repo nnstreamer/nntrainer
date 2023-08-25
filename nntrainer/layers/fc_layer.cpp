@@ -159,7 +159,8 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_step.add_i(bias);
   }
-  // hidden_step.print(std::cout);
+  //std::cout <<"fc_layer"<< std::endl;
+  //hidden_step.print(std::cout);
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {

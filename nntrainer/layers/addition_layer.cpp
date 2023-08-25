@@ -67,7 +67,8 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
       hidden_step.add_i(input_step);
     }
   }
-  // hidden_step.print(std::cout);
+  //std::cout <<"addition"<< std::endl;
+  //hidden_step.print(std::cout);
 }
 
 void AdditionLayer::calcDerivative(RunLayerContext &context) {

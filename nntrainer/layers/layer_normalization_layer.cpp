@@ -263,7 +263,8 @@ void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
   deviation_step.multiply(inv_std_dev_step, output_step);
   output_step.multiply_i(gamma_step);
   output_step.add_i(beta_step);
-//  output_step.print(std::cout);
+  // std::cout << "layer_normalization_layer" << std::endl;
+  // output_step.print(std::cout);
 }
 
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {

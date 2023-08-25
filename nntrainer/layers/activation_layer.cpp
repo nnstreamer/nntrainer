@@ -95,7 +95,8 @@ void ActivationLayer::incremental_forwarding(RunLayerContext &context,
   Tensor hidden_step = hidden_.getSharedDataTensor(
     hidden_step_dim, from * hidden_dim.width(), true);
   acti_func.run_fn(input_step, hidden_step);
-  // hidden_step.print(std::cout);
+  //std::cout <<"Activation"<< std::endl;
+  //hidden_step.print(std::cout);
 }
 
 void ActivationLayer::calcDerivative(RunLayerContext &context) {

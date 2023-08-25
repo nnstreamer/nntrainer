@@ -310,8 +310,8 @@ int main(int argc, char *argv[]) {
   float *wte_input = new float[MAX_TOKEN_LEN];
   float *wpe_input = new float[MAX_TOKEN_LEN];
 
-  std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
-  std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
+  std::string vocab_file_name = "./vocab.json";
+  std::string merge_file_name = "./merges.txt";
 
   auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
                           "Error initialising GPT2 tokenizer\n");
@@ -360,6 +360,10 @@ int main(int argc, char *argv[]) {
     std::cerr << decoded_str << " " << std::flush;
   }
   for (auto v : wte_weights_buf) {
+    delete v;
+  }
+
+  for (auto v : output_bufs) {
     delete v;
   }
 
