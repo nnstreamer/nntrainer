@@ -40,6 +40,7 @@ const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
 bool swap = false;
 bool optimize = false;
+// bool optimize = true;
 bool optimize_attention = false;
 
 #if defined(ENABLE_ENCODER)
@@ -58,6 +59,7 @@ std::shared_ptr<ml::train::Model> genModel() {
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
                       "memory_optimization=false",
+                      "model_tensor_type=FP16-FP16",
                       swap ? "memory_swap=true" : "memory_swap=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
@@ -284,7 +286,7 @@ int main(int argc, char *argv[]) {
   std::string text = args[0];
 
   auto model = genModel();
-
+  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
   try {
     model->compile();
   } catch (const std::exception &e) {
@@ -304,6 +306,10 @@ int main(int argc, char *argv[]) {
   //   std::string train_dataset_file_name = base + "pico_gpt_input.dat";
 
   model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+
+  // model->save("pico_gpt_fp16.bin");
+
+  // exit(0);
 
   float *wte_input = new float[MAX_TOKEN_LEN];
   float *wpe_input = new float[MAX_TOKEN_LEN];
@@ -376,6 +382,10 @@ int main(int argc, char *argv[]) {
 #endif
 
   }
+  for (auto v : wte_weights_buf) {
+    delete v;
+  }
+
   std::cout << std::endl;
   return 0;
 }
