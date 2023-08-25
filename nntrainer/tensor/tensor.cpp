@@ -2555,7 +2555,7 @@ void Tensor::print(std::ostream &out) const {
     out << "data addr: " << data << '\n';
     out << dim;
 
-    if (len > 100) {
+    if (len > 1000000) {
       out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
           << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1]
           << ']' << std::endl;
@@ -2601,7 +2601,7 @@ void Tensor::print(std::ostream &out) const {
     out << "data addr: " << data << '\n';
     out << dim;
 
-    if (len > 100) {
+    if (len > 10000000) {
       out << '[' << (float)data[0] << ' ' << (float)data[1] << ' '
           << (float)data[2] << " ... " << (float)data[len - 3] << ' '
           << (float)data[len - 2] << ' ' << (float)data[len - 1] << ']'
@@ -2611,6 +2611,8 @@ void Tensor::print(std::ostream &out) const {
 
     std::ios init(NULL);
     init.copyfmt(out);
+    float max_ = 0.0;
+    float min_ = 10000000;
     if (getFormat() == Tformat::NCHW) {
       for (unsigned int k = 0; k < batch(); k++) {
         for (unsigned int l = 0; l < channel(); l++) {
@@ -2618,12 +2620,19 @@ void Tensor::print(std::ostream &out) const {
             for (unsigned int j = 0; j < width(); j++) {
               out << std::setw(10) << std::setprecision(10)
                   << (float)this->getValue<_FP16>(k, l, i, j) << " ";
+              if (std::isinf((float)this->getValue<_FP16>(k, l, i, j)))
+                out << "INF or NAN " << k << ":" << l << ":" << i << ":" << j
+                    << std::endl;
+              if ((float)this->getValue<_FP16>(k, l, i, j) < min_)
+                min_ = (float)this->getValue<_FP16>(k, l, i, j);
+              if ((float)this->getValue<_FP16>(k, l, i, j) > max_)
+                max_ = (float)this->getValue<_FP16>(k, l, i, j);
             }
             out << std::endl;
           }
           out << std::endl;
         }
-        out << "-------" << std::endl;
+        out << "-------" << min_ << " & " << max_ << std::endl;
       }
     } else {
       for (unsigned int k = 0; k < batch(); k++) {
@@ -2838,9 +2847,9 @@ void Tensor::copy(const Tensor &from) {
   if (from.size() != 0 && size() == from.size() &&
       getDataType() == from.getDataType()) {
     reshape(from.getDim());
-    if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    if (from.getDataType() == ml::train::TensorDim::DataType::FP32) {
       copy(from.getData());
-    } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+    } else if (from.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       copy(from.getData<_FP16>());
 #else
@@ -2849,8 +2858,17 @@ void Tensor::copy(const Tensor &from) {
     }
 
   } else {
-    Tensor t = Tensor(from.getDim(), from.getData());
-    swap(t, *this);
+    if (from.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      Tensor t = Tensor(from.getDim(), from.getData<float>());
+      swap(t, *this);
+    } else if (from.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      Tensor t = Tensor(from.getDim(), from.getData<_FP16>());
+      swap(t, *this);
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    }
   }
 }
 
@@ -2866,7 +2884,15 @@ void Tensor::copyData(const Tensor &from) {
   if (getDataType() != from.getDataType())
     throw std::invalid_argument("Data type of tensor to copy must match");
 
-  copy(from.getData());
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    copy(from.getData<float>());
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    copy(from.getData<_FP16>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 Tensor Tensor::clone() const {
@@ -2886,7 +2912,12 @@ void Tensor::reshape(const TensorDim &d) {
        "\nfrom "
     << getDim() << " to " << d;
 
-  dim = d;
+  // dim = d;
+  dim.batch(d.batch());
+  dim.channel(d.channel());
+  dim.height(d.height());
+  dim.width(d.width());
+
   strides = d.computeStrides();
 }
 
@@ -2912,7 +2943,15 @@ void Tensor::fill(const Tensor &from, bool alloc) {
     throw std::invalid_argument("[Tensor::fill] buffer size must be the same");
   }
 
-  this->copy(from.getData());
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    this->copy(from.getData<float>());
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    this->copy(from.getData<_FP16>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void Tensor::save(std::ostream &file) {
@@ -2925,6 +2964,14 @@ void Tensor::save(std::ostream &file) {
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
+  // std::vector<_FP16>temp (size());
+  // for(unsigned int i=0;i<size();++i){
+  //   temp[i]=static_cast<_FP16>(getData()[i]);
+  // }
+
+  // checkedWrite(file, (char *)temp.data(),
+  // static_cast<std::streamsize>(size()*sizeof(_FP16)), "[Tensor::save]
+  // operation failed");
   putData();
 }
 

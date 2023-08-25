@@ -47,6 +47,20 @@
 
 %endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
+%define enable_fp16 0
+%ifarch %arm aarch64
+%define enable_fp16 1
+# x64/x86 requires GCC >= 12 for fp16 support.
+%endif
+
+## Float16 support
+%if 0%{?enable_fp16}
+%define fp16_support -Denable-fp16=true
+%else
+%define fp16_support -Denable-fp16=false
+%endif
+
+
 Name:		nntrainer
 Summary:	Software framework for training neural networks
 Version:	0.5.0
@@ -401,6 +415,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
+      %{fp16_support} \
       build
 
 ninja -C build %{?_smp_mflags}

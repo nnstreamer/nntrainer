@@ -71,6 +71,10 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   auto const &in_dim = context.getInputDimensions()[0];
   output_dims[0] = in_dim;
   is_nchw ? output_dims[0].width(unit) : output_dims[0].channel(unit);
+
+  output_dims[0].setTensorType(
+    {context.getFormat(), context.getActivationDataType()});
+
   context.setOutputDimensions(output_dims);
 
   /** set weight specifications */
@@ -136,10 +140,10 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
   TensorDim input_dim = input_.getDim();
   TensorDim hidden_dim = hidden_.getDim();
 
-  TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(), to - from,
-                              input_dim.width()};
-  TensorDim hidden_step_dim = {hidden_dim.batch(), hidden_dim.channel(),
-                               to - from, hidden_dim.width()};
+  TensorDim input_step_dim = input_dim;
+  TensorDim hidden_step_dim = hidden_dim;
+  input_step_dim.height(to - from);
+  hidden_step_dim.height(to - from);
 
   // @todo: set reset stride as false. This implementation only works when batch
   // size is 1
@@ -155,6 +159,7 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_step.add_i(bias);
   }
+  // hidden_step.print(std::cout);
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {

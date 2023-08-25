@@ -45,8 +45,9 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
                                            bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   TensorDim hidden_dim = hidden_.getDim();
-  TensorDim hidden_step_dim = {hidden_dim.batch(), hidden_dim.channel(),
-                               to - from, hidden_dim.width()};
+  TensorDim hidden_step_dim = hidden_dim;
+  hidden_step_dim.height(to - from);
+
   Tensor hidden_step = hidden_.getSharedDataTensor(
     hidden_step_dim, from * hidden_dim.width(), true);
 
@@ -54,8 +55,10 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
   for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
     const Tensor &input_ = context.getInput(idx);
     TensorDim input_dim = input_.getDim();
-    TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(),
-                                to - from, input_dim.width()};
+
+    TensorDim input_step_dim = input_dim;
+    input_step_dim.height(to - from);
+
     Tensor input_step = input_.getSharedDataTensor(
       input_step_dim, from * input_dim.width(), true);
     if (!idx) {
@@ -64,6 +67,7 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
       hidden_step.add_i(input_step);
     }
   }
+  // hidden_step.print(std::cout);
 }
 
 void AdditionLayer::calcDerivative(RunLayerContext &context) {

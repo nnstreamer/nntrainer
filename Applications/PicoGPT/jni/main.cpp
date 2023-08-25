@@ -37,6 +37,7 @@ const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
 bool swap = false;
 bool optimize = false;
+// bool optimize = true;
 bool optimize_attention = false;
 
 template <typename T>
@@ -53,6 +54,7 @@ std::shared_ptr<ml::train::Model> genModel() {
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
                       "memory_optimization=false",
+                      "model_tensor_type=FP16-FP16",
                       swap ? "memory_swap=true" : "memory_swap=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
@@ -279,7 +281,7 @@ int main(int argc, char *argv[]) {
   std::string text = args[0];
 
   auto model = genModel();
-
+  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
   try {
     model->compile();
   } catch (const std::exception &e) {
@@ -296,9 +298,14 @@ int main(int argc, char *argv[]) {
 
   std::string weight_file_name = optimize
                                    ? "./res/app/PicoGPT/pico_gpt_124.bin"
-                                   : "./res/app/PicoGPT/pico_gpt_124_mha.bin";
+                                   : "./res/app/PicoGPT/pico_gpt_mha_fp16.bin";
+  // : "./res/app/PicoGPT/pico_gpt_124_mha.bin";
 
   model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+
+  // model->save("pico_gpt_fp16.bin");
+
+  // exit(0);
 
   float *wte_input = new float[MAX_TOKEN_LEN];
   float *wpe_input = new float[MAX_TOKEN_LEN];
@@ -337,6 +344,7 @@ int main(int argc, char *argv[]) {
     nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
     nntrainer::Tensor incremented_output = output.getSharedDataTensor(
       {BATCH_SIZE, 1, 1, MODEL_DIM}, BATCH_SIZE * (i - 1) * MODEL_DIM);
+
     nntrainer::Tensor next = incremented_output.dot(wte_weight, false, true);
 
     std::vector<unsigned int> ids = next.argmax();
@@ -351,6 +359,10 @@ int main(int argc, char *argv[]) {
     auto decoded_str = tokenizer.decode(token_ids);
     std::cerr << decoded_str << " " << std::flush;
   }
+  for (auto v : wte_weights_buf) {
+    delete v;
+  }
+
   std::cout << std::endl;
   return 0;
 }

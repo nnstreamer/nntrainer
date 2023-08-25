@@ -54,6 +54,7 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
     hidden_.normalization_i();
   if (std::get<props::Standardization>(input_props))
     hidden_.standardization_i();
+  // hidden_.print(std::cout);
 }
 
 void InputLayer::calcDerivative(RunLayerContext &context) {
@@ -70,8 +71,9 @@ void InputLayer::finalize(InitLayerContext &context) {
 
   std::vector<TensorDim> output_dims = context.getInputDimensions();
 
-  for (auto d : output_dims)
-    d.setTensorType({context.getFormat(), context.getActivationDataType()});
+  /*   for (auto d : output_dims)
+      d.setTensorType({context.getFormat(), context.getActivationDataType()});
+   */
 
   context.setOutputDimensions(output_dims);
 }

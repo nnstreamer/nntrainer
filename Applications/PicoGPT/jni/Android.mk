@@ -43,12 +43,12 @@ LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
 LOCAL_CXXFLAGS += -std=c++17 -frtti
-LOCAL_CFLAGS += -pthread -fexceptions -fopenmp
-LOCAL_LDFLAGS += -fexceptions
+LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp
+LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_pico_gpt
-LOCAL_LDLIBS := -llog -landroid -fopenmp
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_SRC_FILES := main.cpp
 

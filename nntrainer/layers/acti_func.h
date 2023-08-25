@@ -389,7 +389,7 @@ public:
    */
   template <typename T = float>
   static Tensor &gelu(Tensor const &t_in, Tensor &t_out) {
-    T tmp = static_cast<T>(1 / sqrt(2));
+    double tmp = 1.0 / sqrt(2.0);
     t_in.apply<T>(
       [&](T x) { return static_cast<T>(0.5 * x * (1 + erf(x * tmp))); }, t_out);
     return t_out;
