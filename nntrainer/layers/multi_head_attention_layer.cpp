@@ -877,6 +877,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   if (!disable_bias) {
     output_step.add_i(fc_bias);
   }
+  // std::cout <<"multi_head_attention_layer"<< std::endl;
   // output_step.print(std::cout);
 }
 

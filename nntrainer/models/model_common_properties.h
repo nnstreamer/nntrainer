@@ -208,9 +208,7 @@ public:
    * @param value value to set, defaults to W32A32
    */
   ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
-                        ModelTensorDataTypeInfo::Enum::W32A32) {
-    set(value);
-  };
+                        ModelTensorDataTypeInfo::Enum::W32A32);
 };
 
 } // namespace nntrainer::props
