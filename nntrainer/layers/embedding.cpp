@@ -34,11 +34,13 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Embedding layer takes only one input";
 
-  context.setInputDataType(TensorDim::DataType::FP32);
-  
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
+
+  NNTR_THROW_IF(input_dim.getDataType() != TensorDim::DataType::FP32,
+                std::invalid_argument)
+    << "Embedding layer takes only FP32 input data";
 
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
@@ -55,7 +57,8 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 
   output_dim.height(input_dim.width());
   output_dim.width(out_dim);
-  output_dim.setTensorType({context.getFormat(), context.getActivationDataType()});
+  output_dim.setTensorType(
+    {context.getFormat(), context.getActivationDataType()});
   context.setOutputDimensions({output_dim});
 
   TensorDim dim = output_dim;
@@ -137,10 +140,10 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
   Tensor &weight = context.getWeight(weight_idx);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim});
+  TensorDim out_tensor_dim = TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+    float *in_data = input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = from; i < to; ++i) {
@@ -176,6 +179,7 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
 
       // std::copy(weight_data, weight_data + out_dim, out_data);
     }
+    //hidden_.print(std::cout);
   }
 }
 
