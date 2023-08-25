@@ -179,7 +179,8 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
 
       // std::copy(weight_data, weight_data + out_dim, out_data);
     }
-    //hidden_.print(std::cout);
+    // std::cout <<"embedding"<< std::endl;
+    // hidden_.print(std::cout);
   }
 }
 

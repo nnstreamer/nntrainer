@@ -386,6 +386,10 @@ int main(int argc, char *argv[]) {
     delete v;
   }
 
+  for (auto v : output_bufs) {
+    delete v;
+  }
+
   std::cout << std::endl;
   return 0;
 }
