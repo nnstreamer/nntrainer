@@ -147,10 +147,8 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
 
   // @todo: set reset stride as false. This implementation only works when batch
   // size is 1
-  Tensor input_step =
-    input_.getSharedDataTensor(input_step_dim, from * input_dim.width(), true);
-  Tensor hidden_step = hidden_.getSharedDataTensor(
-    hidden_step_dim, from * hidden_dim.width(), true);
+  Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
+  Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
 
   input_step.dot(weight, hidden_step, false, false);
 
@@ -159,8 +157,6 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_step.add_i(bias);
   }
-  //std::cout <<"fc_layer"<< std::endl;
-  //hidden_step.print(std::cout);
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {

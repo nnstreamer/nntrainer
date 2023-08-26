@@ -779,30 +779,22 @@ sharedConstTensors NeuralNetwork::incremental_inference(
     model_graph.setBatchSize(X[0]->batch());
   }
 
-  bool isInitInference = false;
-  if (init_seq_len == cur_step + 1) {
-    isInitInference = true;
-  }
-
   sharedConstTensors out;
   if (!validateInput(X))
     throw std::invalid_argument("Input validation failed.");
 
-  if (isInitInference) {
+  if (cur_step == 0) {
     allocate(ExecutionMode::INFERENCE);
   }
 
   int nn_foward;
   PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
   PROFILE_TIME_START(nn_foward);
-  if (isInitInference) {
-    out = incremental_forwarding(0, init_seq_len, X, label, false);
-  } else {
-    out = incremental_forwarding(cur_step, cur_step + 1, X, label, false);
-  }
+  out = incremental_forwarding(cur_step, cur_step + 1, X, label, false);
+
   PROFILE_TIME_END(nn_foward);
 
-  // @todo: deallocate tensor after incremental inference
+  /** @todo: deallocate tensor after incremental inference **/
 
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});

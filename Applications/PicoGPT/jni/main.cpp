@@ -24,7 +24,7 @@ const unsigned int BATCH_SIZE = 1;
 const unsigned int NUM_LAYERS = 12;
 const unsigned int NUM_HEADS = 12;
 const unsigned int MODEL_DIM = 768;
-// @Todo: Need to check
+/** @todo: Need to check **/
 const unsigned int FC_UNIT = MODEL_DIM * 4;
 
 const unsigned int NUM_VOCAB = 50257;
@@ -53,12 +53,11 @@ std::shared_ptr<ml::train::Model> genModel() {
   std::shared_ptr<ml::train::Model> model;
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
-                      "memory_optimization=false",
                       "model_tensor_type=FP16-FP16",
                       swap ? "memory_swap=true" : "memory_swap=false"});
 
-  std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
-    {"name=wte_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
+  std::shared_ptr<ml::train::Layer> wte_input =
+    ml::train::layer::Input({"name=wte_input", "input_shape=1:1:1"});
   model->addLayer(wte_input);
 
   std::shared_ptr<ml::train::Layer> wte = ml::train::layer::Embedding(
@@ -66,8 +65,8 @@ std::shared_ptr<ml::train::Model> genModel() {
      "out_dim=" + std::to_string(MODEL_DIM)});
   model->addLayer(wte);
 
-  std::shared_ptr<ml::train::Layer> wpe_input = ml::train::layer::Input(
-    {"name=wpe_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});
+  std::shared_ptr<ml::train::Layer> wpe_input =
+    ml::train::layer::Input({"name=wpe_input", "input_shape=1:1:1"});
   model->addLayer(wpe_input);
 
   std::shared_ptr<ml::train::Layer> wpe = ml::train::layer::Embedding(
@@ -305,10 +304,8 @@ int main(int argc, char *argv[]) {
 
   // model->save("pico_gpt_fp16.bin");
 
-  // exit(0);
-
-  float *wte_input = new float[MAX_TOKEN_LEN];
-  float *wpe_input = new float[MAX_TOKEN_LEN];
+  float *wte_input = new float[1];
+  float *wpe_input = new float[1];
 
   std::string vocab_file_name = "./vocab.json";
   std::string merge_file_name = "./merges.txt";
@@ -319,13 +316,8 @@ int main(int argc, char *argv[]) {
   auto init_input = tokenizer.encode(text);
   init_input_seq_len = init_input.size();
 
-  for (unsigned int i = 0; i < init_input_seq_len; ++i) {
-    ((uint *)(wte_input))[i] = init_input[i];
-  }
-
-  for (unsigned int i = 0; i < init_input_seq_len; ++i) {
-    ((uint *)(wpe_input))[i] = i;
-  }
+  ((uint *)(wte_input))[0] = init_input[0];
+  ((uint *)(wpe_input))[0] = 0;
 
   std::vector<float *> output_bufs;
 
@@ -336,28 +328,35 @@ int main(int argc, char *argv[]) {
   nntrainer::Tensor wte_weight =
     nntrainer::Tensor({NUM_VOCAB, MODEL_DIM}, wte_weights_buf[0]);
 
-  for (unsigned int i = init_input_seq_len;
-       i < init_input_seq_len + NUM_TOKENS_TO_GENERATE; ++i) {
+  for (unsigned int i = 1; i < init_input_seq_len + NUM_TOKENS_TO_GENERATE;
+       ++i) {
     output_bufs = model->incremental_inference(
       BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1);
 
-    nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
-    nntrainer::Tensor incremented_output = output.getSharedDataTensor(
-      {BATCH_SIZE, 1, 1, MODEL_DIM}, BATCH_SIZE * (i - 1) * MODEL_DIM);
+    nntrainer::Tensor output({BATCH_SIZE, 1, 1, MODEL_DIM}, output_bufs[0]);
+    nntrainer::Tensor incremented_output =
+      output.getSharedDataTensor({BATCH_SIZE, 1, 1, MODEL_DIM}, 0);
 
     nntrainer::Tensor next = incremented_output.dot(wte_weight, false, true);
 
     std::vector<unsigned int> ids = next.argmax();
 
-    ((uint *)(wte_input))[i] = ids[0];
-    ((uint *)(wpe_input))[i] = i;
+    if (i < init_input_seq_len) {
+      ((uint *)(wte_input))[0] = init_input[i];
+    } else {
+      ((uint *)(wte_input))[0] = ids[0];
+    }
+
+    ((uint *)(wpe_input))[0] = i;
 
     std::vector<int64_t> token_ids;
     for (auto element : ids) {
       token_ids.push_back(static_cast<int64_t>(element));
     }
-    auto decoded_str = tokenizer.decode(token_ids);
-    std::cerr << decoded_str << " " << std::flush;
+    if (i >= init_input_seq_len) {
+      auto decoded_str = tokenizer.decode(token_ids);
+      std::cerr << decoded_str << " " << std::flush;
+    }
   }
   for (auto v : wte_weights_buf) {
     delete v;
