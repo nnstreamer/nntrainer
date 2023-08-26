@@ -198,73 +198,35 @@ void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
   normalize_step_dim.height(is_height_normalize ? to - from : 1);
   remain_step_dim.height(is_height_normalize ? 1 : to - from);
 
-  /*   TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(), to -
-    from, input_dim.width()}; TensorDim output_step_dim = {output_dim.batch(),
-    output_dim.channel(), to - from, output_dim.width()}; TensorDim
-    normalize_step_dim = { normalize_dim.batch(), normalize_dim.channel(),
-      is_height_normalize ? to - from : 1, normalize_dim.width()};
-    TensorDim remain_step_dim = {remain_dim.batch(), remain_dim.channel(),
-                                 is_height_normalize ? 1 : to - from,
-                                 remain_dim.width()};
+  Tensor &temp_full_size = output;
+  Tensor &temp_norm_size = inv_std_dev;
 
-   */
-  // @todo: set reset stride as false. This implementation only works when batch
-  // size is 1
-  const Tensor input_step = input.getSharedDataTensor(
-    input_step_dim, from * input_step_dim.width(), true);
-  Tensor output_step = output.getSharedDataTensor(
-    output_step_dim, from * output_step_dim.width(), true);
-
-  Tensor gamma_step = gamma.getSharedDataTensor(
-    normalize_step_dim,
-    is_height_normalize ? from * normalize_step_dim.width() : 0, true);
-  Tensor beta_step = beta.getSharedDataTensor(
-    normalize_step_dim,
-    is_height_normalize ? from * normalize_step_dim.width() : 0, true);
-
-  Tensor deviation_step = deviation.getSharedDataTensor(
-    input_step_dim, from * input_step_dim.width(), true);
-  Tensor variance_step = variance.getSharedDataTensor(
-    remain_step_dim, is_height_normalize ? 0 : from * remain_step_dim.width(),
-    true);
-  Tensor inv_std_dev_step = inv_std_dev.getSharedDataTensor(
-    remain_step_dim, is_height_normalize ? 0 : from * remain_step_dim.width(),
-    true);
-
-  Tensor &temp_full_size = output_step;
-  Tensor &temp_norm_size = inv_std_dev_step;
-
-  input_step.average(normalize_axes, temp_norm_size);
-  input_step.subtract(temp_norm_size, deviation_step);
-  // deviation_step.print(std::cout);
+  input.average(normalize_axes, temp_norm_size);
+  input.subtract(temp_norm_size, deviation);
 
 #ifndef ENABLE_FP16
-  deviation_step.pow(2.0f, temp_full_size);
-  temp_full_size.average(normalize_axes, variance_step);
+  deviation.pow(2.0f, temp_full_size);
+  temp_full_size.average(normalize_axes, variance);
 
-  variance_step.add_i(epsilon);
-  variance_step.pow(-0.5f, inv_std_dev_step);
+  variance.add_i(epsilon);
+  variance.pow(-0.5f, inv_std_dev);
 #else
-  unsigned int axis_dim = deviation_step.getDim()[normalize_axes[0]];
-
-  for (unsigned int i = 0; i < deviation_step.getDim()[normalize_axes[0] - 1];
-       ++i) {
+  unsigned int axis_dim = deviation.getDim()[normalize_axes[0]];
+  for (unsigned int i = 0; i < deviation.getDim()[normalize_axes[0] - 1]; ++i) {
     float sum = 0.0;
 
-    _FP16 *data = deviation_step.getAddress<_FP16>(0, 0, i, 0);
+    _FP16 *data = deviation.getAddress<_FP16>(0, 0, i, 0);
 
     for (unsigned int j = 0; j < axis_dim; ++j) {
       sum += powf(static_cast<float>(data[j]), 2.0f);
     }
-    inv_std_dev_step.setValue(0, 0, i, 0, 1.0 / sqrt(sum / axis_dim - epsilon));
+    inv_std_dev.setValue(0, 0, i, 0, 1.0 / sqrt(sum / axis_dim - epsilon));
   }
 #endif
 
-  deviation_step.multiply(inv_std_dev_step, output_step);
-  output_step.multiply_i(gamma_step);
-  output_step.add_i(beta_step);
-  // std::cout << "layer_normalization_layer" << std::endl;
-  // output_step.print(std::cout);
+  deviation.multiply(inv_std_dev, output);
+  output.multiply_i(gamma);
+  output.add_i(beta);
 }
 
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
