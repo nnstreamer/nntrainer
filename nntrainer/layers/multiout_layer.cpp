@@ -57,15 +57,11 @@ void MultiOutLayer::incremental_forwarding(RunLayerContext &context,
       TensorDim output_dim = output.getDim();
       TensorDim output_step_dim = output_dim;
       output_step_dim.height(to - from);
-      /* TensorDim output_step_dim = {output_dim.batch(), output_dim.channel(),
-                                   to - from, output_dim.width()};
-       */
       // @todo: set reset stride as false. This implementation only works when
       // batch size is 1
       Tensor output_step = output.getSharedDataTensor(
         output_step_dim, from * output_dim.width(), true);
       output_step.fill(input_step);
-      // output_step.print(std::cout);
     }
   }
 }
