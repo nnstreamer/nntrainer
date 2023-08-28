@@ -90,6 +90,9 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();
 
+  TensorDim::TensorType weight_tensor_type = {context.getFormat(),
+                                              context.getWeightDataType()};
+
   // output_hidden_state_dim = [ batch_size, 1, 1, unit ]
   const TensorDim output_hidden_state_dim = input_hidden_state_dim;
   // output_cell_state_dim = [ batch_size, 1, 1, unit ]
@@ -110,13 +113,13 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
 
   // - weight_ih ( input to hidden )
   //  : [ 1, 1, feature_size, NUM_GATE x unit ] -> i, f, g, o
-  TensorDim weight_ih_dim({feature_size, NUM_GATE * unit});
+  TensorDim weight_ih_dim({feature_size, NUM_GATE * unit}, weight_tensor_type);
   wt_idx[LSTMCellParams::weight_ih] = context.requestWeight(
     weight_ih_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "weight_ih", true);
   // - weight_hh ( hidden to hidden )
   //  : [ 1, 1, unit, NUM_GATE x unit ] -> i, f, g, o
-  TensorDim weight_hh_dim({unit, NUM_GATE * unit});
+  TensorDim weight_hh_dim({unit, NUM_GATE * unit}, weight_tensor_type);
   wt_idx[LSTMCellParams::weight_hh] = context.requestWeight(
     weight_hh_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "weight_hh", true);
@@ -124,20 +127,20 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
     if (integrate_bias) {
       // - bias_h ( input bias, hidden bias are integrate to 1 bias )
       //  : [ 1, 1, 1, NUM_GATE x unit ] -> i, f, g, o
-      TensorDim bias_h_dim({NUM_GATE * unit});
+      TensorDim bias_h_dim({NUM_GATE * unit}, weight_tensor_type);
       wt_idx[LSTMCellParams::bias_h] = context.requestWeight(
         bias_h_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, bias_decay,
         "bias_h", true);
     } else {
       // - bias_ih ( input bias )
       //  : [ 1, 1, 1, NUM_GATE x unit ] -> i, f, g, o
-      TensorDim bias_ih_dim({NUM_GATE * unit});
+      TensorDim bias_ih_dim({NUM_GATE * unit}, weight_tensor_type);
       wt_idx[LSTMCellParams::bias_ih] = context.requestWeight(
         bias_ih_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
         bias_decay, "bias_ih", true);
       // - bias_hh ( hidden bias )
       //  : [ 1, 1, 1, NUM_GATE x unit ] -> i, f, g, o
-      TensorDim bias_hh_dim({NUM_GATE * unit});
+      TensorDim bias_hh_dim({NUM_GATE * unit}, weight_tensor_type);
       wt_idx[LSTMCellParams::bias_hh] = context.requestWeight(
         bias_hh_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
         bias_decay, "bias_hh", true);
@@ -145,21 +148,32 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   }
 
   /** ifgo_dim = [ batch_size, 1, 1, NUM_GATE * unit ] */
-  const TensorDim ifgo_dim(batch_size, 1, 1, NUM_GATE * unit);
+  const TensorDim ifgo_dim(batch_size, 1, 1, NUM_GATE * unit,
+                           weight_tensor_type);
   wt_idx[LSTMCellParams::ifgo] =
     context.requestTensor(ifgo_dim, "ifgo", Tensor::Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch_size, 1, 1, unit ]
-    const TensorDim dropout_mask_dim(batch_size, 1, 1, unit);
+    const TensorDim dropout_mask_dim(batch_size, 1, 1, unit,
+                                     weight_tensor_type);
     wt_idx[LSTMCellParams::dropout_mask] = context.requestTensor(
       dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
       TensorLifespan::ITERATION_LIFESPAN);
   }
 
-  acti_func.setActiFunc(hidden_state_activation_type);
-  recurrent_acti_func.setActiFunc(recurrent_activation_type);
+  if (context.getActivationDataType() == TensorDim::DataType::FP32) {
+    acti_func.setActiFunc<float>(hidden_state_activation_type);
+    recurrent_acti_func.setActiFunc<float>(recurrent_activation_type);
+  } else if (context.getActivationDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    acti_func.setActiFunc<_FP16>(hidden_state_activation_type);
+    recurrent_acti_func.setActiFunc<_FP16>(recurrent_activation_type);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void LSTMCellLayer::setProperty(const std::vector<std::string> &values) {
@@ -198,7 +212,11 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
     context.getWeight(wt_idx[LSTMCellParams::weight_ih]);
   const Tensor &weight_hh =
     context.getWeight(wt_idx[LSTMCellParams::weight_hh]);
+
+  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
   Tensor empty;
+  empty.setTensorType(weight_tensor_type);
+
   const Tensor &bias_h = !disable_bias && integrate_bias
                            ? context.getWeight(wt_idx[LSTMCellParams::bias_h])
                            : empty;
@@ -267,7 +285,11 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     context.getWeight(wt_idx[LSTMCellParams::weight_hh]);
   Tensor &d_weight_hh =
     context.getWeightGrad(wt_idx[LSTMCellParams::weight_hh]);
+
+  TensorDim::TensorType weight_tensor_type = weight_hh.getTensorType();
   Tensor empty;
+  empty.setTensorType(weight_tensor_type);
+
   Tensor &d_bias_h = !disable_bias && integrate_bias
                        ? context.getWeightGrad(wt_idx[LSTMCellParams::bias_h])
                        : empty;
@@ -303,6 +325,8 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   }
 
   Tensor d_hidden_state_masked;
+  d_hidden_state_masked.setTensorType(weight_tensor_type);
+
   if (dropout_rate > epsilon) {
     Tensor &dropout_mask =
       context.getTensor(wt_idx[LSTMCellParams::dropout_mask]);
