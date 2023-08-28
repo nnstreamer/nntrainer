@@ -11,6 +11,7 @@ subdir('VGG/jni')
 subdir('Resnet/jni')
 subdir('YOLO/jni')
 subdir('YOLOv3/jni')
+subdir('LLaMA/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
 # if enable_capi
