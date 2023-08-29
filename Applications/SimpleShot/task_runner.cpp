@@ -104,7 +104,12 @@ const std::string getcwd_() {
   const size_t bufsize = 4096;
   char buffer[bufsize];
 
-  return getcwd(buffer, bufsize);
+  if (getcwd(buffer, bufsize) == nullptr) {
+    std::cerr << "failed to get cwd" << std::endl;
+    return "";
+  } else {
+    return getcwd(buffer, bufsize);
+  }
 }
 } // namespace
 
