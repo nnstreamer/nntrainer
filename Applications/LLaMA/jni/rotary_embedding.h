@@ -51,6 +51,14 @@ public:
   void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
+   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
+   * int from, unsigned int to, bool training)
+   */
+  void incremental_forwarding(nntrainer::RunLayerContext &context,
+                              unsigned int from, unsigned int to,
+                              bool training) override;
+
+  /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
   void calcDerivative(nntrainer::RunLayerContext &context) override;
@@ -81,8 +89,7 @@ public:
   inline static const std::string type = "rotary_embedding";
 
 private:
-  std::vector<std::vector<float>> *freqs_cos;
-  std::vector<std::vector<float>> *freqs_sin;
+  std::vector<std::vector<std::complex<float>>> *freqs_cis;
 };
 } // namespace custom
 
