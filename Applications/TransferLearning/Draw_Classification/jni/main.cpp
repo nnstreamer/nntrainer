@@ -414,6 +414,7 @@ fail_pipe_destroy:
   }
 
 fail_exit:
+  ml_tensors_data_destroy(&in_data);
   return status;
 #else
   std::cout << "Testing of model is supported without NNStreamer." << std::endl;
