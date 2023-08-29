@@ -142,12 +142,51 @@ public:
    * @param c channel
    * @param h height
    * @param w width
-   * @param fm format NCHW | HNWC
+   * @param t_type format NCHW | HNWC , dataType FP32 | FP16
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
   TensorDim(size_t b, size_t c, size_t h, size_t w,
             TensorType t_type_ = TensorType(),
+            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+
+  /**
+   * @brief Construct a new Tensor Dim object
+   *
+   * @param c channel
+   * @param h height
+   * @param w width
+   * @param t_type format NCHW | HNWC , dataType FP32 | FP16
+   * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
+   * dimension, rightmost is width
+   */
+  TensorDim(size_t c, size_t h, size_t w, TensorType t_type_ = TensorType(),
+            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+
+  /**
+   * @brief Construct a new Tensor Dim object
+   *
+   * @param h height
+   * @param w width
+   * @param t_type format NCHW | HNWC , dataType FP32 | FP16
+   * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
+   * dimension, rightmost is width
+   */
+  TensorDim(size_t h, size_t w, TensorType t_type_ = TensorType(),
+            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+
+  /**
+   * @brief Construct a new Tensor Dim object
+   *
+   * @param w width
+   * @param t_type format NCHW | HNWC , dataType FP32 | FP16
+   * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
+   * dimension, rightmost is width
+   */
+  TensorDim(size_t w, TensorType t_type_ = TensorType(),
             const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
             const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 

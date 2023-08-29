@@ -29,15 +29,42 @@ TEST(nntrainer_TensorDim, ctor_initializer_nhwc_p) {
 
   nntrainer::TensorDim t = {c};
   EXPECT_EQ(nntrainer::TensorDim(1, 1, 1, c), t);
+  EXPECT_EQ(nntrainer::TensorDim(c), t);
 
   t = {w, c};
   EXPECT_EQ(nntrainer::TensorDim(1, 1, w, c), t);
+  EXPECT_EQ(nntrainer::TensorDim(w, c), t);
 
   t = {h, w, c};
   EXPECT_EQ(nntrainer::TensorDim(1, h, w, c), t);
+  EXPECT_EQ(nntrainer::TensorDim(h, w, c), t);
 
   t = {b, h, w, c};
   EXPECT_EQ(nntrainer::TensorDim(b, h, w, c), t);
+}
+
+TEST(nntrainer_TensorDim, default_constructor_with_tensor_type_nhwc_p) {
+  unsigned int b = 3;
+  unsigned int c = 2;
+  unsigned int h = 4;
+  unsigned int w = 5;
+
+  nntrainer::TensorDim::TensorType tensor_type = {NHWC_, FP32_};
+
+  nntrainer::TensorDim t = {c, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, 1, c, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(c, tensor_type), t);
+
+  t = {w, c, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, w, c, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(w, c, tensor_type), t);
+
+  t = {h, w, c, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, h, w, c, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(h, w, c, tensor_type), t);
+
+  t = {b, h, w, c, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(b, h, w, c, tensor_type), t);
 }
 
 TEST(nntrianer_TensorDim, effective_dimension_nhwc_p) {

@@ -37,6 +37,17 @@ TEST(nntrainer_TensorDim, ctor_initializer_p) {
   EXPECT_EQ(nntrainer::TensorDim(b, c, h, w), t);
 }
 
+TEST(nntrainer_TensorDim, default_constructor_1_sized_dimShapes_p) {
+  unsigned int b = 3;
+  unsigned int c = 2;
+  unsigned int h = 4;
+  unsigned int w = 5;
+
+  EXPECT_EQ(nntrainer::TensorDim(c), nntrainer::TensorDim(1, 1, 1, c));
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, w, c), nntrainer::TensorDim(w, c));
+  EXPECT_EQ(nntrainer::TensorDim(1, h, w, c), nntrainer::TensorDim(h, w, c));
+}
+
 TEST(nntrianer_TensorDim, effective_dimension_p) {
   nntrainer::TensorDim t(3, 2, 4, 5, nntrainer::Tformat::NCHW,
                          nntrainer::Tdatatype::FP32);

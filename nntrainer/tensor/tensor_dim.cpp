@@ -59,6 +59,39 @@ TensorDim::TensorDim(std::initializer_list<size_t> dims, TensorType t_type_) :
   }
 }
 
+TensorDim::TensorDim(size_t d3, TensorType t_type_,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  TensorDim(t_type_, eff_dim_flag_, dyn_dim_flag_) {
+
+  setTensorDim(3, d3);
+  feature_len = d3;
+  len = feature_len;
+}
+
+TensorDim::TensorDim(size_t d2, size_t d3, TensorType t_type_,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  TensorDim(t_type_, eff_dim_flag_, dyn_dim_flag_) {
+
+  setTensorDim(2, d2);
+  setTensorDim(3, d3);
+  feature_len = d2 * d3;
+  len = feature_len;
+}
+
+TensorDim::TensorDim(size_t d1, size_t d2, size_t d3, TensorType t_type_,
+                     const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  TensorDim(t_type_, eff_dim_flag_, dyn_dim_flag_) {
+
+  setTensorDim(1, d1);
+  setTensorDim(2, d2);
+  setTensorDim(3, d3);
+  feature_len = d1 * d2 * d3;
+  len = feature_len;
+}
+
 TensorDim::TensorDim(const std::array<size_t, 3> &shapes, TensorType t_type_) :
   TensorDim({shapes[0], shapes[1], shapes[2]}, t_type_) {}
 

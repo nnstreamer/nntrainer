@@ -92,6 +92,31 @@ TEST(nntrainer_Tensor, Tensor_03_fp16_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, default_constructor_with_tensor_type_fp16_p) {
+  unsigned int b = 3;
+  unsigned int c = 2;
+  unsigned int h = 4;
+  unsigned int w = 5;
+
+  nntrainer::TensorDim::TensorType tensor_type = {
+    nntrainer::TensorDim::Format::NCHW, nntrainer::TensorDim::DataType::FP16};
+
+  nntrainer::TensorDim t = {w, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, 1, w, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(w, tensor_type), t);
+
+  t = {h, w, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, h, w, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(h, w, tensor_type), t);
+
+  t = {c, h, w, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(1, c, h, w, tensor_type), t);
+  EXPECT_EQ(nntrainer::TensorDim(c, h, w, tensor_type), t);
+
+  t = {b, h, w, c, tensor_type};
+  EXPECT_EQ(nntrainer::TensorDim(b, h, w, c, tensor_type), t);
+}
+
 TEST(nntrainer_Tensor, multiply_i_01_fp16_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
