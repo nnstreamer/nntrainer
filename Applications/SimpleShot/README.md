@@ -2,7 +2,7 @@ This is a pratical demonstration of SimpleShot with [cifar100](https://www.cs.to
 
 # What is a SimpleShot and What Does This Application Do?
 SimpleShot is a nearest neighbor based few-shot learner with a simple
-tranformation function.
+transformation function.
 
 The application takes number of parameters and do the fewshot learning, inferencing
 
@@ -36,7 +36,7 @@ It is a stack of 4 convolutional network blocks suggested in [Vinyals, Oriol, et
 Our backbone is trained with 60 classes extracted from cifar100 dataset for 90 epochs.
 
 ## Task
-Sample task is a 1/5/10/20-shot example of `tractor`, `turtle`, `squirrel`, `willow_tree`, `sunflowe`, extracted randomly from 40 classes.
+Sample task is a 1/5/10/20-shot example of `tractor`, `turtle`, `squirrel`, `willow_tree`, `sunflower`, extracted randomly from 40 classes.
 Those classes **are not exposed** to the model during training.
-For brevirty, test data set is shrinked 15 images from each class (75 total)
+For brevity, test data set is shrunk 15 images from each class (75 total)
 
