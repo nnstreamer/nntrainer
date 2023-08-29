@@ -116,7 +116,7 @@ const std::string getcwd_() {
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 
 /**
- * @brief Create a Model with given backbone and varient setup
+ * @brief Create a Model with given backbone and variant setup
  *
  * @param backbone either conv4 or resnet50, hardcoded tflite path will be
  * selected
