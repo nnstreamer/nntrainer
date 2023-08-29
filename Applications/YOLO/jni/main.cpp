@@ -192,7 +192,7 @@ ModelHandle YOLO() {
                                            withKey("input_layers", "conv10"),
                                          }));
 
-  for (auto layer : layers) {
+  for (auto &layer : layers) {
     model->addLayer(layer);
   }
 

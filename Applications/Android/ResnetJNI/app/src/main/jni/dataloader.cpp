@@ -188,7 +188,7 @@ DirDataLoader::DirDataLoader(const char *directory_, float split_ratio,
   unsigned int num_data_total = 0;
   unsigned int num_data = 1;
 
-  for (auto c_name : class_names) {
+  for (auto &c_name : class_names) {
     num_data = 0;
     std::filesystem::directory_iterator itr(c_name);
     while (itr != std::filesystem::end(itr)) {

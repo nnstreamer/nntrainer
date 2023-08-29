@@ -33,7 +33,7 @@ void FlatBufferOpNode::setLayerNode(const LayerNode &layer) {
   static const std::set<std::string> loss_type = {"mse", "cross"};
 
   if (layer.getNumOutputConnections() == 1) {
-    for (auto loss : loss_type) {
+    for (auto &loss : loss_type) {
       if (layer.getOutputConnections()[0].find(loss) != std::string::npos) {
         is_output = true;
       }
