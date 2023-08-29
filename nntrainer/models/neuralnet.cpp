@@ -1334,6 +1334,7 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     /// `dealloc_weights == false`
     model_graph.deallocateTensors();
     model_graph.allocateTensors(ExecutionMode::INFERENCE);
+    model_graph.setBatchSize(1); // For now, to inference batch size to be 1
     interpreter.serialize(graph_representation, file_path);
     model_graph.deallocateTensors();
 #else
