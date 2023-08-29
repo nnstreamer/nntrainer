@@ -435,7 +435,7 @@ TEST(DrawClassification, matchTestResult) {
 
 /**
  * @brief     create NN
- *            Get Feature from tflite & run foword & back propatation
+ *            Get Feature from tflite & run forward & back propagation
  * @param[in]  arg 1 : configuration file path
  * @param[in]  arg 2 : resource path
  */
@@ -528,14 +528,14 @@ int main(int argc, char *argv[]) {
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing InitGoogleTest" << std::endl;
+    std::cerr << "Error during InitGoogleTest" << std::endl;
     return 0;
   }
 
   try {
     status = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 #endif
 
