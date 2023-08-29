@@ -15,6 +15,7 @@
 
 #include <condition_variable>
 #include <model.h>
+#include <mutex>
 #include <nnstreamer_plugin_api.h>
 #include <nnstreamer_plugin_api_trainer.h>
 #include <vector>
@@ -141,17 +142,13 @@ public:
    * @brief Destroy the InputTensorsInfo object
    */
   ~InputTensorsInfo();
-
-  bool is_data_wait_locked;
-  bool is_data_full_locked;
   unsigned int queue_size;
   unsigned int queue_front;
   unsigned int queue_rear;
-  unsigned int queue_count; /**< The number of data in queue */
-  unsigned int push_count;  /**< The number of samples pushed to queue by
-                               NNStreamer(tensor_trainer) */
-  unsigned int pop_count;   /**< The number of pop from the queue for pushing
-                               samples to nntrainer */
+  unsigned int push_count; /**< The number of samples pushed to queue by
+                              NNStreamer(tensor_trainer) */
+  unsigned int pop_count;  /**< The number of pop from the queue for pushing
+                              samples to nntrainer */
   unsigned int
     input_size[NNS_TENSOR_SIZE_LIMIT]; /**< feature size * data type */
   unsigned int label_size[NNS_TENSOR_SIZE_LIMIT];
@@ -165,10 +162,9 @@ public:
   std::vector<TensorData>
     tensor_data; /**< Manage multiple inputs and labels data */
 
-  std::mutex data_wait_lock;
-  std::mutex data_full_lock;
-  std::condition_variable data_wait;
+  std::mutex queue_lock;
   std::condition_variable data_full;
+  std::condition_variable data_empty;
 
   /**
    * @brief get sample data
@@ -178,5 +174,15 @@ public:
    * @param last set TRUE if data is last
    */
   void getSample(float **input, float **label, bool *last);
+
+  /**
+   * @brief Check if queue is empty
+   */
+  bool isQueueEmpty();
+
+  /**
+   * @brief Check if queue is full
+   */
+  bool isQueueFull();
 };
 } // namespace NNTrainer
