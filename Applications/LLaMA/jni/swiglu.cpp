@@ -28,6 +28,7 @@ namespace ActivationOp {
  * @retval swish(x)
  */
 float swish(float x) { return x / (1 + nntrainer::exp_util(-x)); }
+// namespace ActivationOp
 } // namespace ActivationOp
 
 void SwiGLULayer::finalize(nntrainer::InitLayerContext &context) {
@@ -40,16 +41,37 @@ void SwiGLULayer::forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &in2 = context.getInput(INPUT_IDX_2);
   nntrainer::Tensor &out = context.getOutput(OUT_IDX);
 
-  for (int b = 0; b < (int)in1.batch(); b++) {
-    for (int c = 0; c < (int)in1.channel(); c++) {
-      for (int h = 0; h < (int)in1.height(); h++) {
-        for (int w = 0; w < (int)in1.width(); w++) {
-          out.setValue(b, c, h, w,
-                       ActivationOp::swish(in1.getValue(b, c, h, w)) *
-                         in2.getValue(b, c, h, w));
+  if (in1.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    for (int b = 0; b < (int)in1.batch(); b++) {
+      for (int c = 0; c < (int)in1.channel(); c++) {
+        for (int h = 0; h < (int)in1.height(); h++) {
+          for (int w = 0; w < (int)in1.width(); w++) {
+            out.setValue(b, c, h, w,
+                         ActivationOp::swish(in1.getValue(b, c, h, w)) *
+                           in2.getValue(b, c, h, w));
+          }
         }
       }
     }
+  } else if (in1.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    for (int b = 0; b < (int)in1.batch(); b++) {
+      for (int c = 0; c < (int)in1.channel(); c++) {
+        for (int h = 0; h < (int)in1.height(); h++) {
+          for (int w = 0; w < (int)in1.width(); w++) {
+            out.setValue(
+              b, c, h, w,
+              static_cast<float>(
+                ActivationOp::swish(
+                  static_cast<float>(in1.getValue<_FP16>(b, c, h, w))) *
+                static_cast<float>(in2.getValue<_FP16>(b, c, h, w))));
+          }
+        }
+      }
+    }
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
   }
 }
 

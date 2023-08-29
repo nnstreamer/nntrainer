@@ -2608,7 +2608,7 @@ void Tensor::print(std::ostream &out) const {
     out << "data addr: " << data << '\n';
     out << dim;
 
-    if (len > 1000000) {
+    if (len > 100) {
       out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
           << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1]
           << ']' << std::endl;
@@ -2656,7 +2656,7 @@ void Tensor::print(std::ostream &out) const {
     out << "data addr: " << data << '\n';
     out << dim;
 
-    if (len > 10000000) {
+    if (len > 100) {
       out << '[' << (float)data[0] << ' ' << (float)data[1] << ' '
           << (float)data[2] << " ... " << (float)data[len - 3] << ' '
           << (float)data[len - 2] << ' ' << (float)data[len - 1] << ']'
@@ -2687,7 +2687,7 @@ void Tensor::print(std::ostream &out) const {
           }
           out << std::endl;
         }
-        out << "-------" << min_ << " & " << max_ << std::endl;
+        out << "-------" << std::endl;
       }
     } else {
       for (unsigned int k = 0; k < batch(); k++) {
@@ -3123,14 +3123,6 @@ void Tensor::save(std::ostream &file) {
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
-  // std::vector<_FP16>temp (size());
-  // for(unsigned int i=0;i<size();++i){
-  //   temp[i]=static_cast<_FP16>(getData()[i]);
-  // }
-
-  // checkedWrite(file, (char *)temp.data(),
-  // static_cast<std::streamsize>(size()*sizeof(_FP16)), "[Tensor::save]
-  // operation failed");
   putData();
 }
 
@@ -3320,7 +3312,9 @@ Tensor &Tensor::erf(Tensor &out) const {
     apply<float>(f, out);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    auto f = [](_FP16 in) { return std::erf(in); };
+    auto f = [](_FP16 in) {
+      return static_cast<_FP16>(std::erf(static_cast<float>(in)));
+    };
     apply<_FP16>(f, out);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
