@@ -101,7 +101,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
-    ml_loge("cannnot do loadFromConfig twice");
+    ml_loge("can not do loadFromConfig twice");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -273,7 +273,7 @@ NeuralNetwork::~NeuralNetwork() {
   try {
     deallocate();
   } catch (const std::runtime_error &e) {
-    std::cerr << "Error occured during destroying NeuralNetwork: " << e.what()
+    std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
 }
@@ -417,7 +417,7 @@ void NeuralNetwork::save(const std::string &file_path,
     << " format: " << static_cast<unsigned>(format);
 
   /// @todo this switch case should be delegating the function call only. It's
-  /// not delegating for now as required logics are managable for now.
+  /// not delegating for now as required logics are manageable for now.
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     auto model_file = checkedOpenStream<std::ofstream>(
@@ -464,7 +464,7 @@ void NeuralNetwork::save(const std::string &file_path,
 void NeuralNetwork::load(const std::string &file_path,
                          ml::train::ModelFormat format) {
   /// @todo this switch case should be delegating the function call only. It's
-  /// not delegating for now as required logics are managable for now.
+  /// not delegating for now as required logics are manageable for now.
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -553,7 +553,7 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
 
 void NeuralNetwork::saveModelIni(const std::string &file_path) {
   NNTR_THROW_IF(isFileExist(file_path), std::invalid_argument)
-    << "There is already a file, overriding to the exisiting file is not "
+    << "There is already a file, overriding to the existing file is not "
        "permitted, path: "
     << file_path;
 
@@ -787,9 +787,9 @@ int NeuralNetwork::train_run(
    * std::function for performance measure
    * @param buffer buffer to run
    * @param shuffle whether to shuffle or not
-   * @param on_iteration_fetch function that will recieve reference to stat,
+   * @param on_iteration_fetch function that will receive reference to stat,
    * buffer which will be called every time data is fetched and set
-   * @param on_epoch_end function that will recieve reference to stat,
+   * @param on_epoch_end function that will receive reference to stat,
    * buffer which will be called on the epoch end
    */
   auto run_epoch = [this, &in_dims, &label_dims, &outputs, batch_size](
@@ -932,7 +932,7 @@ int NeuralNetwork::train_run(
     }
     std::cout << " >> [ Accuracy: " << stat.accuracy
               << "% - Validation Loss : " << stat.loss << " ]";
-    ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
+    ml_logi("[ Accuracy: %.2f %% - Validation Loss: %.5f", stat.accuracy,
             stat.loss);
   };
 
