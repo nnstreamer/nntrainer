@@ -188,6 +188,34 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, Tensor_04_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<int8_t>>> in;
+
+  for (int k = 0; k < batch; ++k) {
+    std::vector<std::vector<int8_t>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<int8_t> tv;
+      for (int j = 0; j < width; ++j) {
+        tv.push_back(k * height * width + i * width + j);
+      }
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
+
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  ASSERT_NE(nullptr, tensor.getData<int8_t>());
+
+  if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
+    status = ML_ERROR_INVALID_PARAMETER;
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 TEST(nntrainer_Tensor, multiply_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -4236,6 +4264,171 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   delete[] outdata;
 
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief dequantize FP32 tensor
+ */
+TEST(nntrainer_Tensor, dequantize_01_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with different dimension
+ */
+TEST(nntrainer_Tensor, dequantize_02_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch + 1, channel, height + 1, width + 1,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with no scale factors
+ */
+TEST(nntrainer_Tensor, dequantize_03_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with incorrect number of scale factors
+ */
+TEST(nntrainer_Tensor, dequantize_04_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  EXPECT_THROW(
+    {
+      input.setScaleFactors({2.0, 1.5, 1.0, 0.5});
+    },
+    std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor to QINT8
+ */
+TEST(nntrainer_Tensor, dequantize_05_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize qint8 tensor
+ */
+TEST(nntrainer_Tensor, dequantize_06_p) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output;
+
+  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP32); });
+
+  float answer_data[] = {
+    1.5, 1.5, 1.5, 1.5, 1.5, 3,   3,   3,   3,   3,   4.5, 4.5, 4.5, 4.5, 4.5,
+    6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   7,   7,   7,   7,
+    8,   8,   8,   8,   8,   9,   9,   9,   9,   9,   5.5, 5.5, 5.5, 5.5, 5.5,
+    6,   6,   6,   6,   6,   6.5, 6.5, 6.5, 6.5, 6.5, 7,   7,   7,   7,   7};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::FP32}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
+}
+
+/**
+ * @brief dequantize tensor
+ */
+TEST(nntrainer_Tensor, dequantize_07_p) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  float answer_data[] = {
+    1.5, 1.5, 1.5, 1.5, 1.5, 3,   3,   3,   3,   3,   4.5, 4.5, 4.5, 4.5, 4.5,
+    6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   7,   7,   7,   7,
+    8,   8,   8,   8,   8,   9,   9,   9,   9,   9,   5.5, 5.5, 5.5, 5.5, 5.5,
+    6,   6,   6,   6,   6,   6.5, 6.5, 6.5, 6.5, 6.5, 7,   7,   7,   7,   7};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::FP32}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
 }
 
 int main(int argc, char **argv) {

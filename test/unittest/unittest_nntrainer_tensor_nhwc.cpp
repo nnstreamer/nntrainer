@@ -213,7 +213,8 @@ TEST(nntrainer_Tensor, multiply_i_03_nhwc_n) {
   GEN_TEST_INPUT(input, i * (channel * height * width) + j * (width * channel) +
                           k * channel + l);
 
-  nntrainer::Tensor target2(batch, channel, height - 2, width - 1, NHWC_, FP32_);
+  nntrainer::Tensor target2(batch, channel, height - 2, width - 1, NHWC_,
+                            FP32_);
   status = input.multiply_i(target2);
 
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -670,7 +671,8 @@ TEST(nntrainer_Tensor, divide_i_02_nhwc_n) {
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
-  nntrainer::Tensor original(batch, channel, height - 2, width - 1, NHWC_, FP32_);
+  nntrainer::Tensor original(batch, channel, height - 2, width - 1, NHWC_,
+                             FP32_);
 
   status = input.divide_i(original);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -721,7 +723,8 @@ TEST(nntrainer_Tensor, divide_03_nhwc_n) {
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + l + 1);
 
-  nntrainer::Tensor test(batch - 1, channel - 1, height - 1, width - 1, NHWC_, FP32_);
+  nntrainer::Tensor test(batch - 1, channel - 1, height - 1, width - 1, NHWC_,
+                         FP32_);
 
   EXPECT_THROW({ input.divide(test); }, std::invalid_argument);
 }
@@ -1453,7 +1456,8 @@ TEST(nntrainer_Tensor, add_03_nhwc_n) {
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_, FP32_);
+  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_,
+                         FP32_);
 
   EXPECT_THROW({ input.add(test); }, std::invalid_argument);
 }
@@ -1604,7 +1608,8 @@ TEST(nntrainer_Tensor, subtract_i_03_nhwc_n) {
   GEN_TEST_INPUT_NHWC(target, i * (height * width * channel) +
                                 j * (width * channel) + k * channel + l);
 
-  nntrainer::Tensor target2(batch, height, width - 3, channel - 1, NHWC_, FP32_);
+  nntrainer::Tensor target2(batch, height, width - 3, channel - 1, NHWC_,
+                            FP32_);
 
   status = target.subtract_i(target2);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -1663,7 +1668,8 @@ TEST(nntrainer_Tensor, subtract_03_nhwc_n) {
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
-  nntrainer::Tensor test(batch - 1, channel - 1, height, width - 1, NHWC_, FP32_);
+  nntrainer::Tensor test(batch - 1, channel - 1, height, width - 1, NHWC_,
+                         FP32_);
 
   EXPECT_THROW({ input.subtract(test); }, std::invalid_argument);
 }
@@ -2528,7 +2534,7 @@ TEST(nntrainer_Tensor, average_nhwc_p) {
   EXPECT_EQ(actual, expected);
 
   int idx = 0;
-  t = t.apply((std::function<float (float)>)[&](float in) { return idx++ % 2; });
+  t = t.apply((std::function<float(float)>)[&](float in) { return idx++ % 2; });
 
   actual = t.average();
   expected = constant(0.5, 1, 1, 1, 1, NHWC_, FP32_);
@@ -3202,7 +3208,8 @@ TEST(nntrainer_Tensor, fill_p) {
   /// same dimension, buffer size
   {
     nntrainer::Tensor target(3, 2, 4, 5, NHWC_, FP32_);
-    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
+    nntrainer::Tensor original =
+      randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
     target.fill(original, false);
 
     EXPECT_EQ(target, original);
@@ -3217,7 +3224,8 @@ TEST(nntrainer_Tensor, fill_p) {
   /// uninitialized with initialized flag is true
   {
     nntrainer::Tensor target;
-    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
+    nntrainer::Tensor original =
+      randUniform(3, 2, 4, 5, -1.0f, 1.0f, NHWC_, FP32_);
     target.fill(original, true);
 
     EXPECT_EQ(target, original);
@@ -3226,13 +3234,15 @@ TEST(nntrainer_Tensor, fill_p) {
 
 TEST(nntrainer_Tensor, fill_uninitialized_n) {
   nntrainer::Tensor target;
-  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
+  nntrainer::Tensor original =
+    randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
   EXPECT_THROW(target.fill(original, false), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, fill_different_dimension_n) {
   nntrainer::Tensor target(3, 1, 3, 2, NHWC_, FP32_);
-  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
+  nntrainer::Tensor original =
+    randUniform(3, 1, 2, 3, -1.0f, 1.0f, NHWC_, FP32_);
   EXPECT_THROW(target.fill(original, false), std::invalid_argument);
 }
 
@@ -3292,7 +3302,8 @@ TEST(nntrainer_Tensor, add_strided_02_nhwc_n) {
   GEN_TEST_INPUT_NHWC(input, i * (height * width * channel) +
                                j * (width * channel) + k * channel + 1);
 
-  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_, FP32_);
+  nntrainer::Tensor test(batch - 1, height - 1, width - 1, channel, NHWC_,
+                         FP32_);
 
   EXPECT_THROW({ input.add_strided(test); }, std::invalid_argument);
 }
@@ -4662,6 +4673,119 @@ TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_n) {
   nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
 
   EXPECT_THROW(a.transpose("0:1:2", b), std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with different format
+ */
+TEST(nntrainer_Tensor, dequantize_01_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with different format
+ */
+TEST(nntrainer_Tensor, dequantize_02_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize nhwc tensor
+ */
+TEST(nntrainer_Tensor, dequantize_03_p) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output;
+  output.getDim().setFormat(nntrainer::Tformat::NHWC);
+
+  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP32); });
+
+  float answer_data[] = {1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5,
+                         1.5, 6, 5.5, 3,   7, 6,   3,   7, 6,   3,   7, 6,
+                         3,   7, 6,   3,   7, 6,   4.5, 8, 6.5, 4.5, 8, 6.5,
+                         4.5, 8, 6.5, 4.5, 8, 6.5, 4.5, 8, 6.5, 6,   9, 7,
+                         6,   9, 7,   6,   9, 7,   6,   9, 7,   6,   9, 7};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NHWC,
+                                                 nntrainer::Tdatatype::FP32}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
+}
+
+/**
+ * @brief dequantize nhwc tensor
+ */
+TEST(nntrainer_Tensor, dequantize_04_p) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
+
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  float answer_data[] = {1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5,
+                         1.5, 6, 5.5, 3,   7, 6,   3,   7, 6,   3,   7, 6,
+                         3,   7, 6,   3,   7, 6,   4.5, 8, 6.5, 4.5, 8, 6.5,
+                         4.5, 8, 6.5, 4.5, 8, 6.5, 4.5, 8, 6.5, 6,   9, 7,
+                         6,   9, 7,   6,   9, 7,   6,   9, 7,   6,   9, 7};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NHWC,
+                                                 nntrainer::Tdatatype::FP32}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
 }
 
 int main(int argc, char **argv) {

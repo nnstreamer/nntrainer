@@ -347,6 +347,86 @@ public:
 #endif
 
   /**
+   * @brief     Constructor of Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor type.
+   */
+  Tensor(std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
+         ml::train::TensorDim::TensorType t_type) {
+    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
+      throw std::out_of_range(
+        "[Tensor] trying to initialize Tensor from empty vector");
+    }
+
+    if (t_type.data_type != Tdatatype::QINT8) {
+      throw std::out_of_range(
+        "[Tensor] TensorType do not match with input data type");
+    }
+
+    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
+    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
+    // dim[1] == height, dim[2] == width, dim[3] == channel
+    dim.setTensorDim(0, d.size());
+    if (t_type.format == Tformat::NCHW) {
+      dim.setTensorDim(1, d[0].size());
+      dim.setTensorDim(2, d[0][0].size());
+      dim.setTensorDim(3, d[0][0][0].size());
+    } else {
+      dim.setTensorDim(2, d[0].size());
+      dim.setTensorDim(3, d[0][0].size());
+      dim.setTensorDim(1, d[0][0][0].size());
+    }
+
+    setTensorType(t_type);
+
+    strides = dim.computeStrides();
+
+    MemoryData *mem_data =
+      new MemoryData((void *)(new int8_t[dim.getDataLen()]()));
+    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
+      delete[] mem_data->getAddr<int8_t>();
+    });
+    offset = 0;
+    contiguous = true;
+    initializer = Initializer::NONE;
+
+    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
+    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
+    // dim[1] == height, dim[2] == width, dim[3] == channel
+    if (t_type.format == Tformat::NCHW) {
+      for (unsigned int i = 0; i < batch(); ++i)
+        for (unsigned int j = 0; j < channel(); ++j)
+          for (unsigned int k = 0; k < height(); ++k)
+            for (unsigned int l = 0; l < width(); ++l)
+              this->setValue(i, j, k, l, d[i][j][k][l]);
+    } else {
+      for (unsigned int i = 0; i < batch(); ++i)
+        for (unsigned int j = 0; j < height(); ++j)
+          for (unsigned int k = 0; k < width(); ++k)
+            for (unsigned int l = 0; l < channel(); ++l)
+              this->setValue(i, l, j, k, d[i][j][k][l]);
+    }
+  };
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   */
+  Tensor(std::vector<std::vector<std::vector<int8_t>>> const &d,
+         ml::train::TensorDim::TensorType t_type) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   */
+  Tensor(std::vector<std::vector<int8_t>> const &d,
+         ml::train::TensorDim::TensorType t_type) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+  /**
    *  @brief  Copy constructor of Tensor.
    *  @param[in] Tensor &
    */
@@ -1292,6 +1372,8 @@ public:
 #else
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
+    } else if (getDataType() == Tdatatype::QINT8) {
+      getData<int8_t>()[getIndex(batch, c, h, w)] = value;
     }
   }
 
@@ -1317,6 +1399,9 @@ public:
 #else
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
+    } else if (getDataType() == Tdatatype::QINT8) {
+      getData<int8_t>()[idx] *= beta;
+      getData<int8_t>()[idx] += value;
     }
   }
 
@@ -1789,6 +1874,32 @@ public:
    */
   Tdatatype getDataType() const { return dim.getDataType(); }
 
+  /**
+   * @brief     Set scale factors of the tensor
+   * @param[in] scales scale factors
+   */
+  void setScaleFactors(std::vector<float> scales);
+
+  /**
+   * @brief     Get scale factors of the tensor
+   * @retval    scales scale factors
+   */
+  std::vector<float> getScaleFactors();
+
+  /**
+   * @brief     Dequantize Tensor to dtype
+   * @param[in] dtype Target Tensor DataType
+   * @retval    Dequantized Tensor
+   */
+  Tensor dequantize(Tdatatype dtype) const;
+
+  /**
+   * @brief      Dequantize Tensor to output tensor datatype
+   * @param[out] output Tensor to store the result
+   * @retval     Dequantized Tensor
+   */
+  Tensor dequantize(Tensor &output) const;
+
   static constexpr float epsilon = 1e-5;
 
 private:
@@ -1800,6 +1911,7 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
+  std::vector<float> scale_factors;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source

@@ -48,12 +48,13 @@ public:
   enum class Format { NCHW, NHWC };
 
   /**
-   * @brief Tensor Data Type. Currently FP16 & FP32 Support
+   * @brief Tensor Data Type. Currently QINT8, FP16 & FP32 Support
    *
    */
   enum class DataType {
-    FP16, /** half precion */
-    FP32  /** single precision */
+    QINT8, /** quantized int 8*/
+    FP16,  /** half precision */
+    FP32   /** single precision */
   };
 
   /**
@@ -93,7 +94,7 @@ public:
    * @brief     Creator of TensorDim with Format & DataType
    *
    * @param fm format NCHW | HNWC
-   * @param fm DataType FP16 | FP32
+   * @param fm DataType QINT8 | FP16 | FP32
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
@@ -157,7 +158,7 @@ public:
    * @param h height
    * @param w width
    * @param fm format NCHW | HNWC
-   * @param d_type Data Type FP16 | FP32
+   * @param d_type Data Type QINT8 | FP16 | FP32
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
@@ -186,7 +187,7 @@ public:
    *
    * @param shape shape of format
    * @param fm format NCHW | HNWC
-   * @param d_type data type FP16 | FP32
+   * @param d_type data type QINT8 | FP16 | FP32
    */
   TensorDim(const std::string &shape, TensorDim::Format fm,
             TensorDim::DataType d_type = TensorDim::DataType::FP32);

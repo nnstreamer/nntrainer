@@ -33,7 +33,9 @@ TensorDim::TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
 TensorDim::TensorDim(TensorType t_type_,
                      const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
-  t_type(t_type_), eff_dim_flag(eff_dim_flag_), dyn_dim_flag(dyn_dim_flag_) {
+  t_type(t_type_),
+  eff_dim_flag(eff_dim_flag_),
+  dyn_dim_flag(dyn_dim_flag_) {
   for (size_t i = 0; i < MAXDIM; ++i) {
     dim[i] = 0;
   }
@@ -121,6 +123,8 @@ uint TensorDim::getDataTypeSize() const {
 #endif
   case TensorDim::DataType::FP32:
     return sizeof(float);
+  case TensorDim::DataType::QINT8:
+    return sizeof(int8_t);
   default:
     return sizeof(float);
   }
@@ -333,8 +337,15 @@ bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
 
-  std::string type_ =
-    (d.getDataType() == ml::train::TensorDim::DataType::FP16) ? "FP16" : "FP32";
+  std::string type_;
+  if (d.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    type_ = "FP32";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    type_ = "FP16";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT8) {
+    type_ = "QINT8";
+  }
+
   std::string format_ =
     (d.getFormat() == ml::train::TensorDim::Format::NCHW) ? "NCHW" : "NHWC";
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()

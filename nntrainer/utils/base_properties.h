@@ -647,12 +647,15 @@ void from_string(const std::string &value, std::vector<T> &property) {
  */
 struct TensorDataTypeInfo {
   using Enum = nntrainer::TensorDim::DataType;
-  static constexpr std::initializer_list<Enum> EnumList = {Enum::FP16,
-                                                           Enum::FP32};
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::QINT8, Enum::FP16, Enum::FP32};
 
-  static constexpr const char *EnumStr[] = {"FP16", "FP32"};
+  static constexpr const char *EnumStr[] = {"QINT8", "FP16", "FP32"};
 };
 
+/**
+ * @brief     Enumeration of Format for model & layer
+ */
 struct TensorFormatInfo {
   using Enum = nntrainer::TensorDim::Format;
   static constexpr std::initializer_list<Enum> EnumList = {Enum::NCHW,
@@ -671,6 +674,12 @@ class TensorDataType final : public EnumProperty<TensorDataTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "tensor_type";
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to FP32
+   */
   TensorDataType(
     TensorDataTypeInfo::Enum value = TensorDataTypeInfo::Enum::FP32) {
     set(value);
@@ -684,13 +693,13 @@ public:
 class TensorFormat final : public EnumProperty<TensorFormatInfo> {
 public:
   static constexpr const char *key =
-    "tensor_format";             /**< unique key to access */
+    "tensor_format";                    /**< unique key to access */
   using prop_tag = enum_class_prop_tag; /**< property type */
 
   /**
    * @brief Constructor
    *
-   * @param value value to set, defaults to false
+   * @param value value to set, defaults to NCHW
    */
   TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
     set(value);
