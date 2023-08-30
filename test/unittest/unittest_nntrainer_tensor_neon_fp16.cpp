@@ -368,6 +368,61 @@ TEST(nntrainer_Tensor, sum_sgemv) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
+TEST(nntrainer_Tensor, dot_sgemm) {
+  int batch = 1;
+  int channel = 1;
+  int height = 8;
+  int width = 16;
+
+  int height_t = 8;
+  int width_t = 16;
+
+  bool transA = true;
+  bool transB = false;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor m(batch, channel, height_t, width_t, t_type_nchw_fp16);
+
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor m_fp32(batch, channel, height_t, width_t, t_type_nchw_fp32);
+
+  const float alpha = 1e-5;
+
+  GEN_TEST_INPUT(input, i * (batch * height * channel) * alpha +
+                          j * (batch * height) * alpha + k * (width)*alpha + l +
+                          1);
+  GEN_TEST_INPUT(m, i * (batch * height_t * channel) * alpha +
+                      j * (batch * height_t) * alpha + k * (width_t)*alpha + l +
+                      1);
+
+  GEN_TEST_INPUT(input_fp32, i * (batch * height * channel) * alpha +
+                               j * (batch * height) * alpha +
+                               k * (width)*alpha + l + 1);
+  GEN_TEST_INPUT(m_fp32, i * (batch * height_t * channel) * alpha +
+                           j * (batch * height_t) * alpha +
+                           k * (width_t)*alpha + l + 1);
+
+  nntrainer::Tensor result0 = input.dot(m, transA, transB);
+  nntrainer::Tensor result0_fp32 = input_fp32.dot(m_fp32, transA, transB);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-2;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 
