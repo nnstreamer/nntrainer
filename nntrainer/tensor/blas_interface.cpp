@@ -51,6 +51,25 @@
       Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX]; \
   } while (0);
 
+#define sgemm_loop_fp16()                                                 \
+  do {                                                                    \
+    for (unsigned int m = 0; m < M; ++m) {                                \
+      for (unsigned int n = 0; n < N; ++n) {                              \
+        _FP16 c = 0;                                                      \
+        _FP16 c_old = C[m * ldc + n];                                     \
+        for (unsigned int k = 0; k < K; ++k) {                            \
+          _FP16 a, b;                                                     \
+          a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]); \
+          b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]); \
+          c += a * b;                                                     \
+        }                                                                 \
+        C[m * ldc + n] = static_cast<_FP16>(alpha) * c;                   \
+        if (beta != 0.0)                                                  \
+          C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;             \
+      }                                                                   \
+    }                                                                     \
+  } while (0);
+
 namespace nntrainer {
 
 #ifdef ENABLE_FP16
@@ -193,21 +212,17 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldb, const float beta, _FP16 *C,
                        const unsigned int ldc) {
 
-  for (unsigned int m = 0; m < M; ++m) {
-    for (unsigned int n = 0; n < N; ++n) {
-      _FP16 c = 0;
-      _FP16 c_old = C[m * ldc + n];
-      for (unsigned int k = 0; k < K; ++k) {
-        _FP16 a, b;
-        a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]);
-        b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]);
-        c += a * b;
-      }
-      C[m * ldc + n] = static_cast<_FP16>(alpha) * c;
-      if (beta != 0.0)
-        C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;
-    }
+#ifdef USE__FP16
+  if ((M % 8 == 0) && (N % 8 == 0) && (K % 8 == 0)) {
+    nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
+                                     TransA == CblasTrans,
+                                     TransB == CblasTrans);
+  } else {
+    sgemm_loop_fp16();
   }
+#else
+  sgemm_loop_fp16();
+#endif
 }
 
 static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
