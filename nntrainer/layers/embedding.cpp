@@ -148,23 +148,51 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // This is to calculate gradient with current implementation of optimizer.
   // In order to accelerate, we need to better way like using index to weight.
 
+  /// @todo
+  // Current nntrainer gradient Tensor shape is identical to its
+  // weight shape. However, this creates a sparse Tensor since we are only using
+  // certain indices of the Tensor that we are interested in. Since we have such
+  // indices before accessing to the Tensor, we can optimize it by deleting the
+  // sparse-value indices. Also left as an Issue as well.
+
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data =
       input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
-    for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = ((float *)(in_data))[i];
-      // Assume padding is 0 and index always start from 1.
-      // If in_data[i] - 1 < 0, then it skips.
-      // if (embed_idx == 0)
-      //   continue;
+    if (djdw.getDataType() == TensorDim::DataType::FP32) {
+      for (unsigned int i = 0; i < input_.width(); ++i) {
+        uint embed_idx = ((float *)(in_data))[i];
+        // Assume padding is 0 and index always start from 1.
+        // If in_data[i] - 1 < 0, then it skips.
+        // if (embed_idx == 0)
+        //   continue;
 
-      float *djdw_data = djdw.getAddress<float>(embed_idx * out_dim);
-      const float *grad_data = derivative_.getAddress<float>(
-        b * derivative_.getDim().getFeatureLen() + i * out_dim);
+        float *djdw_data = djdw.getAddress<float>(embed_idx * out_dim);
+        const float *grad_data = derivative_.getAddress<float>(
+          b * derivative_.getDim().getFeatureLen() + i * out_dim);
 
-      std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
-                     std::plus<float>());
+        std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
+                       std::plus<float>());
+      }
+    } else if (djdw.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      for (unsigned int i = 0; i < input_.width(); ++i) {
+        uint embed_idx = ((float *)(in_data))[i];
+        // Assume padding is 0 and index always start from 1.
+        // If in_data[i] - 1 < 0, then it skips.
+        // if (embed_idx == 0)
+        //   continue;
+
+        _FP16 *djdw_data = djdw.getAddress<_FP16>(embed_idx * out_dim);
+        const _FP16 *grad_data = derivative_.getAddress<_FP16>(
+          b * derivative_.getDim().getFeatureLen() + i * out_dim);
+
+        std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
+                       std::plus<_FP16>());
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
   }
 }
