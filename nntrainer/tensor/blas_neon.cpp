@@ -810,17 +810,20 @@ void sgemm_neon_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
       }
     }
   } else { // TransA && TransB
-    for (unsigned int m = 0; m < M; m++) {
-      for (unsigned int n = 0; n < N; n++) {
-        __fp16 sum = 0;
-        for (int k = 0; k < K; k++) {
-          __fp16 a = A[k * M + m];
-          __fp16 b = B[n * K + k];
-          sum += a * b;
-        }
+    __fp16 vals[8];
+    for (unsigned int n = 0; n < N; n++) {
+      for (unsigned int k = 0; k < K; k++) {
 
-        sum = alpha * sum;
-        C[m * N + n] += sum;
+        __fp16 b = alpha * B[n * K + k];
+        for (unsigned int m = 0; m < M; m += 8) {
+          float16x8_t a = vld1q_f16(&A[k * M + m]);
+          a = vmulq_n_f16(a, b);
+          vst1q_f16(vals, a);
+
+          // calculations for all M values
+          for (unsigned int idx = m; idx < m + 8; idx++)
+            C[idx * N + n] += vals[idx - m];
+        }
       }
     }
   }
