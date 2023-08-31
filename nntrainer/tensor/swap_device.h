@@ -26,7 +26,7 @@
 #include <utility>
 
 /* Uncomment this to use mmap for swap data */
-//#define USE_MMAP
+#define USE_MMAP
 
 namespace nntrainer {
 
@@ -119,8 +119,8 @@ private:
   int fd;                     /**< device file description */
 
 #ifdef USE_MMAP
-  std::map<void *, std::pair<void *, size_t>>
-    mapped; /**< <pointer, <orig_pointer, size>> */
+  std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
+    mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
 #else
   std::map<void *, std::pair<off_t, ssize_t>>
     allocated; /**< <pointer, <offset, size>> */
