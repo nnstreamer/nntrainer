@@ -23,10 +23,15 @@ namespace nntrainer {
 namespace {
 
 std::map<CachePolicy, std::string> policyToStr = {
-  {WRITE_BACK, "WRITE_BACK"},           {NO_WRITE_BACK, "NO_WRITE_BACK"},
-  {READ_CONSIST, "READ_CONSIST"},       {NO_READ_CONSIST, "NO_READ_CONSIST"},
-  {ALWAYS_SYNCED, "ALWAYS_SYNCED"},     {TEMPORAL, "TEMPORAL"},
-  {FIRST_LAST_SKIP, "FIRST_LAST_SKIP"}, {ITERATION_CONSIST, "ITER_CONSIST"}};
+  {WRITE_BACK, "WRITE_BACK"},
+  {NO_WRITE_BACK, "NO_WRITE_BACK"},
+  {READ_CONSIST, "READ_CONSIST"},
+  {NO_READ_CONSIST, "NO_READ_CONSIST"},
+  {ALWAYS_SYNCED, "ALWAYS_SYNCED"},
+  {TEMPORAL, "TEMPORAL"},
+  {FIRST_LAST_SKIP, "FIRST_LAST_SKIP"},
+  {ITERATION_CONSIST, "ITER_CONSIST"},
+  {SYNC_ONCE, "SYNC_ONCE"}};
 
 inline bool checkAllocOnly(CachePolicy policy, CacheElem::Options opt) {
   return ((policy & CachePolicy::NO_READ_CONSIST) ||
@@ -37,7 +42,9 @@ inline bool checkAllocOnly(CachePolicy policy, CacheElem::Options opt) {
 inline bool checkDeallocOnly(CachePolicy policy, CacheElem::Options opt) {
   return ((policy & CachePolicy::NO_READ_CONSIST) ||
           ((opt & CacheElem::Options::LAST_ACCESS) &&
-           (policy & CachePolicy::FIRST_LAST_SKIP)));
+           (policy & CachePolicy::FIRST_LAST_SKIP)) ||
+          ((policy & FRIST_WRITE_CONSIST) &&
+           !(opt & CacheElem::Options::FIRST_WRITE)));
 }
 
 } // namespace
@@ -49,7 +56,7 @@ void CacheElem::swapIn(Options opt) {
   bool alloc_only = checkAllocOnly(policy, opt);
   void *buf = device->getBuffer(offset, length, alloc_only);
 
-  initial_opt = Options::NONE;
+  initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_ACCESS);
   mem_data->setAddr((void *)buf);
   mem_data->setValid(true);
   active = true;
@@ -63,8 +70,12 @@ void CacheElem::swapIn(Options opt) {
 
 void CacheElem::swapOut(Options opt) {
   std::lock_guard<std::mutex> lock(device_mutex);
+
+  opt = static_cast<Options>(opt | initial_opt);
   bool dealloc_only = checkDeallocOnly(policy, opt);
   void *buf = (void *)mem_data->getAddr();
+
+  initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_WRITE);
   device->putBuffer(buf, dealloc_only);
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);
