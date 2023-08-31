@@ -21,6 +21,10 @@ nnstreamer_libdir = nntrainer_prefix / get_option('libdir')
 subplugin_install_prefix = get_option('nnstreamer-subplugin-install-path')
 trainer_subplugin_install_dir = subplugin_install_prefix / 'trainers'
 
+conf_data = configuration_data()
+conf_data.set('nntrainer_app_path', application_install_dir)
+configure_file(input: 'generated_path.h.in', output: 'generated_path.h', configuration: conf_data)
+
 shared_library('nnstreamer_trainer_nntrainer',
   nnstreamer_trainer_nntrainer_sources,
   dependencies: nnstreamer_trainer_nntrainer_deps,

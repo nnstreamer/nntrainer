@@ -85,7 +85,10 @@
  */
 
 #include "tensor_trainer_nntrainer.hh"
+#include "generated_path.h"
+#include <app_context.h>
 #include <cstring>
+#include <filesystem>
 #include <inttypes.h>
 #include <iostream>
 #include <limits.h>
@@ -112,10 +115,49 @@ void fini_subplugin_nntrainer(void) __attribute__((destructor));
 void nntrainer_thread_func(NNTrainer::NNTrainerTrain *nntrainer) {
   nntrainer->trainModel();
 }
-
 /**
- * @brief Check if queue is empty
+ * @brief Get the File Name From Path
  */
+std::string GetFileNameFromPath(const std::string &path) {
+  size_t last = path.find_last_of("/");
+  if (last != std::string::npos) {
+    return path.substr(last + 1);
+  }
+  return path;
+}
+
+void NNTrainer::NNTrainerTrain::registerCustomLayers(const char *path) {
+  ml_logd("<called>");
+
+  if (access(path, F_OK) != 0) {
+    ml_logd("nntrainer-application package is not installed");
+    return;
+  }
+
+  std::filesystem::directory_iterator iter(path);
+
+  while (iter != std::filesystem::end(iter)) {
+    std::string layer_path = iter->path().string();
+
+    if (layer_path.find("layer.so") == std::string::npos) {
+      iter++;
+      continue;
+    }
+
+    std::string filename = GetFileNameFromPath(layer_path);
+    ml_logd("Try to register found custom layer:%s", filename.c_str());
+
+    try {
+      auto &app_context = nntrainer::AppContext::Global();
+      app_context.registerLayer(filename, path);
+    } catch (std::invalid_argument &e) {
+      ml_loge("failed to register factory, %s, %s", typeid(e).name(), e.what());
+    }
+    iter++;
+  }
+  ml_logd("<leaved>");
+}
+
 bool NNTrainer::InputTensorsInfo::isQueueEmpty() {
   ml_logd("front:%d, rear:%d", queue_front, queue_rear);
   if (queue_front == queue_rear) {
@@ -125,9 +167,6 @@ bool NNTrainer::InputTensorsInfo::isQueueEmpty() {
   return FALSE;
 }
 
-/**
- * @brief Check if queue is full
- */
 bool NNTrainer::InputTensorsInfo::isQueueFull() {
   if (((queue_rear + 1) % queue_size) == queue_front) {
     ml_logd("queue is full");
@@ -583,6 +622,10 @@ void NNTrainer::NNTrainerTrain::trainModel() {
 
 void NNTrainer::NNTrainerTrain::createModel() {
   ml_logd("<called>");
+
+  ml_loge("NNTRAINER_APP_PATH=%s", NNTRAINER_APP_PATH);
+  registerCustomLayers(NNTRAINER_APP_PATH);
+
   try {
     model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   } catch (const std::exception &e) {

@@ -79,6 +79,12 @@ public:
   void getNNStreamerProperties(const GstTensorTrainerProperties *prop);
 
   /**
+   * @brief register custom layers in path
+   * @param path path
+   */
+  void registerCustomLayers(const char *path);
+
+  /**
    * @brief Manage sample data
    */
   std::unique_ptr<NNTrainer::InputTensorsInfo> train_data, valid_data;

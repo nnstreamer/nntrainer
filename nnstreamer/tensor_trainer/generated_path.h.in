@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/**
+ * Define Application installation path for nntrainer
+ * Copyright (C) 2022 Hyunil Park <hyunil46.park@samsung.com>
+ */
+/**
+ * @file   generated_path.h
+ * @date   01 Sep 2023
+ * @brief  Define Application installation path for nntrainer
+ * @see    http://github.com/nnstreamer/nntrainer
+ * @see    http://github.com/nnstreamer/nnstreamer
+ * @author Hyunil Park <hyunil46.park@samsung.com>
+ * @bug    No known bugs except for NYI items
+ */
+
+/**
+ * @brief Define application installation path
+ */
+#define NNTRAINER_APP_PATH "@nntrainer_app_path@"
