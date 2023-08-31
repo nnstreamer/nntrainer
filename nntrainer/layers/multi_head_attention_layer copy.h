@@ -23,6 +23,8 @@
 #include <layer_impl.h>
 #include <utility>
 
+#include <iostream>
+
 namespace nntrainer {
 
 /**
@@ -130,16 +132,10 @@ private:
 
   inline static std::vector<std::vector<std::complex<float>>> *freqs_cis = {};
 
-  /**
-   * @brief      make rotray embedding frequency
-   * @param[in]  dim hidden dimension
-   * @param[in]  seq_len input sequence length
-   * @param[in]  theta rotate angle
-   *
-   */
   template <typename T = float>
   void precompute_freqs_cis(int dim, int seq_len, float theta = 10000.0) {
     if (freqs_cis == nullptr) {
+      std::cerr << "hello\n";
       std::vector<float> freqs(dim / 2);
       for (int i = 0; i < dim / 2; ++i) {
         freqs[i] = 1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim)));
@@ -159,14 +155,6 @@ private:
     }
   }
 
-  /**
-   * @brief      applying rotary embeding
-   * @param[in]  real real value
-   * @param[in]  img imagnary value
-   * @param[in]  i sequence order
-   * @param[in]  j hidden dimension order
-   *
-   */
   template <typename T = float>
   std::tuple<T, T> apply_rotary_emb(T real, T imag, int i, int j) {
     std::complex<float> input_complex(static_cast<float>(real),
@@ -177,12 +165,6 @@ private:
                            static_cast<T>(output_complex.imag()));
   }
 
-  /**
-   * @brief      applying rotary embeding
-   * @param[in]  in input tensor
-   * @param[in]  dim hidden dimension
-   * @param[in]  from sequence order
-   */
   template <typename T = float>
   Tensor apply_rotary_emb_tensor(Tensor in, unsigned int dim,
                                  unsigned int from) {

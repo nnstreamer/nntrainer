@@ -22,70 +22,6 @@
 
 namespace nntrainer {
 
-template <typename T = float>
-
-std::vector<std::vector<std::complex<T>>> *
-precompute_freqs_cis(int dim, int seq_len, float theta = 10000.0) {
-  std::vector<float> freqs(dim / 2);
-  for (int i = 0; i < dim / 2; ++i) {
-    freqs[i] = 1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim)));
-  }
-
-  auto cis = new std::vector<std::vector<std::complex<T>>>();
-  cis->assign(seq_len, std::vector<std::complex<T>>(dim / 2, 0));
-
-  for (int i = 0; i < seq_len; ++i) {
-    for (int j = 0; j < dim / 2; ++j) {
-      float angle = i * freqs[j];
-      (*cis)[i][j] = static_cast<std::complex<T>>(std::polar(1.0f, angle));
-    }
-  }
-
-  return cis;
-}
-
-template <typename T = float>
-std::tuple<T, T>
-apply_rotary_emb(T real, T imag,
-                 std::vector<std::vector<std::complex<float>>> *freqs, int i,
-                 int j) {
-
-  std::complex<float> input_complex(static_cast<float>(real),
-                                    static_cast<float>(imag));
-  std::complex<float> output_complex = input_complex * (*freqs)[i][(int)j / 2];
-  return std::make_tuple(static_cast<T>(output_complex.real()),
-                         static_cast<T>(output_complex.imag()));
-}
-
-template <typename T = float>
-Tensor apply_rotary_emb_tensor(
-  Tensor in, unsigned int dim, unsigned int from,
-  std::vector<std::vector<std::complex<float>>> *freqs_cis) {
-  Tensor out(in.getDim());
-  for (int b = 0; b < (int)in.batch(); b++) {
-    for (int c = 0; c < (int)in.channel(); c++) {
-      for (int h = 0; h < (int)in.height(); h++) {
-        for (int w = 0; w < (int)in.width(); w = w + 2) {
-#ifdef ENABLE_FP16
-          _FP16 real = in.getValue<_FP16>(b, c, h, w);
-          _FP16 imag = in.getValue<_FP16>(b, c, h, w + 1);
-          std::tie(real, imag) =
-            apply_rotary_emb<_FP16>(real, imag, freqs_cis, from + h, w % dim);
-#else
-          float real = in.getValue(b, c, h, w);
-          float imag = in.getValue(b, c, h, w + 1);
-          std::tie(real, imag) =
-            apply_rotary_emb<float>(real, imag, freqs_cis, from + h, w % dim);
-#endif
-          out.setValue(b, c, h, w, real);
-          out.setValue(b, c, h, w + 1, imag);
-        }
-      }
-    }
-  }
-  return out;
-}
-
 MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
   multi_head_attention_props(
     props::NumHeads(), props::ProjectedKeyDim(), props::ProjectedValueDim(),
@@ -411,7 +347,7 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
    * check query width and key width
    *
    */
-  freqs_cis = precompute_freqs_cis<float>(projected_key_dim_prop, key_height);
+  precompute_freqs_cis<float>(projected_key_dim_prop, key_height);
 }
 
 void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
@@ -509,17 +445,16 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   }
 
 #ifdef ENABLE_FP16
-  projected_query = apply_rotary_emb_tensor<_FP16>(
-    projected_query, projected_key_dim_prop, 0, freqs_cis);
-  projected_key = apply_rotary_emb_tensor<_FP16>(
-    projected_key, projected_key_dim_prop, 0, freqs_cis);
+  projected_query =
+    apply_rotary_emb_tensor<_FP16>(projected_query, projected_key_dim_prop, 0);
+  projected_key =
+    apply_rotary_emb_tensor<_FP16>(projected_key, projected_key_dim_prop, 0);
 #else
-  projected_query = apply_rotary_emb_tensor<float>(
-    projected_query, projected_key_dim_prop, 0, freqs_cis);
-  projected_key = apply_rotary_emb_tensor<float>(
-    projected_key, projected_key_dim_prop, 0, freqs_cis);
+  projected_query =
+    apply_rotary_emb_tensor<float>(projected_query, projected_key_dim_prop, 0);
+  projected_key =
+    apply_rotary_emb_tensor<float>(projected_key, projected_key_dim_prop, 0);
 #endif
-  // std::cerr << projected_query << "\n";
 
   projected_query.reshape(
     TensorDim({batch_size, query_height, num_heads, projected_query_dim_prop}));
@@ -824,15 +759,15 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
 
 #ifdef ENABLE_FP16
   projected_query_step = apply_rotary_emb_tensor<_FP16>(
-    projected_query_step, projected_key_dim_prop, from, freqs_cis);
+    projected_query_step, projected_key_dim_prop, from);
   nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<_FP16>(
-    cache_key_step, projected_key_dim_prop, from, freqs_cis);
+    cache_key_step, projected_key_dim_prop, from);
   cache_key_step.copyData(cache_key_step_temp);
 #else
   projected_query_step = apply_rotary_emb_tensor<float>(
-    projected_query_step, projected_key_dim_prop, from, freqs_cis);
+    projected_query_step, projected_key_dim_prop, from);
   nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<float>(
-    cache_key_step, projected_key_dim_prop, from, freqs_cis);
+    cache_key_step, projected_key_dim_prop, from);
   cache_key_step.copyData(cache_key_step_temp);
 #endif
 
