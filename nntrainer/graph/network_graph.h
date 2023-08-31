@@ -58,11 +58,11 @@ public:
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
-  NetworkGraph(bool enable_swap, const std::string &swap_path = "",
+  NetworkGraph(bool enable_swap, const std::string &swap_mode = "train", const std::string &swap_path = "",
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
-    tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
+    tensor_manager(std::make_shared<Manager>(enable_swap, swap_mode, swap_path, lookahead,
                                              tensor_format_, tensor_dtype_)),
     graph(),
     compiled(false),
