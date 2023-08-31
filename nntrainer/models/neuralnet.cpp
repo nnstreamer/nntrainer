@@ -264,9 +264,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   }
 
   // Allocate weights
-  const std::string memory_swap_mode =
-    std::get<props::MemorySwapMode>(model_flex_props);
-  model_graph.allocateWeights(memory_swap_mode.compare("inference") != 0);
+  model_graph.allocateWeights(exec_mode != ExecutionMode::INFERENCE);
 
   initialized = true;
 
