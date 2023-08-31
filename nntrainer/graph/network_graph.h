@@ -355,9 +355,9 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights() {
+  void allocateWeights(bool init = true) {
     tensor_manager->allocateWeights(
-      std::get<3>(backward_iter_end->getExecutionOrder()));
+      std::get<3>(backward_iter_end->getExecutionOrder()), init);
   }
 
   /**
