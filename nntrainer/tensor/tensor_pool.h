@@ -93,7 +93,7 @@ public:
   /**
    * @brief Allocate memory for all the managed tensors
    */
-  void allocate();
+  void allocate(bool init = true);
 
   /**
    * @brief Deallocate memory for all the managed tensors
