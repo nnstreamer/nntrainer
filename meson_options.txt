@@ -34,7 +34,7 @@ option('enable-long-test', type: 'boolean', value: false)
 
 # backend options
 option('enable-blas', type: 'boolean', value: true)
-option('enable-fp16', type: 'boolean', value: true)
+option('enable-fp16', type: 'boolean', value: false)
 option('enable-cublas', type: 'boolean', value: false)
 option('enable-openmp', type: 'boolean', value: true)
 
