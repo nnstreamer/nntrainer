@@ -101,7 +101,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
-    ml_loge("can not do loadFromConfig twice");
+    ml_loge("cannot do loadFromConfig twice");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -647,6 +647,9 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
       sections.push_back(s);
     }
   };
+
+  add_section_if_any("LearningRateScheduler", opt->getLearningRateScheduler(),
+                     [](const auto &obj) { return static_cast<bool>(obj); });
 
   add_section_if_any("optimizer", opt,
                      [](const auto &obj) { return static_cast<bool>(obj); });
