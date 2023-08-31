@@ -217,7 +217,7 @@ void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
 /**
  * @brief Allocate memory for all the managed tensors
  */
-void TensorPool::allocate() {
+void TensorPool::allocate(bool init) {
   if (minMemoryRequirement() == 0)
     return;
   mem_pool->allocate();
@@ -229,7 +229,7 @@ void TensorPool::allocate() {
     if (!details || details->token == 0) {
       continue;
     }
-    spec.tensor->setData(mem_pool->getMemory(details->token), 0, true);
+    spec.tensor->setData(mem_pool->getMemory(details->token), 0, init);
     syncDependents(spec);
   }
 
