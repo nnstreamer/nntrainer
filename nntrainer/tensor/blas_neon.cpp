@@ -273,8 +273,225 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
 }
 
 #ifdef ENABLE_FP16
-void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
-                     uint32_t cols, float alpha, float beta) {
+
+void sgemv_neon_fp16_pad(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                         uint32_t rows, uint32_t cols, float alpha,
+                         float beta) {
+  const __fp16 *__restrict x;
+
+  float16x8_t v_beta = vmovq_n_f16(beta);
+
+  for (unsigned int i = 0; i < rows; i += 8) {
+    float16x8_t y = vld1q_f16(&Y[i]);
+    y = vmulq_f16(v_beta, y);
+    vst1q_f16(&Y[i], y);
+  }
+
+  float16x8_t v_alpha = vmovq_n_f16(alpha);
+  uint32_t padded_cols;
+  if (cols > 63) {
+    padded_cols = (cols + 31) & ~31;
+  } else if (cols > 31) {
+    padded_cols = (cols + 15) & ~15;
+  } else {
+    padded_cols = (cols + 7) & ~7;
+  }
+
+  if (padded_cols % 32 == 0) {
+    for (unsigned i = 0; i < padded_cols; i += 32) {
+      float16x8_t x0_7 = vld1q_f16(&X[i]);
+      float16x8_t x8_15 = vld1q_f16(&X[i + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[i + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[i + 24]);
+
+      if (alpha != 1.0) {
+        x0_7 = vmulq_f16(x0_7, v_alpha);
+        x8_15 = vmulq_f16(x8_15, v_alpha);
+        x16_23 = vmulq_f16(x16_23, v_alpha);
+        x24_31 = vmulq_f16(x24_31, v_alpha);
+      }
+
+      float16x8_t wvec0_7, wvec8_15, wvec16_23, wvec24_31;
+
+      const __fp16 *__restrict w;
+
+      float16x8_t y0;
+      __fp16 r[4];
+
+      float16x4_t y0_high;
+      float16x4_t y0_low;
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + i];
+        y0 = vmovq_n_f16(0);
+        if (i >= padded_cols - 32) {
+          if ((padded_cols - cols) > 24) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vmovq_n_f16(0);
+            wvec16_23 = vmovq_n_f16(0);
+            wvec24_31 = vmovq_n_f16(0);
+
+            x8_15 = vmovq_n_f16(0);
+            x16_23 = vmovq_n_f16(0);
+            x24_31 = vmovq_n_f16(0);
+            for (unsigned int k = 8 - (padded_cols - cols - 24); k < 8; ++k) {
+              wvec0_7[k] = 0;
+              x0_7[k] = 0;
+            }
+          } else if ((padded_cols - cols) > 16) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vmovq_n_f16(0);
+            wvec24_31 = vmovq_n_f16(0);
+
+            x16_23 = vmovq_n_f16(0);
+            x24_31 = vmovq_n_f16(0);
+            for (unsigned int k = 8 - (padded_cols - cols - 16); k < 8; ++k) {
+              wvec8_15[k] = 0;
+              x8_15[k] = 0;
+            }
+          } else if ((padded_cols - cols) > 8) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vld1q_f16(&w[16]);
+            wvec24_31 = vmovq_n_f16(0);
+
+            x24_31 = vmovq_n_f16(0);
+
+            for (unsigned int k = 8 - (padded_cols - cols - 8); k < 8; ++k) {
+              wvec16_23[k] = 0;
+              x16_23[k] = 0;
+            }
+
+          } else {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vld1q_f16(&w[16]);
+            wvec24_31 = vld1q_f16(&w[24]);
+            for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+              wvec24_31[k] = 0;
+              x24_31[k] = 0;
+            }
+          }
+        } else {
+          wvec0_7 = vld1q_f16(&w[0]);
+          wvec8_15 = vld1q_f16(&w[8]);
+          wvec16_23 = vld1q_f16(&w[16]);
+          wvec24_31 = vld1q_f16(&w[24]);
+        }
+
+        y0 = vfmaq_f16(y0, wvec0_7, x0_7);
+        y0 = vfmaq_f16(y0, wvec8_15, x8_15);
+        y0 = vfmaq_f16(y0, wvec16_23, x16_23);
+        y0 = vfmaq_f16(y0, wvec24_31, x24_31);
+
+        y0_high = vget_high_f16(y0);
+        y0_low = vget_low_f16(y0);
+
+        y0_low = vadd_f16(y0_high, y0_low);
+        vst1_f16(r, y0_low);
+
+        Y[j] += r[0] + r[1] + r[2] + r[3];
+      }
+    }
+
+  } else if (padded_cols % 16 == 0) {
+    for (unsigned i = 0; i < padded_cols; i += 16) {
+      float16x8_t x0_7 = vld1q_f16(&X[i]);
+      float16x8_t x8_15 = vld1q_f16(&X[i + 8]);
+
+      if (alpha != 1.0) {
+        x0_7 = vmulq_f16(x0_7, v_alpha);
+        x8_15 = vmulq_f16(x8_15, v_alpha);
+      }
+
+      float16x8_t wvec0_7, wvec8_15;
+
+      const __fp16 *__restrict w;
+
+      float16x8_t y0;
+      __fp16 r[4];
+
+      float16x4_t y0_high;
+      float16x4_t y0_low;
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + i];
+        y0 = vmovq_n_f16(0);
+
+        if (i >= padded_cols - 16) {
+          if ((padded_cols - cols) > 8) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vmovq_n_f16(0);
+            x8_15 = vmovq_n_f16(0);
+            for (unsigned int k = 8 - (padded_cols - cols - 8); k < 8; ++k) {
+              wvec0_7[k] = 0;
+              x0_7[k] = 0;
+            }
+          } else {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+              wvec8_15[k] = 0;
+              x8_15[k] = 0;
+            }
+          }
+        } else {
+          wvec0_7 = vld1q_f16(&w[0]);
+          wvec8_15 = vld1q_f16(&w[8]);
+        }
+        y0 = vfmaq_f16(y0, wvec0_7, x0_7);
+        y0 = vfmaq_f16(y0, wvec8_15, x8_15);
+
+        y0_high = vget_high_f16(y0);
+        y0_low = vget_low_f16(y0);
+
+        y0_low = vadd_f16(y0_high, y0_low);
+        vst1_f16(r, y0_low);
+
+        Y[j] += r[0] + r[1] + r[2] + r[3];
+      }
+    }
+  } else if (padded_cols % 8 == 0) {
+    for (unsigned i = 0; i < padded_cols; i += 8) {
+      float16x8_t x0_7 = vld1q_f16(&X[i]);
+
+      if (alpha != 1.0) {
+        x0_7 = vmulq_f16(x0_7, v_alpha);
+      }
+
+      float16x8_t wvec0_7;
+
+      float16x8_t y0;
+      __fp16 r[4];
+
+      float16x4_t y0_high;
+      float16x4_t y0_low;
+      for (unsigned int j = 0; j < rows; ++j) {
+        wvec0_7 = vld1q_f16(&A[j * cols + i]);
+
+        if (i >= padded_cols - 8) {
+          for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+            wvec0_7[k] = 0;
+            x0_7[k] = 0;
+          }
+        }
+
+        y0 = vmulq_f16(wvec0_7, x0_7);
+
+        y0_high = vget_high_f16(y0);
+        y0_low = vget_low_f16(y0);
+
+        y0_low = vadd_f16(y0_high, y0_low);
+        vst1_f16(r, y0_low);
+
+        Y[j] += r[0] + r[1] + r[2] + r[3];
+      }
+    }
+  }
+}
+
+void sgemv_neon_fp16_fit(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                         uint32_t rows, uint32_t cols, float alpha,
+                         float beta) {
   const __fp16 *__restrict x;
 
   float16x8_t v_beta = vmovq_n_f16(beta);
@@ -287,7 +504,171 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
 
   float16x8_t v_alpha = vmovq_n_f16(alpha);
 
-  if (cols % 32 == 0) {
+  if (cols % 128 == 0) {
+    for (unsigned i = 0; i < cols; i += 128) {
+      float16x8_t x0_7 = vld1q_f16(&X[i]);
+      float16x8_t x8_15 = vld1q_f16(&X[i + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[i + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[i + 24]);
+      float16x8_t x32_39 = vld1q_f16(&X[i + 32]);
+      float16x8_t x40_47 = vld1q_f16(&X[i + 40]);
+      float16x8_t x48_55 = vld1q_f16(&X[i + 48]);
+      float16x8_t x56_63 = vld1q_f16(&X[i + 56]);
+      float16x8_t x64_71 = vld1q_f16(&X[i + 64]);
+      float16x8_t x72_79 = vld1q_f16(&X[i + 72]);
+      float16x8_t x80_87 = vld1q_f16(&X[i + 80]);
+      float16x8_t x88_95 = vld1q_f16(&X[i + 88]);
+      float16x8_t x96_103 = vld1q_f16(&X[i + 96]);
+      float16x8_t x104_111 = vld1q_f16(&X[i + 104]);
+      float16x8_t x112_119 = vld1q_f16(&X[i + 112]);
+      float16x8_t x120_127 = vld1q_f16(&X[i + 120]);
+
+      if (alpha != 1.0) {
+        x0_7 = vmulq_f16(x0_7, v_alpha);
+        x8_15 = vmulq_f16(x8_15, v_alpha);
+        x16_23 = vmulq_f16(x16_23, v_alpha);
+        x24_31 = vmulq_f16(x24_31, v_alpha);
+        x32_39 = vmulq_f16(x32_39, v_alpha);
+        x40_47 = vmulq_f16(x40_47, v_alpha);
+        x48_55 = vmulq_f16(x48_55, v_alpha);
+        x56_63 = vmulq_f16(x56_63, v_alpha);
+        x64_71 = vmulq_f16(x64_71, v_alpha);
+        x72_79 = vmulq_f16(x72_79, v_alpha);
+        x80_87 = vmulq_f16(x80_87, v_alpha);
+        x88_95 = vmulq_f16(x88_95, v_alpha);
+        x96_103 = vmulq_f16(x96_103, v_alpha);
+        x104_111 = vmulq_f16(x104_111, v_alpha);
+        x112_119 = vmulq_f16(x112_119, v_alpha);
+        x120_127 = vmulq_f16(x120_127, v_alpha);
+      }
+
+      float16x8_t wvec0_7, wvec8_15, wvec16_23, wvec24_31, wvec32_39, wvec40_47,
+        wvec48_55, wvec56_63, wvec64_71, wvec72_79, wvec80_87, wvec88_95,
+        wvec96_103, wvec104_111, wvec112_119, wvec120_127;
+
+      const __fp16 *__restrict w;
+
+      float16x8_t y0;
+      __fp16 r[4];
+
+      float16x4_t y0_high;
+      float16x4_t y0_low;
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + i];
+        y0 = vmovq_n_f16(0);
+
+        wvec0_7 = vld1q_f16(&w[0]);
+        wvec8_15 = vld1q_f16(&w[8]);
+        wvec16_23 = vld1q_f16(&w[16]);
+        wvec24_31 = vld1q_f16(&w[24]);
+        wvec32_39 = vld1q_f16(&w[32]);
+        wvec40_47 = vld1q_f16(&w[40]);
+        wvec48_55 = vld1q_f16(&w[48]);
+        wvec56_63 = vld1q_f16(&w[56]);
+
+        wvec64_71 = vld1q_f16(&w[64]);
+        wvec72_79 = vld1q_f16(&w[72]);
+        wvec80_87 = vld1q_f16(&w[80]);
+        wvec88_95 = vld1q_f16(&w[88]);
+        wvec96_103 = vld1q_f16(&w[96]);
+        wvec104_111 = vld1q_f16(&w[104]);
+        wvec112_119 = vld1q_f16(&w[112]);
+        wvec120_127 = vld1q_f16(&w[120]);
+
+        y0 = vfmaq_f16(y0, wvec0_7, x0_7);
+        y0 = vfmaq_f16(y0, wvec8_15, x8_15);
+        y0 = vfmaq_f16(y0, wvec16_23, x16_23);
+        y0 = vfmaq_f16(y0, wvec24_31, x24_31);
+        y0 = vfmaq_f16(y0, wvec32_39, x32_39);
+        y0 = vfmaq_f16(y0, wvec40_47, x40_47);
+        y0 = vfmaq_f16(y0, wvec48_55, x48_55);
+        y0 = vfmaq_f16(y0, wvec56_63, x56_63);
+
+        y0 = vfmaq_f16(y0, wvec64_71, x64_71);
+        y0 = vfmaq_f16(y0, wvec72_79, x72_79);
+        y0 = vfmaq_f16(y0, wvec80_87, x80_87);
+        y0 = vfmaq_f16(y0, wvec88_95, x88_95);
+        y0 = vfmaq_f16(y0, wvec96_103, x96_103);
+        y0 = vfmaq_f16(y0, wvec104_111, x104_111);
+        y0 = vfmaq_f16(y0, wvec112_119, x112_119);
+        y0 = vfmaq_f16(y0, wvec120_127, x120_127);
+
+        y0_high = vget_high_f16(y0);
+        y0_low = vget_low_f16(y0);
+
+        y0_low = vadd_f16(y0_high, y0_low);
+        vst1_f16(r, y0_low);
+
+        Y[j] += r[0] + r[1] + r[2] + r[3];
+      }
+    }
+  } else if (cols % 64 == 0) {
+    for (unsigned i = 0; i < cols; i += 64) {
+      float16x8_t x0_7 = vld1q_f16(&X[i]);
+      float16x8_t x8_15 = vld1q_f16(&X[i + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[i + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[i + 24]);
+      float16x8_t x32_39 = vld1q_f16(&X[i + 32]);
+      float16x8_t x40_47 = vld1q_f16(&X[i + 40]);
+      float16x8_t x48_55 = vld1q_f16(&X[i + 48]);
+      float16x8_t x56_63 = vld1q_f16(&X[i + 56]);
+
+      if (alpha != 1.0) {
+        x0_7 = vmulq_f16(x0_7, v_alpha);
+        x8_15 = vmulq_f16(x8_15, v_alpha);
+        x16_23 = vmulq_f16(x16_23, v_alpha);
+        x24_31 = vmulq_f16(x24_31, v_alpha);
+        x32_39 = vmulq_f16(x32_39, v_alpha);
+        x40_47 = vmulq_f16(x40_47, v_alpha);
+        x48_55 = vmulq_f16(x48_55, v_alpha);
+        x56_63 = vmulq_f16(x56_63, v_alpha);
+      }
+
+      float16x8_t wvec0_7, wvec8_15, wvec16_23, wvec24_31, wvec32_39, wvec40_47,
+        wvec48_55, wvec56_63;
+
+      const __fp16 *__restrict w;
+
+      float16x8_t y0;
+      __fp16 r[4];
+
+      float16x4_t y0_high;
+      float16x4_t y0_low;
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + i];
+        y0 = vmovq_n_f16(0);
+
+        wvec0_7 = vld1q_f16(&w[0]);
+        wvec8_15 = vld1q_f16(&w[8]);
+        wvec16_23 = vld1q_f16(&w[16]);
+        wvec24_31 = vld1q_f16(&w[24]);
+
+        wvec32_39 = vld1q_f16(&w[32]);
+        wvec40_47 = vld1q_f16(&w[40]);
+        wvec48_55 = vld1q_f16(&w[48]);
+        wvec56_63 = vld1q_f16(&w[56]);
+
+        y0 = vfmaq_f16(y0, wvec0_7, x0_7);
+        y0 = vfmaq_f16(y0, wvec8_15, x8_15);
+        y0 = vfmaq_f16(y0, wvec16_23, x16_23);
+        y0 = vfmaq_f16(y0, wvec24_31, x24_31);
+
+        y0 = vfmaq_f16(y0, wvec32_39, x32_39);
+        y0 = vfmaq_f16(y0, wvec40_47, x40_47);
+        y0 = vfmaq_f16(y0, wvec48_55, x48_55);
+        y0 = vfmaq_f16(y0, wvec56_63, x56_63);
+
+        y0_high = vget_high_f16(y0);
+        y0_low = vget_low_f16(y0);
+
+        y0_low = vadd_f16(y0_high, y0_low);
+        vst1_f16(r, y0_low);
+
+        Y[j] += r[0] + r[1] + r[2] + r[3];
+      }
+    }
+
+  } else if (cols % 32 == 0) {
     for (unsigned i = 0; i < cols; i += 32) {
       float16x8_t x0_7 = vld1q_f16(&X[i]);
       float16x8_t x8_15 = vld1q_f16(&X[i + 8]);
@@ -406,20 +787,244 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
   }
 }
 
-void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
-                               uint32_t rows, uint32_t cols, float alpha,
-                               float beta) {
+void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta) {
+  if ((cols >= 32) && (cols % 128 == 0 || cols % 64 == 0 || cols % 32 == 0)) {
+    sgemv_neon_fp16_fit(A, X, Y, rows, cols, alpha, beta);
+  } else {
+    sgemv_neon_fp16_pad(A, X, Y, rows, cols, alpha, beta);
+  }
+}
+
+void sgemv_transpose_neon_fp16_pad(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                                   uint32_t rows, uint32_t cols, float alpha,
+                                   float beta) {
 
   const float16x8_t v_beta = vmovq_n_f16(beta);
   const float16x8_t v_alpha = vmovq_n_f16(alpha);
 
-  if (cols % 32 == 0) {
+  uint32_t padded_cols;
+  if (cols > 63) {
+    padded_cols = (cols + 31) & ~31;
+  } else if (cols > 31) {
+    padded_cols = (cols + 15) & ~15;
+  } else {
+    padded_cols = (cols + 7) & ~7;
+  }
 
-    for (unsigned int j = 0; j < cols; j += 8) {
+  if (padded_cols % 32 == 0) {
+    for (unsigned int i = 0; i < rows; ++i) {
+      __fp16 x = alpha * X[i];
+
+      for (unsigned int j = 0; j < padded_cols; j += 32) {
+        __fp16 *__restrict y = &Y[j];
+
+        float16x8_t y0_7 = vld1q_f16(&y[0]);
+        float16x8_t y8_15 = vld1q_f16(&y[8]);
+        float16x8_t y16_23 = vld1q_f16(&y[16]);
+        float16x8_t y24_31 = vld1q_f16(&y[24]);
+
+        float16x8_t wvec0_7, wvec8_15, wvec16_23, wvec24_31;
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + j];
+
+        if (j >= padded_cols - 32) {
+          if ((padded_cols - cols) > 24) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vmovq_n_f16(0);
+            wvec16_23 = vmovq_n_f16(0);
+            wvec24_31 = vmovq_n_f16(0);
+
+            for (unsigned int k = 8 - (padded_cols - cols - 24); k < 8; ++k) {
+              wvec0_7[k] = 0;
+            }
+          } else if ((padded_cols - cols) > 16) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vmovq_n_f16(0);
+            wvec24_31 = vmovq_n_f16(0);
+
+            for (unsigned int k = 8 - (padded_cols - cols - 16); k < 8; ++k) {
+              wvec8_15[k] = 0;
+            }
+          } else if ((padded_cols - cols) > 8) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vld1q_f16(&w[16]);
+            wvec24_31 = vmovq_n_f16(0);
+
+            for (unsigned int k = 8 - (padded_cols - cols - 8); k < 8; ++k) {
+              wvec16_23[k] = 0;
+            }
+          } else {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+            wvec16_23 = vld1q_f16(&w[16]);
+            wvec24_31 = vld1q_f16(&w[24]);
+
+            for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+              wvec24_31[k] = 0;
+            }
+          }
+        } else {
+          wvec0_7 = vld1q_f16(&w[0]);
+          wvec8_15 = vld1q_f16(&w[8]);
+          wvec16_23 = vld1q_f16(&w[16]);
+          wvec24_31 = vld1q_f16(&w[24]);
+        }
+
+        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
+        y8_15 = vfmaq_n_f16(y8_15, wvec8_15, x);
+        y16_23 = vfmaq_n_f16(y16_23, wvec16_23, x);
+        y24_31 = vfmaq_n_f16(y24_31, wvec24_31, x);
+
+        vst1q_f16(&y[0], y0_7);
+        vst1q_f16(&y[8], y8_15);
+        vst1q_f16(&y[16], y16_23);
+        vst1q_f16(&y[24], y24_31);
+      }
+    }
+    return;
+  } else if (padded_cols % 16 == 0) {
+
+    for (unsigned int i = 0; i < rows; ++i) {
+      __fp16 x = alpha * X[i];
+
+      for (unsigned int j = 0; j < padded_cols; j += 16) {
+        __fp16 *__restrict y = &Y[j];
+
+        float16x8_t y0_7 = vld1q_f16(&y[0]);
+        float16x8_t y8_15 = vld1q_f16(&y[8]);
+
+        float16x8_t wvec0_7, wvec8_15;
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + j];
+
+        if (j >= padded_cols - 16) {
+          if ((padded_cols - cols) > 8) {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vmovq_n_f16(0);
+
+            for (unsigned int k = 8 - (padded_cols - cols - 8); k < 8; ++k) {
+              wvec0_7[k] = 0;
+            }
+          } else {
+            wvec0_7 = vld1q_f16(&w[0]);
+            wvec8_15 = vld1q_f16(&w[8]);
+
+            for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+              wvec8_15[k] = 0;
+            }
+          }
+        } else {
+          wvec0_7 = vld1q_f16(&w[0]);
+          wvec8_15 = vld1q_f16(&w[8]);
+        }
+
+        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
+        y8_15 = vfmaq_n_f16(y8_15, wvec8_15, x);
+
+        vst1q_f16(&y[0], y0_7);
+        vst1q_f16(&y[8], y8_15);
+      }
+    }
+    return;
+  } else if (padded_cols % 8 == 0) {
+
+    for (unsigned int j = 0; j < padded_cols; j += 8) {
       float16x8_t y0_7 = vld1q_f16(&Y[j]);
       y0_7 = vmulq_f16(y0_7, v_beta);
       vst1q_f16(&Y[j], y0_7);
     }
+
+    for (unsigned int i = 0; i < rows; ++i) {
+
+      __fp16 x = alpha * X[i];
+
+      for (unsigned int j = 0; j < padded_cols; j += 8) {
+
+        float16x8_t y0_7 = vld1q_f16(&Y[j]);
+        float16x8_t wvec0_7 = vld1q_f16(&A[i * cols + j]);
+
+        if (j >= padded_cols - 8) {
+          for (unsigned int k = 8 - (padded_cols - cols); k < 8; ++k) {
+            wvec0_7[k] = 0;
+          }
+        }
+
+        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
+
+        vst1q_f16(&Y[j], y0_7);
+      }
+    }
+    return;
+  }
+}
+
+void sgemv_transpose_neon_fp16_fit(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                                   uint32_t rows, uint32_t cols, float alpha,
+                                   float beta) {
+
+  const float16x8_t v_beta = vmovq_n_f16(beta);
+  const float16x8_t v_alpha = vmovq_n_f16(alpha);
+
+  if (cols % 64 == 0) {
+
+    for (unsigned int i = 0; i < rows; ++i) {
+      __fp16 x = alpha * X[i];
+
+      for (unsigned int j = 0; j < cols; j += 64) {
+        __fp16 *__restrict y = &Y[j];
+
+        float16x8_t y0_7 = vld1q_f16(&y[0]);
+        float16x8_t y8_15 = vld1q_f16(&y[8]);
+        float16x8_t y16_23 = vld1q_f16(&y[16]);
+        float16x8_t y24_31 = vld1q_f16(&y[24]);
+
+        float16x8_t y32_39 = vld1q_f16(&y[32]);
+        float16x8_t y40_47 = vld1q_f16(&y[40]);
+        float16x8_t y48_55 = vld1q_f16(&y[48]);
+        float16x8_t y56_63 = vld1q_f16(&y[56]);
+
+        float16x8_t wvec0_7, wvec8_15, wvec16_23, wvec24_31, wvec32_39,
+          wvec40_47, wvec48_55, wvec56_63;
+
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + j];
+
+        wvec0_7 = vld1q_f16(&w[0]);
+        wvec8_15 = vld1q_f16(&w[8]);
+        wvec16_23 = vld1q_f16(&w[16]);
+        wvec24_31 = vld1q_f16(&w[24]);
+        wvec32_39 = vld1q_f16(&w[32]);
+        wvec40_47 = vld1q_f16(&w[40]);
+        wvec48_55 = vld1q_f16(&w[48]);
+        wvec56_63 = vld1q_f16(&w[56]);
+
+        y0_7 = vfmaq_n_f16(y0_7, wvec0_7, x);
+        y8_15 = vfmaq_n_f16(y8_15, wvec8_15, x);
+        y16_23 = vfmaq_n_f16(y16_23, wvec16_23, x);
+        y24_31 = vfmaq_n_f16(y24_31, wvec24_31, x);
+        y32_39 = vfmaq_n_f16(y32_39, wvec32_39, x);
+        y40_47 = vfmaq_n_f16(y40_47, wvec40_47, x);
+        y48_55 = vfmaq_n_f16(y48_55, wvec48_55, x);
+        y56_63 = vfmaq_n_f16(y56_63, wvec56_63, x);
+
+        vst1q_f16(&y[0], y0_7);
+        vst1q_f16(&y[8], y8_15);
+        vst1q_f16(&y[16], y16_23);
+        vst1q_f16(&y[24], y24_31);
+        vst1q_f16(&y[32], y32_39);
+        vst1q_f16(&y[40], y40_47);
+        vst1q_f16(&y[48], y48_55);
+        vst1q_f16(&y[56], y56_63);
+      }
+    }
+    return;
+  } else if (cols % 32 == 0) {
 
     for (unsigned int i = 0; i < rows; ++i) {
       __fp16 x = alpha * X[i];
@@ -456,12 +1061,6 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
     return;
   } else if (cols % 16 == 0) {
 
-    for (unsigned int j = 0; j < cols; j += 8) {
-      float16x8_t y0_7 = vld1q_f16(&Y[j]);
-      y0_7 = vmulq_f16(y0_7, v_beta);
-      vst1q_f16(&Y[j], y0_7);
-    }
-
     for (unsigned int i = 0; i < rows; ++i) {
       __fp16 x = alpha * X[i];
 
@@ -488,13 +1087,6 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
     }
     return;
   } else if (cols % 8 == 0) {
-
-    for (unsigned int j = 0; j < cols; j += 8) {
-      float16x8_t y0_7 = vld1q_f16(&Y[j]);
-      y0_7 = vmulq_f16(y0_7, v_beta);
-      vst1q_f16(&Y[j], y0_7);
-    }
-
     for (unsigned int i = 0; i < rows; ++i) {
 
       __fp16 x = alpha * X[i];
@@ -510,6 +1102,16 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
       }
     }
     return;
+  }
+}
+
+void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                               uint32_t rows, uint32_t cols, float alpha,
+                               float beta) {
+  if (cols % 128 == 0 || cols % 64 == 0 || cols % 32 == 0) {
+    sgemv_transpose_neon_fp16_fit(A, X, Y, rows, cols, alpha, beta);
+  } else {
+    sgemv_transpose_neon_fp16_pad(A, X, Y, rows, cols, alpha, beta);
   }
 }
 

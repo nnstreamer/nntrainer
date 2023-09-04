@@ -224,7 +224,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       for (unsigned int idx = 0; idx < total; idx++) {
         auto d1 = t1.getValue<_FP16>(idx);
         auto d2 = t2.getValue<_FP16>(idx);
-        auto float_eq = [skip_cos_sim](_FP16 a, _FP16 b) {
+        auto float_eq = [&](_FP16 a, _FP16 b) {
           if (skip_cos_sim) {
             constexpr auto eps = 1e-1;
             if (a < b)

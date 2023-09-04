@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
-/**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
- *
- * @file        unittest_nntrainer_tensor_neon_fp16.cpp
- * @date        03 August 2023
- * @brief       Unit test utility for tensor with NEON __fp16 support for ARM.
- * @see         https://github.com/nnstreamer/nntrainer
- * @author      Debadri Samaddar <s.debadri@samsung.com>
- * @bug         No known bugs
- */
+// /**
+//  * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+//  *
+//  * @file        unittest_nntrainer_tensor_neon_fp16.cpp
+//  * @date        03 August 2023
+//  * @brief       Unit test utility for tensor with NEON __fp16 support for
+//  ARM.
+//  * @see         https://github.com/nnstreamer/nntrainer
+//  * @author      Debadri Samaddar <s.debadri@samsung.com>
+//  * @bug         No known bugs
+//  */
 #include <gtest/gtest.h>
 
 #include "nntrainer_test_util.h"
@@ -172,7 +173,6 @@ TEST(nntrainer_Tensor, multiply_i) {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
   nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor input_copy(batch, channel, height, width, t_type_nchw_fp16);
   nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
 
   const float alpha = 1e-5;
@@ -282,7 +282,7 @@ TEST(nntrainer_Tensor, max_abs) {
   EXPECT_NEAR(result_neon, result_fp32, epsilon);
 }
 
-TEST(nntrainer_Tensor, sum_sgemv_transpose) {
+TEST(nntrainer_Tensor, sum_sgemv_transpose_40) {
   int batch = 3;
   int channel = 2;
   int height = 2;
@@ -295,20 +295,17 @@ TEST(nntrainer_Tensor, sum_sgemv_transpose) {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
   nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor input_copy(batch, channel, height, width, t_type_nchw_fp16);
   nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
 
   const float alpha = 1e-5;
 
-  GEN_TEST_INPUT(input, i * (batch * height * channel) * alpha +
-                          j * (batch * height) * alpha + k * (width)*alpha + l +
-                          1);
-  GEN_TEST_INPUT(input_copy, i * (batch * height * channel) * alpha +
-                               j * (batch * height) * alpha +
-                               k * (width)*alpha + l + 1);
-  GEN_TEST_INPUT(input_fp32, i * (batch * height * channel) * alpha +
-                               j * (batch * height) * alpha +
-                               k * (width)*alpha + l + 1);
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
 
   nntrainer::Tensor result0 = input.sum(0);
   nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
@@ -325,11 +322,11 @@ TEST(nntrainer_Tensor, sum_sgemv_transpose) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
-TEST(nntrainer_Tensor, sum_sgemv) {
+TEST(nntrainer_Tensor, sum_sgemv_transpose_padding_44) {
   int batch = 3;
   int channel = 2;
   int height = 2;
-  int width = 10;
+  int width = 11;
 
   nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
@@ -338,23 +335,60 @@ TEST(nntrainer_Tensor, sum_sgemv) {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
   nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor input_copy(batch, channel, height, width, t_type_nchw_fp16);
   nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
 
   const float alpha = 1e-5;
 
-  GEN_TEST_INPUT(input, i * (batch * height * channel) * alpha +
-                          j * (batch * height) * alpha + k * (width)*alpha + l +
-                          1);
-  GEN_TEST_INPUT(input_copy, i * (batch * height * channel) * alpha +
-                               j * (batch * height) * alpha +
-                               k * (width)*alpha + l + 1);
-  GEN_TEST_INPUT(input_fp32, i * (batch * height * channel) * alpha +
-                               j * (batch * height) * alpha +
-                               k * (width)*alpha + l + 1);
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
 
-  nntrainer::Tensor result0 = input.sum_by_batch();
-  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_3x68) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 17;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-5;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
 
   float mseErrorNeon = mse<__fp16>(
     result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
@@ -420,6 +454,806 @@ TEST(nntrainer_Tensor, dot_sgemm) {
   const float epsilon = 1e-2;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_3x100) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 25;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_8x1500) {
+  int batch = 8;
+  int channel = 2;
+  int height = 2;
+  int width = 375;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_3x776) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 187;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_qkv_01) {
+  int batch = 1024;
+  int channel = 1;
+  int height = 1;
+  int width = 2304;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_qkv_02) {
+  int batch = 2304;
+  int channel = 1;
+  int height = 1;
+  int width = 1024;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-9;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_transpose_qkv_03) {
+  int batch = 2304;
+  int channel = 1;
+  int height = 32;
+  int width = 32;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-10;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum(0);
+  nntrainer::Tensor result0_fp32 = input_fp32.sum(0);
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * batch);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x40) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-5;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x100) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 25;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-7;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x200) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 50;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-7;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x204) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 51;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-7;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x748) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 187;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-7;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x1948) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 487;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-7;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x2988) {
+  int batch = 3;
+  int channel = 2;
+  int height = 2;
+  int width = 737;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-6;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_3x20000) {
+  int batch = 3;
+  int channel = 2;
+  int height = 100;
+  int width = 100;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-6;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * channel * height * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_1024x256) {
+  int batch = 256;
+  int channel = 1;
+  int height = 32;
+  int width = 32;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * channel * height * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_512x1024) {
+  int batch = 1024;
+  int channel = 2;
+  int height = 16;
+  int width = 16;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * channel * height * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_1024x512) {
+  int batch = 512;
+  int channel = 1;
+  int height = 32;
+  int width = 32;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * channel * height * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_qkv_01) {
+  int batch = 1024;
+  int channel = 1;
+  int height = 1;
+  int width = 2304;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_qkv_02) {
+  int batch = 2304;
+  int channel = 1;
+  int height = 1;
+  int width = 1024;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-8;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * width);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
+TEST(nntrainer_Tensor, sum_sgemv_qkv_03) {
+  int batch = 2304;
+  int channel = 1;
+  int height = 32;
+  int width = 32;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor input(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor input_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  const float alpha = 1e-9;
+
+  GEN_TEST_INPUT(input, (i * (batch * height * channel) + j * (batch * height) +
+                         k * (width) + l + 1) *
+                          alpha);
+
+  GEN_TEST_INPUT(input_fp32, (i * (batch * height * channel) +
+                              j * (batch * height) + k * (width) + l + 1) *
+                               alpha);
+
+  nntrainer::Tensor result0 = input.sum_by_batch();
+  nntrainer::Tensor result0_fp32 = input_fp32.sum_by_batch();
+
+  float mseErrorNeon = mse<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  double cosSimNeon = cosine_similarity<__fp16>(
+    result0.getData<__fp16>(), result0_fp32.getData<float>(), result0.size());
+
+  const float epsilon = 1e-4;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon * height * width);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 

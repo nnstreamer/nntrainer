@@ -62,6 +62,33 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta);
 
 /**
+ * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y using
+ * 0-padding
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_neon_fp16_pad(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                         uint32_t rows, uint32_t cols, float alpha, float beta);
+
+/**
+ * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_neon_fp16_fit(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                         uint32_t rows, uint32_t cols, float alpha, float beta);
+
+/**
  * @brief     transposed sgemv computation with neon
  *            Y = alpha*transpose(A)*X
  * + beta*Y
@@ -76,6 +103,37 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
 void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
                                uint32_t rows, uint32_t cols, float alpha,
                                float beta);
+/**
+ * @brief     transposed sgemv computation with neon using 0-padding
+ *            Y = alpha*transpose(A)*X
+ * + beta*Y
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_transpose_neon_fp16_pad(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                                   uint32_t rows, uint32_t cols, float alpha,
+                                   float beta);
+
+/**
+ * @brief     transposed sgemv computation with neon
+ *            Y = alpha*transpose(A)*X
+ * + beta*Y
+ * @param[in] A __fp16 * for Matrix A
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ * @param[in] rows number of A's row
+ * @param[in] cols number of A's columns
+ * @param[in] alpha float number
+ * @param[in] beta float number
+ */
+void sgemv_transpose_neon_fp16_fit(const __fp16 *A, const __fp16 *X, __fp16 *Y,
+                                   uint32_t rows, uint32_t cols, float alpha,
+                                   float beta);
 
 /**
  * @brief     saxpy computation with neon: Y = alpha*X + Y
