@@ -74,30 +74,6 @@ void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
   acti_func.run_fn(input_, hidden_);
 }
 
-void ActivationLayer::incremental_forwarding(RunLayerContext &context,
-                                             unsigned int from, unsigned int to,
-                                             bool training) {
-  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-
-  TensorDim input_dim = input_.getDim();
-  TensorDim hidden_dim = hidden_.getDim();
-
-  TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(), to - from,
-                              input_dim.width()};
-  TensorDim hidden_step_dim = {hidden_dim.batch(), hidden_dim.channel(),
-                               to - from, hidden_dim.width()};
-
-  // @todo: set reset stride as false. This implementation only works when batch
-  // size is 1
-  Tensor input_step =
-    input_.getSharedDataTensor(input_step_dim, from * input_dim.width(), true);
-  Tensor hidden_step = hidden_.getSharedDataTensor(
-    hidden_step_dim, from * hidden_dim.width(), true);
-
-  acti_func.run_fn(input_step, hidden_step);
-}
-
 void ActivationLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);

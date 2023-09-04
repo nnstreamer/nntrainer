@@ -128,87 +128,120 @@ private:
    */
   float epsilon;
 
-  inline static std::vector<std::vector<std::complex<float>>> *freqs_cis = {};
+  unsigned int cache_index;
+
+  inline static std::vector<std::vector<float>> *freqs_cos = {};
+
+  inline static std::vector<std::vector<float>> *freqs_sin = {};
 
   /**
-   * @brief      make rotray embedding frequency
-   * @param[in]  dim hidden dimension
-   * @param[in]  seq_len input sequence length
-   * @param[in]  theta rotate angle
-   *
+   * @brief     compute frequency for rotary embedding
+   * @param[in] dim hidden dim size
+   * @param[in] seq_len sequency length
+   * @param[in] theta rotary angle
    */
-  template <typename T = float>
-  void precompute_freqs_cis(int dim, int seq_len, float theta = 10000.0) {
-    if (freqs_cis == nullptr) {
-      std::vector<float> freqs(dim / 2);
-      for (int i = 0; i < dim / 2; ++i) {
+  void precompute_freqs(int dim, unsigned int seq_len, float theta = 10000.0) {
+    if (freqs_cos == nullptr) {
+      unsigned int half_ = dim / 2;
+      std::vector<float> freqs(half_);
+      for (unsigned int i = 0; i < half_; ++i) {
         freqs[i] = 1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim)));
       }
 
-      auto cis = new std::vector<std::vector<std::complex<T>>>();
-      cis->assign(1024, std::vector<std::complex<T>>(dim / 2, 0));
+      auto cos = new std::vector<std::vector<float>>();
+      cos->assign(seq_len, std::vector<float>(dim, 0));
 
-      for (int i = 0; i < seq_len; ++i) {
-        for (int j = 0; j < dim / 2; ++j) {
+      auto sin = new std::vector<std::vector<float>>();
+      sin->assign(seq_len, std::vector<float>(dim, 0));
+
+      for (unsigned int i = 0; i < seq_len; ++i) {
+        for (unsigned int j = 0; j < half_; ++j) {
           float angle = i * freqs[j];
-          (*cis)[i][j] = static_cast<std::complex<T>>(std::polar(1.0f, angle));
+          (*cos)[i][j] = std::cos(angle);
+          (*cos)[i][j + half_] = std::cos(angle); // repeated 2 times
+
+          (*sin)[i][j] = std::sin(angle);
+          (*sin)[i][j + half_] = std::sin(angle); // repeated 2 times
         }
       }
 
-      freqs_cis = cis;
+      freqs_cos = cos;
+      freqs_sin = sin;
     }
   }
 
   /**
-   * @brief      applying rotary embeding
-   * @param[in]  real real value
-   * @param[in]  img imagnary value
-   * @param[in]  i sequence order
-   * @param[in]  j hidden dimension order
-   *
+   * @brief     apply rotary embedding
+   * @param[in] in input tensor
+   * @param[in] dim hidden dim size
+   * @param[in] from sequence order
    */
-  template <typename T = float>
-  std::tuple<T, T> apply_rotary_emb(T real, T imag, int i, int j) {
-    std::complex<float> input_complex(static_cast<float>(real),
-                                      static_cast<float>(imag));
-    std::complex<float> output_complex =
-      input_complex * (*freqs_cis)[i][(int)j / 2];
-    return std::make_tuple(static_cast<T>(output_complex.real()),
-                           static_cast<T>(output_complex.imag()));
-  }
-
-  /**
-   * @brief      applying rotary embeding
-   * @param[in]  in input tensor
-   * @param[in]  dim hidden dimension
-   * @param[in]  from sequence order
-   */
-  template <typename T = float>
-  Tensor apply_rotary_emb_tensor(Tensor in, unsigned int dim,
-                                 unsigned int from) {
+  void apply_rotary_emb_tensor(Tensor &in, unsigned int dim,
+                               unsigned int from) {
     Tensor out(in.getDim());
-    for (int b = 0; b < (int)in.batch(); b++) {
-      for (int c = 0; c < (int)in.channel(); c++) {
-        for (int h = 0; h < (int)in.height(); h++) {
-          for (int w = 0; w < (int)in.width(); w = w + 2) {
+    float value = 0;
+    float transformed_value = 0.0;
+    unsigned int half_ = dim / 2;
+
+    if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      for (unsigned int b = 0; b < in.batch(); b++) {
+        for (unsigned int c = 0; c < in.channel(); c++) {
+          for (unsigned int h = 0; h < in.height(); h++) {
+            for (unsigned int w = 0; w < in.width(); w = w + dim) {
+              for (unsigned int k = 0; k < dim; k++) {
+                unsigned int span = w + k;
+                value = in.getValue<float>(b, c, h, span);
+
+                if (k < half_) {
+                  transformed_value =
+                    -1.0 * in.getValue<float>(b, c, h, span + half_);
+                } else {
+                  transformed_value = in.getValue<float>(b, c, h, span - half_);
+                }
+                value = value * (*freqs_cos)[from][k] +
+                        transformed_value * (*freqs_sin)[from][k];
+
+                out.setValue(b, c, h, span, value);
+              }
+            }
+          }
+        }
+      }
+    } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+
+      for (unsigned int b = 0; b < in.batch(); b++) {
+        for (unsigned int c = 0; c < in.channel(); c++) {
+          for (unsigned int h = 0; h < in.height(); h++) {
+            for (unsigned int w = 0; w < in.width(); w = w + dim) {
+              for (unsigned int k = 0; k < dim; k++) {
 #ifdef ENABLE_FP16
-            _FP16 real = in.getValue<_FP16>(b, c, h, w);
-            _FP16 imag = in.getValue<_FP16>(b, c, h, w + 1);
-            std::tie(real, imag) =
-              apply_rotary_emb<_FP16>(real, imag, from + h, w % dim);
+                unsigned int span = w + k;
+                value = static_cast<float>(in.getValue<_FP16>(b, c, h, span));
+
+                if (k < half_) {
+                  transformed_value =
+                    -1.0 * static_cast<float>(
+                             in.getValue<_FP16>(b, c, h, half_ + span));
+                } else {
+                  transformed_value = static_cast<float>(
+                    in.getValue<_FP16>(b, c, h, span - half_));
+                }
+                out.setValue(b, c, h, span,
+                             static_cast<_FP16>(value * (*freqs_cos)[from][k] +
+                                                transformed_value *
+                                                  (*freqs_sin)[from][k]));
+
 #else
-            float real = in.getValue(b, c, h, w);
-            float imag = in.getValue(b, c, h, w + 1);
-            std::tie(real, imag) =
-              apply_rotary_emb<float>(real, imag, from + h, w % dim);
+                throw std::invalid_argument(
+                  "Error: enable-fp16 is not enabled");
 #endif
-            out.setValue(b, c, h, w, real);
-            out.setValue(b, c, h, w + 1, imag);
+              }
+            }
           }
         }
       }
     }
-    return out;
+    in.copy(out);
   }
 
   /**

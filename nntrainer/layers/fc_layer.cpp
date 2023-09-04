@@ -150,14 +150,6 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_.add_i(bias);
   }
-
-  bool print = std::get<props::Print>(*layer_impl_props).get();
-  if (print) {
-    // std::cerr << input_ << "\n";
-    // std::cerr << weight << "\n";
-    // std::cerr << weight.bytes() << "\n";
-    // std::cerr << hidden_ << "\n";
-  }
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {

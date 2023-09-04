@@ -47,8 +47,8 @@ void SwiGLULayer::forwarding(nntrainer::RunLayerContext &context,
         for (int h = 0; h < (int)in1.height(); h++) {
           for (int w = 0; w < (int)in1.width(); w++) {
             out.setValue(b, c, h, w,
-                         ActivationOp::swish(in1.getValue(b, c, h, w)) *
-                           in2.getValue(b, c, h, w));
+                         ActivationOp::swish(in1.getValue<float>(b, c, h, w)) *
+                           in2.getValue<float>(b, c, h, w));
           }
         }
       }
