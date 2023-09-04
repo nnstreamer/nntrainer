@@ -12,13 +12,15 @@
  *
  */
 
+#include <algorithm>
 #include <cmath>
-
 #include <layer_context.h>
 #include <multi_head_attention_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <thread>
+#include <vector>
 
 namespace nntrainer {
 
@@ -28,7 +30,8 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
     props::OutputShape(), props::DropOutRate(), props::ReturnAttentionWeight(),
     props::AverageAttentionWeight(), props::MaxTimestep()),
   sm(ActivationType::ACT_SOFTMAX),
-  epsilon(1e-3) {
+  epsilon(1e-3),
+  cache_index(0) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -347,11 +350,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
    * check query width and key width
    *
    */
-  precompute_freqs_cis<float>(projected_key_dim_prop, key_height);
+  if (freqs_cos == nullptr)
+    precompute_freqs(projected_key_dim_prop, max_timestep);
 }
 
 void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
                                          bool training) {
+
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
@@ -444,17 +449,8 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
     projected_value.add_i(value_fc_bias);
   }
 
-#ifdef ENABLE_FP16
-  projected_query =
-    apply_rotary_emb_tensor<_FP16>(projected_query, projected_key_dim_prop, 0);
-  projected_key =
-    apply_rotary_emb_tensor<_FP16>(projected_key, projected_key_dim_prop, 0);
-#else
-  projected_query =
-    apply_rotary_emb_tensor<float>(projected_query, projected_key_dim_prop, 0);
-  projected_key =
-    apply_rotary_emb_tensor<float>(projected_key, projected_key_dim_prop, 0);
-#endif
+  apply_rotary_emb_tensor(projected_query, projected_query_dim_prop, 0);
+  apply_rotary_emb_tensor(projected_key, projected_key_dim_prop, 0);
 
   projected_query.reshape(
     TensorDim({batch_size, query_height, num_heads, projected_query_dim_prop}));
@@ -467,8 +463,8 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   projected_key = projected_key.transpose("1:0:2");
   projected_value = projected_value.transpose("1:0:2");
 
-  /** set tensor name to restore origin name cause origin name was remove during
-   * transpose */
+  /** set tensor name to restore origin name cause origin name was remove
+   * during transpose */
   projected_query.setName("multi_head_attention:projected_query");
   projected_key.setName("multi_head_attention:projected_key");
   projected_value.setName("multi_head_attention:projected_value");
@@ -597,9 +593,22 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
 }
 
 void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
-                                                     unsigned int from,
-                                                     unsigned int to,
+                                                     unsigned int _from,
+                                                     unsigned int _to,
                                                      bool training) {
+
+  unsigned int max_timestep =
+    std::get<props::MaxTimestep>(multi_head_attention_props).get();
+
+  bool cache_shift = false;
+  unsigned int from = _from;
+  unsigned int to = _to;
+  if (to >= max_timestep) {
+    cache_shift = true;
+    from = max_timestep - 1;
+    to = max_timestep;
+  }
+
   const bool disable_bias =
     std::get<props::DisableBias>(*layer_impl_props).get();
 
@@ -757,19 +766,8 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
     cache_value_step.add_i(value_fc_bias);
   }
 
-#ifdef ENABLE_FP16
-  projected_query_step = apply_rotary_emb_tensor<_FP16>(
-    projected_query_step, projected_key_dim_prop, from);
-  nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<_FP16>(
-    cache_key_step, projected_key_dim_prop, from);
-  cache_key_step.copyData(cache_key_step_temp);
-#else
-  projected_query_step = apply_rotary_emb_tensor<float>(
-    projected_query_step, projected_key_dim_prop, from);
-  nntrainer::Tensor cache_key_step_temp = apply_rotary_emb_tensor<float>(
-    cache_key_step, projected_key_dim_prop, from);
-  cache_key_step.copyData(cache_key_step_temp);
-#endif
+  apply_rotary_emb_tensor(projected_query_step, projected_query_dim_prop, from);
+  apply_rotary_emb_tensor(cache_key_step, projected_key_dim_prop, from);
 
   projected_query_step.reshape(
     TensorDim({batch_size, 1, num_heads, projected_query_dim_prop}));
@@ -839,7 +837,32 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   if (!disable_bias) {
     output.add_i(fc_bias);
   }
-  // output.print(std::cout);
+
+  if (cache_shift) {
+    if (cache_key.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      float *buf = cache_key.getAddress<float>(0, 0, 1, 0);
+      float *dbuf = cache_key.getAddress<float>(0, 0, 0, 0);
+      memcpy(dbuf, buf, (cache_key.size() - cache_key.width()) * sizeof(float));
+      buf = cache_value.getAddress<float>(0, 0, 1, 0);
+      dbuf = cache_value.getAddress<float>(0, 0, 0, 0);
+      memcpy(dbuf, buf,
+             (cache_value.size() - cache_value.width()) * sizeof(float));
+    } else if (cache_key.getDataType() ==
+               ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+
+      _FP16 *buf = cache_key.getAddress<_FP16>(0, 0, 1, 0);
+      _FP16 *dbuf = cache_key.getAddress<_FP16>(0, 0, 0, 0);
+      memcpy(dbuf, buf, (cache_key.size() - cache_key.width()) * sizeof(_FP16));
+      buf = cache_value.getAddress<_FP16>(0, 0, 1, 0);
+      dbuf = cache_value.getAddress<_FP16>(0, 0, 0, 0);
+      memcpy(dbuf, buf,
+             (cache_key.size() - cache_value.width()) * sizeof(_FP16));
+#else
+      throw std::invalid_argument("enable-fp16 is not set");
+#endif
+    }
+  }
 }
 
 void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
@@ -1178,7 +1201,6 @@ void MultiHeadAttentionLayer::setBatch(RunLayerContext &context,
   context.updateTensor(weight_idx[AttentionParams::projected_value], batch);
   context.updateTensor(weight_idx[AttentionParams::cache_key], batch);
   context.updateTensor(weight_idx[AttentionParams::cache_value], batch);
-  // context.updateTensor(weight_idx[AttentionParams::cache_value], batch);
   context.updateTensor(weight_idx[AttentionParams::attention_weight], batch);
   if (dropout_rate > epsilon) {
     context.updateTensor(weight_idx[AttentionParams::dropout_mask], batch);

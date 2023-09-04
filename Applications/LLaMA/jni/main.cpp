@@ -11,10 +11,8 @@
 
 #include <array>
 #include <chrono>
-#include <codecvt>
 #include <ctime>
 #include <iostream>
-#include <locale>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -35,7 +33,6 @@
 #include <codecvt>
 #include <encoder.hpp>
 #include <locale>
-#include <sstream>
 using json = nlohmann::json;
 #endif
 
@@ -52,7 +49,7 @@ int const MULTIPLE_OF = 256;
 float const NORM_EPS = 0.000001;
 int const NUM_VOCAB = 96000;
 int MAX_SEQ_LEN = 1024;
-int NUM_TO_GENERATE = 1;
+int NUM_TO_GENERATE = 100;
 
 constexpr unsigned int INIT_SEQ_LEN = 30;
 unsigned int batch_size = 1;
@@ -389,7 +386,6 @@ ModelHandle createLLaMA() {
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   std::wstring text) {
-
   // setup model
   ModelHandle model = createLLaMA();
   model->setProperty({withKey("batch_size", batch_size),
@@ -412,10 +408,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+  std::string weight_path = "./llama_fp16.bin";
 
-  std::string weight_path =
-    optimize ? "./llama_v2_att.bin" : "./summarization_v2_fp16.bin";
   model->load(weight_path);
 
   std::vector<float *> input;
@@ -528,6 +522,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
     return 1;
   }
+
   createAndRun(epoch, batch_size, text);
 
   int status = EXIT_SUCCESS;
