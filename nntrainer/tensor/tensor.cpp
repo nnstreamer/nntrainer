@@ -2237,10 +2237,6 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     } else {
       CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
                            getTensorType());
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
-                           getTensorType());
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
-                           getTensorType());
     }
   } else if (trans && !trans_m) {
     if (dim1 != mdim1)
