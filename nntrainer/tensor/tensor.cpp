@@ -127,7 +127,8 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor), off(offset) {}
+    src(tensor),
+    off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -2178,10 +2179,6 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
       CREATE_IF_EMPTY_DIMS(result, batch(), N, height(), width(),
                            getTensorType());
     } else {
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
-                           getTensorType());
-      CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
-                           getTensorType());
       CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N,
                            getTensorType());
     }
