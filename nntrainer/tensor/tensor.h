@@ -358,7 +358,8 @@ public:
         "[Tensor] trying to initialize Tensor from empty vector");
     }
 
-    if (t_type.data_type != Tdatatype::QINT8) {
+    if (t_type.data_type != Tdatatype::QINT8 &&
+        t_type.data_type != Tdatatype::QINT4) {
       throw std::out_of_range(
         "[Tensor] TensorType do not match with input data type");
     }
@@ -382,7 +383,9 @@ public:
     strides = dim.computeStrides();
 
     MemoryData *mem_data =
-      new MemoryData((void *)(new int8_t[dim.getDataLen()]()));
+      (t_type.data_type == Tdatatype::QINT8)
+        ? new MemoryData((void *)(new int8_t[dim.getDataLen()]()))
+        : new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2]()));
     data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
       delete[] mem_data->getAddr<int8_t>();
     });
@@ -550,6 +553,9 @@ public:
    */
   template <typename T = float>
   const T &getValue(unsigned int idx) const noexcept {
+    if (getDataType() == Tdatatype::QINT4) {
+      return getData<T>()[idx / 2];
+    }
     return getData<T>()[idx];
   }
 
@@ -558,7 +564,60 @@ public:
    * @param[in] idx location
    */
   template <typename T = float> T &getValue(unsigned int idx) noexcept {
+    if (getDataType() == Tdatatype::QINT4) {
+      return getData<T>()[idx / 2];
+    }
     return getData<T>()[idx];
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   * @retval    qint4 value in location
+   */
+  int8_t getValueQint4(unsigned int idx) const noexcept {
+    int8_t value = getData<int8_t>()[idx / 2];
+    return decode_qint(value, (idx % 2 == 0));
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   * @retval    qint4 value in location
+   */
+  int8_t getValueQint4(unsigned int idx) noexcept {
+    int8_t value = getData<int8_t>()[idx / 2];
+    return decode_qint(value, (idx % 2 == 0));
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @retval    qint4 value in location
+   */
+  int8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
+                       unsigned int w) const noexcept {
+    size_t idx = getIndex(b, c, h, w);
+    int8_t value = getData<int8_t>()[idx / 2];
+    return decode_qint(value, (idx % 2 == 0));
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @retval    qint4 value in location
+   */
+  int8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
+                       unsigned int w) noexcept {
+    size_t idx = getIndex(b, c, h, w);
+    int8_t value = getData<int8_t>()[idx / 2];
+    return decode_qint(value, (idx % 2 == 0));
   }
 
   /**
@@ -1198,6 +1257,8 @@ public:
     if (i > index) {
       return nullptr;
     }
+    if (getDataType() == Tdatatype::QINT4)
+      return &getData<T>()[i / 2];
     return &getData<T>()[i];
   }
 
@@ -1211,6 +1272,8 @@ public:
       return nullptr;
     }
 
+    if (getDataType() == Tdatatype::QINT4)
+      return &getData<T>()[i / 2];
     return &getData<T>()[i];
   }
 
@@ -1352,7 +1415,13 @@ public:
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const { return size() * dim.getDataTypeSize(); }
+  size_t bytes() const {
+    if (getDataType() == Tdatatype::QINT4) {
+      return (dim.batch() + 1) * (dim.channel() + 1) * (dim.height() + 1) *
+             (dim.width() + 1) / 16 * dim.getDataTypeSize();
+    }
+    return size() * dim.getDataTypeSize();
+  }
 
   /**
    * @brief     Set the element value
@@ -1374,6 +1443,16 @@ public:
 #endif
     } else if (getDataType() == Tdatatype::QINT8) {
       getData<int8_t>()[getIndex(batch, c, h, w)] = value;
+    } else if (getDataType() == Tdatatype::QINT4) {
+      int idx = getIndex(batch, c, h, w);
+
+      if (idx % 2 == 0) {
+        getData<int8_t>()[idx / 2] =
+          encode_qint(value, getData<int8_t>()[idx / 2]);
+      } else {
+        getData<int8_t>()[idx / 2] =
+          encode_qint(getData<int8_t>()[idx / 2] >> 4, value);
+      }
     }
   }
 
@@ -1878,7 +1957,7 @@ public:
    * @brief     Set scale factors of the tensor
    * @param[in] scales scale factors
    */
-  void setScaleFactors(std::vector<float> scales);
+  void setScaleFactors(std::vector<float> scales, int idx);
 
   /**
    * @brief     Get scale factors of the tensor
@@ -1911,6 +1990,7 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
+  int scale_idx;
   std::vector<float> scale_factors;
 
   /**<
@@ -2046,6 +2126,21 @@ private:
    * @retVal Tensor rotated tensor (180 degree)
    */
   Tensor rotate_180(Tensor in);
+
+  /**
+   * @brief      Encode two int4 values to one int8 value
+   * @param[in]  high value for first 4 bits
+   * @param[in]  low value for last 4 bits
+   * @retval     Encoded value
+   */
+  int8_t encode_qint(int8_t high, int8_t low) const;
+
+  /**
+   * @brief      Decode int8 value to a int4 value
+   * @param[in]  idx index to retrieve value
+   * @retval     Decoded value
+   */
+  int8_t decode_qint(int8_t val, bool isHigh) const;
 
 }; // namespace nntrainer
 

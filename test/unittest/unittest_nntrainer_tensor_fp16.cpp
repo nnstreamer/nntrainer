@@ -5847,6 +5847,361 @@ TEST(nntrainer_Tensor, TensorPaddedValue_p) {
   }
 }
 
+/**
+ * @brief dequantize FP16 tensor
+ */
+TEST(nntrainer_Tensor, dequantize_01_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+
+  nntrainer::Tensor output(batch, channel, height, width,
+                           nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::FP16);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with different dimension
+ */
+TEST(nntrainer_Tensor, dequantize_02_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch + 1, channel, height + 1, width + 1,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+
+  nntrainer::Tensor output(batch, channel, height, width,
+                           nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::FP16);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize tensor with no scale factors
+ */
+TEST(nntrainer_Tensor, dequantize_03_n) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, height, width,
+                           nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::FP16);
+
+  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+}
+
+/**
+ * @brief dequantize qint8 tensor to fp16
+ */
+TEST(nntrainer_Tensor, dequantize_04_p) {
+  int batch = 1;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+
+  nntrainer::Tensor output;
+
+  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP16); });
+
+  _FP16 answer_data[] = {
+    static_cast<_FP16>(1.5), static_cast<_FP16>(1.5), static_cast<_FP16>(1.5),
+    static_cast<_FP16>(1.5), static_cast<_FP16>(1.5), static_cast<_FP16>(3),
+    static_cast<_FP16>(3),   static_cast<_FP16>(3),   static_cast<_FP16>(3),
+    static_cast<_FP16>(3),   static_cast<_FP16>(4.5), static_cast<_FP16>(4.5),
+    static_cast<_FP16>(4.5), static_cast<_FP16>(4.5), static_cast<_FP16>(4.5),
+    static_cast<_FP16>(6),   static_cast<_FP16>(6),   static_cast<_FP16>(6),
+    static_cast<_FP16>(6),   static_cast<_FP16>(6),   static_cast<_FP16>(6),
+    static_cast<_FP16>(6),   static_cast<_FP16>(6),   static_cast<_FP16>(6),
+    static_cast<_FP16>(6),   static_cast<_FP16>(7),   static_cast<_FP16>(7),
+    static_cast<_FP16>(7),   static_cast<_FP16>(7),   static_cast<_FP16>(7),
+    static_cast<_FP16>(8),   static_cast<_FP16>(8),   static_cast<_FP16>(8),
+    static_cast<_FP16>(8),   static_cast<_FP16>(8),   static_cast<_FP16>(9),
+    static_cast<_FP16>(9),   static_cast<_FP16>(9),   static_cast<_FP16>(9),
+    static_cast<_FP16>(9),   static_cast<_FP16>(5.5), static_cast<_FP16>(5.5),
+    static_cast<_FP16>(5.5), static_cast<_FP16>(5.5), static_cast<_FP16>(5.5),
+    static_cast<_FP16>(6),   static_cast<_FP16>(6),   static_cast<_FP16>(6),
+    static_cast<_FP16>(6),   static_cast<_FP16>(6),   static_cast<_FP16>(6.5),
+    static_cast<_FP16>(6.5), static_cast<_FP16>(6.5), static_cast<_FP16>(6.5),
+    static_cast<_FP16>(6.5), static_cast<_FP16>(7),   static_cast<_FP16>(7),
+    static_cast<_FP16>(7),   static_cast<_FP16>(7),   static_cast<_FP16>(7)};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::FP16}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
+}
+
+/**
+ * @brief dequantize qint8 tensor to fp16
+ */
+TEST(nntrainer_Tensor, dequantize_05_p) {
+  size_t batch = 1;
+  size_t channel = 3;
+  size_t height = 4;
+  size_t width = 5;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}},
+    true, nntrainer::Tensor::Initializer::ONES);
+  nntrainer::Tensor output(batch, channel, height, width,
+                           nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::FP16);
+
+  // Dequantize by channel
+  EXPECT_NO_THROW(input.setScaleFactors({-2, 2, 4}, 1));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+                           -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
+                           2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+                           2,  2,  2,  2,  4,  4,  4,  4,  4,  4,  4,  4,
+                           4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4};
+
+  nntrainer::Tensor answer1(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_1);
+
+  EXPECT_EQ(output, answer1);
+
+  // Dequantize by height
+  EXPECT_NO_THROW(input.setScaleFactors({-4.2, -2, 2, 4.8}, 2));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_2[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8),
+                           static_cast<_FP16>(4.8),  static_cast<_FP16>(4.8)};
+  nntrainer::Tensor answer2(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_2);
+
+  EXPECT_EQ(output, answer2);
+
+  // Dequantize by width
+  EXPECT_NO_THROW(input.setScaleFactors({-4.2, -2, 2, 4, -8}, 3));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_3[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8)};
+
+  nntrainer::Tensor answer3(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_3);
+
+  EXPECT_EQ(output, answer3);
+}
+
+/**
+ * @brief dequantize qint4 tensor
+ */
+TEST(nntrainer_Tensor, dequantize_06_p) {
+  size_t batch = 1;
+  size_t channel = 3;
+  size_t height = 4;
+  size_t width = 5;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4}},
+    true, nntrainer::Tensor::Initializer::ONES);
+  nntrainer::Tensor output(batch, channel, height, width,
+                           nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::FP16);
+
+  // Dequantize by channel
+  EXPECT_NO_THROW(input.setScaleFactors({-2, 2, 4}, 1));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+                           -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
+                           2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
+                           2,  2,  2,  2,  4,  4,  4,  4,  4,  4,  4,  4,
+                           4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4};
+
+  nntrainer::Tensor answer1(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_1);
+
+  EXPECT_EQ(output, answer1);
+
+  // Dequantize by height
+  EXPECT_NO_THROW(input.setScaleFactors({-4.2, -2, 2, 4}, 2));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_2[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(4)};
+  nntrainer::Tensor answer2(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_2);
+
+  EXPECT_EQ(output, answer2);
+
+  // Dequantize by width
+  EXPECT_NO_THROW(input.setScaleFactors({-4.2, -2, 2, 4, -8}, 3));
+  EXPECT_NO_THROW({ input.dequantize(output); });
+
+  _FP16 answer_data_3[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8),
+                           static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
+                           static_cast<_FP16>(2),    static_cast<_FP16>(4),
+                           static_cast<_FP16>(-8),   static_cast<_FP16>(-4.2),
+                           static_cast<_FP16>(-2),   static_cast<_FP16>(2),
+                           static_cast<_FP16>(4),    static_cast<_FP16>(-8)};
+
+  nntrainer::Tensor answer3(ml::train::TensorDim(batch, channel, height, width,
+                                                 {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16}),
+                            answer_data_3);
+
+  EXPECT_EQ(output, answer3);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 

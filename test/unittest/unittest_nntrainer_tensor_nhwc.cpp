@@ -4688,7 +4688,7 @@ TEST(nntrainer_Tensor, dequantize_01_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
 
   nntrainer::Tensor output(
     batch, channel, height, width,
@@ -4710,7 +4710,7 @@ TEST(nntrainer_Tensor, dequantize_02_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
 
   nntrainer::Tensor output(
     batch, channel, height, width,
@@ -4732,7 +4732,7 @@ TEST(nntrainer_Tensor, dequantize_03_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
 
   nntrainer::Tensor output;
   output.getDim().setFormat(nntrainer::Tformat::NHWC);
@@ -4766,7 +4766,7 @@ TEST(nntrainer_Tensor, dequantize_04_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
 
   nntrainer::Tensor output(
     batch, channel, height, width,
@@ -4779,6 +4779,38 @@ TEST(nntrainer_Tensor, dequantize_04_p) {
                          3,   7, 6,   3,   7, 6,   4.5, 8, 6.5, 4.5, 8, 6.5,
                          4.5, 8, 6.5, 4.5, 8, 6.5, 4.5, 8, 6.5, 6,   9, 7,
                          6,   9, 7,   6,   9, 7,   6,   9, 7,   6,   9, 7};
+
+  nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
+                                                {nntrainer::Tformat::NHWC,
+                                                 nntrainer::Tdatatype::FP32}),
+                           answer_data);
+
+  EXPECT_EQ(output, answer);
+}
+
+/**
+ * @brief dequantize nhwc qint4 tensor
+ */
+TEST(nntrainer_Tensor, dequantize_05_p) {
+  size_t batch = 1;
+  size_t channel = 10;
+  size_t height = 2;
+  size_t width = 1;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT4}},
+    true, nntrainer::Tensor::Initializer::ONES);
+  input.setScaleFactors({-8, -6, -4, -2, -1, 1, 2, 4, 6, 7}, 1);
+  nntrainer::Tensor output;
+
+  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP32); });
+
+  float answer_data[] = {-8, -6, -4, -2, -1, 1, 2, 4, 6, 7,
+                         -8, -6, -4, -2, -1, 1, 2, 4, 6, 7};
 
   nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
                                                 {nntrainer::Tformat::NHWC,
