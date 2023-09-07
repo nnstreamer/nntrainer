@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
+ * Copyright (C) 2023 Jihoon Lee <sb92.hong@samsung.com>
  *
  * @file   main.cpp
  * @date   7 August 2023
@@ -8,10 +8,13 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+
 #include <array>
 #include <chrono>
+#include <codecvt>
 #include <ctime>
 #include <iostream>
+#include <locale>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -26,6 +29,15 @@
 #include <rotary_embedding.h>
 #include <swiglu.h>
 #include <transpose_layer.h>
+
+#if defined(ENABLE_ENCODER2)
+#include "json.hpp"
+#include <codecvt>
+#include <encoder.hpp>
+#include <locale>
+#include <sstream>
+using json = nlohmann::json;
+#endif
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
@@ -85,6 +97,15 @@ static std::string withKey(const std::string &key,
   ss << *iter;
 
   return ss.str();
+}
+
+template <typename T>
+T unwrap(std::optional<T> &&value, const std::string &error_msg) {
+  if (value.has_value()) {
+    return value.value();
+  } else {
+    throw std::runtime_error(error_msg);
+  }
 }
 
 std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
@@ -366,14 +387,15 @@ ModelHandle createLLaMA() {
   return model;
 }
 
-void createAndRun(unsigned int epochs, unsigned int batch_size) {
+void createAndRun(unsigned int epochs, unsigned int batch_size,
+                  std::wstring text) {
 
   // setup model
   ModelHandle model = createLLaMA();
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
                       // #ifdef ENABLE_FP16
-                      withKey("model_tensor_type", "FP16-FP16"),
+                      // withKey("model_tensor_type", "FP16-FP16"),
                       // #endif
                       withKey("save_path", "test_model.bin")});
 
@@ -393,62 +415,104 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
   std::string weight_path =
-    optimize ? "./llama_v2_att.bin" : "./summarization_v2_fp16.bin";
+    optimize ? "./llama_v2_att.bin" : "/home/donghak/Desktop/llama_v2.bin";
   model->load(weight_path);
 
   std::vector<float *> input;
   std::vector<float *> label;
 
   int data_size = batch_size * INIT_SEQ_LEN;
-
+  
   float *input_sample = (float *)malloc(sizeof(float) * data_size);
-  // float init_data[INIT_SEQ_LEN] = {5058, 10832};
+
+#if defined(ENABLE_ENCODER2)
+  std::string vocab_file_name = "../Applications/LLaMA/jni/vocab.json";
+  std::string merge_file_name = "../Applications/LLaMA/jni/merges.txt";
+
+  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
+                          "Error initialising GPT2 tokenizer\n");
+
+  auto init_input = tokenizer.encode(text);
+  INIT_SEQ_LEN = init_input.size();
+  ((uint *)(input_sample))[0] = init_input[0];
+  input.push_back(input_sample);
+
+#else
   float init_data[INIT_SEQ_LEN] = {
     0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
     50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
+  ((uint *)(input_sample))[0] = init_data[0];
+  input.push_back(input_sample);
+#endif
 
-  if (optimize) {
-    for (unsigned int i = 0; i < INIT_SEQ_LEN; ++i) {
-      input_sample[i] = init_data[i];
-    }
+  for (unsigned int i = 1; i < INIT_SEQ_LEN + NUM_TO_GENERATE; ++i) {
+    auto output =
+      model->incremental_inference(1, input, label, INIT_SEQ_LEN, i - 1);
 
-    input.push_back(input_sample);
+    std::vector<int64_t> tokens;
+    nntrainer::Tensor output_tensor({batch_size, 1, 1, NUM_VOCAB}, output[0]);
 
-    auto output = model->inference(1, input, label);
+    tokens.push_back(static_cast<int64_t>(output_tensor.argmax()[0]));
+#if defined(ENABLE_ENCODER2)
+    auto decoded_str = tokenizer.decode(tokens);
+    std::cerr << decoded_str << std::flush;
+#endif
 
-    nntrainer::Tensor output_tensor({batch_size, 1, INIT_SEQ_LEN, NUM_VOCAB},
-                                    output[0]);
-
-    for (unsigned int i = 0; i < INIT_SEQ_LEN; ++i) {
-      nntrainer::Tensor output_step = output_tensor.getSharedDataTensor(
-        {batch_size, 1, 1, NUM_VOCAB}, i * batch_size * NUM_VOCAB);
-      std::cerr << output_step << "\n";
-    }
-  } else {
-    ((uint *)(input_sample))[0] = init_data[0];
-
-    input.push_back(input_sample);
-
-    for (unsigned int i = 1; i < INIT_SEQ_LEN + NUM_TO_GENERATE; ++i) {
-      auto output =
-        model->incremental_inference(1, input, label, INIT_SEQ_LEN, i - 1);
-
-      nntrainer::Tensor output_tensor({batch_size, 1, 1, NUM_VOCAB}, output[0]);
-      std::cerr << output_tensor.argmax()[0] << "\n";
-
-      if (i < INIT_SEQ_LEN) {
-        ((uint *)(input_sample))[0] = init_data[i];
-      } else {
-        int diff = std::distance(
-          output[0], std::max_element(output[0], output[0] + NUM_VOCAB));
-        // std::cerr << diff << "\n";
-        ((uint *)(input_sample))[0] = diff;
-      }
+    if (i < INIT_SEQ_LEN) {
+#if defined(ENABLE_ENCODER2)
+      ((uint *)(input_sample))[0] = init_input[i];
+#else
+      ((uint *)(input_sample))[0] = init_data[i];
+#endif
+    } else {
+      ((uint *)(input_sample))[0] = output_tensor.argmax()[0];
     }
   }
 }
 
+#if defined(ENABLE_ENCODER2)
+std::wstring decodeUnicodeEscape(const std::wstring &input) {
+  std::wstringstream result;
+
+  for (size_t i = 0; i < input.length(); ++i) {
+    if (i + 5 < input.length() && input[i] == L'\\' && input[i + 1] == L'u') {
+      std::wstring unicodeSeq;
+      for (int j = 0; j < 4; ++j)
+        unicodeSeq += input[i + 2 + j];
+
+      result << static_cast<wchar_t>(std::stoi(unicodeSeq, nullptr, 16));
+      i += 5;
+    } else if (input[i] == L'\\' && input[i + 1] == L'n') {
+      result << static_cast<wchar_t>('\n');
+      i++;
+    } else if (input[i] == L' ')
+      result << static_cast<wchar_t>(' ');
+    else
+      result << input[i];
+  }
+
+  return result.str();
+}
+#endif
+
 int main(int argc, char *argv[]) {
+  // Setting locale
+  std::locale::global(std::locale("ko_KR.UTF-8"));
+
+#if defined(ENABLE_ENCODER2)
+
+  // Getting arguments From terminal
+  std::wstring input;
+  std::getline(std::wcin, input);
+  std::wstring test = decodeUnicodeEscape(input);
+  std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
+  std::string text = converter.to_bytes(test);
+
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+#else
+  std::wstring text = L"This is sample input for LLaMA.";
+#endif
+
   auto &app_context = nntrainer::AppContext::Global();
   try {
     app_context.registerFactory(nntrainer::createLayer<custom::SwiGLULayer>);
@@ -465,14 +529,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
     return 1;
   }
-
-  try {
-    createAndRun(epoch, batch_size);
-  } catch (const std::exception &e) {
-    std::cerr << "uncaught error while running! details: " << e.what()
-              << std::endl;
-    return EXIT_FAILURE;
-  }
+  createAndRun(epoch, batch_size, text);
 
   int status = EXIT_SUCCESS;
   return status;
