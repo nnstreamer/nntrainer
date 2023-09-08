@@ -112,6 +112,50 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
+void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
+                                            unsigned int from, unsigned int to,
+                                            bool training) {
+
+  /// @todo get input and output dimension from input_ and hidden itself
+  unsigned int in_dim = std::get<props::InDim>(embedding_props);
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+
+  if (from) {
+    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
+      << "incremental step size is not 1";
+    from = 0;
+    to = 1;
+  }
+
+  Tensor &weight = context.getWeight(weight_idx);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+
+  TensorDim out_tensor_dim =
+    TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
+
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
+    float *in_data =
+      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+
+    Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+    for (unsigned int i = from; i < to; ++i) {
+      uint embed_idx = static_cast<uint>(in_data[i]);
+      if (embed_idx >= in_dim) {
+        throw std::invalid_argument("input word index is greater than in_dim");
+      }
+
+      Tensor cur_weight =
+        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+
+      Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
+        out_tensor_dim, out_dim * (i - from));
+
+      out_tensor.copyData(cur_weight);
+    }
+  }
+}
+
 void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for Embedding layer is not supported");

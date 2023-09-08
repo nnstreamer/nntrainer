@@ -13,6 +13,7 @@
 #include <chrono>
 #include <ctime>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -38,6 +39,8 @@ using json = nlohmann::json;
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
+
+ModelHandle g_model;
 
 // Hyper params for LLaMA
 int const DIM = 2304;
@@ -105,6 +108,9 @@ T unwrap(std::optional<T> &&value, const std::string &error_msg) {
   }
 }
 
+/**
+ * @brief Create Attention Layer for the seperate impelemntation
+ */
 std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
                                               int n_heads, int head_dim,
                                               std::string query_name,
@@ -250,6 +256,9 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
   return layers;
 }
 
+/**
+ * @brief Create FF Layers
+ */
 std::vector<LayerHandle> createFeedForwardLayer(const int layer_id, int dim,
                                                 int hidden_dim,
                                                 std::string input_name,
@@ -288,6 +297,9 @@ std::vector<LayerHandle> createFeedForwardLayer(const int layer_id, int dim,
   return layers;
 }
 
+/**
+ * @brief Create Decoder
+ */
 std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
                                                   std::string input_name) {
   using ml::train::createLayer;
@@ -333,6 +345,9 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
   return layers;
 }
 
+/**
+ * @brief Create LLaMA2 Model
+ */
 ModelHandle createLLaMA() {
   using ml::train::createLayer;
 
@@ -347,7 +362,9 @@ ModelHandle createLLaMA() {
        withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
   } else {
     layers.push_back(createLayer(
-      "input", {withKey("name", "input0"), withKey("input_shape", "1:1:1")}));
+      "input",
+      {withKey("name", "input0"),
+       withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
   }
 
   layers.push_back(ml::train::layer::Embedding(
@@ -384,33 +401,10 @@ ModelHandle createLLaMA() {
   return model;
 }
 
-void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  std::wstring text) {
-  // setup model
-  ModelHandle model = createLLaMA();
-  model->setProperty({withKey("batch_size", batch_size),
-                      withKey("epochs", epochs),
-                      // #ifdef ENABLE_FP16
-                      // withKey("model_tensor_type", "FP16-FP16"),
-                      // #endif
-                      withKey("save_path", "test_model.bin")});
-
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  model->setOptimizer(std::move(optimizer));
-
-  int status = model->compile();
-  if (status) {
-    throw std::invalid_argument("model compilation failed!");
-  }
-
-  status = model->initialize();
-  if (status) {
-    throw std::invalid_argument("model initialization failed!");
-  }
-
-  std::string weight_path = "./llama_fp16.bin";
-
-  model->load(weight_path);
+/**
+ * @brief to run for every text sequence
+ */
+void run(std::string text) {
 
   std::vector<float *> input;
   std::vector<float *> label;
@@ -419,49 +413,123 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   float *input_sample = (float *)malloc(sizeof(float) * data_size);
 
+  unsigned int input_len = INIT_SEQ_LEN;
+
+  unsigned int init_len;
+
 #if defined(ENABLE_ENCODER2)
   std::string vocab_file_name = "../Applications/LLaMA/jni/vocab.json";
   std::string merge_file_name = "../Applications/LLaMA/jni/merges.txt";
 
   auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
-                          "Error initialising GPT2 tokenizer\n");
+                          "Error initializising GPT2 tokenizer\n");
 
-  auto init_input = tokenizer.encode(text);
-  INIT_SEQ_LEN = init_input.size();
-  ((uint *)(input_sample))[0] = init_input[0];
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+
+  auto init_input = tokenizer.encode(converter.from_bytes(text));
+  init_len = init_input.size();
+
+  input_len = (init_len > INIT_SEQ_LEN) ? INIT_SEQ_LEN : init_len;
+
+  for (unsigned int i = 0; i < input_len; ++i) {
+    input_sample[i] = static_cast<float>(init_input[i]);
+  }
+
   input.push_back(input_sample);
 
 #else
-  float init_data[INIT_SEQ_LEN] = {
+  float init_input[INIT_SEQ_LEN] = {
     0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
     50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
-  ((uint *)(input_sample))[0] = init_data[0];
+  ((uint *)(input_sample))[0] = init_input[0];
   input.push_back(input_sample);
+  init_len = 18;
 #endif
 
-  for (unsigned int i = 1; i < INIT_SEQ_LEN + NUM_TO_GENERATE; ++i) {
-    auto output =
-      model->incremental_inference(1, input, label, INIT_SEQ_LEN, i - 1);
+  std::vector<int64_t> token_ids;
 
-    std::vector<int64_t> tokens;
-    nntrainer::Tensor output_tensor({batch_size, 1, 1, NUM_VOCAB}, output[0]);
+  auto output =
+    g_model->incremental_inference(1, input, label, MAX_SEQ_LEN, 0, input_len);
 
-    tokens.push_back(static_cast<int64_t>(output_tensor.argmax()[0]));
-#if defined(ENABLE_ENCODER2)
-    auto decoded_str = tokenizer.decode(tokens);
-    std::cerr << decoded_str << std::flush;
-#endif
+  unsigned int ids = std::distance(
+    output[0], std::max_element(output[0], output[0] + NUM_VOCAB));
 
-    if (i < INIT_SEQ_LEN) {
-#if defined(ENABLE_ENCODER2)
-      ((uint *)(input_sample))[0] = init_input[i];
-#else
-      ((uint *)(input_sample))[0] = init_data[i];
-#endif
-    } else {
-      ((uint *)(input_sample))[0] = output_tensor.argmax()[0];
-    }
+  input_sample[0] = static_cast<float>(ids);
+
+#ifdef ENABLE_FP16
+  for (auto o : output) {
+    delete[] o;
   }
+#endif
+  std::cout << " Progress Reading: 100 % " << std::endl;
+  std::cout << std::endl << "### Output : " << std::endl;
+  if (init_len < INIT_SEQ_LEN) {
+#if defined(ENABLE_ENCODER2)
+    auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
+    std::cout << decoded_str << " ";
+    std::cout.flush();
+#endif
+  }
+
+  for (unsigned int i = input_len + 1; i < input_len + NUM_TO_GENERATE; ++i) {
+    auto output_interval =
+      g_model->incremental_inference(1, input, label, MAX_SEQ_LEN, i - 1, i);
+
+    ids = std::distance(
+      output_interval[0],
+      std::max_element(output_interval[0], output_interval[0] + NUM_VOCAB));
+
+    if (i < input_len) {
+      input_sample[0] = static_cast<float>(init_input[i]);
+    } else {
+      input_sample[0] = static_cast<float>(ids);
+#if defined(ENABLE_ENCODER2)
+      auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
+      std::cout << decoded_str << " ";
+      std::cout.flush();
+#endif
+    }
+
+#ifdef ENABLE_FP16
+    for (auto o : output_interval) {
+      delete[] o;
+    }
+#endif
+  }
+
+  std::cout << std::endl;
+  free(input_sample);
+}
+
+/**
+ * @brief to creaet model
+ */
+void createAndRun(unsigned int epochs, unsigned int batch_size) {
+  // setup model
+  g_model = createLLaMA();
+  g_model->setProperty({withKey("batch_size", batch_size),
+                        withKey("epochs", epochs),
+                        // #ifdef ENABLE_FP16
+                        withKey("model_tensor_type", "FP16-FP16"),
+                        // #endif
+                        withKey("save_path", "test_model.bin")});
+
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  g_model->setOptimizer(std::move(optimizer));
+
+  int status = g_model->compile();
+  if (status) {
+    throw std::invalid_argument("model compilation failed!");
+  }
+
+  status = g_model->initialize();
+  if (status) {
+    throw std::invalid_argument("model initialization failed!");
+  }
+
+  std::string weight_path = "./llama_fp16.bin";
+
+  g_model->load(weight_path);
 }
 
 #if defined(ENABLE_ENCODER2)
@@ -488,22 +556,19 @@ std::wstring decodeUnicodeEscape(const std::wstring &input) {
   return result.str();
 }
 #endif
-
 int main(int argc, char *argv[]) {
   // Setting locale
   std::locale::global(std::locale("ko_KR.UTF-8"));
 
 #if defined(ENABLE_ENCODER2)
-
   // Getting arguments From terminal
   std::wstring input;
   std::getline(std::wcin, input);
   std::wstring test = decodeUnicodeEscape(input);
   std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
   std::string text = converter.to_bytes(test);
-  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 #else
-  std::wstring text = L"This is sample input for LLaMA.";
+  std::string text = "This is smaple input for LLaMA.";
 #endif
 
   auto &app_context = nntrainer::AppContext::Global();
@@ -523,7 +588,17 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  createAndRun(epoch, batch_size, text);
+  try {
+    const std::vector<std::string> args(argv + 1, argv + argc);
+
+    createAndRun(epoch, batch_size);
+
+    run(text);
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what()
+              << std::endl;
+    return EXIT_FAILURE;
+  }
 
   int status = EXIT_SUCCESS;
   return status;

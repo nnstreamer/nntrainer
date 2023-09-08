@@ -39,12 +39,40 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
       hidden_.add_i(input_);
     }
   }
+}
 
-  bool print = std::get<props::Print>(add_props).get();
-  if (print) {
-    // std::cerr << input_ << "\n";
-    // std::cerr << weight << "\n";
-    // std::cerr << hidden_ << "\n";
+void AdditionLayer::incremental_forwarding(RunLayerContext &context,
+                                           unsigned int from, unsigned int to,
+                                           bool training) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  TensorDim hidden_dim = hidden_.getDim();
+  TensorDim hidden_step_dim = hidden_dim;
+
+  if (from) {
+    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
+      << "incremental step size is not 1";
+    from = 0;
+    to = 1;
+  }
+
+  hidden_step_dim.height(to - from);
+
+  Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
+
+  /** @todo check possibility for in-place of addition layer */
+  for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
+    const Tensor &input_ = context.getInput(idx);
+    TensorDim input_dim = input_.getDim();
+
+    TensorDim input_step_dim = input_dim;
+    input_step_dim.height(to - from);
+
+    Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
+    if (!idx) {
+      hidden_step.copy(input_step);
+    } else {
+      hidden_step.add_i(input_step);
+    }
   }
 }
 

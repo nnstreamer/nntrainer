@@ -43,12 +43,18 @@ void MultiOutLayer::incremental_forwarding(RunLayerContext &context,
                                            unsigned int from, unsigned int to,
                                            bool training) {
   if (!context.executeInPlace()) {
+    if (from) {
+      NNTR_THROW_IF(to - from != 1, std::invalid_argument)
+        << "incremental step size is not 1";
+      from = 0;
+      to = 1;
+    }
+
     const Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
     TensorDim input_dim = input_.getDim();
     TensorDim input_step_dim = {input_dim.batch(), input_dim.channel(),
                                 to - from, input_dim.width()};
-    Tensor input_step = input_.getSharedDataTensor(
-      input_step_dim, from * input_dim.width(), true);
+    Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
 
     for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
       Tensor &output = context.getOutput(idx);
@@ -58,8 +64,7 @@ void MultiOutLayer::incremental_forwarding(RunLayerContext &context,
                                    to - from, output_dim.width()};
       // @todo: set reset stride as false. This implementation only works when
       // batch size is 1
-      Tensor output_step = output.getSharedDataTensor(
-        output_step_dim, from * output_dim.width(), true);
+      Tensor output_step = output.getSharedDataTensor(output_step_dim, 0, true);
       output_step.fill(input_step);
     }
   }

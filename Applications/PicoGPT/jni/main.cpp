@@ -344,7 +344,7 @@ int main(int argc, char *argv[]) {
   for (unsigned int i = 1; i < init_input_seq_len + NUM_TOKENS_TO_GENERATE;
        ++i) {
     output_bufs = model->incremental_inference(
-      BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1);
+      BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1, i);
 
     nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
 
