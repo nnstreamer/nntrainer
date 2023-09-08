@@ -68,6 +68,14 @@ public:
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
+  void initial_incremental_forwarding(RunLayerContext &context,
+                                      unsigned int from, unsigned int to,
+                                      bool training);
+
+  /**
+   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
+   * int from, unsigned int to, bool training)
+   */
   void incremental_forwarding(RunLayerContext &context, unsigned int from,
                               unsigned int to, bool training) override;
 
@@ -130,9 +138,11 @@ private:
 
   unsigned int cache_index;
 
-  inline static std::vector<std::vector<float>> *freqs_cos = {};
+  inline static unsigned int layer_progress;
 
+  inline static std::vector<std::vector<float>> *freqs_cos = {};
   inline static std::vector<std::vector<float>> *freqs_sin = {};
+  inline static std::vector<float> freqs;
 
   /**
    * @brief     compute frequency for rotary embedding
@@ -143,9 +153,9 @@ private:
   void precompute_freqs(int dim, unsigned int seq_len, float theta = 10000.0) {
     if (freqs_cos == nullptr) {
       unsigned int half_ = dim / 2;
-      std::vector<float> freqs(half_);
       for (unsigned int i = 0; i < half_; ++i) {
-        freqs[i] = 1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim)));
+        freqs.push_back(1.0 /
+                        (std::pow(theta, (2 * i) / static_cast<float>(dim))));
       }
 
       auto cos = new std::vector<std::vector<float>>();
@@ -182,11 +192,36 @@ private:
     float value = 0;
     float transformed_value = 0.0;
     unsigned int half_ = dim / 2;
+    unsigned int max_timestep =
+      std::get<props::MaxTimestep>(multi_head_attention_props).get();
+
+    std::vector<float> *cos_;
+    std::vector<float> *sin_;
+
+    if (from >= max_timestep) {
+      std::cout << from << " " << max_timestep << std::endl;
+      cos_ = new std::vector<float>(dim);
+      sin_ = new std::vector<float>(dim);
+
+      for (unsigned int i = 0; i < half_; ++i) {
+        float angle = from * freqs[i];
+        (*cos_)[i] = std::cos(angle);
+        (*cos_)[i + half_] = std::cos(angle); // repeated 2 times
+
+        (*sin_)[i] = std::sin(angle);
+        (*sin_)[i + half_] = std::sin(angle); // repeated 2 times
+      }
+    }
 
     if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
       for (unsigned int b = 0; b < in.batch(); b++) {
         for (unsigned int c = 0; c < in.channel(); c++) {
           for (unsigned int h = 0; h < in.height(); h++) {
+            if (from < max_timestep) {
+              cos_ = &(*freqs_cos)[from + h];
+              sin_ = &(*freqs_sin)[from + h];
+            }
+
             for (unsigned int w = 0; w < in.width(); w = w + dim) {
               for (unsigned int k = 0; k < dim; k++) {
                 unsigned int span = w + k;
@@ -212,6 +247,11 @@ private:
       for (unsigned int b = 0; b < in.batch(); b++) {
         for (unsigned int c = 0; c < in.channel(); c++) {
           for (unsigned int h = 0; h < in.height(); h++) {
+            if (from < max_timestep) {
+              cos_ = &(*freqs_cos)[from + h];
+              sin_ = &(*freqs_sin)[from + h];
+            }
+
             for (unsigned int w = 0; w < in.width(); w = w + dim) {
               for (unsigned int k = 0; k < dim; k++) {
 #ifdef ENABLE_FP16

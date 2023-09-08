@@ -376,7 +376,7 @@ s   * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            unsigned int init_seq_len,
-                                           unsigned int step);
+                                           unsigned int from, unsigned int to);
 
   /**
    * @brief     Run NeuralNetwork incremental inference
@@ -389,7 +389,7 @@ s   * @retval shared_ptr<const Tensor>
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            sharedConstTensors label,
                                            unsigned int init_seq_len,
-                                           unsigned int step);
+                                           unsigned int from, unsigned int to);
 
   /**
    * @brief     Run the incremental inference of the model
@@ -405,7 +405,8 @@ s   * @retval shared_ptr<const Tensor>
                                              const std::vector<float *> &input,
                                              const std::vector<float *> &label,
                                              unsigned int init_seq_len,
-                                             unsigned int step) override;
+                                             unsigned int from,
+                                             unsigned int to) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user

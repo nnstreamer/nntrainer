@@ -75,6 +75,54 @@ void SwiGLULayer::forwarding(nntrainer::RunLayerContext &context,
   }
 }
 
+void SwiGLULayer::incremental_forwarding(nntrainer::RunLayerContext &context,
+                                         unsigned int from, unsigned int to,
+                                         bool training) {
+  nntrainer::Tensor &in1 = context.getInput(INPUT_IDX_1);
+  nntrainer::Tensor &in2 = context.getInput(INPUT_IDX_2);
+  nntrainer::Tensor &out = context.getOutput(OUT_IDX);
+
+  if (from) {
+    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
+      << "incremental step size is not 1";
+    from = 0;
+    to = 1;
+  }
+
+  if (in1.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    for (unsigned int b = 0; b < in1.batch(); b++) {
+      for (unsigned int c = 0; c < in1.channel(); c++) {
+        for (unsigned int h = from; h < to; h++) {
+          for (unsigned int w = 0; w < in1.width(); w++) {
+            out.setValue(b, c, h, w,
+                         ActivationOp::swish(in1.getValue<float>(b, c, h, w)) *
+                           in2.getValue<float>(b, c, h, w));
+          }
+        }
+      }
+    }
+  } else if (in1.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    for (unsigned int b = 0; b < in1.batch(); b++) {
+      for (unsigned int c = 0; c < in1.channel(); c++) {
+        for (unsigned int h = from; h < to; h++) {
+          for (unsigned int w = 0; w < in1.width(); w++) {
+            out.setValue(
+              b, c, h, w,
+              static_cast<_FP16>(
+                ActivationOp::swish(
+                  static_cast<float>(in1.getValue<_FP16>(b, c, h, w))) *
+                static_cast<float>(in2.getValue<_FP16>(b, c, h, w))));
+          }
+        }
+      }
+    }
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
+  }
+}
+
 void SwiGLULayer::calcDerivative(nntrainer::RunLayerContext &context) {
   // std::throw_with_nested(std::runtime_error("Training is not supported
   // yet."));
