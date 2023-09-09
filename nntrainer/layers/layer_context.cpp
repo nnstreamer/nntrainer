@@ -10,6 +10,7 @@
  * @brief  This is the layer context for each layer
  */
 
+#include "common_properties.h"
 #include "nntrainer_error.h"
 #include <functional>
 #include <memory>
@@ -139,7 +140,8 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
-                                 const std::vector<Var_Grad *> &t) :
+                                 const std::vector<Var_Grad *> &t,
+                                 CheckPointType checkpoint) :
   loss(l),
   in_place(in_place_),
   weights(w),
@@ -148,6 +150,7 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
   tensors(t) {
   std::get<props::Name>(props).set(name);
   std::get<props::Trainable>(props).set(trainable);
+  std::get<props::CheckPoint>(props).set(checkpoint);
   NNTR_THROW_IF(!readyToUse(), std::invalid_argument)
     << "run context is not ready to use upon creation";
 

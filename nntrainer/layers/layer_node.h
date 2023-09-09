@@ -24,6 +24,7 @@
 #ifndef __LAYER_NODE_H__
 #define __LAYER_NODE_H__
 
+#include "common_properties.h"
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -619,6 +620,16 @@ public:
   }
 
   /**
+   * @brief Get the checkpoint property
+   */
+  void setCheckPoint(props::CheckPoint checkpoint);
+
+  /**
+   * @brief Get the checkpoint property
+   */
+  const props::CheckPoint getCheckPoint() const;
+
+  /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
    * @param bool read optimizer variables
@@ -720,6 +731,7 @@ public:
    * @param inputs inputs
    * @param outputs outputs
    * @param tensors tensors
+   * @param checkpoint checkpoint type
    */
   void configureRunContext(const std::vector<Weight *> &weights,
                            const std::vector<Var_Grad *> &inputs,
@@ -803,6 +815,22 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  const nntrainer::Layer *getLayer() const;
+
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  nntrainer::Layer *getLayer();
+
 private:
   /**
    * @brief     Get the Input Layers object
@@ -845,10 +873,11 @@ will also contain the properties of the layer. The properties will be copied
 upon final creation. Editing properties of the layer after init will not the
 properties in the context/graph unless intended. */
 
-  using PropsType = std::tuple<props::Name, props::Distribute, props::Trainable,
-                               std::vector<props::InputConnection>,
-                               std::vector<props::InputShape>,
-                               props::SharedFrom, props::ClipGradByGlobalNorm>;
+  using PropsType =
+    std::tuple<props::Name, props::Distribute, props::Trainable,
+               std::vector<props::InputConnection>,
+               std::vector<props::InputShape>, props::SharedFrom,
+               props::ClipGradByGlobalNorm, props::CheckPoint>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence
@@ -867,22 +896,6 @@ properties in the context/graph unless intended. */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  const nntrainer::Layer *getLayer() const;
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  nntrainer::Layer *getLayer();
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for

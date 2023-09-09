@@ -163,9 +163,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_gradient(false),
   output_connections(),
   run_context(nullptr),
-  layer_node_props(
-    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
-                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm())),
+  layer_node_props(new PropsType(
+    props::Name(), props::Distribute(), props::Trainable(), {}, {},
+    props::SharedFrom(), props::ClipGradByGlobalNorm(), props::CheckPoint())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -344,6 +344,18 @@ bool LayerNode::getTrainable() const {
            (run_context->getNumWeights() > 0);
   else
     return std::get<props::Trainable>(*layer_node_props);
+}
+
+void LayerNode::setCheckPoint(props::CheckPoint chekcpoint) {
+  // run_context's property can be set only while finalize.
+  std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
+}
+
+const props::CheckPoint LayerNode::getCheckPoint() const {
+  if (run_context)
+    return run_context->getCheckPoint();
+  else
+    return std::get<props::CheckPoint>(*layer_node_props);
 }
 
 bool LayerNode::getFlatten() const {
@@ -714,7 +726,7 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &tensors) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
-    inputs, outputs, tensors);
+    inputs, outputs, tensors, getCheckPoint());
 }
 
 /**

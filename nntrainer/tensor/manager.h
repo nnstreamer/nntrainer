@@ -472,12 +472,19 @@ public:
    * @brief flush cache data except the order
    *
    * @param order except execution order
-   * @param lookahead preloading size
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size. If new flush request arrives,
    *       it waits previous preloading is completed and invokes new one.
    */
   void flushCacheExcept(unsigned int order);
+
+  /**
+   * @brief reclaim temp data
+   */
+  void reclaim(unsigned int id) {
+    tensor_pool.reclaimTemp(id);
+    weight_pool.reclaimTemp(id);
+  }
 
 private:
   /** @todo: merge this list to one */
