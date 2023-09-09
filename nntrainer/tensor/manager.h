@@ -19,6 +19,7 @@
 
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
+#include "common_properties.h"
 #include "tensor.h"
 #include "tensor_wrap_specs.h"
 #ifdef __cplusplus
@@ -31,6 +32,7 @@
 
 #include <basic_planner.h>
 #include <graph_node.h>
+#include <layer_node.h>
 #include <tensor_pool.h>
 #include <var_grad.h>
 #include <weight.h>
@@ -209,7 +211,8 @@ public:
    */
   std::vector<Var_Grad *> requestTensors(
     const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
-    bool trainable, const std::vector<std::string> &shared_names = {});
+    bool trainable, const std::vector<std::string> &shared_names = {},
+    bool is_temporary = false);
 
   /**
    * @brief     Create tensors with the given spec
@@ -242,7 +245,8 @@ public:
    */
   std::vector<Var_Grad *>
   requestInputs(const GraphNode &node, const std::vector<TensorDim> &inputs_dim,
-                const std::vector<std::string> &outputs_name = {});
+                const std::vector<std::string> &outputs_name = {},
+                const std::vector<bool> is_temporary = {});
 
   /**
    * @brief     Get all the weights which match the above condition
@@ -442,7 +446,8 @@ public:
                           TensorGroupType identify_as,
                           const GraphNode::ExecutionOrder &exec_order,
                           const std::string &scope = "",
-                          bool expose_var = false, bool expose_grad = false);
+                          bool expose_var = false, bool expose_grad = false,
+                          bool is_temporary = false);
 
   /**
    * @brief request vector of tensors with variable + gradient specification
@@ -458,10 +463,12 @@ public:
    * valid max_exec_order when allocation happens
    * @return Tensor* tensor
    */
-  std::vector<Var_Grad *> requestTensors(
-    const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
-    const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "",
-    bool expose_var = false, bool expose_grad = false);
+  std::vector<Var_Grad *>
+  requestTensors(const std::vector<VarGradSpecV2> &specs,
+                 TensorGroupType identify_as,
+                 const GraphNode::ExecutionOrder &exec_order,
+                 const std::string &scope = "", bool expose_var = false,
+                 bool expose_grad = false, bool is_temporary = false);
 
   /**
    * @brief flush cache data
@@ -472,12 +479,16 @@ public:
    * @brief flush cache data except the order
    *
    * @param order except execution order
-   * @param lookahead preloading size
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size. If new flush request arrives,
    *       it waits previous preloading is completed and invokes new one.
    */
   void flushCacheExcept(unsigned int order);
+
+  /**
+   * @brief reclaim temp data
+   */
+  bool reclaim(std::shared_ptr<LayerNode> layer, bool is_forwarding = true);
 
 private:
   /** @todo: merge this list to one */

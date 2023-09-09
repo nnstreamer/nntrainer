@@ -14,6 +14,7 @@
 
 #ifndef __TENSOR_POOL_H__
 #define __TENSOR_POOL_H__
+#include "common_properties.h"
 #ifdef __cplusplus
 
 #include <functional>
@@ -25,6 +26,7 @@
 
 #include <cache_loader.h>
 #include <cache_pool.h>
+#include <temp_pool.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
@@ -43,20 +45,26 @@ public:
    * @brief     Constructor of TensorPool
    */
   TensorPool() :
-    mem_pool(std::make_unique<MemoryPool>()),
+    mem_pool(std::make_shared<MemoryPool>()),
+    temp_pool(std::make_shared<TempPool>()),
     cache_loader(nullptr) {}
 
   /**
    * @brief     Constructor of TensorPool
    */
   TensorPool(bool enable_swap, const std::string &swap_path = "",
-             const std::string &swap_name = "") {
+             const std::string &swap_name = "",
+             unsigned int checkpoint_len = 1) {
     if (enable_swap) {
       auto cache_pool = std::make_shared<CachePool>(swap_path, swap_name);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
     } else {
       mem_pool = std::make_shared<MemoryPool>();
+    }
+
+    if (checkpoint_len > 0) {
+      temp_pool = std::make_shared<TempPool>();
     }
   }
 
@@ -104,21 +112,25 @@ public:
    *
    * @return The real memory requirement with this strategy in bytes
    */
-  size_t size() { return mem_pool->size(); }
+  size_t size() { return mem_pool->size() + temp_pool->size(); }
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
    * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemoryRequirement() { return mem_pool->minMemoryRequirement(); }
+  size_t minMemoryRequirement() {
+    return mem_pool->minMemoryRequirement() + temp_pool->minMemoryRequirement();
+  }
 
   /**
    * @brief Is the tensor pool allocated
    *
    * @return true if the tensors are allocated, else false
    */
-  bool isAllocated() const { return mem_pool->isAllocated(); }
+  bool isAllocated() const {
+    return mem_pool->isAllocated() || temp_pool->isAllocated();
+  }
 
   /**
    * @brief Get the tensor of the given name
@@ -127,7 +139,7 @@ public:
    * @throws if no tensor is found with the given name
    */
   Tensor *getTensor(const std::string &name) {
-    return pool[name_map.at(name)].tensor.get();
+    return specs[name_map[name]].tensor.get();
   }
 
   /**
@@ -172,7 +184,7 @@ public:
                   const std::vector<unsigned int> &exec_order,
                   TensorLifespan lifespan,
                   const Tensor::Initializer &init = Tensor::Initializer::NONE,
-                  bool is_weight_grad = false);
+                  bool is_weight_grad = false, bool is_temporary = false);
 
   /**
    * @brief     Request tensor which is a view of already requested with the
@@ -197,7 +209,8 @@ public:
   Tensor *view(const std::string &name, const std::string &reference,
                const TensorDim &dim,
                const std::vector<unsigned int> &exec_order,
-               TensorLifespan lifespan, const size_t offset = 0);
+               TensorLifespan lifespan, const size_t offset = 0,
+               bool is_temporary = false);
 
   /**
    * @brief extend a tensor life as tensor is being shared.
@@ -233,7 +246,8 @@ public:
   requestOrExtend(const std::string &name, const TensorDim &dim,
                   const std::vector<unsigned int> &exec_order,
                   TensorLifespan lifespan,
-                  const Tensor::Initializer &init = Tensor::Initializer::NONE);
+                  const Tensor::Initializer &init = Tensor::Initializer::NONE,
+                  bool is_temporary = false);
 
   /**
    * @brief reidentify the source of already created tensor (or view).
@@ -289,6 +303,11 @@ public:
    */
   void loadCacheCancel(int id);
 
+  /**
+   * @brief reclaim temp pool memory
+   */
+  void reclaimTemp(unsigned int exec_order) { temp_pool->reclaim(exec_order); }
+
 private:
   /**
    * @brief Source tensor detailed specification
@@ -317,6 +336,7 @@ private:
    */
   struct RequestSpec {
     bool is_weight_grad;            /**< identification of weight gradient */
+    bool is_temporary;              /**< identification of temporary tensor */
     std::unique_ptr<Tensor> tensor; /**< tensor object itself */
     std::variant<SourceDetails, DependentDetails>
       details; /**< additional information by its kind */
@@ -367,9 +387,11 @@ private:
    * @note syncing starting from dependents of dependents is invalid and will
    * throw.
    *
+   * @param specs list of requested tensor specs
    * @param spec spec with source details to refer to.
    */
-  void syncDependents(const RequestSpec &spec);
+  void syncDependents(std::vector<RequestSpec> &request_specs,
+                      const RequestSpec &spec);
 
   /**
    * @brief register a spec after creation
@@ -379,13 +401,20 @@ private:
   Tensor *registerRequestSpec(RequestSpec &&spec);
 
   /**
+   * @brief plan memory after all the requests are done
+   */
+  void plan(std::vector<RequestSpec> &specs, const MemoryPlanner &planner,
+            unsigned int start_order, unsigned int end_order);
+
+  /**
    * note: unordered_map is not directly used for pool to ensure initialization
    * of weights
    */
-  std::vector<RequestSpec> pool; /**< list of requested tensors */
+  std::vector<RequestSpec> specs; /**< list of requested tensors */
   std::unordered_map<std::string, unsigned int>
     name_map;                           /**< indexing of requested tensors */
   std::shared_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
+  std::shared_ptr<TempPool> temp_pool;  /**< memory pool for the tensors */
   std::unique_ptr<CacheLoader> cache_loader; /**< memory pool for the tensors */
 
   /**

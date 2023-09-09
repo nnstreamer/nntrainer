@@ -163,9 +163,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_gradient(false),
   output_connections(),
   run_context(nullptr),
-  layer_node_props(
-    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
-                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm())),
+  layer_node_props(new PropsType(
+    props::Name(), props::Distribute(), props::Trainable(), {}, {},
+    props::SharedFrom(), props::ClipGradByGlobalNorm(), props::CheckPoint())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -346,6 +346,32 @@ bool LayerNode::getTrainable() const {
     return std::get<props::Trainable>(*layer_node_props);
 }
 
+void LayerNode::setCheckPoint(props::CheckPoint chekcpoint) {
+  if (run_context)
+    run_context->setCheckPoint(chekcpoint);
+  else
+    std::get<props::CheckPoint>(*layer_node_props) = chekcpoint;
+}
+
+const props::CheckPoint LayerNode::getCheckPoint() const {
+  if (run_context)
+    return run_context->getCheckPoint();
+  else
+    return std::get<props::CheckPoint>(*layer_node_props);
+}
+
+unsigned int LayerNode::getUsedCount() const {
+  if (run_context)
+    return run_context->getUsedCount();
+
+  return 0;
+}
+
+void LayerNode::setUsedCount(unsigned int count) {
+  if (run_context)
+    run_context->setUsedCount(count);
+}
+
 bool LayerNode::getFlatten() const {
   auto &flatten = std::get<props::Flatten>(*layer_node_props_realization);
   if (flatten.empty()) {
@@ -499,10 +525,10 @@ void LayerNode::clearOptVar() {
 InitLayerContext
 LayerNode::finalize(const std::vector<TensorDim> &input_dims,
                     std::array<const std::string, 3> tensor_type) {
-  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType {
-  // 			       return from_string(ty);
+  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType
+  // { 			       return from_string(ty);
   // };
-  
+
   if (run_context)
     throw std::runtime_error(
       "Trying to finalizing a layer which is already finalized in layer: " +
@@ -714,7 +740,7 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &tensors) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
-    inputs, outputs, tensors);
+    inputs, outputs, tensors, getCheckPoint());
 }
 
 /**
