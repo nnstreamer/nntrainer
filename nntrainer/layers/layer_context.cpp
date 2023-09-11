@@ -69,20 +69,6 @@ void InitLayerContext::setOutputDimensions(
   for (unsigned i = 0u, sz = out_dim.size(); i < sz; ++i) {
     auto spec = outSpec(out_dim.at(i));
 
-/*     spec.variable_spec.dim.setFormat(
-      str_converter<enum_class_prop_tag,
-                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
-    spec.variable_spec.dim.setDataType(
-      str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
-        from_string(tensor_type[2]));
-
-    spec.gradient_spec->dim.setFormat(
-      str_converter<enum_class_prop_tag,
-                    nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
-    spec.gradient_spec->dim.setDataType(
-      str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
-        from_string(tensor_type[2]));
- */
     specs.push_back(std::move(spec));
   }
 

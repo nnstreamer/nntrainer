@@ -163,9 +163,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_gradient(false),
   output_connections(),
   run_context(nullptr),
-  layer_node_props(
-    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
-                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm())),
+  layer_node_props(new PropsType(
+    props::Name(), props::Distribute(), props::Trainable(), {}, {},
+    props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -575,6 +575,14 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
   float max_norm = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
+
+  if (!std::get<props::Packed>(*layer_node_props).empty()) {
+    bool isPacked = std::get<props::Packed>(*layer_node_props);
+    if (!isPacked) {
+      // set weight type = activation type
+      tensor_type[1] = tensor_type[2];
+    }
+  }
 
   std::vector<bool> out_info;
   out_info.reserve(output_connections.size());

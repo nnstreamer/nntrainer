@@ -289,12 +289,12 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
 
   wt_idx[ConvParams::weight] = context.requestWeight(
     kernel_dim, weight_initializer, weight_regularizer,
-    weight_regularizer_constant, weight_decay, "filter", true);
+    weight_regularizer_constant, weight_decay, "filter", true, 0);
 
   if (disable_bias.empty() || disable_bias.get() == false) {
     wt_idx[ConvParams::bias] =
       context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                            1.0f, bias_decay, "bias", true);
+                            1.0f, bias_decay, "bias", true, 0);
   }
 
   // this output_dim must be the same with dimension of hidden
