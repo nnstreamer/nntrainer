@@ -99,6 +99,82 @@ static std::string withKey(const std::string &key,
   return ss.str();
 }
 
+int generate(float *logits, bool temperature = true,
+             unsigned int NUM_VOCAB = 96000) {
+  // return argmax if temperature is 0
+  if (temperature < 1e-5) {
+    int argmax_idx =
+      std::distance(logits, std::max_element(logits, logits + NUM_VOCAB));
+    return argmax_idx;
+  }
+
+  // transform logits to softmax
+  std::vector<float> logits_vec;
+  logits_vec.reserve(NUM_VOCAB);
+
+  float max_logits = *std::max_element(logits, logits + NUM_VOCAB);
+  float sum_exp_logits = 0;
+  for (unsigned int i = 0; i < NUM_VOCAB; i++) {
+    float exp_x = exp(logits[i] - max_logits);
+    sum_exp_logits += exp_x;
+    logits_vec.push_back(exp_x);
+  }
+
+  for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
+    logits_vec[i] /= sum_exp_logits;
+  }
+
+  // sort logits by descending order
+  std::vector<size_t> logits_idx(NUM_VOCAB);
+  std::iota(logits_idx.begin(), logits_idx.end(), 0);
+  std::sort(logits_idx.begin(), logits_idx.end(),
+            [&logits_vec](size_t i1, size_t i2) {
+              return logits_vec[i1] > logits_vec[i2];
+            });
+  std::sort(logits_vec.begin(), logits_vec.end(), std::greater<float>());
+
+  // calculate cumulative logit
+  float cum_logit = 0.0;
+  std::vector<float> cum_logits(NUM_VOCAB);
+  for (size_t i = 0; i < NUM_VOCAB; ++i) {
+    cum_logit += logits_vec[i];
+    cum_logits[i] = cum_logit;
+  }
+
+  // filter logits by temperature
+  size_t mask_idx = 0;
+  for (; mask_idx < NUM_VOCAB; ++mask_idx) {
+    if (cum_logits[mask_idx] > temperature) {
+      break;
+    }
+  }
+
+  // return argmax if all logits are filtered
+  if (mask_idx == 0)
+    return logits_idx[mask_idx];
+
+  // mask logits
+  for (size_t i = mask_idx; i < NUM_VOCAB; ++i) {
+    logits_vec[i] = 0.0;
+  }
+
+  // normalize masked logits
+  float sum_logits = std::accumulate(logits_vec.begin(), logits_vec.end(), 0.0);
+
+  for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
+    logits_vec[i] /= sum_logits;
+  }
+
+  // sample from masked logits
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::discrete_distribution<int> dist(logits_vec.begin(), logits_vec.end());
+  int sampled_idx = dist(gen);
+
+  // return sampled word indexs
+  return logits_idx[sampled_idx];
+}
+
 template <typename T>
 T unwrap(std::optional<T> &&value, const std::string &error_msg) {
   if (value.has_value()) {
@@ -404,7 +480,7 @@ ModelHandle createLLaMA() {
 /**
  * @brief to run for every text sequence
  */
-void run(std::string text) {
+void run(std::string text, bool apply_temperature) {
 
   std::vector<float *> input;
   std::vector<float *> label;
@@ -474,10 +550,7 @@ void run(std::string text) {
   for (unsigned int i = input_len + 1; i < input_len + NUM_TO_GENERATE; ++i) {
     auto output_interval =
       g_model->incremental_inference(1, input, label, MAX_SEQ_LEN, i - 1, i);
-
-    ids = std::distance(
-      output_interval[0],
-      std::max_element(output_interval[0], output_interval[0] + NUM_VOCAB));
+    unsigned int ids = generate(output[0], apply_temperature, NUM_VOCAB);
 
     if (i < input_len) {
       input_sample[0] = static_cast<float>(init_input[i]);
@@ -590,6 +663,8 @@ int main(int argc, char *argv[]) {
 
   try {
     const std::vector<std::string> args(argv + 1, argv + argc);
+
+    bool apply_temp = (strcasecmp("true", args[1].c_str()) == 0);
 
     createAndRun(epoch, batch_size);
 
