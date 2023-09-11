@@ -109,6 +109,24 @@ public:
 };
 
 /**
+ * @brief trainable property, use this to set and check how if certain layer is
+ * trainable
+ *
+ */
+class Packed : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Trainable object
+   * if it is true, then weight type always follows tensor_type[1]( Global
+   * Weight Type ). if it is false, the weight type follows tensor_type[2]
+   * (Global Activation Type)
+   */
+  Packed(bool val = true) : nntrainer::Property<bool>(val) {}
+  static constexpr const char *key = "packed";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief DisableBias to disable the bias
  *
  */
@@ -1158,7 +1176,6 @@ public:
   using prop_tag = dimension_prop_tag; /**< property type */
 };
 
-
 /**
  * @brief scaled dot product property, used to check
  * whether attention layer is a kind of scaled dot product attention
@@ -1190,7 +1207,10 @@ public:
   using prop_tag = bool_prop_tag;
 };
 
-
+/**
+ * @brief Print object
+ *
+ */
 class Print : public nntrainer::Property<bool> {
 public:
   /**

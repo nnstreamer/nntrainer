@@ -62,8 +62,10 @@ enum class TensorLifespan {
                         layer finishes its execution in the current
                         iteration, eg. hidden memory/cells of RNN */
   EPOCH_LIFESPAN = 0b11111, /**< tensor must be valid before the epoch ends */
-  MAX_LIFESPAN = 0b111111,  /**< tensor must not be reset until the end of the
-                   model  execution, eg. layer weights */
+  FORWARD_INFER_LIFESPAN =
+    0b100000,               /**< tensor is only used for only inference */
+  MAX_LIFESPAN = 0b1111111, /**< tensor must not be reset until the end of the
+                  model  execution, eg. layer weights */
 };
 
 /**

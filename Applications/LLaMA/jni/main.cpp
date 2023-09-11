@@ -385,7 +385,8 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
     "rms_norm",
     {withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
      withKey("input_layers", input_name),
-     withKey("epsilon", std::to_string(NORM_EPS))}));
+     withKey("epsilon", std::to_string(NORM_EPS)),
+     withKey("packed", "false")}));
 
   auto att_layer = createAttentionLayer(
     layer_id, INIT_SEQ_LEN, NUM_HEADS, DIM / NUM_HEADS,
@@ -405,7 +406,8 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
      withKey("input_layers",
              "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("epsilon", std::to_string(NORM_EPS))}));
+     withKey("epsilon", std::to_string(NORM_EPS)),
+     withKey("packed", "false")}));
 
   auto ffn_layer = createFeedForwardLayer(
     layer_id, DIM, 4 * DIM, "layer" + std::to_string(layer_id) + "_ffn_norm");
@@ -444,7 +446,7 @@ ModelHandle createLLaMA() {
   }
 
   layers.push_back(ml::train::layer::Embedding(
-    {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB),
+    {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB), "packed=false",
      "out_dim=" + std::to_string(DIM)}));
 
   for (int i = 0; i < NUM_LAYERS; i++) {
@@ -463,12 +465,14 @@ ModelHandle createLLaMA() {
     "rms_norm", {withKey("name", "output_norm"),
                  withKey("epsilon", std::to_string(NORM_EPS)),
                  withKey("input_layers", "layer" + std::to_string(last_layer) +
-                                           "_decoder_output")}));
+                                           "_decoder_output"),
+                 withKey("packed", "false")}));
 
   layers.push_back(createLayer(
     "fully_connected",
     {withKey("name", "output_of_llama"), withKey("unit", NUM_VOCAB),
-     withKey("disable_bias", "true"), withKey("input_layers", "output_norm")}));
+     withKey("disable_bias", "true"), withKey("input_layers", "output_norm"),
+     withKey("packed", "false")}));
 
   for (auto &layer : layers) {
     model->addLayer(layer);
@@ -669,6 +673,7 @@ int main(int argc, char *argv[]) {
     createAndRun(epoch, batch_size);
 
     run(text, apply_temp);
+
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;
