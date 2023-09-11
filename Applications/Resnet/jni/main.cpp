@@ -114,9 +114,13 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     return createLayer("conv2d", props);
   };
 
-  /** residual path */
+/** residual path */
+#if defined(ENABLE_TFLITE_INTERPRETER)
+  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, "same", input_name);
+#else
   LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1,
                                downsample ? "1,1" : "same", input_name);
+#endif
   LayerHandle a2 =
     createLayer("batch_normalization",
                 {with_name("a2"), withKey("activation", "relu"),
@@ -127,7 +131,11 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   /** skip path */
   LayerHandle b1 = nullptr;
   if (downsample) {
+#if defined(ENABLE_TFLITE_INTERPRETER)
+    b1 = create_conv("b1", 1, 2, "same", input_name);
+#else
     b1 = create_conv("b1", 1, 2, "0,0", input_name);
+#endif
   }
 
   const std::string skip_name = b1 ? scoped_name("b1") : input_name;

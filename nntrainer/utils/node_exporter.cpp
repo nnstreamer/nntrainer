@@ -197,7 +197,12 @@ void Exporter::saveTflResult(
   auto strides = std::get<std::array<props::Stride, CONV2D_DIM>>(props);
   assert(strides.size() == CONV2D_DIM);
   auto padding = std::get<props::Padding2D>(props).get();
-  assert(padding == "same" || padding == "valid");
+  if (padding != "same" && padding != "valid") {
+    std::ostringstream ss;
+    ss << "Unsupported padding type; \"" << padding
+       << "\" is not supported. Use \"same\" or \"valid\".";
+    throw std::runtime_error(ss.str());
+  }
   auto options = tflite::CreateConv2DOptions(*fbb, tflite_padding(padding),
                                              strides.at(0), strides.at(1))
                    .Union();
