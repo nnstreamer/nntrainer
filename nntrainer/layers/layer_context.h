@@ -20,10 +20,10 @@
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <tensor_wrap_specs.h>
+#include <weight.h>
 
 namespace nntrainer {
 
-class Weight;
 class Var_Grad;
 
 /**
@@ -112,6 +112,11 @@ public:
    */
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
 
+  /**
+   * @brief Set Data Type for Input Dimensions
+   *
+   * @param ty data type to set
+   */
   void setInputDataType(TensorDim::DataType ty) {
     for (auto d : input_dim)
       d.setDataType(ty);
@@ -390,7 +395,21 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) const;
+  template <typename T = float> Tensor &getWeight(unsigned int idx) const {
+    if (weights[idx]->getDim().getDataType() == nntrainer::Tdatatype::QINT4 ||
+        weights[idx]->getDim().getDataType() == nntrainer::Tdatatype::QINT8) {
+      Tensor output(weights[idx]->getDim());
+
+      if (sizeof(T) == sizeof(float)) {
+        output.setDataType(nntrainer::Tdatatype::FP32);
+      } else {
+        output.setDataType(nntrainer::Tdatatype::FP16);
+      }
+
+      return weights[idx]->getVariableRef().dequantize<T>(output);
+    }
+    return weights[idx]->getVariableRef();
+  }
 
   /**
    * @brief Get the Weight Gradient tensor object
