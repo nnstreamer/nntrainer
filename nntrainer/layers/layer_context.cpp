@@ -20,7 +20,6 @@
 #include <nntrainer_log.h>
 #include <stdexcept>
 #include <var_grad.h>
-#include <weight.h>
 
 namespace nntrainer {
 
@@ -153,16 +152,6 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
 
   if (!validate())
     throw std::invalid_argument("Creating invalid run context");
-}
-
-/**
- * @brief Get the Weight tensor object
- *
- * @param idx Identifier of the weight
- * @return Tensor& Reference to the weight tensor
- */
-Tensor &RunLayerContext::getWeight(unsigned int idx) const {
-  return weights[idx]->getVariableRef();
 }
 
 /**

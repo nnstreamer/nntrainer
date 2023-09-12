@@ -183,16 +183,16 @@ void Tensor::allocate() {
       throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
     } else if (getDataType() == ml::train::TensorDim::DataType::QINT8) {
-      mem_data = new MemoryData((void *)(new int8_t[dim.getDataLen()]{}));
+      mem_data = new MemoryData((void *)(new uint8_t[dim.getDataLen()]{}));
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-        delete[] mem_data->template getAddr<int8_t>();
+        delete[] mem_data->template getAddr<uint8_t>();
         delete mem_data;
       });
     } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
       mem_data =
-        new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2]{}));
+        new MemoryData((void *)(new uint8_t[(dim.getDataLen() + 1) / 2]{}));
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-        delete[] mem_data->template getAddr<int8_t>();
+        delete[] mem_data->template getAddr<uint8_t>();
         delete mem_data;
       });
     }
@@ -214,6 +214,12 @@ bool Tensor::operator==(const Tensor &rhs) const {
     return false;
 
   if (strides != rhs.strides)
+    return false;
+
+  if (getScaleFactors() != rhs.getScaleFactors())
+    return false;
+
+  if (getZeroPoints() != rhs.getZeroPoints())
     return false;
 
   if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
@@ -242,8 +248,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::QINT8) {
-    const int8_t *_data = getData<int8_t>();
-    const int8_t *_rdata = rhs.getData<int8_t>();
+    const uint8_t *_data = getData<uint8_t>();
+    const uint8_t *_rdata = rhs.getData<uint8_t>();
     for (size_t i = 0; i < len; ++i) {
       /** not checking sign change is intentional to avoid float calculation
        * errors around 0 */
@@ -253,9 +259,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
         return false;
     }
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::QINT4) {
-    const int8_t *_data = getData<int8_t>();
-    const int8_t *_rdata = rhs.getData<int8_t>();
-    int8_t data, rdata;
+    const uint8_t *_data = getData<uint8_t>();
+    const uint8_t *_rdata = rhs.getData<uint8_t>();
+    uint8_t data, rdata;
     for (size_t i = 0; i < len; ++i) {
       /** not checking sign change is intentional to avoid float calculation
        * errors around 0 */
@@ -2696,7 +2702,7 @@ void Tensor::print(std::ostream &out) const {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT8) {
-    const int8_t *data = getData<int8_t>();
+    const uint8_t *data = getData<uint8_t>();
     unsigned int len = size();
     out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
     out << dim;
@@ -2715,7 +2721,7 @@ void Tensor::print(std::ostream &out) const {
         for (unsigned int l = 0; l < channel(); l++) {
           for (unsigned int i = 0; i < height(); i++) {
             for (unsigned int j = 0; j < width(); j++) {
-              out << std::setw(10) << (int)this->getValue<int8_t>(k, l, i, j)
+              out << std::setw(10) << (int)this->getValue<uint8_t>(k, l, i, j)
                   << " ";
             }
             out << std::endl;
@@ -2729,7 +2735,7 @@ void Tensor::print(std::ostream &out) const {
         for (unsigned int i = 0; i < height(); i++) {
           for (unsigned int j = 0; j < width(); j++) {
             for (unsigned int l = 0; l < channel(); l++) {
-              out << std::setw(10) << (int)this->getValue<int8_t>(k, l, i, j)
+              out << std::setw(10) << (int)this->getValue<uint8_t>(k, l, i, j)
                   << " ";
             }
             out << std::endl;
@@ -2741,7 +2747,7 @@ void Tensor::print(std::ostream &out) const {
       out.copyfmt(init);
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
-    const int8_t *data = getData<int8_t>();
+    const uint8_t *data = getData<uint8_t>();
     unsigned int len = size();
     out << "data addr: " << (float *)data << '\n';
     out << dim;
@@ -2896,11 +2902,11 @@ void Tensor::copy(const void *buf) {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT8) {
-    if (buf == getData<int8_t>()) {
+    if (buf == getData<uint8_t>()) {
       return;
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
-    if (buf == getData<int8_t>()) {
+    if (buf == getData<uint8_t>()) {
       return;
     }
   }
@@ -2915,11 +2921,11 @@ void Tensor::copy(const void *buf) {
 #endif
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT8) {
     for (unsigned int i = 0; i < size(); ++i) {
-      getData<int8_t>()[i] = ((int8_t *)buf)[i];
+      getData<uint8_t>()[i] = ((uint8_t *)buf)[i];
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
     for (unsigned int i = 0; i < (size() + 1) / 2; ++i) {
-      getData<int8_t>()[i] = ((int8_t *)buf)[i];
+      getData<uint8_t>()[i] = ((uint8_t *)buf)[i];
     }
   }
 }
@@ -3182,11 +3188,11 @@ void Tensor::setValue(float val) {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT8) {
-    int8_t *data = getData<int8_t>();
+    uint8_t *data = getData<uint8_t>();
     std::fill(data, data + size(), val);
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
-    int8_t *data = getData<int8_t>();
-    int8_t mixed = encode_qint(val, val);
+    uint8_t *data = getData<uint8_t>();
+    uint8_t mixed = encode_qint(val, val);
     std::fill(data, data + (size() + 1) / 2, mixed);
   }
 }
@@ -3207,9 +3213,9 @@ void Tensor::setZero() {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::QINT8) {
-    apply_i<int8_t>([](int8_t val) -> int8_t { return 0; });
+    apply_i<uint8_t>([](uint8_t val) -> uint8_t { return 0; });
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::QINT4) {
-    apply_i<int8_t>([](int8_t val) -> int8_t { return 0; });
+    setValue(0);
   }
 }
 
@@ -3508,11 +3514,11 @@ Tensor Tensor::rotate_180(Tensor in) {
   return output;
 }
 
-int8_t Tensor::encode_qint(int8_t high, int8_t low) const {
+uint8_t Tensor::encode_qint(uint8_t high, uint8_t low) const {
   return (high << 4) | (low & 0x0f);
 };
 
-int8_t Tensor::decode_qint(int8_t val, bool isHigh) const {
+uint8_t Tensor::decode_qint(uint8_t val, bool isHigh) const {
   if (isHigh) {
     val = val >> 4;
   } else {
@@ -3523,105 +3529,67 @@ int8_t Tensor::decode_qint(int8_t val, bool isHigh) const {
   return val;
 }
 
-void Tensor::setScaleFactors(std::vector<float> scales, int idx) {
-  if (scales.empty() || idx < 0 || idx > 3) {
+void Tensor::setOutputAxis(int axis) {
+  if (axis < 0 || axis > 3) {
+    throw std::invalid_argument("Error: invalid parameter");
+  }
+  output_axis = axis;
+}
+
+int Tensor::getOutputAxis() const { return output_axis; }
+
+void Tensor::setScaleFactors(std::vector<float> scales) {
+  if (scales.empty()) {
     throw std::invalid_argument("Error: invalid parameter");
   }
 
-  if (idx == 0 && scales.size() != batch()) {
+  if (output_axis == 0 && scales.size() != batch()) {
     throw std::invalid_argument("Error: scale_factors.size() != batch() ");
   }
 
-  if (idx == 1 && scales.size() != channel()) {
+  if (output_axis == 1 && scales.size() != channel()) {
     throw std::invalid_argument("Error: scale_factors.size() != channel() ");
   }
 
-  if (idx == 2 && scales.size() != height()) {
+  if (output_axis == 2 && scales.size() != height()) {
     throw std::invalid_argument("Error: scale_factors.size() != height() ");
   }
 
-  if (idx == 3 && scales.size() != width()) {
+  if (output_axis == 3 && scales.size() != width()) {
     throw std::invalid_argument("Error: scale_factors.size() != width() ");
   }
 
   scale_factors = scales;
-  scale_idx = idx;
 }
 
-std::vector<float> Tensor::getScaleFactors() { return scale_factors; }
+std::vector<float> Tensor::getScaleFactors() const { return scale_factors; }
 
-Tensor Tensor::dequantize(Tdatatype dtype) const {
-  Tensor t = Tensor(batch(), channel(), height(), width(), getFormat(), dtype);
+void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
+  if (zp.empty()) {
+    throw std::invalid_argument("Error: invalid parameter");
+  }
 
-  return dequantize(t);
+  if (output_axis == 0 && zp.size() != batch()) {
+    throw std::invalid_argument("Error: zero_points.size() != batch() ");
+  }
+
+  if (output_axis == 1 && zp.size() != channel()) {
+    throw std::invalid_argument("Error: zero_points.size() != channel() ");
+  }
+
+  if (output_axis == 2 && zp.size() != height()) {
+    throw std::invalid_argument("Error: zero_points.size() != height() ");
+  }
+
+  if (output_axis == 3 && zp.size() != width()) {
+    throw std::invalid_argument("Error: zero_points.size() != width() ");
+  }
+
+  zero_points = zp;
 }
 
-Tensor Tensor::dequantize(Tensor &output) const {
-  if (getDataType() == Tdatatype::FP32 || getDataType() == Tdatatype::FP16) {
-    throw std::invalid_argument("Error: Tensor cannot be dequantized");
-  }
+std::vector<uint8_t> Tensor::getZeroPoints() const { return zero_points; }
 
-  if (output.getDataType() == Tdatatype::QINT8 ||
-      output.getDataType() == Tdatatype::QINT4) {
-    throw std::invalid_argument("Error: Target datatype is quantized type");
-  }
-
-  if (getFormat() != output.getFormat())
-    throw std::invalid_argument("Error: TensorType do not match");
-
-  if (batch() != output.batch() || channel() != output.channel() ||
-      width() != output.width() || height() != output.height())
-    throw std::invalid_argument("Error: TensorDim do not match");
-
-  if (scale_factors.empty()) {
-    throw std::invalid_argument("Error: No scale factors");
-  }
-
-  int idx;
-  for (unsigned int b = 0; b < batch(); ++b) {
-    for (unsigned int c = 0; c < channel(); ++c) {
-      for (unsigned int h = 0; h < height(); ++h) {
-        for (unsigned int w = 0; w < width(); ++w) {
-          if (scale_idx == 0)
-            idx = b;
-          else if (scale_idx == 1)
-            idx = c;
-          else if (scale_idx == 2)
-            idx = h;
-          else if (scale_idx == 3)
-            idx = w;
-
-          if (output.getDataType() == Tdatatype::FP32) {
-            if (getDataType() == Tdatatype::QINT8) {
-              output.setValue(b, c, h, w,
-                              (float)getValue<int8_t>(b, c, h, w) *
-                                scale_factors[idx]);
-            } else {
-              output.setValue(b, c, h, w,
-                              (float)getValueQint4(b, c, h, w) *
-                                scale_factors[idx]);
-            }
-          } else if (output.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-            if (getDataType() == Tdatatype::QINT8) {
-              output.setValue(b, c, h, w,
-                              (_FP16)getValue<int8_t>(b, c, h, w) *
-                                (_FP16)scale_factors[idx]);
-            } else {
-              output.setValue(b, c, h, w,
-                              (_FP16)getValueQint4(b, c, h, w) *
-                                (_FP16)scale_factors[idx]);
-            }
-#else
-            throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-          }
-        }
-      }
-    }
-  }
-
-  return output;
-} // namespace nntrainer
+// namespace nntrainer
 
 } /* namespace nntrainer */

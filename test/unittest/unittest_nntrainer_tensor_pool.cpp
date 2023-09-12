@@ -488,10 +488,10 @@ TEST(TensorPool, validate_memory_reuse_01_p) {
 
   EXPECT_NO_THROW(pool.allocate());
 
-  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<int8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<uint8_t>(0));
 
   EXPECT_NO_THROW(pool.deallocate());
 }
@@ -549,10 +549,10 @@ TEST(TensorPool, validate_memory_reuse_02_p) {
 
   EXPECT_NO_THROW(pool.allocate());
 
-  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<int8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<uint8_t>(0));
 
   EXPECT_NO_THROW(pool.deallocate());
 }
