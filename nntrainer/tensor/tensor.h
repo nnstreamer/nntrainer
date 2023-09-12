@@ -351,7 +351,7 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor type.
    */
-  Tensor(std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
+  Tensor(std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
     if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
       throw std::out_of_range(
@@ -384,10 +384,10 @@ public:
 
     MemoryData *mem_data =
       (t_type.data_type == Tdatatype::QINT8)
-        ? new MemoryData((void *)(new int8_t[dim.getDataLen()]()))
-        : new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2]()));
+        ? new MemoryData((void *)(new uint8_t[dim.getDataLen()]()))
+        : new MemoryData((void *)(new uint8_t[(dim.getDataLen() + 1) / 2]()));
     data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<int8_t>();
+      delete[] mem_data->getAddr<uint8_t>();
     });
     offset = 0;
     contiguous = true;
@@ -416,7 +416,7 @@ public:
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor. It needs to set format properly.
    */
-  Tensor(std::vector<std::vector<std::vector<int8_t>>> const &d,
+  Tensor(std::vector<std::vector<std::vector<uint8_t>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
@@ -425,7 +425,7 @@ public:
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
    */
-  Tensor(std::vector<std::vector<int8_t>> const &d,
+  Tensor(std::vector<std::vector<uint8_t>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
@@ -575,8 +575,8 @@ public:
    * @param[in] idx location
    * @retval    qint4 value in location
    */
-  int8_t getValueQint4(unsigned int idx) const noexcept {
-    int8_t value = getData<int8_t>()[idx / 2];
+  uint8_t getValueQint4(unsigned int idx) const noexcept {
+    uint8_t value = getData<uint8_t>()[idx / 2];
     return decode_qint(value, (idx % 2 == 0));
   }
 
@@ -585,8 +585,8 @@ public:
    * @param[in] idx location
    * @retval    qint4 value in location
    */
-  int8_t getValueQint4(unsigned int idx) noexcept {
-    int8_t value = getData<int8_t>()[idx / 2];
+  uint8_t getValueQint4(unsigned int idx) noexcept {
+    uint8_t value = getData<uint8_t>()[idx / 2];
     return decode_qint(value, (idx % 2 == 0));
   }
 
@@ -598,10 +598,10 @@ public:
    * @param[in] w width location
    * @retval    qint4 value in location
    */
-  int8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
-                       unsigned int w) const noexcept {
+  uint8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w) const noexcept {
     size_t idx = getIndex(b, c, h, w);
-    int8_t value = getData<int8_t>()[idx / 2];
+    uint8_t value = getData<uint8_t>()[idx / 2];
     return decode_qint(value, (idx % 2 == 0));
   }
 
@@ -613,10 +613,10 @@ public:
    * @param[in] w width location
    * @retval    qint4 value in location
    */
-  int8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
-                       unsigned int w) noexcept {
+  uint8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w) noexcept {
     size_t idx = getIndex(b, c, h, w);
-    int8_t value = getData<int8_t>()[idx / 2];
+    uint8_t value = getData<uint8_t>()[idx / 2];
     return decode_qint(value, (idx % 2 == 0));
   }
 
@@ -1442,16 +1442,16 @@ public:
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
     } else if (getDataType() == Tdatatype::QINT8) {
-      getData<int8_t>()[getIndex(batch, c, h, w)] = value;
+      getData<uint8_t>()[getIndex(batch, c, h, w)] = value;
     } else if (getDataType() == Tdatatype::QINT4) {
       int idx = getIndex(batch, c, h, w);
 
       if (idx % 2 == 0) {
-        getData<int8_t>()[idx / 2] =
-          encode_qint(value, getData<int8_t>()[idx / 2]);
+        getData<uint8_t>()[idx / 2] =
+          encode_qint(value, getData<uint8_t>()[idx / 2]);
       } else {
-        getData<int8_t>()[idx / 2] =
-          encode_qint(getData<int8_t>()[idx / 2] >> 4, value);
+        getData<uint8_t>()[idx / 2] =
+          encode_qint(getData<uint8_t>()[idx / 2] >> 4, value);
       }
     }
   }
@@ -1479,8 +1479,8 @@ public:
       ml_loge("%s", "Error: enable-fp16 is not enabled");
 #endif
     } else if (getDataType() == Tdatatype::QINT8) {
-      getData<int8_t>()[idx] *= beta;
-      getData<int8_t>()[idx] += value;
+      getData<uint8_t>()[idx] *= beta;
+      getData<uint8_t>()[idx] += value;
     }
   }
 
@@ -1954,30 +1954,116 @@ public:
   Tdatatype getDataType() const { return dim.getDataType(); }
 
   /**
+   * @brief Set output axis of the tensor
+   * @param[in] axis output axis (0: batch, 1: channel, 2: height, 3: width)
+   */
+  void setOutputAxis(int axis);
+
+  /**
+   * @brief Get output axis of the tensor
+   *
+   * @return output axis of the tensor
+   */
+  int getOutputAxis() const;
+
+  /**
    * @brief     Set scale factors of the tensor
    * @param[in] scales scale factors
    */
-  void setScaleFactors(std::vector<float> scales, int idx);
+  void setScaleFactors(std::vector<float> scales);
 
   /**
-   * @brief     Get scale factors of the tensor
-   * @retval    scales scale factors
+   * @brief Get scale factors of the tensor
+   *
+   * @return scale factors of the tensor
    */
-  std::vector<float> getScaleFactors();
+  std::vector<float> getScaleFactors() const;
 
   /**
-   * @brief     Dequantize Tensor to dtype
-   * @param[in] dtype Target Tensor DataType
+   * @brief     Set output axis of the tensor
+   * @param[in] zp zero points
+   */
+  void setZeroPoints(std::vector<uint8_t> zp);
+
+  /**
+   * @brief Get zero points of the tensor
+   *
+   * @return zero points of the tensor
+   */
+  std::vector<uint8_t> getZeroPoints() const;
+
+  /**
+   * @brief     Dequantize Tensor
    * @retval    Dequantized Tensor
    */
-  Tensor dequantize(Tdatatype dtype) const;
+  template <typename T = float> Tensor dequantize() const {
+    Tdatatype dtype =
+      (typeid(T) == typeid(float)) ? Tdatatype::FP32 : Tdatatype::FP16;
+
+    Tensor t =
+      Tensor(batch(), channel(), height(), width(), getFormat(), dtype);
+
+    return dequantize<T>(t);
+  }
 
   /**
    * @brief      Dequantize Tensor to output tensor datatype
    * @param[out] output Tensor to store the result
    * @retval     Dequantized Tensor
    */
-  Tensor dequantize(Tensor &output) const;
+  template <typename T> Tensor &dequantize(Tensor &output) const {
+    if (getDataType() == Tdatatype::FP32 || getDataType() == Tdatatype::FP16) {
+      throw std::invalid_argument("Error: Tensor cannot be dequantized");
+    }
+
+    if (output.getDataType() == Tdatatype::QINT8 ||
+        output.getDataType() == Tdatatype::QINT4) {
+      throw std::invalid_argument("Error: Target datatype is quantized type");
+    }
+
+    if (getFormat() != output.getFormat())
+      throw std::invalid_argument("Error: TensorType do not match");
+
+    if (batch() != output.batch() || channel() != output.channel() ||
+        width() != output.width() || height() != output.height())
+      throw std::invalid_argument("Error: TensorDim do not match");
+
+    if (scale_factors.empty()) {
+      throw std::invalid_argument("Error: No scale factors");
+    }
+
+    int idx;
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            if (output_axis == 0)
+              idx = b;
+            else if (output_axis == 1)
+              idx = c;
+            else if (output_axis == 2)
+              idx = h;
+            else if (output_axis == 3)
+              idx = w;
+
+            if (getDataType() == Tdatatype::QINT8) {
+              output.setValue(
+                b, c, h, w,
+                (T)(getValue<uint8_t>(b, c, h, w) - zero_points[idx]) *
+                  scale_factors[idx]);
+            } else {
+              output.setValue(
+                b, c, h, w,
+                (T)(getValueQint4(b, c, h, w) - zero_points[idx]) *
+                  scale_factors[idx]);
+            }
+          }
+        }
+      }
+    }
+
+    return output;
+  }
 
   static constexpr float epsilon = 1e-5;
 
@@ -1990,8 +2076,9 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
-  int scale_idx;
+  int output_axis;
   std::vector<float> scale_factors;
+  std::vector<uint8_t> zero_points;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source
@@ -2133,14 +2220,14 @@ private:
    * @param[in]  low value for last 4 bits
    * @retval     Encoded value
    */
-  int8_t encode_qint(int8_t high, int8_t low) const;
+  uint8_t encode_qint(uint8_t high, uint8_t low) const;
 
   /**
    * @brief      Decode int8 value to a int4 value
    * @param[in]  idx index to retrieve value
    * @retval     Decoded value
    */
-  int8_t decode_qint(int8_t val, bool isHigh) const;
+  uint8_t decode_qint(uint8_t val, bool isHigh) const;
 
 }; // namespace nntrainer
 

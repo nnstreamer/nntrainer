@@ -4688,13 +4688,15 @@ TEST(nntrainer_Tensor, dequantize_01_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+  input.setOutputAxis(1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setZeroPoints({1, 0, 3});
 
   nntrainer::Tensor output(
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
 
-  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
 }
 
 /**
@@ -4710,13 +4712,15 @@ TEST(nntrainer_Tensor, dequantize_02_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+  input.setOutputAxis(1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setZeroPoints({1, 0, 3});
 
   nntrainer::Tensor output(
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
 
-  EXPECT_THROW({ input.dequantize(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
 }
 
 /**
@@ -4732,18 +4736,20 @@ TEST(nntrainer_Tensor, dequantize_03_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
-  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+  input.setOutputAxis(1);
+  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setZeroPoints({5, 5, 5});
 
   nntrainer::Tensor output;
   output.getDim().setFormat(nntrainer::Tformat::NHWC);
 
-  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP32); });
+  EXPECT_NO_THROW({ output = input.dequantize<float>(); });
 
-  float answer_data[] = {1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5,
-                         1.5, 6, 5.5, 3,   7, 6,   3,   7, 6,   3,   7, 6,
-                         3,   7, 6,   3,   7, 6,   4.5, 8, 6.5, 4.5, 8, 6.5,
-                         4.5, 8, 6.5, 4.5, 8, 6.5, 4.5, 8, 6.5, 6,   9, 7,
-                         6,   9, 7,   6,   9, 7,   6,   9, 7,   6,   9, 7};
+  float answer_data[] = {
+    -6,   1, 3,   -6,   1, 3,   -6,   1, 3,   -6,   1, 3,   -6,   1, 3,
+    -4.5, 2, 3.5, -4.5, 2, 3.5, -4.5, 2, 3.5, -4.5, 2, 3.5, -4.5, 2, 3.5,
+    -3,   3, 4,   -3,   3, 4,   -3,   3, 4,   -3,   3, 4,   -3,   3, 4,
+    -1.5, 4, 4.5, -1.5, 4, 4.5, -1.5, 4, 4.5, -1.5, 4, 4.5, -1.5, 4, 4.5};
 
   nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
                                                 {nntrainer::Tformat::NHWC,
@@ -4766,19 +4772,23 @@ TEST(nntrainer_Tensor, dequantize_04_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
-  input.setScaleFactors({1.5, 1.0, 0.5}, 1);
+  input.setOutputAxis(2);
+  input.setScaleFactors({2.5, 2.0, 1.5, 1.0});
+  input.setZeroPoints({8, 8, 8, 8});
 
   nntrainer::Tensor output(
     batch, channel, height, width,
     {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::FP32});
 
-  EXPECT_NO_THROW({ input.dequantize(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output); });
 
-  float answer_data[] = {1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5, 1.5, 6, 5.5,
-                         1.5, 6, 5.5, 3,   7, 6,   3,   7, 6,   3,   7, 6,
-                         3,   7, 6,   3,   7, 6,   4.5, 8, 6.5, 4.5, 8, 6.5,
-                         4.5, 8, 6.5, 4.5, 8, 6.5, 4.5, 8, 6.5, 6,   9, 7,
-                         6,   9, 7,   6,   9, 7,   6,   9, 7,   6,   9, 7};
+  float answer_data[] = {
+    -17.5, -5, 7.5, -17.5, -5, 7.5, -17.5, -5, 7.5, -17.5, -5, 7.5,
+    -17.5, -5, 7.5, -12,   -2, 8,   -12,   -2, 8,   -12,   -2, 8,
+    -12,   -2, 8,   -12,   -2, 8,   -7.5,  0,  7.5, -7.5,  0,  7.5,
+    -7.5,  0,  7.5, -7.5,  0,  7.5, -7.5,  0,  7.5, -4,    1,  6,
+    -4,    1,  6,   -4,    1,  6,   -4,    1,  6,   -4,    1,  6,
+  };
 
   nntrainer::Tensor answer(ml::train::TensorDim(batch, channel, height, width,
                                                 {nntrainer::Tformat::NHWC,
@@ -4803,11 +4813,15 @@ TEST(nntrainer_Tensor, dequantize_05_p) {
      height,
      width,
      {nntrainer::Tformat::NHWC, nntrainer::Tdatatype::QINT4}},
-    true, nntrainer::Tensor::Initializer::ONES);
-  input.setScaleFactors({-8, -6, -4, -2, -1, 1, 2, 4, 6, 7}, 1);
+    true, nntrainer::Tensor::Initializer::ZEROS);
+
+  input.setOutputAxis(1);
+  input.setScaleFactors({8, 6, 4, 2, 1, -1, -2, -4, -6, -7});
+  input.setZeroPoints({1, 1, 1, 1, 1, 1, 1, 1, 1, 1});
+
   nntrainer::Tensor output;
 
-  EXPECT_NO_THROW({ output = input.dequantize(nntrainer::Tdatatype::FP32); });
+  EXPECT_NO_THROW({ output = input.dequantize<float>(); });
 
   float answer_data[] = {-8, -6, -4, -2, -1, 1, 2, 4, 6, 7,
                          -8, -6, -4, -2, -1, 1, 2, 4, 6, 7};
