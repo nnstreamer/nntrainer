@@ -12,7 +12,7 @@
  */
 
 #include "yolo_v2_loss.h"
-#include <iostream>
+#include <nntrainer_log.h>
 
 namespace custom {
 
@@ -607,7 +607,7 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   float class_loss = mse(masked_class_pred, masked_class_gt);
 
   float loss = 5 * bbox_loss + confidence_loss + class_loss;
-  std::cout << "\nCurrent iteration loss: " << loss << std::endl;
+  ml_logd("Current iteration loss: %f", loss);
 }
 
 void YoloV2LossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
