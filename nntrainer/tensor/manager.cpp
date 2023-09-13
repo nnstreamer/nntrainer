@@ -152,7 +152,7 @@ void Manager::deallocateWeights() { weight_pool.deallocate(); }
 static Tensor *requestTensor_(const TensorSpecV2 &spec,
                               const GraphNode::ExecutionOrder &exec_order,
                               const std::string &scope, TensorPool &tp,
-                              bool expose, bool trainable) {
+                              bool expose, bool trainable, bool is_temporary) {
   using RT = TensorSpecV2::RequestType;
   using LS = TensorLifespan;
   NNTR_THROW_IF(spec.request_type == RT::MAYBE_MODIFYING_VIEW,
@@ -186,11 +186,14 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
   case RT::PLACEHOLDER:
     return tp.placeholder(name, spec.dim);
   case RT::UNIQUE:
-    return tp.request(name, spec.dim, order, spec.ls, spec.initializer);
+    return tp.request(name, spec.dim, order, spec.ls, spec.initializer, false,
+                      is_temporary);
   case RT::SHARED:
-    return tp.requestOrExtend(name, spec.dim, order, spec.ls, spec.initializer);
+    return tp.requestOrExtend(name, spec.dim, order, spec.ls, spec.initializer,
+                              is_temporary);
   case RT::READ_ONLY_VIEW:
-    return tp.view(name, spec.reference_name, spec.dim, order, spec.ls);
+    return tp.view(name, spec.reference_name, spec.dim, order, spec.ls, 0,
+                   is_temporary);
   case RT::MAYBE_MODIFYING_VIEW:
   default:
     throw std::logic_error("requestTensor_ should not reach here");
@@ -203,7 +206,7 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
                                  TensorGroupType identify_as,
                                  const GraphNode::ExecutionOrder &exec_order,
                                  const std::string &scope, bool expose_var,
-                                 bool expose_grad) {
+                                 bool expose_grad, bool is_temporary) {
   NNTR_THROW_IF(identify_as == TensorGroupType::WEIGHT, std::invalid_argument)
     << "requestTensor with var grad spec cannot be identified as weights, use "
        "requestTensor with weight spec instead";
@@ -215,11 +218,12 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
        "requestInputs() requestTensors() instead";
 
   Tensor *var = requestTensor_(spec.variable_spec, exec_order, scope,
-                               tensor_pool, expose_var, false);
-  Tensor *grad = spec.gradient_spec
-                   ? requestTensor_(*spec.gradient_spec, exec_order, scope,
-                                    tensor_pool, expose_grad, false)
-                   : nullptr;
+                               tensor_pool, expose_var, false, is_temporary);
+  Tensor *grad =
+    spec.gradient_spec
+      ? requestTensor_(*spec.gradient_spec, exec_order, scope, tensor_pool,
+                       expose_grad, false, is_temporary)
+      : nullptr;
 
   /// @note as only supporting identify_as == TensorGroupType::output, only
   /// saves to outputs for now
@@ -231,12 +235,12 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
 std::vector<Var_Grad *> Manager::requestTensors(
   const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
   const GraphNode::ExecutionOrder &exec_order, const std::string &scope,
-  bool expose_var, bool expose_grad) {
+  bool expose_var, bool expose_grad, bool is_temporary) {
   std::vector<Var_Grad *> ret;
   ret.reserve(specs.size());
   for (auto &spec : specs) {
     ret.push_back(requestTensor(spec, identify_as, exec_order, scope,
-                                expose_var, expose_grad));
+                                expose_var, expose_grad, is_temporary));
   }
 
   return ret;
@@ -463,7 +467,8 @@ std::vector<Weight *> Manager::requestWeights(
  */
 std::vector<Var_Grad *> Manager::requestTensors(
   const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
-  bool trainable, const std::vector<std::string> &shared_names) {
+  bool trainable, const std::vector<std::string> &shared_names,
+  bool is_temporary) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order,
               applyGradient_order] = node.getExecutionOrder();
 
@@ -504,14 +509,15 @@ std::vector<Var_Grad *> Manager::requestTensors(
     if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
       var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
-                                        t_init);
+                                        t_init, is_temporary);
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim, grad_exec_order, tspan,
                                            Tensor::Initializer::ZEROS);
       }
     } else {
-      var = tensor_pool.request(name, dim, var_exec_order, tspan, t_init);
+      var = tensor_pool.request(name, dim, var_exec_order, tspan, t_init,
+                                false, is_temporary);
 
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
         grad =
@@ -538,7 +544,8 @@ std::vector<Var_Grad *> Manager::requestTensors(
 std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
-                       const std::vector<std::string> &outputs_name) {
+                       const std::vector<std::string> &outputs_name,
+                       const std::vector<bool> is_temporary) {
   using RT = TensorSpecV2::RequestType;
 
   TensorSpecV2 var_common_spec, grad_common_spec;
@@ -591,9 +598,11 @@ Manager::requestInputs(const GraphNode &node,
 
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool, false, node.getTrainable()),
+                     tensor_pool, false, node.getTrainable(),
+                     is_temporary[idx]),
       requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool, false, node.getTrainable())));
+                     tensor_pool, false, node.getTrainable(),
+                     is_temporary[idx])));
   }
 
   ret.reserve(inputs_dim.size());
@@ -741,6 +750,43 @@ void Manager::flushCacheExcept(unsigned int order) {
     weight_pool.flushCacheExcept(order);
     tensor_pool.flushCacheExcept(order);
   }
+}
+
+bool Manager::reclaim(std::shared_ptr<LayerNode> layer, bool is_forwarding) {
+  bool reclaimed = false;
+
+  auto exec = layer->getExecutionOrder();
+  auto used = layer->getUsedCount() + 1;
+
+  // forwarding reclaim
+  auto out_size = layer->getOutputConnections().size();
+  if (is_forwarding) {
+    if (out_size == used) {
+      tensor_pool.reclaimTemp(std::get<0>(exec));
+      tensor_pool.reclaimTemp(std::get<1>(exec));
+      tensor_pool.reclaimTemp(std::get<2>(exec));
+      tensor_pool.reclaimTemp(std::get<3>(exec));
+      layer->setUsedCount(0);
+      layer->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
+      reclaimed = true;
+    } else {
+      layer->setUsedCount(used);
+    }
+  }
+
+  // backwarding reclaim
+  auto in_size = layer->getInputConnections().size();
+  if (!is_forwarding) {
+    tensor_pool.reclaimTemp(std::get<0>(exec));
+    tensor_pool.reclaimTemp(std::get<1>(exec));
+    tensor_pool.reclaimTemp(std::get<2>(exec));
+    tensor_pool.reclaimTemp(std::get<3>(exec));
+    layer->setUsedCount(0);
+    layer->setCheckPoint(CheckPointType::NONCHECK_UNLOAD);
+    reclaimed = true;
+  }
+
+  return reclaimed;
 }
 
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,

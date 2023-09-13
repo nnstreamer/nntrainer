@@ -36,4 +36,7 @@ MemorySwapPath::MemorySwapPath(const std::string &value) { set(value); }
 MemorySwapLookahead::MemorySwapLookahead(const unsigned int &value) {
   set(value);
 }
+
+CheckPointLen::CheckPointLen(const unsigned int &value) { set(value); }
+
 } // namespace nntrainer::props

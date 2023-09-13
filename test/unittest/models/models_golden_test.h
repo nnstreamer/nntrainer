@@ -72,7 +72,7 @@ protected:
    *
    */
   nntrainerModelTest() :
-    props({"memory_swap=false"}),
+    props({"memory_swap=false", "checkpoint_len=0"}),
     iteration(0),
     name(""),
     options(ModelTestOption::NO_THROW_RUN) {}
