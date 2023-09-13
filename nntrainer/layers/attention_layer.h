@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <acti_func.h>
+#include <common_properties.h>
 #include <layer_devel.h>
 #include <limits>
 
@@ -60,6 +61,13 @@ public:
   void forwarding(RunLayerContext &context, bool training) override;
 
   /**
+   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
+   * int from, unsigned int to, bool training)
+   */
+  void incremental_forwarding(RunLayerContext &context, unsigned int from,
+                              unsigned int to, bool training) override;
+
+  /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
   void calcDerivative(RunLayerContext &context) override;
@@ -102,6 +110,8 @@ protected:
    * with derived classes as well
    */
   void finalizeCommon(InitLayerContext &context);
+
+  std::tuple<props::ScaledDotProduct, props::CausalMask> attention_props;
 
 private:
   ActiFunc sm;                        /** softmax activation operation */

@@ -66,6 +66,14 @@ public:
   ~TensorPool() = default;
 
   /**
+   * @brief     reinitialize TensorPool
+   */
+  void reinitialize() {
+    name_map.clear();
+    mem_pool = std::make_shared<MemoryPool>();
+  }
+
+  /**
    * @brief finalize the requested tensors
    * @param planner planner to layout the tensor memories
    * @param start_order start value for the order_exec (inclusive)
@@ -85,7 +93,7 @@ public:
   /**
    * @brief Allocate memory for all the managed tensors
    */
-  void allocate();
+  void allocate(bool init = true);
 
   /**
    * @brief Deallocate memory for all the managed tensors

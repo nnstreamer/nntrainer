@@ -204,6 +204,28 @@ public:
   virtual void getWeights(std::vector<float *> &weights,
                           std::vector<ml::train::TensorDim> &weights_dim) = 0;
 
+#ifdef ENABLE_FP16
+  /**
+   * @brief     Get weight data of the layer
+   * @retval    weight data of the layer
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  virtual const std::vector<_FP16 *> getFP16Weights() = 0;
+
+  /**
+   * @brief     Get weight data of the layer
+   * @retval    weights : float * arrary to store weight data
+   * @retval    weights_dim : TensorDim for each weights
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  virtual void
+  getFP16Weights(std::vector<_FP16 *> &weights,
+                 std::vector<ml::train::TensorDim> &weights_dim) = 0;
+#endif
   /**
    * @brief     Set weight data of the layer
    * @note      Size of vector must be the same with number of weights.

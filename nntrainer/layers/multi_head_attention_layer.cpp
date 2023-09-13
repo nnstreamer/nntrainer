@@ -57,6 +57,8 @@ enum AttentionParams {
   projected_query,
   projected_key,
   projected_value,
+  cache_key,
+  cache_value,
   /** intended comment for later use of attention_mask */
   // attention_mask,
   attention_weight,
@@ -71,7 +73,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
        "mask is optional";
   const bool provide_attention_mask = context.getNumInputs() == 4;
 
-  TensorDim empty_dim;
+  TensorDim::TensorType weight_type = {context.getFormat(),
+                                       context.getWeightDataType()};
+
+  TensorDim::TensorType activation_type = {context.getFormat(),
+                                           context.getActivationDataType()};
+
+  TensorDim empty_dim(activation_type);
 
   const std::vector<TensorDim> &input_dims = context.getInputDimensions();
   const TensorDim &query_dim = input_dims[INOUT_INDEX::QUERY];
@@ -83,9 +91,9 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
   const unsigned int query_width = query_dim.width();
-  const unsigned int key_height = key_dim.height();
+  const unsigned int key_height = 50;
   const unsigned int key_width = key_dim.width();
-  const unsigned int value_height = value_dim.height();
+  const unsigned int value_height = 50;
   const unsigned int value_width = value_dim.width();
 
   const bool disable_bias =
@@ -149,7 +157,17 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   const unsigned int projected_query_dim_prop = projected_key_dim_prop;
 
-  sm.setActiFunc(ActivationType::ACT_SOFTMAX);
+  if (activation_type.data_type == TensorDim::DataType::FP32) {
+    sm.setActiFunc(ActivationType::ACT_SOFTMAX);
+  } else if (activation_type.data_type == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    sm.setActiFunc<_FP16>(ActivationType::ACT_SOFTMAX);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+
+  // sm.setActiFunc(ActivationType::ACT_SOFTMAX);
 
   NNTR_THROW_IF(query_dim.channel() != 1, std::invalid_argument)
     << "Dimension of input query channel: " << query_dim.channel()
@@ -184,13 +202,14 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   /** weight/bias for query fc */
   TensorDim query_fc_weight_dim(
-    {1, 1, query_width, num_heads * projected_query_dim_prop});
+    {1, 1, query_width, num_heads * projected_query_dim_prop}, weight_type);
+
   weight_idx[AttentionParams::query_fc_weight] = context.requestWeight(
     query_fc_weight_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "query_fc_weight", true);
   if (!disable_bias) {
-    TensorDim query_fc_bias_dim(
-      {1, 1, 1, num_heads * projected_query_dim_prop});
+    TensorDim query_fc_bias_dim({1, 1, 1, num_heads * projected_query_dim_prop},
+                                weight_type);
     weight_idx[AttentionParams::query_fc_bias] = context.requestWeight(
       query_fc_bias_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "query_fc_bias", true);
@@ -198,12 +217,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   /** weight/bias for key fc */
   TensorDim key_fc_weight_dim(
-    {1, 1, key_width, num_heads * projected_key_dim_prop});
+    {1, 1, key_width, num_heads * projected_key_dim_prop}, weight_type);
   weight_idx[AttentionParams::key_fc_weight] = context.requestWeight(
     key_fc_weight_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "key_fc_weight", true);
   if (!disable_bias) {
-    TensorDim key_fc_bias_dim({1, 1, 1, num_heads * projected_key_dim_prop});
+    TensorDim key_fc_bias_dim({1, 1, 1, num_heads * projected_key_dim_prop},
+                              weight_type);
     weight_idx[AttentionParams::key_fc_bias] = context.requestWeight(
       key_fc_bias_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "key_fc_bias", true);
@@ -211,13 +231,13 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   /** weight/bias for value fc */
   TensorDim value_fc_weight_dim(
-    {1, 1, value_width, num_heads * projected_value_dim_prop});
+    {1, 1, value_width, num_heads * projected_value_dim_prop}, weight_type);
   weight_idx[AttentionParams::value_fc_weight] = context.requestWeight(
     value_fc_weight_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "value_fc_weight", true);
   if (!disable_bias) {
-    TensorDim value_fc_bias_dim(
-      {1, 1, 1, num_heads * projected_value_dim_prop});
+    TensorDim value_fc_bias_dim({1, 1, 1, num_heads * projected_value_dim_prop},
+                                weight_type);
     weight_idx[AttentionParams::value_fc_bias] = context.requestWeight(
       value_fc_bias_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "value_fc_bias", true);
@@ -225,12 +245,12 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   /** weight/bias for out fc */
   TensorDim fc_weight_dim(
-    {1, 1, num_heads * projected_value_dim_prop, output_shape});
+    {1, 1, num_heads * projected_value_dim_prop, output_shape}, weight_type);
   weight_idx[AttentionParams::fc_weight] = context.requestWeight(
     fc_weight_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "fc_weight", true);
   if (!disable_bias) {
-    TensorDim fc_bias_dim({1, 1, 1, output_shape});
+    TensorDim fc_bias_dim({1, 1, 1, output_shape}, weight_type);
     weight_idx[AttentionParams::fc_bias] = context.requestWeight(
       fc_bias_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "fc_bias", true);
@@ -238,22 +258,36 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
 
   /** tensor for output of query fc */
   TensorDim projected_query_dim(
-    {batch_size, 1, query_height, num_heads * projected_query_dim_prop});
+    {batch_size, 1, query_height, num_heads * projected_query_dim_prop},
+    activation_type);
   weight_idx[AttentionParams::projected_query] = context.requestTensor(
     projected_query_dim, "projected_query", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  /* TensorLifespan::ITERATION_LIFESPAN); */
   /** tensor for output of key fc */
   TensorDim projected_key_dim(
-    {batch_size, 1, key_height, num_heads * projected_key_dim_prop});
+    {batch_size, 1, key_height, num_heads * projected_key_dim_prop},
+    activation_type);
   weight_idx[AttentionParams::projected_key] = context.requestTensor(
     projected_key_dim, "projected_key", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  /* TensorLifespan::ITERATION_LIFESPAN); */
   /** tensor for output of value fc */
   TensorDim projected_value_dim(
-    {batch_size, 1, value_height, num_heads * projected_value_dim_prop});
+    {batch_size, 1, value_height, num_heads * projected_value_dim_prop},
+    activation_type);
   weight_idx[AttentionParams::projected_value] = context.requestTensor(
     projected_value_dim, "projected_value", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  // TensorLifespan::ITERATION_LIFESPAN);
+
+  weight_idx[AttentionParams::cache_key] = context.requestTensor(
+    projected_key_dim, "cache_key", Tensor::Initializer::NONE, true,
+    TensorLifespan::MAX_LIFESPAN);
+
+  weight_idx[AttentionParams::cache_value] = context.requestTensor(
+    projected_value_dim, "cache_value", Tensor::Initializer::NONE, true,
+    TensorLifespan::MAX_LIFESPAN);
 
   if (provide_attention_mask) {
     /** Intended comment for bool type mask */
@@ -265,31 +299,37 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   }
   /** tensor for attention weight */
   TensorDim attention_weight_dim(
-    {batch_size, num_heads, query_height, key_height});
+    {batch_size, num_heads, query_height, key_height}, activation_type);
   weight_idx[AttentionParams::attention_weight] = context.requestTensor(
     attention_weight_dim, "attention_weight", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  /* TensorLifespan::ITERATION_LIFESPAN); */
   if (dropout_rate > epsilon) {
     /** tensor for dropout mask */
     TensorDim dropout_mask_dim(
-      {batch_size, num_heads, query_height, key_height});
+      {batch_size, num_heads, query_height, key_height}, activation_type);
     weight_idx[AttentionParams::dropout_mask] = context.requestTensor(
       dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+      TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    /* TensorLifespan::ITERATION_LIFESPAN); */
   }
 
   /** tensor for attention output */
   TensorDim attention_output_dim(
-    {batch_size, 1, query_height, num_heads * projected_value_dim_prop});
+    {batch_size, 1, query_height, num_heads * projected_value_dim_prop},
+    activation_type);
   weight_idx[AttentionParams::attention_output] = context.requestTensor(
     attention_output_dim, "attention_output", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  /* TensorLifespan::ITERATION_LIFESPAN); */
 
-  TensorDim output_dim({batch_size, 1, query_height, output_shape});
+  TensorDim output_dim({batch_size, 1, query_height, output_shape},
+                       activation_type);
   if (return_attention_weight != props::ReturnAttentionWeightInfo::Enum::none) {
     TensorDim return_attention_weight_dim(
       {batch_size, average_attention_weight ? 1 : num_heads, query_height,
-       key_height});
+       key_height},
+      activation_type);
     context.setOutputDimensions({output_dim, return_attention_weight_dim});
   } else {
     context.setOutputDimensions({output_dim});
@@ -507,6 +547,237 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
     {batch_size, 1, query_height, num_heads * projected_value_dim_prop}));
 }
 
+void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
+                                                     unsigned int from,
+                                                     unsigned int to,
+                                                     bool training) {
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+
+  const unsigned int num_heads =
+    std::get<props::NumHeads>(multi_head_attention_props).get();
+  const unsigned int projected_key_dim_prop =
+    std::get<props::ProjectedKeyDim>(multi_head_attention_props).get();
+  const unsigned int projected_value_dim_prop =
+    std::get<props::ProjectedValueDim>(multi_head_attention_props).get();
+  const float dropout_rate =
+    std::get<props::DropOutRate>(multi_head_attention_props).get();
+  const props::ReturnAttentionWeightInfo::Enum return_attention_weight =
+    std::get<props::ReturnAttentionWeight>(multi_head_attention_props).get();
+  const bool average_attention_weight =
+    std::get<props::AverageAttentionWeight>(multi_head_attention_props).get();
+
+  const bool provide_attention_mask = context.getNumInputs() == 4;
+  const unsigned int projected_query_dim_prop = projected_key_dim_prop;
+  const bool enable_dropout = dropout_rate > epsilon;
+
+  /** get inputs/outputs */
+  Tensor &query = context.getInput(INOUT_INDEX::QUERY);
+  Tensor &key = context.getInput(INOUT_INDEX::KEY);
+  Tensor &value = context.getInput(INOUT_INDEX::VALUE);
+
+  Tensor empty_tensor;
+
+  empty_tensor.setTensorType(value.getTensorType());
+
+  Tensor &mask =
+    provide_attention_mask ? context.getInput(INOUT_INDEX::MASK) : empty_tensor;
+
+  TensorDim query_dim = query.getDim();
+  TensorDim key_dim = key.getDim();
+  TensorDim value_dim = value.getDim();
+
+  Tensor &output = context.getOutput(INOUT_INDEX::OUTPUT);
+
+  TensorDim output_dim = output.getDim();
+  Tensor &ret_attention_weight =
+    return_attention_weight != props::ReturnAttentionWeightInfo::Enum::none
+      ? context.getOutput(INOUT_INDEX::RETURN_ATTENTION_WEIGHT)
+      : empty_tensor;
+
+  /** get weights */
+  Tensor &query_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::query_fc_weight]);
+  Tensor &query_fc_bias =
+    disable_bias
+      ? empty_tensor
+      : context.getWeight(weight_idx[AttentionParams::query_fc_bias]);
+  Tensor &key_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::key_fc_weight]);
+  Tensor &key_fc_bias =
+    disable_bias ? empty_tensor
+                 : context.getWeight(weight_idx[AttentionParams::key_fc_bias]);
+  Tensor &value_fc_weight =
+    context.getWeight(weight_idx[AttentionParams::value_fc_weight]);
+  Tensor &value_fc_bias =
+    disable_bias
+      ? empty_tensor
+      : context.getWeight(weight_idx[AttentionParams::value_fc_bias]);
+  Tensor &fc_weight = context.getWeight(weight_idx[AttentionParams::fc_weight]);
+  Tensor &fc_bias = disable_bias
+                      ? empty_tensor
+                      : context.getWeight(weight_idx[AttentionParams::fc_bias]);
+
+  /** get tensors */
+  Tensor &projected_query =
+    context.getTensor(weight_idx[AttentionParams::projected_query]);
+  Tensor &projected_key =
+    context.getTensor(weight_idx[AttentionParams::projected_key]);
+  Tensor &projected_value =
+    context.getTensor(weight_idx[AttentionParams::projected_value]);
+  Tensor &cache_key = context.getTensor(weight_idx[AttentionParams::cache_key]);
+  Tensor &cache_value =
+    context.getTensor(weight_idx[AttentionParams::cache_value]);
+
+  TensorDim projected_query_dim = projected_query.getDim();
+  TensorDim projected_key_dim = projected_key.getDim();
+  TensorDim projected_value_dim = projected_value.getDim();
+  TensorDim cache_key_dim = cache_key.getDim();
+  TensorDim cache_value_dim = cache_value.getDim();
+
+  TensorDim projected_query_step_dim = projected_query_dim;
+
+  TensorDim projected_key_step_dim = projected_key_dim;
+  TensorDim projected_value_step_dim = projected_value_dim;
+  TensorDim cache_key_step_dim = cache_key_dim;
+  TensorDim cache_value_step_dim = cache_value_dim;
+  projected_query_step_dim.height(to - from);
+
+  projected_key_step_dim.height(to);
+  projected_value_step_dim.height(to);
+  cache_key_step_dim.height(1);
+  cache_value_step_dim.height(1);
+
+  Tensor projected_query_step =
+    projected_query.getSharedDataTensor(projected_query_step_dim, 0, true);
+  Tensor projected_key_step =
+    projected_key.getSharedDataTensor(projected_key_step_dim, 0, true);
+  Tensor projected_value_step =
+    projected_value.getSharedDataTensor(projected_value_step_dim, 0, true);
+
+  Tensor cache_key_step = cache_key.getSharedDataTensor(
+    cache_key_step_dim, from * cache_key_dim.width(), true);
+  Tensor cache_value_step = cache_value.getSharedDataTensor(
+    cache_value_step_dim, from * cache_value_dim.width(), true);
+
+  TensorDim cached_key_dim = {cache_key_dim.batch(), cache_key_dim.channel(),
+                              to, cache_key_dim.width(),
+                              cache_key.getTensorType()};
+  TensorDim cached_value_dim = {
+    cache_value_dim.batch(), cache_value_dim.channel(), to,
+    cache_value_dim.width(), cache_value.getTensorType()};
+  Tensor cached_key = cache_key.getSharedDataTensor(cached_key_dim, 0, true);
+  Tensor cached_value =
+    cache_value.getSharedDataTensor(cached_value_dim, 0, true);
+
+  Tensor &attention_weight =
+    context.getTensor(weight_idx[AttentionParams::attention_weight]);
+  Tensor &attention_output =
+    context.getTensor(weight_idx[AttentionParams::attention_output]);
+  TensorDim attention_weight_dim = attention_weight.getDim();
+
+  TensorDim attention_weight_step_dim = attention_weight_dim;
+  attention_weight_step_dim.height(1);
+  attention_weight_step_dim.width(to);
+
+  Tensor attention_weight_step =
+    attention_weight.getSharedDataTensor(attention_weight_step_dim, 0, true);
+
+  TensorDim attention_output_dim = attention_output.getDim();
+  TensorDim attention_output_step_dim = attention_output_dim;
+  attention_output_step_dim.height(1);
+
+  Tensor attention_output_step =
+    attention_output.getSharedDataTensor(attention_output_step_dim, 0, true);
+
+  const unsigned int batch_size = query_dim.batch();
+  const unsigned int query_height = query_dim.height();
+  const unsigned int key_height = key_dim.height();
+  const unsigned int value_height = value_dim.height();
+
+  query.dot(query_fc_weight, projected_query_step);
+  if (!disable_bias) {
+    projected_query_step.add_i(query_fc_bias);
+  }
+  key.dot(key_fc_weight, cache_key_step);
+  if (!disable_bias) {
+    cache_key_step.add_i(key_fc_bias);
+  }
+  value.dot(value_fc_weight, cache_value_step);
+  if (!disable_bias) {
+    cache_value_step.add_i(value_fc_bias);
+  }
+
+  projected_query_step.reshape(
+    TensorDim({batch_size, 1, num_heads, projected_query_dim_prop}));
+  cached_key.reshape(
+    TensorDim({batch_size, to, num_heads, projected_key_dim_prop}));
+  cached_value.reshape(
+    TensorDim({batch_size, to, num_heads, projected_value_dim_prop}));
+
+  projected_query_step.transpose("1:0:2", projected_query_step);
+  cached_key.transpose("1:0:2", projected_key_step);
+  cached_value.transpose("1:0:2", projected_value_step);
+
+  projected_query_step.reshape(
+    TensorDim({batch_size * num_heads, 1, 1, projected_query_dim_prop}));
+  projected_key_step.reshape(
+    TensorDim({batch_size * num_heads, 1, to, projected_key_dim_prop}));
+  projected_value_step.reshape(
+    TensorDim({batch_size * num_heads, 1, to, projected_value_dim_prop}));
+
+  attention_weight_step.reshape(TensorDim({batch_size * num_heads, 1, 1, to}));
+  attention_output_step.reshape(
+    TensorDim({batch_size * num_heads, 1, 1, projected_value_dim_prop}));
+
+  /** scaled dot product attention */
+  projected_query_step.dotBatched(projected_key_step, attention_weight_step,
+                                  false, true);
+  attention_weight_step.multiply_i(1 / sqrt((float)projected_query_dim_prop));
+
+  if (!from) {
+    unsigned int mask_size = attention_weight_step.getDim().width();
+    unsigned int mask_dim_height = mask_size;
+    unsigned int mask_dim_width = mask_size;
+
+    Tensor causal_mask(TensorDim{1, 1, mask_size, mask_size,
+                                 attention_weight_step.getTensorType()});
+
+    causal_mask.setZero();
+
+#ifdef ENABLE_FP16
+#define _MASK_NUM -1e4
+#else
+#define _MASK_NUM -1e10
+#endif
+
+    for (unsigned int i = 0; i < mask_dim_height; ++i) {
+      for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
+        causal_mask.setValue(0, 0, i, j, _MASK_NUM);
+      }
+    }
+
+    attention_weight_step.add_i(causal_mask);
+  }
+
+  sm.run_fn(attention_weight_step, attention_weight_step);
+
+  attention_weight_step.dotBatched(projected_value_step, attention_output_step);
+
+  attention_output_step.reshape(
+    TensorDim({batch_size, num_heads, to - from, projected_value_dim_prop}));
+
+  attention_output_step = attention_output_step.transpose("1:0:2");
+
+  attention_output_step.reshape(TensorDim(
+    {batch_size * (to - from), 1, 1, num_heads * projected_value_dim_prop}));
+
+  attention_output_step.dot(fc_weight, output);
+  if (!disable_bias) {
+    output.add_i(fc_bias);
+  }
+}
+
 void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   const unsigned int num_heads =
     std::get<props::NumHeads>(multi_head_attention_props).get();
@@ -573,8 +844,8 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
 
   d_attention_output = d_attention_output.transpose("1:0:2");
 
-  /** set tensor name to restore origin name cause origin name was remove during
-   * transpose */
+  /** set tensor name to restore origin name cause origin name was remove
+   * during transpose */
   d_attention_output.setName("multi_head_attention:attention_output:grad");
 
   projected_query.reshape(TensorDim(
@@ -643,8 +914,8 @@ void MultiHeadAttentionLayer::calcCommonDerivative(RunLayerContext &context) {
   d_projected_key = d_projected_key.transpose("1:0:2");
   d_projected_value = d_projected_value.transpose("1:0:2");
 
-  /** set tensor name to restore origin name cause origin name was remove during
-   * transpose */
+  /** set tensor name to restore origin name cause origin name was remove
+   * during transpose */
   d_projected_query.setName("multi_head_attention:projected_query:grad");
   d_projected_key.setName("multi_head_attention:projected_key:grad");
   d_projected_value.setName("multi_head_attention:projected_value:grad");
@@ -841,6 +1112,9 @@ void MultiHeadAttentionLayer::setBatch(RunLayerContext &context,
   context.updateTensor(weight_idx[AttentionParams::projected_query], batch);
   context.updateTensor(weight_idx[AttentionParams::projected_key], batch);
   context.updateTensor(weight_idx[AttentionParams::projected_value], batch);
+  context.updateTensor(weight_idx[AttentionParams::cache_key], batch);
+  context.updateTensor(weight_idx[AttentionParams::cache_value], batch);
+  // context.updateTensor(weight_idx[AttentionParams::cache_value], batch);
   context.updateTensor(weight_idx[AttentionParams::attention_weight], batch);
   if (dropout_rate > epsilon) {
     context.updateTensor(weight_idx[AttentionParams::dropout_mask], batch);

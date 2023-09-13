@@ -34,11 +34,13 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Embedding layer takes only one input";
 
-  context.setInputDataType(TensorDim::DataType::FP32);
-  
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
+
+  NNTR_THROW_IF(input_dim.getDataType() != TensorDim::DataType::FP32,
+                std::invalid_argument)
+    << "Embedding layer takes only FP32 input data";
 
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
@@ -55,7 +57,8 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 
   output_dim.height(input_dim.width());
   output_dim.width(out_dim);
-  output_dim.setTensorType({context.getFormat(), context.getActivationDataType()});
+  output_dim.setTensorType(
+    {context.getFormat(), context.getActivationDataType()});
   context.setOutputDimensions({output_dim});
 
   TensorDim dim = output_dim;
@@ -127,6 +130,37 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
+void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
+                                            unsigned int from, unsigned int to,
+                                            bool training) {
+  /// @todo get input and output dimension from input_ and hidden itself
+  unsigned int in_dim = std::get<props::InDim>(embedding_props);
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+
+  Tensor &weight = context.getWeight(weight_idx);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  TensorDim out_tensor_dim =
+    TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
+
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
+    float *in_data =
+      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+
+    Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+    uint embed_idx = ((uint *)(in_data))[0];
+    if (embed_idx >= in_dim) {
+      throw std::invalid_argument("input word index is greater than in_dim");
+    }
+
+    Tensor cur_weight =
+      weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+    Tensor out_tensor =
+      batchsliced_hidden.getSharedDataTensor(out_tensor_dim, 0);
+    out_tensor.copyData(cur_weight);
+  }
+}
+
 void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for Embedding layer is not supported");
@@ -146,7 +180,8 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // In order to accelerate, we need to better way like using index to weight.
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data = input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+    float *in_data =
+      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < input_.width(); ++i) {
       uint embed_idx = ((uint *)(in_data))[i];

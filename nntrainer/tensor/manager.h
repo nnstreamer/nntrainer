@@ -139,13 +139,16 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap, const std::string &swap_path = "",
-          unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
+  Manager(bool enable_swap, const std::string &swap_mode = "train",
+          const std::string &swap_path = "", unsigned int lookahead = 0,
+          const std::string tensor_format_ = "NCHW",
           const std::string tensor_dtype_ = "FP32-FP32") :
     weight_pool(enable_swap, swap_path, "weight_pool"),
-    tensor_pool(enable_swap, swap_path, "tensor_pool"),
+    tensor_pool(enable_swap && (swap_mode.compare("train") == 0), swap_path,
+                "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
+    swap_mode(swap_mode),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, std::regex("\\-"))) {}
 
@@ -378,7 +381,7 @@ public:
    * @note this will make requests to the tensor pool and allocate the
    * corresponding weights
    */
-  void allocateWeights(unsigned int max_exec_order_);
+  void allocateWeights(unsigned int max_exec_order_, bool init = true);
 
   /**
    * @brief Deallocate memory for all the weights
@@ -479,6 +482,11 @@ public:
    */
   void flushCacheExcept(unsigned int order);
 
+  /**
+   * @brief     reinitialize manager
+   */
+  void reinitialize();
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
@@ -507,6 +515,8 @@ private:
   bool enable_optimizations; /**< to enable memory optimizations */
 
   unsigned int swap_lookahead; /** lookahead for memory swap */
+
+  std::string swap_mode; /** swap mode */
 
   std::string tensor_format;
 

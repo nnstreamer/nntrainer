@@ -180,6 +180,24 @@ public:
 };
 
 /**
+ * @brief cache file path property
+ *
+ */
+class MemorySwapMode : public Property<std::string> {
+public:
+  static constexpr const char *key =
+    "memory_swap_mode";          /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to current directory
+   */
+  MemorySwapMode(const std::string &value = "train");
+};
+
+/**
  * @brief     Enumeration of Data Type for model & layer
  */
 struct ModelTensorDataTypeInfo {
@@ -208,9 +226,7 @@ public:
    * @param value value to set, defaults to W32A32
    */
   ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
-                        ModelTensorDataTypeInfo::Enum::W32A32) {
-    set(value);
-  };
+                        ModelTensorDataTypeInfo::Enum::W32A32);
 };
 
 } // namespace nntrainer::props

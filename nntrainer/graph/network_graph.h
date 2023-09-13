@@ -57,11 +57,11 @@ public:
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
-  NetworkGraph(bool enable_swap, const std::string &swap_path = "",
+  NetworkGraph(bool enable_swap, const std::string &swap_mode = "train", const std::string &swap_path = "",
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
-    tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
+    tensor_manager(std::make_shared<Manager>(enable_swap, swap_mode, swap_path, lookahead,
                                              tensor_format_, tensor_dtype_)),
     graph(),
     compiled(false),
@@ -185,6 +185,21 @@ public:
     void *user_data = nullptr);
 
   /**
+   * @brief     forwarding network graph
+   * @param[in] from start step
+   * @param[in] to end step
+   * @param[in] training true if forwarding is on training
+   * @retval output tensors
+   */
+  sharedConstTensors incremental_forwarding(
+    unsigned int from, unsigned int to, bool training = false,
+    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+      [](std::shared_ptr<LayerNode>, bool) {},
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
+
+  /**
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
    * @param[in] backwarding_op operation for the backwarding
@@ -288,6 +303,18 @@ public:
                  const std::vector<Connection> &model_label_names = {});
 
   /**
+   * @brief reinitialize network graph
+   *
+   * @param model_input_names model input connection if empty list given, all of
+   * node that can be inputs will be identified in the sort order
+   * @param model_label_names model label names if empty list given, all of node
+   * that can be labels will be identified in the sort order
+   * @return int ML_ERROR_NONE if successful
+   */
+  int reinitialize(const std::vector<Connection> &model_input_names = {},
+                   const std::vector<Connection> &model_label_names = {});
+
+  /**
    * @brief Create run layer context from the given init layer context
    *
    * @param lnode layer node to finalize and set run context
@@ -296,6 +323,16 @@ public:
   std::vector<Var_Grad *>
   finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                   const std::vector<Var_Grad *> &prev_inputs);
+
+  /**
+   * @brief Recreate run layer context from the given init layer context
+   *
+   * @param lnode layer node to finalize and set run context
+   * @param prev_inputs previous input information
+   */
+  std::vector<Var_Grad *>
+  refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                    const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
@@ -316,9 +353,9 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights() {
+  void allocateWeights(bool init = true) {
     tensor_manager->allocateWeights(
-      std::get<3>(backward_iter_end->getExecutionOrder()));
+      std::get<3>(backward_iter_end->getExecutionOrder()), init);
   }
 
   /**

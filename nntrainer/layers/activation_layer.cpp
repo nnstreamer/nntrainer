@@ -43,7 +43,15 @@ void ActivationLayer::finalize(InitLayerContext &context) {
   auto &act = std::get<props::Activation>(*activation_props);
   NNTR_THROW_IF(act.empty(), std::invalid_argument)
     << "activation has not been set!";
-  acti_func.setActiFunc(act.get());
+  if (context.getActivationDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    acti_func.setActiFunc<_FP16>(act.get());
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
+  } else if (context.getActivationDataType() == TensorDim::DataType::FP32) {
+    acti_func.setActiFunc<float>(act.get());
+  }
 
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "activation layer, " << context.getName()
@@ -64,6 +72,27 @@ void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   acti_func.run_fn(input_, hidden_);
+}
+
+void ActivationLayer::incremental_forwarding(RunLayerContext &context,
+                                             unsigned int from, unsigned int to,
+                                             bool training) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+
+  TensorDim input_dim = input_.getDim();
+  TensorDim hidden_dim = hidden_.getDim();
+
+  TensorDim input_step_dim = input_dim;
+  TensorDim hidden_step_dim = hidden_dim;
+  input_step_dim.height(to - from);
+  hidden_step_dim.height(to - from);
+
+  // @todo: set reset stride as false. This implementation only works when batch
+  // size is 1
+  Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
+  Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
+  acti_func.run_fn(input_step, hidden_step);
 }
 
 void ActivationLayer::calcDerivative(RunLayerContext &context) {

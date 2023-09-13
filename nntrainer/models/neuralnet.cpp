@@ -66,11 +66,12 @@ namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -84,11 +85,12 @@ NeuralNetwork::NeuralNetwork() :
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -170,6 +172,8 @@ int NeuralNetwork::compile() {
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
   const std::string memory_swap_path =
     std::get<props::MemorySwapPath>(model_flex_props);
+  const std::string memory_swap_mode =
+    std::get<props::MemorySwapMode>(model_flex_props);
   unsigned int lookahead =
     std::get<props::MemorySwapLookahead>(model_flex_props);
 
@@ -179,7 +183,7 @@ int NeuralNetwork::compile() {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, memory_swap_path, lookahead,
+  model_graph = NetworkGraph(memory_swap, memory_swap_mode, memory_swap_path, lookahead,
                              tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
@@ -255,13 +259,50 @@ int NeuralNetwork::initialize() {
   }
 
   // Allocate weights
-  model_graph.allocateWeights();
+  const std::string memory_swap_mode =
+    std::get<props::MemorySwapMode>(model_flex_props);
+  model_graph.allocateWeights(memory_swap_mode.compare("inference") != 0);
 
   initialized = true;
 
   if (!load_path.empty()) {
     load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   }
+
+  return status;
+}
+
+int NeuralNetwork::reinitialize() {
+  int status = ML_ERROR_NONE;
+
+  if (!initialized) {
+    ml_loge("Error: Need to initialize first");
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
+  unsigned int n_layers = (unsigned int)model_graph.size();
+
+  ml_logd("reinitializing neural network, layer size: %d", n_layers);
+  PROFILE_MEM_ANNOTATE("Reinitialize");
+
+  auto &input_conn_prop =
+    std::get<std::vector<props::InputConnection>>(model_props);
+  auto &label_layer_prop =
+    std::get<std::vector<props::LabelLayer>>(model_props);
+
+  std::vector<Connection> input_conn(input_conn_prop.begin(),
+                                     input_conn_prop.end());
+  std::vector<std::string> label_layers;
+
+  if (!label_layer_prop.empty()) {
+    label_layers = std::vector<std::string>(label_layer_prop.begin(),
+                                            label_layer_prop.end());
+  }
+
+  status = model_graph.reinitialize(
+    input_conn,
+    std::vector<Connection>(label_layers.begin(), label_layers.end()));
+  NN_RETURN_STATUS();
 
   return status;
 }
@@ -316,6 +357,43 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   model_graph.setInputsLabels(input, label);
 
   return forwarding(training);
+}
+
+sharedConstTensors NeuralNetwork::incremental_forwarding(
+  unsigned int from, unsigned int to, bool training,
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+    [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
+                                        bool training) -> void {
+    (void)this;
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+
+    auto f = std::get<0>(node->getExecutionOrder());
+    model_graph.flushCacheExcept(f);
+
+    node->incremental_forwarding(from, to, training);
+  };
+
+  return model_graph.incremental_forwarding(from, to, training, forwarding_op,
+                                            stop_cb, userdata);
+}
+
+sharedConstTensors
+NeuralNetwork::incremental_forwarding(unsigned int from, unsigned int to,
+                                      sharedConstTensors input,
+                                      sharedConstTensors label, bool training) {
+  auto current_batch = model_graph.getBatchSize();
+  NNTR_THROW_IF(input[0]->batch() != current_batch ||
+                  (!label.empty() && label[0]->batch() != current_batch),
+                std::logic_error)
+    << "Error: mismatch in batchsize for data and model."
+    << " input_batch: " << input[0]->batch()
+    << " label_batch: " << label[0]->batch()
+    << " target_batch: " << current_batch;
+
+  model_graph.setInputsLabels(input, label);
+
+  return incremental_forwarding(from, to, training);
 }
 
 /**
@@ -694,6 +772,101 @@ NeuralNetwork::inference(unsigned int batch_size,
 
   return output;
 }
+
+sharedConstTensors NeuralNetwork::incremental_inference(
+  sharedConstTensors X, unsigned int init_seq_len, unsigned int cur_step) {
+  return incremental_inference(X, {}, init_seq_len, cur_step);
+}
+
+sharedConstTensors NeuralNetwork::incremental_inference(
+  sharedConstTensors X, sharedConstTensors label, unsigned int init_seq_len,
+  unsigned int cur_step) {
+  if (model_graph.getBatchSize() != X[0]->batch()) {
+    model_graph.setBatchSize(X[0]->batch());
+  }
+
+  sharedConstTensors out;
+  if (!validateInput(X))
+    throw std::invalid_argument("Input validation failed.");
+
+  if (cur_step == 0) {
+    allocate(ExecutionMode::INFERENCE);
+  }
+
+  int nn_foward;
+  PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
+  PROFILE_TIME_START(nn_foward);
+  out = incremental_forwarding(cur_step, cur_step + 1, X, label, false);
+
+  PROFILE_TIME_END(nn_foward);
+
+  /** @todo: deallocate tensor after incremental inference **/
+
+  /** Clear the set inputs and labels */
+  model_graph.setInputsLabels({}, {});
+
+  return out;
+}
+
+std::vector<float *> NeuralNetwork::incremental_inference(
+  unsigned int batch_size, const std::vector<float *> &input,
+  const std::vector<float *> &label, unsigned int init_seq_len,
+  unsigned int cur_step) {
+  sharedConstTensors input_tensors, output_tensors;
+  auto in_dim = getInputDimension();
+
+  input_tensors.reserve(input.size());
+  for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
+    in_dim[idx].batch(batch_size);
+    input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
+      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
+  }
+
+  if (!label.empty()) {
+    sharedConstTensors label_tensors;
+    auto label_dim = getOutputDimension();
+    label_tensors.reserve(label.size());
+    for (unsigned int idx = 0; idx < label_dim.size(); idx++) {
+      label_dim[idx].batch(batch_size);
+      label_tensors.emplace_back(MAKE_SHARED_TENSOR(
+        Tensor::Map(label[idx], label_dim[idx].getDataLen() * sizeof(float),
+                    label_dim[idx], 0)));
+    }
+    output_tensors = incremental_inference(input_tensors, label_tensors,
+                                           init_seq_len, cur_step);
+  } else {
+    output_tensors =
+      incremental_inference(input_tensors, init_seq_len, cur_step);
+  }
+
+  std::vector<float *> output;
+  output.reserve(output_tensors.size());
+
+  unsigned int idx = 0;
+  for (auto &out : output_tensors) {
+    if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      auto out_t = *out.get();
+      _FP16 *vec_fp16 = out_t.getData<_FP16>();
+      float *vec_fp32 = new float[out_t.size()]();
+      output.push_back(vec_fp32);
+      for (unsigned int i = 0; i < out_t.size(); ++i) {
+        output[idx][i] = static_cast<float>(vec_fp16[i]);
+      }
+#else
+      throw std::invalid_argument("Errro: enable-fp16 is not set");
+#endif
+    } else {
+      auto out_t = *out.get();
+      output.push_back(out_t.getData());
+    }
+    idx++;
+  }
+
+  return output;
+}
+
+//
 
 int NeuralNetwork::setDataset(const DatasetModeType &mode,
                               std::shared_ptr<ml::train::Dataset> dataset) {

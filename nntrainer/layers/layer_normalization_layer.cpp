@@ -159,6 +159,76 @@ void LayerNormalizationLayer::forwarding(RunLayerContext &context,
   output.add_i(beta);
 }
 
+void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
+                                                     unsigned int from,
+                                                     unsigned int to,
+                                                     bool training) {
+  const float epsilon =
+    std::get<props::Epsilon>(layer_normalization_props).get();
+
+  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+
+  Tensor &gamma = context.getWeight(wt_idx[LNParams::gamma]);
+  Tensor &beta = context.getWeight(wt_idx[LNParams::beta]);
+
+  Tensor &deviation = context.getTensor(wt_idx[LNParams::deviation]);
+  Tensor &variance = context.getTensor(wt_idx[LNParams::variance]);
+  Tensor &inv_std_dev = context.getTensor(wt_idx[LNParams::inv_std_dev]);
+
+  // @todo: consider NHWC format
+  bool is_height_normalize =
+    std::find(normalize_axes.begin(), normalize_axes.end(), 1) !=
+        normalize_axes.end()
+      ? true
+      : false;
+
+  TensorDim input_dim = input.getDim();
+  TensorDim output_dim = output.getDim();
+  TensorDim normalize_dim = gamma.getDim();
+  TensorDim remain_dim = variance.getDim();
+
+  TensorDim input_step_dim = input_dim;
+  TensorDim output_step_dim = output_dim;
+  TensorDim normalize_step_dim = normalize_dim;
+  TensorDim remain_step_dim = remain_dim;
+
+  input_step_dim.height(to - from);
+  output_step_dim.height(to - from);
+  normalize_step_dim.height(is_height_normalize ? to - from : 1);
+  remain_step_dim.height(is_height_normalize ? 1 : to - from);
+
+  Tensor &temp_full_size = output;
+  Tensor &temp_norm_size = inv_std_dev;
+
+  input.average(normalize_axes, temp_norm_size);
+  input.subtract(temp_norm_size, deviation);
+
+#ifndef ENABLE_FP16
+  deviation.pow(2.0f, temp_full_size);
+  temp_full_size.average(normalize_axes, variance);
+
+  variance.add_i(epsilon);
+  variance.pow(-0.5f, inv_std_dev);
+#else
+  unsigned int axis_dim = deviation.getDim()[normalize_axes[0]];
+  for (unsigned int i = 0; i < deviation.getDim()[normalize_axes[0] - 1]; ++i) {
+    float sum = 0.0;
+
+    _FP16 *data = deviation.getAddress<_FP16>(0, 0, i, 0);
+
+    for (unsigned int j = 0; j < axis_dim; ++j) {
+      sum += powf(static_cast<float>(data[j]), 2.0f);
+    }
+    inv_std_dev.setValue(0, 0, i, 0, 1.0 / sqrt(sum / axis_dim - epsilon));
+  }
+#endif
+
+  deviation.multiply(inv_std_dev, output);
+  output.multiply_i(gamma);
+  output.add_i(beta);
+}
+
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
   const bool trainable = context.getTrainable();
 

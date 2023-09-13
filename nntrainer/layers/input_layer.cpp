@@ -70,9 +70,6 @@ void InputLayer::finalize(InitLayerContext &context) {
 
   std::vector<TensorDim> output_dims = context.getInputDimensions();
 
-  for (auto d : output_dims)
-    d.setTensorType({context.getFormat(), context.getActivationDataType()});
-
   context.setOutputDimensions(output_dims);
 }
 

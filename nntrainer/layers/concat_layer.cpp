@@ -12,9 +12,12 @@
  * @todo merge concat and split layer to a common implementation
  */
 
-#include <concat_layer.h>
 #include <cstring>
+#include <vector>
+
+#include <concat_layer.h>
 #include <layer_context.h>
+#include <nntr_threads.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -138,6 +141,88 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
 
     input.reshape(in_dim);
     output_height_offset += irh.height();
+  }
+
+  output.reshape(out_dim);
+}
+
+void ConcatLayer::incremental_forwarding(RunLayerContext &context,
+                                         unsigned int from, unsigned int to,
+                                         bool training) {
+  /**
+   * @todo avoid copy by creating input here as a shared_tensor of the output
+   * here and then this layer can be in_place as well
+   */
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+
+  const TensorDim out_dim = output.getDim();
+  output.reshape(output_reshape_helper);
+  unsigned int output_height_offset = 0;
+  unsigned int data_copy_size = output_reshape_helper.width();
+
+  // @todo: this implementation is only works when axis is 3(width). Consider
+  // for other axes
+  unsigned int batch_channel = out_dim.batch() * out_dim.channel();
+
+  // std::vector<unsigned int > vec;
+  unsigned int offset[100];
+
+  unsigned int num_workers =
+    NNTR_NUM_THREADS > context.getNumInputs() ? 1 : NNTR_NUM_THREADS;
+  unsigned int chunk =
+    (context.getNumInputs() + (num_workers - 1)) / num_workers;
+
+  unsigned int sum = 0;
+  offset[0] = 0;
+  for (unsigned int i = 1; i < num_workers; ++i) {
+    unsigned int from = (i - 1) * chunk;
+    unsigned int to = i * chunk;
+
+    for (unsigned int j = from; j < to; ++j) {
+      sum += input_reshape_helper[j].height();
+    }
+    offset[i] = sum;
+  }
+
+  /**
+   * Below sets the pad area values to zero
+   * it is faster to do this way than seting selective area to zero
+   */
+  auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                            void *user_data) {
+    unsigned int output_height_offset = offset[pid];
+    for (unsigned int idx = s; idx < e; idx++) {
+      Tensor &input = context.getInput(idx);
+      const TensorDim in_dim = input.getDim();
+      auto const &irh = input_reshape_helper[idx];
+      input.reshape(irh);
+
+      /** loop over the dimensions before the concat dimension */
+      for (unsigned int batch = batch_channel * from;
+           batch < batch_channel * to; batch++) {
+        /** loop over the concat dimension itself */
+        for (unsigned int count = 0; count < irh.height(); count++) {
+          Tensor dest_tensor = Tensor::Map(
+            output.getAddress(batch, 0, output_height_offset + count, 0),
+            data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
+          const Tensor source_tensor = Tensor::Map(
+            input.getAddress(batch, 0, count, 0),
+            data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
+          dest_tensor.copy(source_tensor);
+        }
+      }
+
+      input.reshape(in_dim);
+      output_height_offset += irh.height();
+    }
+  };
+
+  auto workers = ParallelBatch(forwarding_job, context.getNumInputs(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    forwarding_job(0, context.getNumInputs(), 0, nullptr);
   }
 
   output.reshape(out_dim);

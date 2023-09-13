@@ -33,9 +33,12 @@ enum CachePolicy {
               NO_WRITE_BACK), /**< Will not be synchronized with device */
   FIRST_LAST_SKIP = 0b10000,
   /**< Will skip first read and last write */
+  FRIST_WRITE_CONSIST = 0b100000, /**< First invalidate will write to device */
   ITERATION_CONSIST = (FIRST_LAST_SKIP | ALWAYS_SYNCED),
   /**< Will skip first read and last write. other behaviors will be same as
      ALWAYS_SYNCED */
+  SYNC_ONCE = (FRIST_WRITE_CONSIST | READ_CONSIST | NO_WRITE_BACK),
+  /**< Will sync at first from the device, and the value will always consist */
 };
 
 /**
@@ -48,6 +51,9 @@ public:
     NONE = 0b0000,         /**< No option */
     FIRST_ACCESS = 0x0001, /**< First Access */
     LAST_ACCESS = 0x0010,  /**< Last Access */
+    FIRST_WRITE = 0x0100,  /**< First Write */
+    FIRST_ACCESS_WRITE = FIRST_ACCESS | FIRST_WRITE,
+    /**< First access & write */
   };
 
   /**
@@ -55,10 +61,9 @@ public:
    *
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
-                     size_t off, size_t len,
-                     std::shared_ptr<MemoryData> data,
+                     size_t off, size_t len, std::shared_ptr<MemoryData> data,
                      CachePolicy pol = CachePolicy::ALWAYS_SYNCED) :
-    initial_opt(Options::FIRST_ACCESS),
+    initial_opt(Options::FIRST_ACCESS_WRITE),
     device(dev),
     active(false),
     id(mem_id),
@@ -112,17 +117,17 @@ public:
    * @brief reset access count
    *
    */
-  void reset() { initial_opt = Options::FIRST_ACCESS; }
+  void reset() { initial_opt = Options::FIRST_ACCESS_WRITE; }
 
 private:
-  Options initial_opt;                /**< accessed */
-  std::mutex device_mutex;            /**< protect device */
-  std::shared_ptr<SwapDevice> device; /**< swap device */
-  bool active;                        /**< element is loaded */
-  unsigned int id;                    /**< memory id */
-  size_t offset;                      /**< element offset from swap device */
-  size_t length;                      /**< element size */
-  CachePolicy policy;                 /**< cache policy */
+  Options initial_opt;                  /**< accessed */
+  std::mutex device_mutex;              /**< protect device */
+  std::shared_ptr<SwapDevice> device;   /**< swap device */
+  bool active;                          /**< element is loaded */
+  unsigned int id;                      /**< memory id */
+  size_t offset;                        /**< element offset from swap device */
+  size_t length;                        /**< element size */
+  CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
 };
 

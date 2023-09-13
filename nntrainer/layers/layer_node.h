@@ -248,6 +248,22 @@ public:
                               "NCHW", "FP32", "FP32"});
 
   /**
+   * @brief     Refinalize creating the layer node
+   *
+   * @param   input_dims input dimension provided to be used to set output
+   * dimensions. if empty function This function must set output dimensions in
+   * the given context. Further, context can be used to request weights for the
+   * layer, and any extra tensor required for the operation of the layer.
+   * @note      After calling this it is not allowed to
+   * change properties.
+   * @note      No memory allocation must be performed in the reinitialization
+   * step. Any tensor memory required must be requested to the context which
+   * will be made available during execution of the layer with the context.
+   * @note configureRunContext() is expected to called right after this.
+   */
+  InitLayerContext refinalize(const std::vector<TensorDim> &input_dims = {});
+
+  /**
    * @brief     Forward Propagation of a layer
    * @param     training true if training, false if inference
    *
@@ -256,6 +272,19 @@ public:
    * can be access from the inputs/outputs tensors themselves.
    */
   void forwarding(bool training = true);
+
+  /**
+   * @brief     Incremental forward Propagation of a layer
+   * @param     from start step
+   * @param     to end step
+   * @param     training true if training, false if inference
+   *
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  void incremental_forwarding(unsigned int from, unsigned int to,
+                              bool training = true);
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
@@ -526,7 +555,22 @@ public:
 
     std::vector<float *> weights;
     for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
-      weights.emplace_back(getWeight(idx).getData());
+
+      if (getWeight(idx).getDataType() ==
+          ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+        _FP16 *data = getWeight(idx).getData<_FP16>();
+        float *d = new float[getWeight(idx).size()]();
+        weights.emplace_back(d);
+        for (unsigned int i = 0; i < getWeight(idx).size(); ++i) {
+          weights[idx][i] = static_cast<float>(data[i]);
+        }
+#else
+        throw std::runtime_error("enable-fp16 is not set");
+#endif
+      } else {
+        weights.emplace_back(getWeight(idx).getData());
+      }
     }
     return weights;
   }
@@ -552,6 +596,47 @@ public:
     }
     return;
   }
+#ifdef ENABLE_FP16
+  /**
+   * @brief     Get weight data of the layer
+   * @retval    weight data of the layer
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  const std::vector<_FP16 *> getFP16Weights() override {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+
+    std::vector<_FP16 *> weights;
+    for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
+      weights.emplace_back(getWeight(idx).getData<_FP16>());
+    }
+    return weights;
+  }
+
+  /**
+   * @brief     Get weight data of the layer
+   * @param[out]    weights : float * arrary to store weight data
+   * @param[out]    weights_dim : TensorDim for each weights
+   * @note      nntrainer assign the vector and if there is no weights, the size
+   * of vector is zero
+   * @note      layer needs to be finalized before called.
+   */
+  void getFP16Weights(std::vector<_FP16 *> &weights,
+                      std::vector<TensorDim> &weight_dim) override {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+
+    std::vector<int *> weights_dim;
+    for (unsigned int idx = 0; idx < getNumWeights(); ++idx) {
+      TensorDim d = getWeight(idx).getDim();
+      weights.emplace_back(getWeight(idx).getData<_FP16>());
+      weight_dim.emplace_back(d);
+    }
+    return;
+  }
+#endif
 
   /**
    * @brief     Set weight data of the layer
