@@ -617,6 +617,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/nntrainer/bin/applications/*
+%{_libdir}/nntrainer/layers/*layer.so
 
 %if 0%{?gcov:1}
 %files gcov
