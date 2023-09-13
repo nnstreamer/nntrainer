@@ -167,9 +167,9 @@ public:
   static std::optional<GPT2Encoder> load(std::string_view vocab_file,
                                          std::string_view merges_file);
 
-  std::vector<int64_t> encode(const std::string &);
+  std::vector<int64_t> encode(const std::wstring &);
   std::string decode(const std::vector<int64_t> &);
-  std::vector<std::string> tokenize(const std::string &);
+  std::vector<std::string> tokenize(const std::wstring &);
 
   size_t vocab_size() const noexcept { return m_encoder.size(); }
 
@@ -249,7 +249,7 @@ std::optional<GPT2Encoder> GPT2Encoder::load(std::string_view vocab_file,
  * @param text
  * @return std::vector<int64_t>
  */
-std::vector<int64_t> GPT2Encoder::encode(const std::string &text) {
+std::vector<int64_t> GPT2Encoder::encode(const std::wstring &text) {
 
   // std::string text_in = text;
 
@@ -271,17 +271,22 @@ std::vector<int64_t> GPT2Encoder::encode(const std::string &text) {
   //   "\u00b4", "\u00e8", "\u00e2", "\u00e7", "\u200e", "\u2070 ", "\n"};
 
   // std::vector<std::string> from_list = {
-  //   "\\u00e4", "\\u00a0", "\\u00e8", "\\u2013", "\\u2018", "\\u2019", "\\u00bd",
-  //   "\\u201d", "\\u200b", "\\u00fc", "\\u2011", "\\u00e9", "\\u2014", "\\u201c",
-  //   "\\u00c1", "\\u00ad", "\\u00e1", "\\u2022", "\\u00a5", "\\u00ed", "\\u00f3",
-  //   "\\u00a9", "\\u20ac", "\\u00bc", "\\u00be", "\\u00db", "\\u00ba", "\\u00b0",
-  //   "\\u00d8", "\\u00f1", "\\u00ae", "\\u00e4", "\\u00e0", "\\u014d", "\\u00f8",
-  //   "\\u00b4", "\\u00e8", "\\u00e2", "\\u00e7", "\\u200e", "\\u2070 ", "\\n"};
+  //   "\\u00e4", "\\u00a0", "\\u00e8", "\\u2013", "\\u2018", "\\u2019",
+  //   "\\u00bd",
+  //   "\\u201d", "\\u200b", "\\u00fc", "\\u2011", "\\u00e9", "\\u2014",
+  //   "\\u201c",
+  //   "\\u00c1", "\\u00ad", "\\u00e1", "\\u2022", "\\u00a5", "\\u00ed",
+  //   "\\u00f3",
+  //   "\\u00a9", "\\u20ac", "\\u00bc", "\\u00be", "\\u00db", "\\u00ba",
+  //   "\\u00b0",
+  //   "\\u00d8", "\\u00f1", "\\u00ae", "\\u00e4", "\\u00e0", "\\u014d",
+  //   "\\u00f8",
+  //   "\\u00b4", "\\u00e8", "\\u00e2", "\\u00e7", "\\u200e", "\\u2070 ",
+  //   "\\n"};
 
   // for (unsigned int i = 0; i < to_list.size(); i++) {
   //   replace_all(text_in, from_list[i], to_list[i]);
   // }
-
   std::vector<std::string> tokens = tokenize(text);
   std::vector<int64_t> token_ids;
   token_ids.reserve(tokens.size());
@@ -476,11 +481,14 @@ std::string GPT2Encoder::decode(const std::vector<int64_t> &token_ids) {
  * @param text
  * @return std::vector<std::string>
  */
-std::vector<std::string> GPT2Encoder::tokenize(const std::string &text) {
+std::vector<std::string> GPT2Encoder::tokenize(const std::wstring &text) {
   std::vector<std::string> result;
 
   for (auto match : ctre::range<pattern>(text)) {
-    std::string token = match.to_string();
+    std::wstring wtoken = match.to_string();
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    std::string token = converter.to_bytes(wtoken);
+
     std::string byte_token;
     for (const auto &t : token) {
       byte_token += m_byte_encoder[t];
