@@ -187,8 +187,8 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
@@ -266,8 +266,8 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
@@ -403,8 +403,8 @@ TEST(nntrainerInterpreterTflite, simple_flatten) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
@@ -517,8 +517,8 @@ TEST(nntrainerInterpreterTflite, simple_flatten2) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
@@ -632,8 +632,8 @@ TEST(nntrainerInterpreterTflite, simple_flatten3) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
@@ -717,8 +717,8 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
 
   auto out_indices = tf_interpreter->outputs();
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    tf_interpreter->tensor(out_indices[idx])->data.raw =
-      reinterpret_cast<char *>(out.getData());
+    out.setValue(0, 0, idx, 0,
+                 tf_interpreter->typed_output_tensor<float>(0)[idx]);
   }
 
   int status = tf_interpreter->Invoke();
