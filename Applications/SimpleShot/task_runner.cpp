@@ -104,7 +104,9 @@ const std::string getcwd_() {
   const size_t bufsize = 4096;
   char buffer[bufsize];
 
-  return getcwd(buffer, bufsize);
+  char *cwd = getcwd(buffer, bufsize);
+  std::string ret = (cwd == NULL) ? "" : std::string(cwd);
+  return ret;
 }
 } // namespace
 
