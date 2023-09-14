@@ -42,10 +42,10 @@ const unsigned int GRID_WIDTH_NUMBER = 13;
 const unsigned int IMAGE_HEIGHT_SIZE = 416;
 const unsigned int IMAGE_WIDTH_SIZE = 416;
 const unsigned int BATCH_SIZE = 4;
-const unsigned int EPOCHS = 3;
-const char *TRAIN_DIR_PATH = "/TRAIN_DIR/";
-const char *VALIDATION_DIR_PATH = "/VALID_DIR/";
-const std::string MODEL_INIT_BIN_PATH = "/home/user/MODEL_INIT_BIN_PATH.bin";
+const unsigned int EPOCHS = 1;
+const char *TRAIN_DIR_PATH = "/home/hyunil/tiny/train_dir/";
+const char *VALIDATION_DIR_PATH = "/home/hyunil/tiny/valid_dir/";
+// const std::string MODEL_INIT_BIN_PATH = "/home/user/MODEL_INIT_BIN_PATH.bin";
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
   auto data = reinterpret_cast<nntrainer::util::DirDataLoader *>(user_data);
@@ -215,8 +215,9 @@ ModelHandle YOLO() {
 
   blocks.push_back(yoloBlock("conv_b", "conv13", 64, 1, false));
 
-  blocks.push_back({createLayer("reorg", {withKey("name", "re_organization"),
-                                          withKey("input_layers", "conv_b")})});
+  blocks.push_back(
+    {createLayer("reorg_layer", {withKey("name", "re_organization"),
+                                 withKey("input_layers", "conv_b")})});
 
   blocks.push_back(
     {createLayer("concat", {withKey("name", "concat"),
@@ -277,25 +278,6 @@ int main(int argc, char *argv[]) {
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
-  auto &app_context = nntrainer::AppContext::Global();
-
-  try {
-    app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register reorg layer, reason: " << e.what()
-              << std::endl;
-    return 1;
-  }
-
-  try {
-    app_context.registerFactory(
-      nntrainer::createLayer<custom::YoloV2LossLayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register loss layer, reason: " << e.what()
-              << std::endl;
-    return 1;
-  }
-
   // set training config and print it
   std::cout << "batch_size: " << BATCH_SIZE << " epochs: " << EPOCHS
             << std::endl;
@@ -315,6 +297,7 @@ int main(int argc, char *argv[]) {
     // compile and initialize model
     model->compile();
     model->initialize();
+    model->save("./yolov2.ini", ml::train::ModelFormat::MODEL_FORMAT_INI);
     // model->load(MODEL_INIT_BIN_PATH);
 
     // create train and validation data

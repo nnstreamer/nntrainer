@@ -13,7 +13,7 @@
 
 #include "yolo_v2_loss.h"
 #include <iostream>
-
+#include <nntrainer_log.h>
 namespace custom {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -608,6 +608,7 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
 
   float loss = 5 * bbox_loss + confidence_loss + class_loss;
   std::cout << "\nCurrent iteration loss: " << loss << std::endl;
+  ml_logd("Current iteration loss: %f", loss);
 }
 
 void YoloV2LossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
@@ -931,10 +932,14 @@ void YoloV2LossLayer::generate_ground_truth(
 
 nntrainer::Layer *create_yolo_v2_loss_layer() {
   auto layer = new YoloV2LossLayer();
+  std::cout << "yolo_v2_loss created\n";
   return layer;
 }
 
-void destory_yolo_v2_loss_layer(nntrainer::Layer *layer) { delete layer; }
+void destory_yolo_v2_loss_layer(nntrainer::Layer *layer) {
+  std::cout << "yolo_v2_loss deleted\n";
+  delete layer;
+}
 
 /**
  * @note ml_train_layer_pluggable defines the entry point for nntrainer to
