@@ -12,6 +12,7 @@
  */
 
 #include <blas_neon.h>
+#include <cmath>
 #include <nntrainer_error.h>
 
 namespace nntrainer::neon {
@@ -742,6 +743,184 @@ unsigned int isamax_neon_fp16(const unsigned int N, const __fp16 *X) {
   return retIdx;
 }
 
+void sgemm_neon_fp16_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C,
+                             uint32_t M, uint32_t N, uint32_t K, float alpha,
+                             float beta) {
+
+  unsigned int k = 0, n = 0;
+
+  for (; (K - k) >= 16; k += 16) {
+    for (unsigned int m = 0; m < M; m++) {
+      __fp16 a0 = alpha * A[m * K + k];
+      __fp16 a1 = alpha * A[m * K + k + 1];
+      __fp16 a2 = alpha * A[m * K + k + 2];
+      __fp16 a3 = alpha * A[m * K + k + 3];
+      __fp16 a4 = alpha * A[m * K + k + 4];
+      __fp16 a5 = alpha * A[m * K + k + 5];
+      __fp16 a6 = alpha * A[m * K + k + 6];
+      __fp16 a7 = alpha * A[m * K + k + 7];
+
+      __fp16 a8 = alpha * A[m * K + k + 8];
+      __fp16 a9 = alpha * A[m * K + k + 9];
+      __fp16 a10 = alpha * A[m * K + k + 10];
+      __fp16 a11 = alpha * A[m * K + k + 11];
+      __fp16 a12 = alpha * A[m * K + k + 12];
+      __fp16 a13 = alpha * A[m * K + k + 13];
+      __fp16 a14 = alpha * A[m * K + k + 14];
+      __fp16 a15 = alpha * A[m * K + k + 15];
+
+      for (n = 0; (N - n) >= 8; n += 8) {
+        float16x8_t b0_7 = vld1q_f16(&B[k * N + n]);
+        float16x8_t b0_7_1 = vld1q_f16(&B[(k + 1) * N + n]);
+        float16x8_t b0_7_2 = vld1q_f16(&B[(k + 2) * N + n]);
+        float16x8_t b0_7_3 = vld1q_f16(&B[(k + 3) * N + n]);
+        float16x8_t b0_7_4 = vld1q_f16(&B[(k + 4) * N + n]);
+        float16x8_t b0_7_5 = vld1q_f16(&B[(k + 5) * N + n]);
+        float16x8_t b0_7_6 = vld1q_f16(&B[(k + 6) * N + n]);
+        float16x8_t b0_7_7 = vld1q_f16(&B[(k + 7) * N + n]);
+
+        float16x8_t b0_7_8 = vld1q_f16(&B[(k + 8) * N + n]);
+        float16x8_t b0_7_9 = vld1q_f16(&B[(k + 9) * N + n]);
+        float16x8_t b0_7_10 = vld1q_f16(&B[(k + 10) * N + n]);
+        float16x8_t b0_7_11 = vld1q_f16(&B[(k + 11) * N + n]);
+        float16x8_t b0_7_12 = vld1q_f16(&B[(k + 12) * N + n]);
+        float16x8_t b0_7_13 = vld1q_f16(&B[(k + 13) * N + n]);
+        float16x8_t b0_7_14 = vld1q_f16(&B[(k + 14) * N + n]);
+        float16x8_t b0_7_15 = vld1q_f16(&B[(k + 15) * N + n]);
+
+        float16x8_t c0_7 = vld1q_f16(&C[m * N + n]);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7, a0);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_1, a1);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_2, a2);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_3, a3);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_4, a4);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_5, a5);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_6, a6);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_7, a7);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_8, a8);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_9, a9);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_10, a10);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_11, a11);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_12, a12);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_13, a13);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_14, a14);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_15, a15);
+
+        vst1q_f16(&C[m * N + n], c0_7);
+      }
+    }
+  }
+
+  for (; (K - k) >= 8; k += 8) {
+    for (unsigned int m = 0; m < M; m++) {
+      __fp16 a0 = alpha * A[m * K + k];
+      __fp16 a1 = alpha * A[m * K + k + 1];
+      __fp16 a2 = alpha * A[m * K + k + 2];
+      __fp16 a3 = alpha * A[m * K + k + 3];
+      __fp16 a4 = alpha * A[m * K + k + 4];
+      __fp16 a5 = alpha * A[m * K + k + 5];
+      __fp16 a6 = alpha * A[m * K + k + 6];
+      __fp16 a7 = alpha * A[m * K + k + 7];
+
+      for (n = 0; (N - n) >= 8; n += 8) {
+        float16x8_t b0_7 = vld1q_f16(&B[k * N + n]);
+        float16x8_t b0_7_1 = vld1q_f16(&B[(k + 1) * N + n]);
+        float16x8_t b0_7_2 = vld1q_f16(&B[(k + 2) * N + n]);
+        float16x8_t b0_7_3 = vld1q_f16(&B[(k + 3) * N + n]);
+        float16x8_t b0_7_4 = vld1q_f16(&B[(k + 4) * N + n]);
+        float16x8_t b0_7_5 = vld1q_f16(&B[(k + 5) * N + n]);
+        float16x8_t b0_7_6 = vld1q_f16(&B[(k + 6) * N + n]);
+        float16x8_t b0_7_7 = vld1q_f16(&B[(k + 7) * N + n]);
+
+        float16x8_t c0_7 = vld1q_f16(&C[m * N + n]);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7, a0);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_1, a1);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_2, a2);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_3, a3);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_4, a4);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_5, a5);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_6, a6);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_7, a7);
+
+        vst1q_f16(&C[m * N + n], c0_7);
+      }
+    }
+  }
+
+  for (; (K - k) >= 4; k += 4) {
+    for (unsigned int m = 0; m < M; m++) {
+      __fp16 a0 = alpha * A[m * K + k];
+      __fp16 a1 = alpha * A[m * K + k + 1];
+      __fp16 a2 = alpha * A[m * K + k + 2];
+      __fp16 a3 = alpha * A[m * K + k + 3];
+
+      for (n = 0; (N - n) >= 8; n += 8) {
+        float16x8_t b0_7 = vld1q_f16(&B[k * N + n]);
+        float16x8_t b0_7_1 = vld1q_f16(&B[(k + 1) * N + n]);
+        float16x8_t b0_7_2 = vld1q_f16(&B[(k + 2) * N + n]);
+        float16x8_t b0_7_3 = vld1q_f16(&B[(k + 3) * N + n]);
+
+        float16x8_t c0_7 = vld1q_f16(&C[m * N + n]);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7, a0);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_1, a1);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_2, a2);
+        c0_7 = vfmaq_n_f16(c0_7, b0_7_3, a3);
+
+        vst1q_f16(&C[m * N + n], c0_7);
+      }
+    }
+  }
+
+  // remaining K values
+  for (; k < K; k++) {
+    for (unsigned int m = 0; m < M; m++) {
+      __fp16 a0 = alpha * A[m * K + k];
+
+      for (n = 0; (N - n) >= 8; n += 8) {
+        float16x8_t b0_7 = vld1q_f16(&B[k * N + n]);
+
+        float16x8_t c0_7 = vld1q_f16(&C[m * N + n]);
+
+        c0_7 = vfmaq_n_f16(c0_7, b0_7, a0);
+
+        vst1q_f16(&C[m * N + n], c0_7);
+      }
+    }
+  }
+
+  // remaining N values (can be optimized by putting inside previous loops)
+  if (n < N) {
+    __fp16 valsB[8];
+    __fp16 valsC[8];
+    for (k = 0; k < K; k++) {
+      for (unsigned int m = 0; m < M; m++) {
+        __fp16 a = alpha * A[m * K + k];
+        for (unsigned int idx = n; idx < N; idx++) {
+          valsB[idx - n] = B[k * N + idx];
+
+          // load previously calculated C
+          valsC[idx - n] = C[m * N + idx];
+        }
+        float16x8_t b = vld1q_f16(valsB);
+        float16x8_t c = vld1q_f16(valsC);
+        c = vfmaq_n_f16(c, b, a);
+        vst1q_f16(valsC, c);
+
+        for (unsigned int idx = n; idx < N; idx++) {
+          C[m * N + idx] = valsC[idx - n];
+        }
+      }
+    }
+  }
+}
+
 void sgemm_neon_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
                      uint32_t N, uint32_t K, float alpha, float beta,
                      bool TransA, bool TransB) {
@@ -760,63 +939,109 @@ void sgemm_neon_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
 
   // remaining values if dimensions not a multiple of 8
   for (; idx < size; idx++) {
-    C[idx] *= beta;
+    C[idx] *= static_cast<__fp16>(beta);
   }
 
   __fp16 r[4];
 
   if (!TransA && TransB) {
+    __fp16 valsB[8];
+    __fp16 valsA[8];
+    float16x8_t sum;
+    float32x4_t sum0, sum1;
+
     for (unsigned int m = 0; m < M; m++) {
       for (unsigned int n = 0; n < N; n++) {
-        float16x8_t sum = vmovq_n_f16(0);
+        sum = vmovq_n_f16(0);
+        sum0 = vdupq_n_f32(0);
+        sum1 = vdupq_n_f32(0);
 
-        for (unsigned int k = 0; k < K; k += 8) {
+        unsigned int k = 0;
+        for (; (K - k) >= 8; k += 8) {
           float16x8_t a = vld1q_f16(&A[m * K + k]);
           float16x8_t b = vld1q_f16(&B[n * K + k]);
+
           sum = vfmaq_f16(sum, a, b);
         }
+
+        // remaining K values
+        if (k < K) {
+          unsigned int idx;
+          for (idx = k; idx < K; idx++) {
+            valsA[idx - k] = A[m * K + idx];
+            valsB[idx - k] = B[n * K + idx];
+          }
+          // to cover entire 128 bits (reset unused bits)
+          while (idx < (k + 8)) {
+            valsA[idx - k] = 0.0f;
+            valsB[idx - k] = 0.0f;
+            idx++;
+          }
+          // updating sum
+          float16x8_t a = vld1q_f16(valsA);
+          float16x8_t b = vld1q_f16(valsB);
+
+          sum = vfmaq_f16(sum, a, b);
+        }
+
         sum = vmulq_f16(v_alpha, sum);
 
         float16x4_t sum_high = vget_high_f16(sum);
         float16x4_t sum_low = vget_low_f16(sum);
 
-        sum_low = vadd_f16(sum_high, sum_low);
-        vst1_f16(r, sum_low);
+        float32x4_t sum_high_32 = vcvt_f32_f16(sum_high);
+        float32x4_t sum_low_32 = vcvt_f32_f16(sum_low);
 
-        C[m * N + n] += r[0] + r[1] + r[2] + r[3];
+        double res_32 = 0;
+        for (int z = 0; z < 4; ++z) {
+          res_32 += std::ceil((static_cast<double>(sum_high_32[z]) +
+                               static_cast<double>(sum_low_32[z])) *
+                              10000) /
+                    10000;
+        }
+
+        C[m * N + n] += (res_32);
       }
     }
   } else if (TransA && !TransB) {
+    __fp16 valsB[8];
+    __fp16 valsC[8];
     for (unsigned int k = 0; k < K; k++) {
       for (unsigned int m = 0; m < M; m++) {
         __fp16 a = alpha * A[k * M + m];
-
-        for (unsigned int n = 0; n < N; n += 8) {
+        unsigned int n = 0;
+        for (; (N - n) >= 8; n += 8) {
           float16x8_t b = vld1q_f16(&B[k * N + n]);
 
           // load previously calculated C
           float16x8_t c = vld1q_f16(&C[m * N + n]);
           c = vfmaq_n_f16(c, b, a);
           vst1q_f16(&C[m * N + n], c);
+        }
+
+        // remaining N values
+        if (n < N) {
+          for (unsigned int idx = n; idx < N; idx++) {
+            valsB[idx - n] = B[k * N + idx];
+
+            // load previously calculated C
+            valsC[idx - n] = C[m * N + idx];
+          }
+          float16x8_t b = vld1q_f16(valsB);
+          float16x8_t c = vld1q_f16(valsC);
+          c = vfmaq_n_f16(c, b, a);
+          vst1q_f16(valsC, c);
+
+          for (unsigned int idx = n; idx < N; idx++) {
+            C[m * N + idx] = valsC[idx - n];
+          }
         }
       }
     }
   } else if (!TransA && !TransB) {
-    for (unsigned int k = 0; k < K; k++) {
-      for (unsigned int m = 0; m < M; m++) {
-        __fp16 a = alpha * A[m * K + k];
-
-        for (unsigned int n = 0; n < N; n += 8) {
-          float16x8_t b = vld1q_f16(&B[k * N + n]);
-
-          // load previously calculated C
-          float16x8_t c = vld1q_f16(&C[m * N + n]);
-          c = vfmaq_n_f16(c, b, a);
-          vst1q_f16(&C[m * N + n], c);
-        }
-      }
-    }
+    sgemm_neon_fp16_noTrans(A, B, C, M, N, K, alpha, beta);
   } else { // TransA && TransB
+
     __fp16 vals[8];
     for (unsigned int n = 0; n < N; n++) {
       for (unsigned int k = 0; k < K; k++) {
@@ -852,5 +1077,4 @@ void sgemm_neon_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
   }
 }
 #endif
-
 } // namespace nntrainer::neon
