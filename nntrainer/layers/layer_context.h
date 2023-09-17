@@ -399,6 +399,37 @@ public:
   /**
    * @brief Get the Weight tensor object
    *
+   * @param w out tensor
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight tensor
+   */
+  void getWeight(Tensor &w, unsigned int idx) {
+    Tensor &t_w = weights[idx]->getVariableRef();
+
+    if (t_w.getDataType() == Tdatatype::FP32 ||
+        t_w.getDataType() == Tdatatype::FP16) {
+      w = t_w;
+      return;
+    }
+
+    unsigned int base_idx = 0;
+    Tdatatype o_t = getOutput(base_idx).getDataType();
+
+    if (w.empty()) {
+      TensorDim d = t_w.getDim();
+      d.setDataType(o_t);
+      w = Tensor(d, true);
+    }
+    unsigned int o_ax = getWeightObject(idx).getOutputAxis();
+
+    t_w.dequantize(w, o_ax);
+
+    return;
+  }
+
+  /**
+   * @brief Get the Weight tensor object
+   *
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */

@@ -667,27 +667,34 @@ void MultiHeadAttentionLayer::initial_incremental_forwarding(
       : empty_tensor;
 
   /** get weights */
-  Tensor &query_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::query_fc_weight]);
-  Tensor &query_fc_bias =
-    disable_bias
-      ? empty_tensor
-      : context.getWeight(weight_idx[AttentionParams::query_fc_bias]);
-  Tensor &key_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::key_fc_weight]);
-  Tensor &key_fc_bias =
-    disable_bias ? empty_tensor
-                 : context.getWeight(weight_idx[AttentionParams::key_fc_bias]);
-  Tensor &value_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::value_fc_weight]);
-  Tensor &value_fc_bias =
-    disable_bias
-      ? empty_tensor
-      : context.getWeight(weight_idx[AttentionParams::value_fc_bias]);
-  Tensor &fc_weight = context.getWeight(weight_idx[AttentionParams::fc_weight]);
-  Tensor &fc_bias = disable_bias
-                      ? empty_tensor
-                      : context.getWeight(weight_idx[AttentionParams::fc_bias]);
+
+  Tensor qWeight, kWeight, vWeight, fWeight, qbias, kbias, vbias, fcWeight;
+
+  Tensor &query_fc_weight = qWeight;
+  Tensor &key_fc_weight = kWeight;
+  Tensor &value_fc_weight = vWeight;
+  Tensor &fc_weight = fcWeight;
+  Tensor &query_fc_bias = qbias;
+  Tensor &key_fc_bias = kbias;
+  Tensor &value_fc_bias = vbias;
+
+  context.getWeight(query_fc_weight,
+                    weight_idx[AttentionParams::query_fc_weight]);
+  context.getWeight(key_fc_weight, weight_idx[AttentionParams::key_fc_weight]);
+  context.getWeight(value_fc_weight,
+                    weight_idx[AttentionParams::value_fc_weight]);
+
+  context.getWeight(fc_weight, weight_idx[AttentionParams::fc_weight]);
+
+  if (!disable_bias)
+    context.getWeight(query_fc_bias,
+                      weight_idx[AttentionParams::query_fc_bias]);
+  if (!disable_bias)
+    context.getWeight(key_fc_bias, weight_idx[AttentionParams::key_fc_bias]);
+
+  if (!disable_bias)
+    context.getWeight(value_fc_bias,
+                      weight_idx[AttentionParams::value_fc_bias]);
 
   /** get tensors */
   Tensor &projected_query =
@@ -779,11 +786,13 @@ void MultiHeadAttentionLayer::initial_incremental_forwarding(
     cache_value_step.add_i(value_fc_bias);
   }
 
-  apply_rotary_emb_tensor(projected_query_step, projected_query_dim_prop, from);
-  apply_rotary_emb_tensor(cache_key_step, projected_key_dim_prop, from);
+  apply_rotary_emb_tensor(projected_query_step, projected_query_dim_prop,
+                          _from);
+  apply_rotary_emb_tensor(cache_key_step, projected_key_dim_prop, _from);
 
   projected_query_step.reshape(
     TensorDim({batch_size, to, num_heads, projected_query_dim_prop}));
+
   cached_key.reshape(
     TensorDim({batch_size, to, num_heads, projected_key_dim_prop}));
   cached_value.reshape(
@@ -851,13 +860,13 @@ void MultiHeadAttentionLayer::initial_incremental_forwarding(
     output_step.add_i(fc_bias);
   }
 
-  if (layer_progress == 28)
-    layer_progress = 0;
-  layer_progress++;
+  // if (layer_progress == 28)
+  //   layer_progress = 0;
+  // layer_progress++;
 
-  std::cout << "Process Reading: " << (int)((layer_progress / 28.0) * 100.0)
-            << " % \r";
-  std::cout.flush();
+  // std::cout << "Process Reading: " << (int)((layer_progress / 28.0) * 100.0)
+  //           << " % \r";
+  // std::cout.flush();
 }
 
 void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
@@ -944,27 +953,60 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
       : empty_tensor;
 
   /** get weights */
-  Tensor &query_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::query_fc_weight]);
-  Tensor &query_fc_bias =
-    disable_bias
-      ? empty_tensor
-      : context.getWeight(weight_idx[AttentionParams::query_fc_bias]);
-  Tensor &key_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::key_fc_weight]);
-  Tensor &key_fc_bias =
-    disable_bias ? empty_tensor
-                 : context.getWeight(weight_idx[AttentionParams::key_fc_bias]);
-  Tensor &value_fc_weight =
-    context.getWeight(weight_idx[AttentionParams::value_fc_weight]);
-  Tensor &value_fc_bias =
-    disable_bias
-      ? empty_tensor
-      : context.getWeight(weight_idx[AttentionParams::value_fc_bias]);
-  Tensor &fc_weight = context.getWeight(weight_idx[AttentionParams::fc_weight]);
-  Tensor &fc_bias = disable_bias
-                      ? empty_tensor
-                      : context.getWeight(weight_idx[AttentionParams::fc_bias]);
+  Tensor qWeight, kWeight, vWeight, fWeight, qbias, kbias, vbias, fcWeight;
+  Tensor &query_fc_weight = qWeight;
+  Tensor &key_fc_weight = kWeight;
+  Tensor &value_fc_weight = vWeight;
+  Tensor &fc_weight = fcWeight;
+  Tensor &query_fc_bias = qbias;
+  Tensor &key_fc_bias = kbias;
+  Tensor &value_fc_bias = vbias;
+
+  // auto getWeight_Job = [&](Tensor &t, unsigned int idx) {
+  //   context.getWeight(t, idx);
+  // };
+
+  // auto get_key = std::async(std::launch::async, &RunLayerContext::getWeight,
+  // &context, key_fc_weight, weight_idx[AttentionParams::key_fc_weight]);
+
+  // auto get_key = std::async(std::launch::async, getWeight_Job,
+  // std::ref(key_fc_weight),weight_idx[AttentionParams::key_fc_weight] );
+
+  // start = clock();
+  context.getWeight(key_fc_weight, weight_idx[AttentionParams::key_fc_weight]);
+  // auto get_value = std::async(std::launch::async,
+  // &RunLayerContext::getWeight, &context, value_fc_weight,
+  // weight_idx[AttentionParams::value_fc_weight]);
+
+  // auto get_value = std::async(std::launch::async, getWeight_Job,
+  // std::ref(value_fc_weight),weight_idx[AttentionParams::value_fc_weight]);
+
+  // auto get_fc = std::async(std::launch::async, getWeight_Job,
+  // std::ref(fc_weight),weight_idx[AttentionParams::fc_weight]);
+
+  // auto get_fc = std::async(std::launch::async, &RunLayerContext::getWeight,
+  // &context, fc_weight, weight_idx[AttentionParams::fc_weight]);
+
+  context.getWeight(query_fc_weight,
+                    weight_idx[AttentionParams::query_fc_weight]);
+  context.getWeight(value_fc_weight,
+                    weight_idx[AttentionParams::value_fc_weight]);
+
+  context.getWeight(fc_weight, weight_idx[AttentionParams::fc_weight]);
+  // finish=clock();
+  // std::cout << "dequanized :" << (double)(finish-start)<<std::endl;
+  //   disable_bias
+  //     ? empty_tensor
+  //     : context.getWeight(weight_idx[AttentionParams::query_fc_bias]);
+
+  if (!disable_bias)
+    context.getWeight(query_fc_bias,
+                      weight_idx[AttentionParams::query_fc_bias]);
+  if (!disable_bias)
+    context.getWeight(key_fc_bias, weight_idx[AttentionParams::key_fc_bias]);
+  if (!disable_bias)
+    context.getWeight(value_fc_bias,
+                      weight_idx[AttentionParams::value_fc_bias]);
 
   /** get tensors */
   Tensor &projected_query =
@@ -1057,8 +1099,9 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
     cache_value_step.add_i(value_fc_bias);
   }
 
-  apply_rotary_emb_tensor(projected_query_step, projected_query_dim_prop, from);
-  apply_rotary_emb_tensor(cache_key_step, projected_key_dim_prop, from);
+  apply_rotary_emb_tensor(projected_query_step, projected_query_dim_prop,
+                          _from);
+  apply_rotary_emb_tensor(cache_key_step, projected_key_dim_prop, _from);
 
   projected_query_step.reshape(
     TensorDim({batch_size, 1, num_heads, projected_query_dim_prop}));

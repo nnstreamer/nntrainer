@@ -385,6 +385,11 @@ public:
   virtual RunStats getTestStats() = 0;
 
   /**
+   * @brief     allocate tensor according to execution mode
+   */
+  virtual int allocate(ExecutionMode mode = ExecutionMode::TRAIN) = 0;
+
+  /**
    * @brief export the model according to given export method
    * @param method export method
    * @param file_path path to be serialized
