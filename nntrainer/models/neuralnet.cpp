@@ -854,7 +854,11 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 #endif
     } else {
       auto out_t = *out.get();
-      output.push_back(out_t.getData());
+      TensorDim last_out_dim = out_t.getDim();
+      last_out_dim.height(1);
+      Tensor last_out =
+        out_t.getSharedDataTensor(last_out_dim, out_t.width() * idx, true);
+      output.push_back(last_out.getData());
     }
     idx++;
   }

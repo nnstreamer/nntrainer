@@ -853,8 +853,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
                  _FP16 *out_buf) {
       if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
           beta == 0.0) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::multiplies<_FP16>());
+        ewvm(e.buffer_size, buf, m_buf, out_buf);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
           *out_buf = *buf * *m_buf + static_cast<_FP16>(beta) * *out_buf;
@@ -1097,8 +1096,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
                  _FP16 *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
           alpha == 0) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::plus<_FP16>());
+        ewva(e.buffer_size, buf, m_buf, out_buf);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
           *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);
@@ -3125,7 +3123,34 @@ void Tensor::save(std::ostream &file) {
     << "save size: " << bytes()
     << " is too big. It cannot be represented by std::streamsize";
 
-  checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
+  if (this->getDataType() == ml::train::TensorDim::DataType::FP32) {
+
+    // std::vector<_FP16> temp(size());
+    // for (unsigned int i = 0; i < size(); ++i) {
+    //   temp[i] = static_cast<_FP16>(getData()[i]);
+    // }
+
+    // checkedWrite(file, (char *)temp.data(),
+    //              static_cast<std::streamsize>(size() * sizeof(_FP16)),
+    //              "[Tensor::save] operation failed");
+
+    checkedWrite(file, (char *)getData(), sz,
+                 "[Tensor::save] operation failed");
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    std::vector<_FP16> temp(size());
+    for (unsigned int i = 0; i < size(); ++i) {
+      temp[i] = static_cast<_FP16>(getData()[i]);
+    }
+
+    checkedWrite(file, (char *)temp.data(),
+                 static_cast<std::streamsize>(size() * sizeof(_FP16)),
+                 "[Tensor::save] operation failed");
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+
   putData();
 }
 
@@ -3363,9 +3388,10 @@ Tensor &Tensor::erf(Tensor &out) const {
     apply<float>(f, out);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    auto f = [](_FP16 in) {
-      return static_cast<_FP16>(std::erf(static_cast<float>(in)));
-    };
+    //    auto f = [](_FP16 in) {
+    // return static_cast<_FP16>(std::erf(static_cast<float>(in)));
+    //    };
+    auto f = [](_FP16 in) { return std::erf(in); };
     apply<_FP16>(f, out);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");

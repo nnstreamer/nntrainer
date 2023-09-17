@@ -36,10 +36,6 @@
 #include <var_grad.h>
 #include <weight.h>
 
-namespace ml::train {
-enum class ExecutionMode;
-}
-
 namespace nntrainer {
 using ExecutionMode = ml::train::ExecutionMode;
 /**

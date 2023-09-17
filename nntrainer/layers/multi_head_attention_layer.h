@@ -233,9 +233,7 @@ private:
                 } else {
                   transformed_value = in.getValue<float>(b, c, h, span - half_);
                 }
-                value = value * (*freqs_cos)[from][k] +
-                        transformed_value * (*freqs_sin)[from][k];
-
+                value = value * (*cos_)[k] + transformed_value * (*sin_)[k];
                 out.setValue(b, c, h, span, value);
               }
             }
@@ -266,11 +264,10 @@ private:
                   transformed_value = static_cast<float>(
                     in.getValue<_FP16>(b, c, h, span - half_));
                 }
-                out.setValue(b, c, h, span,
-                             static_cast<_FP16>(value * (*freqs_cos)[from][k] +
-                                                transformed_value *
-                                                  (*freqs_sin)[from][k]));
-
+                out.setValue(
+                  b, c, h, span,
+                  static_cast<_FP16>(value * (*cos_)[k] +
+                                     transformed_value * (*sin_)[k]));
 #else
                 throw std::invalid_argument(
                   "Error: enable-fp16 is not enabled");
@@ -280,6 +277,11 @@ private:
           }
         }
       }
+    }
+
+    if (from >= max_timestep) {
+      delete cos_;
+      delete sin_;
     }
     in.copy(out);
   }
