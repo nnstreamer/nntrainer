@@ -75,7 +75,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override{};
 
-  inline static const std::string type = "reorg";
+  inline static const std::string type = "reorg_layer";
 };
 
 } // namespace custom
