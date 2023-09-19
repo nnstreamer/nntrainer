@@ -247,6 +247,10 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   } else if (cols % 4 == 0) {
     unsigned int n = cols / 4;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+    if (initialized == nullptr) {
+      ml_loge("Error : Memory allocation failed");
+      return;
+    }
 
     unsigned int step;
     for (unsigned int i = 0; i < cols / 4; ++i) {

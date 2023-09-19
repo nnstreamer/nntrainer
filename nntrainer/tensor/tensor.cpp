@@ -103,6 +103,7 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
     dim = d;
     strides = d.computeStrides();
     initializer = init;
+    output_axis = 3;
     if (alloc_now)
       allocate();
   }
