@@ -403,18 +403,6 @@ public:
    * @return Tensor& Reference to the weight tensor
    */
   template <typename T = float> Tensor &getWeight(unsigned int idx) const {
-    if (weights[idx]->getDim().getDataType() == nntrainer::Tdatatype::QINT4 ||
-        weights[idx]->getDim().getDataType() == nntrainer::Tdatatype::QINT8) {
-      Tensor output(weights[idx]->getDim());
-
-      if (sizeof(T) == sizeof(float)) {
-        output.setDataType(nntrainer::Tdatatype::FP32);
-      } else {
-        output.setDataType(nntrainer::Tdatatype::FP16);
-      }
-
-      return weights[idx]->getVariableRef().dequantize<T>(output);
-    }
     return weights[idx]->getVariableRef();
   }
 
