@@ -2032,7 +2032,7 @@ public:
       throw std::invalid_argument("Error: No scale factors");
     }
 
-    int idx;
+    int idx = 0;
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
