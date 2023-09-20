@@ -12,6 +12,7 @@
  */
 
 #include <blas_neon.h>
+#include <memory>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
@@ -145,10 +146,6 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   if (cols % 16 == 0) {
     unsigned int n = cols / 16;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
-    if (initialized == nullptr) {
-      ml_loge("failed to malloc");
-      return;
-    }
 
     unsigned int step;
     for (unsigned int i = 0; i < cols / 16; ++i) {
@@ -246,7 +243,7 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
     return;
   } else if (cols % 4 == 0) {
     unsigned int n = cols / 4;
-    bool *initialized = (bool *)malloc(sizeof(bool) * n);
+    auto initialized = std::make_unique<bool[]>(n);
     if (initialized == nullptr) {
       ml_loge("Error : Memory allocation failed");
       return;
@@ -281,7 +278,6 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
         vst1q_f32(&y[0], y0_3);
       }
     }
-    free(initialized);
   }
 
   return;

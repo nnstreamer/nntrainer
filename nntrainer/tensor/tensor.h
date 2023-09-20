@@ -98,6 +98,7 @@ public:
     name(name_),
     data(nullptr),
     offset(0),
+    output_axis(3),
     src_tensor() {}
 
   /**
@@ -231,7 +232,7 @@ public:
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
-
+    output_axis = 3;
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
     // dim[1] == height, dim[2] == width, dim[3] == channel
@@ -392,6 +393,7 @@ public:
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
+    output_axis = 3;
 
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
@@ -2032,7 +2034,7 @@ public:
       throw std::invalid_argument("Error: No scale factors");
     }
 
-    int idx;
+    int idx = 0;
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
