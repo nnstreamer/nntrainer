@@ -31,6 +31,7 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
 
   std::unordered_map<Connection, unsigned> freq_map;
   std::unordered_set<std::string> node_names;
+  std::vector<Connection> connections;
 
   /// 1. build frequency map and connection names
   for (auto &node : reference) {
@@ -43,17 +44,21 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
       Connection c(node->getInputConnectionName(i),
                    node->getInputConnectionIndex(i));
       [[maybe_unused]] auto [iter, result] = freq_map.try_emplace(c, 0);
+      if (result)
+        connections.push_back(c);
       iter->second++;
     }
   }
 
   /// 2. for each connection names, if a connection is referenced multiple
   /// times, create multioutput node and remap to multi output node index
-  std::unordered_multimap<std::string /**< original id */,
-                          std::shared_ptr<LayerNode> /**< created node */>
+  std::unordered_map<
+    std::string /**< original id */,
+    std::vector<std::shared_ptr<LayerNode>> /**< created node */>
     multiout_nodes;
 
-  for (auto &[con, freq] : freq_map) {
+  for (auto con : connections) {
+    unsigned freq = freq_map[con];
     /// @note freq < 1 should never happen as the map entry is not created.
     /// but if it happens multiout realizer is not interested in checking if it
     /// is a dangled or actually an output. So there is no assurance done at
@@ -74,9 +79,8 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
     }
     auto multiout_name = ss.str();
 
-    multiout_nodes.emplace(
-      id, createLayerNode("multiout", {"name=" + multiout_name,
-                                       "input_layers=" + con.toString()}));
+    multiout_nodes[id].push_back(createLayerNode(
+      "multiout", {"name=" + multiout_name, "input_layers=" + con.toString()}));
     node_names.emplace(multiout_name);
 
     unsigned input_count = 0;
@@ -97,9 +101,9 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
   ret.reserve(processed.size());
   for (auto &node : processed) {
     ret.push_back(node);
-    auto ranges = multiout_nodes.equal_range(node->getName());
-    for (auto it = ranges.first; it != ranges.second; ++it) {
-      ret.push_back(it->second);
+    auto ranges = multiout_nodes[node->getName()];
+    for (auto it : ranges) {
+      ret.push_back(it);
     }
   }
 

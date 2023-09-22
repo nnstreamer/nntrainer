@@ -452,13 +452,13 @@ void TensorPool::flushCacheExcept(unsigned int order) {
 }
 
 void TensorPool::loadCacheExec(unsigned int order) {
-  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+  if (dynamic_cast<CachePool *>(mem_pool.get()))
     cache_loader->load(order);
 }
 
 int TensorPool::loadCacheExecAsync(
   unsigned int order, TaskExecutor::CompleteCallback complete_callback) {
-  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
+  if (dynamic_cast<CachePool *>(mem_pool.get()))
     return cache_loader->loadAsync(order, complete_callback);
   else
     return -1;

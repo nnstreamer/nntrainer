@@ -130,17 +130,21 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() : enable_optimizations(true), swap_lookahead(0) {}
+  Manager() :
+    enable_optimizations(true),
+    swap_lookahead(0),
+    tensor_type("nchw") {}
 
   /**
    * @brief     Constructor of Manager
    */
   Manager(bool enable_swap, const std::string &swap_path = "",
-          unsigned int lookahead = 0) :
+          unsigned int lookahead = 0, const std::string tensor_type_ = "nchw") :
     weight_pool(enable_swap, swap_path, "weight_pool"),
     tensor_pool(enable_swap, swap_path, "tensor_pool"),
     enable_optimizations(true),
-    swap_lookahead(lookahead) {}
+    swap_lookahead(lookahead),
+    tensor_type(tensor_type_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -500,6 +504,8 @@ private:
   bool enable_optimizations; /**< to enable memory optimizations */
 
   unsigned int swap_lookahead; /** lookahead for memory swap */
+
+  std::string tensor_type;
 
   /**
    * @brief Finalize the given tensor pool

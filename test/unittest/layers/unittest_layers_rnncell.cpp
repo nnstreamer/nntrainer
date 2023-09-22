@@ -24,10 +24,11 @@ auto semantic_rnncell = LayerSemanticsParamType(
 GTEST_PARAMETER_TEST(RNNCell, LayerSemantics,
                      ::testing::Values(semantic_rnncell));
 
-auto rnncell_single_step = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::RNNCellLayer>,
-  {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5",
-  "rnncell_single_step.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT);
+auto rnncell_single_step =
+  LayerGoldenTestParamType(nntrainer::createLayer<nntrainer::RNNCellLayer>,
+                           {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5",
+                           "rnncell_single_step.nnlayergolden",
+                           LayerGoldenTestParamOptions::DEFAULT, "nchw");
 
 GTEST_PARAMETER_TEST(RNNCell, LayerGoldenTest,
                      ::testing::Values(rnncell_single_step));

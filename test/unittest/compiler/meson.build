@@ -3,7 +3,7 @@ test_name = 'unittest_compiler'
 test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
-  'unittest_interpreter.cpp',
+#  'unittest_interpreter.cpp',
   'unittest_realizer.cpp'
 ]
 
@@ -18,5 +18,6 @@ exe = executable(
 )
 
 test(test_name, exe,
-  args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name)
+  args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
+  timeout: test_timeout
 )

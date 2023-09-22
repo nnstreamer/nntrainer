@@ -79,7 +79,6 @@ Logger::Logger() : ts_type(NNTRAINER_LOG_TIMESTAMP_SEC) {
   outputstream.open(ss.str(), std::ios_base::app);
   if (!outputstream.good()) {
     char buf[256];
-    char *ret = getcwd(buf, 256);
     std::string cur_path = std::string(buf);
     std::string err_msg =
       "Unable to initialize the Logger on path(" + cur_path + ")";

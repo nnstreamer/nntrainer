@@ -56,7 +56,7 @@ public:
    *        unroll_for = <int> // define timestep of unrolling
    *        return_sequences = <bool> // return sequences
    *        recurrent_inputs = <vector<std::string>> // start of the loop
-   *        recurrent_ouptuts = <vector<std::string>> // end of the loop
+   *        recurrent_outputs = <vector<std::string>> // end of the loop
    * @param input_conns input conns from outer side
    * @param end_conns end connections (output of the internal graph)
    */

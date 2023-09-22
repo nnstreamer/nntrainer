@@ -39,8 +39,6 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-CIFARDIR = ../../utils/datagen/cifar
-
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
@@ -49,13 +47,12 @@ LOCAL_CFLAGS += -pthread -fexceptions -fopenmp
 LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := nntrainer_resnet
+LOCAL_MODULE := nntrainer_yolo
 LOCAL_LDLIBS := -llog -landroid -fopenmp
 
-LOCAL_SRC_FILES := main.cpp $(CIFARDIR)/cifar_dataloader.cpp
-
+LOCAL_SRC_FILES := main.cpp det_dataloader.cpp yolo_v2_loss.cpp reorg_layer.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CIFARDIR)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)

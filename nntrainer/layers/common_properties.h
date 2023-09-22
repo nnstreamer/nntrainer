@@ -34,6 +34,7 @@ enum class ActivationType {
   ACT_SIGMOID,    /**< sigmoid */
   ACT_RELU,       /**< ReLU */
   ACT_SWISH,      /**< Swish */
+  ACT_GELU,       /**< GELU */
   ACT_SOFTMAX,    /**< softmax */
   ACT_LEAKY_RELU, /**< Leaky ReLU */
   ACT_NONE,       /**< no op */
@@ -219,7 +220,7 @@ public:
    *
    * @param value float to validate
    * @retval true if it is greater or equal than 0.0
-   * @retval false if it is samller than 0.0
+   * @retval false if it is smaller than 0.0
    */
   bool isValid(const float &value) const override;
 };
@@ -244,7 +245,7 @@ public:
    *
    * @param value float to validate
    * @retval true if it is greater than 0.0 and smaller than 1.0
-   * @retval false if it is samller or equal than 0.0
+   * @retval false if it is smaller or equal than 0.0
    * or greater or equal than 1.0
    */
   bool isValid(const float &value) const override;
@@ -277,7 +278,7 @@ public:
    * @param v value to check
    * @retval true if it is greater equal to 0 and smaller than
    * ml::train::TensorDim::MAXDIM
-   * @retval false if it is samller than 0 or greater than
+   * @retval false if it is smaller than 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
@@ -295,7 +296,7 @@ public:
    * @param v value to check
    * @retval true if it is greater than 0 and smaller than
    * ml::train::TensorDim::MAXDIM
-   * @retval false if it is samller or equal to 0 or greate than
+   * @retval false if it is smaller or equal to 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
@@ -518,7 +519,7 @@ public:
    *
    * @param v float to validate
    * @retval true if it is greater or equal than 0.0
-   * @retval false if it is samller than 0.0
+   * @retval false if it is smaller than 0.0
    */
   bool isValid(const float &v) const override;
 };
@@ -840,12 +841,13 @@ public:
 struct ActivationTypeInfo {
   using Enum = nntrainer::ActivationType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::ACT_TANH,       Enum::ACT_SIGMOID, Enum::ACT_RELU, Enum::ACT_SOFTMAX,
-    Enum::ACT_LEAKY_RELU, Enum::ACT_SWISH,   Enum::ACT_NONE, Enum::ACT_UNKNOWN};
+    Enum::ACT_TANH,    Enum::ACT_SIGMOID,    Enum::ACT_RELU,
+    Enum::ACT_SOFTMAX, Enum::ACT_LEAKY_RELU, Enum::ACT_SWISH,
+    Enum::ACT_GELU,    Enum::ACT_NONE,       Enum::ACT_UNKNOWN};
 
   static constexpr const char *EnumStr[] = {"tanh",    "sigmoid",    "relu",
                                             "softmax", "leaky_relu", "swish",
-                                            "none",    "unknown"};
+                                            "gelu",    "none",       "unknown"};
 };
 
 /**

@@ -162,6 +162,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_derivative(false),
   needs_calc_gradient(false),
   output_connections(),
+  tensor_type(TensorDim::Format::NCHW),
   run_context(nullptr),
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
@@ -245,6 +246,14 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   //   << con->toString();
 
   con = std::make_unique<Connection>(name, index);
+}
+
+void LayerNode::setTensorType(const std::string &type_) {
+  TensorDim::Format type =
+    (type_.compare("NCHW") == 0 || type_.compare("nchw") == 0)
+      ? TensorDim::Format::NCHW
+      : TensorDim::Format::NHWC;
+  getLayer()->setTensorType(type);
 }
 
 const std::string LayerNode::getName() const noexcept {

@@ -539,14 +539,15 @@ void GRULayer::calcGradient(RunLayerContext &context) {
     }
   }
   for (unsigned int h = 0; h < unit; ++h) {
-    float *data = djdweight_hh_zr.getAddress(h * unit * 2);
-    float *rdata = djdweight_hh.getAddress(h * unit * NUM_GATE);
+    float *data = (float *)djdweight_hh_zr.getAddress(h * unit * 2);
+    float *rdata = (float *)djdweight_hh.getAddress(h * unit * NUM_GATE);
     std::copy(data, data + unit * 2, rdata);
   }
 
   for (unsigned int h = 0; h < unit; ++h) {
-    float *data = djdweight_hh_g.getAddress(h * unit);
-    float *rdata = djdweight_hh.getAddress(h * unit * NUM_GATE + unit * 2);
+    float *data = (float *)djdweight_hh_g.getAddress(h * unit);
+    float *rdata =
+      (float *)djdweight_hh.getAddress(h * unit * NUM_GATE + unit * 2);
     std::copy(data, data + unit, rdata);
   }
 }

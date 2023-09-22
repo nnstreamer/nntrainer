@@ -25,7 +25,6 @@ static const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 
 /**
  * @brief layer plugin common test cases
- * @todo expand this to typed_test_p for other types of example (eg) optimizer
  *
  */
 class LayerPluginCommonTest

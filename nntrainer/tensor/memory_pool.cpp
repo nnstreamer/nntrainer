@@ -113,12 +113,12 @@ void MemoryPool::allocate() {
  * @brief Get the allocated memory
  *
  */
-std::shared_ptr<MemoryData<float>> MemoryPool::getMemory(unsigned int idx) {
+std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  auto mem_data = std::make_shared<MemoryData<float>>((float *)ptr);
+  auto mem_data = std::make_shared<MemoryData>((void *)ptr);
 
   return mem_data;
 }

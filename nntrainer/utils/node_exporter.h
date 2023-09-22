@@ -7,6 +7,7 @@
  * @brief NNTrainer Node exporter
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #ifndef __NODE_EXPORTER_H__
@@ -22,6 +23,7 @@
 #include <base_properties.h>
 #include <common.h>
 #include <common_properties.h>
+#include <layer.h>
 #include <nntrainer_error.h>
 #include <util_func.h>
 
@@ -230,6 +232,7 @@ class InputConnection;
 class ClipGradByGlobalNorm;
 class DisableBias;
 class Activation;
+class BatchNormalization;
 } // namespace props
 
 class LayerNode;
@@ -244,6 +247,19 @@ void Exporter::saveTflResult(
                    std::vector<props::InputShape>, props::SharedFrom,
                    props::ClipGradByGlobalNorm> &props,
   const LayerNode *self);
+
+class BatchNormalizationLayer;
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT,
+                   props::BNPARAMS_VAR_INIT, props::BNPARAMS_BETA_INIT,
+                   props::BNPARAMS_GAMMA_INIT, props::Momentum, props::Axis,
+                   props::WeightDecay, props::BiasDecay> &props,
+  const BatchNormalizationLayer *self);
 
 class LayerImpl;
 

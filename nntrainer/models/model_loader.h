@@ -130,7 +130,7 @@ private:
    * @note  if path is absolute path, return path.
    *        if app_context has working directory set, resolve from app_context
    *        if not, resolve path assuming model_path is the current directory.
-   *        The behavior relys on the semantics of getWorkingPath();
+   *        The behavior relies on the semantics of getWorkingPath();
    * @param path path to resolve
    * @return const std::string resolved path.
    */

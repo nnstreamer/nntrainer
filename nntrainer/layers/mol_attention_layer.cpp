@@ -219,7 +219,7 @@ void MoLAttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor u_base = Tensor(TensorDim({batch, 1, value.height(), mol_k}));
   for (unsigned int b = 0; b < batch; b++) {
     for (unsigned int h = 0; h < u_base.height(); h++) {
-      float *u_data = u_base.getAddress(b, 0, h, 0);
+      float *u_data = u_base.getAddress<float>(b, 0, h, 0);
       std::fill(u_data, u_data + u_base.width(), h + 1);
     }
   }

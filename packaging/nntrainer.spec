@@ -532,6 +532,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/optimizer_context.h
 %{_includedir}/nntrainer/optimizer_devel.h
 %{_includedir}/nntrainer/lr_scheduler.h
+# for logging
+%{_includedir}/nntrainer/nntrainer_log.h
+%{_includedir}/nntrainer/nntrainer_logger.h
 %{_libdir}/pkgconfig/nntrainer.pc
 # update this to enable external applications
 # @todo filter out headers that should be hidden, and classifiy in the appropriate place if not
@@ -614,6 +617,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/nntrainer/bin/applications/*
+%{_libdir}/nntrainer/layers/*layer.so
 
 %if 0%{?gcov:1}
 %files gcov

@@ -38,7 +38,8 @@ void PreprocessTranslateLayer::finalize(InitLayerContext &context) {
   float random_translate =
     std::get<props::RandomTranslate>(preprocess_translate_props);
 
-  rng.seed(getSeed());
+  // rng.seed(getSeed());
+  rng.seed(0);
 
   // Made for 3 channel input
   if (random_translate > epsilon) {

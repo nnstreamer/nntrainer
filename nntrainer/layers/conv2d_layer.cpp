@@ -102,8 +102,8 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
               continue;
             }
 
-            float *val = image.getAddress(0, c, h, w);
-            *val += col_matrix.getValue(0, 0, col_h, col_w);
+            float *val = (float *)image.getAddress(0, c, h, w);
+            *val += col_matrix.getValue<float>(0, 0, col_h, col_w);
             col_h++;
           }
         }
@@ -229,7 +229,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
               im_h++;
               continue;
             }
-            out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
+            out_data[im_w * owidth + im_h] = in.getValue<float>(0, c, h, w);
             im_h++;
           }
           im_w++;

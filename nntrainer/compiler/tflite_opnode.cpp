@@ -7,6 +7,7 @@
  * @brief contains tflite opnode which has information to convert to tflite file
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -26,6 +27,8 @@ TfOpNode::TfOpNode() :
   is_input(false),
   is_output(false),
   is_virtual(false),
+  is_trainable(true),
+  is_to_be_removed(false),
   need_reorder_weight(false),
   node_owned_variable(),
   /// @todo distinguish between uninitialized and ADD operator.
@@ -109,11 +112,31 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
       return &t;
     },
     context.getNumWeights());
+
+  if (context.getNumWeights() == 0) {
+    is_trainable = false;
+  }
 }
 
 void TfOpNode::setWeightTransformFn(TransformFn fn) { weight_transform = fn; }
 
 void TfOpNode::setInputTransformFn(TransformFn fn) { input_transform = fn; }
+
+void TfOpNode::setWeights(Variables weights_) {
+  unsigned int cnt = 0;
+  for (auto &w : weights_) {
+    const unsigned int unit = w->batch();
+    const unsigned int channel = w->channel();
+    const unsigned int height = w->height();
+    const unsigned int width = w->width();
+
+    auto weight_data = weights.at(cnt)->getData();
+    auto *ptr = const_cast<float *>(weight_data);
+    memcpy(&ptr[0], &w->getData()[0],
+           sizeof(float) * (unit * channel * height * width));
+    cnt++;
+  }
+}
 
 void TfOpNode::weightReorder(unsigned int node_count) {
 
@@ -121,27 +144,27 @@ void TfOpNode::weightReorder(unsigned int node_count) {
 
     auto previous_input_shape = input_nodes[0]->getInputs()[0];
 
-    const unsigned int UNIT = outputs[0]->height();
-    const unsigned int CHANNEL = previous_input_shape->channel();
-    const unsigned int HEIGHT = previous_input_shape->height();
-    const unsigned int WIDTH = previous_input_shape->width();
+    const unsigned int unit = outputs[0]->height();
+    const unsigned int channel = previous_input_shape->channel();
+    const unsigned int height = previous_input_shape->height();
+    const unsigned int width = previous_input_shape->width();
 
     auto weight_data = weights[0]->getData();
     auto *ptr = const_cast<float *>(weight_data);
 
-    std::vector<float> old_value_list(UNIT * CHANNEL * HEIGHT * WIDTH);
+    std::vector<float> old_value_list(unit * channel * height * width);
     memcpy(&old_value_list[0], &ptr[0],
-           sizeof(float) * (UNIT * CHANNEL * HEIGHT * WIDTH));
+           sizeof(float) * (unit * channel * height * width));
 
-    for (unsigned int h = 0; h < HEIGHT; h++) {
-      for (unsigned int w = 0; w < WIDTH; w++) {
-        for (unsigned int c = 0; c < CHANNEL; c++) {
+    for (unsigned int h = 0; h < height; h++) {
+      for (unsigned int w = 0; w < width; w++) {
+        for (unsigned int c = 0; c < channel; c++) {
 
-          unsigned int now_position = h * (WIDTH * CHANNEL) + w * CHANNEL + c;
-          unsigned int next_position = c * (HEIGHT * WIDTH) + h * WIDTH + w;
+          unsigned int now_position = h * (width * channel) + w * channel + c;
+          unsigned int next_position = c * (height * width) + h * width + w;
 
-          memcpy(&ptr[now_position * UNIT],
-                 &old_value_list[next_position * UNIT], sizeof(float) * UNIT);
+          memcpy(&ptr[now_position * unit],
+                 &old_value_list[next_position * unit], sizeof(float) * unit);
         }
       }
     }
@@ -206,6 +229,8 @@ flatbuffers::Offset<void> TfOpNode::getBuiltinOps() const {
   case tflite::BuiltinOperator_RESHAPE:
   case tflite::BuiltinOperator_SOFTMAX:
   case tflite::BuiltinOperator_TRANSPOSE:
+  case tflite::BuiltinOperator_MUL:
+
     return builtin_ops;
   default:
     throw std::runtime_error{"Unsupported operator"};

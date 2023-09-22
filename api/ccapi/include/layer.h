@@ -168,6 +168,13 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
+   * @brief     Set Tensor Type : NCHW or NHWC
+   * @note      This is used mainly for the unittest case which does not have
+   * model.
+   */
+  virtual void setTensorType(const std::string &values){};
+
+  /**
    * @brief     Get name of the layer
    * @retval    name of the layer
    * @note      This name is unique to this layer in a model
@@ -527,6 +534,14 @@ ReLU(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Swish(const std::vector<std::string> &properties = {}) {
   return Activation("Activation=swish", properties);
+}
+
+/**
+ * @brief Helper function to create gelu activation layer
+ */
+inline std::unique_ptr<Layer>
+GeLU(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=gelu", properties);
 }
 
 /**

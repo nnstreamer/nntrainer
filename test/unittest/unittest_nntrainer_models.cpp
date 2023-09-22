@@ -34,6 +34,7 @@ static std::string lstm_base = "type = lstm";
 static std::string gru_base = "type = gru";
 static std::string pooling_base = "type = pooling2d | padding = 0,0";
 static std::string preprocess_flip_base = "type = preprocess_flip";
+static std::string preprocess_l2norm_base = "type = preprocess_l2norm";
 static std::string preprocess_translate_base = "type = preprocess_translate";
 static std::string mse_base = "type = mse";
 static std::string cross_base = "type = cross";
@@ -48,6 +49,9 @@ static nntrainer::IniSection sigmoid_base = act_base + "Activation = sigmoid";
 static nntrainer::IniSection relu_base = act_base + "Activation = relu";
 static nntrainer::IniSection bn_base("bn", "Type=batch_normalization");
 static nntrainer::IniSection sgd_base("optimizer", "Type = sgd");
+
+static nntrainer::IniSection nn_base_nhwc = nn_base + "tensor_type=NHWC";
+static nntrainer::IniSection nn_base_nchw = nn_base + "tensor_type=NCHW";
 
 using I = nntrainer::IniSection;
 using INI = nntrainer::IniWrapper;
@@ -91,7 +95,7 @@ using INI = nntrainer::IniWrapper;
 
 INI fc_sigmoid_baseline(
   "fc_sigmoid",
-  {nn_base + "batch_size = 3",
+  {nn_base_nchw + "batch_size = 3",
    sgd_base + "learning_rate = 1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 5",
@@ -485,6 +489,19 @@ INI preprocess_translate(
     I("act_3") + softmax_base +"input_layers=outputlayer"
   }
 );
+
+INI preprocess_l2norm_validate(
+  "preprocess_l2norm_validate",
+  {
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:1:20",
+    I("preprocess_l2norm") + preprocess_l2norm_base + "input_layers=input",
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=preprocess_l2norm",
+    I("act_3") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
 
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
@@ -989,6 +1006,8 @@ GTEST_PARAMETER_TEST(
       mkModelIniTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
   #endif
       mkModelIniTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
+
+      mkModelIniTc(preprocess_l2norm_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
 
       /**< Addition test */
       mkModelIniTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL

@@ -37,6 +37,8 @@ test_target = [
   ['unittest_nntrainer_internal', []],
   ['unittest_nntrainer_lazy_tensor', []],
   ['unittest_nntrainer_tensor', []],
+  ['unittest_nntrainer_tensor_fp16', []],
+  ['unittest_nntrainer_tensor_nhwc', []],
   ['unittest_util_func', []],
   ['unittest_nntrainer_modelfile', []],
   ['unittest_nntrainer_models', [
@@ -67,7 +69,9 @@ foreach target: test_target
     install: get_option('enable-test'),
     install_dir: application_install_dir
   )
-  test(target[0], exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])] )
+  test(target[0], exe,
+    args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])],
+    timeout: test_timeout)
 endforeach
 
 unittest_inc = include_directories('.')

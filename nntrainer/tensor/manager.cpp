@@ -385,6 +385,7 @@ std::vector<Weight *> Manager::requestWeights(
     std::vector<unsigned int> grad_exec_order;
 
     if (trainable) {
+      var_exec_order.reserve(var_exec_order.size() + 2);
       var_exec_order.push_back(calcGradient_order);
       var_exec_order.push_back(applyGradient_order);
       grad_exec_order.push_back(calcGradient_order);

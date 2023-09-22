@@ -27,7 +27,7 @@
  * There are two supported reduction operations which reduce the gradient and
  * the weight to a single value in order to compare it with a threshold.
  * If the reduced value is less than threshold, the update is performed with
- * some probabilty proportional to the value. If the reduced value is higher
+ * some probability proportional to the value. If the reduced value is higher
  * than threshold, then the update is always performed.
  *
  */
@@ -229,7 +229,7 @@ private:
 
   /**
    * @brief     Operation to decide if update should be skipped
-   * @note      Calcalate l2 norm of the tensor averaged by its size
+   * @note      Calculate l2 norm of the tensor averaged by its size
    */
   static float reduceByNorm(Tensor const &ratio);
 };

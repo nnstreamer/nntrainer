@@ -304,17 +304,17 @@ int testModel(const char *data_path, const char *model) {
   ml_tensor_dimension in_dim = {1, IMAGE_SIDE, IMAGE_SIDE, IMAGE_CHANNELS};
 
   char pipeline[2048];
-  snprintf(
-    pipeline, sizeof(pipeline),
-    "appsrc name=srcx ! "
-    "other/"
-    "tensor,dimension=(string)%d:%d:%d:1,type=(string)float32,framerate=("
-    "fraction)0/1 ! "
-    "tensor_filter framework=nntrainer model=\"%s\" input=%d:%d:%d:1 "
-    "inputtype=float32 output=%d outputtype=float32 ! tensor_sink "
-    "name=sinkx",
-    IMAGE_CHANNELS, IMAGE_SIDE, IMAGE_SIDE, model, IMAGE_CHANNELS, IMAGE_SIDE,
-    IMAGE_SIDE, LABEL_SIZE);
+  snprintf(pipeline, sizeof(pipeline),
+           "appsrc name=srcx ! "
+           "other/"
+           "tensor,dimension=(string)%d:%d:%d:1,type=(string)float32,"
+           "framerate=("
+           "fraction)0/1 ! "
+           "tensor_filter framework=nntrainer model=\"%s\" input=%d:%d:%d:1 "
+           "inputtype=float32 output=%d outputtype=float32 ! tensor_sink "
+           "name=sinkx",
+           IMAGE_CHANNELS, IMAGE_SIDE, IMAGE_SIDE, model, IMAGE_CHANNELS,
+           IMAGE_SIDE, IMAGE_SIDE, LABEL_SIZE);
 
   status = ml_pipeline_construct(pipeline, NULL, NULL, &pipe);
   if (status != ML_ERROR_NONE)

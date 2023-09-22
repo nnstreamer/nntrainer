@@ -50,6 +50,10 @@ static InitLayerContext createInitContext(Layer *layer,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
+  for (auto &p : parsed) {
+    p.get().setFormat(layer->getTensorType());
+  }
+
   InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
                            "golden_test");
   layer->finalize(context);
@@ -257,6 +261,8 @@ bool LayerGoldenTest::shouldSkipCalcGrad() {
 TEST_P(LayerGoldenTest, run) {
   auto f = std::get<0>(GetParam());
   auto layer = f(std::get<1>(GetParam()));
+  std::string type = std::get<5>(GetParam());
+  layer->setTensorType(type);
   auto golden_file = checkedOpenStream<std::ifstream>(
     getGoldenPath(std::get<3>(GetParam())), std::ios::in | std::ios::binary);
   auto &input_dims = std::get<2>(GetParam());

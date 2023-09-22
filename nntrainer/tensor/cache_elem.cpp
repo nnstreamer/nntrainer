@@ -50,7 +50,7 @@ void CacheElem::swapIn(Options opt) {
   void *buf = device->getBuffer(offset, length, alloc_only);
 
   initial_opt = Options::NONE;
-  mem_data->setAddr((float *)buf);
+  mem_data->setAddr((void *)buf);
   mem_data->setValid(true);
   active = true;
 

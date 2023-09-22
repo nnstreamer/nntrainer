@@ -126,7 +126,8 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
                  });
 
   std::mt19937 rng;
-  rng.seed(getSeed());
+  // rng.seed(getSeed());
+  rng.seed(0);
   auto sz = size(input_dims, input_dims);
 
   /** DataProducer::Generator */

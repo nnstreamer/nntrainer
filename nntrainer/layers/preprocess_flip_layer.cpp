@@ -30,7 +30,7 @@ PreprocessFlipLayer::PreprocessFlipLayer() :
 void PreprocessFlipLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions(context.getInputDimensions());
 
-  rng.seed(getSeed());
+  rng.seed(0);
   flip_dist = std::uniform_real_distribution<float>(0.0, 1.0);
 }
 
@@ -81,15 +81,15 @@ void PreprocessFlipLayer::forwarding(RunLayerContext &context, bool training) {
         for (unsigned int c = 0; c < input_dim.channel(); c++)
           for (unsigned int h = 0; h < input_dim.height(); h++)
             for (unsigned int w = 0; w < input_dim.width() / 2; w++)
-              swap(*input_.getAddress(b, c, h, w),
-                   *input_.getAddress(b, c, h, width - w - 1));
+              swap(*input_.getAddress<float>(b, c, h, w),
+                   *input_.getAddress<float>(b, c, h, width - w - 1));
       }
       if (fliph) {
         for (unsigned int c = 0; c < input_dim.channel(); c++)
           for (unsigned int h = 0; h < input_dim.height() / 2; h++)
             for (unsigned int w = 0; w < input_dim.width(); w++)
-              swap(*input_.getAddress(b, c, h, w),
-                   *input_.getAddress(b, c, height - h - 1, w));
+              swap(*input_.getAddress<float>(b, c, h, w),
+                   *input_.getAddress<float>(b, c, height - h - 1, w));
       }
     }
     /** @todo enable inPlace support for this layer */

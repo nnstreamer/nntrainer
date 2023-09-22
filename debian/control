@@ -25,7 +25,7 @@ Description: Training Neural Network Models on Devices.
 Package: nntrainer-dev
 Architecture: any
 Multi-Arch: same
-Depends: nntrainer
+Depends: nntrainer, ccapi-ml-training-dev, capi-ml-training-dev
 Description: NNtrainer development package
  This is development package for nntrainer.
 

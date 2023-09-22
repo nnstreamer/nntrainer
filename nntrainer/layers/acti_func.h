@@ -190,6 +190,24 @@ public:
                             Tensor const &incoming_derivative = Tensor());
 
   /**
+   * @brief     gelu activation function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   */
+  static Tensor &gelu(Tensor const &t_in, Tensor &t_out);
+
+  /**
+   * @brief     derivative gelu function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   * @param[in] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
+   */
+  static Tensor &geluPrime(Tensor const &t_in, Tensor const &t_out,
+                           Tensor &outgoing_derivative,
+                           Tensor const &incoming_derivative = Tensor());
+
+  /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative

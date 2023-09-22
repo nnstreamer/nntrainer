@@ -47,9 +47,6 @@ static void readImage(const std::string path, float *input, uint width,
   NNTR_THROW_IF(result != 54, std::invalid_argument)
     << "Cannot read bmp header";
 
-  uint w = *(int *)&info[18];
-  uint h = *(int *)&info[22];
-
   size_t row_padded = (width * 3 + 3) & (~3);
   unsigned char *data = new unsigned char[row_padded];
 

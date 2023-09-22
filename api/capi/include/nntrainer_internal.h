@@ -135,7 +135,7 @@ typedef struct {
 typedef struct {
   uint magic;
   std::shared_ptr<ml::train::Optimizer> optimizer;
-  ml_train_lr_scheduler *lr_sheduler;
+  ml_train_lr_scheduler *lr_scheduler;
   bool in_use;
   std::mutex m;
 } ml_train_optimizer;
