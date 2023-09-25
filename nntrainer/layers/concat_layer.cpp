@@ -272,10 +272,12 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
    * here and then this layer can be in_place as well
    */
   Tensor output = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  bool is_nchw = (output.getFormat() == Tformat::NCHW);
 
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
-  unsigned int data_copy_size = output_reshape_helper.width();
+  unsigned int data_copy_size =
+    is_nchw ? output_reshape_helper.width() : output_reshape_helper.channel();
   TensorDim::TensorType tensor_type = output.getTensorType();
 
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
@@ -288,15 +290,21 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
+        for (unsigned int count = 0;
+             count < (is_nchw ? irh.height() : irh.width()); count++) {
           const Tensor source_tensor = Tensor::Map<float>(
-            output.getAddress<float>(batch, 0, output_height_offset + count, 0),
+            output.getAddress<float>(
+              batch, 0, is_nchw ? (output_height_offset + count) : 0,
+              is_nchw ? 0 : output_height_offset + count),
             data_copy_size * sizeof(float),
-            {1, 1, 1, data_copy_size, tensor_type});
-          Tensor dest_tensor =
-            Tensor::Map<float>(input.getAddress<float>(batch, 0, count, 0),
-                               data_copy_size * sizeof(float),
-                               {1, 1, 1, data_copy_size, tensor_type});
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
+          Tensor dest_tensor = Tensor::Map<float>(
+            input.getAddress<float>(batch, 0, is_nchw ? count : 0,
+                                    is_nchw ? 0 : count),
+            data_copy_size * sizeof(float),
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
           dest_tensor.copy(source_tensor);
         }
       }
@@ -305,15 +313,20 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
+        for (unsigned int count = 0;
+             count < (is_nchw ? irh.height() : irh.width()); count++) {
           const Tensor source_tensor = Tensor::Map<_FP16>(
-            output.getAddress<_FP16>(batch, 0, output_height_offset + count, 0),
+            output.getAddress<_FP16>(
+              batch, 0, is_nchw ? (output_height_offset + count) : 0,
+              is_nchw ? 0 : output_height_offset + count),
             data_copy_size * sizeof(_FP16),
-            {1, 1, 1, data_copy_size, tensor_type});
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
           Tensor dest_tensor =
             Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, count, 0),
                                data_copy_size * sizeof(_FP16),
-                               {1, 1, 1, data_copy_size, tensor_type});
+                               {1, is_nchw ? 1 : data_copy_size, 1,
+                                is_nchw ? data_copy_size : 1, tensor_type});
           dest_tensor.copy(source_tensor);
         }
       }
@@ -323,7 +336,7 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
     }
 
     input.reshape(in_dim);
-    output_height_offset += irh.height();
+    output_height_offset += is_nchw ? irh.height() : irh.width();
   }
 }
 
