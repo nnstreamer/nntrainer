@@ -103,14 +103,12 @@ TEST(nntrainer_Tensor, multiply_i_01_fp16_p) {
                           nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
 
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.print(std::cout);
 
   nntrainer::Tensor original;
   original.copy(input);
 
   status = input.multiply_i(2.0);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  input.print(std::cout);
 
   _FP16 *data = original.getData<_FP16>();
   ASSERT_NE(nullptr, data);

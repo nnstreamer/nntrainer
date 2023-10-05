@@ -36,11 +36,7 @@ namespace nntrainer {
 
 static std::uniform_real_distribution<float> dist(-0.5, 0.5);
 
-float sqrtFloat(float x) { return sqrt(x); };
-
 double sqrtDouble(double x) { return sqrt(x); };
-
-float absFloat(float x) { return abs(x); };
 
 float logFloat(float x) { return log(x + 1.0e-20); }
 

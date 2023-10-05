@@ -81,7 +81,9 @@ static auto rng = [] {
  * @brief     sqrt function for float type
  * @param[in] x float
  */
-float sqrtFloat(float x);
+template <typename T = float> T sqrtFloat(T x) {
+  return static_cast<T>(sqrt((float)x));
+}
 
 /**
  * @brief    sqrt function for dobuld type
@@ -95,7 +97,9 @@ double sqrtDouble(double x);
  * @brief     abs function for float type
  * @param[in] x float
  */
-float absFloat(float x);
+template <typename T = float> T absFloat(T x) {
+  return static_cast<T>(abs((float)x));
+}
 
 /**
  * @brief     log function for float type
