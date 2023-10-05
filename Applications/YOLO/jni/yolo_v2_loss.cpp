@@ -179,7 +179,7 @@ calc_iou(nntrainer::Tensor &bbox1_x1, nntrainer::Tensor &bbox1_y1,
     intersection_width.apply_i<float>(nntrainer::ActiFunc::relu<float>);
   } else if (type_intersection_width == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    intersection_width.apply_i<_FP16>(nntrainer::ActiFunc::relu<float>);
+    intersection_width.apply_i<_FP16>(nntrainer::ActiFunc::relu<_FP16>);
 #else
     throw std::runtime_error("Not supported data type");
 #endif
@@ -567,10 +567,10 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   bbox_w_pred_anchor.multiply_i(anchors_w);
   auto type_bbox_w_pred_anchor = bbox_w_pred_anchor.getDataType();
   if (type_bbox_w_pred_anchor == ml::train::TensorDim::DataType::FP32) {
-    bbox_w_pred_anchor.apply_i<float>(nntrainer::sqrtFloat);
+    bbox_w_pred_anchor.apply_i<float>(nntrainer::sqrtFloat<float>);
   } else if (type_bbox_w_pred_anchor == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    bbox_w_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat);
+    bbox_w_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat<_FP16>);
 #else
     throw std::runtime_error("Not supported data type");
 #endif
@@ -579,10 +579,10 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   bbox_h_pred_anchor.multiply_i(anchors_h);
   auto type_bbox_h_pred_anchor = bbox_h_pred_anchor.getDataType();
   if (type_bbox_h_pred_anchor == ml::train::TensorDim::DataType::FP32) {
-    bbox_h_pred_anchor.apply_i<float>(nntrainer::sqrtFloat);
+    bbox_h_pred_anchor.apply_i<float>(nntrainer::sqrtFloat<float>);
   } else if (type_bbox_h_pred_anchor == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    bbox_h_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat);
+    bbox_h_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat<_FP16>);
 #else
     throw std::runtime_error("Not supported data type");
 #endif
@@ -808,10 +808,10 @@ unsigned int YoloV2LossLayer::find_responsible_anchors(float bbox_ratio) {
   nntrainer::Tensor similarity = anchors_ratio.subtract(bbox_ratio);
   auto data_type = similarity.getDataType();
   if (data_type == ml::train::TensorDim::DataType::FP32) {
-    similarity.apply_i<float>(nntrainer::absFloat);
+    similarity.apply_i<float>(nntrainer::absFloat<float>);
   } else if (data_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    similarity.apply_i<_FP16>(nntrainer::absFloat);
+    similarity.apply_i<_FP16>(nntrainer::absFloat<_FP16>);
 #else
     throw std::runtime_error("Not supported data type");
 #endif

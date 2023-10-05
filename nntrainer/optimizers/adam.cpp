@@ -86,7 +86,7 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
   if (torch_ref) {
-    Tensor denom = wv.apply<float>(sqrtFloat);
+    Tensor denom = wv.apply<float>(sqrtFloat<float>);
     denom.divide_i(sqrtFloat(biasCorrection2));
     denom.add_i(epsilon);
     wm.divide(denom, x_grad);
