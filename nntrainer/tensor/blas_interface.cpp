@@ -6,6 +6,7 @@
  * @date   28 Aug 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is dummy header for blas support
  *
@@ -32,16 +33,16 @@
     }                                        \
   } while (0);
 
-#define sgemv_loop_fp16(ci, cj, cM, cN)             \
-  do {                                              \
-    _FP16 y0;                                       \
-    unsigned int i, j;                              \
-    for (ci = 0; ci != cM; ci++) {                  \
-      y0 = Y[ci * incy] * static_cast<_FP16>(beta); \
-      for (cj = 0; cj != cN; cj++)                  \
-        y0 += A[i + j * lda] * X[cj * incx];        \
-      Y[ci * incy] = y0;                            \
-    }                                               \
+#define sgemv_loop_fp16(ci, cj, cM, cN)                                 \
+  do {                                                                  \
+    float y0;                                                           \
+    unsigned int i, j;                                                  \
+    for (ci = 0; ci != cM; ci++) {                                      \
+      y0 = static_cast<float>(Y[ci * incy] * static_cast<_FP16>(beta)); \
+      for (cj = 0; cj != cN; cj++)                                      \
+        y0 += static_cast<float>(A[i + j * lda] * X[cj * incx]);        \
+      Y[ci * incy] = static_cast<_FP16>(y0);                            \
+    }                                                                   \
   } while (0);
 
 #define saxpy_loop_fp16()                                                  \
@@ -55,15 +56,15 @@
   do {                                                                    \
     for (unsigned int m = 0; m < M; ++m) {                                \
       for (unsigned int n = 0; n < N; ++n) {                              \
-        _FP16 c = 0;                                                      \
+        float c = 0;                                                      \
         _FP16 c_old = C[m * ldc + n];                                     \
         for (unsigned int k = 0; k < K; ++k) {                            \
           _FP16 a, b;                                                     \
           a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]); \
           b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]); \
-          c += a * b;                                                     \
+          c += static_cast<float>(a * b);                                 \
         }                                                                 \
-        C[m * ldc + n] = static_cast<_FP16>(alpha) * c;                   \
+        C[m * ldc + n] = static_cast<_FP16>(alpha * c);                   \
         if (beta != 0.0)                                                  \
           C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;             \
       }                                                                   \
@@ -102,21 +103,13 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
   if (TransA == CblasTrans) {
 #ifdef USE__FP16
-    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0)) {
-      nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
-    } else {
-      sgemv_loop_fp16(i, j, N, M);
-    }
+    nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
 #else
     sgemv_loop_fp16(i, j, N, M);
 #endif
   } else {
 #ifdef USE__FP16
-    if (incX == 1 && incY == 1 && (N % 16 == 0 || N % 8 == 0)) {
-      nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
-    } else {
-      sgemv_loop_fp16(j, i, M, N);
-    }
+    nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
 #else
     sgemv_loop_fp16(j, i, M, N);
 #endif
@@ -166,6 +159,45 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 #endif
 }
 
+static void scopy_INT4(const unsigned int N, const uint8_t *X, const int incX,
+                       _FP16 *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+#ifdef USE__FP16
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::scopy_neon_int4_to_fp16(N, X, Y);
+  } else {
+    throw std::invalid_argument(
+      "Error: incX == 1 && incY == 1 is supported only");
+  }
+#else
+  for (unsigned int idx = 0; idx < N; idx++) {
+    Y[2 * idx] = X[idx] >> 4;
+    Y[2 * idx + 1] = X[idx] & 0x0f;
+  }
+#endif
+}
+
+static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
+                      _FP16 *Z) {
+#ifdef USE__FP16
+  nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z);
+#else
+  for (unsigned int i = 0; i < N; ++i)
+    Z[i] = X[i] * Y[i];
+#endif
+}
+
+static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
+                      _FP16 *Z) {
+#ifdef USE__FP16
+  nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z);
+#else
+  for (unsigned int i = 0; i < N; ++i)
+    Z[i] = X[i] + Y[i];
+#endif
+}
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
 
@@ -213,13 +245,8 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldc) {
 
 #ifdef USE__FP16
-  if ((N % 8 == 0) && (K % 8 == 0)) {
-    nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
-                                     TransA == CblasTrans,
-                                     TransB == CblasTrans);
-  } else {
-    sgemm_loop_fp16();
-  }
+  nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
+                                   TransA == CblasTrans, TransB == CblasTrans);
 #else
   sgemm_loop_fp16();
 #endif
@@ -273,8 +300,20 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
            const int incY) {
   scopy_FP16(N, X, incX, Y, incY);
+}
 
-} // namespace nntrainer
+void scopy(const unsigned int N, const uint8_t *X, const int incX, _FP16 *Y,
+           const int incY) {
+  scopy_INT4(N, X, incX, Y, incY);
+}
+
+void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
+  ewvm_FP16(N, X, Y, Z);
+}
+
+void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
+  ewva_FP16(N, X, Y, Z);
+}
 
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
   return snrm2_FP16(N, X, incX);
