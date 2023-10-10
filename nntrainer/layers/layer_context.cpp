@@ -36,10 +36,12 @@ static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
   }
 }
 
-InitLayerContext::InitLayerContext(
-  const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
-  bool in_place_, const std::string &n, const std::string &prefix_,
-  const float max_norm, std::array<const std::string, 3> tensor_type_) :
+InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
+                                   const std::vector<bool> &req_out_connected,
+                                   bool in_place_, const std::string &n,
+                                   const std::string &prefix_,
+                                   const float max_norm,
+                                   std::array<std::string, 3> tensor_type_) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
@@ -152,6 +154,16 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
 
   if (!validate())
     throw std::invalid_argument("Creating invalid run context");
+}
+
+/**
+ * @brief Get the Weight tensor object
+ *
+ * @param idx Identifier of the weight
+ * @return Tensor& Reference to the weight tensor
+ */
+Tensor &RunLayerContext::getWeight(unsigned int idx) const {
+  return weights[idx]->getVariableRef();
 }
 
 /**

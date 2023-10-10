@@ -44,7 +44,8 @@ public:
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f),
     decay(0.0f),
-    clip_by_global_norm(0.0f) {}
+    clip_by_global_norm(0.0f),
+    output_axis(3) {}
 
   /**
    * @brief Construct a new Weight object
@@ -63,7 +64,7 @@ public:
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "");
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3);
 
   /**
    * @brief Construct a new Weight object
@@ -79,7 +80,8 @@ public:
            std::get<5>(spec), // MaxNorm for clipping
            std::get<6>(spec), // need_gradient
            alloc_now,
-           std::get<7>(spec) // Name
+           std::get<7>(spec), // Name
+           std::get<8>(spec)  // out axis
     ) {}
 
   /**
@@ -97,12 +99,13 @@ public:
    * if the owner of these tensors free the tensors.
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "",
-                  bool is_dependent = false) :
+                  bool is_dependent = false, unsigned int output_axis_ = 3) :
     Var_Grad(v, g, n, is_dependent),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f),
     decay(0.0f),
-    clip_by_global_norm(0.0f) {}
+    clip_by_global_norm(0.0f),
+    output_axis(output_axis_) {}
 
   /**
    * @brief Construct a new Weight object
@@ -114,12 +117,14 @@ public:
    */
   explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
                   const float reg_const, const float decay,
-                  bool is_dependent = false, const float max_norm = 0.0f) :
+                  bool is_dependent = false, const float max_norm = 0.0f,
+                  unsigned int output_axis_ = 3) :
     Var_Grad(v, g, is_dependent),
     regularizer(reg),
     regularizer_constant(reg_const),
     decay(decay),
-    clip_by_global_norm(max_norm) {}
+    clip_by_global_norm(max_norm),
+    output_axis(output_axis_) {}
 
   /**
    * @brief Swap for weight
@@ -135,6 +140,7 @@ public:
     swap(lhs.regularizer_constant, rhs.regularizer_constant);
     swap(lhs.decay, rhs.decay);
     swap(lhs.clip_by_global_norm, rhs.clip_by_global_norm);
+    swap(lhs.output_axis, rhs.output_axis);
     swap(lhs.opt_vars, rhs.opt_vars);
   }
 
@@ -210,6 +216,12 @@ public:
   int getNumOptVariable() { return opt_vars.size(); }
 
   /**
+   * @brief Get axis of Weight
+   * @retval axis of Wegiht
+   */
+  unsigned int getOutputAxis() { return output_axis; }
+
+  /**
    * @brief     check if weight regularizer type is l2norm
    * @return    bool is weight regrulatizer type is L2 Norm
    */
@@ -252,9 +264,7 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) { 
-    var->add_i(*grad.get(), -lr); 
-    }
+  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
@@ -297,6 +307,7 @@ private:
   float regularizer_constant;    /**< constant factor for regularization */
   float decay;                   /**< constant factor for the weight decay */
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
+  unsigned int output_axis;
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
 
   /**

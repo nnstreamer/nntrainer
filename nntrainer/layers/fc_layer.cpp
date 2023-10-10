@@ -111,11 +111,33 @@ void FullyConnectedLayer::setProperty(const std::vector<std::string> &values) {
 
 void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
-
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  input_.dot(weight, hidden_, false, false);
+  if (weight.getDataType() == nntrainer::Tdatatype::QINT4 ||
+      weight.getDataType() == nntrainer::Tdatatype::QINT8) {
+    Tdatatype dtype = input_.getDataType();
+
+    Tensor weight_(
+      {{weight.batch(), weight.channel(), weight.height(), weight.width()},
+       {weight.getFormat(), dtype}},
+      true);
+
+    unsigned int axis =
+      context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
+
+    if (dtype == nntrainer::Tdatatype::FP32)
+      weight.dequantize<float>(weight_, axis);
+    else if (dtype == nntrainer::Tdatatype::FP16)
+#ifdef ENABLE_FP16
+      weight.dequantize<_FP16>(weight_, axis);
+#else
+      ml_loge("%s", "Error: enable-fp16 is not enabled");
+#endif
+    input_.dot(weight_, hidden_, false, false);
+  } else {
+    input_.dot(weight, hidden_, false, false);
+  }
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {

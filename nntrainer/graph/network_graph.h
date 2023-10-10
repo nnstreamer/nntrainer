@@ -376,7 +376,7 @@ public:
    *
    * @return TensorDim::Format NCHW or NHWC
    */
-  std::array<const std::string, 3> getTensorType() {
+  std::array<std::string, 3> getTensorType() {
 
     return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
   };

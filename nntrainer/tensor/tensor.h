@@ -98,7 +98,6 @@ public:
     name(name_),
     data(nullptr),
     offset(0),
-    output_axis(3),
     src_tensor() {}
 
   /**
@@ -232,7 +231,6 @@ public:
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
-    output_axis = 3;
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
     // dim[1] == height, dim[2] == width, dim[3] == channel
@@ -393,7 +391,6 @@ public:
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
-    output_axis = 3;
 
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
@@ -1956,19 +1953,6 @@ public:
   Tdatatype getDataType() const { return dim.getDataType(); }
 
   /**
-   * @brief Set output axis of the tensor
-   * @param[in] axis output axis (0: batch, 1: channel, 2: height, 3: width)
-   */
-  void setOutputAxis(int axis);
-
-  /**
-   * @brief Get output axis of the tensor
-   *
-   * @return output axis of the tensor
-   */
-  int getOutputAxis() const;
-
-  /**
    * @brief     Set scale factors of the tensor
    * @param[in] scales scale factors
    */
@@ -2035,18 +2019,42 @@ public:
       throw std::invalid_argument("Error: No scale factors");
     }
 
+    if (zero_points.empty()) {
+      throw std::invalid_argument("Error: No zero points");
+    }
+
+    if (axis == 0 && scale_factors.size() != batch() &&
+        zero_points.size() != batch()) {
+      throw std::invalid_argument("Error: output axis do not match ");
+    }
+
+    if (axis == 1 && scale_factors.size() != channel() &&
+        zero_points.size() != channel()) {
+      throw std::invalid_argument("Error: output axis do not match ");
+    }
+
+    if (axis == 2 && scale_factors.size() != height() &&
+        zero_points.size() != height()) {
+      throw std::invalid_argument("Error: output axis do not match ");
+    }
+
+    if (axis == 3 && scale_factors.size() != width() &&
+        zero_points.size() != width()) {
+      throw std::invalid_argument("Error: output axis do not match ");
+    }
+
     int idx = 0;
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
           for (unsigned int w = 0; w < width(); ++w) {
-            if (output_axis == 0)
+            if (axis == 0)
               idx = b;
-            else if (output_axis == 1)
+            else if (axis == 1)
               idx = c;
-            else if (output_axis == 2)
+            else if (axis == 2)
               idx = h;
-            else if (output_axis == 3)
+            else if (axis == 3)
               idx = w;
 
             if (getDataType() == Tdatatype::QINT8) {
@@ -2079,7 +2087,6 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
-  int output_axis;
   std::vector<float> scale_factors;
   std::vector<uint8_t> zero_points;
 

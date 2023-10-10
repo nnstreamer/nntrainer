@@ -380,8 +380,8 @@ std::vector<Weight *> Manager::requestWeights(
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
     auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
-           need_gradient, name] = weights_spec.at(i);
-    
+           need_gradient, name, axis] = weights_spec.at(i);
+
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
       var_exec_order.push_back(order);

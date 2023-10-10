@@ -244,7 +244,7 @@ public:
    * @note configureRunContext() is expected to called right after this.
    */
   InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {},
-                            std::array<const std::string, 3> tensor_type = {
+                            std::array<std::string, 3> tensor_type = {
                               "NCHW", "FP32", "FP32"});
 
   /**

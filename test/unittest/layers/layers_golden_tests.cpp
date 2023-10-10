@@ -47,7 +47,7 @@ static const std::string getGoldenPath(const std::string &file_name) {
 
 static InitLayerContext
 createInitContext(Layer *layer, const std::string &input_shape_str,
-                  std::array<const std::string, 3> tensor_type) {
+                  std::array<std::string, 3> tensor_type) {
   struct shape_parser_ : Property<TensorDim> {
     using prop_tag = dimension_prop_tag;
   };

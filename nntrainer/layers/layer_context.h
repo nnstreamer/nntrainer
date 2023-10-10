@@ -52,8 +52,8 @@ public:
                    const std::vector<bool> &req_out_connected, bool in_place_,
                    const std::string &n = "", const std::string &prefix_ = "",
                    const float max_norm = 0.0,
-                   std::array<const std::string, 3> tensor_type_ = {
-                     "NCHW", "FP32", "FP32"});
+                   std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32",
+                                                              "FP32"});
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -177,10 +177,10 @@ public:
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
-                             bool trainable = true) {
+                             bool trainable = true, unsigned int out_axis = 3) {
     weights_spec.emplace_back(dim, init, reg, reg_const, decay,
                               clip_by_global_norm, trainable,
-                              prefix + ":" + name);
+                              prefix + ":" + name, out_axis);
     return weights_spec.size() - 1;
   }
 
@@ -346,7 +346,7 @@ private:
   /**< a bool vector to tell if requested out is actually connected to others */
   std::string name;   /**< name of the layer */
   std::string prefix; /**< prefix of the layer */
-  std::array<const std::string, 3> tensor_type;
+  std::array<std::string, 3> tensor_type;
 };
 
 /**
@@ -402,9 +402,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  template <typename T = float> Tensor &getWeight(unsigned int idx) const {
-    return weights[idx]->getVariableRef();
-  }
+  Tensor &getWeight(unsigned int idx) const;
 
   /**
    * @brief Get the Weight Gradient tensor object
