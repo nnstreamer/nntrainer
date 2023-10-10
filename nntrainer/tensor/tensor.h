@@ -1416,8 +1416,7 @@ public:
    */
   size_t bytes() const {
     if (getDataType() == Tdatatype::QINT4) {
-      return (dim.batch() + 1) * (dim.channel() + 1) * (dim.height() + 1) *
-             (dim.width() + 1) / 16 * dim.getDataTypeSize();
+      return (size() * dim.getDataTypeSize() + 1) / 2;
     }
     return size() * dim.getDataTypeSize();
   }
@@ -1671,8 +1670,9 @@ public:
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
+   * @param[in] s_type scale factor data type
    */
-  void read(std::ifstream &file);
+  void read(std::ifstream &file, Tdatatype s_type = Tdatatype::FP32);
 
   /**
    * @brief     return argument index which value is max by batch

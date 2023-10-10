@@ -4422,7 +4422,6 @@ TEST(nntrainer_Tensor, dequantize_04_n) {
 
   input.setScaleFactors({2.0, 1.5, 1.0, 0.5});
   input.setZeroPoints({2, 3, 4, 5});
-  std::cout << "before" << std::endl;
   EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
   EXPECT_NO_THROW({ input.dequantize<float>(output, 2); });
 }
