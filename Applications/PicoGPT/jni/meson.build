@@ -2,6 +2,11 @@ res_path = meson.current_source_dir() / '..' / 'res'
 nntr_pico_gpt_resdir = nntr_app_resdir / 'PicoGPT'
 run_command('cp', '-lr', res_path, nntr_pico_gpt_resdir)
 
+if get_option('platform') != 'tizen'
+    extra_defines += '-DENABLE_ENCODER=1'
+    run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), check: true)
+endif
+
 pico_gpt_sources = [
   'main.cpp',
 ]
