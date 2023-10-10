@@ -521,131 +521,582 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
   for (; idx < cols; ++idx) {
     Y32[idx] = beta * Y[idx];
   }
+  if (rows % 16 == 0) {
+    for (unsigned int i = 0; i < rows; i += 16) {
+      float x = alpha * static_cast<float>(X[i]);
+      float x2 = alpha * static_cast<float>(X[i + 1]);
+      float x3 = alpha * static_cast<float>(X[i + 2]);
+      float x4 = alpha * static_cast<float>(X[i + 3]);
+      float x5 = alpha * static_cast<float>(X[i + 4]);
+      float x6 = alpha * static_cast<float>(X[i + 5]);
+      float x7 = alpha * static_cast<float>(X[i + 6]);
+      float x8 = alpha * static_cast<float>(X[i + 7]);
+      float x9 = alpha * static_cast<float>(X[i + 8]);
+      float x10 = alpha * static_cast<float>(X[i + 9]);
+      float x11 = alpha * static_cast<float>(X[i + 10]);
+      float x12 = alpha * static_cast<float>(X[i + 11]);
+      float x13 = alpha * static_cast<float>(X[i + 12]);
+      float x14 = alpha * static_cast<float>(X[i + 13]);
+      float x15 = alpha * static_cast<float>(X[i + 14]);
+      float x16 = alpha * static_cast<float>(X[i + 15]);
 
-  for (unsigned int i = 0; i < rows; ++i) {
-    float x = alpha * static_cast<float>(X[i]);
-    idx = 0;
+      idx = 0;
 
-    for (; cols - idx >= 32; idx += 32) {
-      float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-      float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
-      float32x4_t y8_11 = vld1q_f32(&Y32[idx + 8]);
-      float32x4_t y12_15 = vld1q_f32(&Y32[idx + 12]);
-      float32x4_t y16_19 = vld1q_f32(&Y32[idx + 16]);
-      float32x4_t y20_23 = vld1q_f32(&Y32[idx + 20]);
-      float32x4_t y24_27 = vld1q_f32(&Y32[idx + 24]);
-      float32x4_t y28_31 = vld1q_f32(&Y32[idx + 28]);
+      for (; cols - idx >= 4; idx += 4) {
 
-      const __fp16 *__restrict w;
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
 
-      w = &A[i * cols + idx];
+        const __fp16 *__restrict w;
+        const __fp16 *__restrict w2;
+        const __fp16 *__restrict w3;
+        const __fp16 *__restrict w4;
+        const __fp16 *__restrict w5;
+        const __fp16 *__restrict w6;
+        const __fp16 *__restrict w7;
+        const __fp16 *__restrict w8;
+        const __fp16 *__restrict w9;
+        const __fp16 *__restrict w10;
+        const __fp16 *__restrict w11;
+        const __fp16 *__restrict w12;
+        const __fp16 *__restrict w13;
+        const __fp16 *__restrict w14;
+        const __fp16 *__restrict w15;
+        const __fp16 *__restrict w16;
 
-      float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&w[0]));
-      float32x4_t wvec4_7_f32 = vcvt_f32_f16(vld1_f16(&w[4]));
+        w = &A[i * cols + idx];
+        w2 = &A[(i + 1) * cols + idx];
+        w3 = &A[(i + 2) * cols + idx];
+        w4 = &A[(i + 3) * cols + idx];
+        w5 = &A[(i + 4) * cols + idx];
+        w6 = &A[(i + 5) * cols + idx];
+        w7 = &A[(i + 6) * cols + idx];
+        w8 = &A[(i + 7) * cols + idx];
+        w9 = &A[(i + 8) * cols + idx];
+        w10 = &A[(i + 9) * cols + idx];
+        w11 = &A[(i + 10) * cols + idx];
+        w12 = &A[(i + 11) * cols + idx];
+        w13 = &A[(i + 12) * cols + idx];
+        w14 = &A[(i + 13) * cols + idx];
+        w15 = &A[(i + 14) * cols + idx];
+        w16 = &A[(i + 15) * cols + idx];
 
-      float32x4_t wvec8_11_f32 = vcvt_f32_f16(vld1_f16(&w[8]));
-      float32x4_t wvec12_15_f32 = vcvt_f32_f16(vld1_f16(&w[12]));
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w[0])), x);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w2[0])), x2);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w3[0])), x3);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w4[0])), x4);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w5[0])), x5);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w6[0])), x6);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w7[0])), x7);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w8[0])), x8);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w9[0])), x9);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w10[0])), x10);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w11[0])), x11);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w12[0])), x12);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w13[0])), x13);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w14[0])), x14);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w15[0])), x15);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w16[0])), x16);
 
-      float32x4_t wvec16_19_f32 = vcvt_f32_f16(vld1_f16(&w[16]));
-      float32x4_t wvec20_23_f32 = vcvt_f32_f16(vld1_f16(&w[20]));
-
-      float32x4_t wvec24_27_f32 = vcvt_f32_f16(vld1_f16(&w[24]));
-      float32x4_t wvec28_31_f32 = vcvt_f32_f16(vld1_f16(&w[28]));
-
-      y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
-      y4_7 = vfmaq_n_f32(y4_7, wvec4_7_f32, x);
-
-      y8_11 = vfmaq_n_f32(y8_11, wvec8_11_f32, x);
-      y12_15 = vfmaq_n_f32(y12_15, wvec12_15_f32, x);
-
-      y16_19 = vfmaq_n_f32(y16_19, wvec16_19_f32, x);
-      y20_23 = vfmaq_n_f32(y20_23, wvec20_23_f32, x);
-
-      y24_27 = vfmaq_n_f32(y24_27, wvec24_27_f32, x);
-      y28_31 = vfmaq_n_f32(y28_31, wvec28_31_f32, x);
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-      vst1q_f32(&Y32[idx + 8], y8_11);
-      vst1q_f32(&Y32[idx + 12], y12_15);
-      vst1q_f32(&Y32[idx + 16], y16_19);
-      vst1q_f32(&Y32[idx + 20], y20_23);
-      vst1q_f32(&Y32[idx + 24], y24_27);
-      vst1q_f32(&Y32[idx + 28], y28_31);
-    }
-
-    for (; cols - idx >= 16; idx += 16) {
-      float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-      float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
-      float32x4_t y8_11 = vld1q_f32(&Y32[idx + 8]);
-      float32x4_t y12_15 = vld1q_f32(&Y32[idx + 12]);
-
-      const __fp16 *__restrict w;
-
-      w = &A[i * cols + idx];
-
-      float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&w[0]));
-      float32x4_t wvec4_7_f32 = vcvt_f32_f16(vld1_f16(&w[4]));
-
-      float32x4_t wvec8_11_f32 = vcvt_f32_f16(vld1_f16(&w[8]));
-      float32x4_t wvec12_15_f32 = vcvt_f32_f16(vld1_f16(&w[12]));
-
-      y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
-      y4_7 = vfmaq_n_f32(y4_7, wvec4_7_f32, x);
-
-      y8_11 = vfmaq_n_f32(y8_11, wvec8_11_f32, x);
-      y12_15 = vfmaq_n_f32(y12_15, wvec12_15_f32, x);
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-      vst1q_f32(&Y32[idx + 8], y8_11);
-      vst1q_f32(&Y32[idx + 12], y12_15);
-    }
-
-    for (; cols - idx >= 8; idx += 8) {
-      float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-      float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
-
-      float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
-      float32x4_t wvec3_7_f32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx + 4]));
-
-      y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
-      y4_7 = vfmaq_n_f32(y4_7, wvec3_7_f32, x);
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-    }
-
-    for (; cols - idx >= 4; idx += 4) {
-      float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-
-      float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
-
-      y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
-
-      vst1q_f32(&Y32[idx], y0_3);
-    }
-
-    if (cols != idx) {
-      float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-
-      float16x4_t wvec0_3 = vld1_f16(&A[i * cols + idx]);
-
-      for (int j = cols - idx; j < 4; ++j) {
-        y0_3[j] = 0;
-        wvec0_3[j] = 0;
+        vst1q_f32(&Y32[idx], y0_3);
       }
 
-      float32x4_t wvec0_3_32 = vcvt_f32_f16(wvec0_3);
+      if (cols != idx) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t w3vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
+        float32x4_t w4vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
+        float32x4_t w5vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 4) * cols + idx]));
+        float32x4_t w6vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 5) * cols + idx]));
+        float32x4_t w7vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 6) * cols + idx]));
+        float32x4_t w8vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 7) * cols + idx]));
+        float32x4_t w9vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 8) * cols + idx]));
+        float32x4_t w10vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 9) * cols + idx]));
+        float32x4_t w11vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 10) * cols + idx]));
+        float32x4_t w12vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 11) * cols + idx]));
+        float32x4_t w13vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 12) * cols + idx]));
+        float32x4_t w14vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 13) * cols + idx]));
+        float32x4_t w15vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 14) * cols + idx]));
+        float32x4_t w16vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 15) * cols + idx]));
 
-      y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        for (int j = cols - idx; j < 4; ++j) {
+          y0_3[j] = 0;
+          wvec0_3_32[j] = 0;
+          w2vec0_3_32[j] = 0;
+          w3vec0_3_32[j] = 0;
+          w4vec0_3_32[j] = 0;
+          w5vec0_3_32[j] = 0;
+          w6vec0_3_32[j] = 0;
+          w7vec0_3_32[j] = 0;
+          w8vec0_3_32[j] = 0;
+          w9vec0_3_32[j] = 0;
+          w10vec0_3_32[j] = 0;
+          w11vec0_3_32[j] = 0;
+          w12vec0_3_32[j] = 0;
+          w13vec0_3_32[j] = 0;
+          w14vec0_3_32[j] = 0;
+          w15vec0_3_32[j] = 0;
+          w16vec0_3_32[j] = 0;
+        }
 
-      vst1q_f32(&Y32[idx], y0_3);
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w3vec0_3_32, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w4vec0_3_32, x4);
+        y0_3 = vfmaq_n_f32(y0_3, w5vec0_3_32, x5);
+        y0_3 = vfmaq_n_f32(y0_3, w6vec0_3_32, x6);
+        y0_3 = vfmaq_n_f32(y0_3, w7vec0_3_32, x7);
+        y0_3 = vfmaq_n_f32(y0_3, w8vec0_3_32, x8);
+
+        y0_3 = vfmaq_n_f32(y0_3, w9vec0_3_32, x9);
+        y0_3 = vfmaq_n_f32(y0_3, w10vec0_3_32, x10);
+        y0_3 = vfmaq_n_f32(y0_3, w11vec0_3_32, x11);
+        y0_3 = vfmaq_n_f32(y0_3, w12vec0_3_32, x12);
+        y0_3 = vfmaq_n_f32(y0_3, w13vec0_3_32, x13);
+        y0_3 = vfmaq_n_f32(y0_3, w14vec0_3_32, x14);
+        y0_3 = vfmaq_n_f32(y0_3, w15vec0_3_32, x15);
+        y0_3 = vfmaq_n_f32(y0_3, w16vec0_3_32, x16);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+    }
+  } else if (rows % 8 == 0) {
+    for (unsigned int i = 0; i < rows; i += 8) {
+      float x = alpha * static_cast<float>(X[i]);
+      float x2 = alpha * static_cast<float>(X[i + 1]);
+      float x3 = alpha * static_cast<float>(X[i + 2]);
+      float x4 = alpha * static_cast<float>(X[i + 3]);
+      float x5 = alpha * static_cast<float>(X[i + 4]);
+      float x6 = alpha * static_cast<float>(X[i + 5]);
+      float x7 = alpha * static_cast<float>(X[i + 6]);
+      float x8 = alpha * static_cast<float>(X[i + 7]);
+
+      idx = 0;
+
+      for (; cols - idx >= 4; idx += 4) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+
+        const __fp16 *__restrict w;
+        const __fp16 *__restrict w2;
+        const __fp16 *__restrict w3;
+        const __fp16 *__restrict w4;
+        const __fp16 *__restrict w5;
+        const __fp16 *__restrict w6;
+        const __fp16 *__restrict w7;
+        const __fp16 *__restrict w8;
+
+        w = &A[i * cols + idx];
+        w2 = &A[(i + 1) * cols + idx];
+        w3 = &A[(i + 2) * cols + idx];
+        w4 = &A[(i + 3) * cols + idx];
+        w5 = &A[(i + 4) * cols + idx];
+        w6 = &A[(i + 5) * cols + idx];
+        w7 = &A[(i + 6) * cols + idx];
+        w8 = &A[(i + 7) * cols + idx];
+
+        float32x4_t w0_3 = vcvt_f32_f16(vld1_f16(&w[0]));
+        float32x4_t w4_7 = vcvt_f32_f16(vld1_f16(&w2[0]));
+        float32x4_t w8_11 = vcvt_f32_f16(vld1_f16(&w3[0]));
+        float32x4_t w12_15 = vcvt_f32_f16(vld1_f16(&w4[0]));
+        float32x4_t w16_19 = vcvt_f32_f16(vld1_f16(&w5[0]));
+        float32x4_t w20_23 = vcvt_f32_f16(vld1_f16(&w6[0]));
+        float32x4_t w24_27 = vcvt_f32_f16(vld1_f16(&w7[0]));
+        float32x4_t w28_31 = vcvt_f32_f16(vld1_f16(&w8[0]));
+
+        y0_3 = vfmaq_n_f32(y0_3, w0_3, x);
+        y0_3 = vfmaq_n_f32(y0_3, w4_7, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w8_11, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w12_15, x4);
+        y0_3 = vfmaq_n_f32(y0_3, w16_19, x5);
+        y0_3 = vfmaq_n_f32(y0_3, w20_23, x6);
+        y0_3 = vfmaq_n_f32(y0_3, w24_27, x7);
+        y0_3 = vfmaq_n_f32(y0_3, w28_31, x8);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+
+      if (cols != idx) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t w3vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
+        float32x4_t w4vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
+        float32x4_t w5vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 4) * cols + idx]));
+        float32x4_t w6vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 5) * cols + idx]));
+        float32x4_t w7vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 6) * cols + idx]));
+        float32x4_t w8vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 7) * cols + idx]));
+
+        for (int j = cols - idx; j < 4; ++j) {
+          y0_3[j] = 0;
+          wvec0_3_32[j] = 0;
+          w2vec0_3_32[j] = 0;
+          w3vec0_3_32[j] = 0;
+          w4vec0_3_32[j] = 0;
+          w5vec0_3_32[j] = 0;
+          w6vec0_3_32[j] = 0;
+          w7vec0_3_32[j] = 0;
+          w8vec0_3_32[j] = 0;
+        }
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w3vec0_3_32, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w4vec0_3_32, x4);
+        y0_3 = vfmaq_n_f32(y0_3, w5vec0_3_32, x5);
+        y0_3 = vfmaq_n_f32(y0_3, w6vec0_3_32, x6);
+        y0_3 = vfmaq_n_f32(y0_3, w7vec0_3_32, x7);
+        y0_3 = vfmaq_n_f32(y0_3, w8vec0_3_32, x8);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+    }
+  } else if (rows % 4 == 0) {
+    for (unsigned int i = 0; i < rows; i += 4) {
+      float x = alpha * static_cast<float>(X[i]);
+      float x2 = alpha * static_cast<float>(X[i + 1]);
+      float x3 = alpha * static_cast<float>(X[i + 2]);
+      float x4 = alpha * static_cast<float>(X[i + 3]);
+
+      idx = 0;
+      for (; cols - idx >= 16; idx += 16) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+        float32x4_t y8_11 = vld1q_f32(&Y32[idx + 8]);
+        float32x4_t y12_15 = vld1q_f32(&Y32[idx + 12]);
+
+        const __fp16 *__restrict w;
+        const __fp16 *__restrict w2;
+        const __fp16 *__restrict w3;
+        const __fp16 *__restrict w4;
+
+        w = &A[i * cols + idx];
+        w2 = &A[(i + 1) * cols + idx];
+        w3 = &A[(i + 2) * cols + idx];
+        w4 = &A[(i + 3) * cols + idx];
+
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w[0])), x);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w2[0])), x2);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w3[0])), x3);
+        y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&w4[0])), x4);
+
+        y4_7 = vfmaq_n_f32(y4_7, vcvt_f32_f16(vld1_f16(&w[4])), x);
+        y4_7 = vfmaq_n_f32(y4_7, vcvt_f32_f16(vld1_f16(&w2[4])), x2);
+        y4_7 = vfmaq_n_f32(y4_7, vcvt_f32_f16(vld1_f16(&w3[4])), x3);
+        y4_7 = vfmaq_n_f32(y4_7, vcvt_f32_f16(vld1_f16(&w4[4])), x4);
+
+        y8_11 = vfmaq_n_f32(y8_11, vcvt_f32_f16(vld1_f16(&w[8])), x);
+        y8_11 = vfmaq_n_f32(y8_11, vcvt_f32_f16(vld1_f16(&w2[8])), x2);
+        y8_11 = vfmaq_n_f32(y8_11, vcvt_f32_f16(vld1_f16(&w3[8])), x3);
+        y8_11 = vfmaq_n_f32(y8_11, vcvt_f32_f16(vld1_f16(&w4[8])), x4);
+
+        y12_15 = vfmaq_n_f32(y12_15, vcvt_f32_f16(vld1_f16(&w[12])), x);
+        y12_15 = vfmaq_n_f32(y12_15, vcvt_f32_f16(vld1_f16(&w2[12])), x2);
+        y12_15 = vfmaq_n_f32(y12_15, vcvt_f32_f16(vld1_f16(&w3[12])), x3);
+        y12_15 = vfmaq_n_f32(y12_15, vcvt_f32_f16(vld1_f16(&w4[12])), x4);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+        vst1q_f32(&Y32[idx + 8], y8_11);
+        vst1q_f32(&Y32[idx + 12], y12_15);
+      }
+
+      for (; cols - idx >= 8; idx += 8) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+
+        float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t w3vec0_3_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
+        float32x4_t w4vec0_3_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
+
+        float32x4_t wvec3_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[i * cols + idx + 4]));
+        float32x4_t w2vec3_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx + 4]));
+        float32x4_t w3vec3_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx + 4]));
+        float32x4_t w4vec3_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx + 4]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_f32, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w3vec0_3_f32, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w4vec0_3_f32, x4);
+
+        y4_7 = vfmaq_n_f32(y4_7, wvec3_7_f32, x);
+        y4_7 = vfmaq_n_f32(y4_7, w2vec3_7_f32, x2);
+        y4_7 = vfmaq_n_f32(y4_7, w3vec3_7_f32, x3);
+        y4_7 = vfmaq_n_f32(y4_7, w4vec3_7_f32, x4);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+      }
+
+      for (; cols - idx >= 4; idx += 4) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t w3vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
+        float32x4_t w4vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w3vec0_3_32, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w4vec0_3_32, x4);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+
+      if (cols != idx) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t w3vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
+        float32x4_t w4vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
+
+        for (int j = cols - idx; j < 4; ++j) {
+          y0_3[j] = 0;
+          wvec0_3_32[j] = 0;
+          w2vec0_3_32[j] = 0;
+          w3vec0_3_32[j] = 0;
+          w4vec0_3_32[j] = 0;
+        }
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+        y0_3 = vfmaq_n_f32(y0_3, w3vec0_3_32, x3);
+        y0_3 = vfmaq_n_f32(y0_3, w4vec0_3_32, x4);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+    }
+
+  } else if (rows % 2 == 0) {
+    for (unsigned int i = 0; i < rows; i += 2) {
+      float x = alpha * static_cast<float>(X[i]);
+      float x2 = alpha * static_cast<float>(X[i + 1]);
+
+      idx = 0;
+
+      for (; cols - idx >= 8; idx += 8) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+
+        float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+        float32x4_t wvec4_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[i * cols + idx + 4]));
+        float32x4_t w2vec4_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx + 4]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_f32, x2);
+        y4_7 = vfmaq_n_f32(y4_7, wvec4_7_f32, x);
+        y4_7 = vfmaq_n_f32(y4_7, w2vec4_7_f32, x2);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+      }
+
+      for (; cols - idx >= 4; idx += 4) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+
+      if (cols != idx) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t w2vec0_3_32 =
+          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
+
+        for (int j = cols - idx; j < 4; ++j) {
+          y0_3[j] = 0;
+          wvec0_3_32[j] = 0;
+          w2vec0_3_32[j] = 0;
+        }
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+        y0_3 = vfmaq_n_f32(y0_3, w2vec0_3_32, x2);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+    }
+
+  } else {
+    for (unsigned int i = 0; i < rows; ++i) {
+      float x = alpha * static_cast<float>(X[i]);
+      idx = 0;
+
+      for (; cols - idx >= 32; idx += 32) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+        float32x4_t y8_11 = vld1q_f32(&Y32[idx + 8]);
+        float32x4_t y12_15 = vld1q_f32(&Y32[idx + 12]);
+        float32x4_t y16_19 = vld1q_f32(&Y32[idx + 16]);
+        float32x4_t y20_23 = vld1q_f32(&Y32[idx + 20]);
+        float32x4_t y24_27 = vld1q_f32(&Y32[idx + 24]);
+        float32x4_t y28_31 = vld1q_f32(&Y32[idx + 28]);
+
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + idx];
+
+        float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&w[0]));
+        float32x4_t wvec4_7_f32 = vcvt_f32_f16(vld1_f16(&w[4]));
+
+        float32x4_t wvec8_11_f32 = vcvt_f32_f16(vld1_f16(&w[8]));
+        float32x4_t wvec12_15_f32 = vcvt_f32_f16(vld1_f16(&w[12]));
+
+        float32x4_t wvec16_19_f32 = vcvt_f32_f16(vld1_f16(&w[16]));
+        float32x4_t wvec20_23_f32 = vcvt_f32_f16(vld1_f16(&w[20]));
+
+        float32x4_t wvec24_27_f32 = vcvt_f32_f16(vld1_f16(&w[24]));
+        float32x4_t wvec28_31_f32 = vcvt_f32_f16(vld1_f16(&w[28]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
+        y4_7 = vfmaq_n_f32(y4_7, wvec4_7_f32, x);
+
+        y8_11 = vfmaq_n_f32(y8_11, wvec8_11_f32, x);
+        y12_15 = vfmaq_n_f32(y12_15, wvec12_15_f32, x);
+
+        y16_19 = vfmaq_n_f32(y16_19, wvec16_19_f32, x);
+        y20_23 = vfmaq_n_f32(y20_23, wvec20_23_f32, x);
+
+        y24_27 = vfmaq_n_f32(y24_27, wvec24_27_f32, x);
+        y28_31 = vfmaq_n_f32(y28_31, wvec28_31_f32, x);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+        vst1q_f32(&Y32[idx + 8], y8_11);
+        vst1q_f32(&Y32[idx + 12], y12_15);
+        vst1q_f32(&Y32[idx + 16], y16_19);
+        vst1q_f32(&Y32[idx + 20], y20_23);
+        vst1q_f32(&Y32[idx + 24], y24_27);
+        vst1q_f32(&Y32[idx + 28], y28_31);
+      }
+
+      for (; cols - idx >= 16; idx += 16) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+        float32x4_t y8_11 = vld1q_f32(&Y32[idx + 8]);
+        float32x4_t y12_15 = vld1q_f32(&Y32[idx + 12]);
+
+        const __fp16 *__restrict w;
+
+        w = &A[i * cols + idx];
+
+        float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&w[0]));
+        float32x4_t wvec4_7_f32 = vcvt_f32_f16(vld1_f16(&w[4]));
+
+        float32x4_t wvec8_11_f32 = vcvt_f32_f16(vld1_f16(&w[8]));
+        float32x4_t wvec12_15_f32 = vcvt_f32_f16(vld1_f16(&w[12]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
+        y4_7 = vfmaq_n_f32(y4_7, wvec4_7_f32, x);
+
+        y8_11 = vfmaq_n_f32(y8_11, wvec8_11_f32, x);
+        y12_15 = vfmaq_n_f32(y12_15, wvec12_15_f32, x);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+        vst1q_f32(&Y32[idx + 8], y8_11);
+        vst1q_f32(&Y32[idx + 12], y12_15);
+      }
+
+      for (; cols - idx >= 8; idx += 8) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+        float32x4_t y4_7 = vld1q_f32(&Y32[idx + 4]);
+
+        float32x4_t wvec0_3_f32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+        float32x4_t wvec3_7_f32 =
+          vcvt_f32_f16(vld1_f16(&A[i * cols + idx + 4]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_f32, x);
+        y4_7 = vfmaq_n_f32(y4_7, wvec3_7_f32, x);
+
+        vst1q_f32(&Y32[idx], y0_3);
+        vst1q_f32(&Y32[idx + 4], y4_7);
+      }
+
+      for (; cols - idx >= 4; idx += 4) {
+
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
+
+      if (cols != idx) {
+        float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
+
+        float16x4_t wvec0_3 = vld1_f16(&A[i * cols + idx]);
+
+        for (int j = cols - idx; j < 4; ++j) {
+          y0_3[j] = 0;
+          wvec0_3[j] = 0;
+        }
+
+        float32x4_t wvec0_3_32 = vcvt_f32_f16(wvec0_3);
+
+        y0_3 = vfmaq_n_f32(y0_3, wvec0_3_32, x);
+
+        vst1q_f32(&Y32[idx], y0_3);
+      }
     }
   }
-
   scopy_neon_fp32_to_fp16(cols, Y32, Y);
-
   return;
 }
 
