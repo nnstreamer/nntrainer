@@ -12,7 +12,6 @@
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %define         support_data_augmentation_opencv 1
 %define         configure_subplugin_install_path -Dnnstreamer-subplugin-install-path=%{nnstreamer_subplugin_path}
-
 %bcond_with tizen
 
 # dependency resolution

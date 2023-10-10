@@ -17,7 +17,10 @@
 #include <string.h>
 #include <tensor.h>
 
+#if defined(ENABLE_ENCODER)
 #include "encoder.hpp"
+#endif
+
 #include <iostream>
 
 const unsigned int BATCH_SIZE = 1;
@@ -36,6 +39,7 @@ const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 bool swap = false;
 bool optimize_attention = false;
 
+#if defined(ENABLE_ENCODER)
 template <typename T>
 T unwrap(std::optional<T> &&value, const std::string &error_msg) {
   if (value.has_value()) {
@@ -44,6 +48,7 @@ T unwrap(std::optional<T> &&value, const std::string &error_msg) {
     throw std::runtime_error(error_msg);
   }
 }
+#endif
 
 std::shared_ptr<ml::train::Model> genModel() {
   std::shared_ptr<ml::train::Model> model;
@@ -295,6 +300,9 @@ int main(int argc, char *argv[]) {
 
   memset(wte_input, 0, sizeof(float) * MAX_TOKEN_LEN);
   memset(wpe_input, 0, sizeof(float) * MAX_TOKEN_LEN);
+  std::vector<int64_t> init_input;
+
+#if defined(ENABLE_ENCODER)
 
   std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
   std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
@@ -302,11 +310,12 @@ int main(int argc, char *argv[]) {
   auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
                           "Error initialising GPT2 tokenizer\n");
 
-  auto init_input = tokenizer.encode(text);
+  init_input = tokenizer.encode(text);
   init_input_seq_len = init_input.size();
-
-  // uint init_input[init_input_seq_len] = {36235, 39141, 18765, 1143, 326,
-  //                                        9061,  561,   530,   1110, 1716};
+#else
+  text = "Elan Turing is";
+  init_input = {36235, 39141, 18765, 1143, 326, 9061, 561, 530, 1110, 1716};
+#endif
 
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
     ((uint *)(wte_input))[i] = init_input[i];
@@ -350,12 +359,14 @@ int main(int argc, char *argv[]) {
     ((uint *)(wte_input))[i] = ids[0];
     ((uint *)(wpe_input))[i] = i;
 
+#if defined(ENABLE_ENCODER)
     std::vector<int64_t> token_ids;
     for (auto element : ids) {
       token_ids.push_back(static_cast<int64_t>(element));
     }
     auto decoded_str = tokenizer.decode(token_ids);
     std::cerr << decoded_str << " " << std::flush;
+#endif
 
     std::shared_ptr<ml::train::Layer> wte_input_layer;
     model->getLayer("wte_input", &wte_input_layer);
