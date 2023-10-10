@@ -4354,13 +4354,12 @@ TEST(nntrainer_Tensor, dequantize_01_n) {
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setOutputAxis(1);
   input.setScaleFactors({1.5, 1.0, 0.5});
   input.setZeroPoints({1, 4, 7});
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -4376,13 +4375,12 @@ TEST(nntrainer_Tensor, dequantize_02_n) {
     batch + 1, channel, height + 1, width + 1,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setOutputAxis(1);
   input.setScaleFactors({1.5, 1.0, 0.5});
   input.setZeroPoints({1, 4, 7});
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -4401,7 +4399,7 @@ TEST(nntrainer_Tensor, dequantize_03_n) {
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -4417,15 +4415,16 @@ TEST(nntrainer_Tensor, dequantize_04_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setOutputAxis(1);
-  EXPECT_THROW(
-    {
-      input.setScaleFactors({2.0, 1.5, 1.0, 0.5});
-    },
-    std::invalid_argument);
 
-  input.setOutputAxis(2);
-  EXPECT_NO_THROW({ input.setScaleFactors({2.0, 1.5, 1.0, 0.5}); });
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+
+  input.setScaleFactors({2.0, 1.5, 1.0, 0.5});
+  input.setZeroPoints({2, 3, 4, 5});
+  std::cout << "before" << std::endl;
+  EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 2); });
 }
 
 /**
@@ -4441,7 +4440,6 @@ TEST(nntrainer_Tensor, dequantize_05_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setOutputAxis(1);
   input.setScaleFactors({1.5, 1.0, 0.5});
   input.setZeroPoints({1, 4, 7});
 
@@ -4449,7 +4447,7 @@ TEST(nntrainer_Tensor, dequantize_05_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
 
-  EXPECT_THROW({ input.dequantize<float>(output); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize<float>(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -4471,10 +4469,9 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
   nntrainer::Tensor output(batch, channel, height, width);
 
   // Dequantize by channel
-  EXPECT_NO_THROW(input.setOutputAxis(1));
   EXPECT_NO_THROW(input.setScaleFactors({2, -2, -4}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 1); });
 
   float answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
                            -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
@@ -4490,10 +4487,9 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
   EXPECT_EQ(output, answer1);
 
   // Dequantize by height
-  EXPECT_NO_THROW(input.setOutputAxis(2));
   EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4.8}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 2); });
 
   float answer_data_2[] = {
     -4.2, -4.2, -4.2, -4.2, -4.2, -2,   -2,   -2,   -2,   -2,   2,    2,
@@ -4509,10 +4505,9 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
   EXPECT_EQ(output, answer2);
 
   // Dequantize by width
-  EXPECT_NO_THROW(input.setOutputAxis(3));
   EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4, 8}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 3); });
 
   float answer_data_3[] = {
     -4.2, -2, 2, 4, -8, -4.2, -2, 2, 4, -8, -4.2, -2, 2, 4, -8,
@@ -4547,10 +4542,9 @@ TEST(nntrainer_Tensor, dequantize_08_p) {
   nntrainer::Tensor output(batch, channel, height, width);
 
   // Dequantize by channel
-  EXPECT_NO_THROW(input.setOutputAxis(1));
   EXPECT_NO_THROW(input.setScaleFactors({2, -2, -4}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 1); });
 
   float answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
                            -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
@@ -4566,10 +4560,9 @@ TEST(nntrainer_Tensor, dequantize_08_p) {
   EXPECT_EQ(output, answer1);
 
   // Dequantize by height
-  EXPECT_NO_THROW(input.setOutputAxis(2));
   EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 2); });
 
   float answer_data_2[] = {-4.2, -4.2, -4.2, -4.2, -4.2, -2, -2, -2, -2, -2,
                            2,    2,    2,    2,    2,    4,  4,  4,  4,  4,
@@ -4585,10 +4578,9 @@ TEST(nntrainer_Tensor, dequantize_08_p) {
   EXPECT_EQ(output, answer2);
 
   // Dequantize by width
-  EXPECT_NO_THROW(input.setOutputAxis(3));
   EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4, 8}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<float>(output); });
+  EXPECT_NO_THROW({ input.dequantize<float>(output, 3); });
 
   float answer_data_3[] = {
     -4.2, -2, 2, 4, -8, -4.2, -2, 2, 4, -8, -4.2, -2, 2, 4, -8,

@@ -496,13 +496,12 @@ void LayerNode::clearOptVar() {
 /**
  * @brief     Finalize creating the layer node
  */
-InitLayerContext
-LayerNode::finalize(const std::vector<TensorDim> &input_dims,
-                    std::array<const std::string, 3> tensor_type) {
-  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType {
-  // 			       return from_string(ty);
+InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
+                                     std::array<std::string, 3> tensor_type) {
+  // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType
+  // { 			       return from_string(ty);
   // };
-  
+
   if (run_context)
     throw std::runtime_error(
       "Trying to finalizing a layer which is already finalized in layer: " +

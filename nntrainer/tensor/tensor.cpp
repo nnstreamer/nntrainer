@@ -103,7 +103,6 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
     dim = d;
     strides = d.computeStrides();
     initializer = init;
-    output_axis = 3;
     if (alloc_now)
       allocate();
   }
@@ -3531,34 +3530,9 @@ uint8_t Tensor::decode_qint(uint8_t val, bool isHigh) const {
   return val;
 }
 
-void Tensor::setOutputAxis(int axis) {
-  if (axis < 0 || axis > 3) {
-    throw std::invalid_argument("Error: invalid parameter");
-  }
-  output_axis = axis;
-}
-
-int Tensor::getOutputAxis() const { return output_axis; }
-
 void Tensor::setScaleFactors(std::vector<float> scales) {
   if (scales.empty()) {
     throw std::invalid_argument("Error: invalid parameter");
-  }
-
-  if (output_axis == 0 && scales.size() != batch()) {
-    throw std::invalid_argument("Error: scale_factors.size() != batch() ");
-  }
-
-  if (output_axis == 1 && scales.size() != channel()) {
-    throw std::invalid_argument("Error: scale_factors.size() != channel() ");
-  }
-
-  if (output_axis == 2 && scales.size() != height()) {
-    throw std::invalid_argument("Error: scale_factors.size() != height() ");
-  }
-
-  if (output_axis == 3 && scales.size() != width()) {
-    throw std::invalid_argument("Error: scale_factors.size() != width() ");
   }
 
   scale_factors = scales;
@@ -3569,22 +3543,6 @@ std::vector<float> Tensor::getScaleFactors() const { return scale_factors; }
 void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
   if (zp.empty()) {
     throw std::invalid_argument("Error: invalid parameter");
-  }
-
-  if (output_axis == 0 && zp.size() != batch()) {
-    throw std::invalid_argument("Error: zero_points.size() != batch() ");
-  }
-
-  if (output_axis == 1 && zp.size() != channel()) {
-    throw std::invalid_argument("Error: zero_points.size() != channel() ");
-  }
-
-  if (output_axis == 2 && zp.size() != height()) {
-    throw std::invalid_argument("Error: zero_points.size() != height() ");
-  }
-
-  if (output_axis == 3 && zp.size() != width()) {
-    throw std::invalid_argument("Error: zero_points.size() != width() ");
   }
 
   zero_points = zp;
