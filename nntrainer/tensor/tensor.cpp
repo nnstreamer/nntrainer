@@ -2744,14 +2744,17 @@ void Tensor::print(std::ostream &out) const {
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
     const uint8_t *data = getData<uint8_t>();
-    unsigned int len = size();
+    unsigned int len = (size() + 1) / 2;
     out << "data addr: " << (float *)data << '\n';
     out << dim;
 
     if (len > 100) {
-      out << '[' << (int)data[0] << ' ' << (int)data[1] << ' ' << (int)data[2]
-          << " ... " << (int)data[len - 3] << ' ' << (int)data[len - 2] << ' '
-          << (int)data[len - 1] << ']' << std::endl;
+      out << '[' << (int)decode_qint(data[0], true) << ' '
+          << (int)decode_qint(data[0], false) << ' '
+          << (int)decode_qint(data[1], true) << " ... "
+          << (int)decode_qint(data[len - 2], false) << ' '
+          << (int)decode_qint(data[len - 1], true) << ' '
+          << (int)decode_qint(data[len - 1], false) << ']' << std::endl;
       return;
     }
 
@@ -2762,7 +2765,7 @@ void Tensor::print(std::ostream &out) const {
         for (unsigned int l = 0; l < channel(); l++) {
           for (unsigned int i = 0; i < height(); i++) {
             for (unsigned int j = 0; j < width(); j++) {
-              out << std::setw(10) << (int)this->getValueQint4(k, l, i, j)
+              out << std::setw(3) << (int)this->getValueQint4(k, l, i, j)
                   << " ";
             }
             out << std::endl;
@@ -2776,7 +2779,7 @@ void Tensor::print(std::ostream &out) const {
         for (unsigned int i = 0; i < height(); i++) {
           for (unsigned int j = 0; j < width(); j++) {
             for (unsigned int l = 0; l < channel(); l++) {
-              out << std::setw(10) << (int)this->getValueQint4(k, l, i, j)
+              out << std::setw(3) << (int)this->getValueQint4(k, l, i, j)
                   << " ";
             }
             out << std::endl;
@@ -3085,7 +3088,7 @@ void Tensor::save(std::ostream &file) {
   putData();
 }
 
-void Tensor::read(std::ifstream &file) {
+void Tensor::read(std::ifstream &file, Tdatatype s_type) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
@@ -3094,6 +3097,54 @@ void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "read size: " << bytes()
     << " is too big. It cannot be represented by std::streamsize";
+
+  if (getDataType() == Tdatatype::QINT4 || getDataType() == Tdatatype::QINT8) {
+    uint8_t axis, zp;
+    unsigned int len;
+
+    file.read((char *)&axis, sizeof(uint8_t));
+
+    if (axis == 0)
+      len = batch();
+    else if (axis == 1) {
+      len = channel();
+    } else if (axis == 2) {
+      len = height();
+    } else if (axis == 3) {
+      len = width();
+    }
+
+    // read scale factors
+    for (unsigned int i = 0; i < len; ++i) {
+      if (s_type == Tdatatype::FP32) {
+        float scale;
+        file.read((char *)&scale, sizeof(float));
+        scale_factors.push_back(scale);
+      } else if (s_type == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+        _FP16 scale;
+        file.read((char *)&scale, sizeof(_FP16));
+        scale_factors.push_back((float)scale);
+#else
+        throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+      }
+    }
+
+    // read zero points and parse if needed
+    if (getDataType() == Tdatatype::QINT4) {
+      for (unsigned int i = 0; i < (len + 1) / 2; ++i) {
+        file.read((char *)&zp, sizeof(uint8_t));
+        zero_points.push_back(decode_qint(zp, true));
+        zero_points.push_back(decode_qint(zp, false));
+      }
+    } else if (getDataType() == Tdatatype::QINT8) {
+      for (unsigned int i = 0; i < len; ++i) {
+        file.read((char *)&zp, sizeof(uint8_t));
+        zero_points.push_back(zp);
+      }
+    }
+  }
 
   checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed");
   putData();
