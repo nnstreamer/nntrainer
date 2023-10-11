@@ -1679,70 +1679,168 @@ void sgemm_neon_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
 void sgemm_neon_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
                             uint32_t M, uint32_t N, uint32_t K, float alpha,
                             float beta) {
-  if (K % 16 == 0) {
-    for (unsigned int m = 0; m < M; m++) {
-      for (unsigned int n = 0; n < N; n++) {
-        float32x4_t sum = vmovq_n_f32(0.0f);
-        unsigned int k = 0;
-        for (; (K - k) >= 16; k += 16) {
-          // fp16 multiplication
-          float16x8_t ab =
-            vmulq_f16(vld1q_f16(&A[m * K + k]), vld1q_f16(&B[n * K + k]));
-          float16x8_t ab8_15 = vmulq_f16(vld1q_f16(&A[m * K + k + 8]),
-                                         vld1q_f16(&B[n * K + k + 8]));
+  __fp16 valsB[8];
+  __fp16 valsA[8];
+  int m = 0;
+  for (; M - m >= 1; m++) {
+    int n = 0;
+    __fp16 valsB_2[8];
+    __fp16 valsB_3[8];
+    __fp16 valsB_4[8];
+    for (; N - n >= 4; n += 4) {
+      float32x4_t sum = vmovq_n_f32(0.0f);
+      float32x4_t sum2 = vmovq_n_f32(0.0f);
+      float32x4_t sum3 = vmovq_n_f32(0.0f);
+      float32x4_t sum4 = vmovq_n_f32(0.0f);
+      unsigned int k = 0;
+      for (; (K - k) >= 16; k += 16) {
+        float16x8_t a0_7 = vld1q_f16(&A[m * K + k]);
+        float16x8_t a8_15 = vld1q_f16(&A[m * K + k + 8]);
+        // fp16 multiplication
+        float16x8_t ab = vmulq_f16(a0_7, vld1q_f16(&B[n * K + k]));
+        float16x8_t ab2 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 1) * K + k]));
+        float16x8_t ab3 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 2) * K + k]));
+        float16x8_t ab4 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 3) * K + k]));
+        float16x8_t ab8_15 = vmulq_f16(a8_15, vld1q_f16(&B[n * K + k + 8]));
+        float16x8_t ab2_8_15 =
+          vmulq_f16(a8_15, vld1q_f16(&B[(n + 1) * K + k + 8]));
+        float16x8_t ab3_8_15 =
+          vmulq_f16(a8_15, vld1q_f16(&B[(n + 2) * K + k + 8]));
+        float16x8_t ab4_8_15 =
+          vmulq_f16(a8_15, vld1q_f16(&B[(n + 3) * K + k + 8]));
 
-          // fp16 partial accumulation
-          ab = vaddq_f16(ab, ab8_15);
+        // fp16 partial accumulation
+        ab = vaddq_f16(ab, ab8_15);
+        ab2 = vaddq_f16(ab2, ab2_8_15);
+        ab3 = vaddq_f16(ab3, ab3_8_15);
+        ab4 = vaddq_f16(ab4, ab4_8_15);
+        // fp32 partial accumulation
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
 
-          // fp32 partial accumulation
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
-        }
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_low_f16(ab2)));
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_high_f16(ab2)));
 
-        sum = vmulq_n_f32(sum, alpha);
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_low_f16(ab3)));
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_high_f16(ab3)));
 
-        C[m * N + n] += vaddvq_f32(sum);
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_low_f16(ab4)));
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_high_f16(ab4)));
       }
+      for (; (K - k) >= 8; k += 8) {
+        float16x8_t a0_7 = vld1q_f16(&A[m * K + k]);
+
+        float16x8_t ab = vmulq_f16(a0_7, vld1q_f16(&B[n * K + k]));
+        float16x8_t ab2 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 1) * K + k]));
+        float16x8_t ab3 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 2) * K + k]));
+        float16x8_t ab4 = vmulq_f16(a0_7, vld1q_f16(&B[(n + 3) * K + k]));
+
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
+
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_low_f16(ab2)));
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_high_f16(ab2)));
+
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_low_f16(ab3)));
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_high_f16(ab3)));
+
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_low_f16(ab4)));
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_high_f16(ab4)));
+      }
+
+      // remaining K values
+      if (k < K) {
+        unsigned int idx;
+        for (idx = k; idx < K; idx++) {
+          valsA[idx - k] = A[m * K + idx];
+          valsB[idx - k] = B[n * K + idx];
+          valsB_2[idx - k] = B[(n + 1) * K + idx];
+          valsB_3[idx - k] = B[(n + 2) * K + idx];
+          valsB_4[idx - k] = B[(n + 3) * K + idx];
+        }
+        // to cover entire 128 bits (reset unused bits)
+        while (idx < (k + 8)) {
+          valsA[idx - k] = 0;
+          valsB[idx - k] = 0;
+          valsB_2[idx - k] = 0;
+          valsB_3[idx - k] = 0;
+          valsB_4[idx - k] = 0;
+          idx++;
+        }
+        // updating sum
+        float16x8_t ab = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB));
+        float16x8_t ab2 = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB_2));
+        float16x8_t ab3 = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB_3));
+        float16x8_t ab4 = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB_4));
+
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_low_f16(ab2)));
+        sum2 = vaddq_f32(sum2, vcvt_f32_f16(vget_high_f16(ab2)));
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_low_f16(ab3)));
+        sum3 = vaddq_f32(sum3, vcvt_f32_f16(vget_high_f16(ab3)));
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_low_f16(ab4)));
+        sum4 = vaddq_f32(sum4, vcvt_f32_f16(vget_high_f16(ab4)));
+      }
+
+      if (alpha != 1) {
+        sum = vmulq_n_f32(sum, alpha);
+        sum2 = vmulq_n_f32(sum2, alpha);
+        sum3 = vmulq_n_f32(sum3, alpha);
+        sum4 = vmulq_n_f32(sum4, alpha);
+      }
+
+      C[m * N + n] += vaddvq_f32(sum);
+      C[m * N + n + 1] += vaddvq_f32(sum2);
+      C[m * N + n + 2] += vaddvq_f32(sum3);
+      C[m * N + n + 3] += vaddvq_f32(sum4);
     }
-  } else {
-    __fp16 valsB[8];
-    __fp16 valsA[8];
-    for (unsigned int m = 0; m < M; m++) {
-      for (unsigned int n = 0; n < N; n++) {
-        float32x4_t sum = vmovq_n_f32(0.0f);
-        unsigned int k = 0;
-        for (; (K - k) >= 8; k += 8) {
-          float16x8_t ab =
-            vmulq_f16(vld1q_f16(&A[m * K + k]), vld1q_f16(&B[n * K + k]));
-
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
-        }
-
-        // remaining K values
-        if (k < K) {
-          unsigned int idx;
-          for (idx = k; idx < K; idx++) {
-            valsA[idx - k] = A[m * K + idx];
-            valsB[idx - k] = B[n * K + idx];
-          }
-          // to cover entire 128 bits (reset unused bits)
-          while (idx < (k + 8)) {
-            valsA[idx - k] = 0;
-            valsB[idx - k] = 0;
-            idx++;
-          }
-          // updating sum
-          float16x8_t ab = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB));
-
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
-          sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
-        }
-
-        sum = vmulq_n_f32(sum, alpha);
-
-        C[m * N + n] += vaddvq_f32(sum);
+    for (; N - n >= 1; n++) {
+      float32x4_t sum = vmovq_n_f32(0.0f);
+      unsigned int k = 0;
+      for (; (K - k) >= 16; k += 16) {
+        // fp16 multiplication
+        float16x8_t ab =
+          vmulq_f16(vld1q_f16(&A[m * K + k]), vld1q_f16(&B[n * K + k]));
+        float16x8_t ab8_15 =
+          vmulq_f16(vld1q_f16(&A[m * K + k + 8]), vld1q_f16(&B[n * K + k + 8]));
+        // fp16 partial accumulation
+        ab = vaddq_f16(ab, ab8_15);
+        // fp32 partial accumulation
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
       }
+      for (; (K - k) >= 8; k += 8) {
+        float16x8_t ab =
+          vmulq_f16(vld1q_f16(&A[m * K + k]), vld1q_f16(&B[n * K + k]));
+
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
+      }
+
+      // remaining K values
+      if (k < K) {
+        unsigned int idx;
+        for (idx = k; idx < K; idx++) {
+          valsA[idx - k] = A[m * K + idx];
+          valsB[idx - k] = B[n * K + idx];
+        }
+        // to cover entire 128 bits (reset unused bits)
+        while (idx < (k + 8)) {
+          valsA[idx - k] = 0;
+          valsB[idx - k] = 0;
+          idx++;
+        }
+        // updating sum
+        float16x8_t ab = vmulq_f16(vld1q_f16(valsA), vld1q_f16(valsB));
+
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_low_f16(ab)));
+        sum = vaddq_f32(sum, vcvt_f32_f16(vget_high_f16(ab)));
+      }
+
+      sum = vmulq_n_f32(sum, alpha);
+
+      C[m * N + n] += vaddvq_f32(sum);
     }
   }
 }
