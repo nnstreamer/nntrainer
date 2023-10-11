@@ -394,7 +394,8 @@ public:
                   bool in_place_, const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
-                  const std::vector<Var_Grad *> &t);
+                  const std::vector<Var_Grad *> &t,
+                  CheckPointType checkpoint = CheckPointType::CHECKPOINTED);
 
   /**
    * @brief Get the Weight tensor object
@@ -738,6 +739,15 @@ public:
   bool getTrainable() const { return std::get<props::Trainable>(props); }
 
   /**
+   * @brief   get trainable by the layer
+   *
+   * @return trainable of the layer
+   */
+  const props::CheckPoint &getCheckPoint() const {
+    return std::get<props::CheckPoint>(props);
+  }
+
+  /**
    * @brief   check if run context is set and is ready to use
    *
    * @return true if ready, else false
@@ -762,8 +772,9 @@ public:
   bool executeInPlace() const { return in_place; }
 
 private:
-  std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
-  float loss;                                      /**< loss of the layer */
+  std::tuple<props::Name, props::Trainable, props::CheckPoint>
+    props;       /**< props of the layer */
+  float loss;    /**< loss of the layer */
   bool in_place; /**< if the layer is expected to run in-place */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
