@@ -1501,29 +1501,75 @@ void sgemm_neon_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
                              float beta) {
 
   unsigned int k = 0, n = 0;
-
-  for (; (K - k) >= 8; k += 8) {
+  __fp16 a[16];
+  for (; (K - k) >= 16; k += 16) {
     for (unsigned int m = 0; m < M; m++) {
-      __fp16 a0 = alpha * A[m * K + k];
-      __fp16 a1 = alpha * A[m * K + k + 1];
-      __fp16 a2 = alpha * A[m * K + k + 2];
-      __fp16 a3 = alpha * A[m * K + k + 3];
-      __fp16 a4 = alpha * A[m * K + k + 4];
-      __fp16 a5 = alpha * A[m * K + k + 5];
-      __fp16 a6 = alpha * A[m * K + k + 6];
-      __fp16 a7 = alpha * A[m * K + k + 7];
+      // calculating A * alpha;
+      vst1q_f16(a, vmulq_n_f16(vld1q_f16(&A[m * K + k]), alpha));
+      vst1q_f16(&a[8], vmulq_n_f16(vld1q_f16(&A[m * K + k + 8]), alpha));
 
       for (n = 0; (N - n) >= 8; n += 8) {
 
         // fp16 multiplications and partial accumulations
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a0);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a1);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a2);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a3);
-        float16x8_t b0_7_4 = vmulq_n_f16(vld1q_f16(&B[(k + 4) * N + n]), a4);
-        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 5) * N + n]), a5);
-        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 6) * N + n]), a6);
-        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 7) * N + n]), a7);
+        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
+        float16x8_t b0_7_4 = vmulq_n_f16(vld1q_f16(&B[(k + 4) * N + n]), a[4]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 5) * N + n]), a[5]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 6) * N + n]), a[6]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 7) * N + n]), a[7]);
+        float16x8_t b0_7_8 = vmulq_n_f16(vld1q_f16(&B[(k + 8) * N + n]), a[8]);
+        b0_7_8 = vfmaq_n_f16(b0_7_8, vld1q_f16(&B[(k + 9) * N + n]), a[9]);
+        b0_7_8 = vfmaq_n_f16(b0_7_8, vld1q_f16(&B[(k + 10) * N + n]), a[10]);
+        b0_7_8 = vfmaq_n_f16(b0_7_8, vld1q_f16(&B[(k + 11) * N + n]), a[11]);
+        float16x8_t b0_7_12 =
+          vmulq_n_f16(vld1q_f16(&B[(k + 12) * N + n]), a[12]);
+        b0_7_12 = vfmaq_n_f16(b0_7_12, vld1q_f16(&B[(k + 13) * N + n]), a[13]);
+        b0_7_12 = vfmaq_n_f16(b0_7_12, vld1q_f16(&B[(k + 14) * N + n]), a[14]);
+        b0_7_12 = vfmaq_n_f16(b0_7_12, vld1q_f16(&B[(k + 15) * N + n]), a[15]);
+
+        float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
+                                            vcvt_f32_f16(vget_low_f16(b0_7_0)));
+        float32x4_t c0_7_high_32 = vaddq_f32(
+          vld1q_f32(&C[m * N + n + 4]), vcvt_f32_f16(vget_high_f16(b0_7_0)));
+
+        // fp32 partial accumulations
+        c0_7_low_32 =
+          vaddq_f32(c0_7_low_32, vcvt_f32_f16(vget_low_f16(b0_7_4)));
+        c0_7_high_32 =
+          vaddq_f32(c0_7_high_32, vcvt_f32_f16(vget_high_f16(b0_7_4)));
+        c0_7_low_32 =
+          vaddq_f32(c0_7_low_32, vcvt_f32_f16(vget_low_f16(b0_7_8)));
+        c0_7_high_32 =
+          vaddq_f32(c0_7_high_32, vcvt_f32_f16(vget_high_f16(b0_7_8)));
+        c0_7_low_32 =
+          vaddq_f32(c0_7_low_32, vcvt_f32_f16(vget_low_f16(b0_7_12)));
+        c0_7_high_32 =
+          vaddq_f32(c0_7_high_32, vcvt_f32_f16(vget_high_f16(b0_7_12)));
+
+        vst1q_f32(&C[m * N + n], c0_7_low_32);
+        vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
+      }
+    }
+  }
+
+  for (; (K - k) >= 8; k += 8) {
+    for (unsigned int m = 0; m < M; m++) {
+      // calculating A * alpha;
+      vst1q_f16(a, vmulq_n_f16(vld1q_f16(&A[m * K + k]), alpha));
+
+      for (n = 0; (N - n) >= 8; n += 8) {
+
+        // fp16 multiplications and partial accumulations
+        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
+        float16x8_t b0_7_4 = vmulq_n_f16(vld1q_f16(&B[(k + 4) * N + n]), a[4]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 5) * N + n]), a[5]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 6) * N + n]), a[6]);
+        b0_7_4 = vfmaq_n_f16(b0_7_4, vld1q_f16(&B[(k + 7) * N + n]), a[7]);
 
         float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
                                             vcvt_f32_f16(vget_low_f16(b0_7_0)));
@@ -1544,17 +1590,15 @@ void sgemm_neon_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
 
   for (; (K - k) >= 4; k += 4) {
     for (unsigned int m = 0; m < M; m++) {
-      __fp16 a0 = alpha * A[m * K + k];
-      __fp16 a1 = alpha * A[m * K + k + 1];
-      __fp16 a2 = alpha * A[m * K + k + 2];
-      __fp16 a3 = alpha * A[m * K + k + 3];
+      // calculating A * alpha;
+      vst1_f16(a, vmul_n_f16(vld1_f16(&A[m * K + k]), alpha));
 
       for (n = 0; (N - n) >= 8; n += 8) {
 
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a0);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a1);
-        float16x8_t b0_7_2 = vmulq_n_f16(vld1q_f16(&B[(k + 2) * N + n]), a2);
-        b0_7_2 = vfmaq_n_f16(b0_7_2, vld1q_f16(&B[(k + 3) * N + n]), a3);
+        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
+        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
+        float16x8_t b0_7_2 = vmulq_n_f16(vld1q_f16(&B[(k + 2) * N + n]), a[2]);
+        b0_7_2 = vfmaq_n_f16(b0_7_2, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
 
         float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
                                             vcvt_f32_f16(vget_low_f16(b0_7_0)));
