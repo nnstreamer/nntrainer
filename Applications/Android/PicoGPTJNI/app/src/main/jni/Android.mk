@@ -7,6 +7,8 @@ ifndef ANDROID_NDK
 $(error ANDROID_NDK is not defined!)
 endif
 
+prepare_encoder := $(shell ($(LOCAL_PATH)/prepare_encoder.sh))
+
 NNTRAINER_ROOT := $(LOCAL_PATH)/nntrainer
 
 LOCAL_MODULE := nntrainer
