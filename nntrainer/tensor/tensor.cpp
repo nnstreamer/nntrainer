@@ -3160,12 +3160,12 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
       if (s_type == Tdatatype::FP32) {
         float scale;
         file.read((char *)&scale, sizeof(float));
-        scale_factors.push_back(scale);
+        scale_factors_32.push_back(scale);
       } else if (s_type == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
         _FP16 scale;
         file.read((char *)&scale, sizeof(_FP16));
-        scale_factors.push_back((float)scale);
+        scale_factors_16.push_back(scale);
 #else
         throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -3650,10 +3650,20 @@ void Tensor::setScaleFactors(std::vector<float> scales) {
     throw std::invalid_argument("Error: invalid parameter");
   }
 
-  scale_factors = scales;
+  scale_factors_32 = scales;
 }
 
-std::vector<float> Tensor::getScaleFactors() const { return scale_factors; }
+#ifdef ENABLE_FP16
+void Tensor::setScaleFactors16(std::vector<_FP16> scales) {
+  if (scales.empty()) {
+    throw std::invalid_argument("Error: invalid parameter");
+  }
+
+  scale_factors_16 = scales;
+}
+#endif
+
+std::vector<float> Tensor::getScaleFactors() const { return scale_factors_32; }
 
 void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
   if (zp.empty()) {
@@ -3664,6 +3674,126 @@ void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
 }
 
 std::vector<uint8_t> Tensor::getZeroPoints() const { return zero_points; }
+
+void Tensor::flate(Tensor &output) const {
+  if (output.getDataType() == Tdatatype::FP32) {
+    float *o_data = output.getData<float>();
+    const uint8_t *data = getData<uint8_t>();
+
+    if (getDataType() == Tdatatype::QINT4) {
+      for (unsigned int i = 0; i < (output.getDim().getDataLen() + 1) / 2;
+           ++i) {
+        unsigned int idx = i * 2;
+        o_data[idx] = data[i] >> 4;
+        if (idx + 1 < output.getDim().getDataLen())
+          o_data[idx + 1] = data[i] & 0x0f;
+      }
+    } else if (getDataType() == Tdatatype::QINT8) {
+      for (unsigned int i = 0; i < output.getDim().getDataLen(); ++i) {
+        o_data[i] = data[i];
+      }
+    }
+  } else if (output.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    _FP16 *o_data = output.getData<_FP16>();
+    const uint8_t *data = getData<uint8_t>();
+
+    if (getDataType() == Tdatatype::QINT8) {
+      for (unsigned int i = 0; i < output.getDim().getDataLen(); ++i) {
+        o_data[i] = data[i];
+      }
+    }
+#else
+    throw std::invalid_argument("enble-fp16 is not set");
+#endif
+  }
+}
+
+void Tensor::dequantize(Tensor &output, unsigned int axis) const {
+  if (getDataType() == Tdatatype::FP32 || getDataType() == Tdatatype::FP16) {
+    throw std::invalid_argument("Error: Tensor cannot be dequantized");
+  }
+
+  if (output.getDataType() == Tdatatype::QINT8 ||
+      output.getDataType() == Tdatatype::QINT4) {
+    throw std::invalid_argument("Error: Target datatype is quantized type");
+  }
+
+  if (getFormat() != output.getFormat())
+    throw std::invalid_argument("Error: TensorType do not match");
+
+  if (batch() != output.batch() || channel() != output.channel() ||
+      width() != output.width() || height() != output.height())
+    throw std::invalid_argument("Error: TensorDim do not match");
+
+  if (output.getDataType() == Tdatatype::FP32 && scale_factors_32.empty()) {
+    throw std::invalid_argument("Error: No scale factors");
+  }
+#ifdef ENABLE_FP16
+  if (output.getDataType() == Tdatatype::FP16 && scale_factors_16.empty()) {
+    throw std::invalid_argument("Error: No scale factors");
+  }
+#endif
+  if (axis == 0 && zero_points.size() != batch()) {
+    throw std::invalid_argument("Error: output axis do not match ");
+  }
+
+  if (axis == 1 && zero_points.size() != channel()) {
+    throw std::invalid_argument("Error: output axis do not match ");
+  }
+
+  if (axis == 2 && zero_points.size() != height()) {
+    throw std::invalid_argument("Error: output axis do not match ");
+  }
+
+  if (axis == 3 && zero_points.size() != width()) {
+    throw std::invalid_argument("Error: output axis do not match ");
+  }
+
+  size_t b = (axis == 0) ? zero_points.size() : 1;
+  size_t c = (axis == 1) ? zero_points.size() : 1;
+  size_t h = (axis == 2) ? zero_points.size() : 1;
+  size_t w = (axis == 3) ? zero_points.size() : 1;
+
+  if (output.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    if (getDataType() == Tdatatype::QINT4) {
+      scopy((size() + 1) / 2, getData<uint8_t>(), 1, output.getData<_FP16>(),
+            1);
+    } else if (getDataType() == Tdatatype::QINT8) {
+      // @todo scopy for qint8
+      flate(output);
+    }
+
+    std::vector<_FP16> zero_points_16(zero_points.begin(), zero_points.end());
+    Tensor zero_points_fp16({{b, c, h, w}, {getFormat(), Tdatatype::FP16}},
+                            zero_points_16.data());
+
+    Tensor scale_factors_fp16({{b, c, h, w}, {getFormat(), Tdatatype::FP16}},
+                              scale_factors_16.data());
+
+    output.subtract_i(zero_points_fp16);
+    output.multiply_i(scale_factors_fp16);
+
+#else
+    throw std::invalid_argument("enble-fp16 is not set");
+#endif
+  } else if (output.getDataType() == Tdatatype::FP32) {
+    // @todo need scopy for uint8 to float
+    flate(output);
+
+    std::vector<float> zero_points_32(zero_points.begin(), zero_points.end());
+    Tensor zero_points_fp32({{b, c, h, w}, {getFormat(), Tdatatype::FP32}},
+                            zero_points_32.data());
+    Tensor scale_factors_fp32({{b, c, h, w}, {getFormat(), Tdatatype::FP32}},
+                              scale_factors_32.data());
+
+    output.subtract_i(zero_points_fp32);
+    output.multiply_i(scale_factors_fp32);
+  }
+
+  return;
+}
 
 // namespace nntrainer
 

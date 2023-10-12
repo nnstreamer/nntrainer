@@ -5801,14 +5801,16 @@ TEST(nntrainer_Tensor, dequantize_01_n) {
   nntrainer::Tensor input(batch, channel, height, width,
                           nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  input.setScaleFactors16({static_cast<_FP16>(1.5), static_cast<_FP16>(1.0),
+                           static_cast<_FP16>(0.5)});
   input.setZeroPoints({1, 4, 7});
 
   nntrainer::Tensor output(batch, channel, height, width,
                            nntrainer::Tformat::NCHW,
                            nntrainer::Tdatatype::FP16);
 
-  EXPECT_THROW({ input.dequantize<_FP16>(output, 1); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -5825,14 +5827,15 @@ TEST(nntrainer_Tensor, dequantize_02_n) {
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
-  input.setScaleFactors({1.5, 1.0, 0.5});
+  input.setScaleFactors16({static_cast<_FP16>(1.5), static_cast<_FP16>(1.0),
+                           static_cast<_FP16>(0.5)});
   input.setZeroPoints({1, 4, 7});
 
   nntrainer::Tensor output(batch, channel, height, width,
                            nntrainer::Tformat::NCHW,
                            nntrainer::Tdatatype::FP16);
 
-  EXPECT_THROW({ input.dequantize<_FP16>(output, 1); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -5853,7 +5856,7 @@ TEST(nntrainer_Tensor, dequantize_03_n) {
                            nntrainer::Tformat::NCHW,
                            nntrainer::Tdatatype::FP16);
 
-  EXPECT_THROW({ input.dequantize<_FP16>(output, 1); }, std::invalid_argument);
+  EXPECT_THROW({ input.dequantize(output, 1); }, std::invalid_argument);
 }
 
 /**
@@ -5869,12 +5872,15 @@ TEST(nntrainer_Tensor, dequantize_04_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
-  input.setScaleFactors({1.5, 1.0, 0.5});
+
+  input.setScaleFactors16({static_cast<_FP16>(1.5), static_cast<_FP16>(1.0),
+                           static_cast<_FP16>(0.5)});
   input.setZeroPoints({0, 0, 0});
 
-  nntrainer::Tensor output;
+  nntrainer::Tensor output(
+    {1, 3, 4, 5, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
 
-  EXPECT_NO_THROW({ output = input.dequantize<_FP16>(1); });
+  EXPECT_NO_THROW({ input.dequantize(output, 1); });
 
   _FP16 answer_data[] = {
     static_cast<_FP16>(1.5), static_cast<_FP16>(1.5), static_cast<_FP16>(1.5),
@@ -5927,9 +5933,10 @@ TEST(nntrainer_Tensor, dequantize_05_p) {
                            nntrainer::Tdatatype::FP16);
 
   // Dequantize by channel
-  EXPECT_NO_THROW(input.setScaleFactors({2, -2, -4}));
+  EXPECT_NO_THROW(input.setScaleFactors16(
+    {static_cast<_FP16>(2), static_cast<_FP16>(-2), static_cast<_FP16>(-4)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 1); });
+  EXPECT_NO_THROW({ input.dequantize(output, 1); });
 
   _FP16 answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
                            -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
@@ -5945,9 +5952,12 @@ TEST(nntrainer_Tensor, dequantize_05_p) {
   EXPECT_EQ(output, answer1);
 
   // Dequantize by height
-  EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4.8}));
+
+  EXPECT_NO_THROW(input.setScaleFactors16(
+    {static_cast<_FP16>(4.2), static_cast<_FP16>(2), static_cast<_FP16>(-2),
+     static_cast<_FP16>(-4.8)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 2); });
+  EXPECT_NO_THROW({ input.dequantize(output, 2); });
 
   _FP16 answer_data_2[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
                            static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
@@ -5987,9 +5997,11 @@ TEST(nntrainer_Tensor, dequantize_05_p) {
   EXPECT_EQ(output, answer2);
 
   // Dequantize by width
-  EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4, 8}));
+  EXPECT_NO_THROW(input.setScaleFactors16(
+    {static_cast<_FP16>(4.2), static_cast<_FP16>(2), static_cast<_FP16>(-2),
+     static_cast<_FP16>(-4), static_cast<_FP16>(8)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 3); });
+  EXPECT_NO_THROW({ input.dequantize(output, 3); });
 
   _FP16 answer_data_3[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
                            static_cast<_FP16>(2),    static_cast<_FP16>(4),
@@ -6051,9 +6063,10 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
                            nntrainer::Tdatatype::FP16);
 
   // Dequantize by channel
-  EXPECT_NO_THROW(input.setScaleFactors({2, -2, -4}));
+  EXPECT_NO_THROW(input.setScaleFactors16(
+    {static_cast<_FP16>(2), static_cast<_FP16>(-2), static_cast<_FP16>(-4)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 1); });
+  EXPECT_NO_THROW({ input.dequantize(output, 1); });
 
   _FP16 answer_data_1[] = {-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
                            -2, -2, -2, -2, -2, -2, -2, -2, 2,  2,  2,  2,
@@ -6069,9 +6082,11 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
   EXPECT_EQ(output, answer1);
 
   // Dequantize by height
-  EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4}));
+  EXPECT_NO_THROW(
+    input.setScaleFactors16({static_cast<_FP16>(4.2), static_cast<_FP16>(2),
+                             static_cast<_FP16>(-2), static_cast<_FP16>(-4)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 2); });
+  EXPECT_NO_THROW({ input.dequantize(output, 2); });
 
   _FP16 answer_data_2[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
                            static_cast<_FP16>(-4.2), static_cast<_FP16>(-4.2),
@@ -6111,9 +6126,11 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
   EXPECT_EQ(output, answer2);
 
   // Dequantize by width
-  EXPECT_NO_THROW(input.setScaleFactors({4.2, 2, -2, -4, 8}));
+  EXPECT_NO_THROW(input.setScaleFactors16(
+    {static_cast<_FP16>(4.2), static_cast<_FP16>(2), static_cast<_FP16>(-2),
+     static_cast<_FP16>(-4), static_cast<_FP16>(8)}));
   EXPECT_NO_THROW(input.setZeroPoints({1, 1, 1, 1, 1}));
-  EXPECT_NO_THROW({ input.dequantize<_FP16>(output, 3); });
+  EXPECT_NO_THROW({ input.dequantize(output, 3); });
 
   _FP16 answer_data_3[] = {static_cast<_FP16>(-4.2), static_cast<_FP16>(-2),
                            static_cast<_FP16>(2),    static_cast<_FP16>(4),
