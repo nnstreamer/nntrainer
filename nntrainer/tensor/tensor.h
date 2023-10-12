@@ -1971,6 +1971,14 @@ public:
    */
   void setZeroPoints(std::vector<uint8_t> zp);
 
+#ifdef ENABLE_FP16
+  /**
+   * @brief     Set fp16 scale factors of the tensor
+   * @param[in] scales fp16 scale factors
+   */
+  void setScaleFactors16(std::vector<_FP16> scales);
+#endif
+
   /**
    * @brief Get zero points of the tensor
    *
@@ -1979,102 +1987,16 @@ public:
   std::vector<uint8_t> getZeroPoints() const;
 
   /**
-   * @brief     Dequantize Tensor
-   * @retval    Dequantized Tensor
-   */
-  template <typename T = float> Tensor dequantize(unsigned int axis) const {
-    Tdatatype dtype =
-      (typeid(T) == typeid(float)) ? Tdatatype::FP32 : Tdatatype::FP16;
-
-    Tensor t =
-      Tensor(batch(), channel(), height(), width(), getFormat(), dtype);
-
-    return dequantize<T>(t, axis);
-  }
-
-  /**
    * @brief      Dequantize Tensor to output tensor datatype
    * @param[out] output Tensor to store the result
-   * @retval     Dequantized Tensor
    */
-  template <typename T>
-  Tensor &dequantize(Tensor &output, unsigned int axis) const {
-    if (getDataType() == Tdatatype::FP32 || getDataType() == Tdatatype::FP16) {
-      throw std::invalid_argument("Error: Tensor cannot be dequantized");
-    }
+  void dequantize(Tensor &output, unsigned int axis) const;
 
-    if (output.getDataType() == Tdatatype::QINT8 ||
-        output.getDataType() == Tdatatype::QINT4) {
-      throw std::invalid_argument("Error: Target datatype is quantized type");
-    }
-
-    if (getFormat() != output.getFormat())
-      throw std::invalid_argument("Error: TensorType do not match");
-
-    if (batch() != output.batch() || channel() != output.channel() ||
-        width() != output.width() || height() != output.height())
-      throw std::invalid_argument("Error: TensorDim do not match");
-
-    if (scale_factors.empty()) {
-      throw std::invalid_argument("Error: No scale factors");
-    }
-
-    if (zero_points.empty()) {
-      throw std::invalid_argument("Error: No zero points");
-    }
-
-    if (axis == 0 && scale_factors.size() != batch() &&
-        zero_points.size() != batch()) {
-      throw std::invalid_argument("Error: output axis do not match ");
-    }
-
-    if (axis == 1 && scale_factors.size() != channel() &&
-        zero_points.size() != channel()) {
-      throw std::invalid_argument("Error: output axis do not match ");
-    }
-
-    if (axis == 2 && scale_factors.size() != height() &&
-        zero_points.size() != height()) {
-      throw std::invalid_argument("Error: output axis do not match ");
-    }
-
-    if (axis == 3 && scale_factors.size() != width() &&
-        zero_points.size() != width()) {
-      throw std::invalid_argument("Error: output axis do not match ");
-    }
-
-    int idx = 0;
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          for (unsigned int w = 0; w < width(); ++w) {
-            if (axis == 0)
-              idx = b;
-            else if (axis == 1)
-              idx = c;
-            else if (axis == 2)
-              idx = h;
-            else if (axis == 3)
-              idx = w;
-
-            if (getDataType() == Tdatatype::QINT8) {
-              output.setValue(
-                b, c, h, w,
-                (T)(getValue<uint8_t>(b, c, h, w) - zero_points[idx]) *
-                  scale_factors[idx]);
-            } else {
-              output.setValue(
-                b, c, h, w,
-                (T)(getValueQint4(b, c, h, w) - zero_points[idx]) *
-                  scale_factors[idx]);
-            }
-          }
-        }
-      }
-    }
-
-    return output;
-  }
+  /**
+   * @brief      copy QINT Tensor and save to output tensor
+   * @param[out] output Tensor to store the result
+   */
+  void flate(Tensor &output) const;
 
   static constexpr float epsilon = 1e-5;
 
@@ -2087,7 +2009,10 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
-  std::vector<float> scale_factors;
+  std::vector<float> scale_factors_32;
+#ifdef ENABLE_FP16
+  std::vector<_FP16> scale_factors_16;
+#endif
   std::vector<uint8_t> zero_points;
 
   /**<
