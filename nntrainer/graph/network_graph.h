@@ -21,12 +21,13 @@
 #include <stack>
 #include <vector>
 
-#include <execution_mode.h>
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
 
 namespace nntrainer {
+
+using ExecutionMode = ml::train::ExecutionMode;
 
 class Connection;
 /**
@@ -299,7 +300,8 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int initialize(const std::vector<Connection> &model_input_names = {},
+  int initialize(ExecutionMode mode = ExecutionMode::TRAIN,
+                 const std::vector<Connection> &model_input_names = {},
                  const std::vector<Connection> &model_label_names = {});
 
   /**

@@ -30,13 +30,18 @@
 #include <vector>
 
 #include <basic_planner.h>
+#include <common.h>
 #include <graph_node.h>
 #include <tensor_pool.h>
 #include <var_grad.h>
 #include <weight.h>
 
-namespace nntrainer {
+namespace ml::train {
+enum class ExecutionMode;
+}
 
+namespace nntrainer {
+using ExecutionMode = ml::train::ExecutionMode;
 /**
  * @class MMappedMemory
  * @brief Memory Handler, that has mmaped memory with a file descriptor
@@ -484,6 +489,13 @@ public:
    */
   void reinitialize();
 
+  /**
+   * @brief     set Execution Mode
+   */
+  void setExecutionMode(ExecutionMode mode = ExecutionMode::TRAIN) {
+    exec_mode = mode;
+  };
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
@@ -516,6 +528,8 @@ private:
   std::string tensor_format;
 
   std::vector<std::string> tensor_dtype;
+
+  ExecutionMode exec_mode;
 
   /**
    * @brief Finalize the given tensor pool

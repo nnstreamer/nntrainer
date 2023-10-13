@@ -61,9 +61,12 @@ if get_option('enable-fp16')
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
+     extra_defines += '-DUSE_NEON=1'
    elif arch == 'aarch64' or arch =='arm'
+     add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
+     extra_defines += '-DUSE_NEON=0'
    else
      has_avx512fp16 = cc.has_argument('-mavx512fp16')
      if (has_avx512fp16)

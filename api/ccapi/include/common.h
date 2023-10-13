@@ -33,6 +33,15 @@ enum class ExportMethods {
   METHOD_UNDEFINED = 999,  /**< undefined */
 };
 
+/**
+ * @brief   class telling the execution mode of the model/operation
+ */
+enum class ExecutionMode {
+  TRAIN,     /** Training mode, label is necessary */
+  INFERENCE, /** Inference mode, label is optional */
+  VALIDATE   /** Validate mode, label is necessary */
+};
+
 } // namespace train
 } // namespace ml
 

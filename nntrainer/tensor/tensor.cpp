@@ -2666,6 +2666,8 @@ void Tensor::print(std::ostream &out) const {
 
     std::ios init(NULL);
     init.copyfmt(out);
+    float max_ = 0.0;
+    float min_ = 10000000;
     if (getFormat() == Tformat::NCHW) {
       for (unsigned int k = 0; k < batch(); k++) {
         for (unsigned int l = 0; l < channel(); l++) {

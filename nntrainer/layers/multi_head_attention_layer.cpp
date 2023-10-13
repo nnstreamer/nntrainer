@@ -91,9 +91,9 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_height = query_dim.height();
   const unsigned int query_width = query_dim.width();
-  const unsigned int key_height = 50;
+  const unsigned int key_height = key_dim.height();
   const unsigned int key_width = key_dim.width();
-  const unsigned int value_height = 50;
+  const unsigned int value_height = value_dim.height();
   const unsigned int value_width = value_dim.width();
 
   const bool disable_bias =
@@ -262,24 +262,21 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     activation_type);
   weight_idx[AttentionParams::projected_query] = context.requestTensor(
     projected_query_dim, "projected_query", Tensor::Initializer::NONE, true,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  /* TensorLifespan::ITERATION_LIFESPAN); */
+    TensorLifespan::ITERATION_LIFESPAN);
   /** tensor for output of key fc */
   TensorDim projected_key_dim(
     {batch_size, 1, key_height, num_heads * projected_key_dim_prop},
     activation_type);
   weight_idx[AttentionParams::projected_key] = context.requestTensor(
     projected_key_dim, "projected_key", Tensor::Initializer::NONE, true,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  /* TensorLifespan::ITERATION_LIFESPAN); */
+    TensorLifespan::ITERATION_LIFESPAN);
   /** tensor for output of value fc */
   TensorDim projected_value_dim(
     {batch_size, 1, value_height, num_heads * projected_value_dim_prop},
     activation_type);
   weight_idx[AttentionParams::projected_value] = context.requestTensor(
     projected_value_dim, "projected_value", Tensor::Initializer::NONE, true,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  // TensorLifespan::ITERATION_LIFESPAN);
+    TensorLifespan::ITERATION_LIFESPAN);
 
   weight_idx[AttentionParams::cache_key] = context.requestTensor(
     projected_key_dim, "cache_key", Tensor::Initializer::NONE, true,
@@ -302,16 +299,14 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     {batch_size, num_heads, query_height, key_height}, activation_type);
   weight_idx[AttentionParams::attention_weight] = context.requestTensor(
     attention_weight_dim, "attention_weight", Tensor::Initializer::NONE, true,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  /* TensorLifespan::ITERATION_LIFESPAN); */
+    TensorLifespan::ITERATION_LIFESPAN);
   if (dropout_rate > epsilon) {
     /** tensor for dropout mask */
     TensorDim dropout_mask_dim(
       {batch_size, num_heads, query_height, key_height}, activation_type);
     weight_idx[AttentionParams::dropout_mask] = context.requestTensor(
       dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    /* TensorLifespan::ITERATION_LIFESPAN); */
+      TensorLifespan::ITERATION_LIFESPAN);
   }
 
   /** tensor for attention output */
@@ -320,8 +315,7 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     activation_type);
   weight_idx[AttentionParams::attention_output] = context.requestTensor(
     attention_output_dim, "attention_output", Tensor::Initializer::NONE, true,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-  /* TensorLifespan::ITERATION_LIFESPAN); */
+    TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim output_dim({batch_size, 1, query_height, output_shape},
                        activation_type);
@@ -645,8 +639,8 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
 
   projected_key_step_dim.height(to);
   projected_value_step_dim.height(to);
-  cache_key_step_dim.height(1);
-  cache_value_step_dim.height(1);
+  cache_key_step_dim.height(to - from);
+  cache_value_step_dim.height(to - from);
 
   Tensor projected_query_step =
     projected_query.getSharedDataTensor(projected_query_step_dim, 0, true);
@@ -677,7 +671,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   TensorDim attention_weight_dim = attention_weight.getDim();
 
   TensorDim attention_weight_step_dim = attention_weight_dim;
-  attention_weight_step_dim.height(1);
+  attention_weight_step_dim.height(to - from);
   attention_weight_step_dim.width(to);
 
   Tensor attention_weight_step =
@@ -685,7 +679,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
 
   TensorDim attention_output_dim = attention_output.getDim();
   TensorDim attention_output_step_dim = attention_output_dim;
-  attention_output_step_dim.height(1);
+  attention_output_step_dim.height(to - from);
 
   Tensor attention_output_step =
     attention_output.getSharedDataTensor(attention_output_step_dim, 0, true);

@@ -28,7 +28,9 @@ tensor_headers = [
 arch = target_machine.cpu_family()
 
 if get_option('platform') == 'android' or arch == 'aarch64' or arch =='arm'
+if get_option('platform') != 'tizen'
   tensor_sources += 'blas_neon.cpp'
+endif  
 endif
 
 foreach s : tensor_sources

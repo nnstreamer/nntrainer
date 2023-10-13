@@ -200,7 +200,7 @@ int NeuralNetwork::compile() {
   return status;
 }
 
-int NeuralNetwork::initialize() {
+int NeuralNetwork::initialize(ExecutionMode mode) {
   int status = ML_ERROR_NONE;
 
   if (initialized) {
@@ -233,7 +233,7 @@ int NeuralNetwork::initialize() {
   }
 
   status = model_graph.initialize(
-    input_conn,
+    mode, input_conn,
     std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
 
