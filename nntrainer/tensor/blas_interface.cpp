@@ -15,7 +15,7 @@
 #include <blas_interface.h>
 #include <nntrainer_error.h>
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && defined USE_NEON)
 #include <blas_neon.h>
 #endif
 
@@ -80,7 +80,7 @@ static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
     throw std::invalid_argument(
       "Error: negative inc not supported without cblas");
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   // USE__FP16 is defined when platform is android
   if (incX == 1 && incY == 1) {
     nntrainer::neon::saxpy_neon_fp16(N, alpha, X, Y);
@@ -102,13 +102,13 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   unsigned int incx = abs(incX);
 
   if (TransA == CblasTrans) {
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
     nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
 #else
     sgemv_loop_fp16(i, j, N, M);
 #endif
   } else {
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
     nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
 #else
     sgemv_loop_fp16(j, i, M, N);
@@ -125,7 +125,7 @@ static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
 
   _FP16 ret = 0;
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
     ret = nntrainer::neon::sdot_neon_fp16(N, X, Y);
   } else {
@@ -146,7 +146,7 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
     nntrainer::neon::scopy_neon_fp16(N, X, Y);
   } else {
@@ -164,7 +164,7 @@ static void scopy_INT4(const unsigned int N, const uint8_t *X, const int incX,
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
     nntrainer::neon::scopy_neon_int4_to_fp16(N, X, Y);
   } else {
@@ -181,7 +181,7 @@ static void scopy_INT4(const unsigned int N, const uint8_t *X, const int incX,
 
 static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
@@ -191,7 +191,7 @@ static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 
 static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
@@ -201,7 +201,7 @@ static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1) {
     nntrainer::neon::sscal_neon_fp16(N, X, alpha);
   } else {
@@ -218,7 +218,7 @@ static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
   _FP16 sum = 0;
   _FP16 tmp;
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1) {
     sum = nntrainer::neon::snrm2_neon_fp16(N, X);
   } else {
@@ -244,7 +244,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldb, const float beta, _FP16 *C,
                        const unsigned int ldc) {
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
                                    TransA == CblasTrans, TransB == CblasTrans);
 #else
@@ -256,7 +256,7 @@ static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
                                 const int incX) {
   unsigned int max_idx = 0;
 
-#ifdef USE__FP16
+#if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && N >= 8) {
     max_idx = nntrainer::neon::isamax_neon_fp16(N, X);
   } else {

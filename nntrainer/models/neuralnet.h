@@ -37,7 +37,6 @@
 #include <common_properties.h>
 #include <compiler_fwd.h>
 #include <dynamic_training_optimization.h>
-#include <execution_mode.h>
 #include <layer_node.h>
 #include <model_common_properties.h>
 #include <network_graph.h>
@@ -53,6 +52,7 @@ namespace ml::train {
 class DataSet;
 enum class DatasetType;
 enum class DatasetModeType;
+enum class ExecutionMode;
 } // namespace ml::train
 
 namespace nntrainer {
@@ -63,6 +63,7 @@ class Exporter;
  * @brief     Enumeration of Network Type
  */
 using NetType = ml::train::ModelType;
+using ExecutionMode = ml::train::ExecutionMode;
 
 class DataBuffer;
 using DatasetType = ml::train::DatasetType;
@@ -177,7 +178,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize() override;
+  int initialize(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     Reinitialize Network. This should be called after initialize

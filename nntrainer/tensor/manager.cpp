@@ -476,6 +476,7 @@ std::vector<Var_Grad *> Manager::requestTensors(
 
   std::vector<Var_Grad *> ret;
   size_t current_size = tensors_v2.size();
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
 
   for (unsigned int i = 0; i < tensors_spec.size(); ++i) {
     auto const &[dim, t_init, need_grad, name, tspan] = tensors_spec.at(i);
@@ -488,18 +489,19 @@ std::vector<Var_Grad *> Manager::requestTensors(
       var_exec_order.push_back(forwarding_order);
 
     /** usage for tensors gradient in backwarding */
-    if (trainable &&
+    if (trainable && is_train_mode &&
         enum_class_logical_and(tspan, TensorLifespan::CALC_GRAD_LIFESPAN)) {
       var_exec_order.push_back(calcGradient_order);
       grad_exec_order.push_back(calcGradient_order);
     }
 
-    if (enum_class_logical_and(tspan, TensorLifespan::CALC_DERIV_LIFESPAN)) {
+    if (is_train_mode &&
+        enum_class_logical_and(tspan, TensorLifespan::CALC_DERIV_LIFESPAN)) {
       var_exec_order.push_back(calcDerivative_order);
       grad_exec_order.push_back(calcDerivative_order);
     }
 
-    if (trainable &&
+    if (trainable && is_train_mode &&
         enum_class_logical_and(tspan, TensorLifespan::CALC_AGRAD_LIFESPAN)) {
       var_exec_order.push_back(applyGradient_order);
       grad_exec_order.push_back(applyGradient_order);

@@ -499,6 +499,8 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * layer (as that will be the last layer to executed in the backwarding)
      * and pass that as the max_exec_order ensuring that all tensors with
      * usage less than the max_exec_order are allocated.
+     * @todo if model is gradient clipping, we have to add last execution order
+     * + 1
      */
     tensor_manager->allocateTensors(
       std::get<3>(backward_iter_end->getExecutionOrder()));
@@ -1087,9 +1089,12 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
 
 #endif // ENABLE_TEST
 
-int NetworkGraph::initialize(const std::vector<Connection> &model_input_names,
+int NetworkGraph::initialize(ExecutionMode mode,
+                             const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {
 
+  exec_mode = mode;
+  tensor_manager->setExecutionMode(mode);
   /**
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
