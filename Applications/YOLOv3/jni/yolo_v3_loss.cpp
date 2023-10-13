@@ -794,10 +794,10 @@ unsigned int YoloV3LossLayer::find_responsible_anchors(float bbox_ratio) {
   nntrainer::Tensor similarity = anchors_ratio.subtract(bbox_ratio);
   auto data_type = similarity.getDataType();
   if (data_type == ml::train::TensorDim::DataType::FP32) {
-    similarity.apply_i<float>(nntrainer::absFloat);
+    similarity.apply_i<float>(nntrainer::absFloat<float>);
   } else if (data_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    similarity.apply_i<_FP16>(nntrainer::absFloat);
+    similarity.apply_i<_FP16>(nntrainer::absFloat<_FP16>);
 #else
     throw std::runtime_error("Not supported data type");
 #endif
