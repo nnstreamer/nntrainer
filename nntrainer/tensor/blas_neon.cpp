@@ -276,6 +276,7 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
 
 void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta) {
+  const int batch = 0;
   const __fp16 *__restrict x;
   float Y32[rows];
 
@@ -301,155 +302,163 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
   }
 
   idx = 0;
-  for (; cols - idx >= 120; idx += 120) {
-    float16x8_t x0_7 = vld1q_f16(&X[idx]);
-    float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
-    float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
-    float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
+  if (cols / 120 >= batch) {
+    for (; cols - idx >= 120; idx += 120) {
+      float16x8_t x0_7 = vld1q_f16(&X[idx]);
+      float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
 
-    float16x8_t x32_39 = vld1q_f16(&X[idx + 32]);
-    float16x8_t x40_47 = vld1q_f16(&X[idx + 40]);
-    float16x8_t x48_55 = vld1q_f16(&X[idx + 48]);
-    float16x8_t x56_63 = vld1q_f16(&X[idx + 56]);
+      float16x8_t x32_39 = vld1q_f16(&X[idx + 32]);
+      float16x8_t x40_47 = vld1q_f16(&X[idx + 40]);
+      float16x8_t x48_55 = vld1q_f16(&X[idx + 48]);
+      float16x8_t x56_63 = vld1q_f16(&X[idx + 56]);
 
-    float16x8_t x64_71 = vld1q_f16(&X[idx + 64]);
-    float16x8_t x72_79 = vld1q_f16(&X[idx + 72]);
-    float16x8_t x80_87 = vld1q_f16(&X[idx + 80]);
+      float16x8_t x64_71 = vld1q_f16(&X[idx + 64]);
+      float16x8_t x72_79 = vld1q_f16(&X[idx + 72]);
+      float16x8_t x80_87 = vld1q_f16(&X[idx + 80]);
 
-    float16x8_t x88_95 = vld1q_f16(&X[idx + 88]);
-    float16x8_t x96_103 = vld1q_f16(&X[idx + 96]);
-    float16x8_t x104_111 = vld1q_f16(&X[idx + 104]);
-    float16x8_t x112_120 = vld1q_f16(&X[idx + 112]);
+      float16x8_t x88_95 = vld1q_f16(&X[idx + 88]);
+      float16x8_t x96_103 = vld1q_f16(&X[idx + 96]);
+      float16x8_t x104_111 = vld1q_f16(&X[idx + 104]);
+      float16x8_t x112_120 = vld1q_f16(&X[idx + 112]);
 
-    if (alpha != 1.0) {
-      x0_7 = vmulq_n_f16(x0_7, alpha);
-      x8_15 = vmulq_n_f16(x8_15, alpha);
-      x16_23 = vmulq_n_f16(x16_23, alpha);
-      x24_31 = vmulq_n_f16(x24_31, alpha);
-      x32_39 = vmulq_n_f16(x32_39, alpha);
-      x40_47 = vmulq_n_f16(x40_47, alpha);
-      x48_55 = vmulq_n_f16(x48_55, alpha);
-      x56_63 = vmulq_n_f16(x56_63, alpha);
+      if (alpha != 1.0) {
+        x0_7 = vmulq_n_f16(x0_7, alpha);
+        x8_15 = vmulq_n_f16(x8_15, alpha);
+        x16_23 = vmulq_n_f16(x16_23, alpha);
+        x24_31 = vmulq_n_f16(x24_31, alpha);
+        x32_39 = vmulq_n_f16(x32_39, alpha);
+        x40_47 = vmulq_n_f16(x40_47, alpha);
+        x48_55 = vmulq_n_f16(x48_55, alpha);
+        x56_63 = vmulq_n_f16(x56_63, alpha);
 
-      x64_71 = vmulq_n_f16(x64_71, alpha);
-      x72_79 = vmulq_n_f16(x72_79, alpha);
-      x80_87 = vmulq_n_f16(x80_87, alpha);
-      x88_95 = vmulq_n_f16(x88_95, alpha);
-      x96_103 = vmulq_n_f16(x96_103, alpha);
-      x104_111 = vmulq_n_f16(x104_111, alpha);
-      x112_120 = vmulq_n_f16(x112_120, alpha);
-    }
+        x64_71 = vmulq_n_f16(x64_71, alpha);
+        x72_79 = vmulq_n_f16(x72_79, alpha);
+        x80_87 = vmulq_n_f16(x80_87, alpha);
+        x88_95 = vmulq_n_f16(x88_95, alpha);
+        x96_103 = vmulq_n_f16(x96_103, alpha);
+        x104_111 = vmulq_n_f16(x104_111, alpha);
+        x112_120 = vmulq_n_f16(x112_120, alpha);
+      }
 
-    const __fp16 *__restrict w;
+      const __fp16 *__restrict w;
 
-    for (unsigned int j = 0; j < rows; ++j) {
-      w = &A[j * cols + idx];
-      float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
-      y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
-      y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
-      y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + idx];
+        float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
+        y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
+        y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
+        y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
 
-      y = vfmaq_f16(y, vld1q_f16(&w[32]), x32_39);
-      y = vfmaq_f16(y, vld1q_f16(&w[40]), x40_47);
-      y = vfmaq_f16(y, vld1q_f16(&w[48]), x48_55);
-      y = vfmaq_f16(y, vld1q_f16(&w[56]), x56_63);
+        y = vfmaq_f16(y, vld1q_f16(&w[32]), x32_39);
+        y = vfmaq_f16(y, vld1q_f16(&w[40]), x40_47);
+        y = vfmaq_f16(y, vld1q_f16(&w[48]), x48_55);
+        y = vfmaq_f16(y, vld1q_f16(&w[56]), x56_63);
 
-      y = vfmaq_f16(y, vld1q_f16(&w[64]), x64_71);
-      y = vfmaq_f16(y, vld1q_f16(&w[72]), x72_79);
-      y = vfmaq_f16(y, vld1q_f16(&w[80]), x80_87);
+        y = vfmaq_f16(y, vld1q_f16(&w[64]), x64_71);
+        y = vfmaq_f16(y, vld1q_f16(&w[72]), x72_79);
+        y = vfmaq_f16(y, vld1q_f16(&w[80]), x80_87);
 
-      y = vfmaq_f16(y, vld1q_f16(&w[88]), x88_95);
-      y = vfmaq_f16(y, vld1q_f16(&w[96]), x96_103);
-      y = vfmaq_f16(y, vld1q_f16(&w[104]), x104_111);
-      y = vfmaq_f16(y, vld1q_f16(&w[112]), x112_120);
+        y = vfmaq_f16(y, vld1q_f16(&w[88]), x88_95);
+        y = vfmaq_f16(y, vld1q_f16(&w[96]), x96_103);
+        y = vfmaq_f16(y, vld1q_f16(&w[104]), x104_111);
+        y = vfmaq_f16(y, vld1q_f16(&w[112]), x112_120);
 
-      Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
-                vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
-    }
-  }
-  for (; cols - idx >= 64; idx += 64) {
-    float16x8_t x0_7 = vld1q_f16(&X[idx]);
-    float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
-    float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
-    float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
-
-    float16x8_t x32_39 = vld1q_f16(&X[idx + 32]);
-    float16x8_t x40_47 = vld1q_f16(&X[idx + 40]);
-    float16x8_t x48_55 = vld1q_f16(&X[idx + 48]);
-    float16x8_t x56_63 = vld1q_f16(&X[idx + 56]);
-
-    if (alpha != 1.0) {
-      x0_7 = vmulq_n_f16(x0_7, alpha);
-      x8_15 = vmulq_n_f16(x8_15, alpha);
-      x16_23 = vmulq_n_f16(x16_23, alpha);
-      x24_31 = vmulq_n_f16(x24_31, alpha);
-      x32_39 = vmulq_n_f16(x32_39, alpha);
-      x40_47 = vmulq_n_f16(x40_47, alpha);
-      x48_55 = vmulq_n_f16(x48_55, alpha);
-      x56_63 = vmulq_n_f16(x56_63, alpha);
-    }
-
-    const __fp16 *__restrict w;
-
-    for (unsigned int j = 0; j < rows; ++j) {
-      w = &A[j * cols + idx];
-      float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
-      y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
-      y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
-      y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
-
-      y = vfmaq_f16(y, vld1q_f16(&w[32]), x32_39);
-      y = vfmaq_f16(y, vld1q_f16(&w[40]), x40_47);
-      y = vfmaq_f16(y, vld1q_f16(&w[48]), x48_55);
-      y = vfmaq_f16(y, vld1q_f16(&w[56]), x56_63);
-
-      Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
-                vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+        Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
+                  vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      }
     }
   }
-  for (; cols - idx >= 32; idx += 32) {
-    float16x8_t x0_7 = vld1q_f16(&X[idx]);
-    float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
-    float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
-    float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
+  if (cols / 64 >= batch) {
+    for (; cols - idx >= 64; idx += 64) {
+      float16x8_t x0_7 = vld1q_f16(&X[idx]);
+      float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
 
-    if (alpha != 1.0) {
-      x0_7 = vmulq_n_f16(x0_7, alpha);
-      x8_15 = vmulq_n_f16(x8_15, alpha);
-      x16_23 = vmulq_n_f16(x16_23, alpha);
-      x24_31 = vmulq_n_f16(x24_31, alpha);
-    }
+      float16x8_t x32_39 = vld1q_f16(&X[idx + 32]);
+      float16x8_t x40_47 = vld1q_f16(&X[idx + 40]);
+      float16x8_t x48_55 = vld1q_f16(&X[idx + 48]);
+      float16x8_t x56_63 = vld1q_f16(&X[idx + 56]);
 
-    const __fp16 *__restrict w;
+      if (alpha != 1.0) {
+        x0_7 = vmulq_n_f16(x0_7, alpha);
+        x8_15 = vmulq_n_f16(x8_15, alpha);
+        x16_23 = vmulq_n_f16(x16_23, alpha);
+        x24_31 = vmulq_n_f16(x24_31, alpha);
+        x32_39 = vmulq_n_f16(x32_39, alpha);
+        x40_47 = vmulq_n_f16(x40_47, alpha);
+        x48_55 = vmulq_n_f16(x48_55, alpha);
+        x56_63 = vmulq_n_f16(x56_63, alpha);
+      }
 
-    for (unsigned int j = 0; j < rows; ++j) {
-      w = &A[j * cols + idx];
-      float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
-      y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
-      y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
-      y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
+      const __fp16 *__restrict w;
 
-      Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
-                vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + idx];
+        float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
+        y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
+        y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
+        y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
+
+        y = vfmaq_f16(y, vld1q_f16(&w[32]), x32_39);
+        y = vfmaq_f16(y, vld1q_f16(&w[40]), x40_47);
+        y = vfmaq_f16(y, vld1q_f16(&w[48]), x48_55);
+        y = vfmaq_f16(y, vld1q_f16(&w[56]), x56_63);
+
+        Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
+                  vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      }
     }
   }
-  for (; cols - idx >= 16; idx += 16) {
-    float16x8_t x0_7 = vld1q_f16(&X[idx]);
-    float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
+  if (cols / 32 >= batch) {
+    for (; cols - idx >= 32; idx += 32) {
+      float16x8_t x0_7 = vld1q_f16(&X[idx]);
+      float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
+      float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
+      float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
 
-    if (alpha != 1.0) {
-      x0_7 = vmulq_n_f16(x0_7, alpha);
-      x8_15 = vmulq_n_f16(x8_15, alpha);
+      if (alpha != 1.0) {
+        x0_7 = vmulq_n_f16(x0_7, alpha);
+        x8_15 = vmulq_n_f16(x8_15, alpha);
+        x16_23 = vmulq_n_f16(x16_23, alpha);
+        x24_31 = vmulq_n_f16(x24_31, alpha);
+      }
+
+      const __fp16 *__restrict w;
+
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + idx];
+        float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
+        y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
+        y = vfmaq_f16(y, vld1q_f16(&w[16]), x16_23);
+        y = vfmaq_f16(y, vld1q_f16(&w[24]), x24_31);
+
+        Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
+                  vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      }
     }
+  }
+  if (cols / 16 >= batch) {
+    for (; cols - idx >= 16; idx += 16) {
+      float16x8_t x0_7 = vld1q_f16(&X[idx]);
+      float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
 
-    const __fp16 *__restrict w;
-    for (unsigned int j = 0; j < rows; ++j) {
-      w = &A[j * cols + idx];
-      float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
-      y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
+      if (alpha != 1.0) {
+        x0_7 = vmulq_n_f16(x0_7, alpha);
+        x8_15 = vmulq_n_f16(x8_15, alpha);
+      }
 
-      Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
-                vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      const __fp16 *__restrict w;
+      for (unsigned int j = 0; j < rows; ++j) {
+        w = &A[j * cols + idx];
+        float16x8_t y = vmulq_f16(vld1q_f16(&w[0]), x0_7);
+        y = vfmaq_f16(y, vld1q_f16(&w[8]), x8_15);
+
+        Y32[j] += vaddvq_f32(vcvt_f32_f16(vget_low_f16(y))) +
+                  vaddvq_f32(vcvt_f32_f16(vget_high_f16(y)));
+      }
     }
   }
   for (; cols - idx >= 8; idx += 8) {
@@ -471,32 +480,32 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
     }
   }
   for (; cols - idx >= 4; idx += 4) {
-    float16x4_t x0_3 = vld1_f16(&X[idx]);
+    float32x4_t x0_3 = vcvt_f32_f16(vld1_f16(&X[idx]));
 
     if (alpha != 1.0) {
-      x0_3 = vmul_n_f16(x0_3, alpha);
+      x0_3 = vmulq_n_f32(x0_3, alpha);
     }
 
     const __fp16 *__restrict w;
 
     for (unsigned int j = 0; j < rows; ++j) {
       w = &A[j * cols + idx];
-      float16x4_t wvec0_3 = (vld1_f16(&w[0]));
-      float16x4_t y0 = vmul_f16(wvec0_3, x0_3);
+      float32x4_t wvec0_3 = vcvt_f32_f16(vld1_f16(&w[0]));
+      float32x4_t y0 = vmulq_f32(wvec0_3, x0_3);
 
-      Y32[j] += vaddvq_f32(vcvt_f32_f16(y0));
+      Y32[j] += vaddvq_f32(y0);
     }
   }
 
   // now, cols - idx is under 4 : 0 1 2 3 = cols - idx
   if (cols != idx) {
-    float16x4_t x0_3 = vld1_f16(&X[idx]);
+    float32x4_t x0_3 = vcvt_f32_f16(vld1_f16(&X[idx]));
     for (int j = cols - idx; j < 4; ++j) {
       x0_3[j] = 0;
     }
 
     if (alpha != 1.0) {
-      x0_3 = vmul_n_f16(x0_3, alpha);
+      x0_3 = vmulq_n_f32(x0_3, alpha);
     }
 
     const __fp16 *__restrict w;
@@ -505,13 +514,13 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
 
     for (unsigned int j = 0; j < rows; ++j) {
       w = &A[j * cols + idx];
-      float16x4_t wvec0_3 = vld1_f16(&w[0]);
+      float32x4_t wvec0_3 = vcvt_f32_f16(vld1_f16(&w[0]));
 
       for (int k = cols - idx; k < 4; ++k) {
         wvec0_3[k] = 0;
       }
 
-      float16x4_t y0 = vmul_f16(wvec0_3, x0_3);
+      float32x4_t y0 = vmulq_f32(wvec0_3, x0_3);
 
       for (int k = 0; k < cols - idx; ++k) {
         Y32[j] += y0[k];
@@ -527,6 +536,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
                                uint32_t rows, uint32_t cols, float alpha,
                                float beta) {
   float Y32[cols];
+  const int batch = 20;
   unsigned int idx = 0;
   for (; cols - idx >= 8; idx += 8) {
     float32x4_t y0_3_32 = vcvt_f32_f16(vld1_f16(&Y[idx]));
@@ -546,7 +556,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
   for (; cols - idx >= 1; idx += 1) {
     Y32[idx] = beta * Y[idx];
   }
-  if (rows % 16 == 0) {
+  if (rows % 16 == 0 && rows / 16 >= batch && cols % 4 == 0) {
     for (unsigned int i = 0; i < rows; i += 16) {
       __fp16 x = alpha * (X[i]);
       __fp16 x2 = alpha * (X[i + 1]);
@@ -614,13 +624,6 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
       for (; cols - idx >= 4; idx += 4) {
 
         float32x4_t y0_3 = vld1q_f32(&Y32[idx]);
-        float32x4_t wvec0_3_32 = vcvt_f32_f16(vld1_f16(&A[i * cols + idx]));
-        float32x4_t w2vec0_3_32 =
-          vcvt_f32_f16(vld1_f16(&A[(i + 1) * cols + idx]));
-        float32x4_t w3vec0_3_32 =
-          vcvt_f32_f16(vld1_f16(&A[(i + 2) * cols + idx]));
-        float32x4_t w4vec0_3_32 =
-          vcvt_f32_f16(vld1_f16(&A[(i + 3) * cols + idx]));
 
         y0_3 = vfmaq_n_f32(y0_3, vcvt_f32_f16(vld1_f16(&A[i * cols + idx])), x);
         y0_3 = vfmaq_n_f32(
@@ -667,22 +670,23 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
 
         unsigned int k = 0;
         for (; k < cols - idx; ++k) {
+
           y0_3_0[k] = Y32[idx + k];
 
           v0[k] = A[i * cols + idx + k];
-          v1[k] = A[(i + 1) * cols + idx + k],
+          v1[k] = A[(i + 1) * cols + idx + k];
           v2[k] = A[(i + 2) * cols + idx + k];
-          v3[k] = A[(i + 3) * cols + idx + k],
+          v3[k] = A[(i + 3) * cols + idx + k];
           v4[k] = A[(i + 4) * cols + idx + k];
-          v5[k] = A[(i + 5) * cols + idx + k],
+          v5[k] = A[(i + 5) * cols + idx + k];
           v6[k] = A[(i + 6) * cols + idx + k];
-          v7[k] = A[(i + 7) * cols + idx + k],
+          v7[k] = A[(i + 7) * cols + idx + k];
           v8[k] = A[(i + 8) * cols + idx + k];
-          v9[k] = A[(i + 9) * cols + idx + k],
+          v9[k] = A[(i + 9) * cols + idx + k];
           v10[k] = A[(i + 10) * cols + idx + k];
-          v11[k] = A[(i + 11) * cols + idx + k],
+          v11[k] = A[(i + 11) * cols + idx + k];
           v12[k] = A[(i + 12) * cols + idx + k];
-          v13[k] = A[(i + 13) * cols + idx + k],
+          v13[k] = A[(i + 13) * cols + idx + k];
           v15[k] = A[(i + 15) * cols + idx + k];
         }
         for (; k < 4; ++k) {
@@ -695,6 +699,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         }
 
         float32x4_t y0_3 = vld1q_f32(y0_3_0);
+        float32x4_t y0_3_tmp = vmovq_n_f32(0);
 
         y0_3 = vfmaq_n_f32(y0_3, vld1q_f32(v0), x);
         y0_3 = vfmaq_n_f32(y0_3, vld1q_f32(v1), x2);
@@ -718,16 +723,16 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         }
       }
     }
-  } else if (rows % 8 == 0) {
+  } else if (rows % 8 == 0 && rows / 8 >= batch) {
     for (unsigned int i = 0; i < rows; i += 8) {
-      __fp16 x = alpha * (X[i]);
-      __fp16 x2 = alpha * (X[i + 1]);
-      __fp16 x3 = alpha * (X[i + 2]);
-      __fp16 x4 = alpha * (X[i + 3]);
-      __fp16 x5 = alpha * (X[i + 4]);
-      __fp16 x6 = alpha * (X[i + 5]);
-      __fp16 x7 = alpha * (X[i + 6]);
-      __fp16 x8 = alpha * (X[i + 7]);
+      __fp16 x = alpha * X[i];
+      __fp16 x2 = alpha * X[i + 1];
+      __fp16 x3 = alpha * X[i + 2];
+      __fp16 x4 = alpha * X[i + 3];
+      __fp16 x5 = alpha * X[i + 4];
+      __fp16 x6 = alpha * X[i + 5];
+      __fp16 x7 = alpha * X[i + 6];
+      __fp16 x8 = alpha * X[i + 7];
 
       idx = 0;
       for (; cols - idx >= 8; idx += 8) {
@@ -740,13 +745,13 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
           vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 3) * cols + idx]), x4);
 
         float16x8_t w2vec0_7_f16 =
-          vmulq_n_f16(vld1q_f16(&A[(i + 4) * cols + idx]), x3);
+          vmulq_n_f16(vld1q_f16(&A[(i + 4) * cols + idx]), x5);
         w2vec0_7_f16 =
-          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 5) * cols + idx]), x4);
+          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 5) * cols + idx]), x6);
         w2vec0_7_f16 =
-          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 6) * cols + idx]), x5);
+          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 6) * cols + idx]), x7);
         w2vec0_7_f16 =
-          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 7) * cols + idx]), x6);
+          vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 7) * cols + idx]), x8);
 
         float32x4_t y0_3 = vaddq_f32(vld1q_f32(&Y32[idx]),
                                      vcvt_f32_f16(vget_low_f16(wvec0_7_f16)));
@@ -821,7 +826,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         }
       }
     }
-  } else if (rows % 4 == 0) {
+  } else if (rows % 4 == 0 && rows / 4 >= batch) {
     for (unsigned int i = 0; i < rows; i += 4) {
       __fp16 x = alpha * (X[i]);
       __fp16 x2 = alpha * (X[i + 1]);
