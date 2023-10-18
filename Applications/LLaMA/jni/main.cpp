@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Jihoon Lee <sb92.hong@samsung.com>
+ * Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
  *
  * @file   main.cpp
  * @date   7 August 2023
@@ -30,30 +30,14 @@
 #include <swiglu.h>
 #include <transpose_layer.h>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 #if defined(ENABLE_ENCODER2)
-=======
-//include for tokenizer///////////////////
->>>>>>> c94a43c3 ([LLaMA] Add korean language)
-=======
-#if defined(ENABLE_ENCODER2)
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
 #include "json.hpp"
 #include <codecvt>
 #include <encoder.hpp>
 #include <locale>
 #include <sstream>
 using json = nlohmann::json;
-<<<<<<< HEAD
-<<<<<<< HEAD
 #endif
-=======
-//////////////////////////////////////////
->>>>>>> c94a43c3 ([LLaMA] Add korean language)
-=======
-#endif
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
@@ -70,11 +54,7 @@ int const NUM_VOCAB = 96000;
 int MAX_SEQ_LEN = 1024;
 int NUM_TO_GENERATE = 1;
 
-<<<<<<< HEAD
 constexpr unsigned int INIT_SEQ_LEN = 30;
-=======
-const unsigned int INIT_SEQ_LEN = 30;
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
 unsigned int batch_size = 1;
 unsigned int epoch = 1;
 
@@ -435,14 +415,14 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
   std::string weight_path =
-    optimize ? "./llama_v2_att.bin" : "/home/donghak/Desktop/llama_v2.bin";
+    optimize ? "./llama_v2_att.bin" : "./summarization_v2_fp16.bin";
   model->load(weight_path);
 
   std::vector<float *> input;
   std::vector<float *> label;
 
   int data_size = batch_size * INIT_SEQ_LEN;
-  
+
   float *input_sample = (float *)malloc(sizeof(float) * data_size);
 
 #if defined(ENABLE_ENCODER2)
@@ -453,17 +433,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                           "Error initialising GPT2 tokenizer\n");
 
   auto init_input = tokenizer.encode(text);
-<<<<<<< HEAD
-<<<<<<< HEAD
   INIT_SEQ_LEN = init_input.size();
-=======
-
-  INIT_SEQ_LEN = init_input.size();
-
->>>>>>> c94a43c3 ([LLaMA] Add korean language)
-=======
-  INIT_SEQ_LEN = init_input.size();
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
   ((uint *)(input_sample))[0] = init_input[0];
   input.push_back(input_sample);
 
@@ -483,23 +453,10 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     nntrainer::Tensor output_tensor({batch_size, 1, 1, NUM_VOCAB}, output[0]);
 
     tokens.push_back(static_cast<int64_t>(output_tensor.argmax()[0]));
-<<<<<<< HEAD
-<<<<<<< HEAD
 #if defined(ENABLE_ENCODER2)
     auto decoded_str = tokenizer.decode(tokens);
     std::cerr << decoded_str << std::flush;
 #endif
-=======
-
-    auto decoded_str = tokenizer.decode(tokens);
-    std::cerr << decoded_str << std::flush;
->>>>>>> c94a43c3 ([LLaMA] Add korean language)
-=======
-#if defined(ENABLE_ENCODER2)
-    auto decoded_str = tokenizer.decode(tokens);
-    std::cerr << decoded_str << std::flush;
-#endif
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
 
     if (i < INIT_SEQ_LEN) {
 #if defined(ENABLE_ENCODER2)
@@ -542,8 +499,6 @@ int main(int argc, char *argv[]) {
   // Setting locale
   std::locale::global(std::locale("ko_KR.UTF-8"));
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 #if defined(ENABLE_ENCODER2)
 
   // Getting arguments From terminal
@@ -552,34 +507,7 @@ int main(int argc, char *argv[]) {
   std::wstring test = decodeUnicodeEscape(input);
   std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
   std::string text = converter.to_bytes(test);
-=======
-=======
-#if defined(ENABLE_ENCODER2)
-
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
-  // Getting arguments From terminal
-  std::wstring input;
-  std::getline(std::wcin, input);
-  std::wstring test = decodeUnicodeEscape(input);
-  std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
-  std::string text = converter.to_bytes(test);
-
   std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-<<<<<<< HEAD
-  std::ifstream ifs("/home/donghak/Desktop/workspace/N2S2/nntrainer/"
-                    "Applications/LLaMA/jni/test3.json");
-  json data = json::parse(ifs);
-
-  // Load From json file [index][key]
-  auto parsed_text = data[1]["source"].get<std::string>();
-  
-  std::wstring convert_text = converter.from_bytes(parsed_text);
-  std::wstring text = decodeUnicodeEscape(convert_text);
->>>>>>> c94a43c3 ([LLaMA] Add korean language)
-
-  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-=======
->>>>>>> d5b33c9b ([Encoder] Add prepare_encoder & modify related files)
 #else
   std::wstring text = L"This is sample input for LLaMA.";
 #endif
