@@ -12,6 +12,11 @@ transpose_dep = declare_dependency(
   include_directories: include_directories('./')
 )
 
+if get_option('platform') != 'tizen'
+    extra_defines += '-DENABLE_ENCODER2=1'
+    run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2' ,check: true)
+endif
+
 rms_norm_src = files('rms_norm.cpp')
 rms_norm_layer = shared_library('rms_norm',
   rms_norm_src,
