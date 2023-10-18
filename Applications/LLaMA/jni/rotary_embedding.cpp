@@ -71,8 +71,8 @@ void RotaryEmbeddingLayer::finalize(nntrainer::InitLayerContext &context) {
   context.setOutputDimensions(dim);
 
   int seq_len = dim[0].height();
-  int dimention = dim[0].width();
-  freqs_cis = precompute_freqs_cis(dimention, seq_len);
+  int dimension = dim[0].width();
+  freqs_cis = precompute_freqs_cis(dimension, seq_len);
 }
 
 void RotaryEmbeddingLayer::forwarding(nntrainer::RunLayerContext &context,

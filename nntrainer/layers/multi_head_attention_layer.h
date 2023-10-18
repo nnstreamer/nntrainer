@@ -16,8 +16,6 @@
 #define __MULTI_HEAD_ATTENTION_LAYER_H__
 #ifdef __cplusplus
 
-#include <complex>
-
 #include <acti_func.h>
 #include <complex>
 #include <layer_impl.h>
