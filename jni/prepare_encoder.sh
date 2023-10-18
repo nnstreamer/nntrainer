@@ -8,13 +8,15 @@
 # @brief This file is a helper tool to build encoder at LLM
 # @author Donghak Park <donghak.park@samsung.com>
 #
-# usage: ./prepare_encoder.sh target
+# usage: ./prepare_encoder.sh target version
 
 set -e
 TARGET=$1
+TARGET_VERSION=$2
 TAR_PREFIX=encoder
 
-TAR_NAME=${TAR_PREFIX}-0.1.tar.gz
+TAR_NAME=${TAR_PREFIX}-${TARGET_VERSION}.tar.gz
+
 URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/${TAR_NAME}"
 
 echo "PREPARING Encoder at ${TARGET}"
@@ -23,25 +25,36 @@ echo "PREPARING Encoder at ${TARGET}"
 
 pushd ${TARGET}
 
-function _download_cblas {
+function _download_encoder {
   [ -f $TAR_NAME ] && echo "${TAR_NAME} exists, skip downloading" && return 0
+
   echo "[Encoder] downloading ${TAR_NAME}\n"
-  if ! wget -q ${URL} ; then
+  if ! wget -q ${URL}; then
     echo "[Encoder] Download failed, please check url\n"
     exit $?
   fi
-  echo "[Encoder] Finish downloading openblas\n"
+  echo "[Encoder] Finish downloading encoder\n"
 
 }
 
-function _untar_cblas {
-  echo "[Encoder] untar openblas\n"
+function _untar_encoder {
+
+  echo "[Encoder] untar encoder\n"
   tar -zxvf ${TAR_NAME} -C ${TARGET}
   rm -f ${TAR_NAME}
-  mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/PicoGPT/jni/
-  echo "[Encoder] Finish moving encoder to PicoGPT\n"
+
+  if [ ${TARGET_VERSION} == "0.1" ]; then
+    mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/PicoGPT/jni/
+    echo "[Encoder] Finish moving encoder to PicoGPT\n"
+  fi
+
+  if [ ${TARGET_VERSION} == "0.2" ]; then
+    mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/LLaMA/jni/
+    echo "[Encoder] Finish moving encoder to LLaMA\n"
+  fi
+
 }
 
-[ ! -d "${TAR_PREFIX}" ] && _download_cblas && _untar_cblas
+[ ! -d "${TAR_PREFIX}" ] && _download_encoder && _untar_encoder
 
 popd

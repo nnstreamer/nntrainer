@@ -4,7 +4,7 @@ run_command('cp', '-lr', res_path, nntr_pico_gpt_resdir)
 
 if get_option('platform') != 'tizen'
     extra_defines += '-DENABLE_ENCODER=1'
-    run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), check: true)
+    run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.1' , check: true)
 endif
 
 pico_gpt_sources = [
