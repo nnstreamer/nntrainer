@@ -40,32 +40,23 @@ Even if NNtariner runs on device, it provides full functionalities to train mode
 - [Daily Release](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)
 - SDK Support: Tizen Studio (6.0 M2+)
 
-## Maintainer
-* [Jijoong Moon](https://github.com/jijoongmoon)
-* [MyungJoo Ham](https://github.com/myungjoo)
-* [Geunsik Lim](https://github.com/leemgs)
+## Getting Started
 
-## Reviewers
-* [Sangjung Woo](https://github.com/again4you)
-* [Wook Song](https://github.com/wooksong)
-* [Jaeyun Jung](https://github.com/jaeyun-jung)
-* [Hyoungjoo Ahn](https://github.com/helloahn)
-* [Parichay Kapoor](https://github.com/kparichay)
-* [Dongju Chae](https://github.com/dongju-chae)
-* [Gichan Jang](https://github.com/gichan-jang)
-* [Yongjoo Ahn](https://github.com/anyj0527)
-* [Jihoon Lee](https://github.com/zhoonit)
-* [Hyeonseok Lee](https://github.com/lhs8928)
-* [Mete Ozay](https://github.com/meteozay)
-* [Hyunil Park](https://github.com/songgot)
-* [Jiho Chu](https://github.com/jihochu)
-* [Yelin Jeong](https://github.com/niley7464)
-* [Donghak Park](https://github.com/DonghakPark)
-* [Hyungjun Seo](https://github.com/SeoHyungjun)
-* [Seungbaek Hong](https://github.com/baek2sm)
-* [Sungsik Kong](https://github.com/skykongkong8)
-* [Donghyeon Jeong](https://github.com/djeong20)
+### [Installation](https://github.com/nnstreamer/nntrainer/blob/main/docs/getting-started.md)
 
+Instructions for installing NNTrainer.
+
+### [Tutorial](https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-create-model.md)
+
+Introductions for creating your own model.
+
+### [Running Examples](https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-examples.md)
+
+Instructions for preparing NNTrainer for execution
+
+### [Examples for NNTrainer](https://github.com/nnstreamer/nntrainer/tree/main/Applications)
+
+NNTrainer examples for a variety of networks
 
 ## Components
 
@@ -175,18 +166,31 @@ NNTrainer provides
 ### APIs
 Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. [C++ APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/ccapi/include) are also provided for other platform. Java & C# APIs will be provided soon.
 
+## Maintainer
+* [Jijoong Moon](https://github.com/jijoongmoon)
+* [MyungJoo Ham](https://github.com/myungjoo)
+* [Geunsik Lim](https://github.com/leemgs)
 
-## [Getting Started](https://github.com/nnstreamer/nntrainer/blob/main/docs/getting-started.md)
-
-Instructions for installing NNTrainer.
-
-### [Running Examples](https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-examples.md)
-
-Instructions for preparing NNTrainer for execution
-
-### [Examples for NNTrainer](https://github.com/nnstreamer/nntrainer/tree/main/Applications)
-
-NNTrainer example for a variety of networks
+## Reviewers
+* [Sangjung Woo](https://github.com/again4you)
+* [Wook Song](https://github.com/wooksong)
+* [Jaeyun Jung](https://github.com/jaeyun-jung)
+* [Hyoungjoo Ahn](https://github.com/helloahn)
+* [Parichay Kapoor](https://github.com/kparichay)
+* [Dongju Chae](https://github.com/dongju-chae)
+* [Gichan Jang](https://github.com/gichan-jang)
+* [Yongjoo Ahn](https://github.com/anyj0527)
+* [Jihoon Lee](https://github.com/zhoonit)
+* [Hyeonseok Lee](https://github.com/lhs8928)
+* [Mete Ozay](https://github.com/meteozay)
+* [Hyunil Park](https://github.com/songgot)
+* [Jiho Chu](https://github.com/jihochu)
+* [Yelin Jeong](https://github.com/niley7464)
+* [Donghak Park](https://github.com/DonghakPark)
+* [Hyungjun Seo](https://github.com/SeoHyungjun)
+* [Seungbaek Hong](https://github.com/baek2sm)
+* [Sungsik Kong](https://github.com/skykongkong8)
+* [Donghyeon Jeong](https://github.com/djeong20)
 
 ## Open Source License
 
