@@ -668,7 +668,7 @@ int main(int argc, char *argv[]) {
 
     createAndRun(epoch, batch_size);
 
-    run(text);
+    run(text, apply_temp);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;

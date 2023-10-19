@@ -11,9 +11,7 @@ subdir('VGG/jni')
 subdir('Resnet/jni')
 subdir('YOLO/jni')
 subdir('YOLOv3/jni')
-if get_option('platform') != 'tizen'
 subdir('LLaMA/jni')
-endif
 
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
