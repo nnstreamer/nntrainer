@@ -3783,8 +3783,8 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
   if (output.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
     if (getDataType() == Tdatatype::QINT4) {
-      scopy((size() + 1) / 2, getData<uint8_t>(), 1, output.getData<_FP16>(),
-            1);
+      scopy_int4_to_float16((size() + 1) / 2, getData<uint8_t>(), 1,
+                            output.getData<_FP16>(), 1);
     } else if (getDataType() == Tdatatype::QINT8) {
       // @todo scopy for qint8
       flate(output);

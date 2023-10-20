@@ -48,6 +48,31 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
                           uint32_t rows, uint32_t cols, float alpha,
                           float beta);
 
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void scopy_neon_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
+
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void scopy_neon_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
+
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint8_t * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void scopy_neon_int8_or_int4(const unsigned int N, const uint8_t *X,
+                             uint8_t *Y);
+
 #ifdef ENABLE_FP16
 /**
  * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
@@ -132,6 +157,13 @@ __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X);
 void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha);
 
 /**
+ * @brief     convert uint32x4_t to float32x4_t with neon with bitwise
+ * optimization
+ * @param[in] u32 element to convert
+ */
+float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32);
+
+/**
  * @brief     copy function with neon: Y = X
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
@@ -146,6 +178,14 @@ void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y);
  * @param[in] Y uint8_t * for Vector Y
  */
 void scopy_neon_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
+
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void scopy_neon_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
 
 /**
  * @brief     copy function with neon: Y = X
