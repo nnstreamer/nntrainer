@@ -159,8 +159,8 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 #endif
 }
 
-static void scopy_INT4(const unsigned int N, const uint8_t *X, const int incX,
-                       _FP16 *Y, const int incY) {
+static void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
+                               const int incX, _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -175,6 +175,25 @@ static void scopy_INT4(const unsigned int N, const uint8_t *X, const int incX,
   for (unsigned int idx = 0; idx < N; idx++) {
     Y[2 * idx] = X[idx] >> 4;
     Y[2 * idx + 1] = X[idx] & 0x0f;
+  }
+#endif
+}
+
+static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
+                               const int incX, _FP16 *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+#if (defined USE__FP16 && USE_NEON)
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::scopy_neon_int8_to_fp16(N, X, Y);
+  } else {
+    throw std::invalid_argument(
+      "Error: incX == 1 && incY == 1 is supported only");
+  }
+#else
+  for (unsigned int idx = 0; idx < N; idx++) {
+    Y[idx] = X[idx];
   }
 #endif
 }
@@ -302,9 +321,14 @@ void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
   scopy_FP16(N, X, incX, Y, incY);
 }
 
-void scopy(const unsigned int N, const uint8_t *X, const int incX, _FP16 *Y,
-           const int incY) {
-  scopy_INT4(N, X, incX, Y, incY);
+void scopy_int4_to_float16(const unsigned int N, const uint8_t *X,
+                           const int incX, _FP16 *Y, const int incY) {
+  scopy_int4_to_fp16(N, X, incX, Y, incY);
+}
+
+void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
+                           const int incX, _FP16 *Y, const int incY) {
+  scopy_int8_to_fp16(N, X, incX, Y, incY);
 }
 
 void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
@@ -641,8 +665,7 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-
-} // namespace nntrainer
+}
 
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int incY) {
@@ -654,7 +677,41 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 #else
   scopy_raw(N, X, incX, Y, incY);
 #endif
-} // namespace nntrainer
+}
+
+void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
+           const int intY) {
+#ifdef USE_NEON
+  nntrainer::neon::scopy_neon_int8_or_int4(N, X, Y);
+#else
+  for (unsigned int idx = 0; idx < N; idx++) {
+    Y[idx] = X[idx];
+  }
+#endif
+}
+
+void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
+                           const int incX, float *Y, const int incY) {
+#ifdef USE_NEON
+  nntrainer::neon::scopy_neon_int4_to_fp32(N, X, Y);
+#else
+  for (unsigned int idx = 0; idx < N; idx++) {
+    Y[2 * idx] = X[idx] >> 4;
+    Y[2 * idx + 1] = X[idx] & 0x0f;
+  }
+#endif
+}
+
+void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
+                           const int incX, float *Y, const int incY) {
+#ifdef USE_NEON
+  nntrainer::neon::scopy_neon_int8_to_fp32(N, X, Y);
+#else
+  for (unsigned int idx = 0; idx < N; idx++) {
+    Y[idx] = X[idx];
+  }
+#endif
+}
 
 float snrm2(const int N, const float *X, const int incX) {
 #ifdef USE_BLAS

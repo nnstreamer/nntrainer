@@ -272,6 +272,125 @@ void sgemv_transpose_neon(const float *A, const float *X, float *Y,
   return;
 }
 
+void scopy_neon_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
+
+  unsigned int idx = 0;
+
+  // keep in mind that : len(X) = N, and len(Y) = 2*N
+
+  // processing batch of 16
+  float32x4_t y0, y1, y2, y3;
+  float32x4_t y4, y5, y6, y7;
+
+  uint8_t low0, low1, high0, high1;
+
+  for (; (N - idx) >= 16; idx += 16) {
+    uint8x16_t batch = vld1q_u8(&X[idx]);
+
+    uint8x8_t low = vget_low_u8(batch);
+    uint8x8_t high = vget_high_u8(batch);
+    unsigned int i = 0;
+    for (; i < 8; ++i) {
+      low0 = low[i] >> 4;
+      low1 = low[i] & 0x0f;
+
+      high0 = high[i] >> 4;
+      high1 = high[i] & 0x0f;
+
+      // 0 ~ 8
+      if (i < 2) {
+        y0[2 * i] = low0;
+        y0[2 * i + 1] = low1;
+      } else if (i < 4) {
+        y1[2 * (i - 2)] = low0;
+        y1[2 * (i - 2) + 1] = low1;
+      } else if (i < 6) {
+        y2[2 * (i - 4)] = low0;
+        y2[2 * (i - 4) + 1] = low1;
+      } else {
+        y3[2 * (i - 6)] = low0;
+        y3[2 * (i - 6) + 1] = low1;
+      }
+
+      // 8 ~ 16
+      if (i < 2) {
+        y4[2 * i] = high0;
+        y4[2 * i + 1] = high1;
+      } else if (i < 4) {
+        y5[2 * (i - 2)] = high0;
+        y5[2 * (i - 2) + 1] = high1;
+      } else if (i < 6) {
+        y6[2 * (i - 4)] = high0;
+        y6[2 * (i - 4) + 1] = high1;
+      } else {
+        y7[2 * (i - 6)] = high0;
+        y7[2 * (i - 6) + 1] = high1;
+      }
+    }
+    vst1q_f32(&Y[2 * idx], y0);
+    vst1q_f32(&Y[2 * idx + 4], y1);
+    vst1q_f32(&Y[2 * idx + 8], y2);
+    vst1q_f32(&Y[2 * idx + 12], y3);
+    vst1q_f32(&Y[2 * idx + 16], y4);
+    vst1q_f32(&Y[2 * idx + 20], y5);
+    vst1q_f32(&Y[2 * idx + 24], y6);
+    vst1q_f32(&Y[2 * idx + 28], y7);
+  }
+
+  // processing remaining batch of 8
+  for (; (N - idx) >= 8; idx += 8) {
+    int8x8_t batch = vld1_u8(&X[idx]);
+
+    unsigned int i = 0;
+    for (; i < 8; ++i) {
+      low0 = batch[i] >> 4;
+      low1 = batch[i] & 0x0f;
+
+      if (i < 2) {
+        y0[2 * i] = low0;
+        y0[2 * i + 1] = low1;
+      } else if (i < 4) {
+        y1[2 * (i - 2)] = low0;
+        y1[2 * (i - 2) + 1] = low1;
+      } else if (i < 6) {
+        y2[2 * (i - 4)] = low0;
+        y2[2 * (i - 4) + 1] = low1;
+      } else {
+        y3[2 * (i - 6)] = low0;
+        y3[2 * (i - 6) + 1] = low1;
+      }
+    }
+
+    vst1q_f32(&Y[2 * idx], y0);
+    vst1q_f32(&Y[2 * idx + 4], y1);
+    vst1q_f32(&Y[2 * idx + 8], y2);
+    vst1q_f32(&Y[2 * idx + 12], y3);
+  }
+
+  // pocessing remaining values
+  for (; idx < N; idx++) {
+    Y[2 * idx] = X[idx] >> 4;
+    Y[2 * idx + 1] = X[idx] & 0x0f;
+  }
+}
+
+void scopy_neon_int8_or_int4(const unsigned int N, const uint8_t *X,
+                             uint8_t *Y) {
+  ///@note int8 Tensor and int4 Tensor share the same memory offset
+  unsigned int idx = 0;
+  for (; N - idx >= 16; idx += 16) {
+    uint8x16_t batch = vld1q_u8(&X[idx]);
+    vst1q_u8(&Y[idx], batch);
+  }
+  for (; N - idx >= 8; idx += 8) {
+    uint8x8_t batch = vld1_u8(&X[idx]);
+    vst1_u8(&Y[idx], batch);
+  }
+  for (; N - idx >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 #ifdef ENABLE_FP16
 
 void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
@@ -1104,6 +1223,13 @@ void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha) {
     X[idx] = alpha * X[idx];
 }
 
+float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32) {
+  constexpr uint32_t offsetValue = 0x4b000000;
+  const uint32x4_t offsetInt = vdupq_n_u32(offsetValue);
+  return vsubq_f32(vreinterpretq_f32_u32(vorrq_u32(u32, offsetInt)),
+                   vreinterpretq_f32_u32(offsetInt));
+}
+
 void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
 
   unsigned int idx = 0;
@@ -1200,6 +1326,77 @@ void scopy_neon_int4_to_fp16(const unsigned int N, const uint8_t *X,
   for (; idx < N; idx++) {
     Y[2 * idx] = X[idx] >> 4;
     Y[2 * idx + 1] = X[idx] & 0x0f;
+  }
+}
+
+void scopy_neon_int8_to_fp16(const unsigned int N, const uint8_t *X,
+                             __fp16 *Y) {
+  unsigned int idx = 0;
+  for (; (N - idx) >= 16; idx += 16) {
+    uint8x16_t batch = vld1q_u8(&X[idx]);
+    uint8x8_t low = vget_low_u8(batch);
+    uint8x8_t high = vget_high_u8(batch);
+
+    // convert to u16
+    uint16x8_t batch_low_u16 = vmovl_u8(low);
+    uint16x8_t batch_high_u16 = vmovl_u8(high);
+
+    // todo : experiment with vcvt_f32_u32_ bitwise operation w.r.t.
+    // time/accuracy
+    vst1q_f16(&Y[idx], vcvtq_f16_u16(batch_low_u16));
+    vst1q_f16(&Y[idx + 8], vcvtq_f16_u16(batch_high_u16));
+  }
+  for (; (N - idx) >= 8; idx += 8) {
+    uint8x8_t batch = vld1_u8(&X[idx]);
+
+    // convert to u16
+    uint16x8_t batch_u16 = vmovl_u8(batch);
+    vst1q_f16(&Y[idx], vcvtq_f16_u16(batch_u16));
+  }
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
+void scopy_neon_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
+  unsigned int idx = 0;
+  for (; (N - idx) >= 16; idx += 16) {
+    uint8x16_t batch = vld1q_u8(&X[idx]);
+    uint8x8_t low = vget_low_u8(batch);
+    uint8x8_t high = vget_high_u8(batch);
+
+    // convert to u16
+    uint16x8_t batch_low_u16 = vmovl_u8(low);
+    uint16x8_t batch_high_u16 = vmovl_u8(high);
+
+    // convert to u32
+    uint32x4_t batch_low_u32_low = vmovl_u16(vget_low_u16(batch_low_u16));
+    uint32x4_t batch_low_u32_high = vmovl_u16(vget_high_u16(batch_low_u16));
+    uint32x4_t batch_high_u32_low = vmovl_u16(vget_low_u16(batch_high_u16));
+    uint32x4_t batch_high_u32_high = vmovl_u16(vget_high_u16(batch_high_u16));
+
+    // todo : experiment with vcvt_f32_u32_ bitwise operation w.r.t.
+    // time/accuracy
+    vst1q_f32(&Y[idx], vcvtq_f32_u32(batch_low_u32_low));
+    vst1q_f32(&Y[idx + 4], vcvtq_f32_u32(batch_low_u32_high));
+    vst1q_f32(&Y[idx + 8], vcvtq_f32_u32(batch_high_u32_low));
+    vst1q_f32(&Y[idx + 12], vcvtq_f32_u32(batch_high_u32_high));
+  }
+  for (; (N - idx) >= 8; idx += 8) {
+    uint8x8_t batch = vld1_u8(&X[idx]);
+
+    // convert to u16
+    uint16x8_t batch_u16 = vmovl_u8(batch);
+
+    // convert to u32
+    uint32x4_t batch_u32_low = vmovl_u16(vget_low_u16(batch_u16));
+    uint32x4_t batch_u32_high = vmovl_u16(vget_high_u16(batch_u16));
+
+    vst1q_f32(&Y[idx], vcvtq_f32_u32(batch_u32_low));
+    vst1q_f32(&Y[idx + 4], vcvtq_f32_u32(batch_u32_high));
+  }
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
   }
 }
 
