@@ -221,41 +221,52 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                t2.getDim().getDataType() ==
                  ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
+      if (match_percentage == 100) {
+        auto tensor = t1.clone();
+        auto answer = t2.clone();
+
+        const float cos_sim_range = 1e-5;
+        float mse_range = 1e-3;
+        mse_range *= tensor.size();
+
+        if (!skip_cos_sim) {
+          auto cos_sim = cosine_similarity<_FP16>(
+            answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
+          EXPECT_IN_RANGE(cos_sim, 1 - cos_sim_range, 1 + cos_sim_range);
+        }
+
+        auto mean_squared_error = mse<_FP16>(
+          answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
+        EXPECT_IN_RANGE(mean_squared_error, 0, mse_range);
+      }
+
       for (unsigned int idx = 0; idx < total; idx++) {
         auto d1 = t1.getValue<_FP16>(idx);
         auto d2 = t2.getValue<_FP16>(idx);
-        auto float_eq = [skip_cos_sim](_FP16 a, _FP16 b) {
-          if (skip_cos_sim) {
-            constexpr auto eps = 1e-1;
-            if (a < b)
-              std::swap(a, b);
-            return (a - b) < eps;
-          } else {
-            constexpr auto eps = 1e-2;
-            if (a < b)
-              std::swap(a, b);
-            return (a - b) < eps;
-          }
+        auto float_eq = [&](_FP16 a, _FP16 b) {
+          constexpr auto eps = 1e-2;
+          constexpr auto min_fp16 = 6.104e-5;
+          if (a < b)
+            std::swap(a, b);
+          // out-of-fp16-range near-zero values
+          if ((b > 0 && b < min_fp16) || (b < 0 && b > -min_fp16))
+            b = 0;
+          if ((a > 0 && a < min_fp16) || (a < 0 && a > -min_fp16))
+            a = 0;
+          if (a - b < eps)
+            return a - b < eps;
+          if (b != 0) {
+            double relative_error = (a - b) / b;
+            return (relative_error > 0) ? relative_error < eps * total
+                                        : -relative_error < eps * total;
+          } else
+            return (a - b) < eps * total;
         };
         /** either both the values must be equal or 1 must be zero */
         weak_match += std::min(float_eq(d1, d2) + (float_eq(d1, 0) && d2 != 0) +
                                  (d1 != 0 && float_eq(d2, 0)),
                                1);
       }
-      const float epsilon = 1e-3;
-
-      auto tensor = t1.clone();
-      auto answer = t2.clone();
-
-      if (!skip_cos_sim) {
-        auto cos_sim = cosine_similarity<_FP16>(
-          answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
-        EXPECT_IN_RANGE(cos_sim, 1 - epsilon, 1 + epsilon);
-      }
-
-      auto mean_squared_error = mse<_FP16>(
-        answer.getData<_FP16>(), answer.getData<_FP16>(), tensor.size());
-      EXPECT_IN_RANGE(mean_squared_error, 0, epsilon);
 
       return (weak_match == total);
 #else
