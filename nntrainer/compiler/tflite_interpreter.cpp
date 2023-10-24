@@ -35,6 +35,11 @@
 
 static constexpr const char *FUNC_TAG = "[TFLITE INTERPRETER] ";
 
+// This Variables need for create tflite nodes
+nntrainer::TfOpNode::Variables new_variable;
+nntrainer::Tensor new_weight_add[50];
+unsigned int new_alloc_tensors_idx = 0;
+
 namespace nntrainer {
 
 namespace {
@@ -435,25 +440,29 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
         // = weight(conv) * (weight(bn) / sqrt(var(bn) + eps))
 
         auto conv_weights = nodes.at(node_count - 1).get()->getWeights();
-        auto conv_weight = conv_weights.at(0)->clone();
-        auto conv_bias = conv_weights.at(1)->clone();
+        Tensor conv_weight(conv_weights.at(0)->getDim());
+        Tensor conv_bias(conv_weights.at(1)->getDim());
+        conv_weight.copyData(conv_weights.at(0)->clone());
+        conv_bias.copyData(conv_weights.at(1)->clone());
 
         auto mul_weights = tf_node->getWeights();
-        auto mul_mean = mul_weights.at(0)->clone();
-        auto mul_var = mul_weights.at(1)->clone();
-        auto mul_weight = mul_weights.at(2)->clone();
-        auto mul_bias = mul_weights.at(3)->clone();
+        auto mul_mean = mul_weights.at(0)->clone().transpose("1:2:0");
+        auto mul_var = mul_weights.at(1)->clone().transpose("1:2:0");
+        auto mul_weight = mul_weights.at(2)->clone().transpose("1:2:0");
+        auto mul_bias = mul_weights.at(3)->clone().transpose("1:2:0");
         auto mul_epsilon = tf_node->getAdditionalProps().at(0);
 
         // run sqrt(var(bn) + eps)
         mul_var.add_i(mul_epsilon);
-        mul_var.pow_i(0.5f);
-        mul_weight.divide_i(mul_var);
+        mul_var.pow_i(-0.5f);
+        mul_weight.multiply_i(mul_var);
 
-        mul_weight.reshape(TensorDim({mul_weight.getDim().channel(), 1, 1, 1}));
-        conv_weight.multiply_i(mul_weight);
+        Tensor reshape_mul_weight(mul_weight.getDim());
+        reshape_mul_weight.copy(mul_weight);
+        reshape_mul_weight.reshape(
+          TensorDim{mul_weight.getDim().width(), 1, 1, 1});
+        conv_weight.multiply_i(reshape_mul_weight);
 
-        mul_weight.reshape(TensorDim({1, 1, 1, mul_weight.getDim().batch()}));
         conv_bias.subtract_i(mul_mean);
         conv_bias.multiply_i(mul_weight);
         conv_bias.add_i(mul_bias);
@@ -734,53 +743,59 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
         auto mul_epsilon =
           realized_nodes.back().get()->getAdditionalProps().at(0);
 
-        auto new_mul_weight = mul_gamma.clone();
+        Tensor new_mul_weight(mul_gamma.getDim());
         new_mul_weight.allocate();
+        new_mul_weight.copy(mul_gamma);
 
+        // new_mul_weight = (gamma / sqrt(variance + epsilon))
         mul_variance.add_i(mul_epsilon);
-        mul_variance.pow_i(0.5f);
-        new_mul_weight.divide_i(mul_variance);
+        mul_variance.pow_i(-0.5f);
+        new_mul_weight.multiply_i(mul_variance);
 
-        mul_mean.multiply_i(mul_gamma);
+        // beta =  (beta - mean * gamma / sqrt(variance + epsilon))
+        Tensor sub_result(new_mul_weight.getDim());
+        sub_result.allocate();
+        sub_result.copyData(new_mul_weight);
+
+        mul_mean.multiply_i(sub_result);
         mul_beta.subtract_i(mul_mean);
-        mul_beta.divide_i(mul_variance);
-
-        auto ptr_add_weight = removed_weights.at(1);
-
+        new_mul_weight.setName("MUL");
         removed_weights.clear();
         removed_weights.push_back(&new_mul_weight);
+
         realized_nodes.back().get()->replaceWeights(removed_weights);
         realized_nodes.back().get()->setWeights(removed_weights, true);
 
         // Insert Add layer into Graph
-        TfOpNode tf_node;
-        tf_node.setInputs(realized_nodes.back()->getOutputs());
-        tf_node.setOpType(tflite::BuiltinOperator_ADD);
+        std::unique_ptr<TfOpNode> tf_node = std::make_unique<TfOpNode>();
+        tf_node->setInputs(realized_nodes.back()->getOutputs());
+        tf_node->setOpType(tflite::BuiltinOperator_ADD);
         auto options =
           tflite::CreateAddOptions(fbb, tflite::ActivationFunctionType_RELU)
             .Union();
 
-        auto add_weights = realized_nodes.back().get()->getWeights();
-        tf_node.replaceWeights(add_weights);
+        new_weight_add[new_alloc_tensors_idx].allocate();
+        new_weight_add[new_alloc_tensors_idx].copy(mul_beta);
+        std::string name = "ADD_tensor";
+        new_weight_add[new_alloc_tensors_idx].setName(name);
 
-        auto new_weight_add = mul_beta.clone();
-        auto new_variable = tf_node.getWeights();
         new_variable.clear();
-        new_variable.push_back(&new_weight_add);
-        tf_node.setBuiltinOptions(tflite::BuiltinOptions_AddOptions, options);
+        new_variable.emplace_back(&new_weight_add[new_alloc_tensors_idx]);
+        new_alloc_tensors_idx++;
 
-        tf_node.setWeights(new_variable);
+        tf_node->replaceWeights(new_variable);
+        tf_node->setWeights(new_variable, true);
+        tf_node->setBuiltinOptions(tflite::BuiltinOptions_AddOptions, options);
 
         nodes.at(node_count + 1)
           .get()
           ->setToBeRemoved(true); // remove ReLU Layer and Fuse with Add
 
         auto mul_node = realized_nodes.back().get();
-        tf_node.arity(1);
-        tf_node.setArg(0, mul_node);
+        tf_node->arity(1);
+        tf_node->setArg(0, mul_node);
 
-        std::unique_ptr<TfOpNode> ptr = std::make_unique<TfOpNode>(tf_node);
-        realized_nodes.push_back(std::move(ptr));
+        realized_nodes.push_back(std::move(tf_node));
         set_input = true;
       }
     }
