@@ -3388,10 +3388,9 @@ Tensor &Tensor::erf(Tensor &out) const {
     apply<float>(f, out);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    //    auto f = [](_FP16 in) {
-    // return static_cast<_FP16>(std::erf(static_cast<float>(in)));
-    //    };
-    auto f = [](_FP16 in) { return std::erf(in); };
+    auto f = [](_FP16 in) {
+      return static_cast<_FP16>(std::erf(static_cast<float>(in)));
+    };
     apply<_FP16>(f, out);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
