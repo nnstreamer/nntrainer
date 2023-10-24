@@ -125,6 +125,9 @@ void TfOpNode::setWeights(Variables weights_, bool weight_transpose) {
   unsigned int cnt = 0;
 
   for (auto &w : weights_) {
+    if (cnt >= weights.size())
+      break;
+
     const unsigned int unit = w->batch();
     const unsigned int channel = w->channel();
     const unsigned int height = w->height();
@@ -140,7 +143,9 @@ void TfOpNode::setWeights(Variables weights_, bool weight_transpose) {
   auto weight_transform_fn = [](std::vector<const Tensor *> &weights) {
     std::vector<Tensor> new_weights;
     new_weights.reserve(weights.size());
-    new_weights.push_back(weights[0]->transpose("2:1:0"));
+    if (weights.size() != 0) {
+      new_weights.push_back(weights[0]->transpose("1:2:0"));
+    }
     return new_weights;
   };
 
