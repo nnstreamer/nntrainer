@@ -3140,7 +3140,7 @@ void Tensor::save(std::ostream &file) {
 #ifdef ENABLE_FP16
     std::vector<_FP16> temp(size());
     for (unsigned int i = 0; i < size(); ++i) {
-      temp[i] = static_cast<_FP16>(getData()[i]);
+      temp[i] = static_cast<_FP16>(getData<_FP16>()[i]);
     }
 
     checkedWrite(file, (char *)temp.data(),
