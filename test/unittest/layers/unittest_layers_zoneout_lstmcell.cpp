@@ -34,3 +34,16 @@ auto zoneout_lstmcell_single_step = LayerGoldenTestParamType(
 
 INSTANTIATE_TEST_CASE_P(LSTMCell, LayerGoldenTest,
                         ::testing::Values(zoneout_lstmcell_single_step));
+
+#ifdef ENABLE_FP16
+auto zoneout_lstmcell_single_step_fp16fp16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::LSTMCellLayer>,
+  {"unit=5", "integrate_bias=true", "hidden_state_zoneout_rate=0.1",
+   "cell_state_zoneout_rate=0.0"},
+  "3:1:1:7,3:1:1:5,3:1:1:5",
+  "zoneout_lstmcell_single_step_fp16fp16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+INSTANTIATE_TEST_CASE_P(LSTMCell16, LayerGoldenTest,
+                        ::testing::Values(zoneout_lstmcell_single_step_fp16fp16));
+#endif

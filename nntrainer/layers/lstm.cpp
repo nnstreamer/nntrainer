@@ -55,6 +55,11 @@ void LSTMLayer::forwardingBatchFirstLSTM(
   hidden_state_.setZero();
   cell_state_.setZero();
 
+  TensorDim::TensorType tensor_type = weight_ih.getTensorType();
+  TensorDim input_tensor_dim({feature_size}, tensor_type);
+  TensorDim unit_tensor_dim({unit}, tensor_type);
+  TensorDim num_gate_unit_tensor_dim({NUM_GATE * unit}, tensor_type);
+
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
     const Tensor input_sample = input_.getBatchSlice(batch, 1);
     Tensor hidden_state_sample = hidden_state_.getBatchSlice(batch, 1);
@@ -63,30 +68,31 @@ void LSTMLayer::forwardingBatchFirstLSTM(
 
     for (unsigned int t = 0; t < max_timestep; ++t) {
       Tensor input = input_sample.getSharedDataTensor(
-        {feature_size}, (reverse ? max_timestep - 1 - t : t) * feature_size);
+        input_tensor_dim, (reverse ? max_timestep - 1 - t : t) * feature_size);
       Tensor prev_hidden_state;
+      prev_hidden_state.setTensorType(tensor_type);
 
       if (!t) {
-        prev_hidden_state = Tensor(unit);
+        prev_hidden_state = Tensor(unit, tensor_type);
         prev_hidden_state.setZero();
       } else {
         prev_hidden_state = hidden_state_sample.getSharedDataTensor(
-          {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+          unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
       }
       Tensor hidden_state = hidden_state_sample.getSharedDataTensor(
-        {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+        unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
       Tensor prev_cell_state;
       if (!t) {
-        prev_cell_state = Tensor(unit);
+        prev_cell_state = Tensor(unit, tensor_type);
         prev_cell_state.setZero();
       } else {
         prev_cell_state = cell_state_sample.getSharedDataTensor(
-          {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+          unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
       }
       Tensor cell_state = cell_state_sample.getSharedDataTensor(
-        {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+        unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
       Tensor ifgo = ifgo_sample.getSharedDataTensor(
-        {NUM_GATE * unit},
+        num_gate_unit_tensor_dim,
         (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
 
       forwardLSTM(1, unit, disable_bias, integrate_bias, acti_func,
@@ -96,7 +102,8 @@ void LSTMLayer::forwardingBatchFirstLSTM(
 
       if (enable_dropout) {
         Tensor mask_sample = mask_.getBatchSlice(batch, 1);
-        Tensor mask = mask_sample.getSharedDataTensor({unit}, t * unit);
+        Tensor mask =
+          mask_sample.getSharedDataTensor(unit_tensor_dim, t * unit);
         mask.dropout_mask(dropout_rate);
         hidden_state.multiply_i(mask);
       }
@@ -132,24 +139,41 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
   d_cell_state_.setZero();
   d_hidden_state_.setZero();
 
+  TensorDim::TensorType tensor_type = weight_hh.getTensorType();
+  TensorDim unit_tensor_dim({unit}, tensor_type);
+  TensorDim feature_size_tensor_dim({feature_size}, tensor_type);
+  TensorDim num_gate_tensor_dim({NUM_GATE * unit}, tensor_type);
+
   if (return_sequences && !bidirectional && !reverse) {
-    std::copy(incoming_derivative.getData(),
-              incoming_derivative.getData() + incoming_derivative.size(),
-              d_hidden_state_.getData());
+    if (incoming_derivative.getDataType() == TensorDim::DataType::FP32) {
+      std::copy(incoming_derivative.getData<float>(),
+                incoming_derivative.getData<float>() +
+                  incoming_derivative.size(),
+                d_hidden_state_.getData<float>());
+    } else if (incoming_derivative.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      std::copy(incoming_derivative.getData<_FP16>(),
+                incoming_derivative.getData<_FP16>() +
+                  incoming_derivative.size(),
+                d_hidden_state_.getData<_FP16>());
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    }
   } else {
     unsigned int end_timestep = return_sequences ? max_timestep : 1;
     for (unsigned int batch = 0; batch < batch_size; ++batch) {
       for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
         Tensor d_hidden_state_sample = d_hidden_state_.getSharedDataTensor(
-          {unit}, batch * max_timestep * unit +
-                    (return_sequences ? 0 : max_timestep - 1) * unit +
-                    timestep * unit);
+          unit_tensor_dim, batch * max_timestep * unit +
+                             (return_sequences ? 0 : max_timestep - 1) * unit +
+                             timestep * unit);
         Tensor incoming_derivative_sample =
           incoming_derivative.getSharedDataTensor(
-            {unit}, batch * (return_sequences ? max_timestep : 1) *
-                        bidirectional_constant * unit +
-                      timestep * bidirectional_constant * unit +
-                      (reverse ? unit : 0));
+            unit_tensor_dim, batch * (return_sequences ? max_timestep : 1) *
+                                 bidirectional_constant * unit +
+                               timestep * bidirectional_constant * unit +
+                               (reverse ? unit : 0));
         d_hidden_state_sample.add_i(incoming_derivative_sample);
       }
     }
@@ -219,49 +243,50 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
         for (int t = max_timestep - 1; t > -1; t--) {
           input = input_sample.getSharedDataTensor(
-            {feature_size},
+            feature_size_tensor_dim,
             (reverse ? max_timestep - 1 - t : t) * feature_size);
 
           if (!t) {
-            prev_hidden_state = Tensor(unit);
+            prev_hidden_state = Tensor(unit, tensor_type);
             prev_hidden_state.setZero();
-            d_prev_hidden_state = Tensor(unit);
+            d_prev_hidden_state = Tensor(unit, tensor_type);
             d_prev_hidden_state.setZero();
           } else {
             prev_hidden_state = hidden_state_sample.getSharedDataTensor(
-              {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+              unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
             d_prev_hidden_state = d_hidden_state_sample.getSharedDataTensor(
-              {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+              unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
           }
           d_hidden_state = d_hidden_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+            unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
 
           if (!t) {
-            prev_cell_state = Tensor(unit);
+            prev_cell_state = Tensor(unit, tensor_type);
             prev_cell_state.setZero();
-            d_prev_cell_state = Tensor(unit);
+            d_prev_cell_state = Tensor(unit, tensor_type);
             d_prev_cell_state.setZero();
           } else {
             prev_cell_state = cell_state_sample.getSharedDataTensor(
-              {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+              unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
             d_prev_cell_state = d_cell_state_sample.getSharedDataTensor(
-              {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+              unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
           }
           cell_state = cell_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+            unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
           d_cell_state = d_cell_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+            unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
 
           Tensor ifgo = ifgo_sample.getSharedDataTensor(
-            {NUM_GATE * unit},
+            num_gate_tensor_dim,
             (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
           Tensor d_ifgo = d_ifgo_sample.getSharedDataTensor(
-            {NUM_GATE * unit},
+            num_gate_tensor_dim,
             (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
 
           // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
           // already have precalculated values from incomming derivatives
           Tensor d_prev_hidden_state_temp;
+          d_prev_hidden_state_temp.setTensorType(tensor_type);
 
           calcGradientLSTM(
             1, unit, disable_bias, integrate_bias, acti_func,
@@ -316,48 +341,50 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
       for (int t = max_timestep - 1; t > -1; t--) {
         input = input_sample.getSharedDataTensor(
-          {feature_size}, (reverse ? max_timestep - 1 - t : t) * feature_size);
+          feature_size_tensor_dim,
+          (reverse ? max_timestep - 1 - t : t) * feature_size);
 
         if (!t) {
-          prev_hidden_state = Tensor(unit);
+          prev_hidden_state = Tensor(unit, tensor_type);
           prev_hidden_state.setZero();
-          d_prev_hidden_state = Tensor(unit);
+          d_prev_hidden_state = Tensor(unit, tensor_type);
           d_prev_hidden_state.setZero();
         } else {
           prev_hidden_state = hidden_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+            unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
           d_prev_hidden_state = d_hidden_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+            unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
         }
         d_hidden_state = d_hidden_state_sample.getSharedDataTensor(
-          {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+          unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
 
         if (!t) {
-          prev_cell_state = Tensor(unit);
+          prev_cell_state = Tensor(unit, tensor_type);
           prev_cell_state.setZero();
-          d_prev_cell_state = Tensor(unit);
+          d_prev_cell_state = Tensor(unit, tensor_type);
           d_prev_cell_state.setZero();
         } else {
           prev_cell_state = cell_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+            unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
           d_prev_cell_state = d_cell_state_sample.getSharedDataTensor(
-            {unit}, (reverse ? (max_timestep - t) : (t - 1)) * unit);
+            unit_tensor_dim, (reverse ? (max_timestep - t) : (t - 1)) * unit);
         }
         cell_state = cell_state_sample.getSharedDataTensor(
-          {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+          unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
         d_cell_state = d_cell_state_sample.getSharedDataTensor(
-          {unit}, (reverse ? max_timestep - 1 - t : t) * unit);
+          unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
 
         Tensor ifgo = ifgo_sample.getSharedDataTensor(
-          {NUM_GATE * unit},
+          num_gate_tensor_dim,
           (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
         Tensor d_ifgo = d_ifgo_sample.getSharedDataTensor(
-          {NUM_GATE * unit},
+          num_gate_tensor_dim,
           (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
 
         // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
         // already have precalculated values from incomming derivatives
         Tensor d_prev_hidden_state_temp;
+        d_prev_cell_state.setTensorType(tensor_type);
 
         calcGradientLSTM(1, unit, disable_bias, integrate_bias, acti_func,
                          recurrent_acti_func, input, prev_hidden_state,
@@ -429,8 +456,13 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   // output_dim = [ batch_size, 1, return_sequences ? time_iteration : 1,
   // bidirectional ? 2 * unit : unit ]
+  TensorDim::TensorType activation_tensor_type = {
+    context.getFormat(), context.getActivationDataType()};
+  TensorDim::TensorType weight_tensor_type = {context.getFormat(),
+                                              context.getWeightDataType()};
   const TensorDim output_dim(batch_size, 1, return_sequences ? max_timestep : 1,
-                             bidirectional ? 2 * unit : unit);
+                             bidirectional ? 2 * unit : unit,
+                             activation_tensor_type);
   context.setOutputDimensions({output_dim});
 
   // weight_initializer can be set seperately. weight_ih initializer,
@@ -439,13 +471,14 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   // weight_ih ( input to hidden ) : [ 1, 1, feature_size, NUM_GATE * unit ]
   // -> i, f, g, o
-  const TensorDim weight_ih_dim({feature_size, NUM_GATE * unit});
+  const TensorDim weight_ih_dim({feature_size, NUM_GATE * unit},
+                                weight_tensor_type);
   wt_idx[LSTMParams::weight_ih] = context.requestWeight(
     weight_ih_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "weight_ih", true);
   // weight_hh ( hidden to hidden ) : [ 1, 1, unit, NUM_GATE * unit ] -> i,
   // f, g, o
-  const TensorDim weight_hh_dim({unit, NUM_GATE * unit});
+  const TensorDim weight_hh_dim({unit, NUM_GATE * unit}, weight_tensor_type);
   wt_idx[LSTMParams::weight_hh] = context.requestWeight(
     weight_hh_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "weight_hh", true);
@@ -453,13 +486,13 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     if (integrate_bias) {
       // bias_h ( input bias, hidden bias are integrate to 1 bias ) : [ 1,
       // 1, 1, NUM_GATE * unit ] -> i, f, g, o
-      const TensorDim bias_h_dim({NUM_GATE * unit});
+      const TensorDim bias_h_dim({NUM_GATE * unit}, weight_tensor_type);
       wt_idx[LSTMParams::bias_h] = context.requestWeight(
         bias_h_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, bias_decay,
         "bias_h", true);
     } else {
       // bias_ih ( input bias ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
-      const TensorDim bias_ih_dim({NUM_GATE * unit});
+      const TensorDim bias_ih_dim({NUM_GATE * unit}, weight_tensor_type);
       wt_idx[LSTMParams::bias_ih] = context.requestWeight(
         bias_ih_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
         bias_decay, "bias_ih", true);
@@ -471,18 +504,21 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   }
 
   // hidden_state_dim : [ batch_size, 1, max_timestep, unit ]
-  const TensorDim hidden_state_dim(batch_size, 1, max_timestep, unit);
+  const TensorDim hidden_state_dim(batch_size, 1, max_timestep, unit,
+                                   weight_tensor_type);
   wt_idx[LSTMParams::hidden_state] = context.requestTensor(
     hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
   // cell_state_dim : [ batch_size, 1, max_timestep, unit ]
-  const TensorDim cell_state_dim(batch_size, 1, max_timestep, unit);
+  const TensorDim cell_state_dim(batch_size, 1, max_timestep, unit,
+                                 weight_tensor_type);
   wt_idx[LSTMParams::cell_state] = context.requestTensor(
     cell_state_dim, "cell_state", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
   // ifgo_dim : [ batch_size, 1, max_timestep, NUM_GATE * unit ]
-  const TensorDim ifgo_dim(batch_size, 1, max_timestep, NUM_GATE * unit);
+  const TensorDim ifgo_dim(batch_size, 1, max_timestep, NUM_GATE * unit,
+                           weight_tensor_type);
   wt_idx[LSTMParams::ifgo] =
     context.requestTensor(ifgo_dim, "ifgo", Tensor::Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
@@ -494,14 +530,16 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
     // reverse_weight_ih ( input to hidden ) : [ 1, 1, feature_size,
     // NUM_GATE * unit ] -> i, f, g, o
-    const TensorDim reverse_weight_ih_dim({feature_size, NUM_GATE * unit});
+    const TensorDim reverse_weight_ih_dim({feature_size, NUM_GATE * unit},
+                                          weight_tensor_type);
     wt_idx[LSTMParams::reverse_weight_ih] = context.requestWeight(
       reverse_weight_ih_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "reverse_weight_ih", true);
     // reverse_weight_hh ( hidden to hidden ) : [ 1, 1, unit, NUM_GATE *
     // unit ]
     // -> i, f, g, o
-    const TensorDim reverse_weight_hh_dim({unit, NUM_GATE * unit});
+    const TensorDim reverse_weight_hh_dim({unit, NUM_GATE * unit},
+                                          weight_tensor_type);
     wt_idx[LSTMParams::reverse_weight_hh] = context.requestWeight(
       reverse_weight_hh_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "reverse_weight_hh", true);
@@ -509,20 +547,23 @@ void LSTMLayer::finalize(InitLayerContext &context) {
       if (integrate_bias) {
         // reverse_bias_h ( input bias, hidden bias are integrate to 1 bias
         // ) : [ 1, 1, 1, NUM_GATE * unit ] -> i, f, g, o
-        const TensorDim reverse_bias_h_dim({NUM_GATE * unit});
+        const TensorDim reverse_bias_h_dim({NUM_GATE * unit},
+                                           weight_tensor_type);
         wt_idx[LSTMParams::reverse_bias_h] = context.requestWeight(
           reverse_bias_h_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
           bias_decay, "reverse_bias_h", true);
       } else {
         // reverse_bias_ih ( input bias ) : [ 1, 1, 1, NUM_GATE * unit ] ->
         // i, f, g, o
-        const TensorDim reverse_bias_ih_dim({NUM_GATE * unit});
+        const TensorDim reverse_bias_ih_dim({NUM_GATE * unit},
+                                            weight_tensor_type);
         wt_idx[LSTMParams::reverse_bias_ih] = context.requestWeight(
           reverse_bias_ih_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
           bias_decay, "reverse_bias_ih", true);
         // reverse_bias_hh ( hidden bias ) : [ 1, 1, 1, NUM_GATE * unit ] ->
         // i, f, g, o
-        const TensorDim reverse_bias_hh_dim({NUM_GATE * unit});
+        const TensorDim reverse_bias_hh_dim({NUM_GATE * unit},
+                                            weight_tensor_type);
         wt_idx[LSTMParams::reverse_bias_hh] = context.requestWeight(
           reverse_bias_hh_dim, bias_initializer, WeightRegularizer::NONE, 1.0f,
           bias_decay, "reverse_bias_hh", true);
@@ -530,19 +571,21 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     }
 
     // reverse_hidden_state_dim : [ batch_size, 1, max_timestep, unit ]
-    const TensorDim reverse_hidden_state_dim(batch_size, 1, max_timestep, unit);
+    const TensorDim reverse_hidden_state_dim(batch_size, 1, max_timestep, unit,
+                                             weight_tensor_type);
     wt_idx[LSTMParams::reverse_hidden_state] = context.requestTensor(
       reverse_hidden_state_dim, "reverse_hidden_state",
       Tensor::Initializer::NONE, true, TensorLifespan::ITERATION_LIFESPAN);
     // reverse_cell_state_dim : [ batch_size, 1, max_timestep, unit ]
-    const TensorDim reverse_cell_state_dim(batch_size, 1, max_timestep, unit);
+    const TensorDim reverse_cell_state_dim(batch_size, 1, max_timestep, unit,
+                                           weight_tensor_type);
     wt_idx[LSTMParams::reverse_cell_state] = context.requestTensor(
       reverse_cell_state_dim, "reverse_cell_state", Tensor::Initializer::NONE,
       true, TensorLifespan::ITERATION_LIFESPAN);
 
     // reverse_ifgo_dim : [ batch_size, 1, max_timestep, NUM_GATE * unit ]
     const TensorDim reverse_ifgo_dim(batch_size, 1, max_timestep,
-                                     NUM_GATE * unit);
+                                     NUM_GATE * unit, weight_tensor_type);
     wt_idx[LSTMParams::reverse_ifgo] = context.requestTensor(
       reverse_ifgo_dim, "reverse_ifgo", Tensor::Initializer::NONE, true,
       TensorLifespan::ITERATION_LIFESPAN);
@@ -550,14 +593,24 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch, 1, time_iteration, unit ]
-    const TensorDim dropout_mask_dim(batch_size, 1, max_timestep, unit);
+    const TensorDim dropout_mask_dim(batch_size, 1, max_timestep, unit,
+                                     weight_tensor_type);
     wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
       dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
       TensorLifespan::ITERATION_LIFESPAN);
   }
 
-  acti_func.setActiFunc(hidden_state_activation_type);
-  recurrent_acti_func.setActiFunc(recurrent_activation_type);
+  if (context.getActivationDataType() == TensorDim::DataType::FP32) {
+    acti_func.setActiFunc<float>(hidden_state_activation_type);
+    recurrent_acti_func.setActiFunc<float>(recurrent_activation_type);
+  } else if (context.getActivationDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    acti_func.setActiFunc<_FP16>(hidden_state_activation_type);
+    recurrent_acti_func.setActiFunc<_FP16>(recurrent_activation_type);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void LSTMLayer::setProperty(const std::vector<std::string> &values) {
@@ -598,7 +651,11 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
 
   const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
   const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
+
+  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
   Tensor empty;
+  empty.setTensorType(weight_tensor_type);
+
   const Tensor &bias_h = !disable_bias && integrate_bias
                            ? context.getWeight(wt_idx[LSTMParams::bias_h])
                            : empty;
@@ -656,33 +713,77 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   }
 
   if (return_sequences && !bidirectional) {
-    std::copy(hidden_state.getData(),
-              hidden_state.getData() + hidden_state.size(), output.getData());
+    if (hidden_state.getDataType() == TensorDim::DataType::FP32) {
+      std::copy(hidden_state.getData<float>(),
+                hidden_state.getData<float>() + hidden_state.size(),
+                output.getData<float>());
+    } else if (hidden_state.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      std::copy(hidden_state.getData<_FP16>(),
+                hidden_state.getData<_FP16>() + hidden_state.size(),
+                output.getData<_FP16>());
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    }
   } else {
     unsigned int end_timestep = return_sequences ? max_timestep : 1;
-    for (unsigned int batch = 0; batch < batch_size; ++batch) {
-      for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
-        float *hidden_state_data = hidden_state.getAddress<float>(
-          batch * max_timestep * unit +
-          (return_sequences ? 0 : (max_timestep - 1) * unit) + timestep * unit);
-        float *output_data = output.getAddress<float>(
-          batch * (return_sequences ? max_timestep : 1) *
-            bidirectional_constant * unit +
-          timestep * bidirectional_constant * unit);
-        std::copy(hidden_state_data, hidden_state_data + unit, output_data);
+    if (hidden_state.getDataType() == TensorDim::DataType::FP32) {
+      for (unsigned int batch = 0; batch < batch_size; ++batch) {
+        for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
+          float *hidden_state_data = hidden_state.getAddress<float>(
+            batch * max_timestep * unit +
+            (return_sequences ? 0 : (max_timestep - 1) * unit) +
+            timestep * unit);
+          float *output_data = output.getAddress<float>(
+            batch * (return_sequences ? max_timestep : 1) *
+              bidirectional_constant * unit +
+            timestep * bidirectional_constant * unit);
+          std::copy(hidden_state_data, hidden_state_data + unit, output_data);
 
-        if (bidirectional) {
-          Tensor &reverse_hidden_state =
-            context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
-          float *reverse_hidden_state_data =
-            reverse_hidden_state.getAddress<float>(
-              batch * max_timestep * unit +
-              (return_sequences ? 0 : (max_timestep - 1) * unit) +
-              timestep * unit);
-          std::copy(reverse_hidden_state_data, reverse_hidden_state_data + unit,
-                    output_data + unit);
+          if (bidirectional) {
+            Tensor &reverse_hidden_state =
+              context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
+            float *reverse_hidden_state_data =
+              reverse_hidden_state.getAddress<float>(
+                batch * max_timestep * unit +
+                (return_sequences ? 0 : (max_timestep - 1) * unit) +
+                timestep * unit);
+            std::copy(reverse_hidden_state_data,
+                      reverse_hidden_state_data + unit, output_data + unit);
+          }
         }
       }
+    } else if (hidden_state.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      for (unsigned int batch = 0; batch < batch_size; ++batch) {
+        for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
+          _FP16 *hidden_state_data = hidden_state.getAddress<_FP16>(
+            batch * max_timestep * unit +
+            (return_sequences ? 0 : (max_timestep - 1) * unit) +
+            timestep * unit);
+          _FP16 *output_data = output.getAddress<_FP16>(
+            batch * (return_sequences ? max_timestep : 1) *
+              bidirectional_constant * unit +
+            timestep * bidirectional_constant * unit);
+          std::copy(hidden_state_data, hidden_state_data + unit, output_data);
+
+          if (bidirectional) {
+            Tensor &reverse_hidden_state =
+              context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
+            _FP16 *reverse_hidden_state_data =
+              reverse_hidden_state.getAddress<_FP16>(
+                batch * max_timestep * unit +
+                (return_sequences ? 0 : (max_timestep - 1) * unit) +
+                timestep * unit);
+            std::copy(reverse_hidden_state_data,
+                      reverse_hidden_state_data + unit, output_data + unit);
+          }
+        }
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
   }
 }
@@ -734,7 +835,11 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   Tensor &d_weight_ih = context.getWeightGrad(wt_idx[LSTMParams::weight_ih]);
   const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
   Tensor &d_weight_hh = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
+
+  TensorDim::TensorType weight_tensor_type = weight_hh.getTensorType();
   Tensor empty;
+  empty.setTensorType(weight_tensor_type);
+
   Tensor &d_bias_h = !disable_bias && integrate_bias
                        ? context.getWeightGrad(wt_idx[LSTMParams::bias_h])
                        : empty;
