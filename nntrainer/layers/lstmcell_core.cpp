@@ -51,16 +51,18 @@ void LSTMCore::forwardLSTM(const unsigned int batch_size,
     }
   }
 
-  Tensor input_forget_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit * 2}, 0, false);
+  TensorDim::TensorType tensor_type = ifgo.getTensorType();
+
+  Tensor input_forget_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit * 2, tensor_type}, 0, false);
   Tensor input_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
-  Tensor forget_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit, false);
-  Tensor memory_cell =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 2, false);
-  Tensor output_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 3, false);
+    ifgo.getSharedDataTensor({batch_size, 1, 1, unit, tensor_type}, 0, false);
+  Tensor forget_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit, false);
+  Tensor memory_cell = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 2, false);
+  Tensor output_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 3, false);
 
   recurrent_acti_func.run_fn(input_forget_gate, input_forget_gate);
   recurrent_acti_func.run_fn(output_gate, output_gate);
@@ -89,29 +91,32 @@ void LSTMCore::calcGradientLSTM(
   const Tensor &d_cell_state, Tensor &d_weight_ih, const Tensor &weight_hh,
   Tensor &d_weight_hh, Tensor &d_bias_h, Tensor &d_bias_ih, Tensor &d_bias_hh,
   const Tensor &ifgo, Tensor &d_ifgo) {
-  Tensor input_forget_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit * 2}, 0, false);
+  TensorDim::TensorType tensor_type = ifgo.getTensorType();
+  Tensor input_forget_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit * 2, tensor_type}, 0, false);
   Tensor input_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
-  Tensor forget_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit, false);
-  Tensor memory_cell =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 2, false);
-  Tensor output_gate =
-    ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 3, false);
+    ifgo.getSharedDataTensor({batch_size, 1, 1, unit, tensor_type}, 0, false);
+  Tensor forget_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit, false);
+  Tensor memory_cell = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 2, false);
+  Tensor output_gate = ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 3, false);
 
-  Tensor d_input_forget_gate =
-    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit * 2}, 0, false);
+  Tensor d_input_forget_gate = d_ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit * 2, tensor_type}, 0, false);
   Tensor d_input_gate =
-    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, 0, false);
-  Tensor d_forget_gate =
-    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit, false);
-  Tensor d_memory_cell =
-    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 2, false);
-  Tensor d_output_gate =
-    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit}, unit * 3, false);
+    d_ifgo.getSharedDataTensor({batch_size, 1, 1, unit, tensor_type}, 0, false);
+  Tensor d_forget_gate = d_ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit, false);
+  Tensor d_memory_cell = d_ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 2, false);
+  Tensor d_output_gate = d_ifgo.getSharedDataTensor(
+    {batch_size, 1, 1, unit, tensor_type}, unit * 3, false);
 
   Tensor activated_cell_state;
+  activated_cell_state.setTensorType(cell_state.getTensorType());
+
   acti_func.run_fn(cell_state, activated_cell_state);
   d_hidden_state.multiply_strided(activated_cell_state, d_output_gate);
   acti_func.run_prime_fn(activated_cell_state, d_prev_cell_state,
@@ -142,19 +147,36 @@ void LSTMCore::calcGradientLSTM(
   if (input.batch() != 1) {
     input.dot(d_ifgo, d_weight_ih, true, false, 1.0f);
   } else {
-    for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
-      unsigned int out_width = d_weight_ih.width();
-      float in_ih = input.getValue<float>(i);
-
-      float *d_weight_ih_address = d_weight_ih.getAddress<float>(i * out_width);
-
-      float *d_ifgo_address = d_ifgo.getData<float>();
+    if (input.getDataType() == TensorDim::DataType::FP32) {
+      for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
+        unsigned int out_width = d_weight_ih.width();
+        float in_ih = input.getValue<float>(i);
+        float *d_weight_ih_address =
+          d_weight_ih.getAddress<float>(i * out_width);
+        float *d_ifgo_address = d_ifgo.getData<float>();
 #ifdef USE_BLAS
-      cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address, 1);
+        cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address,
+                    1);
 #else
-      for (unsigned int j = 0; j < out_width; ++j) {
-        d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
+        for (unsigned int j = 0; j < out_width; ++j) {
+          d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
+        }
+#endif
       }
+    } else if (input.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
+        unsigned int out_width = d_weight_ih.width();
+        _FP16 in_ih = input.getValue<_FP16>(i);
+        _FP16 *d_weight_ih_address =
+          d_weight_ih.getAddress<_FP16>(i * out_width);
+        _FP16 *d_ifgo_address = d_ifgo.getData<_FP16>();
+        for (unsigned int j = 0; j < out_width; ++j) {
+          d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
+        }
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
     }
   }
@@ -162,24 +184,40 @@ void LSTMCore::calcGradientLSTM(
   if (prev_hidden_state.batch() != 1) {
     prev_hidden_state.dot(d_ifgo, d_weight_hh, true, false, 1.0f);
   } else {
-    for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
-      unsigned int out_width = d_weight_hh.width();
-      float in_hh = prev_hidden_state.getValue<float>(i);
-
-      float *d_weight_hh_address = d_weight_hh.getAddress<float>(i * out_width);
-
-      float *d_ifgo_address = d_ifgo.getData<float>();
+    if (prev_hidden_state.getDataType() == TensorDim::DataType::FP32) {
+      for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
+        unsigned int out_width = d_weight_hh.width();
+        float in_hh = prev_hidden_state.getValue<float>(i);
+        float *d_weight_hh_address =
+          d_weight_hh.getAddress<float>(i * out_width);
+        float *d_ifgo_address = d_ifgo.getData<float>();
 
 #ifdef USE_CBLAS
-      cblas_saxpy(out_width, in_hh, d_ifgo_address, 1, d_weight_hh_address, 1);
+        cblas_saxpy(out_width, in_hh, d_ifgo_address, 1, d_weight_hh_address,
+                    1);
 #else
-      for (unsigned int j = 0; j < out_width; ++j) {
-        d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
+        for (unsigned int j = 0; j < out_width; ++j) {
+          d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
+        }
+#endif
       }
+    } else if (prev_hidden_state.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
+        unsigned int out_width = d_weight_hh.width();
+        _FP16 in_hh = prev_hidden_state.getValue<_FP16>(i);
+        _FP16 *d_weight_hh_address =
+          d_weight_hh.getAddress<_FP16>(i * out_width);
+        _FP16 *d_ifgo_address = d_ifgo.getData<_FP16>();
+        for (unsigned int j = 0; j < out_width; ++j) {
+          d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
+        }
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
     }
   }
-
   d_ifgo.dot(weight_hh, d_prev_hidden_state, false, true);
 }
 
@@ -194,5 +232,4 @@ void LSTMCore::exportTo(Exporter &exporter,
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(lstmcore_props, method, this);
 }
-
 } // namespace nntrainer
