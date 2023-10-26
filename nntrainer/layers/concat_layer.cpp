@@ -118,6 +118,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
   unsigned int data_copy_size = output_reshape_helper.width();
+  TensorDim::TensorType tensor_type = out_dim.getTensorType();
 
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &input = context.getInput(idx);
@@ -125,18 +126,42 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     auto const &irh = input_reshape_helper[idx];
     input.reshape(irh);
 
-    /** loop over the dimensions before the concat dimension */
-    for (unsigned int batch = 0; batch < output.batch(); batch++) {
-      /** loop over the concat dimension itself */
-      for (unsigned int count = 0; count < irh.height(); count++) {
-        Tensor dest_tensor = Tensor::Map<float>(
-          output.getAddress<float>(batch, 0, output_height_offset + count, 0),
-          data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
-        const Tensor source_tensor = Tensor::Map<float>(
-          input.getAddress(batch, 0, count, 0), data_copy_size * sizeof(float),
-          {1, 1, 1, data_copy_size});
-        dest_tensor.copy(source_tensor);
+    if (in_dim.getDataType() == TensorDim::DataType::FP32) {
+      /** loop over the dimensions before the concat dimension */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        /** loop over the concat dimension itself */
+        for (unsigned int count = 0; count < irh.height(); count++) {
+          Tensor dest_tensor = Tensor::Map<float>(
+            output.getAddress<float>(batch, 0, output_height_offset + count, 0),
+            data_copy_size * sizeof(float),
+            {1, 1, 1, data_copy_size, tensor_type});
+          const Tensor source_tensor =
+            Tensor::Map<float>(input.getAddress<float>(batch, 0, count, 0),
+                               data_copy_size * sizeof(float),
+                               {1, 1, 1, data_copy_size, tensor_type});
+          dest_tensor.copy(source_tensor);
+        }
       }
+    } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      /** loop over the dimensions before the concat dimension */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        /** loop over the concat dimension itself */
+        for (unsigned int count = 0; count < irh.height(); count++) {
+          Tensor dest_tensor = Tensor::Map<_FP16>(
+            output.getAddress<_FP16>(batch, 0, output_height_offset + count, 0),
+            data_copy_size * sizeof(_FP16),
+            {1, 1, 1, data_copy_size, tensor_type});
+          const Tensor source_tensor =
+            Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, count, 0),
+                               data_copy_size * sizeof(_FP16),
+                               {1, 1, 1, data_copy_size, tensor_type});
+          dest_tensor.copy(source_tensor);
+        }
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
 
     input.reshape(in_dim);
@@ -202,25 +227,50 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
   unsigned int data_copy_size = output_reshape_helper.width();
+  TensorDim::TensorType tensor_type = output.getTensorType();
 
-  for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+ for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &input = context.getOutgoingDerivative(idx);
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];
     input.reshape(irh);
 
-    /** loop over the dimensions before the concat dimension */
-    for (unsigned int batch = 0; batch < output.batch(); batch++) {
-      /** loop over the concat dimension itself */
-      for (unsigned int count = 0; count < irh.height(); count++) {
-        const Tensor source_tensor = Tensor::Map<float>(
-          output.getAddress(batch, 0, output_height_offset + count, 0),
-          data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
-        Tensor dest_tensor = Tensor::Map<float>(
-          input.getAddress(batch, 0, count, 0), data_copy_size * sizeof(float),
-          {1, 1, 1, data_copy_size});
-        dest_tensor.copy(source_tensor);
+    if (in_dim.getDataType() == TensorDim::DataType::FP32) {
+      /** loop over the dimensions before the concat dimension */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        /** loop over the concat dimension itself */
+        for (unsigned int count = 0; count < irh.height(); count++) {
+          const Tensor source_tensor = Tensor::Map<float>(
+            output.getAddress<float>(batch, 0, output_height_offset + count, 0),
+            data_copy_size * sizeof(float),
+            {1, 1, 1, data_copy_size, tensor_type});
+          Tensor dest_tensor =
+            Tensor::Map<float>(input.getAddress<float>(batch, 0, count, 0),
+                               data_copy_size * sizeof(float),
+                               {1, 1, 1, data_copy_size, tensor_type});
+          dest_tensor.copy(source_tensor);
+        }
       }
+    } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      /** loop over the dimensions before the concat dimension */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        /** loop over the concat dimension itself */
+        for (unsigned int count = 0; count < irh.height(); count++) {
+          const Tensor source_tensor = Tensor::Map<_FP16>(
+            output.getAddress<_FP16>(batch, 0, output_height_offset + count, 0),
+            data_copy_size * sizeof(_FP16),
+            {1, 1, 1, data_copy_size, tensor_type});
+          Tensor dest_tensor =
+            Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, count, 0),
+                               data_copy_size * sizeof(_FP16),
+                               {1, 1, 1, data_copy_size, tensor_type});
+          dest_tensor.copy(source_tensor);
+        }
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
 
     input.reshape(in_dim);
