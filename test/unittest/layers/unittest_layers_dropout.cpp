@@ -57,31 +57,31 @@ GTEST_PARAMETER_TEST(Dropout, LayerGoldenTest,
                                        dropout_20_inference));
 
 #ifdef ENABLE_FP16
-auto dropout_20_training_fp16fp16 = LayerGoldenTestParamType(
+auto dropout_20_training_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=0.2"},
-  "2:3:2:3", "dropout_20_training_fp16fp16.nnlayergolden",
+  "2:3:2:3", "dropout_20_training_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT |
     LayerGoldenTestParamOptions::DROPOUT_MATCH_60_PERCENT,
   "nchw", "fp16", "fp16");
 
-auto dropout_20_inference_fp16fp16 = LayerGoldenTestParamType(
+auto dropout_20_inference_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=0.2"},
-  "2:3:2:3", "dropout_20_inference_fp16fp16.nnlayergolden",
+  "2:3:2:3", "dropout_20_inference_w16a16.nnlayergolden",
   dropout_inference_option, "nchw", "fp16", "fp16");
 
-auto dropout_0_training_fp16fp16 = LayerGoldenTestParamType(
+auto dropout_0_training_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=0.0"},
-  "2:3:2:3", "dropout_0_training_fp16fp16.nnlayergolden",
+  "2:3:2:3", "dropout_0_training_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto dropout_100_training_fp16fp16 = LayerGoldenTestParamType(
+auto dropout_100_training_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::DropOutLayer>, {"dropout_rate=1.0"},
-  "2:3:2:3", "dropout_100_training_fp16fp16.nnlayergolden",
+  "2:3:2:3", "dropout_100_training_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
 GTEST_PARAMETER_TEST(Dropout16, LayerGoldenTest,
-                     ::testing::Values(dropout_20_training_fp16fp16,
-                                       dropout_0_training_fp16fp16,
-                                       dropout_100_training_fp16fp16,
-                                       dropout_20_inference_fp16fp16));
+                     ::testing::Values(dropout_20_training_w16a16,
+                                       dropout_0_training_w16a16,
+                                       dropout_100_training_w16a16,
+                                       dropout_20_inference_w16a16));
 #endif
