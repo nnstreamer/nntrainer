@@ -62,7 +62,7 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
     par.get().setFormat(
       str_converter<enum_class_prop_tag,
                     nntrainer::TensorFormatInfo>::from_string(tensor_type[0]));
-    if (tensor_type[2] == "fp16") {
+    if (tensor_type[2] == "fp16" && layer->getType() != "embedding") {
       par.get().setDataType(ml::train::TensorDim::DataType::FP16);
     }
   }
@@ -72,7 +72,7 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
   layer->finalize(context);
 
   for (auto &dim : context.getMutableInputDimensions()) {
-    if (tensor_type[2] == "fp16") {
+    if (tensor_type[2] == "fp16" && layer->getType() != "embedding") {
       dim.setDataType(ml::train::TensorDim::DataType::FP16);
     }
     dim.setFormat(
