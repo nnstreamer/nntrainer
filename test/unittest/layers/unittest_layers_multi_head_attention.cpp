@@ -73,3 +73,47 @@ GTEST_PARAMETER_TEST(
                     multi_head_attention_return_attention_scores,
                     multi_head_attention_value_dim,
                     multi_head_attention_output_shape));
+#ifdef ENABLE_FP16
+auto multi_head_attention_single_batch_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "1:1:5:7,1:1:3:7,1:1:3:7",
+  "multi_head_attention_single_batch_w16a16.nnlayergolden",
+  inference_only_option, "nchw", "fp16", "fp16");
+
+auto multi_head_attention_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_w16a16.nnlayergolden", inference_only_option, "nchw",
+  "fp16", "fp16");
+
+auto multi_head_attention_return_attention_scores_w16a16 =
+  LayerGoldenTestParamType(
+    nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+    {"num_heads=2", "projected_key_dim=3", "return_attention_weight=before",
+     "average_attention_weight=false"},
+    "2:1:5:7,2:1:3:7,2:1:3:7",
+    "multi_head_attention_return_attention_scores_w16a16.nnlayergolden",
+    inference_only_option, "nchw", "fp16", "fp16");
+
+auto multi_head_attention_value_dim_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "projected_value_dim=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_value_dim_w16a16.nnlayergolden", inference_only_option,
+  "nchw", "fp16", "fp16");
+
+auto multi_head_attention_output_shape_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "output_shape=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_output_shape_w16a16.nnlayergolden",
+  inference_only_option, "nchw", "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(
+  MultiHeadAttention16, LayerGoldenTest,
+  ::testing::Values(multi_head_attention_single_batch_w16a16,
+                    multi_head_attention_w16a16,
+                    multi_head_attention_return_attention_scores_w16a16,
+                    multi_head_attention_value_dim_w16a16,
+                    multi_head_attention_output_shape_w16a16));
+#endif
