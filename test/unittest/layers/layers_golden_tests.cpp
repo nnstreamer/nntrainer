@@ -7,6 +7,7 @@
  * @brief Common golden test for nntrainer layers (Param Tests)
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #include <layers_common_tests.h>

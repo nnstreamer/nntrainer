@@ -34,12 +34,12 @@ GTEST_PARAMETER_TEST(LSTMCell, LayerGoldenTest,
                      ::testing::Values(lstmcell_single_step));
 
 #ifdef ENABLE_FP16
-auto lstmcell_single_step_fp16fp16 = LayerGoldenTestParamType(
+auto lstmcell_single_step_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMCellLayer>,
   {"unit=5", "integrate_bias=true"}, "3:1:1:7,3:1:1:5,3:1:1:5",
-  "lstmcell_single_step_fp16fp16.nnlayergolden",
+  "lstmcell_single_step_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
 GTEST_PARAMETER_TEST(LSTMCell16, LayerGoldenTest,
-                     ::testing::Values(lstmcell_single_step_fp16fp16));
+                     ::testing::Values(lstmcell_single_step_w16a16));
 #endif

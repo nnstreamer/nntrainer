@@ -7,6 +7,7 @@
 # @date 13 October 2020
 # @brief Generate tc from given keras model
 # @author Jihoon lee <jhoon.it.lee@samsung.com>
+# @author Sungsik Kong <ss.kong@samsung.com>
 
 from functools import wraps
 import sys
@@ -76,6 +77,8 @@ def _rand_like(tensorOrShape, scale=1, rand='int'):
     # for relu based models, range of 0 to x is better than -x to x
     if rand == 'int':
         t = np.random.randint(0, 10, shape).astype(dtype=np.float32)
+    elif rand =='float16':
+        t = np.random.randint(0, 10, shape).astype(dtype=np.float16)
     else:
         t = np.random.rand(*shape).astype(dtype=np.float32)
     return tf.convert_to_tensor(t) * scale
@@ -498,3 +501,104 @@ def record_single_fp16(layer, input_shape, test_name, call_args={}, input_type='
         write_tensor_fp16(weights)
         write_tensor_fp16(derivatives)
 
+def record_single_embedding_mixed(layer, input_shape, test_name, call_args={}, input_type='int'):
+    layer = attach_trans_layer(layer)
+    layer.build(input_shape)
+    if isinstance(input_shape, list):
+        inputs = [_rand_like(in_shape, 1, input_type) for in_shape in input_shape]
+    else:
+        inputs = _rand_like(input_shape, 1, input_type)
+
+    initial_weights = [tf.Variable(i) for i in layer.weights]
+
+    for _ in range(4):
+        layer.call(inputs, **call_args) # warm layer multiple times
+
+    with tf.GradientTape(persistent=True) as tape:
+        if isinstance(inputs, list):
+            list([tape.watch(inp) for inp in inputs])
+        else:
+            tape.watch(inputs)
+        outputs = layer.call(inputs, **call_args)
+        dy_constant = outputs * 2  # set incoming derivative to 2 instead of 1
+
+    weights = layer.weights.copy()
+    gradients = tape.gradient(dy_constant, layer.trainable_weights)
+    gradients = tf.convert_to_tensor(gradients[0])
+
+    try:
+        gradients = layer.to_nntr_trainable_weights(gradients)
+    except AttributeError:
+        pass
+
+    with open(test_name + ".nnlayergolden", "wb") as f:
+        writer = _get_writer(f)
+        def write_tensor(tensors):
+            if not isinstance(tensors, list):
+                tensors = [tensors]
+            for tensor in tensors:
+                writer(tf.size(tensor), tensor)
+
+        def write_tensor_fp16(tensors):
+            if not isinstance(tensors, list):
+                tensors = [tensors]
+            for tensor in tensors:
+                tensor = tf.cast(tensor, tf.float16)
+                writer(tf.size(tensor,out_type=tf.int16), tensor)
+
+        ## @todo inputs outputs derivatives can be more than one
+        ## @note please update genLayerTests.py comments when updating below
+        write_tensor_fp16(initial_weights)
+        write_tensor(inputs)
+        write_tensor_fp16(outputs)
+        write_tensor_fp16(gradients)
+        write_tensor_fp16(weights)
+        write_tensor(inputs) # for nntr format
+
+
+def record_single_embedding_fp32(layer, input_shape, test_name, call_args={}, input_type='int'):
+    layer = attach_trans_layer(layer)
+    layer.build(input_shape)
+    if isinstance(input_shape, list):
+        inputs = [_rand_like(in_shape, 1, input_type) for in_shape in input_shape]
+    else:
+        inputs = _rand_like(input_shape, 1, input_type)
+
+    initial_weights = [tf.Variable(i) for i in layer.weights]
+
+    for _ in range(4):
+        layer.call(inputs, **call_args) # warm layer multiple times
+
+    with tf.GradientTape(persistent=True) as tape:
+        if isinstance(inputs, list):
+            list([tape.watch(inp) for inp in inputs])
+        else:
+            tape.watch(inputs)
+        outputs = layer.call(inputs, **call_args)
+        dy_constant = outputs * 2  # set incoming derivative to 2 instead of 1
+
+    weights = layer.weights.copy()
+    gradients = tape.gradient(dy_constant, layer.trainable_weights)
+    gradients = tf.convert_to_tensor(gradients[0])
+
+    try:
+        gradients = layer.to_nntr_trainable_weights(gradients)
+    except AttributeError:
+        pass
+
+    with open(test_name + ".nnlayergolden", "wb") as f:
+        writer = _get_writer(f)
+        def write_tensor(tensors):
+            if not isinstance(tensors, list):
+                tensors = [tensors]
+            for tensor in tensors:
+                writer(tf.size(tensor), tensor)
+
+        ## @todo inputs outputs derivatives can be more than one
+        ## @note please update genLayerTests.py comments when updating below
+        write_tensor(initial_weights)
+        write_tensor(inputs)
+        write_tensor(outputs)
+        write_tensor(gradients)
+        write_tensor(weights)
+        write_tensor(inputs) # for nntr format

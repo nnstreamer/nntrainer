@@ -68,49 +68,49 @@ GTEST_PARAMETER_TEST(LSTM, LayerGoldenTest,
                                        lstm_multi_step_seq_act));
 
 #ifdef ENABLE_FP16
-auto lstm_single_step_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_single_step_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true"}, "3:1:1:7",
-  "lstm_single_step_fp16fp16.nnlayergolden",
+  "lstm_single_step_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto lstm_multi_step_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_multi_step_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true"}, "3:1:4:7",
-  "lstm_multi_step_fp16fp16.nnlayergolden",
+  "lstm_multi_step_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto lstm_single_step_seq_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_single_step_seq_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true", "return_sequences=true"}, "3:1:1:7",
-  "lstm_single_step_seq_fp16fp16.nnlayergolden",
+  "lstm_single_step_seq_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto lstm_multi_step_seq_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_multi_step_seq_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true", "return_sequences=true"}, "3:1:4:7",
-  "lstm_multi_step_seq_fp16fp16.nnlayergolden",
+  "lstm_multi_step_seq_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto lstm_multi_step_seq_act_orig_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_multi_step_seq_act_orig_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true", "return_sequences=true",
    "hidden_state_activation=tanh", "recurrent_activation=sigmoid"},
-  "3:1:4:7", "lstm_multi_step_seq_fp16fp16.nnlayergolden",
+  "3:1:4:7", "lstm_multi_step_seq_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
-auto lstm_multi_step_seq_act_fp16fp16 = LayerGoldenTestParamType(
+auto lstm_multi_step_seq_act_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::LSTMLayer>,
   {"unit=5", "integrate_bias=true", "return_sequences=true",
    "hidden_state_activation=sigmoid", "recurrent_activation=tanh"},
-  "3:1:4:7", "lstm_multi_step_seq_act_fp16fp16.nnlayergolden",
+  "3:1:4:7", "lstm_multi_step_seq_act_w16a16.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
 
 GTEST_PARAMETER_TEST(LSTM16, LayerGoldenTest,
-                     ::testing::Values(lstm_single_step_fp16fp16,
-                                       lstm_multi_step_fp16fp16,
-                                       lstm_single_step_seq_fp16fp16,
-                                       lstm_multi_step_seq_fp16fp16,
-                                       lstm_multi_step_seq_act_orig_fp16fp16,
-                                       lstm_multi_step_seq_act_fp16fp16));
+                     ::testing::Values(lstm_single_step_w16a16,
+                                       lstm_multi_step_w16a16,
+                                       lstm_single_step_seq_w16a16,
+                                       lstm_multi_step_seq_w16a16,
+                                       lstm_multi_step_seq_act_orig_w16a16,
+                                       lstm_multi_step_seq_act_w16a16));
 #endif
