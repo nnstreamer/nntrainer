@@ -1953,10 +1953,16 @@ public:
   Tdatatype getDataType() const { return dim.getDataType(); }
 
   /**
-   * @brief     Set scale factors of the tensor
-   * @param[in] scales scale factors
+   * @brief     Set fp32 scale factors of the tensor
+   * @param[in] scales fp32 scale factors
    */
-  void setScaleFactors(std::vector<float> scales);
+  void setScaleFactors(std::vector<float> scales) {
+    if (scales.empty()) {
+      throw std::invalid_argument("Error: invalid parameter");
+    }
+
+    scale_factors_fp32 = scales;
+  }
 
   /**
    * @brief Get scale factors of the tensor
@@ -1976,7 +1982,13 @@ public:
    * @brief     Set fp16 scale factors of the tensor
    * @param[in] scales fp16 scale factors
    */
-  void setScaleFactors16(std::vector<_FP16> scales);
+  void setScaleFactorsFP16(std::vector<_FP16> scales) {
+    if (scales.empty()) {
+      throw std::invalid_argument("Error: invalid parameter");
+    }
+
+    scale_factors_fp16 = scales;
+  }
 #endif
 
   /**
@@ -2009,9 +2021,9 @@ private:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
-  std::vector<float> scale_factors_32;
+  std::vector<float> scale_factors_fp32;
 #ifdef ENABLE_FP16
-  std::vector<_FP16> scale_factors_16;
+  std::vector<_FP16> scale_factors_fp16;
 #endif
   std::vector<uint8_t> zero_points;
 

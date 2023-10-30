@@ -3185,12 +3185,12 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
       if (s_type == Tdatatype::FP32) {
         float scale;
         file.read((char *)&scale, sizeof(float));
-        scale_factors_32.push_back(scale);
+        scale_factors_fp32.push_back(scale);
       } else if (s_type == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
         _FP16 scale;
         file.read((char *)&scale, sizeof(_FP16));
-        scale_factors_16.push_back(scale);
+        scale_factors_fp16.push_back(scale);
 #else
         throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -3670,25 +3670,9 @@ uint8_t Tensor::decode_qint(uint8_t val, bool isHigh) const {
   return val;
 }
 
-void Tensor::setScaleFactors(std::vector<float> scales) {
-  if (scales.empty()) {
-    throw std::invalid_argument("Error: invalid parameter");
-  }
-
-  scale_factors_32 = scales;
+std::vector<float> Tensor::getScaleFactors() const {
+  return scale_factors_fp32;
 }
-
-#ifdef ENABLE_FP16
-void Tensor::setScaleFactors16(std::vector<_FP16> scales) {
-  if (scales.empty()) {
-    throw std::invalid_argument("Error: invalid parameter");
-  }
-
-  scale_factors_16 = scales;
-}
-#endif
-
-std::vector<float> Tensor::getScaleFactors() const { return scale_factors_32; }
 
 void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
   if (zp.empty()) {
@@ -3751,11 +3735,11 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
       width() != output.width() || height() != output.height())
     throw std::invalid_argument("Error: TensorDim do not match");
 
-  if (output.getDataType() == Tdatatype::FP32 && scale_factors_32.empty()) {
+  if (output.getDataType() == Tdatatype::FP32 && scale_factors_fp32.empty()) {
     throw std::invalid_argument("Error: No scale factors");
   }
 #ifdef ENABLE_FP16
-  if (output.getDataType() == Tdatatype::FP16 && scale_factors_16.empty()) {
+  if (output.getDataType() == Tdatatype::FP16 && scale_factors_fp16.empty()) {
     throw std::invalid_argument("Error: No scale factors");
   }
 #endif
@@ -3791,14 +3775,15 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
     }
 
     std::vector<_FP16> zero_points_16(zero_points.begin(), zero_points.end());
-    Tensor zero_points_fp16({{b, c, h, w}, {getFormat(), Tdatatype::FP16}},
-                            zero_points_16.data());
+    Tensor zero_points_fp16_tensor(
+      {{b, c, h, w}, {getFormat(), Tdatatype::FP16}}, zero_points_16.data());
 
-    Tensor scale_factors_fp16({{b, c, h, w}, {getFormat(), Tdatatype::FP16}},
-                              scale_factors_16.data());
+    Tensor scale_factors_fp16_tensor(
+      {{b, c, h, w}, {getFormat(), Tdatatype::FP16}},
+      scale_factors_fp16.data());
 
-    output.subtract_i(zero_points_fp16);
-    output.multiply_i(scale_factors_fp16);
+    output.subtract_i(zero_points_fp16_tensor);
+    output.multiply_i(scale_factors_fp16_tensor);
 
 #else
     throw std::invalid_argument("enble-fp16 is not set");
@@ -3808,13 +3793,14 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
     flate(output);
 
     std::vector<float> zero_points_32(zero_points.begin(), zero_points.end());
-    Tensor zero_points_fp32({{b, c, h, w}, {getFormat(), Tdatatype::FP32}},
-                            zero_points_32.data());
-    Tensor scale_factors_fp32({{b, c, h, w}, {getFormat(), Tdatatype::FP32}},
-                              scale_factors_32.data());
+    Tensor zero_points_fp32_tensor(
+      {{b, c, h, w}, {getFormat(), Tdatatype::FP32}}, zero_points_32.data());
+    Tensor scale_factors_fp32_tensor(
+      {{b, c, h, w}, {getFormat(), Tdatatype::FP32}},
+      scale_factors_fp32.data());
 
-    output.subtract_i(zero_points_fp32);
-    output.multiply_i(scale_factors_fp32);
+    output.subtract_i(zero_points_fp32_tensor);
+    output.multiply_i(scale_factors_fp32_tensor);
   }
 
   return;
