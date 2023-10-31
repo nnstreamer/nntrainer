@@ -159,6 +159,42 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 #endif
 }
 
+static void scopy_float32_to_float16(const unsigned int N, const float *X,
+                                     const int incX, _FP16 *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+#if (defined USE__FP16 && USE_NEON)
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::scopy_neon_fp32_to_fp16(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      Y[i * incy] = X[i * incx];
+  }
+#else
+  for (unsigned int i = 0; i < N; ++i)
+    Y[i * incy] = static_cast<_FP16>(X[i * incx]);
+#endif
+}
+
+static void scopy_float16_to_float32(const unsigned int N, const _FP16 *X,
+                                     const int incX, float *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+#if (defined USE__FP16 && USE_NEON)
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::scopy_neon_fp16_to_fp32(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      Y[i * incy] = X[i * incx];
+  }
+#else
+  for (unsigned int i = 0; i < N; ++i)
+    Y[i * incy] = static_cast<float>(X[i * incx]);
+#endif
+}
+
 static void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
                                const int incX, _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
@@ -319,6 +355,16 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
            const int incY) {
   scopy_FP16(N, X, incX, Y, incY);
+}
+
+void scopy(const unsigned int N, const float *X, const int incX, _FP16 *Y,
+           const int incY) {
+  scopy_float32_to_float16(N, X, incX, Y, incY);
+}
+
+void scopy(const unsigned int N, const _FP16 *X, const int incX, float *Y,
+           const int incY) {
+  scopy_float16_to_float32(N, X, incX, Y, incY);
 }
 
 void scopy_int4_to_float16(const unsigned int N, const uint8_t *X,
