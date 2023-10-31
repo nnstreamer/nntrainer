@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
     targetNet.initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    return 0;
+    return 1;
   }
 
   /**
@@ -300,8 +300,11 @@ int main(int argc, char **argv) {
     targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   } catch (...) {
     std::cerr << "Error during readBin\n";
-    return 1;
+    // return 1;
   }
+
+  mainNet.allocate(nntrainer::ExecutionMode::TRAIN);
+  targetNet.allocate(nntrainer::ExecutionMode::TRAIN);
 
   /**
    * @brief     Run Episode
@@ -531,7 +534,7 @@ int main(int argc, char **argv) {
         mainNet.save(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
       } catch (std::exception &e) {
         std::cerr << "Error during saveBin: " << e.what() << "\n";
-        return 1;
+        // return 1;
       }
     }
   }

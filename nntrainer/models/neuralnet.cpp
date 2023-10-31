@@ -340,6 +340,11 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label,
                                              bool training) {
   auto current_batch = model_graph.getBatchSize();
+  if (current_batch != input[0]->batch()) {
+    model_graph.setBatchSize(input[0]->batch());
+    current_batch = model_graph.getBatchSize();
+  }
+
   NNTR_THROW_IF(input[0]->batch() != current_batch ||
                   (!label.empty() && label[0]->batch() != current_batch),
                 std::logic_error)
