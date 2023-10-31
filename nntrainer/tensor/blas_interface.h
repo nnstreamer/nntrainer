@@ -64,6 +64,25 @@ _FP16 snrm2(const int N, const _FP16 *X, const int incX);
  */
 void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
            const int incY);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ */
+void scopy(const unsigned int N, const float *X, const int incX, _FP16 *Y,
+           const int incY);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X __fp16 * for Vector X
+ * @param[in] Y float * for Vector Y
+ */
+void scopy(const unsigned int N, const _FP16 *X, const int incX, float *Y,
+           const int incY);
+
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
