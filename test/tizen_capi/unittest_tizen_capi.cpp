@@ -929,9 +929,9 @@ TEST(nntrainer_capi_nnmodel, getWeight_01) {
   ml_tensors_info_h weight_info;
   ml_tensors_data_h weights;
   unsigned int num_weights;
-  unsigned int dim[2][MAXDIM];
   unsigned int weight_dim_expected[2][MAXDIM] = {{1, 1, 62720, 10},
                                                  {1, 1, 1, 10}};
+  unsigned int dim[2][MAXDIM];
 
   ScopedIni s("capi_test_get_weight_01",
               {model_base, optimizer, dataset, inputlayer, outputlayer});
