@@ -1972,6 +1972,17 @@ public:
   std::vector<float> getScaleFactors() const;
 
   /**
+   * @brief Set new scale factor of the tensor
+   * @param[in] val zero points
+   */
+  void setScaleFactor(float val);
+
+    /**
+   * @brief Apply scale factor of the tensor
+   */
+  void applyScaleFactor_i();
+
+  /**
    * @brief     Set output axis of the tensor
    * @param[in] zp zero points
    */

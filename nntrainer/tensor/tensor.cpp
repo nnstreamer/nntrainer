@@ -1093,7 +1093,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
-                 _FP16 *out_buf) {
+                _FP16 *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
           alpha == 0) {
         ewva(e.buffer_size, buf, m_buf, out_buf);
@@ -3691,6 +3691,19 @@ uint8_t Tensor::decode_qint(uint8_t val, bool isHigh) const {
 
 std::vector<float> Tensor::getScaleFactors() const {
   return scale_factors_fp32;
+}
+
+void Tensor::setScaleFactor(float val) {
+  scale_factors_fp32.clear();
+  scale_factors_fp32.push_back(val);
+}
+
+void Tensor::applyScaleFactor_i() {
+  if (scale_factors_fp32.empty()){
+      throw std::invalid_argument("Error: scaling Tensor needs scale factor");
+  }
+  this->multiply_i(*scale_factors_fp32.begin());
+  scale_factors_fp32.clear();
 }
 
 void Tensor::setZeroPoints(std::vector<uint8_t> zp) {
