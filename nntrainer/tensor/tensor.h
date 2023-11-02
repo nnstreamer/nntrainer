@@ -2004,12 +2004,6 @@ public:
    */
   void dequantize(Tensor &output, unsigned int axis) const;
 
-  /**
-   * @brief      copy QINT Tensor and save to output tensor
-   * @param[out] output Tensor to store the result
-   */
-  void flate(Tensor &output) const;
-
   static constexpr float epsilon = 1e-5;
 
 private:
