@@ -35,3 +35,4 @@
 # update this to enable external applications
 # @todo filter out headers that should be hidden
 /usr/include/nntrainer/util_func.h
+/usr/include/nntrainer/fp16.h
