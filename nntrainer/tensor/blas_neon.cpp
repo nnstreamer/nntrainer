@@ -1977,34 +1977,38 @@ void sgemm_neon_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
 
 void elementwise_vector_multiplication_neon_fp16(const unsigned int N,
                                                  const __fp16 *X,
-                                                 const __fp16 *Y, __fp16 *Z) {
+                                                 const __fp16 *Y, __fp16 *Z,
+                                                 const float alpha) {
   int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
     float16x8_t z0_7 = vmulq_f16(x0_7, y0_7);
+    z0_7 = vmulq_n_f16(z0_7, alpha);
 
     vst1q_f16(&Z[i], z0_7);
   }
   while (i < N) {
     Z[i] = X[i] * Y[i];
+    Z[i] *= alpha;
     ++i;
   }
 }
 
 void elementwise_vector_addition_neon_fp16(const unsigned int N,
                                            const __fp16 *X, const __fp16 *Y,
-                                           __fp16 *Z) {
+                                           __fp16 *Z, const float alpha) {
   int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
+    y0_7 = vmulq_n_f16(y0_7, alpha);
     float16x8_t z0_7 = vaddq_f16(x0_7, y0_7);
 
     vst1q_f16(&Z[i], z0_7);
   }
   while (i < N) {
-    Z[i] = X[i] * Y[i];
+    Z[i] = X[i] + alpha * Y[i];
     ++i;
   }
 }

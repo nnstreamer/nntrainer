@@ -88,24 +88,28 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta);
 
 /**
- * @brief     elementwise vector multiplication with neon : Z = X ⊙ Y
+ * @brief     elementwise vector multiplication with neon : Z = alpha * (X ⊙ Y)
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scaling factor
  */
 void elementwise_vector_multiplication_neon_fp16(const unsigned N,
                                                  const __fp16 *X,
-                                                 const __fp16 *Y, __fp16 *Z);
+                                                 const __fp16 *Y, __fp16 *Z,
+                                                 const float alpha);
 /**
- * @brief     elementwise vector addition with neon : Z = X + Y
+ * @brief     elementwise vector addition with neon : Z = X + alpha * Y
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scaling factor
  */
 void elementwise_vector_addition_neon_fp16(const unsigned N, const __fp16 *X,
-                                           const __fp16 *Y, __fp16 *Z);
+                                           const __fp16 *Y, __fp16 *Z,
+                                           const float alpha);
 
 /**
  * @brief     transposed sgemv computation with neon

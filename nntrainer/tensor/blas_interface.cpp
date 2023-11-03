@@ -20,6 +20,7 @@
 #endif
 
 #include <cmath>
+#include <iostream>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
   do {                                       \
@@ -235,22 +236,24 @@ static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 }
 
 static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                      _FP16 *Z) {
+                      _FP16 *Z, const float alpha) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z);
+  nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z,
+                                                               alpha);
 #else
-  for (unsigned int i = 0; i < N; ++i)
-    Z[i] = X[i] * Y[i];
+  for (unsigned int i = 0; i < N; ++i) {
+    Z[i] = static_cast<_FP16>(alpha) * X[i] * Y[i];
+  }
 #endif
 }
-
 static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                      _FP16 *Z) {
+                      _FP16 *Z, const float alpha) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z);
+  nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z, alpha);
 #else
-  for (unsigned int i = 0; i < N; ++i)
-    Z[i] = X[i] + Y[i];
+  for (unsigned int i = 0; i < N; ++i) {
+    Z[i] = X[i] + static_cast<_FP16>(alpha) * Y[i];
+  }
 #endif
 }
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
@@ -377,12 +380,14 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
   scopy_int8_to_fp16(N, X, incX, Y, incY);
 }
 
-void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
-  ewvm_FP16(N, X, Y, Z);
+void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+          const float alpha) {
+  ewvm_FP16(N, X, Y, Z, alpha);
 }
 
-void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
-  ewva_FP16(N, X, Y, Z);
+void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+          const float alpha) {
+  ewva_FP16(N, X, Y, Z, alpha);
 }
 
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {

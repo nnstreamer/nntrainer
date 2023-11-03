@@ -152,22 +152,24 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
            const unsigned int lda, const _FP16 *X, const int incX,
            const float beta, _FP16 *Y, const int incY);
 /**
- * @brief     elementwise vector multiplication : Z = X ⊙ Y
+ * @brief     elementwise vector multiplication : Z = (alpha) * (X ⊙ Y)
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scaling factor
  */
-void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z);
+void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z, const float alpha = 1);
 
 /**
- * @brief     elementwise vector addition : Z = X + Y
+ * @brief     elementwise vector addition : Z = X + (alpha) * Y
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scaling factor
  */
-void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z);
+void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z, const float alpha = 1);
 
 /**
  * @brief     isamax function : index of first maxima
