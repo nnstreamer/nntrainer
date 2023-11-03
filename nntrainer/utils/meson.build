@@ -12,7 +12,8 @@ util_headers = [
   'node_exporter.h',
   'util_func.h',
   'profiler.h',
-  'nntr_threads.h'
+  'nntr_threads.h',
+  'fp16.h'
 ]
 
 if get_option('enable-trace')
