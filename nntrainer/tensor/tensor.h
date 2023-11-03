@@ -2108,6 +2108,7 @@ private:
                                           const _FP16 *, _FP16 *)>
                          v_func,
                        Tensor &output) const;
+
 #endif
   /**
    * @brief compute Loop info for broadcasting and vectorization

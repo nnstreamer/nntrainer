@@ -20,7 +20,10 @@
 #endif
 
 #include <cmath>
+<<<<<<< HEAD
 #include <iostream>
+=======
+>>>>>>> 011e1c23... [Tensor] Consider scale factor in math ops
 
 #define sgemv_loop(ci, cj, cM, cN)           \
   do {                                       \

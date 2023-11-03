@@ -874,6 +874,16 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
       << getName() << " is not contiguous, cannot multiply";
 
     apply_broadcast(m, f, output);
+
+    float output_scale_factor = 1;
+    if (getScaleFactors().size() == 1){
+      output_scale_factor *= *(getScaleFactors().begin());
+      output.setScaleFactor(output_scale_factor);
+    }
+    if (m.getScaleFactors().size() == 1){
+      output_scale_factor *= *(m.getScaleFactors().begin());
+      output.setScaleFactor(output_scale_factor);
+    }
     return output;
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -980,6 +990,16 @@ Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
       << getName() << " is not contiguous, cannot divide";
 
     apply_broadcast(m, f, output);
+
+    float output_scale_factor = 1;
+    if (getScaleFactors().size() == 1){
+      output_scale_factor *= *(getScaleFactors().begin());
+      output.setScaleFactor(output_scale_factor);
+    }
+    if (m.getScaleFactors().size() == 1){
+      output_scale_factor /= *(m.getScaleFactors().begin());
+      output.setScaleFactor(output_scale_factor);
+    }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -1092,14 +1112,18 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
     apply_broadcast(m, f, output);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
+    float compute_scale_factor = 1;
+    float output_scale_factor = 1;
+    if (getScaleFactors().size() == 1) output_scale_factor *= *getScaleFactors().begin();
+    if (m.getScaleFactors().size() == 1) compute_scale_factor = output_scale_factor / *m.getScaleFactors().begin();
+
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                 _FP16 *out_buf) {
-      if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
-          alpha == 0) {
-        ewva(e.buffer_size, buf, m_buf, out_buf);
+      if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1) {
+        ewva(e.buffer_size, buf, m_buf, out_buf, alpha * compute_scale_factor);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);
+          *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha * compute_scale_factor);
           buf += strides[3];
           m_buf += e.strides[3];
           out_buf += strides[3];
@@ -1107,6 +1131,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
       }
     };
     apply_broadcast(m, f, output);
+    if (output_scale_factor != 1) output.setScaleFactor(output_scale_factor);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -2337,6 +2362,17 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     else {
       sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
             ldb, beta, rdata, ldc);
+    }
+
+    // scale factor
+    float result_scale_factor = 1;
+    if (getScaleFactors().size() == 1){
+      result_scale_factor *= *(getScaleFactors().begin());
+      result.setScaleFactor(result_scale_factor);
+    }
+    if (m.getScaleFactors().size() == 1){
+      result_scale_factor *= *(m.getScaleFactors().begin());
+      result.setScaleFactor(result_scale_factor);
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -3694,8 +3730,7 @@ std::vector<float> Tensor::getScaleFactors() const {
 }
 
 void Tensor::setScaleFactor(float val) {
-  scale_factors_fp32.clear();
-  scale_factors_fp32.push_back(val);
+  scale_factors_fp32 = {val};
 }
 
 void Tensor::applyScaleFactor_i() {
