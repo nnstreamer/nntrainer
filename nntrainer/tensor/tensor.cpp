@@ -3124,6 +3124,7 @@ Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);
   t.name = name;
+  t.setScaleFactors(getScaleFactors());
   return t;
 }
 
