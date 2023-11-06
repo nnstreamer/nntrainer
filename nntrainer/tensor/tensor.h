@@ -1972,15 +1972,16 @@ public:
   std::vector<float> getScaleFactors() const;
 
   /**
-   * @brief Set new scale factor of the tensor
-   * @param[in] val zero points
+   * @brief Scale Tensor with single scalar value
+   * @param[in] val scale factor value
    */
-  void setScaleFactor(float val);
+  void scale(float val);
 
-    /**
-   * @brief Apply scale factor of the tensor
+  /**
+   * @brief Restore the Tensor with its values and scale factors with value
+   * of 1.
    */
-  void applyScaleFactor_i();
+  void descale();
 
   /**
    * @brief     Set output axis of the tensor

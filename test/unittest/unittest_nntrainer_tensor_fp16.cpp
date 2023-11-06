@@ -1056,7 +1056,7 @@ TEST(nntrainer_Tensor, multiply_with_single_scale_01_p) {
 
   // From now on, Real value of this Tensor (value when scale factor is 1) is
   // doubled, but not doubled 'yet'
-  input.setScaleFactor(2);
+  input.setScaleFactors({2});
 
   // multiplication of Tensor(scaleFactor 2) * Tensor(scaleFactor 2) =
   // Tensor(scaleFactor 4)
@@ -1091,8 +1091,8 @@ TEST(nntrainer_Tensor, multiply_with_single_scale_02_p) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
   nntrainer::Tensor input2 = input.clone();
 
-  input.setScaleFactor(2);
-  input2.setScaleFactor(3);
+  input.setScaleFactors({2});
+  input2.setScaleFactors({3});
 
   nntrainer::Tensor result = input.multiply(input2);
 
@@ -3134,7 +3134,7 @@ TEST(nntrainer_Tensor, add_with_single_scale_01_p) {
                           nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
 
-  input.setScaleFactor(2);
+  input.setScaleFactors({2});
 
   // Tensor(ScaleFactor = 2) + Tensor(ScaleFactor = 2) = Tensor(ScaleFactor = 2)
   nntrainer::Tensor result = input.add(input);
@@ -3168,8 +3168,8 @@ TEST(nntrainer_Tensor, add_with_single_scale_02_p) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
   nntrainer::Tensor input2 = input.clone();
 
-  input.setScaleFactor(2);
-  input2.setScaleFactor(3);
+  input.setScaleFactors({2});
+  input2.setScaleFactors({3});
 
   // Tensor(ScaleFactor = 2) + 2/3 * Tensor(ScaleFactor = 3) =
   // Tensor(ScaleFactor = 2)
@@ -3185,7 +3185,7 @@ TEST(nntrainer_Tensor, add_with_single_scale_02_p) {
   const float eps = 1e-5;
 
   for (int i = 0; i < batch * height * width; ++i) {
-    if (data[i] - (indata[i] + indata2[i] * 2 / 3) > eps) {
+    if (data[i] - (indata[i] + indata2[i] * 3 / 2) > eps) {
       status = ML_ERROR_RESULT_OUT_OF_RANGE;
       break;
     }
@@ -3209,8 +3209,8 @@ TEST(nntrainer_Tensor, add_with_single_scale_03_p) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
   nntrainer::Tensor input2 = input.clone();
 
-  input.setScaleFactor(1 / 2);
-  input2.setScaleFactor(1 / 3);
+  input.setScaleFactors({1 / 2});
+  input2.setScaleFactors({1 / 3});
 
   // Tensor(ScaleFactor = 1/2) + (1/2)/(1/3) * Tensor(ScaleFactor = 1/3) =
   // Tensor(ScaleFactor = 1/2)
@@ -4109,8 +4109,8 @@ TEST(nntrainer_Tensor, dot_with_single_ScaleFactor_01_p) {
   nntrainer::Tensor input(1, 3, 4, 5, t_type);
   nntrainer::Tensor m(1, 3, 4, 5, t_type);
 
-  input.setScaleFactor(2);
-  m.setScaleFactor(3);
+  input.setScaleFactors({2});
+  m.setScaleFactors({3});
 
   nntrainer::Tensor result = input.dot(m, true);
   EXPECT_EQ(result.getScaleFactors().size(), 1);
@@ -6403,6 +6403,358 @@ TEST(nntrainer_Tensor, dequantize_06_p) {
                             answer_data_3);
 
   EXPECT_EQ(output, answer3);
+}
+
+TEST(nntrainer_Tensor, scale_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 256;
+  const float eps = 1e-6;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::Tensor input2 = input.clone();
+  input2.scale(scale_factor);
+
+  _FP16 *data = input.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = input2.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if ((scale_factor * data[i] - data2[i]) > eps) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_add_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 256;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor input2 = input.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 3);
+
+  nntrainer::Tensor result = input.add(input2);
+  nntrainer::Tensor result_scale = input_scale.add(input2_scale);
+
+  result_scale.descale();
+
+  _FP16 *data = result.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if (data[i] != data2[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_subtract_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 256;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor input2 = input.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 2);
+
+  nntrainer::Tensor result = input.subtract(input2);
+  nntrainer::Tensor result_scale = input_scale.subtract(input2_scale);
+  result_scale.descale();
+
+  _FP16 *data = result.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if (data[i] != data2[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_multiply_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 8;
+  const int MOD = 10;
+  const float eps = 1e-5;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  nntrainer::Tensor input_32(batch, channel, height, width,
+                             nntrainer::Tformat::NCHW,
+                             nntrainer::Tdatatype::FP32);
+  GEN_TEST_INPUT(input,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  GEN_TEST_INPUT(input_32,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  nntrainer::Tensor input2_32 = input_32.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 2);
+
+  nntrainer::Tensor result = input_32.multiply(input2_32);
+  nntrainer::Tensor result_scale = input_scale.multiply(input2_scale);
+  result_scale.descale();
+
+  float *data = result.getData<float>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if ((data[i] - static_cast<float>(data2[i])) > eps) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+TEST(nntrainer_Tensor, scale_divide_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 8;
+  const int MOD = 10;
+  const float eps = 1e-5;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  nntrainer::Tensor input_32(batch, channel, height, width,
+                             nntrainer::Tformat::NCHW,
+                             nntrainer::Tdatatype::FP32);
+  GEN_TEST_INPUT(input,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  GEN_TEST_INPUT(input_32,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  nntrainer::Tensor input2_32 = input_32.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 2);
+
+  nntrainer::Tensor result = input_32.divide(input2_32);
+  nntrainer::Tensor result_scale = input_scale.divide(input2_scale);
+  result_scale.descale();
+
+  float *data = result.getData<float>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if ((data[i] - static_cast<float>(data2[i])) > eps) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_dot_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 1;
+  int channel = 1;
+  int height = 256;
+  int width = 256;
+  const float scale_factor = 8;
+  const int MOD = 10;
+  const float eps = 1e-5;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  nntrainer::Tensor input_32(batch, channel, height, width,
+                             nntrainer::Tformat::NCHW,
+                             nntrainer::Tdatatype::FP32);
+  GEN_TEST_INPUT(input,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  GEN_TEST_INPUT(input_32,
+                 (i * (batch * height) + j * (width) + k + 1) * MOD * 1e-1);
+  nntrainer::Tensor input2_32 = input_32.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 2);
+
+  nntrainer::Tensor result = input_32.dot(input2_32);
+  nntrainer::Tensor result_scale = input_scale.dot(input2_scale);
+  result_scale.descale();
+
+  float *data = result.getData<float>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if ((data[i] - static_cast<float>(data2[i])) > eps) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_sum_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+  const float scale_factor = 256;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor input2 = input.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor * 2);
+
+  nntrainer::Tensor result = input.sum(0);
+  nntrainer::Tensor result2 = input2.sum(2);
+  nntrainer::Tensor result_scale = input_scale.sum(0);
+  nntrainer::Tensor result2_scale = input2_scale.sum(2);
+
+  result_scale.descale();
+  result2_scale.descale();
+
+  _FP16 *data = result.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result2.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+  _FP16 *data_scale = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data_scale);
+  _FP16 *data2_scale = result2_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2_scale);
+
+  for (int i = 0; i < height * width; ++i) {
+    if (data[i] != data_scale[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+  for (int i = 0; i < batch * width; ++i) {
+    if (data2[i] != data2_scale[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, scale_all_in_one_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 1;
+  int channel = 1;
+  int height = 256;
+  int width = 256;
+  const float scale_factor = 256;
+  const int MOD = 10;
+  const float eps = 1e-3;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  nntrainer::Tensor input_32(batch, channel, height, width,
+                             nntrainer::Tformat::NCHW,
+                             nntrainer::Tdatatype::FP32);
+  GEN_TEST_INPUT(
+    input, (int((i * 100) * (batch * height) + (j * 100) * (width) + k + 1)) %
+             MOD * 1e-4);
+  GEN_TEST_INPUT(input_32, (int((i * 100) * (batch * height) +
+                                (j * 100) * (width) + k + 1)) %
+                             MOD * 1e-4);
+  nntrainer::Tensor input2_32 = input_32.clone();
+
+  nntrainer::Tensor input_scale = input.clone();
+  nntrainer::Tensor input2_scale = input.clone();
+  nntrainer::Tensor input3_scale = input.clone();
+  nntrainer::Tensor input4_scale = input.clone();
+  nntrainer::Tensor input5_scale = input.clone();
+
+  input_scale.scale(scale_factor);
+  input2_scale.scale(scale_factor / 2);
+  input3_scale.scale(scale_factor / 4);
+  input4_scale.scale(scale_factor / 2);
+  input5_scale.scale(scale_factor);
+
+  nntrainer::Tensor result =
+    input_32.dot(input2_32).add(input2_32).multiply(input2_32).subtract(
+      input2_32);
+  nntrainer::Tensor result_scale = input_scale.dot(input2_scale)
+                                     .add(input3_scale)
+                                     .multiply(input4_scale)
+                                     .subtract(input5_scale);
+  result_scale.descale();
+
+  float *data = result.getData<float>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *data2 = result_scale.getData<_FP16>();
+  ASSERT_NE(nullptr, data2);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if ((data[i] - static_cast<float>(data2[i])) > eps) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 GTEST_API_ int main(int argc, char **argv) {

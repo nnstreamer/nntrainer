@@ -876,13 +876,13 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
     apply_broadcast(m, f, output);
 
     float output_scale_factor = 1;
-    if (getScaleFactors().size() == 1){
+    if (getScaleFactors().size() == 1) {
       output_scale_factor *= *(getScaleFactors().begin());
-      output.setScaleFactor(output_scale_factor);
+      output.setScaleFactors({output_scale_factor});
     }
-    if (m.getScaleFactors().size() == 1){
+    if (m.getScaleFactors().size() == 1) {
       output_scale_factor *= *(m.getScaleFactors().begin());
-      output.setScaleFactor(output_scale_factor);
+      output.setScaleFactors({output_scale_factor});
     }
     return output;
 #else
@@ -992,13 +992,13 @@ Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
     apply_broadcast(m, f, output);
 
     float output_scale_factor = 1;
-    if (getScaleFactors().size() == 1){
+    if (getScaleFactors().size() == 1) {
       output_scale_factor *= *(getScaleFactors().begin());
-      output.setScaleFactor(output_scale_factor);
+      output.setScaleFactors({output_scale_factor});
     }
-    if (m.getScaleFactors().size() == 1){
+    if (m.getScaleFactors().size() == 1) {
       output_scale_factor /= *(m.getScaleFactors().begin());
-      output.setScaleFactor(output_scale_factor);
+      output.setScaleFactors({output_scale_factor});
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -1114,16 +1114,19 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
 #ifdef ENABLE_FP16
     float compute_scale_factor = 1;
     float output_scale_factor = 1;
-    if (getScaleFactors().size() == 1) output_scale_factor *= *getScaleFactors().begin();
-    if (m.getScaleFactors().size() == 1) compute_scale_factor = output_scale_factor / *m.getScaleFactors().begin();
+    if (getScaleFactors().size() == 1)
+      output_scale_factor *= *getScaleFactors().begin();
+    if (m.getScaleFactors().size() == 1)
+      compute_scale_factor = *m.getScaleFactors().begin() / output_scale_factor;
 
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
-                _FP16 *out_buf) {
+                 _FP16 *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1) {
         ewva(e.buffer_size, buf, m_buf, out_buf, alpha * compute_scale_factor);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha * compute_scale_factor);
+          *out_buf =
+            *buf + *m_buf * static_cast<_FP16>(alpha * compute_scale_factor);
           buf += strides[3];
           m_buf += e.strides[3];
           out_buf += strides[3];
@@ -1131,7 +1134,8 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
       }
     };
     apply_broadcast(m, f, output);
-    if (output_scale_factor != 1) output.setScaleFactor(output_scale_factor);
+    if (output_scale_factor != 1)
+      output.setScaleFactors({output_scale_factor});
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -1813,6 +1817,9 @@ Tensor Tensor::sum_by_batch() const {
     ones.setValue((_FP16)1.0);
     sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
           ones.getData<_FP16>(), 1, 0.0, rdata, 1);
+    if (!scale_factors_fp32.empty()) {
+      ret.setScaleFactors(scale_factors_fp32);
+    }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -2045,6 +2052,9 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
     } break;
     default:
       throw std::out_of_range("Error: Dimension cannot exceed 3");
+    }
+    if (!scale_factors_fp32.empty()) {
+      ret.setScaleFactors(scale_factors_fp32);
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -2366,13 +2376,13 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
 
     // scale factor
     float result_scale_factor = 1;
-    if (getScaleFactors().size() == 1){
+    if (getScaleFactors().size() == 1) {
       result_scale_factor *= *(getScaleFactors().begin());
-      result.setScaleFactor(result_scale_factor);
+      result.setScaleFactors({result_scale_factor});
     }
-    if (m.getScaleFactors().size() == 1){
+    if (m.getScaleFactors().size() == 1) {
       result_scale_factor *= *(m.getScaleFactors().begin());
-      result.setScaleFactor(result_scale_factor);
+      result.setScaleFactors({result_scale_factor});
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -2502,6 +2512,9 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
         }
       }
       break;
+    }
+    if (!scale_factors_fp32.empty()) {
+      out.setScaleFactors(scale_factors_fp32);
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -3124,7 +3137,9 @@ Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);
   t.name = name;
-  t.setScaleFactors(getScaleFactors());
+  if (!scale_factors_fp32.empty()) {
+    t.setScaleFactors(scale_factors_fp32);
+  }
   return t;
 }
 
@@ -3704,6 +3719,9 @@ Tensor Tensor::rotate_180(Tensor in) {
         }
       }
     }
+    if (!scale_factors_fp32.empty()) {
+      output.setScaleFactors(scale_factors_fp32);
+    }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -3730,15 +3748,29 @@ std::vector<float> Tensor::getScaleFactors() const {
   return scale_factors_fp32;
 }
 
-void Tensor::setScaleFactor(float val) {
-  scale_factors_fp32 = {val};
+void Tensor::scale(float val) {
+  if (scale_factors_fp32.empty()) {
+    setScaleFactors({1 / val});
+  } else {
+    for (auto &v : scale_factors_fp32) {
+      v /= val;
+    }
+  }
+  multiply_i(val);
 }
 
-void Tensor::applyScaleFactor_i() {
-  if (scale_factors_fp32.empty()){
-      throw std::invalid_argument("Error: scaling Tensor needs scale factor");
+void Tensor::descale() {
+  if (scale_factors_fp32.empty())
+    return;
+  if (scale_factors_fp32.size() != 1) {
+    throw std::invalid_argument(
+      "Error: descale only supports scalar descaling");
   }
-  this->multiply_i(*scale_factors_fp32.begin());
+  /// @todo : For now, we consider scale factor is a single scalar value per
+  /// Tensor. However in the near future, we might have to support b/c/h/w
+  /// direction scale factors 'vector' like the way how in the
+  /// Tensor::dequantize function w.r.t. axis.
+  multiply_i(*scale_factors_fp32.begin());
   scale_factors_fp32.clear();
 }
 
