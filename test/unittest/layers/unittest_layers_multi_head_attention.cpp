@@ -34,6 +34,10 @@ GTEST_PARAMETER_TEST(
                     semantic_multi_head_attention_with_mask));
 
 auto no_cos_sim_option = LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY;
+auto inference_only_option =
+  LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY |
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+  LayerGoldenTestParamOptions::SKIP_CALC_GRAD;
 
 auto multi_head_attention_single_batch = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
