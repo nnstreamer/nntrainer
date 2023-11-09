@@ -60,9 +60,10 @@
  *
  * ## Action
  * When a sub-plugin is loaded at runtime,
- * NNTrainerTrain's num_inputs, num_labels, num_training_samples,
- * num_validation_samples, model_save_path and num_epochs is set by
- * getNNStreamerProperties() and each tensor size is set.
+ * NNTrainerImpl's model_config, num_inputs, num_labels, num_training_samples,
+ * num_validation_samples, model_save_path, model_load_path and num_epochs is
+ * set by
+ * setNNStreamerProperties() and each tensor size is set.
  * For MNIST test, mnist_trainingSet.dat is used,
  * it consist of 1000 samples and it has 1 inputs, 1 labels, 784 and 10 size of
  * float32.
@@ -73,13 +74,14 @@
  *
  * nnstreamer(tensor_trainer) push a sample by call nntrainer_model_push_data()
  * and sub-plugin copy a sample to queue with incrementing
- * InputTensorsInfo::push_count. 100 samples for training, 100 samples for
+ * TensorsQueue::push_count. 100 samples for training, 100 samples for
  * validation comes in order.
  *
- * getSample() callback is called when nntrainer needs sample for training.
+ * trainingDataGenCb() and validationDataGenCb callback is called
+ * when nntrainer needs sample for training.
  * sub-plugin copy a sample from queue to '**inputs' and '**labels'
- * with incrementing InputTensorsInfo::pop_count.
- * if InputTensorsInfo::pop_count is same with total_num_samples then
+ * with incrementing TensorsQueue::pop_count.
+ * if TensorsQueue::pop_count is same with total_num_samples then
  * '*last' is set true, and 1 epochs is finished.
  *
  */
@@ -109,14 +111,14 @@ void init_subplugin_nntrainer(void) __attribute__((constructor));
  */
 void fini_subplugin_nntrainer(void) __attribute__((destructor));
 
-void nntrainer_thread_func(NNTrainer::NNTrainerTrain *nntrainer) {
+void nntrainer_thread_func(NNTrainer::NNTrainerImpl *nntrainer) {
   nntrainer->trainModel();
 }
 
 /**
  * @brief Check if queue is empty
  */
-bool NNTrainer::InputTensorsInfo::isQueueEmpty() {
+bool NNTrainer::TensorsQueue::isQueueEmpty() {
   ml_logd("front:%d, rear:%d", queue_front, queue_rear);
   if (queue_front == queue_rear) {
     ml_logd("queue is empty ");
@@ -128,7 +130,7 @@ bool NNTrainer::InputTensorsInfo::isQueueEmpty() {
 /**
  * @brief Check if queue is full
  */
-bool NNTrainer::InputTensorsInfo::isQueueFull() {
+bool NNTrainer::TensorsQueue::isQueueFull() {
   if (((queue_rear + 1) % queue_size) == queue_front) {
     ml_logd("queue is full");
     return TRUE;
@@ -147,9 +149,9 @@ static int nntrainer_model_push_data(const GstTensorTrainerFramework *fw,
                                      const GstTensorTrainerProperties *prop,
                                      void *private_data,
                                      const GstTensorMemory *input) {
-  NNTrainer::InputTensorsInfo *data = nullptr;
-  NNTrainer::NNTrainerTrain *nntrainer =
-    reinterpret_cast<NNTrainer::NNTrainerTrain *>(private_data);
+  NNTrainer::TensorsQueue *tensors_queue = nullptr;
+  NNTrainer::NNTrainerImpl *nntrainer =
+    reinterpret_cast<NNTrainer::NNTrainerImpl *>(private_data);
   UNUSED(fw);
   UNUSED(prop);
   pid_t pid = getpid();
@@ -163,70 +165,76 @@ static int nntrainer_model_push_data(const GstTensorTrainerFramework *fw,
     return -1;
   }
 
-  nntrainer->num_push_data++;
-  ml_logd("Received data (%d/%d(total))", nntrainer->num_push_data,
-          nntrainer->total_num_samples);
-  if (nntrainer->total_num_samples < nntrainer->num_push_data) {
+  nntrainer->incrementNumOfPushedSamples();
+  ml_logd("Received data (%d/%d(total))", nntrainer->getNumOfPushedSamples(),
+          nntrainer->getNumOfTotalSamples());
+  if (nntrainer->getNumOfTotalSamples() < nntrainer->getNumOfPushedSamples()) {
     ml_logd("Already received all data required for the train, "
             "but push_data is called");
     return 0;
   }
 
-  if (nntrainer->train_data->push_count < nntrainer->num_training_samples) {
-    data = nntrainer->train_data.get();
+  if (nntrainer->train_tensors_queue->getPushCount() <
+      nntrainer->getNumOfTrainingSamples()) {
+    tensors_queue = nntrainer->train_tensors_queue.get();
     ml_logd("#### T-Data ####");
-  } else if (nntrainer->valid_data->push_count <
-             nntrainer->num_validation_samples) {
-    data = nntrainer->valid_data.get();
+  } else if (nntrainer->valid_tensors_queue->getPushCount() <
+             nntrainer->getNumOfValidationSamples()) {
+    tensors_queue = nntrainer->valid_tensors_queue.get();
     ml_logd("#### V-Data ####");
   } else {
     ml_loge("Invalid push_count");
     return -1;
   }
 
-  ml_logd("number of inputs(%d) and labels(%d)", nntrainer->num_inputs,
-          nntrainer->num_labels);
+  tensors_queue->push(input);
 
-  std::unique_lock<std::mutex> lock(data->queue_lock);
-  data->data_full.wait(lock, [&] { return !data->isQueueFull(); });
+  ml_logd("T-pushed: %d/%d, V-pushed:%d/%d\n",
+          nntrainer->train_tensors_queue->getPushCount(),
+          nntrainer->getNumOfTrainingSamples(),
+          nntrainer->valid_tensors_queue->getPushCount(),
+          nntrainer->getNumOfValidationSamples());
+  ml_logd("<leaved>");
+  return 0;
+}
+
+void NNTrainer::TensorsQueue::push(const GstTensorMemory *input) {
+  ml_logd("<called>");
+
+  std::unique_lock<std::mutex> lock(queue_lock);
+  data_full.wait(lock, [&] { return !isQueueFull(); });
   ml_logd("nntrainer_model_push_data condition is met");
 
   unsigned int idx = 0, i = 0;
-  i = data->queue_rear;
+  i = queue_rear;
   ml_logd("Insert, queue_rear : %d", i);
-  for (auto inputs : data->tensor_data[i].inputs) {
+  for (auto inputs : queue[i].inputs) {
     ml_logd("inputs : %p", inputs);
     ml_logd("input[%d]:%p, size:%zd\n", idx, input[idx].data, input[idx].size);
     std::memcpy(inputs, input[idx].data, input[idx].size);
     idx++;
   }
 
-  for (auto labels : data->tensor_data[i].labels) {
+  for (auto labels : queue[i].labels) {
     ml_logd("labels : %p", labels);
     ml_logd("input[%d]:%p, size:%zd\n", idx, input[idx].data, input[idx].size);
     std::memcpy(labels, input[idx].data, input[idx].size);
     idx++;
   }
 
-  data->push_count++;
-  data->queue_rear = (data->queue_rear + 1) % data->queue_size;
-  int queue_count = (data->queue_rear - data->queue_front + data->queue_size) %
-                    data->queue_size;
+  push_count++;
+  queue_rear = (queue_rear + 1) % queue_size;
+  int queue_count = (queue_rear - queue_front + queue_size) % queue_size;
 
-  ml_logd("front:%d, rear:%d, filled:%d", data->queue_front, data->queue_rear,
-          queue_count);
-  ml_logd("(pop/push: %d/%d)", data->pop_count, data->push_count);
-  ml_logd("T-pushed: %d/%d, V-pushed:%d/%d\n",
-          nntrainer->train_data->push_count, nntrainer->num_training_samples,
-          nntrainer->valid_data->push_count, nntrainer->num_validation_samples);
+  ml_logd("front:%d, rear:%d, filled:%d", queue_front, queue_rear, queue_count);
+  ml_logd("(pop/push: %d/%d)", pop_count, push_count);
   lock.unlock();
-  data->data_empty.notify_one();
-  ml_logd("<leaved>");
-  return 0;
+  data_empty.notify_one();
+
+  ml_logd("<leave>");
 }
 
-void NNTrainer::InputTensorsInfo::getSample(float **input, float **label,
-                                            bool *last) {
+void NNTrainer::TensorsQueue::pop(float **input, float **label, bool *last) {
   ml_logd("<called>");
   ml_logd("(pop/push: %d/%d)", pop_count, push_count);
 
@@ -236,23 +244,23 @@ void NNTrainer::InputTensorsInfo::getSample(float **input, float **label,
 
   std::unique_lock<std::mutex> lock(queue_lock);
   data_empty.wait(lock, [this] { return !isQueueEmpty(); });
-  ml_logd("getSample condition is met");
+  ml_logd("pop condition is met");
 
-  ml_logd("num_inputs: %d, num_labels: %d", num_inputs, num_labels);
+  ml_logd("num_of_inputs: %d, num_of_labels: %d", num_of_inputs, num_of_labels);
 
   unsigned int i = 0;
   unsigned int idx = queue_front;
   ml_logd("Delete, queue_front: %d", idx);
 
-  for (i = 0; i < num_inputs; i++) {
-    ml_logd("memcpy Addr %p, %p, size=%d\n", *(input + i),
-            tensor_data[idx].inputs[i], input_size[i]);
-    std::memcpy(*(input + i), tensor_data[idx].inputs[i], input_size[i]);
+  for (i = 0; i < num_of_inputs; i++) {
+    ml_logd("memcpy Addr %p, %p, size=%d\n", *(input + i), queue[idx].inputs[i],
+            input_size[i]);
+    std::memcpy(*(input + i), queue[idx].inputs[i], input_size[i]);
   }
-  for (i = 0; i < num_labels; i++) {
-    ml_logd("memcpy Addr %p, %p, size=%d", *(label + i),
-            tensor_data[idx].labels[i], label_size[i]);
-    std::memcpy(*(label + i), tensor_data[idx].labels[i], label_size[i]);
+  for (i = 0; i < num_of_labels; i++) {
+    ml_logd("memcpy Addr %p, %p, size=%d", *(label + i), queue[idx].labels[i],
+            label_size[i]);
+    std::memcpy(*(label + i), queue[idx].labels[i], label_size[i]);
   }
 
   pop_count++;
@@ -260,7 +268,7 @@ void NNTrainer::InputTensorsInfo::getSample(float **input, float **label,
 
   ml_logd("(pop/push: %d/%d)", pop_count, push_count);
 
-  if (pop_count < total_num_samples) { // train or valid num samples
+  if (pop_count < num_of_samples) { // train or valid num samples
     *last = false;
   } else {
     *last = true;
@@ -276,50 +284,57 @@ void NNTrainer::InputTensorsInfo::getSample(float **input, float **label,
   return;
 }
 
+/**
+ * @brief  nntrainer calls when it needs data.
+ */
 int trainingDataGenCb(float **input, float **label, bool *last,
                       void *user_data) {
-  auto data = reinterpret_cast<NNTrainer::InputTensorsInfo *>(user_data);
-  if (!data) {
+  auto tensors_queue = reinterpret_cast<NNTrainer::TensorsQueue *>(user_data);
+  if (!tensors_queue) {
     ml_loge("invalid user_data");
     return 0;
   }
   ml_logd("trainingDataGenCb");
-  data->getSample(input, label, last);
+  tensors_queue->pop(input, label, last);
   return 0;
 }
 
+/**
+ * @brief  nntrainer calls when it needs data.
+ */
 int validationDataGenCb(float **input, float **label, bool *last,
                         void *user_data) {
-  auto data = reinterpret_cast<NNTrainer::InputTensorsInfo *>(user_data);
-  if (!data) {
+  auto tensors_queue = reinterpret_cast<NNTrainer::TensorsQueue *>(user_data);
+  if (!tensors_queue) {
     ml_loge("invalid user_data");
     return 0;
   }
   ml_logd("validationDataGenCb");
-  data->getSample(input, label, last);
+  tensors_queue->pop(input, label, last);
 
   return 0;
 }
 
-void NNTrainer::NNTrainerTrain::createDataset() {
+void NNTrainer::NNTrainerImpl::createDataset() {
 
   ml_logd("<called>");
 
-  train_data = std::make_unique<NNTrainer::InputTensorsInfo>(
+  train_tensors_queue = std::make_unique<NNTrainer::TensorsQueue>(
     num_training_samples, num_inputs, num_labels, tensors_inputsize);
-  valid_data = std::make_unique<NNTrainer::InputTensorsInfo>(
+  valid_tensors_queue = std::make_unique<NNTrainer::TensorsQueue>(
     num_validation_samples, num_inputs, num_labels, tensors_inputsize);
 
   try {
     if (num_training_samples) {
-      dataset_train = ml::train::createDataset(
-        ml::train::DatasetType::GENERATOR, trainingDataGenCb, train_data.get());
+      dataset_train =
+        ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                 trainingDataGenCb, train_tensors_queue.get());
       model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
     }
     if (num_validation_samples) {
-      dataset_valid =
-        ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                 validationDataGenCb, valid_data.get());
+      dataset_valid = ml::train::createDataset(
+        ml::train::DatasetType::GENERATOR, validationDataGenCb,
+        valid_tensors_queue.get());
       model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_valid);
     }
   } catch (const std::exception &e) {
@@ -330,7 +345,7 @@ void NNTrainer::NNTrainerTrain::createDataset() {
   ml_logd("<leave>");
 }
 
-void NNTrainer::NNTrainerTrain::getRunStats() {
+void NNTrainer::NNTrainerImpl::getRunStats() {
   ml_logd("<called>");
 
   train_stats = model->getTrainingStats();
@@ -339,31 +354,27 @@ void NNTrainer::NNTrainerTrain::getRunStats() {
   ml_logd("<leave>");
 }
 
-NNTrainer::InputTensorsInfo::InputTensorsInfo(unsigned int _total_num_samples,
-                                              unsigned int _num_inputs,
-                                              unsigned int _num_labels,
-                                              unsigned int _tensors_size[]) :
-  queue_front(0),
-  queue_rear(0),
-  push_count(0),
-  pop_count(0),
-  total_num_samples(_total_num_samples),
-  num_inputs(_num_inputs),
-  num_labels(_num_labels) {
+NNTrainer::TensorsQueue::TensorsQueue(unsigned int _num_of_samples,
+                                      unsigned int _num_of_inputs,
+                                      unsigned int _num_of_labels,
+                                      unsigned int _tensors_size[]) :
+  num_of_samples{_num_of_samples},
+  num_of_inputs{_num_of_inputs},
+  num_of_labels{_num_of_labels} {
 
   ml_logd("<called>");
   const unsigned int min_queue_size = 30;
   queue_size =
-    (_total_num_samples > min_queue_size) ? min_queue_size : _total_num_samples;
+    (_num_of_samples > min_queue_size) ? min_queue_size : _num_of_samples;
   ml_logd("queue_size:%d", queue_size);
-  tensor_data.reserve(queue_size);
+  queue.reserve(queue_size);
 
   unsigned int idx = 0, i = 0;
-  for (i = 0; i < num_inputs; i++) {
+  for (i = 0; i < num_of_inputs; i++) {
     input_size[i] = _tensors_size[idx++];
     ml_logd("input_size[%d]=%d", i, input_size[i]);
   }
-  for (i = 0; i < num_labels; i++) {
+  for (i = 0; i < num_of_labels; i++) {
     label_size[i] = _tensors_size[idx++];
     ml_logd("label_size[%d]=%d", i, label_size[i]);
   }
@@ -372,28 +383,28 @@ NNTrainer::InputTensorsInfo::InputTensorsInfo(unsigned int _total_num_samples,
 
   /* make queue */
   while (cur_queue_size < queue_size) {
-    NNTrainer::TensorData t_data;
+    NNTrainer::TensorsData t_data;
     unsigned int i = 0;
     char *p_data = nullptr;
-    for (i = 0; i < num_inputs; i++) {
+    for (i = 0; i < num_of_inputs; i++) {
       p_data = new char[input_size[i]];
       t_data.inputs.emplace_back(p_data);
     }
-    for (i = 0; i < num_labels; i++) {
+    for (i = 0; i < num_of_labels; i++) {
       p_data = new char[label_size[i]];
       t_data.labels.emplace_back(p_data);
     }
 
-    tensor_data.emplace_back(t_data);
+    queue.emplace_back(t_data);
     cur_queue_size++;
   }
   ml_logd("<leave>");
 }
 
-NNTrainer::InputTensorsInfo::~InputTensorsInfo() {
+NNTrainer::TensorsQueue::~TensorsQueue() {
   g_print("%s:%d:%s: <called>\n", __FILE__, __LINE__, __func__);
 
-  for (auto &data : tensor_data) {
+  for (auto &data : queue) {
     for (auto inputs : data.inputs) {
       ml_logd("free: ##I addr:%p", inputs);
       delete inputs;
@@ -405,7 +416,7 @@ NNTrainer::InputTensorsInfo::~InputTensorsInfo() {
   }
 }
 
-void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
+void NNTrainer::NNTrainerImpl::setNNStreamerProperties(
   const GstTensorTrainerProperties *prop) {
 
   unsigned int i;
@@ -429,6 +440,7 @@ void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
   num_epochs = prop->num_epochs;
   total_num_samples =
     (num_training_samples + num_validation_samples) * num_epochs;
+  model_config = prop->model_config;
 
   ml_logd("num_inputs: %d", num_inputs);
   ml_logd("num_labels: %d", num_labels);
@@ -445,8 +457,8 @@ void NNTrainer::NNTrainerTrain::getNNStreamerProperties(
 static int nntrainer_model_destructor(const GstTensorTrainerFramework *fw,
                                       const GstTensorTrainerProperties *prop,
                                       void **private_data) {
-  NNTrainer::NNTrainerTrain *nntrainer =
-    static_cast<NNTrainer::NNTrainerTrain *>(*private_data);
+  NNTrainer::NNTrainerImpl *nntrainer =
+    static_cast<NNTrainer::NNTrainerImpl *>(*private_data);
   UNUSED(fw);
   ml_logd("<called>");
 
@@ -463,8 +475,8 @@ static int nntrainer_model_destructor(const GstTensorTrainerFramework *fw,
 static int nntrainer_model_start_training(
   const GstTensorTrainerFramework *fw, const GstTensorTrainerProperties *prop,
   GstTensorTrainerEventNotifier *notifier, void *private_data) {
-  NNTrainer::NNTrainerTrain *nntrainer =
-    reinterpret_cast<NNTrainer::NNTrainerTrain *>(private_data);
+  NNTrainer::NNTrainerImpl *nntrainer =
+    reinterpret_cast<NNTrainer::NNTrainerImpl *>(private_data);
   UNUSED(fw);
 
   ml_logd("<called>");
@@ -477,9 +489,8 @@ static int nntrainer_model_start_training(
     ml_loge("Failed get notify");
     return -1;
   }
-
-  nntrainer->notifier = notifier;
-  nntrainer->notifier->version = GST_TENSOR_TRAINER_FRAMEWORK_V1;
+  nntrainer->setEventNotifier(notifier);
+  nntrainer->setEventNotifierVersion(GST_TENSOR_TRAINER_FRAMEWORK_V1);
 
   try {
     std::thread train_thread(nntrainer_thread_func, nntrainer);
@@ -495,16 +506,17 @@ static int nntrainer_model_start_training(
 static int nntrainer_model_stop_training(const GstTensorTrainerFramework *fw,
                                          const GstTensorTrainerProperties *prop,
                                          void **private_data) {
-  NNTrainer::InputTensorsInfo *train_data = nullptr, *valid_data = nullptr;
-  NNTrainer::NNTrainerTrain *nntrainer =
-    static_cast<NNTrainer::NNTrainerTrain *>(*private_data);
+  NNTrainer::TensorsQueue *train_tensors_queue = nullptr,
+                          *valid_tensors_queue = nullptr;
+  NNTrainer::NNTrainerImpl *nntrainer =
+    static_cast<NNTrainer::NNTrainerImpl *>(*private_data);
   UNUSED(fw);
   ml_logd("<called>");
 
   if (!nntrainer)
     return -1;
 
-  nntrainer->stop_model_training = TRUE;
+  nntrainer->setStopModelTraining(TRUE);
 
   ml_logd("<leave>");
   return 0;
@@ -517,8 +529,8 @@ bool stop_cb(void *user_data) {
 }
 
 void epoch_complete_cb(void *user_data) {
-  NNTrainer::NNTrainerTrain *nntrainer =
-    reinterpret_cast<NNTrainer::NNTrainerTrain *>(user_data);
+  NNTrainer::NNTrainerImpl *nntrainer =
+    reinterpret_cast<NNTrainer::NNTrainerImpl *>(user_data);
 
   if (!nntrainer)
     return;
@@ -526,14 +538,15 @@ void epoch_complete_cb(void *user_data) {
 
   /* get current RunStats */
   nntrainer->getRunStats();
-  nntrainer->train_data->push_count = nntrainer->valid_data->push_count = 0;
+  nntrainer->train_tensors_queue->initPushCount();
+  nntrainer->valid_tensors_queue->initPushCount();
   /* send event */
-  nnstreamer_trainer_notify_event(nntrainer->notifier,
+  nnstreamer_trainer_notify_event(nntrainer->getEventNotifier(),
                                   TRAINER_EVENT_EPOCH_COMPLETION, NULL);
   return;
 }
 
-void NNTrainer::NNTrainerTrain::trainModel() {
+void NNTrainer::NNTrainerImpl::trainModel() {
   pid_t pid = getpid();
   pid_t tid = syscall(SYS_gettid);
   stop_model_training = false;
@@ -548,13 +561,8 @@ void NNTrainer::NNTrainerTrain::trainModel() {
     return;
   }
 
-  NNTrainer::NNTrainerTrain *nntrainer = GetNNTrainerTrain();
-
   try {
-    model->train({}, stop_cb, &stop_model_training, epoch_complete_cb,
-                 nntrainer);
-    training_loss = model->getTrainingLoss();
-    validation_loss = model->getValidationLoss();
+    model->train({}, stop_cb, &stop_model_training, epoch_complete_cb, this);
     getRunStats();
     ml_loge("[training_loss: %f training_accuracy:%f, validation_loss:%f, "
             "validation_accuracy:%f]",
@@ -565,8 +573,7 @@ void NNTrainer::NNTrainerTrain::trainModel() {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return;
   }
-  ml_logd("training_loss: %f, validation_loss: %f", training_loss,
-          validation_loss);
+
   try {
     ml_logd("Save_model: %s", model_save_path.c_str());
     model->save(model_save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
@@ -576,13 +583,12 @@ void NNTrainer::NNTrainerTrain::trainModel() {
     return;
   }
   /* send event */
-  nnstreamer_trainer_notify_event(nntrainer->notifier,
+  nnstreamer_trainer_notify_event(this->notifier,
                                   TRAINER_EVENT_TRAINING_COMPLETION, NULL);
-
   ml_logd("<leave>");
 }
 
-void NNTrainer::NNTrainerTrain::createModel() {
+void NNTrainer::NNTrainerImpl::createModel() {
   ml_logd("<called>");
   try {
     model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
@@ -590,8 +596,8 @@ void NNTrainer::NNTrainerTrain::createModel() {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return;
   }
-  try {
 
+  try {
     model->load(model_config, ml::train::ModelFormat::MODEL_FORMAT_INI);
   } catch (const std::exception &e) {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
@@ -619,32 +625,24 @@ void NNTrainer::NNTrainerTrain::createModel() {
   ml_logd("<leave>");
 }
 
-NNTrainer::NNTrainerTrain::NNTrainerTrain(
-  const GstTensorTrainerProperties *prop, const std::string &_model_config) :
-  training_loss(0),
-  validation_loss(0),
-  num_push_data(0),
-  model_config(_model_config),
-  notifier(nullptr),
-  stop_model_training(FALSE) {
+NNTrainer::NNTrainerImpl::NNTrainerImpl(
+  const GstTensorTrainerProperties *prop) {
   ml_logd("<called>");
-  getNNStreamerProperties(prop);
+  setNNStreamerProperties(prop);
   createModel();
   createDataset();
   ml_logd("<leave>");
 }
-
-static int
-nntrainer_model_construct_with_conf(const GstTensorTrainerFramework *fw,
-                                    const GstTensorTrainerProperties *prop,
-                                    void **private_data) {
-  NNTrainer::NNTrainerTrain *nntrainer =
-    static_cast<NNTrainer::NNTrainerTrain *>(*private_data);
+static int nntrainer_model_construct(const GstTensorTrainerFramework *fw,
+                                     const GstTensorTrainerProperties *prop,
+                                     void **private_data) {
+  NNTrainer::NNTrainerImpl *nntrainer =
+    static_cast<NNTrainer::NNTrainerImpl *>(*private_data);
   ml_logd("<called>");
   if (nntrainer)
     nntrainer_model_destructor(fw, prop, private_data);
   try {
-    nntrainer = new NNTrainer::NNTrainerTrain(prop, prop->model_config);
+    nntrainer = new NNTrainer::NNTrainerImpl(prop);
   } catch (const std::exception &e) {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return -1;
@@ -657,22 +655,11 @@ nntrainer_model_construct_with_conf(const GstTensorTrainerFramework *fw,
   return 0;
 }
 
-static int nntrainer_model_construct(const GstTensorTrainerFramework *fw,
-                                     const GstTensorTrainerProperties *prop,
-                                     void **private_data) {
-  ml_logd("<called>");
-
-  int status = nntrainer_model_construct_with_conf(fw, prop, private_data);
-
-  ml_logd("<leave>");
-  return status;
-}
-
 static int nntrainer_getStatus(const GstTensorTrainerFramework *fw,
                                GstTensorTrainerProperties *prop,
                                void *private_data) {
-  NNTrainer::NNTrainerTrain *nntrainer =
-    reinterpret_cast<NNTrainer::NNTrainerTrain *>(private_data);
+  NNTrainer::NNTrainerImpl *nntrainer =
+    reinterpret_cast<NNTrainer::NNTrainerImpl *>(private_data);
   UNUSED(fw);
 
   if (!nntrainer || !prop) {
@@ -682,7 +669,7 @@ static int nntrainer_getStatus(const GstTensorTrainerFramework *fw,
 
   ml_logd("<called>");
 
-  if (nntrainer->train_data && nntrainer->valid_data)
+  if (nntrainer->train_tensors_queue && nntrainer->valid_tensors_queue)
     prop->epoch_count = nntrainer->valid_stats.epoch_idx;
   else
     prop->epoch_count = nntrainer->train_stats.epoch_idx;

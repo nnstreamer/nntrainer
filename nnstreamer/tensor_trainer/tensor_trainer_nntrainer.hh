@@ -20,37 +20,36 @@
 #include <nnstreamer_plugin_api_trainer.h>
 #include <vector>
 
+/**
+ * @brief nnstreamer tensor_trainer sub plugin
+ */
 namespace NNTrainer {
 
 /**
- * @brief Manage multiple inputs and labels data
+ * @brief Manage multiple inputs and labels tensors data
  */
-struct TensorData {
+struct TensorsData {
   std::vector<char *> inputs;
   std::vector<char *> labels;
 };
 
-class InputTensorsInfo;
+class TensorsQueue;
 
 /**
- * @brief NNTrainer interface for nnstreamer trainer sub-plugin
+ * @brief nntrainer Implementation class for nnstreamer trainer sub-plugin
  */
-class NNTrainerTrain {
+class NNTrainerImpl {
 public:
   /**
-   * @brief Construct a new NNTrainerTrain object
+   * @brief Construct a new NNTrainerImpl object
    * @param prop tensor trainer sub-plugin properties
-   * @param _model_config model configuration file path
    */
-  NNTrainerTrain(const GstTensorTrainerProperties *prop,
-                 const std::string &_model_config);
+  NNTrainerImpl(const GstTensorTrainerProperties *prop);
 
   /**
-   * @brief Destroy the NNTrainerTrain object
+   * @brief Destroy the NNTrainerImpl object
    */
-  ~NNTrainerTrain() = default;
-
-  NNTrainerTrain *GetNNTrainerTrain() { return this; }
+  ~NNTrainerImpl() = default;
 
   /**
    * @brief Create model
@@ -73,25 +72,84 @@ public:
   void getRunStats();
 
   /**
-   * @brief Get NNStreamer tensor_trainer properties
+   * @brief Set NNStreamer tensor_trainer properties to member variable
    * @param prop Tensor trainer sub-plugin properties
    */
-  void getNNStreamerProperties(const GstTensorTrainerProperties *prop);
+  void setNNStreamerProperties(const GstTensorTrainerProperties *prop);
+
+  /**
+   * @brief Get number of training samples
+   */
+  unsigned int getNumOfTrainingSamples() { return num_training_samples; }
+
+  /**
+   * @brief Get number of validation samples
+   */
+  unsigned int getNumOfValidationSamples() { return num_validation_samples; }
+
+  /**
+   * @brief Get number of total samples
+   */
+  unsigned int getNumOfTotalSamples() { return total_num_samples; }
+
+  /**
+   * @brief Get number of pushed samples
+   */
+  unsigned int getNumOfPushedSamples() { return num_pushed_samples; }
+
+  /**
+   * @brief Increment number of pushed samples
+   */
+  void incrementNumOfPushedSamples() { ++num_pushed_samples; }
+
+  /**
+   * @brief Setting whether to end model training
+   */
+  void setStopModelTraining(bool value) { stop_model_training = value; }
+
+  /**
+   * @brief get Event Notifier
+   */
+  GstTensorTrainerEventNotifier *getEventNotifier() { return notifier; }
+
+  /**
+   * @brief set Event Notifier
+   */
+  void setEventNotifier(GstTensorTrainerEventNotifier *value) {
+    notifier = value;
+  }
+
+  /**
+   * @brief set Event Notifier version
+   */
+  void setEventNotifierVersion(uint64_t version) {
+    notifier->version = version;
+  }
 
   /**
    * @brief Manage sample data
    */
-  std::unique_ptr<NNTrainer::InputTensorsInfo> train_data, valid_data;
+  std::unique_ptr<NNTrainer::TensorsQueue> train_tensors_queue,
+    valid_tensors_queue;
   /**
    * @brief Nntrainer dataset
    */
   std::shared_ptr<ml::train::Dataset> dataset_train, dataset_valid;
 
-  float training_loss, validation_loss;
+  ml::train::RunStats train_stats;
+  ml::train::RunStats valid_stats;
 
-  unsigned int tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
-  unsigned int
-    num_tensors; /**< The number of tensors in the received a sample */
+private:
+  bool stop_model_training{FALSE};
+  std::string model_config;
+  std::string model_save_path; /**< Model is finally stored */
+  std::string model_load_path; /**< Path to load an exisiting model to use for
+                                  training a new model */
+  unsigned int num_pushed_samples{0U}; /**< The number of samples pushed by
+                                 NNStreamer(tensor_trainer) */
+  unsigned int num_epochs;             /**< The number of epoch */
+  unsigned int total_num_samples;      /**< Total number of samples received for
+                                          creating model */
   unsigned int num_inputs; /**< The number of tensors used as input in the
                               received a sample */
   unsigned int num_labels; /**< The number of tensors used as label in the
@@ -100,80 +158,62 @@ public:
                                           taken for training model */
   unsigned int num_validation_samples; /**< The number of validation samples to
                                           be taken for validation model */
-  unsigned int total_num_samples;      /**< Total number of samples received for
-                                          creating model */
-  unsigned int num_epochs;             /**< The number of epoch */
-  unsigned int num_push_data;          /**< The number of samples pushed by
-                                          NNStreamer(tensor_trainer) */
-  std::string model_config;
-  std::string model_save_path; /**< Model is finally stored */
-  std::string model_load_path; /**< Path to load an exisiting model to use for
-                                  training a new model */
-
-  ml::train::RunStats train_stats;
-  ml::train::RunStats valid_stats;
-
-  GstTensorTrainerEventNotifier *notifier; /**< a handle of event notify */
-  bool stop_model_training;
-
-private:
+  unsigned int tensors_inputsize[NNS_TENSOR_SIZE_LIMIT];
+  unsigned int
+    num_tensors; /**< The number of tensors in the received a sample */
+  GstTensorTrainerEventNotifier *notifier{
+    nullptr}; /**< a handle of event notify */
   std::unique_ptr<ml::train::Model> model;
 };
 
 /**
- * @brief Manage input tensors data and information
+ * @brief Stores input tensors to the queue
  */
-class InputTensorsInfo {
+class TensorsQueue {
 public:
   /**
-   * @brief Construct a new InputTensorsInfo object
-   * @param _total_num_samples Total number of samples received for creating
+   * @brief Construct a new TensorsQueue object
+   * @param _num_of_samples Total number of samples received for creating
    * model
-   * @param _num_inputs The number of tensors used as input in the received a
+   * @param _num_of_inputs The number of tensors used as input in the received a
    * sample
-   * @param _num_labels The number of tensors used as label in the received a
+   * @param _num_of_labels The number of tensors used as label in the received a
    * sample
    * @param _tensors_size[] size of each tensor in a sample
    */
-  InputTensorsInfo(unsigned int _total_num_samples, unsigned int _num_inputs,
-                   unsigned int _num_labels, unsigned int _tensors_size[]);
+  TensorsQueue(unsigned int _num_of_samples, unsigned int _num_of_inputs,
+               unsigned int _num_of_labels, unsigned int _tensors_size[]);
 
   /**
-   * @brief Destroy the InputTensorsInfo object
+   * @brief Destroy the TensorsQueue object
    */
-  ~InputTensorsInfo();
-  unsigned int queue_size;
-  unsigned int queue_front;
-  unsigned int queue_rear;
-  unsigned int push_count; /**< The number of samples pushed to queue by
-                              NNStreamer(tensor_trainer) */
-  unsigned int pop_count;  /**< The number of pop from the queue for pushing
-                              samples to nntrainer */
-  unsigned int
-    input_size[NNS_TENSOR_SIZE_LIMIT]; /**< feature size * data type */
-  unsigned int label_size[NNS_TENSOR_SIZE_LIMIT];
-  unsigned int total_num_samples; /**< Total number of samples received for
-                                     training model */
-  unsigned int
-    num_inputs; /**< The number of tensors in the received a sample */
-  unsigned int num_labels; /**< The number of tensors used as label in the
-                              received a sample */
-
-  std::vector<TensorData>
-    tensor_data; /**< Manage multiple inputs and labels data */
-
-  std::mutex queue_lock;
-  std::condition_variable data_full;
-  std::condition_variable data_empty;
+  ~TensorsQueue();
 
   /**
-   * @brief get sample data
+   * @brief Get push count
+   */
+  unsigned int getPushCount() { return push_count; }
+
+  /**
+   * @brief Initialize push count
+   */
+  void initPushCount() { push_count = 0; }
+
+  /**
+   * @brief Pop tensors from Queue, nntrainer calls when it needs data.
    *
-   * @param input input data
+   * @param input input dataint
    * @param label label data
    * @param last set TRUE if data is last
    */
-  void getSample(float **input, float **label, bool *last);
+  void pop(float **input, float **label, bool *last);
+
+  /**
+   * @brief Push input tensor to Queue
+   *
+   * @param input input tensors from sub-plugin
+   */
+  void push(const GstTensorMemory *input);
 
   /**
    * @brief Check if queue is empty
@@ -184,5 +224,28 @@ public:
    * @brief Check if queue is full
    */
   bool isQueueFull();
+
+private:
+  unsigned int queue_size{0U};
+  unsigned int queue_front{0U};
+  unsigned int queue_rear{0U};
+  unsigned int push_count{0U}; /**< The number of samples pushed to queue by
+                              NNStreamer(tensor_trainer) */
+  unsigned int pop_count{0U};  /**< The number of pop from the queue for pushing
+                              samples to nntrainer */
+  unsigned int
+    input_size[NNS_TENSOR_SIZE_LIMIT]; /**< feature size * data type */
+  unsigned int label_size[NNS_TENSOR_SIZE_LIMIT];
+  unsigned int num_of_samples; /**< Total number of samples received for
+                                     training model */
+  unsigned int
+    num_of_inputs; /**< The number of tensors in the received a sample */
+  unsigned int num_of_labels; /**< The number of tensors used as label in the
+                              received a sample */
+
+  std::vector<TensorsData> queue; /**< Manage multiple inputs and labels data */
+  std::mutex queue_lock;
+  std::condition_variable data_full;
+  std::condition_variable data_empty;
 };
 } // namespace NNTrainer
