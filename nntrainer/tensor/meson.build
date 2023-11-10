@@ -24,6 +24,7 @@ tensor_headers = [
   'memory_data.h',
   'tensor.h',
   'float_tensor.h',
+  'half_tensor.h',
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
@@ -34,6 +35,7 @@ arch = target_machine.cpu_family()
 
 if get_option('platform') == 'android' or arch == 'aarch64'
   tensor_sources += 'blas_neon.cpp'
+  tensor_sources += 'half_tensor.cpp'
 endif
 
 foreach s : tensor_sources
