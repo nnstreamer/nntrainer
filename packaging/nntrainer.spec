@@ -531,6 +531,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # tensor headers
 %{_includedir}/nntrainer/memory_data.h
 %{_includedir}/nntrainer/tensor.h
+%{_includedir}/nntrainer/float_tensor.h
 %{_includedir}/nntrainer/tensor_wrap_specs.h
 %{_includedir}/nntrainer/blas_interface.h
 %{_includedir}/nntrainer/var_grad.h
