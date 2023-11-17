@@ -35,6 +35,9 @@ arch = target_machine.cpu_family()
 
 if get_option('platform') == 'android' or arch == 'aarch64'
   tensor_sources += 'blas_neon.cpp'
+endif
+
+if get_option('enable-fp16')
   tensor_sources += 'half_tensor.cpp'
 endif
 
