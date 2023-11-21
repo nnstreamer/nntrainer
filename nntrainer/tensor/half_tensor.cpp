@@ -10,6 +10,8 @@
  * @bug		 No known bugs except for NYI items
  */
 
+#ifdef ENABLE_FP16
+
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
@@ -84,8 +86,8 @@ struct HalfTensor::BroadcastInfo {
   nntrainer::TensorDim::TensorType tensor_type;
 };
 
-HalfTensor::HalfTensor(const TensorDim &d, bool alloc_now,
-                       HalfTensor::Initializer init, std::string name_) :
+HalfTensor::HalfTensor(const TensorDim &d, bool alloc_now, Initializer init,
+                       std::string name_) :
   HalfTensor(name_, d.getFormat()) {
   if (d.getDataLen() != 0) {
     dim = d;
@@ -103,41 +105,6 @@ HalfTensor::HalfTensor(const TensorDim &d, const void *buf) :
       copy(buf);
   }
 }
-
-/**
- * @class SrcSharedHalfTensor
- * @brief Source of the shared tensor
- * @note Remove this class
- */
-class SrcSharedHalfTensor {
-public:
-  /**
-   * @brief   Constructor for the class
-   */
-  SrcSharedHalfTensor() : src(nullptr), off(0) {}
-
-  SrcSharedHalfTensor(const HalfTensor *tensor, size_t offset) :
-    src(tensor), off(offset) {}
-
-  /**
-   * @brief   Get the allocated src tensor
-   */
-  const HalfTensor *tensor() const {
-    if (!src)
-      throw std::runtime_error("Accessing empty src tensor");
-
-    return src;
-  }
-
-  /**
-   * @brief   Get the offset from the source tensor
-   */
-  size_t offset() const { return off; }
-
-private:
-  const HalfTensor *src; /**< HalfTensor of the source */
-  size_t off;            /**< offset from the source data ptr */
-};
 
 void HalfTensor::allocate() {
   if (empty() || data)
@@ -232,29 +199,29 @@ void HalfTensor::initialize() {
   }
 
   switch (initializer) {
-  case HalfTensor::Initializer::ZEROS:
+  case Initializer::ZEROS:
     setZero();
     break;
-  case HalfTensor::Initializer::ONES:
+  case Initializer::ONES:
     setValue(1.0f);
     break;
-  case HalfTensor::Initializer::LECUN_NORMAL:
+  case Initializer::LECUN_NORMAL:
     setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
     break;
-  case HalfTensor::Initializer::XAVIER_NORMAL:
+  case Initializer::XAVIER_NORMAL:
     setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
     break;
-  case HalfTensor::Initializer::HE_NORMAL:
+  case Initializer::HE_NORMAL:
     setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
     break;
-  case HalfTensor::Initializer::LECUN_UNIFORM:
+  case Initializer::LECUN_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in), sqrtFloat(1.0f / fan_in));
     break;
-  case HalfTensor::Initializer::XAVIER_UNIFORM:
+  case Initializer::XAVIER_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
                    sqrtFloat(6.0 / (fan_in + fan_out)));
     break;
-  case HalfTensor::Initializer::HE_UNIFORM:
+  case Initializer::HE_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
                    sqrtFloat(6.0 / (fan_in)));
     break;
@@ -737,21 +704,23 @@ void HalfTensor::createSharedDataTensor(const HalfTensor &src, HalfTensor &dest,
    * the src tensor.
    * - If src.data does not exist (meaning tensor does not memory allocated),
    * and src.src_tensor does not exist (meaning the src tensor does not depened
-   * on another tensor), then create a SrcSharedHalfTensor around the src.
+   * on another tensor), then create a SrcSharedTensorV2 around the src.
    * - If src.src_tensor exists, then use the src.src_tensor to create the
-   *  required SrcSharedHalfTensor to avoid recursive dependency.
+   *  required SrcSharedTensorV2 to avoid recursive dependency.
    *
    * @note src.data and src.src_tensor CAN co-exist. src.src_tensor is stored
    * if the batch size of src is updated and needs reallocation.
    */
   dest.data = nullptr;
   if (src.data) {
-    dest.src_tensor = std::make_shared<SrcSharedHalfTensor>(&src, offset);
+    dest.src_tensor =
+      std::make_shared<SrcSharedTensorV2<HalfTensor>>(&src, offset);
     dest.allocate();
   } else if (!src.src_tensor)
-    dest.src_tensor = std::make_shared<SrcSharedHalfTensor>(&src, offset);
+    dest.src_tensor =
+      std::make_shared<SrcSharedTensorV2<HalfTensor>>(&src, offset);
   else
-    dest.src_tensor = std::make_shared<SrcSharedHalfTensor>(
+    dest.src_tensor = std::make_shared<SrcSharedTensorV2<HalfTensor>>(
       src.src_tensor->tensor(), offset + src.src_tensor->offset());
 }
 
@@ -2289,3 +2258,5 @@ HalfTensor HalfTensor::rotate_180(HalfTensor in) {
 }
 
 } /* namespace nntrainer */
+
+#endif /* ENABLE_FP16 */
