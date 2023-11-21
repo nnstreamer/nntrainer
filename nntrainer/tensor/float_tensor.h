@@ -25,6 +25,7 @@
 #include <memory_data.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <src_shared_tensor.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -50,7 +51,6 @@ using Tformat = ml::train::TensorDim::Format;
 using Tdatatype = ml::train::TensorDim::DataType;
 
 class LazyTensor;
-class SrcSharedFloatTensor;
 
 /**
  * @class   FloatTensor Class for Calculation
@@ -58,23 +58,6 @@ class SrcSharedFloatTensor;
  */
 class FloatTensor {
 public:
-  /**
-   * @brief     Enumeration of Weight Initialization Type
-   * @todo      support intialization from file
-   * @note      Remove this enum class
-   */
-  enum class Initializer {
-    ZEROS,          /** Zero initialization */
-    ONES,           /** One initialization */
-    LECUN_NORMAL,   /** LeCun normal initialization */
-    LECUN_UNIFORM,  /** uniform initialization */
-    XAVIER_NORMAL,  /** Xavier normal initialization */
-    XAVIER_UNIFORM, /** Xavier uniform initialization */
-    HE_NORMAL,      /** He normal initialization */
-    HE_UNIFORM,     /** He uniform initialization */
-    NONE            /** No initialization */
-  };
-
   /**
    * @brief     Basic Constructor of FloatTensor
    */
@@ -1670,7 +1653,7 @@ public:
    *
    * @return initializer of the tensor
    */
-  FloatTensor::Initializer getInitializer() const { return initializer; }
+  Initializer getInitializer() const { return initializer; }
 
   /**
    * @brief Get format for the tensor
@@ -1693,7 +1676,7 @@ protected:
   TensorDim dim;
   std::array<size_t, TensorDim::MAXDIM> strides;
   bool contiguous;
-  FloatTensor::Initializer initializer;
+  Initializer initializer;
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
@@ -1704,7 +1687,7 @@ protected:
    * this does not affect the tensor. If the tensor data is not allocated, and
    * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
    */
-  std::shared_ptr<SrcSharedFloatTensor> src_tensor;
+  std::shared_ptr<SrcSharedTensorV2<FloatTensor>> src_tensor;
 
   struct BroadcastInfo;
 

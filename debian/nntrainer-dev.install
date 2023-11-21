@@ -9,6 +9,8 @@
 # tensor headers
 /usr/include/nntrainer/memory_data.h
 /usr/include/nntrainer/tensor.h
+/usr/include/nntrainer/tensor_v2.h
+/usr/include/nntrainer/src_shared_tensor.h
 /usr/include/nntrainer/float_tensor.h
 /usr/include/nntrainer/half_tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h

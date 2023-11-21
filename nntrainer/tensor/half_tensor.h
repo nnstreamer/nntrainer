@@ -27,6 +27,7 @@
 #include <memory_data.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <src_shared_tensor.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -52,7 +53,6 @@ using Tformat = ml::train::TensorDim::Format;
 using Tdatatype = ml::train::TensorDim::DataType;
 
 class LazyTensor;
-class SrcSharedHalfTensor;
 
 /**
  * @class   HalfTensor Class for Calculation
@@ -60,22 +60,6 @@ class SrcSharedHalfTensor;
  */
 class HalfTensor {
 public:
-  /**
-   * @brief     Enumeration of Weight Initialization Type
-   * @todo      support intialization from file
-   */
-  enum class Initializer {
-    ZEROS,          /** Zero initialization */
-    ONES,           /** One initialization */
-    LECUN_NORMAL,   /** LeCun normal initialization */
-    LECUN_UNIFORM,  /** uniform initialization */
-    XAVIER_NORMAL,  /** Xavier normal initialization */
-    XAVIER_UNIFORM, /** Xavier uniform initialization */
-    HE_NORMAL,      /** He normal initialization */
-    HE_UNIFORM,     /** He uniform initialization */
-    NONE            /** No initialization */
-  };
-
   /**
    * @brief     Basic Constructor of HalfTensor
    */
@@ -1685,7 +1669,7 @@ public:
    *
    * @return initializer of the tensor
    */
-  HalfTensor::Initializer getInitializer() const { return initializer; }
+  Initializer getInitializer() const { return initializer; }
 
   /**
    * @brief Get format for the tensor
@@ -1708,7 +1692,7 @@ protected:
   TensorDim dim;
   std::array<size_t, TensorDim::MAXDIM> strides;
   bool contiguous;
-  HalfTensor::Initializer initializer;
+  Initializer initializer;
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
@@ -1719,7 +1703,7 @@ protected:
    * this does not affect the tensor. If the tensor data is not allocated, and
    * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
    */
-  std::shared_ptr<SrcSharedHalfTensor> src_tensor;
+  std::shared_ptr<SrcSharedTensorV2<HalfTensor>> src_tensor;
 
   struct BroadcastInfo;
 

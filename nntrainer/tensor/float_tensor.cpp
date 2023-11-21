@@ -83,8 +83,8 @@ struct FloatTensor::BroadcastInfo {
   nntrainer::TensorDim::TensorType tensor_type;
 };
 
-FloatTensor::FloatTensor(const TensorDim &d, bool alloc_now,
-                         FloatTensor::Initializer init, std::string name_) :
+FloatTensor::FloatTensor(const TensorDim &d, bool alloc_now, Initializer init,
+                         std::string name_) :
   FloatTensor(name_, d.getFormat()) {
   if (d.getDataLen() != 0) {
     dim = d;
@@ -102,42 +102,6 @@ FloatTensor::FloatTensor(const TensorDim &d, const void *buf) :
       copy(buf);
   }
 }
-
-/**
- * @class SrcSharedFloatTensor
- * @brief Source of the shared tensor
- * @note Remove this class
- */
-class SrcSharedFloatTensor {
-public:
-  /**
-   * @brief   Constructor for the class
-   */
-  SrcSharedFloatTensor() : src(nullptr), off(0) {}
-
-  SrcSharedFloatTensor(const FloatTensor *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
-
-  /**
-   * @brief   Get the allocated src tensor
-   */
-  const FloatTensor *tensor() const {
-    if (!src)
-      throw std::runtime_error("Accessing empty src tensor");
-
-    return src;
-  }
-
-  /**
-   * @brief   Get the offset from the source tensor
-   */
-  size_t offset() const { return off; }
-
-private:
-  const FloatTensor *src; /**< FloatTensor of the source */
-  size_t off;             /**< offset from the source data ptr */
-};
 
 void FloatTensor::allocate() {
   if (empty() || data)
@@ -234,29 +198,29 @@ void FloatTensor::initialize() {
   }
 
   switch (initializer) {
-  case FloatTensor::Initializer::ZEROS:
+  case Initializer::ZEROS:
     setZero();
     break;
-  case FloatTensor::Initializer::ONES:
+  case Initializer::ONES:
     setValue(1.0f);
     break;
-  case FloatTensor::Initializer::LECUN_NORMAL:
+  case Initializer::LECUN_NORMAL:
     setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
     break;
-  case FloatTensor::Initializer::XAVIER_NORMAL:
+  case Initializer::XAVIER_NORMAL:
     setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
     break;
-  case FloatTensor::Initializer::HE_NORMAL:
+  case Initializer::HE_NORMAL:
     setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
     break;
-  case FloatTensor::Initializer::LECUN_UNIFORM:
+  case Initializer::LECUN_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in), sqrtFloat(1.0f / fan_in));
     break;
-  case FloatTensor::Initializer::XAVIER_UNIFORM:
+  case Initializer::XAVIER_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
                    sqrtFloat(6.0 / (fan_in + fan_out)));
     break;
-  case FloatTensor::Initializer::HE_UNIFORM:
+  case Initializer::HE_UNIFORM:
     setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
                    sqrtFloat(6.0 / (fan_in)));
     break;
@@ -740,21 +704,23 @@ void FloatTensor::createSharedDataTensor(const FloatTensor &src,
    * the src tensor.
    * - If src.data does not exist (meaning tensor does not memory allocated),
    * and src.src_tensor does not exist (meaning the src tensor does not depened
-   * on another tensor), then create a SrcSharedFloatTensor around the src.
+   * on another tensor), then create a SrcSharedTensorV2 around the src.
    * - If src.src_tensor exists, then use the src.src_tensor to create the
-   *  required SrcSharedFloatTensor to avoid recursive dependency.
+   *  required SrcSharedTensorV2 to avoid recursive dependency.
    *
    * @note src.data and src.src_tensor CAN co-exist. src.src_tensor is stored
    * if the batch size of src is updated and needs reallocation.
    */
   dest.data = nullptr;
   if (src.data) {
-    dest.src_tensor = std::make_shared<SrcSharedFloatTensor>(&src, offset);
+    dest.src_tensor =
+      std::make_shared<SrcSharedTensorV2<FloatTensor>>(&src, offset);
     dest.allocate();
   } else if (!src.src_tensor)
-    dest.src_tensor = std::make_shared<SrcSharedFloatTensor>(&src, offset);
+    dest.src_tensor =
+      std::make_shared<SrcSharedTensorV2<FloatTensor>>(&src, offset);
   else
-    dest.src_tensor = std::make_shared<SrcSharedFloatTensor>(
+    dest.src_tensor = std::make_shared<SrcSharedTensorV2<FloatTensor>>(
       src.src_tensor->tensor(), offset + src.src_tensor->offset());
 }
 
