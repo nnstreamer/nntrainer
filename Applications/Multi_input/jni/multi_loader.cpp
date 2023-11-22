@@ -44,6 +44,7 @@ MultiDataLoader::MultiDataLoader(const std::vector<TensorDim> &input_shapes,
                                  int data_size_) :
   iteration(0),
   data_size(data_size_),
+  count(0),
   input_shapes(input_shapes),
   output_shapes(output_shapes),
   input_dist(0, 255),

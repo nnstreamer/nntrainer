@@ -32,7 +32,7 @@ public:
    * @brief Construct a new Rotary embedding layer object
    *
    */
-  RotaryEmbeddingLayer() : Layer() {}
+  RotaryEmbeddingLayer() : Layer(), freqs_cis(nullptr) {}
 
   /**
    * @brief Destroy the Rotary embedding layer object

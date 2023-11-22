@@ -246,299 +246,307 @@ static PTR init_environment(int &input_size, int &output_size) {
  * @param[in]  arg 1 : configuration file path
  */
 int main(int argc, char **argv) {
-  if (argc < 2) {
-    std::cout << "./DeepQ Config.ini\n";
-    exit(0);
-  }
-  const std::string weight_file = "model_deepq.bin";
-  const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-
-  std::string filepath = "debug.txt";
-  std::ofstream writeFile(filepath.data());
-
-  if (!writeFile.is_open()) {
-    std::cout << "Error opening file" << std::endl;
-    return 0;
-  };
-  seed = time(NULL);
-  srand(seed);
-  std::deque<Experience> expQ;
-
-  PTR env;
-
-  /**
-   * @brief     Initialize Environment
-   */
-  int input_size, output_size;
-  env = init_environment(input_size, output_size);
-  printf("input_size %d, output_size %d\n", input_size, output_size);
-
-  /**
-   * @brief     Create mainNet & Target Net
-   */
-  nntrainer::NeuralNetwork mainNet;
-  nntrainer::NeuralNetwork targetNet;
-
   try {
-    mainNet.loadFromConfig(config);
-    mainNet.compile();
-    mainNet.initialize();
-    targetNet.loadFromConfig(config);
-    targetNet.compile();
-    targetNet.initialize();
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
-    return 1;
-  }
-
-  /**
-   * @brief     Read Model Data if any
-   */
-  try {
-    mainNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-  } catch (...) {
-    std::cerr << "Error during readBin\n";
-    // return 1;
-  }
-
-  mainNet.allocate(nntrainer::ExecutionMode::TRAIN);
-  targetNet.allocate(nntrainer::ExecutionMode::TRAIN);
-
-  /**
-   * @brief     Run Episode
-   */
-  for (int episode = 0; episode < MAX_EPISODES; episode++) {
-    float epsilon = 1. / ((episode / 10) + 1);
-    bool done = false;
-    int step_count = 0;
-    STATE s;
-    STATE next_s;
-    s.done = false;
-    next_s.done = false;
-    env->reset(&s);
-
-    /**
-     * @brief     Do until the end of episode
-     */
-    while (!done) {
-      std::vector<float> action;
-      float r = RandomFloat(0.0, 1.0);
-
-      if (r < epsilon && TRAINING) {
-#ifdef USE_GYM
-        boost::shared_ptr<Gym::Space> action_space = env->action_space();
-        action = action_space->sample();
-#else
-        action = env->sample();
-#endif
-        std::cout << "test result random action : " << action[0] << "\n";
-      } else {
-        std::vector<float> input(s.observation.begin(), s.observation.end());
-        /**
-         * @brief     get action with input State with mainNet
-         */
-        nntrainer::Tensor in_tensor;
-        nntrainer::sharedConstTensor test;
-        try {
-          in_tensor = nntrainer::Tensor(
-            {input}, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-        } catch (...) {
-          std::cerr << "Error while construct tensor" << std::endl;
-          return 0;
-        }
-        try {
-          test = mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)})[0];
-        } catch (...) {
-          std::cerr << "Error while forwarding the network" << std::endl;
-          return 0;
-        }
-        const float *data = test->getData();
-        unsigned int len = test->getDim().getDataLen();
-        std::vector<float> temp(data, data + len);
-        action.push_back(argmax(temp));
-
-        std::cout << "qvalues : [";
-        std::cout.width(10);
-        std::cout << temp[0] << "][";
-        std::cout.width(10);
-        std::cout << temp[1] << "] : ACTION (argmax) = ";
-        std::cout.width(3);
-        std::cout << argmax(temp) << "\n";
-      }
-
-      /**
-       * @brief     step Env with this action & save next State in next_s
-       */
-      env->step(action, RENDER, &next_s);
-      Experience ex;
-      ex.state = s;
-      ex.action = action;
-      ex.reward = next_s.reward;
-      ex.next_state = next_s;
-      ex.done = next_s.done;
-
-      if (expQ.size() > REPLAY_MEMORY) {
-        expQ.pop_front();
-      }
-
-      done = next_s.done;
-
-      /**
-       * @brief     Set Penalty or reward
-       */
-      if (done) {
-        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DONE : Episode "
-                  << episode << " Iteration : " << step_count << "\n";
-        ex.reward = -100.0;
-        if (!TRAINING)
-          break;
-      }
-
-      /**
-       * @brief     Save at the Experience Replay Buffer
-       */
-      expQ.push_back(ex);
-
-      s = next_s;
-      step_count++;
-
-      if (step_count > 10000) {
-        std::cout << "step_count is over 10000\n";
-        break;
-      }
+    if (argc < 2) {
+      std::cout << "./DeepQ Config.ini\n";
+      exit(0);
     }
-    if (step_count > 10000)
-      break;
+    const std::string weight_file = "model_deepq.bin";
+    const std::vector<std::string> args(argv + 1, argv + argc);
+    std::string config = args[0];
 
-    if (!TRAINING && done)
-      break;
+    std::string filepath = "debug.txt";
+    std::ofstream writeFile(filepath.data());
+
+    if (!writeFile.is_open()) {
+      std::cout << "Error opening file" << std::endl;
+      return 0;
+    };
+    seed = time(NULL);
+    srand(seed);
+    std::deque<Experience> expQ;
+
+    PTR env;
 
     /**
-     * @brief     Training after finishing 10 episodes
+     * @brief     Initialize Environment
      */
-    if (episode % 10 == 1 && TRAINING) {
-      for (int iter = 0; iter < 50; iter++) {
-        /**
-         * @brief     Get batch size of Experience
-         */
-        std::vector<Experience> in_Exp = getBatchSizeData(expQ);
-        std::vector<std::vector<std::vector<std::vector<float>>>> inbatch;
-        std::vector<std::vector<std::vector<std::vector<float>>>> next_inbatch;
+    int input_size, output_size;
+    env = init_environment(input_size, output_size);
+    printf("input_size %d, output_size %d\n", input_size, output_size);
 
-        /**
-         * @brief     Generate Lable with next state
-         */
-        for (unsigned int i = 0; i < in_Exp.size(); i++) {
-          STATE state = in_Exp[i].state;
-          STATE next_state = in_Exp[i].next_state;
-          std::vector<float> in(state.observation.begin(),
-                                state.observation.end());
-          inbatch.push_back({{in}});
+    /**
+     * @brief     Create mainNet & Target Net
+     */
+    nntrainer::NeuralNetwork mainNet;
+    nntrainer::NeuralNetwork targetNet;
 
-          std::vector<float> next_in(next_state.observation.begin(),
-                                     next_state.observation.end());
-          next_inbatch.push_back({{next_in}});
+    try {
+      mainNet.loadFromConfig(config);
+      mainNet.compile();
+      mainNet.initialize();
+      targetNet.loadFromConfig(config);
+      targetNet.compile();
+      targetNet.initialize();
+    } catch (...) {
+      std::cerr << "Error during init" << std::endl;
+      return 1;
+    }
+
+    /**
+     * @brief     Read Model Data if any
+     */
+    try {
+      mainNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+      targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    } catch (...) {
+      std::cerr << "Error during readBin\n";
+      // return 1;
+    }
+
+    mainNet.allocate(nntrainer::ExecutionMode::TRAIN);
+    targetNet.allocate(nntrainer::ExecutionMode::TRAIN);
+
+    /**
+     * @brief     Run Episode
+     */
+    for (int episode = 0; episode < MAX_EPISODES; episode++) {
+      float epsilon = 1. / ((episode / 10) + 1);
+      bool done = false;
+      int step_count = 0;
+      STATE s;
+      STATE next_s;
+      s.done = false;
+      next_s.done = false;
+      env->reset(&s);
+
+      /**
+       * @brief     Do until the end of episode
+       */
+      while (!done) {
+        std::vector<float> action;
+        float r = RandomFloat(0.0, 1.0);
+
+        if (r < epsilon && TRAINING) {
+#ifdef USE_GYM
+          boost::shared_ptr<Gym::Space> action_space = env->action_space();
+          action = action_space->sample();
+#else
+          action = env->sample();
+#endif
+          std::cout << "test result random action : " << action[0] << "\n";
+        } else {
+          std::vector<float> input(s.observation.begin(), s.observation.end());
+          /**
+           * @brief     get action with input State with mainNet
+           */
+          nntrainer::Tensor in_tensor;
+          nntrainer::sharedConstTensor test;
+          try {
+            in_tensor = nntrainer::Tensor(
+              {input}, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+          } catch (...) {
+            std::cerr << "Error while construct tensor" << std::endl;
+            return 0;
+          }
+          try {
+            test = mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)})[0];
+          } catch (...) {
+            std::cerr << "Error while forwarding the network" << std::endl;
+            return 0;
+          }
+          const float *data = test->getData();
+          unsigned int len = test->getDim().getDataLen();
+          std::vector<float> temp(data, data + len);
+          action.push_back(argmax(temp));
+
+          std::cout << "qvalues : [";
+          std::cout.width(10);
+          std::cout << temp[0] << "][";
+          std::cout.width(10);
+          std::cout << temp[1] << "] : ACTION (argmax) = ";
+          std::cout.width(3);
+          std::cout << argmax(temp) << "\n";
         }
 
-        nntrainer::Tensor q_in, nq_in;
-        try {
-          q_in = nntrainer::Tensor(
-            inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-          nq_in = nntrainer::Tensor(next_inbatch, {nntrainer::Tformat::NCHW,
-                                                   nntrainer::Tdatatype::FP32});
-        } catch (...) {
-          std::cerr << "Error during tensor constructino" << std::endl;
-          return 0;
+        /**
+         * @brief     step Env with this action & save next State in next_s
+         */
+        env->step(action, RENDER, &next_s);
+        Experience ex;
+        ex.state = s;
+        ex.action = action;
+        ex.reward = next_s.reward;
+        ex.next_state = next_s;
+        ex.done = next_s.done;
+
+        if (expQ.size() > REPLAY_MEMORY) {
+          expQ.pop_front();
+        }
+
+        done = next_s.done;
+
+        /**
+         * @brief     Set Penalty or reward
+         */
+        if (done) {
+          std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DONE : Episode "
+                    << episode << " Iteration : " << step_count << "\n";
+          ex.reward = -100.0;
+          if (!TRAINING)
+            break;
         }
 
         /**
-         * @brief     run forward propagation with mainNet
+         * @brief     Save at the Experience Replay Buffer
          */
-        nntrainer::sharedConstTensor Q;
-        try {
-          Q = mainNet.forwarding({MAKE_SHARED_TENSOR(q_in)})[0];
-        } catch (...) {
-          std::cerr << "Error during forwarding main network" << std::endl;
-          return -1;
-        }
+        expQ.push_back(ex);
 
-        /**
-         * @brief     run forward propagation with targetNet
-         */
-        nntrainer::sharedConstTensor NQ;
-        try {
-          NQ = targetNet.forwarding({MAKE_SHARED_TENSOR(nq_in)})[0];
-        } catch (...) {
-          std::cerr << "Error during forwarding target network" << std::endl;
-          return -1;
-        }
-        const float *nqa = NQ->getData();
+        s = next_s;
+        step_count++;
 
-        /**
-         * @brief     Update Q values & udpate mainNetwork
-         */
-        nntrainer::Tensor tempQ = *Q;
-        for (unsigned int i = 0; i < in_Exp.size(); i++) {
-          if (in_Exp[i].done) {
-            try {
-              tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                             (float)in_Exp[i].reward);
-            } catch (...) {
-              std::cerr << "Error during set a value" << std::endl;
-              return -1;
-            }
-          } else {
-            float next = (nqa[i * NQ->width()] > nqa[i * NQ->width() + 1])
-                           ? nqa[i * NQ->width()]
-                           : nqa[i * NQ->width() + 1];
-            try {
-              tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                             (float)in_Exp[i].reward + DISCOUNT * next);
-            } catch (...) {
-              std::cerr << "Error during set value" << std::endl;
-              return -1;
+        if (step_count > 10000) {
+          std::cout << "step_count is over 10000\n";
+          break;
+        }
+      }
+      if (step_count > 10000)
+        break;
+
+      if (!TRAINING && done)
+        break;
+
+      /**
+       * @brief     Training after finishing 10 episodes
+       */
+      if (episode % 10 == 1 && TRAINING) {
+        for (int iter = 0; iter < 50; iter++) {
+          /**
+           * @brief     Get batch size of Experience
+           */
+          std::vector<Experience> in_Exp = getBatchSizeData(expQ);
+          std::vector<std::vector<std::vector<std::vector<float>>>> inbatch;
+          std::vector<std::vector<std::vector<std::vector<float>>>>
+            next_inbatch;
+
+          /**
+           * @brief     Generate Lable with next state
+           */
+          for (unsigned int i = 0; i < in_Exp.size(); i++) {
+            STATE state = in_Exp[i].state;
+            STATE next_state = in_Exp[i].next_state;
+            std::vector<float> in(state.observation.begin(),
+                                  state.observation.end());
+            inbatch.push_back({{in}});
+
+            std::vector<float> next_in(next_state.observation.begin(),
+                                       next_state.observation.end());
+            next_inbatch.push_back({{next_in}});
+          }
+
+          nntrainer::Tensor q_in, nq_in;
+          try {
+            q_in = nntrainer::Tensor(
+              inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+            nq_in =
+              nntrainer::Tensor(next_inbatch, {nntrainer::Tformat::NCHW,
+                                               nntrainer::Tdatatype::FP32});
+          } catch (...) {
+            std::cerr << "Error during tensor constructino" << std::endl;
+            return 0;
+          }
+
+          /**
+           * @brief     run forward propagation with mainNet
+           */
+          nntrainer::sharedConstTensor Q;
+          try {
+            Q = mainNet.forwarding({MAKE_SHARED_TENSOR(q_in)})[0];
+          } catch (...) {
+            std::cerr << "Error during forwarding main network" << std::endl;
+            return -1;
+          }
+
+          /**
+           * @brief     run forward propagation with targetNet
+           */
+          nntrainer::sharedConstTensor NQ;
+          try {
+            NQ = targetNet.forwarding({MAKE_SHARED_TENSOR(nq_in)})[0];
+          } catch (...) {
+            std::cerr << "Error during forwarding target network" << std::endl;
+            return -1;
+          }
+          const float *nqa = NQ->getData();
+
+          /**
+           * @brief     Update Q values & udpate mainNetwork
+           */
+          nntrainer::Tensor tempQ = *Q;
+          for (unsigned int i = 0; i < in_Exp.size(); i++) {
+            if (in_Exp[i].done) {
+              try {
+                tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                               (float)in_Exp[i].reward);
+              } catch (...) {
+                std::cerr << "Error during set a value" << std::endl;
+                return -1;
+              }
+            } else {
+              float next = (nqa[i * NQ->width()] > nqa[i * NQ->width() + 1])
+                             ? nqa[i * NQ->width()]
+                             : nqa[i * NQ->width() + 1];
+              try {
+                tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                               (float)in_Exp[i].reward + DISCOUNT * next);
+              } catch (...) {
+                std::cerr << "Error during set value" << std::endl;
+                return -1;
+              }
             }
           }
+          nntrainer::Tensor in_tensor;
+          try {
+            in_tensor = nntrainer::Tensor(
+              inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+            mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q});
+            mainNet.backwarding(iter);
+          } catch (...) {
+            std::cerr << "Error during backwarding the network" << std::endl;
+            return -1;
+          }
         }
-        nntrainer::Tensor in_tensor;
+
         try {
-          in_tensor = nntrainer::Tensor(
-            inbatch, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-          mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q});
-          mainNet.backwarding(iter);
-        } catch (...) {
-          std::cerr << "Error during backwarding the network" << std::endl;
-          return -1;
+          writeFile << "mainNet Loss : " << mainNet.getLoss()
+                    << " : targetNet Loss : " << targetNet.getLoss() << "\n";
+          std::cout << "\n\n =================== TRAINIG & COPY NET "
+                       "==================\n\n";
+          std::cout << "mainNet Loss : ";
+          std::cout.width(15);
+          std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
+          std::cout.width(15);
+          std::cout << targetNet.getLoss() << "\n\n";
+        } catch (std::exception &e) {
+          std::cerr << "Error during getLoss: " << e.what() << "\n";
+          return 1;
         }
-      }
 
-      try {
-        writeFile << "mainNet Loss : " << mainNet.getLoss()
-                  << " : targetNet Loss : " << targetNet.getLoss() << "\n";
-        std::cout << "\n\n =================== TRAINIG & COPY NET "
-                     "==================\n\n";
-        std::cout << "mainNet Loss : ";
-        std::cout.width(15);
-        std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
-        std::cout.width(15);
-        std::cout << targetNet.getLoss() << "\n\n";
-      } catch (std::exception &e) {
-        std::cerr << "Error during getLoss: " << e.what() << "\n";
-        return 1;
-      }
-
-      try {
-        targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-        mainNet.save(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-      } catch (std::exception &e) {
-        std::cerr << "Error during saveBin: " << e.what() << "\n";
-        // return 1;
+        try {
+          targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+          mainNet.save(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+        } catch (std::exception &e) {
+          std::cerr << "Error during saveBin: " << e.what() << "\n";
+          // return 1;
+        }
       }
     }
-  }
 
-  writeFile.close();
+    writeFile.close();
+
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
+    return 1;
+  }
   return 0;
 }

@@ -61,7 +61,7 @@ public:
    * @brief Construct a new RMS normalization layer object
    *
    */
-  RMSNormLayer() : Layer() {}
+  RMSNormLayer() : Layer(), wt_idx({0}) {}
 
   /**
    * @brief Destroy the RMS normalization layer object

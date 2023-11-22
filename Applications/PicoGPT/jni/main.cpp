@@ -275,120 +275,129 @@ std::shared_ptr<ml::train::Model> genModel() {
 }
 
 int main(int argc, char *argv[]) {
-
-  if (argc < 2) {
-    std::cout << "Usage: " << argv[0] << " <text>\n";
-    return 1;
-  }
-
-  const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string text = args[0];
-
-  auto model = genModel();
-  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
   try {
-    model->compile();
-  } catch (const std::exception &e) {
-    std::cerr << "Error during compile: " << e.what() << "\n";
-    return 1;
-  }
+    if (argc < 2) {
+      std::cout << "Usage: " << argv[0] << " <text>\n";
+      return 1;
+    }
 
-  try {
-    model->initialize();
-  } catch (const std::exception &e) {
-    std::cerr << "Error during initialize: " << e.what() << "\n";
-    return 1;
-  }
+    const std::vector<std::string> args(argv + 1, argv + argc);
+    std::string text = args[0];
 
-  std::string weight_file_name = optimize
-                                   ? "./res/app/PicoGPT/pico_gpt_124.bin"
-                                   : "./res/app/PicoGPT/pico_gpt_mha_fp16.bin";
-  // : "./res/app/PicoGPT/pico_gpt_124_mha.bin";
+    auto model = genModel();
+    model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+    try {
+      model->compile();
+    } catch (const std::exception &e) {
+      std::cerr << "Error during compile: " << e.what() << "\n";
+      return 1;
+    }
 
-  model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    try {
+      model->initialize();
+    } catch (const std::exception &e) {
+      std::cerr << "Error during initialize: " << e.what() << "\n";
+      return 1;
+    }
 
-  // model->save("pico_gpt_fp16.bin");
+    std::string weight_file_name =
+      optimize ? "./res/app/PicoGPT/pico_gpt_124.bin"
+               : "./res/app/PicoGPT/pico_gpt_mha_fp16.bin";
+    // : "./res/app/PicoGPT/pico_gpt_124_mha.bin";
+    try {
+      model->load(weight_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during load: " << e.what() << "\n";
+      return 1;
+    }
 
-  float *wte_input = new float[1];
-  float *wpe_input = new float[1];
+    // model->save("pico_gpt_fp16.bin");
 
-  std::vector<int64_t> init_input;
+    float *wte_input = new float[1];
+    float *wpe_input = new float[1];
+
+    std::vector<int64_t> init_input;
 
 #if defined(ENABLE_ENCODER)
 
-  std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
-  std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
+    std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
+    std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
 
-  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
-                          "Error initialising GPT2 tokenizer\n");
+    auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
+                            "Error initialising GPT2 tokenizer\n");
 
-  init_input = tokenizer.encode(text);
-  init_input_seq_len = init_input.size();
+    init_input = tokenizer.encode(text);
 #else
-  text = "Elan Turing is";
-  init_input = {36235, 39141, 18765, 1143, 326, 9061, 561, 530, 1110, 1716};
+    text = "Elan Turing is";
+    init_input = {36235, 39141, 18765, 1143, 326, 9061, 561, 530, 1110, 1716};
 #endif
+    init_input_seq_len = init_input.size();
 
-  ((uint *)(wte_input))[0] = init_input[0];
-  ((uint *)(wpe_input))[0] = 0;
+    ((uint *)(wte_input))[0] = init_input[0];
+    ((uint *)(wpe_input))[0] = 0;
 
-  std::vector<float *> output_bufs;
-
-  std::shared_ptr<ml::train::Layer> wte_embedding_layer;
-  model->getLayer("wte", &wte_embedding_layer);
-  const std::vector<float *> wte_weights_buf =
-    wte_embedding_layer->getWeights();
-  nntrainer::Tensor wte_weight =
-    nntrainer::Tensor({NUM_VOCAB, MODEL_DIM}, wte_weights_buf[0]);
-
-  for (unsigned int i = 1; i < init_input_seq_len + NUM_TOKENS_TO_GENERATE;
-       ++i) {
-    output_bufs = model->incremental_inference(
-      BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1, i);
-
-    nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
-
+    std::vector<float *> output_bufs;
     std::shared_ptr<ml::train::Layer> wte_embedding_layer;
+
     model->getLayer("wte", &wte_embedding_layer);
     const std::vector<float *> wte_weights_buf =
       wte_embedding_layer->getWeights();
     nntrainer::Tensor wte_weight =
       nntrainer::Tensor({NUM_VOCAB, MODEL_DIM}, wte_weights_buf[0]);
-    nntrainer::Tensor logits = output.dot(wte_weight, false, true);
-    nntrainer::Tensor next = logits.getSharedDataTensor(
-      {1, NUM_VOCAB}, BATCH_SIZE * (i - 1) * NUM_VOCAB);
 
-    std::vector<unsigned int> ids = next.argmax();
+    for (unsigned int i = 1; i < init_input_seq_len + NUM_TOKENS_TO_GENERATE;
+         ++i) {
+      output_bufs = model->incremental_inference(
+        BATCH_SIZE, {wte_input, wpe_input}, {}, init_input_seq_len, i - 1, i);
 
-    if (i < init_input_seq_len) {
-      ((uint *)(wte_input))[0] = init_input[i];
-    } else {
-      ((uint *)(wte_input))[0] = ids[0];
-    }
+      nntrainer::Tensor output({BATCH_SIZE, 1, i, MODEL_DIM}, output_bufs[0]);
 
-    ((uint *)(wpe_input))[0] = i;
+      std::shared_ptr<ml::train::Layer> wte_embedding_layer;
+      model->getLayer("wte", &wte_embedding_layer);
+      const std::vector<float *> wte_weights_buf =
+        wte_embedding_layer->getWeights();
+      nntrainer::Tensor wte_weight =
+        nntrainer::Tensor({NUM_VOCAB, MODEL_DIM}, wte_weights_buf[0]);
+      nntrainer::Tensor logits = output.dot(wte_weight, false, true);
+      nntrainer::Tensor next = logits.getSharedDataTensor(
+        {1, NUM_VOCAB}, BATCH_SIZE * (i - 1) * NUM_VOCAB);
+
+      std::vector<unsigned int> ids = next.argmax();
+
+      if (i < init_input_seq_len) {
+        ((uint *)(wte_input))[0] = init_input[i];
+      } else {
+        ((uint *)(wte_input))[0] = ids[0];
+      }
+
+      ((uint *)(wpe_input))[0] = i;
 
 #if defined(ENABLE_ENCODER)
-    std::vector<int64_t> token_ids;
-    for (auto element : ids) {
-      token_ids.push_back(static_cast<int64_t>(element));
-    }
+      std::vector<int64_t> token_ids;
+      for (auto element : ids) {
+        token_ids.push_back(static_cast<int64_t>(element));
+      }
 
-    if (i >= init_input_seq_len) {
-      auto decoded_str = tokenizer.decode(token_ids);
-      std::cerr << decoded_str << " " << std::flush;
-    }
+      if (i >= init_input_seq_len) {
+        auto decoded_str = tokenizer.decode(token_ids);
+        std::cerr << decoded_str << " " << std::flush;
+      }
 #endif
-  }
-  for (auto v : wte_weights_buf) {
-    delete v;
-  }
+    }
 
-  for (auto v : output_bufs) {
-    delete v;
-  }
+    for (auto v : wte_weights_buf) {
+      delete v;
+    }
 
-  std::cout << std::endl;
+    for (auto v : output_bufs) {
+      delete v;
+    }
+
+    std::cout << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
+    return 1;
+  }
 
   return 0;
 }

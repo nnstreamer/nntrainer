@@ -135,7 +135,8 @@ public:
     enable_optimizations(true),
     swap_lookahead(0),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {}
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
+    exec_mode(ExecutionMode::TRAIN) {}
 
   /**
    * @brief     Constructor of Manager
@@ -148,7 +149,8 @@ public:
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {}
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
+    exec_mode(ExecutionMode::TRAIN) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
