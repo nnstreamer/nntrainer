@@ -433,17 +433,9 @@ ModelHandle createLLaMA() {
 
   std::vector<LayerHandle> layers;
 
-  if (optimize) {
-    layers.push_back(createLayer(
-      "input",
-      {withKey("name", "input0"),
-       withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
-  } else {
-    layers.push_back(createLayer(
-      "input",
-      {withKey("name", "input0"),
-       withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
-  }
+  layers.push_back(createLayer(
+    "input", {withKey("name", "input0"),
+              withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
 
   layers.push_back(ml::train::layer::Embedding(
     {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB), "packed=false",
@@ -492,6 +484,11 @@ void run(std::string text, bool apply_temperature) {
   int data_size = batch_size * INIT_SEQ_LEN;
 
   float *input_sample = (float *)malloc(sizeof(float) * data_size);
+
+  if (input_sample == nullptr) {
+    std::cerr << "failed to malloc()" << std::endl;
+    exit(EXIT_SUCCESS);
+  }
 
   unsigned int input_len = INIT_SEQ_LEN;
 

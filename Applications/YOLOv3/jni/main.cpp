@@ -383,7 +383,7 @@ ModelHandle YOLOv3() {
   }
 
   // Regist layers to model
-  for (auto layer : layers) {
+  for (auto &layer : layers) {
     model->addLayer(layer);
   }
 

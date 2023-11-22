@@ -3185,7 +3185,7 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
 
   if (getDataType() == Tdatatype::QINT4 || getDataType() == Tdatatype::QINT8) {
     uint8_t axis, zp;
-    unsigned int len;
+    unsigned int len = 0;
 
     file.read((char *)&axis, sizeof(uint8_t));
 

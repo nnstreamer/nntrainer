@@ -290,6 +290,8 @@ std::vector<nntrainer::Tensor> calc_iou_grad(
 }
 
 YoloV3LossLayer::YoloV3LossLayer() :
+  anchors_w(nullptr),
+  anchors_h(nullptr),
   sigmoid(nntrainer::ActivationType::ACT_SIGMOID, true),
   yolo_v3_loss_props(props::MaxObjectNumber(), props::ClassNumber(),
                      props::GridHeightNumber(), props::GridWidthNumber(),

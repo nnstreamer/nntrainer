@@ -135,10 +135,10 @@ int main(int argc, char *argv[]) {
   unsigned int epoch = 2;
 
   std::array<UserDataType, 1> user_datas;
-  user_datas = createFakeMultiDataGenerator(batch_size, total_data_size);
-  auto &[train_user_data] = user_datas;
 
   try {
+    user_datas = createFakeMultiDataGenerator(batch_size, total_data_size);
+    auto &[train_user_data] = user_datas;
     createAndRun(epoch, batch_size, train_user_data);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()

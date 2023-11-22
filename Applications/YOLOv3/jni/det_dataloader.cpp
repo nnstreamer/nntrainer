@@ -46,6 +46,7 @@ DirDataLoader::DirDataLoader(const char *directory_, unsigned int max_num_label,
                              unsigned int c, unsigned int w, unsigned int h,
                              bool is_train_,
                              const std::vector<TensorDim> &output_shapes) :
+  iteration(0),
   max_num_label(max_num_label),
   channel(c),
   height(h),

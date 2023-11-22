@@ -485,8 +485,6 @@ FloatTensor &FloatTensor::multiply(float const &value, FloatTensor &out) const {
   auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
   apply(f, out);
   return out;
-
-  return out;
 }
 
 int FloatTensor::multiply_i(FloatTensor const &m, const float beta) {
