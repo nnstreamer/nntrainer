@@ -59,3 +59,11 @@ __pycache__/
 
 # android build
 nntrainer_for_android.tar.gz
+
+# gtest
+test/jni/googletest/
+
+# encoder related files (download from resource repo)
+ctre-unicode.hpp
+encoder.hpp
+json.hpp
