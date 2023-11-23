@@ -97,6 +97,40 @@ TensorV2::TensorV2(
 }
 #endif
 
+bool TensorV2::operator==(const TensorV2 &rhs) const {
+  if (object->getDim() != rhs.object->getDim())
+    return false;
+
+  size_t len = object->size();
+
+  if (len != rhs.object->size())
+    return false;
+
+  if (object->getContiguous() != rhs.object->getContiguous())
+    return false;
+
+  if (object->getStrides() != rhs.object->getStrides())
+    return false;
+
+  for (size_t i = 0; i < len; ++i) {
+    /** not checking sign change is intentional to avoid float calculation
+     * errors around 0 */
+    const float *_data = (float *)getData(i);
+    const float *_rdata = (float *)rhs.getData(i);
+
+    if ((std::isnan(*_data) && !std::isnan(*_rdata)) ||
+        (!std::isnan(*_data) && std::isnan(*_rdata)) ||
+        std::fabs(*_data - *_rdata) > 1e-5)
+      return false;
+  }
+
+  return true;
+}
+
+bool TensorV2::operator!=(const TensorV2 &rhs) const {
+  return !(this->object == rhs.object);
+}
+
 void TensorV2::allocate() { object->allocate(); }
 
 void TensorV2::deallocate() { object->deallocate(); }
