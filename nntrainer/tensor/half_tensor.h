@@ -63,9 +63,8 @@ public:
   /**
    * @brief     Basic Constructor of HalfTensor
    */
-  HalfTensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
-             Tdatatype d_type = Tdatatype::FP16) :
-    dim(TensorDim(fm, d_type)),
+  HalfTensor(std::string name_ = "", Tformat fm = Tformat::NCHW) :
+    dim(TensorDim(fm, Tdatatype::FP16)),
     strides(dim.computeStrides()),
     contiguous(true),
     initializer(Initializer::NONE),
@@ -100,8 +99,8 @@ public:
    * @param[in] d3 Width
    */
   HalfTensor(size_t d0, size_t d1, size_t d2, size_t d3,
-             Tformat fm = Tformat::NCHW, Tdatatype d_type = Tdatatype::FP16) :
-    HalfTensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr){};
+             Tformat fm = Tformat::NCHW) :
+    HalfTensor(TensorDim(d0, d1, d2, d3, fm, Tdatatype::FP16), nullptr){};
 
   /**
    * @brief     Constructor of HalfTensor
@@ -109,26 +108,23 @@ public:
    * @param[in] d2 Height
    * @param[in] d3 Width
    */
-  HalfTensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-             Tdatatype d_type = Tdatatype::FP16) :
-    HalfTensor(1, d1, d2, d3, fm, d_type){};
+  HalfTensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    HalfTensor(1, d1, d2, d3, fm){};
 
   /**
    * @brief     Constructor of HalfTensor with batch size one and d1 size one
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  HalfTensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-             Tdatatype d_type = Tdatatype::FP16) :
-    HalfTensor(1, 1, d2, d3, fm, d_type){};
+  HalfTensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    HalfTensor(1, 1, d2, d3, fm){};
 
   /**
    * @brief     Constructor of HalfTensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  explicit HalfTensor(size_t d3, Tformat fm = Tformat::NCHW,
-                      Tdatatype d_type = Tdatatype::FP16) :
-    HalfTensor(1, 1, 1, d3, fm, d_type){};
+  explicit HalfTensor(size_t d3, Tformat fm = Tformat::NCHW) :
+    HalfTensor(1, 1, 1, d3, fm){};
 
   /**
    * @brief     Constructor of HalfTensor
@@ -204,8 +200,6 @@ public:
     offset = 0;
     contiguous = true;
     initializer = Initializer::NONE;
-
-    setDataType(Tdatatype::FP16);
 
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
@@ -363,9 +357,6 @@ public:
    * @param[in] idx location
    */
   const _FP16 &getValue(unsigned int idx) const noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData()[idx / 2];
-    }
     return getData()[idx];
   }
 
@@ -373,12 +364,7 @@ public:
    * @brief     return value at specific location
    * @param[in] idx location
    */
-  _FP16 &getValue(unsigned int idx) noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData()[idx / 2];
-    }
-    return getData()[idx];
-  }
+  _FP16 &getValue(unsigned int idx) noexcept { return getData()[idx]; }
 
   /**
    * @brief Get the Value thinking that it is padded
@@ -735,7 +721,7 @@ public:
    * @brief  getter of size of data
    * @retval size of data
    */
-  unsigned int sizeofData() { return dim.getDataTypeSize(); }
+  unsigned int sizeofData() const { return dim.getDataTypeSize(); }
 
   /**
    * @brief     Dot Product of HalfTensor ( equal MxM )
@@ -1178,12 +1164,7 @@ public:
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const {
-    if (getDataType() == Tdatatype::QINT4) {
-      return (size() * dim.getDataTypeSize() + 1) / 2;
-    }
-    return size() * dim.getDataTypeSize();
-  }
+  size_t bytes() const { return size() * dim.getDataTypeSize(); }
 
   /**
    * @brief     Set the element value
@@ -1403,9 +1384,8 @@ public:
   /**
    * @brief     Read the HalfTensor from file
    * @param[in] file input file stream
-   * @param[in] s_type scale factor data type
    */
-  void read(std::ifstream &file, Tdatatype s_type = Tdatatype::FP32);
+  void read(std::ifstream &file);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1536,12 +1516,6 @@ public:
   }
 
   /**
-   * @brief     setter data type
-   * @param[in] Data Type
-   */
-  void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
-
-  /**
    * @brief     setter tensor type
    * @param[in] tensor Type
    */
@@ -1601,6 +1575,13 @@ public:
   const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
     return strides;
   }
+
+  /**
+   * @brief     return contiguous state of tensor.
+   * @retval    bool contiguous
+   */
+  bool getContiguous() const { return contiguous; }
+
   /**
    * @brief Get linear index given the n-d index
    */
