@@ -38,13 +38,13 @@
 #define EXCEPT_WHEN_DEBUG noexcept
 #endif
 
-#define MAKE_SHARED_TEST_TENSOR(...) \
+#define MAKE_SHARED_TENSOR_V2(...) \
   std::make_shared<nntrainer::TensorV2>(__VA_ARGS__)
 
-#define CREATE_IF_EMPTY_DIMS_TEST(tensor, ...) \
-  do {                                         \
-    if (tensor.empty())                        \
-      tensor = TensorV2(__VA_ARGS__);          \
+#define CREATE_IF_EMPTY_DIMS_V2(tensor, ...) \
+  do {                                       \
+    if (tensor.empty())                      \
+      tensor = TensorV2(__VA_ARGS__);        \
   } while (0);
 
 namespace nntrainer {
@@ -977,6 +977,95 @@ public:
    * @retval data type of the tensor
    */
   Tdatatype getDataType() const;
+
+  /**
+   * @brief Apply instantly to the element
+   *
+   * @param f function to apply
+   * @return int ML_ERROR_NONE if successful
+   */
+  template <typename T = float> int apply_i(std::function<T(T)> f) {
+    TensorV2 result = *this;
+    apply<T>(f, result);
+
+    return ML_ERROR_NONE;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @retval    TensorV2
+   */
+  template <typename T = float> TensorV2 apply(std::function<T(T)> f) const {
+    TensorV2 result;
+    apply<T>(f, result);
+
+    return result;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  template <typename T = float>
+  TensorV2 &apply(std::function<T(T)> f, TensorV2 &output) const {
+    TensorDim dim = getDim();
+    CREATE_IF_EMPTY_DIMS_V2(output, dim, nullptr);
+
+    if (dim != output.getDim()) {
+      /// @todo add unittest
+      throw std::invalid_argument(
+        "[Tensor::apply] output dimension does not match");
+    }
+
+    if (getContiguous() && output.getContiguous()) {
+      const T *data = (T *)getData();
+      T *rdata = (T *)output.getData();
+
+      std::transform(data, data + size(), rdata, f);
+    } else if (getStrides()[3] == 1 && output.getStrides()[3] == 1) {
+      /** @todo optimize this with combining these loops where stride is 1 */
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            T *out_data = (T *)output.getAddress(b, c, h, 0);
+            const T *in_data = (T *)getAddress(b, c, h, 0);
+            std::transform(in_data, in_data + width(), out_data, f);
+          }
+        }
+      }
+    } else {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            for (unsigned int w = 0; w < width(); ++w) {
+              output.setValue(b, c, h, w, f(getValue<T>(b, c, h, w)));
+            }
+          }
+        }
+      }
+    }
+
+    return output;
+  };
+
+  /**
+   * @brief     Apply function to TensorV2
+   * @param[in] *function function pointer applied
+   * @retval    TensorV2
+   */
+  TensorV2 apply(std::function<TensorV2(TensorV2)> f) const;
+
+  /**
+   * @brief     Apply function to TensorV2
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    TensorV2
+   */
+  TensorV2 &apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
+                  TensorV2 &output) const;
 
 }; // namespace nntrainer
 

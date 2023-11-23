@@ -255,6 +255,15 @@ TensorDim::Format TensorV2::getFormat() const { return object->getFormat(); }
 
 Tdatatype TensorV2::getDataType() const { return object->getDataType(); }
 
+TensorV2 TensorV2::apply(std::function<TensorV2(TensorV2)> f) const {
+  return f(*this);
+}
+
+TensorV2 &TensorV2::apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
+                          TensorV2 &output) const {
+  return f(*this, output);
+}
+
 std::ostream &operator<<(std::ostream &out, TensorV2 const &m) {
   m.print(out);
   return out;
