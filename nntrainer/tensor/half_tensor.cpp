@@ -446,8 +446,6 @@ HalfTensor &HalfTensor::multiply(float const &value, HalfTensor &out) const {
                      static_cast<_FP16>(value));
   apply(f, out);
   return out;
-
-  return out;
 }
 
 int HalfTensor::multiply_i(HalfTensor const &m, const float beta) {
@@ -1061,7 +1059,7 @@ HalfTensor HalfTensor::sum_by_batch() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
 
-  HalfTensor ret(dim.batch(), 1, 1, 1, this->getFormat(), getDataType());
+  HalfTensor ret(dim.batch(), 1, 1, 1, this->getFormat());
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
@@ -1080,7 +1078,7 @@ HalfTensor HalfTensor::sum_by_batch() const {
  * @brief Calculate sum according to the axis.
  */
 HalfTensor HalfTensor::sum(unsigned int axis, float alpha) const {
-  HalfTensor ret("", this->getFormat(), this->getDataType());
+  HalfTensor ret("", this->getFormat());
   return sum(axis, ret, alpha, 0);
 }
 
@@ -1264,7 +1262,7 @@ HalfTensor &HalfTensor::dotBatched(HalfTensor const &m, HalfTensor &result,
 
 HalfTensor HalfTensor::dot(HalfTensor const &m, bool trans,
                            bool trans_m) const {
-  HalfTensor output("", this->getFormat(), this->getDataType());
+  HalfTensor output("", this->getFormat());
   dot(m, output, trans, trans_m);
 
   return output;
@@ -1832,8 +1830,7 @@ void HalfTensor::copy(const HalfTensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  if (from.size() != 0 && size() == from.size() &&
-      getDataType() == from.getDataType()) {
+  if (from.size() != 0 && size() == from.size()) {
     reshape(from.getDim());
 
     copy(from.getData());
@@ -1931,7 +1928,7 @@ void HalfTensor::save(std::ostream &file) {
   putData();
 }
 
-void HalfTensor::read(std::ifstream &file, Tdatatype s_type) {
+void HalfTensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
@@ -1950,7 +1947,7 @@ void HalfTensor::read(std::ifstream &file, Tdatatype s_type) {
  * @brief Calculate average value according to the axis.
  */
 HalfTensor HalfTensor::average(unsigned int axis) const {
-  HalfTensor t("", this->getFormat(), this->getDataType());
+  HalfTensor t("", this->getFormat());
   return average(axis, t);
 }
 
@@ -1972,7 +1969,7 @@ HalfTensor &HalfTensor::average(unsigned int axis, HalfTensor &output) const {
 }
 
 HalfTensor HalfTensor::average(const std::vector<unsigned int> &axes) const {
-  HalfTensor t("", this->getFormat(), this->getDataType());
+  HalfTensor t("", this->getFormat());
   return average(axes, t);
 }
 
@@ -2146,8 +2143,7 @@ void HalfTensor::standardization_i() {
 
   this->subtract_i(mean_by_batch);
 
-  HalfTensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat(),
-                              dim.getDataType());
+  HalfTensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat());
   std_dev_by_batch.setZero();
   _FP16 *std_dev = std_dev_by_batch.getData();
 

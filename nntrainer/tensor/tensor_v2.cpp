@@ -33,12 +33,12 @@ namespace nntrainer {
 TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
   if (d_type == Tdatatype::FP32) {
     object = std::shared_ptr<TensorBase<FloatTensor>>(
-      new TensorBase<FloatTensor>(FloatTensor(name_, fm, d_type)),
+      new TensorBase<FloatTensor>(FloatTensor(name_, fm)),
       std::default_delete<TensorBase<FloatTensor>>());
   } else if (d_type == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
     object = std::shared_ptr<TensorBase<HalfTensor>>(
-      new TensorBase<HalfTensor>(HalfTensor(name_, fm, d_type)),
+      new TensorBase<HalfTensor>(HalfTensor(name_, fm)),
       std::default_delete<TensorBase<HalfTensor>>());
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
