@@ -38,6 +38,7 @@
 #include <nntrainer_log.h>
 #include <realizer.h>
 #include <tensor.h>
+#include <tensor_v2.h>
 
 /** tolerance is reduced for packaging, but CI runs at full tolerance */
 #ifdef REDUCE_TOLERANCE
@@ -156,6 +157,31 @@ randUniform(unsigned int batch, unsigned channel, unsigned height,
             nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
 
 /**
+ * @brief return a tensorV2 filled with contant value with dimension
+ */
+nntrainer::TensorV2
+constantV2(float value, unsigned int d0, unsigned d1, unsigned d2, unsigned d3,
+           nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+           nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+
+/**
+ * @brief return a tensorV2 filled with ranged value with given dimension
+ */
+nntrainer::TensorV2
+rangedV2(unsigned int batch, unsigned channel, unsigned height, unsigned width,
+         nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+         nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+
+/**
+ * @brief return a tensorV2 filled with random value with given dimension
+ */
+nntrainer::TensorV2
+randUniformV2(unsigned int batch, unsigned channel, unsigned height,
+              unsigned width, float min = -1, float max = 1,
+              nntrainer::Tformat fm = nntrainer::Tformat::NCHW,
+              nntrainer::Tdatatype d_type = nntrainer::Tdatatype::FP32);
+
+/**
  * @brief replace string and save in file
  * @param[in] from string to be replaced
  * @param[in] to string to repalce with
@@ -258,9 +284,16 @@ nntrainer::GraphRepresentation makeCompiledGraph(
 void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
                            const std::string &error_msg = "");
 
+/**
+ * @brief calculate cosine similarity
+ *
+ * @param A prediction data
+ * @param B reference data
+ * @param size data size
+ * @return cosine similarity value
+ */
 template <typename Ta = float, typename Tb = float>
-double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
-                         uint32_t size) {
+double cosine_similarity(Ta *A, Tb *B, uint32_t size) {
   double dot = 0.0, denom_a = 0.0, denom_b = 0.0;
   for (uint32_t i = 0u; i < size; ++i) {
     double pred = A[i];
@@ -277,8 +310,16 @@ double cosine_similarity(Ta *A /*Predict*/, Tb *B /*Reference */,
   return cosine_sim;
 }
 
+/**
+ * @brief calculate mean squared errer
+ *
+ * @param A prediction data
+ * @param B reference data
+ * @param size data size
+ * @return mean squared errer value
+ */
 template <typename Ta = float, typename Tb = float>
-float mse(Ta *A /* Predicted */, Tb *B /* Reference */, uint32_t size) {
+float mse(Ta *A, Tb *B, uint32_t size) {
   float pred;
   float ref;
   float mse_error = 0;
