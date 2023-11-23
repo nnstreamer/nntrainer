@@ -1972,6 +1972,18 @@ public:
   std::vector<float> getScaleFactors() const;
 
   /**
+   * @brief Scale Tensor with single scalar value
+   * @param[in] val scale factor value
+   */
+  void scale(float val);
+
+  /**
+   * @brief Restore the Tensor with its values and scale factors with value
+   * of 1.
+   */
+  void descale();
+
+  /**
    * @brief     Set output axis of the tensor
    * @param[in] zp zero points
    */
@@ -2097,6 +2109,7 @@ private:
                                           const _FP16 *, _FP16 *)>
                          v_func,
                        Tensor &output) const;
+
 #endif
   /**
    * @brief compute Loop info for broadcasting and vectorization
