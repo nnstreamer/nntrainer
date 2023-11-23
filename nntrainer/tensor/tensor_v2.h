@@ -613,15 +613,33 @@ public:
    * @brief  Copy assignment operator.
    * @param[in] rhs Tensor to be copied.
    */
-  template <typename TensorClass>
-  TensorClass &operator=(const TensorClass &rhs);
+  TensorV2 &operator=(const TensorV2 &rhs) = default;
 
   /**
    * @brief  Move assignment operator.
-   * @parma[in] rhs Tensor to be moved.
+   * @param[in] rhs Tensor to be moved.
    */
-  template <typename TensorClass>
-  TensorClass &operator=(TensorClass &&rhs) noexcept;
+  TensorV2 &operator=(TensorV2 &&rhs) noexcept = default;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator==(const TensorV2 &rhs) const;
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!=(const TensorV2 &rhs) const;
+
+  /**
+   * @brief     Swap tensor
+   * @param[in] lhs Tensor to be swapped
+   * @param[in] rhs Tensor to be swapped
+   */
+  friend void swap(TensorV2 &lhs, TensorV2 &rhs) noexcept {
+    swap(lhs.object, rhs.object);
+  }
 
   /**
    * @brief    Allocate memory for this tensor
