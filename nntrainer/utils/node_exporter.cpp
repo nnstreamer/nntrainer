@@ -93,7 +93,7 @@ void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputConnection>,
                    std::vector<props::InputShape>, props::SharedFrom,
-                   props::ClipGradByGlobalNorm> &props,
+                   props::ClipGradByGlobalNorm, props::Packed> &props,
   const LayerNode *self) {
   createIfNull(tf_node);
   tf_node->setLayerNode(*self);
@@ -103,8 +103,8 @@ template <>
 void Exporter::saveTflResult(
   const std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
                    props::WeightInitializer, props::WeightDecay,
-                   props::BiasDecay, props::BiasInitializer, props::DisableBias>
-    &props,
+                   props::BiasDecay, props::BiasInitializer, props::DisableBias,
+                   props::Print> &props,
   const LayerImpl *self) { /// layer impl has nothing to serialize so do nothing
 }
 
