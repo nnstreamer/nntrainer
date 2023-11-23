@@ -1071,7 +1071,7 @@ FloatTensor FloatTensor::sum_by_batch() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
 
-  FloatTensor ret(dim.batch(), 1, 1, 1, this->getFormat(), getDataType());
+  FloatTensor ret(dim.batch(), 1, 1, 1, this->getFormat());
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
@@ -1090,7 +1090,7 @@ FloatTensor FloatTensor::sum_by_batch() const {
  * @brief Calculate sum according to the axis.
  */
 FloatTensor FloatTensor::sum(unsigned int axis, float alpha) const {
-  FloatTensor ret("", this->getFormat(), this->getDataType());
+  FloatTensor ret("", this->getFormat());
   return sum(axis, ret, alpha, 0);
 }
 
@@ -1276,7 +1276,7 @@ FloatTensor &FloatTensor::dotBatched(FloatTensor const &m, FloatTensor &result,
 
 FloatTensor FloatTensor::dot(FloatTensor const &m, bool trans,
                              bool trans_m) const {
-  FloatTensor output("", this->getFormat(), this->getDataType());
+  FloatTensor output("", this->getFormat());
   dot(m, output, trans, trans_m);
 
   return output;
@@ -1830,8 +1830,7 @@ void FloatTensor::copy(const FloatTensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  if (from.size() != 0 && size() == from.size() &&
-      getDataType() == from.getDataType()) {
+  if (from.size() != 0 && size() == from.size()) {
     reshape(from.getDim());
     copy(from.getData());
   } else {
@@ -1921,7 +1920,7 @@ void FloatTensor::save(std::ostream &file) {
   putData();
 }
 
-void FloatTensor::read(std::ifstream &file, Tdatatype s_type) {
+void FloatTensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
@@ -1940,7 +1939,7 @@ void FloatTensor::read(std::ifstream &file, Tdatatype s_type) {
  * @brief Calculate average value according to the axis.
  */
 FloatTensor FloatTensor::average(unsigned int axis) const {
-  FloatTensor t("", this->getFormat(), this->getDataType());
+  FloatTensor t("", this->getFormat());
   return average(axis, t);
 }
 
@@ -1963,7 +1962,7 @@ FloatTensor &FloatTensor::average(unsigned int axis,
 }
 
 FloatTensor FloatTensor::average(const std::vector<unsigned int> &axes) const {
-  FloatTensor t("", this->getFormat(), this->getDataType());
+  FloatTensor t("", this->getFormat());
   return average(axes, t);
 }
 
@@ -2131,8 +2130,7 @@ void FloatTensor::standardization_i() {
 
   this->subtract_i(mean_by_batch);
 
-  FloatTensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat(),
-                               dim.getDataType());
+  FloatTensor std_dev_by_batch(dim.batch(), 1, 1, 1, dim.getFormat());
   std_dev_by_batch.setZero();
   float *std_dev = std_dev_by_batch.getData();
 

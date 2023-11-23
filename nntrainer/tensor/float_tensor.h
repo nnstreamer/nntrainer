@@ -61,9 +61,8 @@ public:
   /**
    * @brief     Basic Constructor of FloatTensor
    */
-  FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
-              Tdatatype d_type = Tdatatype::FP32) :
-    dim(TensorDim(fm, d_type)),
+  FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW) :
+    dim(TensorDim(fm, Tdatatype::FP32)),
     strides(dim.computeStrides()),
     contiguous(true),
     initializer(Initializer::NONE),
@@ -98,8 +97,8 @@ public:
    * @param[in] d3 Width
    */
   FloatTensor(size_t d0, size_t d1, size_t d2, size_t d3,
-              Tformat fm = Tformat::NCHW, Tdatatype d_type = Tdatatype::FP32) :
-    FloatTensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr){};
+              Tformat fm = Tformat::NCHW) :
+    FloatTensor(TensorDim(d0, d1, d2, d3, fm, Tdatatype::FP32), nullptr){};
 
   /**
    * @brief     Constructor of FloatTensor
@@ -107,26 +106,23 @@ public:
    * @param[in] d2 Height
    * @param[in] d3 Width
    */
-  FloatTensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-              Tdatatype d_type = Tdatatype::FP32) :
-    FloatTensor(1, d1, d2, d3, fm, d_type){};
+  FloatTensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    FloatTensor(1, d1, d2, d3, fm){};
 
   /**
    * @brief     Constructor of FloatTensor with batch size one and d1 size one
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  FloatTensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-              Tdatatype d_type = Tdatatype::FP32) :
-    FloatTensor(1, 1, d2, d3, fm, d_type){};
+  FloatTensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW) :
+    FloatTensor(1, 1, d2, d3, fm){};
 
   /**
    * @brief     Constructor of FloatTensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    */
-  explicit FloatTensor(size_t d3, Tformat fm = Tformat::NCHW,
-                       Tdatatype d_type = Tdatatype::FP32) :
-    FloatTensor(1, 1, 1, d3, fm, d_type){};
+  explicit FloatTensor(size_t d3, Tformat fm = Tformat::NCHW) :
+    FloatTensor(1, 1, 1, d3, fm){};
 
   /**
    * @brief     Constructor of FloatTensor
@@ -360,9 +356,6 @@ public:
    * @param[in] idx location
    */
   const float &getValue(unsigned int idx) const noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData()[idx / 2];
-    }
     return getData()[idx];
   }
 
@@ -370,12 +363,7 @@ public:
    * @brief     return value at specific location
    * @param[in] idx location
    */
-  float &getValue(unsigned int idx) noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData()[idx / 2];
-    }
-    return getData()[idx];
-  }
+  float &getValue(unsigned int idx) noexcept { return getData()[idx]; }
 
   /**
    * @brief Get the Value thinking that it is padded
@@ -733,7 +721,7 @@ public:
    * @brief  getter of size of data
    * @retval size of data
    */
-  unsigned int sizeofData() { return dim.getDataTypeSize(); }
+  unsigned int sizeofData() const { return dim.getDataTypeSize(); }
 
   /**
    * @brief     Dot Product of FloatTensor ( equal MxM )
@@ -1176,12 +1164,7 @@ public:
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const {
-    if (getDataType() == Tdatatype::QINT4) {
-      return (size() * dim.getDataTypeSize() + 1) / 2;
-    }
-    return size() * dim.getDataTypeSize();
-  }
+  size_t bytes() const { return size() * dim.getDataTypeSize(); }
 
   /**
    * @brief     Set the element value
@@ -1387,9 +1370,8 @@ public:
   /**
    * @brief     Read the FloatTensor from file
    * @param[in] file input file stream
-   * @param[in] s_type scale factor data type
    */
-  void read(std::ifstream &file, Tdatatype s_type = Tdatatype::FP32);
+  void read(std::ifstream &file);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1520,12 +1502,6 @@ public:
   }
 
   /**
-   * @brief     setter data type
-   * @param[in] Data Type
-   */
-  void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
-
-  /**
    * @brief     setter tensor type
    * @param[in] tensor Type
    */
@@ -1585,6 +1561,13 @@ public:
   const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
     return strides;
   }
+
+  /**
+   * @brief     return contiguous state of tensor.
+   * @retval    bool contiguous
+   */
+  bool getContiguous() const { return contiguous; }
+
   /**
    * @brief Get linear index given the n-d index
    */
