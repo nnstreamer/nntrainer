@@ -103,9 +103,16 @@ void TensorV2::deallocate() { object->deallocate(); }
 
 bool TensorV2::isAllocated() const { return object->isAllocated(); }
 
+void TensorV2::setData(const std::shared_ptr<MemoryData> buf, size_t off,
+                       bool init) {
+  object->setData(buf, off, init);
+}
+
 const void *TensorV2::getData() const { return object->getData(); }
 
 void *TensorV2::getData(size_t idx) const { return object->getData(idx); }
+
+unsigned int TensorV2::sizeofData() const { return object->sizeofData(); }
 
 void *TensorV2::getAddress(unsigned int i) { return object->getAddress(i); }
 
@@ -124,6 +131,16 @@ const void *TensorV2::getAddress(unsigned int b, unsigned int c, unsigned int h,
 }
 
 void TensorV2::setValue(float value) { object->setValue(value); }
+
+void TensorV2::setValue(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w, float value) noexcept {
+  object->setValue(b, c, h, w, value);
+}
+
+void TensorV2::addValue(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w, float value, float beta) noexcept {
+  object->addValue(b, c, h, w, value, beta);
+}
 
 void TensorV2::setZero() { object->setZero(); }
 
@@ -145,24 +162,60 @@ void TensorV2::initialize(Initializer init) { object->initialize(init); }
 
 void TensorV2::print(std::ostream &out) const { object->print(out); }
 
-template <typename TensorClass>
-TensorClass &TensorV2::operator=(const TensorClass &rhs) {
-  object = rhs;
-}
+size_t TensorV2::size() const { return object->size(); }
 
-template <typename TensorClass>
-TensorClass &TensorV2::operator=(TensorClass &&rhs) noexcept {
-  object = rhs;
-}
+bool TensorV2::empty() const { return size() == 0; }
+
+size_t TensorV2::bytes() const { return size() * sizeofData(); }
 
 size_t TensorV2::getIndex(unsigned int b, unsigned int c, unsigned int h,
                           unsigned int w) const noexcept {
   return object->getIndex(b, c, h, w);
 }
 
+bool TensorV2::checkContinuous(unsigned int n, unsigned int np1) const {
+  std::vector<unsigned int> continuous_order_nhwc = {0, 3, 1, 2};
+  bool continuous = false;
+  if (getFormat() == Tformat::NHWC) {
+    if (continuous_order_nhwc[np1] == continuous_order_nhwc[n] + 1)
+      continuous = true;
+  } else {
+    if (n + 1 == np1)
+      continuous = true;
+  }
+  return continuous;
+}
+
+void TensorV2::setName(const std::string &name_) { object->setName(name_); }
+
+const std::string &TensorV2::getName() const { return object->getName(); }
+
 Initializer TensorV2::getInitializer() const {
   return object->getInitializer();
 }
+
+TensorDim TensorV2::getDim() const { return object->getDim(); }
+
+const std::array<size_t, TensorDim::MAXDIM> TensorV2::getStrides() const
+  noexcept {
+  return object->getStrides();
+}
+
+bool TensorV2::getContiguous() const { return object->getContiguous(); }
+
+TensorDim::TensorType TensorV2::getTensorType() const {
+  return object->getTensorType();
+}
+
+size_t TensorV2::batch() const { return object->batch(); }
+
+size_t TensorV2::channel() const { return object->channel(); }
+
+size_t TensorV2::height() const { return object->height(); }
+
+size_t TensorV2::width() const { return object->width(); }
+
+uint TensorV2::getDataTypeSize() const { return object->getDataTypeSize(); }
 
 TensorDim::Format TensorV2::getFormat() const { return object->getFormat(); }
 
