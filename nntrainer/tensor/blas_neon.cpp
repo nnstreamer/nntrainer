@@ -2004,7 +2004,7 @@ void elementwise_vector_addition_neon_fp16(const unsigned int N,
     vst1q_f16(&Z[i], z0_7);
   }
   while (i < N) {
-    Z[i] = X[i] * Y[i];
+    Z[i] = X[i] + Y[i];
     ++i;
   }
 }
