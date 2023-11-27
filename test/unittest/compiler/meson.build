@@ -4,7 +4,7 @@ test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
 # 'unittest_interpreter.cpp',
-  'unittest_export.cpp',
+  'unittest_tflite_export.cpp',
   'unittest_realizer.cpp',
 ]
 
