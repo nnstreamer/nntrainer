@@ -59,9 +59,6 @@ using Tdatatype = ml::train::TensorDim::DataType;
  * @brief   TensorV2 Class
  */
 class TensorV2 {
-private:
-  std::shared_ptr<TensorConcept> object;
-
 public:
   /**
    * @brief     Basic Constructor of TensorV2
@@ -449,6 +446,14 @@ public:
   void initialize(Initializer init);
 
   /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   *
+   * @note copy can reshape the tensor to match the shape
+   */
+  void copy(const TensorV2 &from);
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    * @retval    Tensor
@@ -570,6 +575,13 @@ public:
   Tdatatype getDataType() const;
 
   /**
+   * @brief     set Tensor Dim
+   * @param[in] d TensorDim
+   * @note      Throws std::invalid_argument if size mismatch
+   */
+  void reshape(const TensorDim &d);
+
+  /**
    * @brief Apply instantly to the element
    *
    * @param f function to apply
@@ -657,6 +669,72 @@ public:
    */
   TensorV2 &apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
                   TensorV2 &output) const;
+
+private:
+  std::shared_ptr<TensorConcept> object;
+
+  struct BroadcastInfoV2;
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @param e broadcast info.
+   * @param cur_axis current axis. pass default when calling outside.
+   * @param offset offset for this.  pass default when calling outside.
+   * @param m_offset offset for m.  pass default when calling outside.
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  void apply_broadcast_util(
+    TensorV2 const &m,
+    std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                       float *)>
+      v_func,
+    TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis = -1,
+    size_t offset = 0, size_t m_offset = 0) const;
+
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   *
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  void
+  apply_broadcast(TensorV2 const &m,
+                  std::function<void(const BroadcastInfoV2 &e, const float *,
+                                     const float *, float *)>
+                    v_func,
+                  TensorV2 &output) const;
+
+  /**
+   * @brief compute Loop info for broadcasting and vectorization
+   *
+   * @param m target tensor to be calculated against.
+   * @return BroadcastInfo Loopinfo needed to run external loop
+   */
+  BroadcastInfoV2 computeBroadcastInfo(const TensorV2 &m) const;
+
+  /**
+   * @brief copy a buffer to @a this, the caller has to ensure that @a this is
+   * initialized otherwise undefined behavior
+   *
+   * @param buf buffer to copy from
+   */
+  void copy(const void *buf);
+
+  /**
+   * @brief    Reallocate memory for this tensor
+   * @note     This will not necessary free the memory as tensors share memory
+   * @note     This can increase the peak memory consumption when callled on all
+   * the tensors of a model sequentially. It is advised to first deallocate all
+   * the tensors and then allocate, than reallocate tensors one by one.
+   */
+  void reallocate() {
+    deallocate();
+    allocate();
+  }
 
 }; // namespace nntrainer
 

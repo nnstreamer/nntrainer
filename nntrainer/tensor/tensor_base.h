@@ -205,6 +205,11 @@ public:
    * @copydoc TensorV2::getDataType()
    */
   virtual Tdatatype getDataType() const = 0;
+
+  /**
+   * @copydoc TensorV2::reshape()
+   */
+  virtual void reshape(const TensorDim &d) = 0;
 };
 
 /**
@@ -424,6 +429,11 @@ public:
    * @copydoc TensorV2::getDataType()
    */
   virtual Tdatatype getDataType() const { return object.getDataType(); }
+
+  /**
+   * @copydoc TensorV2::reshape()
+   */
+  virtual void reshape(const TensorDim &d) { object.reshape(d); }
 
 private:
   TensorClass object;

@@ -30,6 +30,32 @@
 
 namespace nntrainer {
 
+/**
+ * @struct External Loop Info for broadcasted info
+ * @brief External Loop Info for broadcasted iteration. Please refer to
+ * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+ * @note This should better be implemented in iterator fashion before used
+ * extensively.
+ */
+struct TensorV2::BroadcastInfoV2 {
+  /**
+   * @brief Construct a new External Loop Info object
+   *
+   */
+  BroadcastInfoV2() :
+    buffer_size(0),
+    buffer_axis(-1),
+    strides{0, 0, 0, 0},
+    tensor_type(nntrainer::TensorDim::TensorType()) {}
+
+  unsigned int buffer_size; /**< virtual size of the buffer */
+  int buffer_axis;          /**< the smallest axis that should be looped.
+                                 -1 means no loop needed*/
+  std::array<unsigned int, TensorDim::MAXDIM>
+    strides; /**< modified strides for the loop */
+  nntrainer::TensorDim::TensorType tensor_type;
+};
+
 TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
   if (d_type == Tdatatype::FP32) {
     object = std::shared_ptr<TensorBase<FloatTensor>>(
@@ -194,6 +220,21 @@ void TensorV2::initialize() { object->initialize(); }
 
 void TensorV2::initialize(Initializer init) { object->initialize(init); }
 
+void TensorV2::copy(const TensorV2 &from) {
+  if (!getContiguous()) {
+    throw std::runtime_error("Cannot copy non-contiguous tensor");
+  }
+
+  if (from.size() != 0 && size() == from.size() &&
+      getDataType() == from.getDataType()) {
+    reshape(from.getDim());
+    copy(from.getData());
+  } else {
+    TensorV2 t = TensorV2(from.getDim(), from.getData());
+    swap(t, *this);
+  }
+}
+
 void TensorV2::print(std::ostream &out) const { object->print(out); }
 
 size_t TensorV2::size() const { return object->size(); }
@@ -255,6 +296,8 @@ TensorDim::Format TensorV2::getFormat() const { return object->getFormat(); }
 
 Tdatatype TensorV2::getDataType() const { return object->getDataType(); }
 
+void TensorV2::reshape(const TensorDim &d) { object->reshape(d); }
+
 TensorV2 TensorV2::apply(std::function<TensorV2(TensorV2)> f) const {
   return f(*this);
 }
@@ -262,6 +305,168 @@ TensorV2 TensorV2::apply(std::function<TensorV2(TensorV2)> f) const {
 TensorV2 &TensorV2::apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
                           TensorV2 &output) const {
   return f(*this, output);
+}
+
+void TensorV2::apply_broadcast_util(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                     float *)>
+    v_func,
+  TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis, size_t offset,
+  size_t m_offset) const {
+
+  const float *buf = (float *)this->getData();
+  const float *m_buf = (float *)m.getData();
+  float *out_buf = (float *)output.getData();
+
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    return;
+  }
+
+  cur_axis++;
+  uint continuity[4] = {0, 1, 2, 3};
+  if (getFormat() == Tformat::NHWC) {
+    continuity[1] = 2;
+    continuity[2] = 3;
+    continuity[3] = 1;
+  }
+  for (unsigned int i = 0; i < getDim().getTensorDim(continuity[cur_axis]);
+       ++i) {
+    size_t next_offset = offset + i * getStrides()[cur_axis];
+    size_t next_m_offset = m_offset + i * e.strides[cur_axis];
+    apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
+                         next_m_offset);
+  }
+}
+
+void TensorV2::apply_broadcast(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                     float *)>
+    v_func,
+  TensorV2 &output) const {
+  CREATE_IF_EMPTY_DIMS_V2(output, getDim());
+
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
+  if (getDim() == m.getDim()) {
+    BroadcastInfoV2 e;
+    e.buffer_size = size();
+    e.strides[3] = 1;
+    e.tensor_type = getTensorType();
+    v_func(e, (float *)getData(), (float *)m.getData(),
+           (float *)output.getData());
+    return;
+  }
+
+  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
+TensorV2::BroadcastInfoV2
+TensorV2::computeBroadcastInfo(const TensorV2 &m) const {
+  if (m.size() > this->size())
+    throw exception::not_supported("broadcasting *this is not supported");
+
+  const TensorDim dim = getDim();
+  const TensorDim m_dim = m.getDim();
+
+  BroadcastInfoV2 e;
+  e.tensor_type = getTensorType();
+
+  uint continuity[4] = {0, 1, 2, 3};
+  if (getFormat() == Tformat::NHWC) {
+    continuity[1] = 2;
+    continuity[2] = 3;
+    continuity[3] = 1;
+  }
+
+  /// checking if given TensorV2's can be broadcasted
+  for (unsigned int i = 0; i < TensorDim::MAXDIM; ++i) {
+    if (dim.getTensorDim(continuity[i]) == m_dim.getTensorDim(continuity[i])) {
+      e.strides[i] = m.getStrides()[i];
+      continue;
+    }
+
+    /// If given dimension is 1, it could be reused, the stride remaining 0
+    /// Need to check if dim[i] == 1 && m_dim[i] == 1 first though
+    /// If so, strides should not change
+    if (m_dim.getTensorDim(continuity[i]) == 1) {
+      continue;
+    }
+
+    std::stringstream ss;
+    ss << "[computeBroadcastInfo] broadcasting only allowed for "
+          "dimension value of 1 \n"
+       << "this: " << dim << "target: " << m_dim;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  /// calculate inner loop size
+  e.buffer_size = 1;
+  e.buffer_axis = -1;
+  e.strides[3] = m.getStrides()[3];
+
+  /// initiate buffer info with matching dimension strategy
+  for (int axis = 3; axis >= 0; --axis) {
+    if (dim.getTensorDim(continuity[axis]) !=
+        m_dim.getTensorDim(continuity[axis])) {
+      e.buffer_axis = axis;
+      break;
+    }
+
+    e.buffer_size *= dim.getTensorDim(continuity[axis]);
+  }
+
+  /// check strategy that uses consecutive ones
+  if (m_dim.getTensorDim(continuity[3]) == 1) {
+    unsigned int inner_loop_size = 1;
+    int axis;
+    for (axis = 3; axis >= 0; --axis) {
+      if (m_dim.getTensorDim(continuity[axis]) != 1) {
+        break;
+      }
+
+      inner_loop_size *= dim.getTensorDim(continuity[axis]);
+    }
+
+    /// if consecutive-one strategy has bigger chunk size, replace the
+    /// information
+    if (inner_loop_size > e.buffer_size) {
+      e.buffer_axis = axis;
+      e.buffer_size = inner_loop_size;
+      e.strides[3] = 0;
+    }
+  }
+
+  return e;
+}
+
+void TensorV2::copy(const void *buf) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << "Tensor is not contiguous, cannot copy.";
+
+  if (buf == getData()) {
+    return;
+  }
+
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    scopy(size(), (float *)buf, 1, (float *)getData(), 1);
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    scopy(size(), (_FP16 *)buf, 1, (_FP16 *)getData(), 1);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 std::ostream &operator<<(std::ostream &out, TensorV2 const &m) {
