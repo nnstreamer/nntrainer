@@ -213,48 +213,6 @@ nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
   return t;
 }
 
-nntrainer::TensorV2 constantV2(float value, unsigned int d0, unsigned int d1,
-                               unsigned int d2, unsigned int d3,
-                               nntrainer::Tformat fm,
-                               nntrainer::Tdatatype d_type) {
-  nntrainer::TensorV2 t(d0, d1, d2, d3, {fm, d_type});
-  t.setValue(value);
-
-  return t;
-}
-
-nntrainer::TensorV2 rangedV2(unsigned int batch, unsigned int channel,
-                             unsigned int height, unsigned int width,
-                             nntrainer::Tformat fm,
-                             nntrainer::Tdatatype d_type) {
-  nntrainer::TensorV2 t(batch, channel, height, width, {fm, d_type});
-  if (d_type == nntrainer::Tdatatype::FP32) {
-    float i = 0;
-    t = t.apply<float>(
-      (std::function<float(float)>)[&](float in) { return i++; });
-  } else if (d_type == nntrainer::Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-    _FP16 i = 0;
-    t = t.apply<_FP16>(
-      (std::function<_FP16(_FP16)>)[&](_FP16 in) { return i++; });
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-  }
-
-  return t;
-}
-
-nntrainer::TensorV2 randUniformV2(unsigned int batch, unsigned int channel,
-                                  unsigned int height, unsigned int width,
-                                  float min, float max, nntrainer::Tformat fm,
-                                  nntrainer::Tdatatype d_type) {
-  nntrainer::TensorDim::TensorType t_type(fm, d_type);
-  nntrainer::TensorV2 t(batch, channel, height, width, t_type);
-  t.setRandUniform(min, max);
-  return t;
-}
-
 const std::string
 getResPath(const std::string &filename,
            const std::initializer_list<const char *> fallback_base) {
