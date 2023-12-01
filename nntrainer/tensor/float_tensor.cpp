@@ -4,6 +4,7 @@
  * @date	09 November 2023
  * @brief	This is FloatTensor class for 32-bit floating point calculation
  * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @author	Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug		No known bugs except for NYI items
  *
