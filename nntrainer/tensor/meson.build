@@ -6,6 +6,8 @@ tensor_sources = [
   'lazy_tensor.cpp',
   'manager.cpp',
   'tensor.cpp',
+  'tensor_v2.cpp',
+  'float_tensor.cpp',
   'tensor_dim.cpp',
   'var_grad.cpp',
   'weight.cpp',
@@ -22,6 +24,10 @@ tensor_sources = [
 tensor_headers = [
   'memory_data.h',
   'tensor.h',
+  'tensor_v2.h',
+  'tensor_base.h',
+  'float_tensor.h',
+  'half_tensor.h',
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
@@ -32,6 +38,10 @@ arch = target_machine.cpu_family()
 
 if get_option('platform') == 'android' or arch == 'aarch64'
   tensor_sources += 'blas_neon.cpp'
+endif
+
+if get_option('enable-fp16')
+  tensor_sources += 'half_tensor.cpp'
 endif
 
 foreach s : tensor_sources
