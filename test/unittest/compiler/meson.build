@@ -3,7 +3,7 @@ test_name = 'unittest_compiler'
 test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
-# 'unittest_interpreter.cpp',
+  'unittest_interpreter.cpp',
   'unittest_tflite_export.cpp',
   'unittest_realizer.cpp',
 ]
