@@ -78,10 +78,47 @@ public:
   }
 
   /**
-   * @brief Get linear index given the n-d index
+   * @brief     return value at specific location
+   * @param[in] idx location
    */
-  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w) const noexcept;
+  template <typename T = float>
+  const T &getValue(unsigned int idx) const noexcept {
+    return getData<T>()[idx];
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   */
+  template <typename T = float> T &getValue(unsigned int idx) noexcept {
+    return getData<T>()[idx];
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   */
+  template <typename T = float>
+  const T &getValue(unsigned int b, unsigned int c, unsigned int h,
+                    unsigned int w) const noexcept {
+    return getValue<T>(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   */
+  template <typename T = float>
+  T &getValue(unsigned int b, unsigned int c, unsigned int h,
+              unsigned int w) noexcept {
+    return getValue<T>(getIndex(b, c, h, w));
+  }
 
   /**
    * @brief     Fill the Tensor elements with value
@@ -114,13 +151,86 @@ public:
    * @brief     Initialize the memory of the given tensor
    * @param     init Initiailizer to use for the initialization
    */
-  void initialize(TensorBase::Initializer init);
+  void initialize(Initializer init);
 
   /**
    * @brief     Print element
    * @param[in] out out stream
    */
   void print(std::ostream &out) const;
+
+  /**
+   * @brief     put data of Tensor
+   * @note      It is only effective when memory_swap is used
+   */
+  void putData() const;
+
+  /**
+   * @brief Get initializer for the tensor
+   *
+   * @return initializer of the tensor
+   */
+  Initializer getInitializer() const;
+
+  /**
+   * @brief Get format for the tensor
+   * @return format of the tensor
+   */
+  TensorDim::Format getFormat() const;
+
+  /**
+   * @brief Get data type for the tensor
+   *
+   * @return data type of the tensor
+   */
+  Tdatatype getDataType() const;
+
+  /**
+   * @brief Get linear index given the n-d index
+   */
+  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                  unsigned int w) const noexcept;
+  /**
+   * @brief     Get size of current tensor
+   * @retval    unsigned int size of the current tensor
+   */
+  size_t size() const;
+
+  /**
+   * @brief     Get if the tensor is empty
+   * @retval    true if the tensor is empty
+   */
+  bool empty() const;
+
+  /**
+   * @brief     Get size of the data in bytes
+   * @retval    size_t Size in bytes
+   */
+  size_t bytes() const;
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  size_t batch() const;
+
+  /**
+   * @brief     return Tensor channel size
+   * @retval    channel size
+   */
+  size_t channel() const;
+
+  /**
+   * @brief     return Tensor height size
+   * @retval    height size
+   */
+  size_t height() const;
+
+  /**
+   * @brief     return Tensor width size
+   * @retval    width size
+   */
+  size_t width() const;
 
 private:
   TensorBase *itensor;

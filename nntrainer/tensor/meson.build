@@ -7,6 +7,7 @@ tensor_sources = [
   'manager.cpp',
   'tensor.cpp',
   'tensor_v2.cpp',
+  'tensor_base.cpp',
   'float_tensor.cpp',
   'tensor_dim.cpp',
   'var_grad.cpp',

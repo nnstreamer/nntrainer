@@ -25,6 +25,22 @@ using TensorDim = ml::train::TensorDim;
 using Tformat = ml::train::TensorDim::Format;
 using Tdatatype = ml::train::TensorDim::DataType;
 
+/**
+ * @brief     Enumeration of Weight Initialization Type
+ * @todo      support intialization from file
+ */
+enum class Initializer {
+  ZEROS,          /** Zero initialization */
+  ONES,           /** One initialization */
+  LECUN_NORMAL,   /** LeCun normal initialization */
+  LECUN_UNIFORM,  /** uniform initialization */
+  XAVIER_NORMAL,  /** Xavier normal initialization */
+  XAVIER_UNIFORM, /** Xavier uniform initialization */
+  HE_NORMAL,      /** He normal initialization */
+  HE_UNIFORM,     /** He uniform initialization */
+  NONE            /** No initialization */
+};
+
 class TensorV2;
 
 /**
@@ -72,22 +88,6 @@ private:
 class TensorBase {
 public:
   /**
-   * @brief     Enumeration of Weight Initialization Type
-   * @todo      support intialization from file
-   */
-  enum class Initializer {
-    ZEROS,          /** Zero initialization */
-    ONES,           /** One initialization */
-    LECUN_NORMAL,   /** LeCun normal initialization */
-    LECUN_UNIFORM,  /** uniform initialization */
-    XAVIER_NORMAL,  /** Xavier normal initialization */
-    XAVIER_UNIFORM, /** Xavier uniform initialization */
-    HE_NORMAL,      /** He normal initialization */
-    HE_UNIFORM,     /** He uniform initialization */
-    NONE            /** No initialization */
-  };
-
-  /**
    * @brief     Basic Constructor of Tensor
    */
   TensorBase(std::string name_ = "", Tformat fm = Tformat::NCHW,
@@ -119,7 +119,7 @@ public:
   /**
    * @copydoc TensorV2::isAllocated()
    */
-  bool isAllocated() { return false; }
+  bool isAllocated() { return data != nullptr; }
 
   /**
    * @copydoc TensorV2::getData()
@@ -142,14 +142,6 @@ public:
    * @retval    address of ith data
    */
   virtual const void *getAddress(unsigned int i) const = 0;
-
-  /**
-   * @copydoc TensorV2::getIndex()
-   */
-  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w) const noexcept {
-    return 0;
-  }
 
   /**
    * @copydoc TensorV2::setValue(float value)
@@ -181,6 +173,78 @@ public:
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
+
+  /**
+   * @brief     put data of Tensor
+   * @note      It is only effective when memory_swap is used
+   */
+  void putData() const;
+
+  /**
+   * @brief Get initializer for the tensor
+   * @retval initializer of the tensor
+   */
+  Initializer getInitializer() const { return initializer; }
+
+  /**
+   * @brief Get format for the tensor
+   * @retval format of the tensor
+   */
+  TensorDim::Format getFormat() const { return dim.getFormat(); }
+
+  /**
+   * @brief Get data type for the tensor
+   * @retval data type of the tensor
+   */
+  Tdatatype getDataType() const { return dim.getDataType(); }
+
+  /**
+   * @brief Get linear index given the n-d index
+   */
+  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                  unsigned int w) const noexcept;
+
+  /**
+   * @brief     Get size of current tensor
+   * @retval    unsigned int size of the current tensor
+   */
+  size_t size() const { return dim.getDataLen(); }
+
+  /**
+   * @brief     Get if the tensor is empty
+   * @retval    true if the tensor is empty
+   */
+  bool empty() const { return size() == 0; }
+
+  /**
+   * @brief     Get size of the data in bytes
+   * @retval    size_t Size in bytes
+   */
+  size_t bytes() const { return size() * dim.getDataTypeSize(); }
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  size_t batch() const { return dim.batch(); }
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  size_t channel() const { return dim.channel(); }
+
+  /**
+   * @brief     return Tensor height size
+   * @retval    height size
+   */
+  size_t height() const { return dim.height(); }
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    width size
+   */
+  size_t width() const { return dim.width(); }
 
 protected:
   TensorDim dim;
