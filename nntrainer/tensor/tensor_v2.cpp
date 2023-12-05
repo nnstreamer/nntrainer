@@ -33,11 +33,6 @@ void TensorV2::deallocate() { itensor->deallocate(); }
 
 bool TensorV2::isAllocated() { return itensor->isAllocated(); }
 
-size_t TensorV2::getIndex(unsigned int b, unsigned int c, unsigned int h,
-                          unsigned int w) const noexcept {
-  return itensor->getIndex(b, c, h, w);
-}
-
 void TensorV2::setValue(float value) { itensor->setValue(value); }
 
 void TensorV2::setValue(unsigned int b, unsigned int c, unsigned int h,
@@ -49,10 +44,37 @@ void TensorV2::setZero() { itensor->setZero(); }
 
 void TensorV2::initialize() { itensor->initialize(); }
 
-void TensorV2::initialize(TensorBase::Initializer init) {
-  itensor->initialize(init);
-}
+void TensorV2::initialize(Initializer init) { itensor->initialize(init); }
 
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
+
+void TensorV2::putData() const { itensor->putData(); }
+
+Initializer TensorV2::getInitializer() const {
+  return itensor->getInitializer();
+}
+
+TensorDim::Format TensorV2::getFormat() const { return itensor->getFormat(); }
+
+Tdatatype TensorV2::getDataType() const { return itensor->getDataType(); }
+
+size_t TensorV2::getIndex(unsigned int b, unsigned int c, unsigned int h,
+                          unsigned int w) const noexcept {
+  return itensor->getIndex(b, c, h, w);
+}
+
+size_t TensorV2::size() const { return itensor->size(); }
+
+bool TensorV2::empty() const { return itensor->empty(); }
+
+size_t TensorV2::bytes() const { return itensor->bytes(); }
+
+size_t TensorV2::batch() const { return itensor->batch(); }
+
+size_t TensorV2::channel() const { return itensor->channel(); }
+
+size_t TensorV2::height() const { return itensor->height(); }
+
+size_t TensorV2::width() const { return itensor->width(); }
 
 } // namespace nntrainer
