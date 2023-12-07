@@ -77,4 +77,17 @@ size_t TensorV2::height() const { return itensor->height(); }
 
 size_t TensorV2::width() const { return itensor->width(); }
 
+void TensorV2::createSharedDataTensor(const TensorV2 &src, TensorV2 &dest,
+                                      size_t offset) const {
+  itensor->createSharedDataTensor(src.itensor, dest.itensor, offset);
+}
+
+TensorV2 TensorV2::getSharedDataTensor(const TensorDim dim_, size_t offset,
+                                       bool reset_stride,
+                                       const std::string &name_) const {
+  TensorV2 ret = *this;
+  ret.itensor = itensor->getSharedDataTensor(dim_, offset, reset_stride, name_);
+  return ret;
+}
+
 } // namespace nntrainer
