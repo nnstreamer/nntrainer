@@ -41,45 +41,7 @@ enum class Initializer {
   NONE            /** No initialization */
 };
 
-class TensorV2;
-
-/**
- * @class SrcSharedTensorV2
- * @brief Source of the shared tensor
- */
-class SrcSharedTensorV2 {
-public:
-  /**
-   * @brief   Constructor for the class
-   */
-  SrcSharedTensorV2() : src(nullptr), off(0) {}
-
-  /**
-   * @brief   Constructor for the class
-   */
-  SrcSharedTensorV2(const TensorV2 *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
-
-  /**
-   * @brief   Get the allocated src tensor
-   */
-  const TensorV2 *tensor() const {
-    if (!src)
-      throw std::runtime_error("Accessing empty src tensor");
-
-    return src;
-  }
-
-  /**
-   * @brief   Get the offset from the source tensor
-   */
-  size_t offset() const { return off; }
-
-private:
-  const TensorV2 *src; /**< Tensor of the source */
-  size_t off;          /**< offset from the source data ptr */
-};
+class SrcSharedTensorBase;
 
 /**
  * @class TensorBase class
@@ -246,6 +208,40 @@ public:
    */
   size_t width() const { return dim.width(); }
 
+  /**
+   * @brief Allocate data based on the source tensor
+   * @note As this memory is shared, do NOT initialize
+   */
+  void allocateSrcTensor();
+
+  /**
+   * @brief Update destination tensor to share memory with source tensor
+   *
+   * @param src src tensor containing the memory
+   * @param dest destination tensor which will share the memory
+   * @param offset offset to be used from the start of the data in bytes
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  void createSharedDataTensor(const TensorBase *src, TensorBase *dest,
+                              size_t offset) const;
+
+  /**
+   * @brief Get new tensor which shares memory with current tensor but different
+   * shape
+   *
+   * @param dim new dimension to be set for this tensor
+   * @param offset offset to be used from the start of the data in elements
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  TensorBase *getSharedDataTensor(const TensorDim dim_, size_t offset,
+                                  bool reset_stride, const std::string &name_);
+
 protected:
   TensorDim dim;
   std::array<size_t, TensorDim::MAXDIM> strides;
@@ -261,7 +257,45 @@ protected:
    * this does not affect the tensor. If the tensor data is not allocated, and
    * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
    */
-  std::shared_ptr<SrcSharedTensorV2> src_tensor;
+  std::shared_ptr<SrcSharedTensorBase> src_tensor;
+};
+
+/**
+ * @class SrcSharedTensorBase
+ * @brief Source of the shared tensor
+ */
+class SrcSharedTensorBase {
+public:
+  /**
+   * @brief   Constructor for the class
+   */
+  SrcSharedTensorBase() : src(nullptr), off(0) {}
+
+  /**
+   * @brief   Constructor for the class
+   */
+  SrcSharedTensorBase(const TensorBase *tensor, size_t offset) :
+    src(tensor),
+    off(offset) {}
+
+  /**
+   * @brief   Get the allocated src tensor
+   */
+  const TensorBase *tensor() const {
+    if (!src)
+      throw std::runtime_error("Accessing empty src tensor");
+
+    return src;
+  }
+
+  /**
+   * @brief   Get the offset from the source tensor
+   */
+  size_t offset() const { return off; }
+
+private:
+  const TensorBase *src; /**< Tensor of the source */
+  size_t off;            /**< offset from the source data ptr */
 };
 
 } // namespace nntrainer

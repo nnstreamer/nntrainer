@@ -232,6 +232,35 @@ public:
    */
   size_t width() const;
 
+  /**
+   * @brief Update destination tensor to share memory with source tensor
+   *
+   * @param src src tensor containing the memory
+   * @param dest destination tensor which will share the memory
+   * @param offset offset to be used from the start of the data in bytes
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  void createSharedDataTensor(const TensorV2 &src, TensorV2 &dest,
+                              size_t offset) const;
+
+  /**
+   * @brief Get new tensor which shares memory with current tensor but different
+   * shape
+   *
+   * @param dim new dimension to be set for this tensor
+   * @param offset offset to be used from the start of the data in elements
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  TensorV2 getSharedDataTensor(const TensorDim dim_, size_t offset,
+                               bool reset_stride,
+                               const std::string &name_) const;
+
 private:
   TensorBase *itensor;
 };
