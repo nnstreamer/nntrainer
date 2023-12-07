@@ -4,7 +4,8 @@ util_sources = [
   'ini_wrapper.cpp',
   'node_exporter.cpp',
   'base_properties.cpp',
-  'nntr_threads.cpp'
+  'nntr_threads.cpp',
+  'fp16.cpp'
 ]
 
 util_headers = [
