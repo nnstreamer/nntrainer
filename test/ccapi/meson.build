@@ -3,9 +3,14 @@ unittest_ccapi_deps = [
   nntrainer_test_deps,
 ]
 
+ccapi_targets = [
+  'unittest_ccapi.cpp',
+  'unittest_ccapi_tensor.cpp',
+]
+
 exec = executable(
   'unittest_ccapi',
-  'unittest_ccapi.cpp',
+  ccapi_targets,
   dependencies: unittest_ccapi_deps,
   install: get_option('enable-test'),
   install_dir: application_install_dir
