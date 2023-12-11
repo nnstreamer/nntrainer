@@ -592,6 +592,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/common.h
 %{_includedir}/nntrainer/model.h
 %{_includedir}/nntrainer/layer.h
+%{_includedir}/nntrainer/tensor_api.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/dataset.h
 %{_includedir}/nntrainer/tensor_dim.h
