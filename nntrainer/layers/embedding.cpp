@@ -91,6 +91,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   TensorDim out_tensor_dim =
     TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
+  TensorDim weight_dim = TensorDim({1, 1, 1, out_dim}, weight.getTensorType());
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data =
@@ -104,7 +105,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
       }
 
       Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        weight.getSharedDataTensor(weight_dim, out_dim * embed_idx);
       Tensor out_tensor =
         batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
       out_tensor.copyData(cur_weight);
@@ -133,6 +134,8 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
 
   TensorDim out_tensor_dim =
     TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
+  TensorDim cur_weight_dim =
+    TensorDim({1, 1, 1, out_dim}, weight.getTensorType());
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data =
@@ -146,7 +149,7 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
       }
 
       Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        weight.getSharedDataTensor(cur_weight_dim, out_dim * embed_idx);
 
       Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
         out_tensor_dim, out_dim * (i - from));
@@ -174,7 +177,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // This is to calculate gradient with current implementation of optimizer.
   // In order to accelerate, we need to better way like using index to weight.
 
- /// @todo
+  /// @todo
   // Current nntrainer gradient Tensor shape is identical to its
   // weight shape. However, this creates a sparse Tensor since we are only using
   // certain indices of the Tensor that we are interested in. Since we have such
