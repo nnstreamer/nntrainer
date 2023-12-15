@@ -32,6 +32,11 @@ public:
            Tdatatype d_type = Tdatatype::FP32);
 
   /**
+   * @brief Basic Destructor
+   */
+  ~TensorV2() { free(itensor); }
+
+  /**
    * @brief    Allocate memory for this tensor
    */
   void allocate();

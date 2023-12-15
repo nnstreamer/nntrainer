@@ -24,7 +24,11 @@ TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
-  }
+  } else
+    throw std::invalid_argument(
+      "Error: TensorV2 cannot be constructed because the given d_type is not "
+      "compatible with itensor. The supported d_types are: FP32, FP16 "
+      "(if built with ENABLE_FP16)).");
 }
 
 void TensorV2::allocate() { itensor->allocate(); }
