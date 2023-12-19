@@ -65,7 +65,11 @@ TensorDim::TensorDim(size_t d3, TensorType t_type_,
   TensorDim(t_type_, eff_dim_flag_, dyn_dim_flag_) {
 
   setTensorDim(3, d3);
-  feature_len = d3;
+  if (getDataType() == DataType::BCQ32) {
+    feature_len = (d3 + 31) / 32;
+  } else {
+    feature_len = d3;
+  }
   len = feature_len;
 }
 
@@ -76,7 +80,11 @@ TensorDim::TensorDim(size_t d2, size_t d3, TensorType t_type_,
 
   setTensorDim(2, d2);
   setTensorDim(3, d3);
-  feature_len = d2 * d3;
+  if (getDataType() == DataType::BCQ32) {
+    feature_len = d2 * (d3 + 31) / 32;
+  } else {
+    feature_len = d2 * d3;
+  }
   len = feature_len;
 }
 
@@ -88,7 +96,11 @@ TensorDim::TensorDim(size_t d1, size_t d2, size_t d3, TensorType t_type_,
   setTensorDim(1, d1);
   setTensorDim(2, d2);
   setTensorDim(3, d3);
-  feature_len = d1 * d2 * d3;
+  if (getDataType() == DataType::BCQ32) {
+    feature_len = d1 * d2 * (d3 + 31) / 32;
+  } else {
+    feature_len = d1 * d2 * d3;
+  }
   len = feature_len;
 }
 
@@ -105,7 +117,11 @@ TensorDim::TensorDim(size_t d0, size_t d1, size_t d2, size_t d3,
   setTensorDim(1, d1);
   setTensorDim(2, d2);
   setTensorDim(3, d3);
-  feature_len = d1 * d2 * d3;
+  if (getDataType() == DataType::BCQ32) {
+    feature_len = d1 * d2 * (d3 + 31) / 32;
+  } else {
+    feature_len = d1 * d2 * d3;
+  }
   len = d0 * feature_len;
 }
 
@@ -161,13 +177,19 @@ uint TensorDim::getDataTypeSize() const {
     return sizeof(int8_t);
   case TensorDim::DataType::QINT4:
     return sizeof(int8_t);
+  case TensorDim::DataType::BCQ32:
+    return sizeof(uint32_t);
   default:
     return sizeof(float);
   }
 }
 
 void TensorDim::resetLen() {
-  feature_len = dim[1] * dim[2] * dim[3];
+  if (getDataType() == DataType::BCQ32) {
+    feature_len = dim[1] * dim[2] * (dim[3] + 31) / 32;
+  } else {
+    feature_len = dim[1] * dim[2] * dim[3];
+  }
   len = dim[0] * feature_len;
 }
 
@@ -382,6 +404,8 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "QINT8";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT4) {
     type_ = "QINT4";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    type_ = "BCQ32";
   }
 
   std::string format_ =

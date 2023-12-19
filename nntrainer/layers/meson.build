@@ -49,6 +49,7 @@ layer_headers = [
   'layer_context.h',
   'layer_devel.h',
   'layer_impl.h',
+  'acti_func.h',
   'common_properties.h',
 ]
 

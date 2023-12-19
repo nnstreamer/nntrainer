@@ -194,6 +194,13 @@ void Tensor::allocate() {
         delete[] mem_data->template getAddr<uint8_t>();
         delete mem_data;
       });
+    } else if (getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+      mem_data =
+        new MemoryData((void *)(new uint32_t[(dim.getDataLen() / 32)]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<uint32_t>();
+        delete mem_data;
+      });
     }
     offset = 0;
     initialize();
@@ -270,6 +277,18 @@ bool Tensor::operator==(const Tensor &rhs) const {
           (!std::isnan(data) && std::isnan(rdata)) || data != rdata)
         return false;
     }
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    const uint32_t *_data = getData<uint32_t>();
+    const uint32_t *_rdata = rhs.getData<uint32_t>();
+    uint8_t data, rdata;
+    for (size_t i = 0; i < len / 32; ++i) {
+      /** not checking sign change is intentional to avoid float calculation
+       * errors around 0 */
+      if ((std::isnan(_data[i]) && !std::isnan(_rdata[i])) ||
+          (!std::isnan(_data[i]) && std::isnan(_rdata[i])) ||
+          std::fabs(_data[i] - _rdata[i]) > epsilon)
+        return false;
+    }
   }
 
   return true;
@@ -290,6 +309,8 @@ void Tensor::setRandNormal(float mean, float std) {
     throw std::invalid_argument("Error: RandNormal is invalid for QINT8");
   } else if (this->getDataType() == ml::train::TensorDim::DataType::QINT4) {
     throw std::invalid_argument("Error: RandNormal is invalid for QINT4");
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    throw std::invalid_argument("Error: RandNormal is invalid for BCQ32");
   }
 }
 
@@ -308,6 +329,8 @@ void Tensor::setRandUniform(float min, float max) {
     throw std::invalid_argument("Error: RandUniform is invalid for QINT8");
   } else if (this->getDataType() == ml::train::TensorDim::DataType::QINT4) {
     throw std::invalid_argument("Error: RandUniform is invalid for QINT4");
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    throw std::invalid_argument("Error: RandUniform is invalid for BCQ32");
   }
 }
 
@@ -326,6 +349,8 @@ void Tensor::setRandBernoulli(float probability) {
     throw std::invalid_argument("Error: setRandBernoulli is invalid for QINT8");
   } else if (this->getDataType() == ml::train::TensorDim::DataType::QINT4) {
     throw std::invalid_argument("Error: setRandBernoulli is invalid for QINT4");
+  } else if (this->getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    throw std::invalid_argument("Error: setRandBernoulli is invalid for BCQ32");
   }
 }
 
@@ -2890,6 +2915,10 @@ void Tensor::copy(const void *buf) {
     if (buf == getData<uint8_t>()) {
       return;
     }
+  } else if (getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    if (buf == getData<uint32_t>()) {
+      return;
+    }
   }
 
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
@@ -2907,6 +2936,10 @@ void Tensor::copy(const void *buf) {
   } else if (getDataType() == ml::train::TensorDim::DataType::QINT4) {
     for (unsigned int i = 0; i < (size() + 1) / 2; ++i) {
       getData<uint8_t>()[i] = ((uint8_t *)buf)[i];
+    }
+  } else if (getDataType() == ml::train::TensorDim::DataType::BCQ32) {
+    for (unsigned int i = 0; i < (size() / 32); ++i) {
+      getData<uint32_t>()[i] = ((uint32_t *)buf)[i];
     }
   }
 }
@@ -3203,10 +3236,40 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
         zero_points.push_back(zp);
       }
     }
+
+  } else if (getDataType() == Tdatatype::BCQ32) {
+
+    uint8_t bit;
+    file.read((char *)&bit, sizeof(uint8_t));
+
+    unsigned int len = height() * bit;
+    for (unsigned int i = 0; i < len; ++i) {
+      float scale;
+      file.read((char *)&scale, sizeof(__fp16));
+      scale_factors_fp16.push_back(scale);
+    }
   }
 
   checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed");
   putData();
+
+  if (getDataType() == Tdatatype::BCQ32) {
+    // BCQ assumtion: width (hidden dimention) is paced by 32 bit
+    // for now, BCQ expect 2D shape
+    if (batch() == 1 && channel() == 1) {
+      size_t max_num_bit = 3;
+      size_t qbit_of_clusters[] = {3};
+      size_t size_of_clusters[] = {height()};
+      const size_t number_of_cluster = 1;
+      size_t hidden_tile_size = 128;
+      bcqhw = std::make_shared<BiQGEMM::BCQHW>(
+        getData<uint32_t>(), scale_factors_fp16.data(), height(), width(),
+        number_of_cluster, qbit_of_clusters, size_of_clusters,
+        hidden_tile_size);
+    } else {
+      bcqhw = nullptr;
+    }
+  }
 }
 
 /**
@@ -3735,7 +3798,8 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
   }
 
   if (output.getDataType() == Tdatatype::QINT8 ||
-      output.getDataType() == Tdatatype::QINT4) {
+      output.getDataType() == Tdatatype::QINT4 ||
+      output.getDataType() == Tdatatype::BCQ32) {
     throw std::invalid_argument("Error: Target datatype is quantized type");
   }
 

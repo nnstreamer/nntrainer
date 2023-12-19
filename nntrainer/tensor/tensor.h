@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <BiQGEMM.h>
 #include <blas_interface.h>
 #include <iostream>
 #include <memory_data.h>
@@ -1441,6 +1442,12 @@ public:
   }
 
   /**
+   * @brief     Get bcqw
+   * @retval    BiQGEMM:BCQHW shared pointer
+   */
+  std::shared_ptr<BiQGEMM::BCQHW> getBCQHW() { return bcqhw; }
+
+  /**
    * @brief     Set the element value
    * @param[in] batch batch location
    * @param[in] c channel location
@@ -2045,6 +2052,8 @@ private:
   std::vector<_FP16> scale_factors_fp16;
 #endif
   std::vector<uint8_t> zero_points;
+
+  std::shared_ptr<BiQGEMM::BCQHW> bcqhw;
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source
