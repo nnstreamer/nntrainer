@@ -16,6 +16,8 @@
 namespace nntrainer {
 
 TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
+  itensor = nullptr;
+
   if (d_type == Tdatatype::FP32) {
     itensor = new FloatTensor(name_, fm);
   } else if (d_type == Tdatatype::FP16) {
@@ -24,12 +26,66 @@ TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
-  } else
+  } else {
     throw std::invalid_argument(
       "Error: TensorV2 cannot be constructed because the given d_type is not "
       "compatible with itensor. The supported d_types are: FP32, FP16 "
-      "(if built with ENABLE_FP16)).");
+      "(if built with ENABLE_FP16).");
+  }
 }
+
+TensorV2::TensorV2(const TensorDim &d, bool alloc_now, Initializer init,
+                   std::string name) {
+  itensor = nullptr;
+
+  if (d.getDataType() == Tdatatype::FP32) {
+    itensor = new FloatTensor(d, alloc_now, init, name);
+  } else if (d.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    itensor = new HalfTensor(d, alloc_now, init, name);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  } else {
+    throw std::invalid_argument(
+      "Error: TensorV2 cannot be constructed because the given d_type is not "
+      "compatible with itensor. The supported d_types are: FP32, FP16 "
+      "(if built with ENABLE_FP16).");
+  }
+}
+
+TensorV2::TensorV2(const TensorDim &d, const void *buf) {
+  itensor = nullptr;
+
+  if (d.getDataType() == Tdatatype::FP32) {
+    itensor = new FloatTensor(d, buf);
+  } else if (d.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    itensor = new HalfTensor(d, buf);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  } else {
+    throw std::invalid_argument(
+      "Error: TensorV2 cannot be constructed because the given d_type is not "
+      "compatible with itensor. The supported d_types are: FP32, FP16 "
+      "(if built with ENABLE_FP16).");
+  }
+}
+
+TensorV2::TensorV2(
+  std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = new FloatTensor(d, t_type.format);
+}
+
+#ifdef ENABLE_FP16
+TensorV2::TensorV2(
+  std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = new HalfTensor(d, t_type.format);
+}
+#endif
 
 void TensorV2::allocate() { itensor->allocate(); }
 

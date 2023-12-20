@@ -64,6 +64,25 @@ public:
     src_tensor() {}
 
   /**
+   * @brief     Constructor of Tensor with dimension, possibly lazily
+   * @param d Tensor dim for this tensor
+   * @param alloc_now If the memory of the tensor must be allocated
+   * @param init Initializer for the tensor
+   * @param name Name of the tensor
+   */
+  TensorBase(const TensorDim &d, bool alloc_now,
+             Initializer init = Initializer::NONE, std::string name = "");
+
+  /**
+   * @brief     Constructor of Tensor with dimension/buf
+   * @param d Tensor dim for this tensor
+   * @param buf buffer
+   * @note Memory for this tensor is instantaneously allocated
+   */
+  TensorBase(const TensorDim &d, const void *buf = nullptr) :
+    TensorBase(d, true) {}
+
+  /**
    * @brief Basic Destructor
    */
   virtual ~TensorBase() {}
