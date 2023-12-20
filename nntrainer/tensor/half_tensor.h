@@ -36,6 +36,34 @@ public:
   HalfTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
 
   /**
+   * @brief Construct a new HalfTensor object
+   *
+   * @param d Tensor dim for this float tensor
+   * @param alloc_now Allocate memory to this tensor or not
+   * @param init Initializer for the tensor
+   * @param name Name of the tensor
+   */
+  HalfTensor(const TensorDim &d, bool alloc_now,
+             Initializer init = Initializer::NONE, std::string name = "");
+
+  /**
+   * @brief Construct a new HalfTensor object
+   *
+   * @param d Tensor dim for this tensor
+   * @param buf buffer
+   */
+  HalfTensor(const TensorDim &d, const void *buf = nullptr);
+
+  /**
+   * @brief Construct a new HalfTensor object
+   *
+   * @param d data for the Tensor
+   * @param fm format for the Tensor
+   */
+  HalfTensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
+             Tformat fm);
+
+  /**
    * @brief Basic Destructor
    */
   ~HalfTensor() {}
@@ -102,6 +130,15 @@ public:
    * @copydoc TensorV2::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;
+
+private:
+  /**
+   * @brief copy a buffer to @a this, the caller has to ensure that @a this is
+   * initialized otherwise undefined behavior
+   *
+   * @param buf buffer to copy from
+   */
+  void copy(const void *buf);
 };
 
 } // namespace nntrainer

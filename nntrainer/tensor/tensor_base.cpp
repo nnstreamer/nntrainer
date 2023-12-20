@@ -13,6 +13,16 @@
 
 namespace nntrainer {
 
+TensorBase::TensorBase(const TensorDim &d, bool alloc_now, Initializer init,
+                       std::string name_) :
+  TensorBase(name_, d.getFormat()) {
+  if (d.getDataLen() != 0) {
+    dim = d;
+    strides = d.computeStrides();
+    initializer = init;
+  }
+}
+
 void TensorBase::putData() const {
   if (!data)
     return;

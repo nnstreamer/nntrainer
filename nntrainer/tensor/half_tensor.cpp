@@ -21,6 +21,73 @@ namespace nntrainer {
 HalfTensor::HalfTensor(std::string name_, Tformat fm) :
   TensorBase(name_, fm, Tdatatype::FP16) {}
 
+HalfTensor::HalfTensor(const TensorDim &d, bool alloc_now, Initializer init,
+                       std::string name) :
+  TensorBase(d, alloc_now, init, name) {
+  if (alloc_now)
+    allocate();
+}
+
+HalfTensor::HalfTensor(const TensorDim &d, const void *buf) :
+  HalfTensor(d, true) {
+  if (d.getDataLen() != 0) {
+    if (buf != nullptr)
+      copy(buf);
+  }
+}
+
+HalfTensor::HalfTensor(
+  std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
+  Tformat fm) {
+
+  if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
+    throw std::out_of_range(
+      "[Tensor] trying to initialize HalfTensor from empty vector");
+  }
+
+  dim.setTensorDim(0, d.size());
+  if (fm == Tformat::NCHW) {
+    dim.setTensorDim(1, d[0].size());
+    dim.setTensorDim(2, d[0][0].size());
+    dim.setTensorDim(3, d[0][0][0].size());
+  } else {
+    dim.setTensorDim(2, d[0].size());
+    dim.setTensorDim(3, d[0][0].size());
+    dim.setTensorDim(1, d[0][0][0].size());
+  }
+
+  dim.setTensorType({fm, Tdatatype::FP16});
+
+  strides = dim.computeStrides();
+  contiguous = true;
+  initializer = Initializer::NONE;
+
+  MemoryData *mem_data =
+    new MemoryData((void *)(new _FP16[dim.getDataLen()]()));
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
+    delete[] mem_data->getAddr<_FP16>();
+  });
+
+  offset = 0;
+
+  // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
+  // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
+  // dim[1] == height, dim[2] == width, dim[3] == channel
+  if (fm == Tformat::NCHW) {
+    for (unsigned int i = 0; i < batch(); ++i)
+      for (unsigned int j = 0; j < channel(); ++j)
+        for (unsigned int k = 0; k < height(); ++k)
+          for (unsigned int l = 0; l < width(); ++l)
+            this->setValue(i, j, k, l, d[i][j][k][l]);
+  } else {
+    for (unsigned int i = 0; i < batch(); ++i)
+      for (unsigned int j = 0; j < height(); ++j)
+        for (unsigned int k = 0; k < width(); ++k)
+          for (unsigned int l = 0; l < channel(); ++l)
+            this->setValue(i, l, j, k, d[i][j][k][l]);
+  }
+}
+
 /// @todo support allocation by src_tensor
 void HalfTensor::allocate() {
   if (empty() || data)
@@ -175,6 +242,18 @@ void HalfTensor::print(std::ostream &out) const {
     }
   }
   out.copyfmt(init);
+}
+
+/// @todo include getName()
+void HalfTensor::copy(const void *buf) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << "Tensor is not contiguous, cannot copy.";
+
+  if (buf == getData()) {
+    return;
+  }
+
+  scopy(size(), (_FP16 *)buf, 1, (_FP16 *)getData(), 1);
 }
 
 } // namespace nntrainer

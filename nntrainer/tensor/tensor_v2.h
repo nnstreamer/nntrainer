@@ -32,6 +32,172 @@ public:
            Tdatatype d_type = Tdatatype::FP32);
 
   /**
+   * @brief     Constructor of Tensor with dimension, possibly lazily
+   * @param d Tensor dim for this tensor
+   * @param alloc_now If the memory of the tensor must be allocated
+   * @param init Initializer for the tensor
+   * @param name Name of the tensor
+   */
+  TensorV2(const TensorDim &d, bool alloc_now,
+           Initializer init = Initializer::NONE, std::string name = "");
+
+  /**
+   * @brief     Constructor of Tensor with dimension/buf
+   * @param d Tensor dim for this tensor
+   * @param buf buffer
+   * @note Memory for this tensor is instantaneously allocated
+   */
+  TensorV2(const TensorDim &d, const void *buf = nullptr);
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d0 Batch of Tensor
+   * @param[in] d1 Channel
+   * @param[in] d2 Height
+   * @param[in] d3 Width
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
+   */
+  TensorV2(size_t d0, size_t d1, size_t d2, size_t d3,
+           Tformat fm = Tformat::NCHW, Tdatatype d_type = Tdatatype::FP32) :
+    TensorV2(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d1 Channel
+   * @param[in] d2 Height
+   * @param[in] d3 Width
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
+   */
+  TensorV2(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+           Tdatatype d_type = Tdatatype::FP32) :
+    TensorV2(1, d1, d2, d3, fm, d_type){};
+
+  /**
+   * @brief     Constructor of Tensor with batch size one and d1 size one
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
+   */
+  TensorV2(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+           Tdatatype d_type = Tdatatype::FP32) :
+    TensorV2(1, 1, d2, d3, fm, d_type){};
+
+  /**
+   * @brief     Constructor of Tensor with just Width or Channel
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
+   */
+  explicit TensorV2(size_t d3, Tformat fm = Tformat::NCHW,
+                    Tdatatype d_type = Tdatatype::FP32) :
+    TensorV2(1, 1, 1, d3, fm, d_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d0 Batch of Tensor
+   * @param[in] d1 Channel (NCHW) or Height (NHWC)
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(size_t d0, size_t d1, size_t d2, size_t d3,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(TensorDim(d0, d1, d2, d3, t_type), nullptr){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d1 Channel
+   * @param[in] d2 Height
+   * @param[in] d3 Width
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(size_t d1, size_t d2, size_t d3,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(1, d1, d2, d3, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor with batch size one and d1 size one
+   * @param[in] d2 Height (NCHW) or Width (NHWC)
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type) :
+    TensorV2(1, (t_type.format == Tformat::NCHW) ? 1 : d3,
+             (t_type.format == Tformat::NCHW) ? d2 : 1,
+             (t_type.format == Tformat::NCHW) ? d3 : d2, t_type){};
+  /**
+   * @brief     Constructor of Tensor with just Width or Channel
+   * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
+   */
+  explicit TensorV2(size_t d3, ml::train::TensorDim::TensorType t_type) :
+    TensorV2(1, (t_type.format == Tformat::NCHW) ? 1 : d3, 1,
+             (t_type.format == Tformat::NCHW) ? d3 : 1, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+           ml::train::TensorDim::TensorType t_type);
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<std::vector<float>>> const &d,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<float>> const &d,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+#ifdef ENABLE_FP16
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
+           ml::train::TensorDim::TensorType t_type);
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<std::vector<_FP16>>> const &d,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
+   */
+  TensorV2(std::vector<std::vector<_FP16>> const &d,
+           ml::train::TensorDim::TensorType t_type) :
+    TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+#endif
+
+  /**
    * @brief Basic Destructor
    */
   ~TensorV2() { free(itensor); }
