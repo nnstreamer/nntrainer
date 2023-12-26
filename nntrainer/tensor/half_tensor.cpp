@@ -27,17 +27,23 @@ void HalfTensor::allocate() {
     /// already allocated
     return;
 
-  /// allocate new memory for the tensor data
-  MemoryData *mem_data;
+  if (src_tensor) {
+    /// allocate data based on the source tensor
+    allocateSrcTensor();
+    /** as this memory is shared, do NOT initialize */
+  } else {
+    /// allocate new memory for the tensor data
+    MemoryData *mem_data;
 
-  mem_data = new MemoryData((void *)(new _FP16[dim.getDataLen()]{}));
-  data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-    delete[] mem_data->template getAddr<_FP16>();
-    delete mem_data;
-  });
+    mem_data = new MemoryData((void *)(new _FP16[dim.getDataLen()]{}));
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+      delete[] mem_data->template getAddr<_FP16>();
+      delete mem_data;
+    });
 
-  offset = 0;
-  initialize();
+    offset = 0;
+    initialize();
+  }
 }
 
 void HalfTensor::deallocate() {
