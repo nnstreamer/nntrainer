@@ -26,17 +26,23 @@ void FloatTensor::allocate() {
   if (empty() || data)
     return;
 
-  /// allocate new memory for the tensor data
-  MemoryData *mem_data;
+  if (src_tensor) {
+    /// allocate data based on the source tensor
+    allocateSrcTensor();
+    /** as this memory is shared, do NOT initialize */
+  } else {
+    /// allocate new memory for the tensor data
+    MemoryData *mem_data;
 
-  mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
-  data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-    delete[] mem_data->template getAddr<float>();
-    delete mem_data;
-  });
+    mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+      delete[] mem_data->template getAddr<float>();
+      delete mem_data;
+    });
 
-  offset = 0;
-  initialize();
+    offset = 0;
+    initialize();
+  }
 }
 
 void FloatTensor::deallocate() {
