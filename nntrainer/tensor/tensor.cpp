@@ -1874,14 +1874,22 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int t_axis = dim[2];
         Tensor ones(1, 1, 1, t_axis, this->getTensorType());
         ones.setValue(alpha);
-        float *rdata = ret.getData<float>();
-        for (unsigned int k = 0; k < dim[0]; ++k) {
-          for (unsigned int c = 0; c < dim[1]; ++c) {
-            unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
-            unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[3];
-            sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
-                  ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+
+        if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+          float *rdata = ret.getData<float>();
+          for (unsigned int k = 0; k < dim[0]; ++k) {
+            for (unsigned int c = 0; c < dim[1]; ++c) {
+              unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
+              unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[3];
+
+              sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+                    ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+            }
           }
+        } else {
+          sgemv(CblasColMajor, CblasTrans, t_axis, ret.dim.getDataLen(), 1,
+                data, t_axis, ones.getData<float>(), 1, beta,
+                ret.getData<float>(), 1);
         }
       }
     } break;
@@ -1907,8 +1915,23 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int n = dim[3];
         Tensor ones(1, 1, 1, n);
         ones.setValue(alpha);
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
-              ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
+
+        if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+          sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+                ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
+        } else {
+          float *rdata = ret.getData<float>();
+
+          for (unsigned int k = 0; k < dim[0]; ++k) {
+            for (unsigned int c = 0; c < dim[1]; ++c) {
+              unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
+              unsigned int ridx = k * dim[1] * dim[2] + c * dim[2];
+
+              sgemv(CblasColMajor, CblasNoTrans, dim[2], n, 1, &data[idx],
+                    dim[2], ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+            }
+          }
+        }
       }
     } break;
     default:

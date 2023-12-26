@@ -60,6 +60,7 @@ namespace nntrainer {
 using TensorDim = ml::train::TensorDim;
 using Tformat = ml::train::TensorDim::Format;
 using Tdatatype = ml::train::TensorDim::DataType;
+using TStorageOrder = ml::train::TensorDim::StorageOrder;
 
 class LazyTensor;
 class SrcSharedTensor;
@@ -1874,8 +1875,14 @@ public:
   inline size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
                          unsigned int w) const noexcept {
     if (getFormat() == Tformat::NCHW) {
-      return (b * strides[0] + c * strides[1] + h * strides[2] +
-              w * strides[3]);
+      if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+        return (b * strides[0] + c * strides[1] + h * strides[2] +
+                w * strides[3]);
+      } else {
+        return b * dim[1] * dim[2] * dim[3] + c * dim[2] * dim[3] + h +
+               w * dim[2];
+      }
+
     } else {
       return (b * strides[0] + h * strides[1] + w * strides[2] +
               c * strides[3]);
