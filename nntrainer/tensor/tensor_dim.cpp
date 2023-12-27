@@ -124,9 +124,10 @@ TensorDim::TensorDim(const std::string &shape, TensorType t_type_) :
 }
 
 TensorDim::TensorDim(const std::string &shape, TensorDim::Format fm,
-                     TensorDim::DataType d_type) :
+                     TensorDim::DataType d_type,
+                     TensorDim::StorageOrder order) :
   TensorDim() {
-  if (setTensorDim(shape, TensorType(fm, d_type)) != ML_ERROR_NONE) {
+  if (setTensorDim(shape, TensorType(fm, d_type, order)) != ML_ERROR_NONE) {
     throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
   }
 }

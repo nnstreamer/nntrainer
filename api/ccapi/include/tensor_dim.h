@@ -59,12 +59,18 @@ public:
   };
 
   /**
+   * @brief Tensor Data Storage Order. Row-major or Column-major
+   *
+   */
+  enum class StorageOrder { ROW_MAJOR, COL_MAJOR };
+
+  /**
    * @brief Tensor Type which context to hold the Format & DataType
    *
    */
   struct TensorType {
     /**
-     * @brief     Tensor Formant : Default is NCHW
+     * @brief     Tensor Format : Default is NCHW
      */
     Format format;
 
@@ -74,14 +80,26 @@ public:
     DataType data_type;
 
     /**
+     * @brief     Data Storage Order : Default is Row-major
+     */
+    StorageOrder storage_order;
+
+    /**
      * @brief     Default creator of Tensor Type
      */
-    TensorType() : format(Format::NCHW), data_type(DataType::FP32){};
+    TensorType() :
+      format(Format::NCHW),
+      data_type(DataType::FP32),
+      storage_order(StorageOrder::ROW_MAJOR){};
 
     /**
      * @brief     Default creator of Tensor Type with Format & DataType
      */
-    TensorType(Format fm, DataType d_type) : format(fm), data_type(d_type){};
+    TensorType(Format fm, DataType d_type,
+               StorageOrder order = StorageOrder::ROW_MAJOR) :
+      format(fm),
+      data_type(d_type),
+      storage_order(order){};
   };
 
   /**
@@ -95,7 +113,7 @@ public:
    * @brief     Creator of TensorDim with Format & DataType
    *
    * @param fm format NCHW | HNWC
-   * @param fm DataType QINT4 | QINT8 | FP16 | FP32
+   * @param d_type DataType QINT4 | QINT8 | FP16 | FP32
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
@@ -106,7 +124,7 @@ public:
   /**
    * @brief Construct a new Tensor Dim object
    *
-   * @param fm format NCHW | HNWC
+   * @param t_type_ tensor type
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
@@ -118,7 +136,7 @@ public:
    * @brief Construct a new Tensor Dim object
    *
    * @param dims std::initialize_list
-   * @param fm format NCHW | HNWC
+   * @param t_type_ tensor type
    *
    * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW & NHWC are
    * accepted
@@ -130,7 +148,7 @@ public:
    * @brief Construct a new Tensor Dim object without batch dimension
    *
    * @param shapes shapes without batch dimension
-   * @param fm format NCHW | HNWC
+   * @param t_type_ tensor type
    */
   TensorDim(const std::array<size_t, 3> &shapes,
             TensorType t_type_ = TensorType());
@@ -218,7 +236,7 @@ public:
    * @brief Construct a new Tensor Dim object
    *
    * @param shape shape of format
-   * @param fm format NCHW | HNWC
+   * @param t_type_ Tensor Type
    */
   TensorDim(const std::string &shape, TensorType t_type_ = TensorType());
 
@@ -228,9 +246,11 @@ public:
    * @param shape shape of format
    * @param fm format NCHW | HNWC
    * @param d_type data type QINT4 | QINT8 | FP16 | FP32
+   * @param order data storage order ROW_MAJOR | COL_MAJOR
    */
   TensorDim(const std::string &shape, TensorDim::Format fm,
-            TensorDim::DataType d_type = TensorDim::DataType::FP32);
+            TensorDim::DataType d_type = TensorDim::DataType::FP32,
+            TensorDim::StorageOrder order = TensorDim::StorageOrder::ROW_MAJOR);
 
   /**
    * @brief Destroy the Tensor Dim object
@@ -426,9 +446,6 @@ public:
   int setTensorDim(const std::string &input_shape,
                    TensorType t_type_ = TensorType());
 
-  // int setTensorDim(const std::string &input_shape, TensorDim::Format fm,
-  //                  TensorDim::DataType d_type);
-
   /**
    * @brief copy assign a dimension
    *
@@ -528,6 +545,14 @@ public:
   TensorDim::DataType getDataType() const { return t_type.data_type; };
 
   /**
+   * @brief getStorageOrder
+   *
+   */
+  TensorDim::StorageOrder getStorageOrder() const {
+    return t_type.storage_order;
+  };
+
+  /**
    * @brief setFormat
    *
    */
@@ -538,6 +563,14 @@ public:
    *
    */
   void setDataType(TensorDim::DataType ty) { t_type.data_type = ty; };
+
+  /**
+   * @brief setDataType
+   *
+   */
+  void setStorageOrder(TensorDim::StorageOrder storage_order_) {
+    t_type.storage_order = storage_order_;
+  };
 
   /**
    * @brief getFormat
