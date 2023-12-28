@@ -10,8 +10,11 @@
  */
 
 #include <float_tensor.h>
-#include <half_tensor.h>
 #include <tensor_v2.h>
+
+#ifdef ENABLE_FP16
+#include <half_tensor.h>
+#endif
 
 namespace nntrainer {
 
