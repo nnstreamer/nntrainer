@@ -28,7 +28,6 @@ tensor_headers = [
   'tensor_v2.h',
   'tensor_base.h',
   'float_tensor.h',
-  'half_tensor.h',
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
@@ -42,6 +41,7 @@ if get_option('platform') == 'android' or arch == 'aarch64'
 endif
 
 if get_option('enable-fp16')
+  tensor_headers += 'half_tensor.h'
   tensor_sources += 'half_tensor.cpp'
 endif
 
