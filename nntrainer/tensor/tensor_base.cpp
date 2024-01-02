@@ -23,6 +23,22 @@ TensorBase::TensorBase(const TensorDim &d, bool alloc_now, Initializer init,
   }
 }
 
+bool TensorBase::operator==(const TensorBase &rhs) const {
+  if (this->dim != rhs.dim)
+    return false;
+
+  if (size() != rhs.size())
+    return false;
+
+  if (contiguous != rhs.contiguous)
+    return false;
+
+  if (strides != rhs.strides)
+    return false;
+
+  return true;
+}
+
 void TensorBase::putData() const {
   if (!data)
     return;

@@ -87,6 +87,20 @@ FloatTensor::FloatTensor(
   }
 }
 
+bool FloatTensor::operator==(const FloatTensor &rhs) const {
+  const float *_data = (float *)getData();
+  const float *_rdata = (float *)rhs.getData();
+  for (size_t i = 0; i < size(); ++i) {
+    /** not checking sign change is intentional to avoid float calculation
+     * errors around 0 */
+    if (std::isnan(_data[i]) || std::isnan(_rdata[i]) ||
+        std::fabs(_data[i] - _rdata[i]) > epsilon)
+      return false;
+  }
+
+  return true;
+}
+
 /// @todo support allocation by src_tensor
 void FloatTensor::allocate() {
   if (empty() || data)
