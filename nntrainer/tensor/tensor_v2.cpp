@@ -90,6 +90,27 @@ TensorV2::TensorV2(
 }
 #endif
 
+bool TensorV2::operator==(const TensorV2 &rhs) const {
+  /// compares tensor information
+  if (*itensor == *rhs.itensor) {
+    /// compares tensor data
+    if (getDataType() == Tdatatype::FP32) {
+      return *dynamic_cast<FloatTensor *>(itensor) ==
+             *dynamic_cast<FloatTensor *>(rhs.itensor);
+    } else if (getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+      return *dynamic_cast<HalfTensor *>(itensor) ==
+             *dynamic_cast<HalfTensor *>(rhs.itensor);
+#else
+      throw std::invalid_argument(
+        "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
+        "Please check if the tensor data type is set properly.");
+#endif
+    }
+  }
+  return false;
+}
+
 void TensorV2::allocate() { itensor->allocate(); }
 
 void TensorV2::deallocate() { itensor->deallocate(); }

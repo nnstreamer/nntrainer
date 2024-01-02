@@ -69,6 +69,20 @@ public:
   ~HalfTensor() {}
 
   /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   * @note      Only compares Tensor data
+   */
+  bool operator==(const HalfTensor &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   * @note      Only compares Tensor data
+   */
+  bool operator!=(const HalfTensor &rhs) const { return !(*this == rhs); }
+
+  /**
    * @copydoc TensorV2::allocate()
    */
   void allocate() override;

@@ -83,6 +83,20 @@ public:
     TensorBase(d, true) {}
 
   /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   * @note      Only compares Tensor information
+   */
+  bool operator==(const TensorBase &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   * @note      Only compares Tensor information
+   */
+  bool operator!=(const TensorBase &rhs) const { return !(*this == rhs); }
+
+  /**
    * @brief Basic Destructor
    */
   virtual ~TensorBase() {}
@@ -260,6 +274,8 @@ public:
    */
   TensorBase *getSharedDataTensor(const TensorDim dim_, size_t offset,
                                   bool reset_stride, const std::string &name_);
+
+  static constexpr float epsilon = 1e-5;
 
 protected:
   TensorDim dim;

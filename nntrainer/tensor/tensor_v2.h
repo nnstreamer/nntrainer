@@ -200,7 +200,43 @@ public:
   /**
    * @brief Basic Destructor
    */
-  ~TensorV2() { free(itensor); }
+  ~TensorV2() = default;
+
+  /**
+   *  @brief  Copy constructor of Tensor.
+   *  @param[in] Tensor &
+   */
+  TensorV2(const TensorV2 &rhs) = default;
+
+  /**
+   *  @brief  Move constructor of Tensor.
+   *  @param[in] Tensor &&
+   */
+  TensorV2(TensorV2 &&rhs) noexcept = default;
+
+  /**
+   * @brief  Copy assignment operator.
+   * @param[in] rhs Tensor to be copied.
+   */
+  TensorV2 &operator=(const TensorV2 &rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Tensor to be moved.
+   */
+  TensorV2 &operator=(TensorV2 &&rhs) noexcept = default;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator==(const TensorV2 &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!=(const TensorV2 &rhs) const { return !(*this == rhs); }
 
   /**
    * @brief    Allocate memory for this tensor
