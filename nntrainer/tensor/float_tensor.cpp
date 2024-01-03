@@ -182,10 +182,44 @@ void FloatTensor::setZero() {
   }
 }
 
-/// @todo support additional initializer
+void FloatTensor::setRandNormal(float mean, float stddev) {
+  setDist<std::normal_distribution<float>>(
+    std::normal_distribution<float>(mean, stddev));
+}
+
+void FloatTensor::setRandUniform(float min, float max) {
+  setDist<std::uniform_real_distribution<float>>(
+    std::uniform_real_distribution<float>(min, max));
+}
+
+void FloatTensor::setRandBernoulli(float probability) {
+  setDist<std::bernoulli_distribution>(
+    std::bernoulli_distribution(probability));
+}
+
 void FloatTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  unsigned int fan_in, fan_out;
+
+  /// @fixme: when unit is equal to one, this does not work, we need to rely on
+  /// effective dimension then actual numbers here. For now, some heuristics
+  /// added to infer what would be fan_in/fan_out
+  if (dim.batch() * dim.channel() * dim.height() == 1) {
+    fan_out = fan_in = dim.width();
+  } else if (dim.batch() * dim.channel() == 1) { /// fc layer - 2-D tensor
+    fan_in = dim.height();
+    fan_out = dim.width();
+  } else { /// conv2d filters - 4d tensor, @todo extend this to > 4
+    auto field_size = dim.height() * dim.width();
+
+    // this also handles below cases.
+    // 1. fan_in = fan_out = 1 as well.
+    // 2. batch == 1, channel == 1 and height == 1, theoretical rank of 1
+    fan_in = dim.channel() * field_size;
+    fan_out = dim.batch() * field_size;
+  }
 
   switch (initializer) {
   case Initializer::ZEROS:
@@ -194,6 +228,25 @@ void FloatTensor::initialize() {
   case Initializer::ONES:
     setValue(1.0f);
     break;
+  case Initializer::LECUN_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
+    break;
+  case Initializer::XAVIER_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
+    break;
+  case Initializer::HE_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
+    break;
+  case Initializer::LECUN_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in), sqrtFloat(1.0f / fan_in));
+    break;
+  case Initializer::XAVIER_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
+                   sqrtFloat(6.0 / (fan_in + fan_out)));
+    break;
+  case Initializer::HE_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
+                   sqrtFloat(6.0 / (fan_in)));
   default:
     break;
   }

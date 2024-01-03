@@ -17,7 +17,9 @@
 #include <stdexcept>
 
 #include <memory_data.h>
+#include <nntrainer_error.h>
 #include <tensor_dim.h>
+#include <util_func.h>
 
 namespace nntrainer {
 
@@ -153,6 +155,21 @@ public:
    * @copydoc TensorV2::setZero()
    */
   virtual void setZero() = 0;
+
+  /**
+   * @copydoc TensorV2::setRandNormal()
+   */
+  virtual void setRandNormal(float mean, float stddev) = 0;
+
+  /**
+   * @copydoc TensorV2::setRandBernoulli()
+   */
+  virtual void setRandUniform(float min, float max) = 0;
+
+  /**
+   * @copydoc TensorV2::setRandBernoulli()
+   */
+  virtual void setRandBernoulli(float probability) = 0;
 
   /**
    * @copydoc TensorV2::initialize()

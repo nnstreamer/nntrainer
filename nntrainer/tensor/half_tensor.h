@@ -131,6 +131,37 @@ public:
   void setZero() override;
 
   /**
+   * @brief Set the Dist object
+   * @param dist distribution engine
+   */
+  template <typename Engine> void setDist(Engine dist) {
+    NNTR_THROW_IF(!contiguous, std::invalid_argument)
+      // << getName() << " Tensor is not contiguous, cannot set distribution";
+      << " Tensor is not contiguous, cannot set distribution";
+
+    _FP16 *data_ = (_FP16 *)getData();
+    unsigned int len = size();
+    for (unsigned int i = 0; i < len; ++i) {
+      data_[i] = (_FP16)dist(rng);
+    }
+  };
+
+  /**
+   * @copydoc TensorV2::setRandNormal()
+   */
+  void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
+
+  /**
+   * @copydoc TensorV2::setRandUniform()
+   */
+  void setRandUniform(float min = -0.05f, float max = 0.05f);
+
+  /**
+   * @copydoc TensorV2::setRandBernoulli()
+   */
+  void setRandBernoulli(float probability = 0.5f);
+
+  /**
    * @copydoc TensorV2::initialize()
    */
   void initialize() override;
