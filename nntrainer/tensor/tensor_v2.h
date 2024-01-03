@@ -314,6 +314,26 @@ public:
   void setZero();
 
   /**
+   * @brief     Set the tensor with random normal distribution
+   * @param[in] mean mean of the distribution
+   * @param[in] std standard deviation of the distribution
+   */
+  void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
+
+  /**
+   * @brief     Set the tensor with random uniform distribution
+   * @param[in] min minimum value for the distribution
+   * @param[in] max maximum value for the distribution
+   */
+  void setRandUniform(float min = -0.05f, float max = 0.05f);
+
+  /**
+   * @brief     Set the tensor with random bernoulli distribution
+   * @param[in] probability probability value for the distribution
+   */
+  void setRandBernoulli(float probability = 0.5f);
+
+  /**
    * @brief     Initialize the memory of the given tensor
    */
   void initialize();

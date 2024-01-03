@@ -105,6 +105,18 @@ void TensorV2::setValue(unsigned int b, unsigned int c, unsigned int h,
 
 void TensorV2::setZero() { itensor->setZero(); }
 
+void TensorV2::setRandNormal(float mean, float stddev) {
+  itensor->setRandNormal(mean, stddev);
+}
+
+void TensorV2::setRandUniform(float min, float max) {
+  itensor->setRandUniform(min, max);
+}
+
+void TensorV2::setRandBernoulli(float probability) {
+  itensor->setRandBernoulli(probability);
+}
+
 void TensorV2::initialize() { itensor->initialize(); }
 
 void TensorV2::initialize(Initializer init) { itensor->initialize(init); }
