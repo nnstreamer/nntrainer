@@ -4460,6 +4460,114 @@ TEST(nntrainer_Tensor, dequantize_05_n) {
   EXPECT_THROW({ input.dequantize(output, 1); }, std::invalid_argument);
 }
 
+TEST(nntrainer_neon_experimental, trigonometric_simd_sin) {
+  int batch = 1;
+  int channel = 1;
+  int height = 1440;
+  int width = 1440;
+
+  const int MOD = 10;
+
+  const float eps = 1e-6;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor sin_output(batch, channel, height, width);
+
+  GEN_TEST_INPUT(input, (i * (channel * width * height) + j * (height * width) +
+                         k * (width) + l + 1) %
+                          MOD);
+
+  nntrainer::Tensor result_sine(batch, channel, height, width);
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          result_sine.setValue(b, c, h, w,
+                               std::sin(input.getValue(b, c, h, w)));
+        }
+      }
+    }
+  }
+
+  input.sin_transform(sin_output);
+
+  bool flag = true;
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          double sin_err = std::abs(sin_output.getValue(b, c, h, w) -
+                                    result_sine.getValue(b, c, h, w));
+
+          if (sin_err > eps) {
+            flag = false;
+            std::cout << sin_output.getValue(b, c, h, w) << " VS "
+                      << result_sine.getValue(b, c, h, w) << std::endl;
+          }
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(flag, true);
+}
+
+TEST(nntrainer_neon_experimental, trigonometric_simd_cos) {
+  int batch = 1;
+  int channel = 1;
+  int height = 1440;
+  int width = 1440;
+
+  const int MOD = 10;
+
+  const float eps = 1e-6;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor cos_output(batch, channel, height, width);
+
+  GEN_TEST_INPUT(input, (i * (channel * width * height) + j * (height * width) +
+                         k * (width) + l + 1) %
+                          MOD);
+
+  nntrainer::Tensor result_cosine(batch, channel, height, width);
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          result_cosine.setValue(b, c, h, w,
+                                 std::cos(input.getValue(b, c, h, w)));
+        }
+      }
+    }
+  }
+
+  input.cos_transform(cos_output);
+
+  bool flag = true;
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          double cos_err = std::abs(cos_output.getValue(b, c, h, w) -
+                                    result_cosine.getValue(b, c, h, w));
+
+          if (cos_err > eps) {
+            flag = false;
+            std::cout << cos_output.getValue(b, c, h, w) << " VS "
+                      << result_cosine.getValue(b, c, h, w) << std::endl;
+          }
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(flag, true);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 

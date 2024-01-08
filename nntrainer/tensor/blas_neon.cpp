@@ -12,8 +12,8 @@
  *
  */
 
-#include <neon_mathfunc.h>
 #include <blas_neon.h>
+#include <neon_mathfunc.h>
 #include <nntrainer_error.h>
 namespace nntrainer::neon {
 

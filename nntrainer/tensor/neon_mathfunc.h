@@ -11,7 +11,7 @@
 /** NEON implementation of sin, cos, exp and log
 
    Inspired by Intel Approximate Math library, and based on the
-   
+
    corresponding algorithms of the cephes math library
 */
 
