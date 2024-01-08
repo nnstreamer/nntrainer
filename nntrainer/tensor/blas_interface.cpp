@@ -838,4 +838,30 @@ unsigned int isamax(const unsigned int N, const float *X, const int incX) {
 #endif
 }
 
+void sine_transformation(const unsigned int N, float *X, float *Y,
+                         float alpha) {
+#ifdef USE_NEON
+  nntrainer::neon::sine_transformation_neon(N, X, Y, alpha);
+#else
+  unsigned int i = 0;
+  while (i < N) {
+    Y[i] = std::sin(alpha * X[i]);
+    ++i;
+  }
+#endif
+}
+
+void cosine_transformation(const unsigned int N, float *X, float *Y,
+                           float alpha) {
+#ifdef USE_NEON
+  nntrainer::neon::cosine_transformation_neon(N, X, Y, alpha);
+#else
+  unsigned int i = 0;
+  while (i < N) {
+    Y[i] = std::cos(alpha * X[i]);
+    ++i;
+  }
+#endif
+}
+
 } // namespace nntrainer

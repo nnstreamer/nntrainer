@@ -12,6 +12,7 @@
  *
  */
 
+#include <neon_mathfunc.h>
 #include <blas_neon.h>
 #include <nntrainer_error.h>
 namespace nntrainer::neon {
@@ -388,6 +389,38 @@ void scopy_neon_int8_or_int4(const unsigned int N, const uint8_t *X,
   }
   for (; N - idx >= 1; ++idx) {
     Y[idx] = X[idx];
+  }
+}
+
+void sine_transformation_neon(const unsigned int N, float *X, float *Y,
+                              float alpha) {
+  unsigned int i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t x0_3 = vld1q_f32(&X[i]);
+    if (alpha != 1.0)
+      x0_3 = vmulq_n_f32(x0_3, alpha);
+    float32x4_t sinx0_3 = sin_ps(x0_3);
+    vst1q_f32(&Y[i], sinx0_3);
+  }
+  while (i < N) {
+    Y[i] = std::sin(alpha * X[i]);
+    ++i;
+  }
+}
+
+void cosine_transformation_neon(const unsigned int N, float *X, float *Y,
+                                float alpha) {
+  unsigned int i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t x0_3 = vld1q_f32(&X[i]);
+    if (alpha != 1.0)
+      x0_3 = vmulq_n_f32(x0_3, alpha);
+    float32x4_t cosx0_3 = cos_ps(x0_3);
+    vst1q_f32(&Y[i], cosx0_3);
+  }
+  while (i < N) {
+    Y[i] = std::cos(alpha * X[i]);
+    ++i;
   }
 }
 
