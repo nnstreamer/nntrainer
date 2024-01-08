@@ -970,6 +970,18 @@ public:
   Tensor &erf(Tensor &out) const;
 
   /**
+   * @brief    sin transform function
+   * @param[out] out out to store the result
+   */
+  void sin_transform(Tensor &out, float alpha = 1.0);
+
+  /**
+   * @brief    cos transform function
+   * @param[out] out out to store the result
+   */
+  void cos_transform(Tensor &out, float alpha = 1.0);
+
+  /**
    * @brief  getter of size of data
    * @retval size of data
    */

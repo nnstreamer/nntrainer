@@ -3418,6 +3418,22 @@ Tensor &Tensor::erf(Tensor &out) const {
   return out;
 }
 
+void Tensor::sin_transform(Tensor &out, float alpha) {
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    sine_transformation(this->size(), getData<float>(), out.getData<float>(),
+                        alpha);
+  } else
+    throw std::invalid_argument("Error: sin_transform supports fp32 case only");
+}
+
+void Tensor::cos_transform(Tensor &out, float alpha) {
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    cosine_transformation(this->size(), getData<float>(), out.getData<float>(),
+                          alpha);
+  } else
+    throw std::invalid_argument("Error: cos_transform supports fp32 case only");
+}
+
 float Tensor::l2norm() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot get l2norm.";
