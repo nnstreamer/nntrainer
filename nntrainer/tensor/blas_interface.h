@@ -175,6 +175,14 @@ void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z);
  * @param[in] X __fp16 * for Vector X
  */
 unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX);
+
+/**
+ * @brief squared root transformation inplace : X = sqrt(X)
+ *
+ * @param N size of X
+ * @param X __fp16 * for Vector X
+ */
+void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 #endif
 /**
  * @brief     sscal computation : X = alpha * X
@@ -355,6 +363,14 @@ void sine_transformation(const unsigned int N, float *X, float *Y,
  */
 void cosine_transformation(const unsigned int N, float *X, float *Y,
                            float alpha = 1.0);
+
+/**
+ * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)
+ *
+ * @param N size of X
+ * @param X float * for Vector X
+ */
+void inv_sqrt_inplace(const unsigned int N, float *X);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */

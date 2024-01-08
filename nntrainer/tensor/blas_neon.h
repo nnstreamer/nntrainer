@@ -93,6 +93,14 @@ void sine_transformation_neon(const unsigned int N, float *X, float *Y,
 void cosine_transformation_neon(const unsigned int N, float *X, float *Y,
                                 float alpha = 1.0);
 
+/**
+ * @brief inversed squared root transformation with neon : X = 1 / sqrt(X)
+ *
+ * @param N number of elements in X
+ * @param X float * for Vector X
+ */
+void inv_sqrt_inplace_neon(const unsigned int N, float *X);
+
 #ifdef ENABLE_FP16
 /**
  * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
@@ -305,6 +313,13 @@ void sgemm_neon_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
 void sgemm_neon_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
                              uint32_t M, uint32_t N, uint32_t K, float alpha,
                              float beta, uint32_t idx);
+/**
+ * @brief squared root transformation with neon : X = sqrt(X)
+ *
+ * @param N number of elements in X
+ * @param X __fp16 * for Vector X
+ */
+void inv_sqrt_inplace_neon(const unsigned int N, __fp16 *X);
 #endif
 
 } // namespace nntrainer::neon

@@ -983,6 +983,12 @@ public:
   void cos_transform(Tensor &out, float alpha = 1.0);
 
   /**
+   * @brief inverse squared root function
+   *
+   */
+  void inv_sqrt_i();
+
+  /**
    * @brief  getter of size of data
    * @retval size of data
    */
