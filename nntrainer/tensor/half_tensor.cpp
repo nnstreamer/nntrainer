@@ -92,7 +92,7 @@ bool HalfTensor::operator==(const HalfTensor &rhs) const {
   const _FP16 *_data = (_FP16 *)getData();
   const _FP16 *_rdata = (_FP16 *)rhs.getData();
   for (size_t i = 0; i < size(); ++i) {
-    if (std::isnan(_data[i]) || std::isnan(_rdata[i]) ||
+    if (std::isnan((float)_data[i]) || std::isnan((float)_rdata[i]) ||
         std::fabs((float)(_data[i] - _rdata[i])) > epsilon)
       return false;
   }
