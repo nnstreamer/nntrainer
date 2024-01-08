@@ -285,6 +285,24 @@ public:
   }
 
   /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                unsigned int w) {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                      unsigned int w) const {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
+  /**
    * @brief     return value at specific location
    * @param[in] idx location
    */
@@ -411,6 +429,38 @@ public:
    * @return data type of the tensor
    */
   Tdatatype getDataType() const;
+
+  /**
+   * @brief     return whether tensor is contiguous or not.
+   * @retval    bool contiguous
+   */
+  const bool getContiguous() const noexcept;
+
+  /**
+   * @brief     return current stride of tensor.
+   * @retval    int[MAXDIM] strides
+   */
+  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept;
+
+  /**
+   * @brief     Check if two given axes are contiguous
+   * @param[in] np1 first axis
+   * @param[in] np2 second axis to compare with first axis
+   * @retval    bool continuous
+   */
+  bool checkContinuous(unsigned int np1, unsigned int np2) const;
+
+  /**
+   * @brief     Set name of the tensor
+   * @param[in] name_ tensor name
+   */
+  void setName(const std::string &name_);
+
+  /**
+   * @brief     Get name of the tensor
+   * @retval    string name
+   */
+  const std::string &getName() const;
 
   /**
    * @brief Get linear index given the n-d index

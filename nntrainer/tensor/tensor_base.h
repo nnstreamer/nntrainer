@@ -211,6 +211,31 @@ public:
   Tdatatype getDataType() const { return dim.getDataType(); }
 
   /**
+   * @brief     return whether tensor is contiguous or not.
+   * @retval    bool contiguous
+   */
+  const bool getContiguous() const noexcept { return contiguous; }
+
+  /**
+   * @brief     return current stride of tensor.
+   * @retval    int[MAXDIM] strides
+   */
+  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
+    return strides;
+  }
+
+  /**
+   * @brief     Set name of the tensor
+   */
+  void setName(const std::string &name_) { name = name_; }
+
+  /**
+   * @brief     Get name of the tensor
+   * @retval    string name
+   */
+  const std::string &getName() const { return name; }
+
+  /**
    * @brief Get linear index given the n-d index
    */
   size_t getIndex(unsigned int b, unsigned int c, unsigned int h,

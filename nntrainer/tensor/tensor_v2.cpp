@@ -154,6 +154,37 @@ TensorDim::Format TensorV2::getFormat() const { return itensor->getFormat(); }
 
 Tdatatype TensorV2::getDataType() const { return itensor->getDataType(); }
 
+const bool TensorV2::getContiguous() const noexcept {
+  return itensor->getContiguous();
+}
+
+const std::array<size_t, TensorDim::MAXDIM>
+TensorV2::getStrides() const noexcept {
+  return itensor->getStrides();
+}
+
+bool TensorV2::checkContinuous(unsigned int np1, unsigned int np2) const {
+  if (np1 < 0 || np1 > 3 || np2 < 0 || np2 > 3) {
+    throw std::invalid_argument(
+      "Error: Input value must be within the range of 0 to 3.");
+  }
+
+  if (getFormat() == Tformat::NCHW) {
+    if (np1 + 1 == np2)
+      return true;
+  } else {
+    std::vector<unsigned int> continuous_order_nhwc = {0, 3, 1, 2};
+    if (continuous_order_nhwc[np2] == continuous_order_nhwc[np1] + 1)
+      return true;
+  }
+
+  return false;
+}
+
+void TensorV2::setName(const std::string &name_) { itensor->setName(name_); }
+
+const std::string &TensorV2::getName() const { return itensor->getName(); }
+
 size_t TensorV2::getIndex(unsigned int b, unsigned int c, unsigned int h,
                           unsigned int w) const noexcept {
   return itensor->getIndex(b, c, h, w);
