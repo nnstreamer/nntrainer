@@ -335,6 +335,26 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
  * @param[in] X float * for Vector X
  */
 unsigned int isamax(const unsigned int N, const float *X, const int incX);
+
+/**
+ * @brief     sine transformation with neon: Y = sin(alpha * X)
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] alpha float * for scaling angle (radian)
+ */
+void sine_transformation(const unsigned int N, float *X, float *Y,
+                         float alpha = 1.0);
+
+/**
+ * @brief     cosine transformation with neon: Y = cos(alpha * X)
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] alpha float * for scaling angle (radian)
+ */
+void cosine_transformation(const unsigned int N, float *X, float *Y,
+                           float alpha = 1.0);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */
