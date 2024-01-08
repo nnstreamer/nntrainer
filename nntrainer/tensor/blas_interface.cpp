@@ -406,6 +406,15 @@ unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX) {
   return isamax_FP16(N, X, incX);
 }
 
+void inv_sqrt_inplace(const unsigned int N, _FP16 *X) {
+#ifdef USE_NEON
+  nntrainer::neon::inv_sqrt_inplace_neon(N, X);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+    X[i] = static_cast<_FP16>(1 / std::sqrt(static_cast<float>(X[i])));
+  }
+#endif
+}
 #endif
 
 #ifndef USE_BLAS
@@ -860,6 +869,16 @@ void cosine_transformation(const unsigned int N, float *X, float *Y,
   while (i < N) {
     Y[i] = std::cos(alpha * X[i]);
     ++i;
+  }
+#endif
+}
+
+void inv_sqrt_inplace(const unsigned int N, float *X) {
+#ifdef USE_NEON
+  nntrainer::neon::inv_sqrt_inplace_neon(N, X);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+    X[i] = 1 / std::sqrt(static_cast<float>(X[i]));
   }
 #endif
 }

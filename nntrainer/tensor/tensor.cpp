@@ -3457,6 +3457,19 @@ void Tensor::cos_transform(Tensor &out, float alpha) {
     throw std::invalid_argument("Error: cos_transform supports fp32 case only");
 }
 
+void Tensor::inv_sqrt_i() {
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    inv_sqrt_inplace(this->size(), getData<float>());
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    inv_sqrt_inplace(this->size(), getData<_FP16>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  } else
+    throw std::invalid_argument("Error: inv_sqrt_i only supports fp32, fp16");
+}
+
 float Tensor::l2norm() const {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot get l2norm.";

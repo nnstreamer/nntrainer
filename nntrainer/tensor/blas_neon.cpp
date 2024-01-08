@@ -424,6 +424,21 @@ void cosine_transformation_neon(const unsigned int N, float *X, float *Y,
   }
 }
 
+void inv_sqrt_inplace_neon(const unsigned int N, float *X) {
+  unsigned int i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t x0_7 = vld1q_f32(&X[i]);
+    float32x4_t x0_7_sqrt = vsqrtq_f32(x0_7);
+    float32x4_t ones = vmovq_n_f32(1);
+    float32x4_t x0_7_sqrt_div = vdivq_f32(ones, x0_7_sqrt);
+    vst1q_f32(&X[i], x0_7_sqrt_div);
+  }
+  while (i < N) {
+    X[i] = (1 / std::sqrt(static_cast<float>(X[i])));
+    ++i;
+  }
+}
+
 #ifdef ENABLE_FP16
 
 void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
@@ -2038,6 +2053,21 @@ void elementwise_vector_addition_neon_fp16(const unsigned int N,
   }
   while (i < N) {
     Z[i] = X[i] + Y[i];
+    ++i;
+  }
+}
+
+void inv_sqrt_inplace_neon(const unsigned int N, __fp16 *X) {
+  unsigned int i = 0;
+  for (; N - i >= 8; i += 8) {
+    float16x8_t x0_7 = vld1q_f16(&X[i]);
+    float16x8_t x0_7_sqrt = vsqrtq_f16(x0_7);
+    float16x8_t ones = vmovq_n_f16(1);
+    float16x8_t x0_7_sqrt_div = vdivq_f16(ones, x0_7_sqrt);
+    vst1q_f16(&X[i], x0_7_sqrt_div);
+  }
+  while (i < N) {
+    X[i] = (1 / std::sqrt(static_cast<float>(X[i])));
     ++i;
   }
 }
