@@ -39,3 +39,4 @@
 # @todo filter out headers that should be hidden
 /usr/include/nntrainer/util_func.h
 /usr/include/nntrainer/fp16.h
+/usr/include/nntrainer/util_simd.h

@@ -15,6 +15,9 @@
 #ifdef USE_NEON
 #include <arm_neon.h>
 #endif
+
+#define VL_FP32 4
+#define VL_FP16 8
 namespace nntrainer::neon {
 
 /**
