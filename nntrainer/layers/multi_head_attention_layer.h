@@ -19,6 +19,7 @@
 #include <acti_func.h>
 #include <complex>
 #include <layer_impl.h>
+#include <util_simd.h>
 #include <utility>
 
 namespace nntrainer {
@@ -163,6 +164,10 @@ private:
       sin->assign(seq_len, std::vector<float>(dim, 0));
 
       for (unsigned int i = 0; i < seq_len; ++i) {
+#ifdef USE_NEON
+        calc_trigonometric_vals_dup(half_, freqs.data(), (*cos)[i].data(),
+                                    (*sin)[i].data(), i);
+#else
         for (unsigned int j = 0; j < half_; ++j) {
           float angle = i * freqs[j];
           (*cos)[i][j] = std::cos(angle);
@@ -171,8 +176,8 @@ private:
           (*sin)[i][j] = std::sin(angle);
           (*sin)[i][j + half_] = std::sin(angle); // repeated 2 times
         }
+#endif
       }
-
       freqs_cos = cos;
       freqs_sin = sin;
     }
@@ -197,10 +202,12 @@ private:
     std::vector<float> *sin_;
 
     if (from >= max_timestep) {
-      std::cout << from << " " << max_timestep << std::endl;
       cos_ = new std::vector<float>(dim);
       sin_ = new std::vector<float>(dim);
-
+#ifdef USE_NEON
+      calc_trigonometric_vals_dup(half_, freqs.data(), cos_->data(),
+                                  sin_->data(), from);
+#else
       for (unsigned int i = 0; i < half_; ++i) {
         float angle = from * freqs[i];
         (*cos_)[i] = std::cos(angle);
@@ -209,6 +216,7 @@ private:
         (*sin_)[i] = std::sin(angle);
         (*sin_)[i + half_] = std::sin(angle); // repeated 2 times
       }
+#endif
     }
 
     if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
@@ -239,7 +247,7 @@ private:
         }
       }
     } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
-
+#ifdef ENABLE_FP16
       for (unsigned int b = 0; b < in.batch(); b++) {
         for (unsigned int c = 0; c < in.channel(); c++) {
           for (unsigned int h = 0; h < in.height(); h++) {
@@ -247,10 +255,14 @@ private:
               cos_ = &(*freqs_cos)[from + h];
               sin_ = &(*freqs_sin)[from + h];
             }
-
             for (unsigned int w = 0; w < in.width(); w = w + dim) {
+#ifdef USE_NEON
+              compute_rotary_embedding_value(
+                dim, half_, w, in.getData<_FP16>() + in.getIndex(b, c, h, 0),
+                out.getData<_FP16>() + out.getIndex(b, c, h, 0), cos_->data(),
+                sin_->data());
+#else
               for (unsigned int k = 0; k < dim; k++) {
-#ifdef ENABLE_FP16
                 unsigned int span = w + k;
                 value = static_cast<float>(in.getValue<_FP16>(b, c, h, span));
 
@@ -266,15 +278,15 @@ private:
                   b, c, h, span,
                   static_cast<_FP16>(value * (*cos_)[k] +
                                      transformed_value * (*sin_)[k]));
-#else
-                throw std::invalid_argument(
-                  "Error: enable-fp16 is not enabled");
-#endif
               }
+#endif
             }
           }
         }
       }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
 
     if (from >= max_timestep) {

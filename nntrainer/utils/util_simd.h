@@ -15,7 +15,6 @@
 
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
-#include <util_simd_neon.h>
 
 namespace nntrainer {
 
