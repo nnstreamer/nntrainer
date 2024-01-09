@@ -423,6 +423,60 @@ TEST(nntrainer_Tensor, dot_sgemm) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
+TEST(nntrainer_Tensor, inv_sqrt_i_p) {
+  int batch = 4;
+  int channel = 10;
+  int height = 10;
+  int width = 10;
+
+  const int MOD = 10;
+  const float eps = 1e-3;
+
+  nntrainer::Tensor input(batch, channel, height, width,
+                          nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
+  GEN_TEST_INPUT(input, (i * (batch * height) + j * (width) + k) % MOD + 1);
+
+  nntrainer::Tensor ground_truth(batch, channel, height, width,
+                                 nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::FP32);
+  GEN_TEST_INPUT(ground_truth,
+                 (i * (batch * height) + j * (width) + k) % MOD + 1);
+
+  input.inv_sqrt_i();
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          ground_truth.setValue(
+            b, c, h, w, 1 / std::sqrt(ground_truth.getValue(b, c, h, w)));
+        }
+      }
+    }
+  }
+
+  bool flag = true;
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int w = 0; w < width; w++) {
+          double err = std::abs(input.getValue<__fp16>(b, c, h, w) -
+                                ground_truth.getValue(b, c, h, w));
+
+          if (err > eps) {
+            flag = false;
+            std::cout << input.getValue<__fp16>(b, c, h, w) << " VS "
+                      << ground_truth.getValue(b, c, h, w) << std::endl;
+          }
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(flag, true);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 
