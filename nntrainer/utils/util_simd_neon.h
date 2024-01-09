@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * @file	util_simd_neon.h
+ * @date	09 Jan 2024
+ * @brief	This is a collection of simd util neon functions
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Sungsik Kong <ss.kong@samsung.com>
+ * @bug		No known bugs except for NYI items
+ */
+
+#ifndef __UTIL_SIMD_NEON_H__
+#define __UTIL_SIMD_NEON_H__
+
+#ifdef __cplusplus
+#ifdef USE_NEON
+#include <arm_neon.h>
+#endif
+namespace nntrainer::neon {
+
+/**
+ * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
+ * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
+ * sin(freq).extend(sin_(req))
+ *
+ * @param N_half : size of angle
+ * @param angle float* for Vector (radian) angle
+ * @param cos_ float* for cos_
+ * @param sin_ float* for sin_
+ * @param alpha scaling factor
+ */
+void calc_trigonometric_vals_dup_neon(unsigned int N_half, float *angle,
+                                      float *cos_, float *sin_,
+                                      unsigned int alpha = 1.0);
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Accelerating function for rotary embedding layer forwarding
+ *
+ * @param dim unit length of simd computation
+ * @param half_ criterion for rotational direction of embedding
+ * @param w current w value from b, c, h, w
+ * @param in __fp16* input
+ * @param out __fp16* output
+ * @param cos_ precomputed cos_ for corresponding rotational indices
+ * @param sin_ precomputed sin_ for corresponding rotational indices
+ */
+void compute_rotary_embedding_value_neon(unsigned int dim, unsigned int half_,
+                                         unsigned int w, __fp16 *in,
+                                         __fp16 *out, float *cos_, float *sin_);
+
+#endif
+
+} // namespace nntrainer::neon
+
+#endif /* __cplusplus */
+#endif /* __UTIL_SIMD_NEON_H__ */

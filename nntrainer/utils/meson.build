@@ -5,7 +5,8 @@ util_sources = [
   'node_exporter.cpp',
   'base_properties.cpp',
   'nntr_threads.cpp',
-  'fp16.cpp'
+  'fp16.cpp',
+  'util_simd.cpp',
 ]
 
 util_headers = [
@@ -14,12 +15,18 @@ util_headers = [
   'util_func.h',
   'profiler.h',
   'nntr_threads.h',
-  'fp16.h'
+  'fp16.h',
+  'util_simd.h',
 ]
 
 if get_option('enable-trace')
   util_sources += 'tracer.cpp'
   util_headers += 'tracer.h'
+endif
+
+if get_option('platform') == 'android'
+  util_sources += 'util_simd_neon.cpp'
+  util_headers += 'util_simd_neon.h'
 endif
 
 foreach s : util_sources
