@@ -456,12 +456,22 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
          */
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              float *out_data = output.getAddress<float>(b, c, h, 0);
-              const float *m_data = m.getAddress<float>(b, c, h, 0);
-              const float *in_data = getAddress<float>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), m_data, out_data,
-                             std::multiplies<float>());
+            if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+              for (unsigned int h = 0; h < height(); ++h) {
+                float *out_data = output.getAddress<float>(b, c, h, 0);
+                const float *m_data = m.getAddress<float>(b, c, h, 0);
+                const float *in_data = getAddress<float>(b, c, h, 0);
+                std::transform(in_data, in_data + width(), m_data, out_data,
+                               std::multiplies<float>());
+              }
+            } else {
+              for (unsigned int w = 0; w < width(); ++w) {
+                float *out_data = output.getAddress<float>(b, c, 0, w);
+                const float *m_data = m.getAddress<float>(b, c, 0, w);
+                const float *in_data = getAddress<float>(b, c, 0, w);
+                std::transform(in_data, in_data + height(), m_data, out_data,
+                               std::multiplies<float>());
+              }
             }
           }
         }
@@ -485,12 +495,22 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
       } else {
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
-              const _FP16 *m_data = m.getAddress<_FP16>(b, c, h, 0);
-              const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), m_data, out_data,
-                             std::multiplies<_FP16>());
+            if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+              for (unsigned int h = 0; h < height(); ++h) {
+                _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
+                const _FP16 *m_data = m.getAddress<_FP16>(b, c, h, 0);
+                const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
+                std::transform(in_data, in_data + width(), m_data, out_data,
+                               std::multiplies<_FP16>());
+              }
+            } else {
+              for (unsigned int w = 0; w < width(); ++w) {
+                _FP16 *out_data = output.getAddress<_FP16>(b, c, 0, w);
+                const _FP16 *m_data = m.getAddress<_FP16>(b, c, 0, w);
+                const _FP16 *in_data = getAddress<_FP16>(b, c, 0, w);
+                std::transform(in_data, in_data + height(), m_data, out_data,
+                               std::multiplies<_FP16>());
+              }
             }
           }
         }
@@ -635,12 +655,22 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
         /** @todo optimize this with combining these loops where stride is 1 */
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              float *out_data = output.getAddress<float>(b, c, h, 0);
-              const float *m_data = m.getAddress<float>(b, c, h, 0);
-              const float *in_data = getAddress<float>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), m_data, out_data,
-                             std::plus<float>());
+            if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+              for (unsigned int h = 0; h < height(); ++h) {
+                float *out_data = output.getAddress<float>(b, c, h, 0);
+                const float *m_data = m.getAddress<float>(b, c, h, 0);
+                const float *in_data = getAddress<float>(b, c, h, 0);
+                std::transform(in_data, in_data + width(), m_data, out_data,
+                               std::plus<float>());
+              }
+            } else {
+              for (unsigned int w = 0; w < width(); ++w) {
+                float *out_data = output.getAddress<float>(b, c, 0, w);
+                const float *m_data = m.getAddress<float>(b, c, 0, w);
+                const float *in_data = getAddress<float>(b, c, 0, w);
+                std::transform(in_data, in_data + height(), m_data, out_data,
+                               std::plus<float>());
+              }
             }
           }
         }
@@ -663,12 +693,22 @@ Tensor &Tensor::add_strided(Tensor const &m, Tensor &output,
       } else {
         for (unsigned int b = 0; b < batch(); ++b) {
           for (unsigned int c = 0; c < channel(); ++c) {
-            for (unsigned int h = 0; h < height(); ++h) {
-              _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
-              const _FP16 *m_data = m.getAddress<_FP16>(b, c, h, 0);
-              const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
-              std::transform(in_data, in_data + width(), m_data, out_data,
-                             std::plus<_FP16>());
+            if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
+              for (unsigned int h = 0; h < height(); ++h) {
+                _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
+                const _FP16 *m_data = m.getAddress<_FP16>(b, c, h, 0);
+                const _FP16 *in_data = getAddress<_FP16>(b, c, h, 0);
+                std::transform(in_data, in_data + width(), m_data, out_data,
+                               std::plus<_FP16>());
+              }
+            } else {
+              for (unsigned int w = 0; w < width(); ++w) {
+                _FP16 *out_data = output.getAddress<_FP16>(b, c, 0, w);
+                const _FP16 *m_data = m.getAddress<_FP16>(b, c, 0, w);
+                const _FP16 *in_data = getAddress<_FP16>(b, c, 0, w);
+                std::transform(in_data, in_data + height(), m_data, out_data,
+                               std::plus<_FP16>());
+              }
             }
           }
         }
