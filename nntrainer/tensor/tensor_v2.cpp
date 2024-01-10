@@ -142,6 +142,15 @@ void TensorV2::initialize() { itensor->initialize(); }
 
 void TensorV2::initialize(Initializer init) { itensor->initialize(init); }
 
+TensorV2 TensorV2::apply(std::function<TensorV2(TensorV2)> f) const {
+  return f(*this);
+}
+
+TensorV2 &TensorV2::apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
+                          TensorV2 &output) const {
+  return f(*this, output);
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
@@ -158,8 +167,8 @@ const bool TensorV2::getContiguous() const noexcept {
   return itensor->getContiguous();
 }
 
-const std::array<size_t, TensorDim::MAXDIM>
-TensorV2::getStrides() const noexcept {
+const std::array<size_t, TensorDim::MAXDIM> TensorV2::getStrides() const
+  noexcept {
   return itensor->getStrides();
 }
 

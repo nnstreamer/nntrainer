@@ -259,6 +259,40 @@ void HalfTensor::initialize(Initializer init) {
   initialize();
 }
 
+TensorV2 &HalfTensor::apply(std::function<_FP16(_FP16)> f,
+                            TensorV2 &output) const {
+  if (contiguous && output.getContiguous()) {
+    const _FP16 *data = (_FP16 *)getData();
+    _FP16 *rdata = output.getData<_FP16>();
+
+    std::transform(data, data + size(), rdata, f);
+  } else if (strides[3] == 1 && output.getStrides()[3] == 1) {
+    /** @todo optimize this with combining these loops where stride is 1 */
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
+          const _FP16 *in_data = (_FP16 *)getAddress(getIndex(b, c, h, 0));
+          std::transform(in_data, in_data + width(), out_data, f);
+        }
+      }
+    }
+  } else {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.setValue(b, c, h, w,
+                            f(((_FP16 *)getData())[getIndex(b, c, h, w)]));
+          }
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
