@@ -259,6 +259,40 @@ void FloatTensor::initialize(Initializer init) {
   initialize();
 }
 
+TensorV2 &FloatTensor::apply(std::function<float(float)> f,
+                             TensorV2 &output) const {
+  if (contiguous && output.getContiguous()) {
+    const float *data = (float *)getData();
+    float *rdata = output.getData<float>();
+
+    std::transform(data, data + size(), rdata, f);
+  } else if (strides[3] == 1 && output.getStrides()[3] == 1) {
+    /** @todo optimize this with combining these loops where stride is 1 */
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          float *out_data = output.getAddress<float>(b, c, h, 0);
+          const float *in_data = (float *)getAddress(getIndex(b, c, h, 0));
+          std::transform(in_data, in_data + width(), out_data, f);
+        }
+      }
+    }
+  } else {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.setValue(b, c, h, w,
+                            f(((float *)getData())[getIndex(b, c, h, w)]));
+          }
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();

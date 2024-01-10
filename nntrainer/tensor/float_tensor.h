@@ -173,6 +173,12 @@ public:
   void initialize(Initializer init) override;
 
   /**
+   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   */
+  TensorV2 &apply(std::function<float(float)> f,
+                  TensorV2 &output) const override;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;

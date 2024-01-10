@@ -13,6 +13,12 @@
 #define __TENSOR_V2_H__
 #ifdef __cplusplus
 
+#define CREATE_V2_IF_EMPTY_DIMS(tensor, ...) \
+  do {                                       \
+    if (tensor.empty())                      \
+      tensor = TensorV2(__VA_ARGS__);        \
+  } while (0);
+
 #include <cstddef>
 
 #include <tensor_base.h>
@@ -399,6 +405,69 @@ public:
   void initialize(Initializer init);
 
   /**
+   * @brief Apply instantly to the element
+   * @param[in] *function function pointer applied
+   * @return int ML_ERROR_NONE if successful
+   */
+  template <typename T = float> int apply_i(std::function<T(T)> f) {
+    TensorV2 result = *this;
+    apply<T>(f, result);
+
+    return ML_ERROR_NONE;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  template <typename T = float> TensorV2 apply(std::function<T(T)> f) const {
+    TensorV2 result;
+    apply<T>(f, result);
+
+    return result;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  template <typename T = float>
+  TensorV2 &apply(std::function<T(T)> f, TensorV2 &output) const {
+    CREATE_V2_IF_EMPTY_DIMS(
+      output, {itensor->getFormat(), itensor->getDataType()}, nullptr);
+
+    if (itensor->getFormat() != output.itensor->getFormat() ||
+        itensor->getDataType() != itensor->getDataType()) {
+      /// @todo add unittest
+      throw std::invalid_argument(
+        "[Tensor::apply] output dimension does not match");
+    }
+
+    itensor->apply(f, output);
+
+    return output;
+  }
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  TensorV2 apply(std::function<TensorV2(TensorV2)> f) const;
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  TensorV2 &apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
+                  TensorV2 &output) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */
@@ -537,6 +606,15 @@ public:
   TensorV2 getSharedDataTensor(const TensorDim dim_, size_t offset,
                                bool reset_stride,
                                const std::string &name_) const;
+
+  /**
+   * @brief    Swaps Tensor lhs and rhs
+   * @param[in] lhs Tensor to be swapped
+   * @param[in] rhs Tensor to be swapped
+   */
+  friend void swap(TensorV2 &lhs, TensorV2 &rhs) noexcept {
+    std::swap(lhs.itensor, rhs.itensor);
+  }
 
 private:
   TensorBase *itensor;

@@ -43,6 +43,7 @@ enum class Initializer {
   NONE            /** No initialization */
 };
 
+class TensorV2;
 class SrcSharedTensorBase;
 
 /**
@@ -185,6 +186,24 @@ public:
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
+
+  /**
+   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   */
+  virtual TensorV2 &apply(std::function<float(float)> f,
+                          TensorV2 &output) const {
+    return output;
+  }
+
+#ifdef ENABLE_FP16
+  /**
+   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   */
+  virtual TensorV2 &apply(std::function<_FP16(_FP16)> f,
+                          TensorV2 &output) const {
+    return output;
+  }
+#endif
 
   /**
    * @brief     put data of Tensor
