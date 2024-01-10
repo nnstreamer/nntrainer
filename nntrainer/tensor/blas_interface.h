@@ -40,7 +40,6 @@ enum CBLAS_TRANSPOSE {
 #include <tensor_dim.h>
 namespace nntrainer {
 
-#ifdef ENABLE_FP16
 /**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
@@ -183,7 +182,7 @@ unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX);
  * @param X __fp16 * for Vector X
  */
 void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
-#endif
+
 /**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X

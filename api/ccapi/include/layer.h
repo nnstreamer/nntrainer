@@ -204,7 +204,6 @@ public:
   virtual void getWeights(std::vector<float *> &weights,
                           std::vector<ml::train::TensorDim> &weights_dim) = 0;
 
-#ifdef ENABLE_FP16
   /**
    * @brief     Get weight data of the layer
    * @retval    weight data of the layer
@@ -225,7 +224,7 @@ public:
   virtual void
   getFP16Weights(std::vector<_FP16 *> &weights,
                  std::vector<ml::train::TensorDim> &weights_dim) = 0;
-#endif
+
   /**
    * @brief     Set weight data of the layer
    * @note      Size of vector must be the same with number of weights.

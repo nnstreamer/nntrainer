@@ -56,11 +56,11 @@ void swish_neon(const unsigned int N, float *X, float *Y, float *Z) {
   }
 }
 
-#ifdef ENABLE_FP16
 void compute_rotary_embedding_value_neon(unsigned int dim, unsigned int half_,
                                          unsigned int w, __fp16 *in,
                                          __fp16 *out, float *cos_,
                                          float *sin_) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int k = 0;
   while (k < dim) {
     unsigned int span = w + k;
@@ -133,6 +133,7 @@ void compute_rotary_embedding_value_neon(unsigned int dim, unsigned int half_,
 }
 
 void swish_neon(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int i = 0;
   for (; N - i >= VL_FP16; i += VL_FP16) {
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
@@ -155,6 +156,5 @@ void swish_neon(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z) {
     ++i;
   }
 }
-#endif
 
 } // namespace nntrainer::neon

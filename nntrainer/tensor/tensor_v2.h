@@ -171,7 +171,6 @@ public:
            ml::train::TensorDim::TensorType t_type) :
     TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
-#ifdef ENABLE_FP16
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
@@ -200,8 +199,6 @@ public:
   TensorV2(std::vector<std::vector<_FP16>> const &d,
            ml::train::TensorDim::TensorType t_type) :
     TensorV2(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
-
-#endif
 
   /**
    * @brief Basic Destructor
@@ -403,6 +400,20 @@ public:
    * @param     init Initiailizer to use for the initialization
    */
   void initialize(Initializer init);
+
+  /**
+   * @brief Apply instantly to the element for _FP16
+   * @param[in] *function function pointer applied
+   * @return int ML_ERROR_NONE if successful
+   * @throws runtime_error if _FP16 is not supported.
+   */
+  int apply_i(std::function<_FP16(_FP16)> f) {
+    THROW_UNLESS_FP16_ENABLED;
+    TensorV2 result = *this;
+    apply<_FP16>(f, result);
+
+    return ML_ERROR_NONE;
+  };
 
   /**
    * @brief Apply instantly to the element

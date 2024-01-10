@@ -174,7 +174,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // This is to calculate gradient with current implementation of optimizer.
   // In order to accelerate, we need to better way like using index to weight.
 
- /// @todo
+  /// @todo
   // Current nntrainer gradient Tensor shape is identical to its
   // weight shape. However, this creates a sparse Tensor since we are only using
   // certain indices of the Tensor that we are interested in. Since we have such
@@ -201,7 +201,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
                        std::plus<float>());
       }
     } else if (djdw.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       for (unsigned int i = 0; i < input_.width(); ++i) {
         uint embed_idx = ((float *)(in_data))[i];
         // Assume padding is 0 and index always start from 1.
@@ -216,9 +216,6 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
         std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
                        std::plus<_FP16>());
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
   }
 }

@@ -73,7 +73,6 @@
 
 namespace nntrainer {
 
-#ifdef ENABLE_FP16
 static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
                        const int incX, _FP16 *Y, const int incY) {
   if (incX < 0 or incY < 0)
@@ -98,6 +97,7 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int lda, const _FP16 *X, const int incX,
                        const float beta, _FP16 *Y, const int incY) {
 
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -119,7 +119,7 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
                        const unsigned int incX, const _FP16 *Y,
                        const unsigned int incY) {
-
+  THROW_UNLESS_FP16_ENABLED;
   if (incX < 0 or incY < 0)
     throw std::invalid_argument("Error: negative inc not supported");
 
@@ -143,6 +143,7 @@ static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
 
 static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
                        _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -161,6 +162,7 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 
 static void scopy_float32_to_float16(const unsigned int N, const float *X,
                                      const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -179,6 +181,7 @@ static void scopy_float32_to_float16(const unsigned int N, const float *X,
 
 static void scopy_float16_to_float32(const unsigned int N, const _FP16 *X,
                                      const int incX, float *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -197,6 +200,7 @@ static void scopy_float16_to_float32(const unsigned int N, const _FP16 *X,
 
 static void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
                                const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -217,6 +221,7 @@ static void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
 
 static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
                                const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -236,6 +241,7 @@ static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 
 static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
 #if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z);
 #else
@@ -246,6 +252,7 @@ static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 
 static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
 #if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z);
 #else
@@ -254,6 +261,7 @@ static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 #endif
 }
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incx = abs(incX);
 
 #if (defined USE__FP16 && USE_NEON)
@@ -270,6 +278,7 @@ void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
 }
 
 static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int incx = abs(incX);
   _FP16 sum = 0;
   _FP16 tmp;
@@ -299,6 +308,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldb, const float beta, _FP16 *C,
                        const unsigned int ldc) {
 
+  THROW_UNLESS_FP16_ENABLED;
 #if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
                                    TransA == CblasTrans, TransB == CblasTrans);
@@ -309,6 +319,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
 
 static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
                                 const int incX) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int max_idx = 0;
 
 #if (defined USE__FP16 && USE_NEON)
@@ -340,6 +351,7 @@ static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
 
 void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
            const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   saxpy_FP16(N, alpha, X, incX, Y, incY);
 }
 
@@ -348,49 +360,59 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const float alpha, const _FP16 *A, const unsigned int lda,
            const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
            const unsigned int ldc) {
+  THROW_UNLESS_FP16_ENABLED;
   sgemm_FP16(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
              ldc);
 }
 
 void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
            const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   scopy_FP16(N, X, incX, Y, incY);
 }
 
 void scopy(const unsigned int N, const float *X, const int incX, _FP16 *Y,
            const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   scopy_float32_to_float16(N, X, incX, Y, incY);
 }
 
 void scopy(const unsigned int N, const _FP16 *X, const int incX, float *Y,
            const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   scopy_float16_to_float32(N, X, incX, Y, incY);
 }
 
 void scopy_int4_to_float16(const unsigned int N, const uint8_t *X,
                            const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   scopy_int4_to_fp16(N, X, incX, Y, incY);
 }
 
 void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
                            const int incX, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   scopy_int8_to_fp16(N, X, incX, Y, incY);
 }
 
 void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
   ewvm_FP16(N, X, Y, Z);
 }
 
 void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
   ewva_FP16(N, X, Y, Z);
 }
 
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
+  THROW_UNLESS_FP16_ENABLED;
   return snrm2_FP16(N, X, incX);
 }
 
 _FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
            const _FP16 *Y, const unsigned int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   return sdot_FP16(N, X, incX, Y, incY);
 }
 
@@ -398,15 +420,18 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
            const unsigned int N, const float alpha, const _FP16 *A,
            const unsigned int lda, const _FP16 *X, const int incX,
            const float beta, _FP16 *Y, const int incY) {
+  THROW_UNLESS_FP16_ENABLED;
   sgemv_FP16(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
 }
 
 unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX) {
   /// @todo isamax_FP16 for BLAS_NUM_THREADS
+  THROW_UNLESS_FP16_ENABLED;
   return isamax_FP16(N, X, incX);
 }
 
 void inv_sqrt_inplace(const unsigned int N, _FP16 *X) {
+  THROW_UNLESS_FP16_ENABLED;
 #ifdef USE_NEON
   nntrainer::neon::inv_sqrt_inplace_neon(N, X);
 #else
@@ -415,7 +440,6 @@ void inv_sqrt_inplace(const unsigned int N, _FP16 *X) {
   }
 #endif
 }
-#endif
 
 #ifndef USE_BLAS
 static void saxpy_raw(const unsigned int N, const float alpha, const float *X,
@@ -538,11 +562,8 @@ void sscal(const unsigned int N, const float alpha, void *X, const int incX,
     sscal_raw(N, alpha, (float *)X, incX);
 #endif //  USE_BLAS
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+    THROW_UNLESS_FP16_ENABLED;
     sscal(N, alpha, (_FP16 *)X, incX);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -572,12 +593,9 @@ void saxpy(const unsigned int N, const float alpha, const void *X,
               static_cast<float *>(Y), incY);
 #endif
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+    THROW_UNLESS_FP16_ENABLED;
     saxpy_FP16(N, alpha, static_cast<const _FP16 *>(X), incX,
                static_cast<_FP16 *>(Y), incY);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -645,13 +663,10 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 #endif
 
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+    THROW_UNLESS_FP16_ENABLED;
     sgemm_FP16(
       order, TransA, TransB, M, N, K, alpha, static_cast<const _FP16 *>(A), lda,
       static_cast<const _FP16 *>(B), ldb, beta, static_cast<_FP16 *>(C), ldc);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 } // namespace nntrainer
 
@@ -714,11 +729,8 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
 #endif
 
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+    THROW_UNLESS_FP16_ENABLED;
     scopy_FP16(N, (_FP16 *)X, incX, (_FP16 *)Y, incY);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -811,13 +823,10 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
                      static_cast<float *>(Y), incY);
 #endif
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+    THROW_UNLESS_FP16_ENABLED;
     return sgemv_FP16(order, TransA, M, N, alpha, static_cast<const _FP16 *>(A),
                       lda, static_cast<const _FP16 *>(X), incX, beta,
                       static_cast<_FP16 *>(Y), incY);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 

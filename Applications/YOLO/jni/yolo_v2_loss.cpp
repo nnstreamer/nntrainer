@@ -178,11 +178,7 @@ calc_iou(nntrainer::Tensor &bbox1_x1, nntrainer::Tensor &bbox1_y1,
   if (type_intersection_width == ml::train::TensorDim::DataType::FP32) {
     intersection_width.apply_i<float>(nntrainer::ActiFunc::relu<float>);
   } else if (type_intersection_width == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     intersection_width.apply_i<_FP16>(nntrainer::ActiFunc::relu<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   intersection_y2.subtract(intersection_y1, intersection_height);
@@ -191,11 +187,7 @@ calc_iou(nntrainer::Tensor &bbox1_x1, nntrainer::Tensor &bbox1_y1,
   if (type_intersection_height == ml::train::TensorDim::DataType::FP32) {
     intersection_height.apply_i<float>(nntrainer::ActiFunc::relu<float>);
   } else if (type_intersection_height == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     intersection_height.apply_i<_FP16>(nntrainer::ActiFunc::relu<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   nntrainer::Tensor intersection =
@@ -238,12 +230,8 @@ std::vector<nntrainer::Tensor> calc_iou_grad(
     intersection_width_relu_prime =
       intersection_width.apply<float>(nntrainer::ActiFunc::reluPrime<float>);
   } else if (type_intersection_width == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     intersection_height_relu_prime =
       intersection_height.apply<_FP16>(nntrainer::ActiFunc::reluPrime<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   nntrainer::Tensor intersection_x2_local_grad =
@@ -539,22 +527,14 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   if (type_bbox_w_pred == ml::train::TensorDim::DataType::FP32) {
     bbox_w_pred.apply_i<float>(nntrainer::exp_util<float>);
   } else if (type_bbox_w_pred == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     bbox_w_pred.apply_i<_FP16>(nntrainer::exp_util<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   auto type_bbox_h_pred = bbox_h_pred.getDataType();
   if (type_bbox_h_pred == ml::train::TensorDim::DataType::FP32) {
     bbox_h_pred.apply_i<float>(nntrainer::exp_util<float>);
   } else if (type_bbox_h_pred == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     bbox_h_pred.apply_i<_FP16>(nntrainer::exp_util<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   sigmoid.run_fn(confidence_pred, confidence_pred);
@@ -569,11 +549,7 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   if (type_bbox_w_pred_anchor == ml::train::TensorDim::DataType::FP32) {
     bbox_w_pred_anchor.apply_i<float>(nntrainer::sqrtFloat<float>);
   } else if (type_bbox_w_pred_anchor == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     bbox_w_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   bbox_h_pred_anchor.multiply_i(anchors_h);
@@ -581,11 +557,7 @@ void YoloV2LossLayer::forwarding(nntrainer::RunLayerContext &context,
   if (type_bbox_h_pred_anchor == ml::train::TensorDim::DataType::FP32) {
     bbox_h_pred_anchor.apply_i<float>(nntrainer::sqrtFloat<float>);
   } else if (type_bbox_h_pred_anchor == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     bbox_h_pred_anchor.apply_i<_FP16>(nntrainer::sqrtFloat<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
 
   generate_ground_truth(context);
@@ -810,11 +782,7 @@ unsigned int YoloV2LossLayer::find_responsible_anchors(float bbox_ratio) {
   if (data_type == ml::train::TensorDim::DataType::FP32) {
     similarity.apply_i<float>(nntrainer::absFloat<float>);
   } else if (data_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     similarity.apply_i<_FP16>(nntrainer::absFloat<_FP16>);
-#else
-    throw std::runtime_error("Not supported data type");
-#endif
   }
   auto data = similarity.getData();
 

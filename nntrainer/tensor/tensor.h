@@ -268,7 +268,6 @@ public:
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
-#ifdef ENABLE_FP16
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
@@ -281,6 +280,7 @@ public:
       throw std::out_of_range(
         "[Tensor] trying to initialize Tensor from empty vector");
     }
+    THROW_UNLESS_FP16_ENABLED;
 
     dim.setTensorDim(0, d.size());
     if (t_type.format == Tformat::NCHW) {
@@ -333,7 +333,9 @@ public:
    */
   Tensor(std::vector<std::vector<std::vector<_FP16>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type) {
+    THROW_UNLESS_FP16_ENABLED;
+  };
 
   /**
    * @brief     Constructor of Tensor
@@ -342,9 +344,9 @@ public:
    */
   Tensor(std::vector<std::vector<_FP16>> const &d,
          ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
-
-#endif
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type) {
+    THROW_UNLESS_FP16_ENABLED;
+  };
 
   /**
    * @brief     Constructor of Tensor
@@ -1453,11 +1455,11 @@ public:
     if (getDataType() == Tdatatype::FP32) {
       getData<float>()[getIndex(batch, c, h, w)] = value;
     } else if (getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-      getData<_FP16>()[getIndex(batch, c, h, w)] = static_cast<_FP16>(value);
-#else
-      ml_loge("%s", "Error: enable-fp16 is not enabled");
-#endif
+      if (is_fp16_enabled()) {
+        getData<_FP16>()[getIndex(batch, c, h, w)] = static_cast<_FP16>(value);
+      } else {
+        ml_loge("%s", "Error: enable-fp16 is not enabled");
+      }
     } else if (getDataType() == Tdatatype::QINT8) {
       getData<uint8_t>()[getIndex(batch, c, h, w)] = value;
     } else if (getDataType() == Tdatatype::QINT4) {
@@ -1489,12 +1491,12 @@ public:
       getData<float>()[idx] *= beta;
       getData<float>()[idx] += value;
     } else if (dim.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-      getData<_FP16>()[idx] *= static_cast<_FP16>(beta);
-      getData<_FP16>()[idx] += static_cast<_FP16>(value);
-#else
-      ml_loge("%s", "Error: enable-fp16 is not enabled");
-#endif
+      if (is_fp16_enabled()) {
+        getData<_FP16>()[idx] *= static_cast<_FP16>(beta);
+        getData<_FP16>()[idx] += static_cast<_FP16>(value);
+      } else {
+        ml_loge("%s", "Error: enable-fp16 is not enabled");
+      }
     } else if (getDataType() == Tdatatype::QINT8) {
       getData<uint8_t>()[idx] *= beta;
       getData<uint8_t>()[idx] += value;
@@ -2002,19 +2004,18 @@ public:
    */
   void setZeroPoints(std::vector<uint8_t> zp);
 
-#ifdef ENABLE_FP16
   /**
    * @brief     Set fp16 scale factors of the tensor
    * @param[in] scales fp16 scale factors
    */
   void setScaleFactorsFP16(std::vector<_FP16> scales) {
+    THROW_UNLESS_FP16_ENABLED;
     if (scales.empty()) {
       throw std::invalid_argument("Error: invalid parameter");
     }
 
     scale_factors_fp16 = scales;
   }
-#endif
 
   /**
    * @brief Get zero points of the tensor
@@ -2041,9 +2042,7 @@ private:
   std::shared_ptr<MemoryData> data;
   size_t offset;
   std::vector<float> scale_factors_fp32;
-#ifdef ENABLE_FP16
   std::vector<_FP16> scale_factors_fp16;
-#endif
   std::vector<uint8_t> zero_points;
 
   /**<
@@ -2089,7 +2088,7 @@ private:
                                           const float *, float *)>
                          v_func,
                        Tensor &output) const;
-#ifdef ENABLE_FP16
+
   /**
    * @brief Applies the given operator to the tensor with the passed argument
    * @param[in] m Tensor
@@ -2122,7 +2121,7 @@ private:
                                           const _FP16 *, _FP16 *)>
                          v_func,
                        Tensor &output) const;
-#endif
+
   /**
    * @brief compute Loop info for broadcasting and vectorization
    *

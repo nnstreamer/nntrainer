@@ -247,7 +247,7 @@ private:
         }
       }
     } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       for (unsigned int b = 0; b < in.batch(); b++) {
         for (unsigned int c = 0; c < in.channel(); c++) {
           for (unsigned int h = 0; h < in.height(); h++) {
@@ -284,9 +284,6 @@ private:
           }
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
 
     if (from >= max_timestep) {

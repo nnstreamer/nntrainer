@@ -9,6 +9,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
+ * @todo   Move FP16 macros to somewhere common enough.
  *
  */
 
@@ -20,6 +21,7 @@
 #include <iosfwd>
 
 #include <bitset>
+#include <cstdint>
 #include <vector>
 
 #ifdef ENABLE_FP16
@@ -28,7 +30,55 @@
 #else
 #define _FP16 _Float16
 #endif
+#else /* !ENABLE_FP16 */
+/* Keep the FP16 programming interface, but don't allow using it in run-time */
+#define _FP16 uint16_t
 #endif
+
+/**
+ * @brief Check if fp16 is enabled. Let's not use #if/#endif for FP16 elsewhere
+ * @todo Move to a proper header file!
+ */
+static inline bool is_fp16_enabled() {
+/** @todo if this becomes runtime conditionals, use likely/unlikely */
+#ifdef ENABLE_FP16
+  return true;
+#else
+  return false;
+#endif
+}
+
+#ifdef ENABLE_FP16
+#define THROW_UNLESS_FP16_ENABLED (void)0
+#define FP16_REQUIRED(...) \
+  do {                     \
+    __VA_ARGS;             \
+  } while (0)
+#else
+#define THROW_UNLESS_FP16_ENABLED                                       \
+  do {                                                                  \
+    throw std::runtime_error("The data type 'fp16' is not supported."); \
+  } while (0)
+#define FP16_REQUIRED(...)                                              \
+  do {                                                                  \
+    throw std::runtime_error("The data type 'fp16' is not supported."); \
+  } while (0)
+#endif
+/** If FP16-enable becomes dynamic, apply the following code.
+#define THROW_UNLESS_FP16_ENABLED                                         \
+  do {                                                                    \
+    if (unlikely(!is_fp16_enabled()))                                     \
+      throw std::runtime_error("The data type 'fp16' is not supported."); \
+  } while (0)
+#define FP16_REQUIRED(...) \
+  do { \
+    if (likely(is_fp16_enabled())) { \
+      __VA_ARGS; \
+    } else { \
+      throw std::runtime_error("The data type 'fp16' is not supported."); \
+    } \
+  } while (0)
+*/
 
 namespace ml {
 namespace train {

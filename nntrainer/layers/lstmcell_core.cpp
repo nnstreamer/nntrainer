@@ -164,7 +164,7 @@ void LSTMCore::calcGradientLSTM(
 #endif
       }
     } else if (input.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
         unsigned int out_width = d_weight_ih.width();
         _FP16 in_ih = input.getValue<_FP16>(i);
@@ -175,9 +175,6 @@ void LSTMCore::calcGradientLSTM(
           d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
   }
 
@@ -202,7 +199,7 @@ void LSTMCore::calcGradientLSTM(
 #endif
       }
     } else if (prev_hidden_state.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
         unsigned int out_width = d_weight_hh.width();
         _FP16 in_hh = prev_hidden_state.getValue<_FP16>(i);
@@ -213,9 +210,6 @@ void LSTMCore::calcGradientLSTM(
           d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
   }
   d_ifgo.dot(weight_hh, d_prev_hidden_state, false, true);

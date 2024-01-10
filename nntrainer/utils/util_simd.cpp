@@ -40,11 +40,10 @@ void swish(const unsigned int N, float *X, float *Y, float *Z) {
 #endif
 }
 
-#ifdef ENABLE_FP16
-
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
                                     unsigned int w, _FP16 *in, _FP16 *out,
                                     float *cos_, float *sin_) {
+  THROW_UNLESS_FP16_ENABLED;
 #ifdef USE_NEON
   nntrainer::neon::compute_rotary_embedding_value_neon(dim, half_, w, in, out,
                                                        cos_, sin_);
@@ -56,6 +55,7 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
 }
 
 void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
 #ifdef USE_NEON
   nntrainer::neon::swish_neon(N, X, Y, Z);
 #else
@@ -68,6 +68,5 @@ void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
   }
 #endif
 }
-#endif
 
 } // namespace nntrainer
