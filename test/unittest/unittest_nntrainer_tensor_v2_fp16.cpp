@@ -23,7 +23,7 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     1, 2, 3, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
   tensor.setZero();
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<_FP16>());
   if (tensor.getValue<_FP16>(0, 0, 0, 0) != 0.0)
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -44,7 +44,7 @@ TEST(nntrainer_Tensor, Tensor_02_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<_FP16>());
 
   if (tensor.getValue<_FP16>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -66,7 +66,7 @@ TEST(nntrainer_Tensor, Tensor_02_nhwc_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<_FP16>());
 
   if (tensor.getValue<_FP16>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -94,7 +94,7 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<_FP16>());
 
   if (tensor.getValue<_FP16>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;

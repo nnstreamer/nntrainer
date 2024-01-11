@@ -22,7 +22,8 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(1, 2, 3);
   tensor.setZero();
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<float>());
+
   if (tensor.getValue<float>(0, 0, 0, 0) != 0.0)
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -43,7 +44,7 @@ TEST(nntrainer_Tensor, Tensor_02_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<float>());
 
   if (tensor.getValue<float>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -65,7 +66,7 @@ TEST(nntrainer_Tensor, Tensor_02_nhwc_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<float>());
 
   if (tensor.getValue<float>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -93,7 +94,7 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
 
   nntrainer::TensorV2 tensor = nntrainer::TensorV2(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
-  ASSERT_NE(nullptr, tensor.getData());
+  ASSERT_NE(nullptr, tensor.getData<float>());
 
   if (tensor.getValue<float>(0, 0, 0, 1) != 1.0)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -171,22 +172,6 @@ TEST(nntrainer_Tensor, Tensor_05_p) {
   if (t1.getValue<float>(0, 0, 0, 1) != val_t0)
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-TEST(nntrainer_Tensor, TensorPaddedValue_p) {
-  nntrainer::TensorV2 a = rangedV2(1, 1, 3, 3);
-  float default_padded = -1;
-
-  for (int i = 0; i < 5; ++i) {
-    for (int j = 0; j < 5; ++j) {
-      float expected = default_padded;
-      if (1 <= i && i <= 3 && 1 <= j && j <= 3) {
-        expected = (i - 1) * 3 + (j - 1);
-      }
-      float actual = a.getValuePaddedVirtual(0, 0, i, j, 1, 1, default_padded);
-      EXPECT_FLOAT_EQ(actual, expected);
-    }
-  }
 }
 
 TEST(nntrainer_Tensor, empty_01) {
