@@ -154,16 +154,22 @@ found_dummy_dep = declare_dependency() # dummy dep to use if found
 ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required : get_option('ml-api-support').enabled())
 nnstreamer_capi_dep = dummy_dep
 if (ml_api_common_dep.found())
-  nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
-  extra_defines += '-DML_API_COMMON=1'
-
-  nnstreamer_capi_dep = dependency(get_option('capi-ml-inference-actual'), required : true)
-  extra_defines += '-DNNSTREAMER_AVAILABLE=1'
-  # accessing this variable when dep_.not_found() remains hard error on purpose
-  supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
-  if not supported_nnstreamer_capi
-    extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
-    warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
+  nnstreamer_capi_dep = dependency(get_option('capi-ml-inference-actual'), required : get_option('ml-api-support').enabled())
+  if (nnstreamer_capi_dep.found())
+    nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
+    extra_defines += '-DML_API_COMMON=1'
+    extra_defines += '-DNNSTREAMER_AVAILABLE=1'
+    # accessing this variable when dep_.not_found() remains hard error on purpose
+    supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
+    if not supported_nnstreamer_capi
+      extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
+      warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
+    endif
+  else
+    # if nnstreamer_capi is not there and ml-api-support is "auto", disable it.
+    message ('ml-api-support is disabled although capi-ml-api-common is found: capi-ml-api-inference is not available and ml-api-support is configured to be auto')
+    nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
+    extra_defines += '-DML_API_COMMON=0'
   endif
 else
   nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
