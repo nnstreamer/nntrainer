@@ -21,6 +21,7 @@
 
 #include <cstddef>
 
+#include <nntrainer_log.h>
 #include <tensor_base.h>
 
 namespace nntrainer {
@@ -466,6 +467,55 @@ public:
    */
   TensorV2 &apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
                   TensorV2 &output) const;
+
+  /**
+   * @brief     Multiply value element by element immediately
+   * @param[in] value multiplier
+   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
+   * @retval    #ML_ERROR_NONE Successful
+   */
+  int multiply_i(float const &value);
+
+  /**
+   * @brief     Multiply value element by element
+   * @param[in] value multiplier
+   * @retval    Calculated Tensor
+   */
+  TensorV2 multiply(float const &value) const;
+
+  /**
+   * @brief      multiply value element by element
+   * @param[in]  value multiplier
+   * @param[out] out out tensor to store the result
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &multiply(float const &value, TensorV2 &out) const;
+
+  /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int multiply_i(TensorV2 const &m, const float beta = 0.0);
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
+   * @retval    Calculated Tensor
+   */
+  TensorV2 multiply(TensorV2 const &m, const float beta = 0.0) const;
+
+  /**
+   * @brief      Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in]  m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @param[in]  beta scalar to multiply output with and add
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
+                     const float beta = 0.0) const;
 
   /**
    * @brief     Print element
