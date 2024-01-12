@@ -355,6 +355,9 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     precompute_freqs(projected_key_dim_prop, max_timestep);
 }
 
+#define _MASK_NUM(datatype) \
+  (((datatype) == ml::train::TensorDim::DataType::FP16) ? (-1e4) : (-1e10))
+
 void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
                                          bool training) {
 
@@ -495,15 +498,10 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
 
   causal_mask.setZero();
 
-#ifdef ENABLE_FP16
-#define _MASK_NUM -1e4
-#else
-#define _MASK_NUM -1e10
-#endif
-
   for (unsigned int i = 0; i < mask_dim_height; ++i) {
     for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-      causal_mask.setValue(0, 0, i, j, _MASK_NUM);
+      causal_mask.setValue(
+        0, 0, i, j, _MASK_NUM(attention_weight.getTensorType().data_type));
     }
   }
 
@@ -828,15 +826,10 @@ void MultiHeadAttentionLayer::initial_incremental_forwarding(
 
     causal_mask.setZero();
 
-#ifdef ENABLE_FP16
-#define _MASK_NUM -1e4
-#else
-#define _MASK_NUM -1e10
-#endif
-
     for (unsigned int i = 0; i < mask_dim_height; ++i) {
       for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-        causal_mask.setValue(0, 0, i, j, _MASK_NUM);
+        causal_mask.setValue(
+          0, 0, i, j, _MASK_NUM(attention_weight.getTensorType().data_type));
       }
     }
 
@@ -1140,15 +1133,10 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
 
     causal_mask.setZero();
 
-#ifdef ENABLE_FP16
-#define _MASK_NUM -1e4
-#else
-#define _MASK_NUM -1e10
-#endif
-
     for (unsigned int i = 0; i < mask_dim_height; ++i) {
       for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-        causal_mask.setValue(0, 0, i, j, _MASK_NUM);
+        causal_mask.setValue(
+          0, 0, i, j, _MASK_NUM(attention_weight.getTensorType().data_type));
       }
     }
 
