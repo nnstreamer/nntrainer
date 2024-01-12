@@ -151,6 +151,31 @@ TensorV2 &TensorV2::apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
   return f(*this, output);
 }
 
+int TensorV2::multiply_i(float const &value) { return ML_ERROR_NONE; }
+
+TensorV2 TensorV2::multiply(float const &value) const {
+  TensorV2 t;
+  return multiply(value, t);
+}
+
+TensorV2 &TensorV2::multiply(float const &value, TensorV2 &out) const {
+  return out;
+}
+
+int TensorV2::multiply_i(TensorV2 const &m, const float beta) {
+  return ML_ERROR_NONE;
+}
+
+TensorV2 TensorV2::multiply(TensorV2 const &m, const float beta) const {
+  TensorV2 t("", this->getFormat());
+  return multiply(m, t, beta);
+}
+
+TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
+                             const float beta) const {
+  return output;
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }

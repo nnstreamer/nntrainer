@@ -183,6 +183,23 @@ public:
   virtual void initialize(Initializer init) = 0;
 
   /**
+   * @copydoc TensorV2::multiply_i(float const &value)
+   */
+  virtual int multiply_i(float const &value) = 0;
+
+  /**
+   * @copydoc TensorV2::multiply(float const &value, TensorV2 &out)
+   */
+  virtual TensorV2 &multiply(float const &value, TensorV2 &out) const = 0;
+
+  /**
+   * @copydoc TensorV2::multiply(TensorV2 const &m, TensorV2 &output, const
+   * float beta = 0.0)
+   */
+  virtual TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
+                             const float beta = 0.0) const = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
