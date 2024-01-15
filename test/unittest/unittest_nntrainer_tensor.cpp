@@ -4490,7 +4490,7 @@ TEST(nntrainer_neon_experimental, trigonometric_simd_sin) {
     }
   }
 
-  input.sin_transform(sin_output);
+  input.sin(sin_output);
 
   bool flag = true;
 
@@ -4544,7 +4544,7 @@ TEST(nntrainer_neon_experimental, trigonometric_simd_cos) {
     }
   }
 
-  input.cos_transform(cos_output);
+  input.cos(cos_output);
 
   bool flag = true;
 

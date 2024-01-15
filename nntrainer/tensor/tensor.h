@@ -974,13 +974,13 @@ public:
    * @brief    sin transform function
    * @param[out] out out to store the result
    */
-  void sin_transform(Tensor &out, float alpha = 1.0);
+  void sin(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief    cos transform function
    * @param[out] out out to store the result
    */
-  void cos_transform(Tensor &out, float alpha = 1.0);
+  void cos(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief inverse squared root function
