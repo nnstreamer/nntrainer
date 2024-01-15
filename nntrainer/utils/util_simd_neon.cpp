@@ -36,6 +36,26 @@ void calc_trigonometric_vals_dup_neon(unsigned int N_half, float *angle,
   }
 }
 
+void swish_neon(const unsigned int N, float *X, float *Y, float *Z) {
+  unsigned int i = 0;
+  for (; N - i >= VL_FP32; i += VL_FP32) {
+    float32x4_t y0_3 = vld1q_f32(&Y[i]);
+    float32x4_t z0_3 = vld1q_f32(&Z[i]);
+    float32x4_t y0_3_minus = vmulq_n_f32(y0_3, -1);
+    float32x4_t exp0_3 = exp_ps(y0_3_minus);
+
+    exp0_3 = vaddq_f32(exp0_3, vmovq_n_f32(1.f));
+    exp0_3 = vdivq_f32(y0_3, exp0_3);
+    exp0_3 = vmulq_f32(exp0_3, z0_3);
+
+    vst1q_f32(&X[i], exp0_3);
+  }
+  while (i < N) {
+    X[i] = (Y[i] / (1.f + std::exp(static_cast<float>(-Y[i])))) * Z[i];
+    ++i;
+  }
+}
+
 #ifdef ENABLE_FP16
 void compute_rotary_embedding_value_neon(unsigned int dim, unsigned int half_,
                                          unsigned int w, __fp16 *in,
@@ -109,6 +129,30 @@ void compute_rotary_embedding_value_neon(unsigned int dim, unsigned int half_,
         ++k;
       }
     }
+  }
+}
+
+void swish_neon(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z) {
+  unsigned int i = 0;
+  for (; N - i >= VL_FP16; i += VL_FP16) {
+    float16x8_t y0_7 = vld1q_f16(&Y[i]);
+    float16x8_t z0_7 = vld1q_f16(&Z[i]);
+    float16x8_t y0_7_minus = vmulq_n_f16(y0_7, -1);
+
+    float32x4_t exp0_3 = exp_ps(vcvt_f32_f16(vget_low_f16(y0_7_minus)));
+    float32x4_t exp4_7 = exp_ps(vcvt_f32_f16(vget_high_f16(y0_7_minus)));
+
+    float16x8_t exp0_7 =
+      vcombine_f16(vcvt_f16_f32(exp0_3), vcvt_f16_f32(exp4_7));
+    exp0_7 = vaddq_f16(exp0_7, vmovq_n_f16(1.f));
+    exp0_7 = vdivq_f16(y0_7, exp0_7);
+    exp0_7 = vmulq_f16(exp0_7, z0_7);
+
+    vst1q_f16(&X[i], exp0_7);
+  }
+  while (i < N) {
+    X[i] = (Y[i] / (1.f + std::exp(static_cast<float>(-Y[i])))) * Z[i];
+    ++i;
   }
 }
 #endif
