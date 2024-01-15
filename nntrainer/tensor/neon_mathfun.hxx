@@ -1,21 +1,10 @@
-/**
- * @file   neon_mathfunc.h
- * @date   08 Jan 2024
- * @brief  This is collection of sin, cos, exp, log function with NEON SIMD
- * @see    https://github.com/nnstreamer/nntrainer
- * @author Julien Pommier
- * @bug    No known bugs except for NYI items
- *
- */
-
-/** NEON implementation of sin, cos, exp and log
+/* NEON implementation of sin, cos, exp and log
 
    Inspired by Intel Approximate Math library, and based on the
-
    corresponding algorithms of the cephes math library
 */
 
-/** Copyright (C) 2011  Julien Pommier
+/* Copyright (C) 2011  Julien Pommier
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,32 +25,21 @@
   (this is the zlib license)
 */
 
-#ifndef __NEON_MATHFUNC_H_
-#define __NEON_MATHFUNC_H_
-#ifdef __cplusplus
-
-#include <arm_neon.h>
-
-typedef float32x4_t v4sf; // vector of 4 float
-typedef uint32x4_t v4su;  // vector of 4 uint32
-typedef int32x4_t v4si;   // vector of 4 uint32
-
 /**
- * @def		c_inv_mant_mask extract the mantissa of a float by performing a
- * bitwise negation on the binary representation of 0x7f800000.
- * @def		c_cephes_SQRTHF  value of sqrt(0.5).
- * @def		c_cephes_log_p0  coefficients used in logarithm calculations
- * @def		c_cephes_log_p1  coefficients used in logarithm calculations
- * @def		c_cephes_log_p2  coefficients used in logarithm calculations
- * @def		c_cephes_log_p3  coefficients used in logarithm calculations
- * @def		c_cephes_log_p4  coefficients used in logarithm calculations
- * @def		c_cephes_log_p5  coefficients used in logarithm calculations
- * @def		c_cephes_log_p6  coefficients used in logarithm calculations
- * @def		c_cephes_log_p7  coefficients used in logarithm calculations
- * @def		c_cephes_log_p8  coefficients used in logarithm calculations
- * @def		c_cephes_log_q1 constant used in logarithm calculations.
- * @def		c_cephes_log_q2 natural logarithm of 2.
+ * @file   neon_mathfun.hxx
+ * @date   15 Jan 2024
+ * @brief  This is collection of sin, cos, exp, log function with NEON SIMD
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Julien Pommier
+ * @bug    No known bugs except for NYI items
+ *
  */
+
+#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+
+typedef uint32x4_t v4su; // vector of 4 uint32
+typedef int32x4_t v4si;  // vector of 4 uint32
+
 #define c_inv_mant_mask ~0x7f800000u
 #define c_cephes_SQRTHF 0.707106781186547524
 #define c_cephes_log_p0 7.0376836292E-2
@@ -76,13 +54,9 @@ typedef int32x4_t v4si;   // vector of 4 uint32
 #define c_cephes_log_q1 -2.12194440e-4
 #define c_cephes_log_q2 0.693359375
 
-/** natural logarithm computed for 4 simultaneous float
+/* natural logarithm computed for 4 simultaneous float
    return NaN for x <= 0
 */
-/**
- * @brief     log function with neon x = log(x)
- * @param[in] x register variable (float32x4_t)
- */
 v4sf log_ps(v4sf x) {
   v4sf one = vdupq_n_f32(1);
 
@@ -103,7 +77,7 @@ v4sf log_ps(v4sf x) {
 
   e = vaddq_f32(e, one);
 
-  /** part2:
+  /* part2:
      if( x < SQRTHF ) {
        e -= 1;
        x = x + x - 1.0;
@@ -152,24 +126,14 @@ v4sf log_ps(v4sf x) {
     vreinterpretq_u32_f32(x), invalid_mask)); // negative arg will be NAN
   return x;
 }
-/**
- * @def c_exp_hi constant used in exponent calculations
- * @def c_exp_lo constant used in exponent calculations
- * @def c_cephes_LOG2EF base-e logarithm of 2
- * @def c_cephes_exp_C1 constant used in exponent calculations
- * @def c_cephes_exp_C2 constant used in exponent calculations
- * @def c_cephes_exp_p0 coefficient used in exponent calculations
- * @def c_cephes_exp_p1 coefficient used in exponent calculations
- * @def c_cephes_exp_p2 coefficient used in exponent calculations
- * @def c_cephes_exp_p3 coefficient used in exponent calculations
- * @def c_cephes_exp_p4 coefficient used in exponent calculations
- * @def c_cephes_exp_p5 coefficient used in exponent calculations
- */
+
 #define c_exp_hi 88.3762626647949f
 #define c_exp_lo -88.3762626647949f
+
 #define c_cephes_LOG2EF 1.44269504088896341
 #define c_cephes_exp_C1 0.693359375
 #define c_cephes_exp_C2 -2.12194440e-4
+
 #define c_cephes_exp_p0 1.9875691500E-4
 #define c_cephes_exp_p1 1.3981999507E-3
 #define c_cephes_exp_p2 8.3334519073E-3
@@ -178,10 +142,6 @@ v4sf log_ps(v4sf x) {
 #define c_cephes_exp_p5 5.0000001201E-1
 
 /* exp() computed for 4 float at once */
-/**
- * @brief     exp function with neon x = exp(x)
- * @param[in] x register variable (float32x4_t)
- */
 v4sf exp_ps(v4sf x) {
   v4sf tmp, fx;
 
@@ -243,18 +203,6 @@ v4sf exp_ps(v4sf x) {
   return y;
 }
 
-/**
- * @def c_minus_cephes_DP1 constant used in sine and cosine calculations
- * @def c_minus_cephes_DP2 constant used in sine and cosine calculations
- * @def c_minus_cephes_DP3 constant used in sine and cosine calculations
- * @def c_sincof_p0 coefficient used in sine calculations
- * @def c_sincof_p1 coefficient used in sine calculations
- * @def c_sincof_p2 coefficient used in sine calculations
- * @def c_coscof_p0 coefficient used in cosine calculations
- * @def c_coscof_p1 coefficient used in cosine calculations
- * @def c_coscof_p2 coefficient used in cosine calculations
- * @def c_cephes_FOPI approximation of 4 / pi
- */
 #define c_minus_cephes_DP1 -0.78515625
 #define c_minus_cephes_DP2 -2.4187564849853515625e-4
 #define c_minus_cephes_DP3 -3.77489497744594108e-8
@@ -266,7 +214,7 @@ v4sf exp_ps(v4sf x) {
 #define c_coscof_p2 4.166664568298827E-002
 #define c_cephes_FOPI 1.27323954473516 // 4 / M_PI
 
-/** evaluation of 4 sines & cosines at once.
+/* evaluation of 4 sines & cosines at once.
 
    The code is the exact rewriting of the cephes sinf function.
    Precision is excellent as long as x < 8192 (I did not bother to
@@ -281,10 +229,6 @@ v4sf exp_ps(v4sf x) {
    almost no extra price so both sin_ps and cos_ps make use of
    sincos_ps..
   */
-/**
- * @brief     sincos_ps function with neon x = sin(x) or cos(x)
- * @param[in] x register variable (float32x4_t)
- */
 void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos) { // any x
   v4sf xmm1, xmm2, xmm3, y;
 
@@ -304,7 +248,7 @@ void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos) { // any x
   emm2 = vandq_u32(emm2, vdupq_n_u32(~1));
   y = vcvtq_f32_u32(emm2);
 
-  /** get the polynom selection mask
+  /* get the polynom selection mask
      there is one polynom for 0 <= x <= Pi/4
      and another one for Pi/4<x<=Pi/2
 
@@ -312,7 +256,7 @@ void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos) { // any x
   */
   v4su poly_mask = vtstq_u32(emm2, vdupq_n_u32(2));
 
-  /** The magic pass: "Extended precision modular arithmetic"
+  /* The magic pass: "Extended precision modular arithmetic"
      x = ((x - y * DP1) - y * DP2) - y * DP3; */
   xmm1 = vmulq_n_f32(y, c_minus_cephes_DP1);
   xmm2 = vmulq_n_f32(y, c_minus_cephes_DP2);
@@ -324,7 +268,7 @@ void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos) { // any x
   sign_mask_sin = veorq_u32(sign_mask_sin, vtstq_u32(emm2, vdupq_n_u32(4)));
   sign_mask_cos = vtstq_u32(vsubq_u32(emm2, vdupq_n_u32(2)), vdupq_n_u32(4));
 
-  /** Evaluate the first polynom  (0 <= x <= Pi/4) in y1,
+  /* Evaluate the first polynom  (0 <= x <= Pi/4) in y1,
      and the second polynom      (Pi/4 <= x <= 0) in y2 */
   v4sf z = vmulq_f32(x, x);
   v4sf y1, y2;
@@ -352,25 +296,16 @@ void sincos_ps(v4sf x, v4sf *ysin, v4sf *ycos) { // any x
   *ycos = vbslq_f32(sign_mask_cos, yc, vnegq_f32(yc));
 }
 
-/**
- * @brief     sin_ps function with neon x = sin(x)
- * @param[in] x register variable (float32x4_t)
- */
 v4sf sin_ps(v4sf x) {
   v4sf ysin, ycos;
   sincos_ps(x, &ysin, &ycos);
   return ysin;
 }
 
-/**
- * @brief     cos_ps function with neon x = cos(x)
- * @param[in] x register variable (float32x4_t)
- */
 v4sf cos_ps(v4sf x) {
   v4sf ysin, ycos;
   sincos_ps(x, &ysin, &ycos);
   return ycos;
 }
 
-#endif
 #endif

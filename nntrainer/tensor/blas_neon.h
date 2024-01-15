@@ -17,6 +17,7 @@
 
 #include <arm_neon.h>
 #include <cmath>
+#include <neon_mathfun.h>
 
 namespace nntrainer::neon {
 
