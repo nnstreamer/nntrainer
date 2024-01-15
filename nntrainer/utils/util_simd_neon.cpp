@@ -16,8 +16,8 @@ namespace nntrainer::neon {
 void calc_trigonometric_vals_dup_neon(unsigned int N_half, float *angle,
                                       float *cos_, float *sin_,
                                       unsigned int from) {
-  cosine_transformation_neon(N_half, angle, cos_, from);
-  sine_transformation_neon(N_half, angle, sin_, from);
+  cosine_neon(N_half, angle, cos_, from);
+  sine_neon(N_half, angle, sin_, from);
 
   unsigned int N = 2 * N_half;
   unsigned int i = N_half;

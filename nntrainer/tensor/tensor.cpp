@@ -127,8 +127,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -3440,18 +3439,20 @@ Tensor &Tensor::erf(Tensor &out) const {
   return out;
 }
 
-void Tensor::sin_transform(Tensor &out, float alpha) {
+void Tensor::sin(Tensor &out, float alpha) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot calculate sin.";
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    sine_transformation(this->size(), getData<float>(), out.getData<float>(),
-                        alpha);
+    sine(size(), getData<float>(), out.getData<float>(), alpha);
   } else
     throw std::invalid_argument("Error: sin_transform supports fp32 case only");
 }
 
-void Tensor::cos_transform(Tensor &out, float alpha) {
+void Tensor::cos(Tensor &out, float alpha) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot calculate cos.";
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    cosine_transformation(this->size(), getData<float>(), out.getData<float>(),
-                          alpha);
+    cosine(size(), getData<float>(), out.getData<float>(), alpha);
   } else
     throw std::invalid_argument("Error: cos_transform supports fp32 case only");
 }

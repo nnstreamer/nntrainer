@@ -74,23 +74,23 @@ void scopy_neon_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 void scopy_neon_int8_or_int4(const unsigned int N, const uint8_t *X,
                              uint8_t *Y);
 /**
- * @brief     sine transformation with neon: Y = sin(alpha * X)
+ * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine_transformation_neon(const unsigned int N, float *X, float *Y,
+void sine_neon(const unsigned int N, float *X, float *Y,
                               float alpha = 1.0);
 
 /**
- * @brief     cosine transformation with neon: Y = cos(alpha * X)
+ * @brief     cosine with neon: Y = cos(alpha * X)
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine_transformation_neon(const unsigned int N, float *X, float *Y,
+void cosine_neon(const unsigned int N, float *X, float *Y,
                                 float alpha = 1.0);
 
 /**
