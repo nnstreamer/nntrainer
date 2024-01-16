@@ -10,8 +10,36 @@
  */
 
 #include <tensor_base.h>
+#include <tensor_v2.h>
 
 namespace nntrainer {
+
+/**
+ * @struct External Loop Info for broadcasted info
+ * @brief External Loop Info for broadcasted iteration. Please refer to
+ * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+ * @note This should better be implemented in iterator fashion before used
+ * extensively.
+ */
+struct TensorBase::BroadcastInfoV2 {
+
+  /**
+   * @brief Construct a new External Loop Info object
+   *
+   */
+  BroadcastInfoV2() :
+    buffer_size(0),
+    buffer_axis(-1),
+    strides{0, 0, 0, 0},
+    tensor_type(nntrainer::TensorDim::TensorType()) {}
+
+  unsigned int buffer_size; /**< virtual size of the buffer */
+  int buffer_axis;          /**< the smallest axis that should be looped.
+                                 -1 means no loop needed*/
+  std::array<unsigned int, TensorDim::MAXDIM>
+    strides; /**< modified strides for the loop */
+  nntrainer::TensorDim::TensorType tensor_type;
+};
 
 TensorBase::TensorBase(const TensorDim &d, bool alloc_now, Initializer init,
                        std::string name_) :
@@ -117,6 +145,84 @@ TensorBase *TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
   createSharedDataTensor(this, ret, offset);
 
   return ret;
+}
+
+TensorBase::BroadcastInfoV2
+TensorBase::computeBroadcastInfo(const TensorV2 &m) const {
+  if (m.size() > this->size())
+    throw exception::not_supported("broadcasting *this is not supported");
+
+  const TensorDim m_dim = m.getDim();
+
+  BroadcastInfoV2 e;
+  e.tensor_type = getTensorType();
+
+  uint continuity[4] = {0, 1, 2, 3};
+  if (getFormat() == Tformat::NHWC) {
+    continuity[1] = 2;
+    continuity[2] = 3;
+    continuity[3] = 1;
+  }
+
+  /// checking if given Tensor's can be broadcasted
+  for (unsigned int i = 0; i < TensorDim::MAXDIM; ++i) {
+    if (dim.getTensorDim(continuity[i]) == m_dim.getTensorDim(continuity[i])) {
+      e.strides[i] = m.getStrides()[i];
+      continue;
+    }
+
+    /// If given dimension is 1, it could be reused, the stride remaining 0
+    /// Need to check if dim[i] == 1 && m_dim[i] == 1 first though
+    /// If so, strides should not change
+    if (m_dim.getTensorDim(continuity[i]) == 1) {
+      continue;
+    }
+
+    std::stringstream ss;
+    ss << "[computeBroadcastInfo] broadcasting only allowed for "
+          "dimension value of 1 \n"
+       << "this: " << dim << "target: " << m_dim;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  /// calculate inner loop size
+  e.buffer_size = 1;
+  e.buffer_axis = -1;
+  e.strides[3] = m.getStrides()[3];
+
+  /// initiate buffer info with matching dimension strategy
+  for (int axis = 3; axis >= 0; --axis) {
+    if (dim.getTensorDim(continuity[axis]) !=
+        m_dim.getTensorDim(continuity[axis])) {
+      e.buffer_axis = axis;
+      break;
+    }
+
+    e.buffer_size *= dim.getTensorDim(continuity[axis]);
+  }
+
+  /// check strategy that uses consecutive ones
+  if (m_dim.getTensorDim(continuity[3]) == 1) {
+    unsigned int inner_loop_size = 1;
+    int axis;
+    for (axis = 3; axis >= 0; --axis) {
+      if (m_dim.getTensorDim(continuity[axis]) != 1) {
+        break;
+      }
+
+      inner_loop_size *= dim.getTensorDim(continuity[axis]);
+    }
+
+    /// if consecutive-one strategy has bigger chunk size, replace the
+    /// information
+    if (inner_loop_size > e.buffer_size) {
+      e.buffer_axis = axis;
+      e.buffer_size = inner_loop_size;
+      e.strides[3] = 0;
+    }
+  }
+
+  return e;
 }
 
 } // namespace nntrainer
