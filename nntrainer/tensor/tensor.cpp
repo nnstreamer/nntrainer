@@ -195,8 +195,8 @@ void Tensor::allocate() {
         delete mem_data;
       });
     } else if (getDataType() == ml::train::TensorDim::DataType::BCQ32) {
-      mem_data =
-        new MemoryData((void *)(new uint32_t[(dim.getDataLen() / 32)]{}));
+      mem_data = new MemoryData((void *)(new uint32_t[(
+        quantized_bit_size * dim.height() * ((dim.width() + 31) / 32))]{}));
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
         delete[] mem_data->template getAddr<uint32_t>();
         delete mem_data;
@@ -3184,6 +3184,16 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
+  uint16_t prev_quantized_bit_size = quantized_bit_size;
+
+  if (getDataType() == Tdatatype::BCQ32) {
+    file.read((char *)&quantized_bit_size, sizeof(uint16_t));
+
+    // @todo: reallocate tensor
+    if (prev_quantized_bit_size != quantized_bit_size) {
+    }
+  }
+
   std::streamsize sz = static_cast<std::streamsize>(bytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
@@ -3238,13 +3248,9 @@ void Tensor::read(std::ifstream &file, Tdatatype s_type) {
     }
 
   } else if (getDataType() == Tdatatype::BCQ32) {
-
-    uint8_t bit;
-    file.read((char *)&bit, sizeof(uint8_t));
-
-    unsigned int len = height() * bit;
+    unsigned int len = height() * quantized_bit_size;
+    _FP16 scale;
     for (unsigned int i = 0; i < len; ++i) {
-      float scale;
       file.read((char *)&scale, sizeof(__fp16));
       scale_factors_fp16.push_back(scale);
     }

@@ -100,7 +100,8 @@ public:
     name(name_),
     data(nullptr),
     offset(0),
-    src_tensor() {}
+    src_tensor(),
+    quantized_bit_size(3) {}
 
   /**
    * @brief     Constructor of Tensor with dimension, possibly lazily
@@ -1437,6 +1438,9 @@ public:
   size_t bytes() const {
     if (getDataType() == Tdatatype::QINT4) {
       return (size() * dim.getDataTypeSize() + 1) / 2;
+    } else if (getDataType() == Tdatatype::BCQ32) {
+      return dim.getDataTypeSize() * quantized_bit_size * dim.height() *
+             ((dim.width() + 31) / 32);
     }
     return size() * dim.getDataTypeSize();
   }
@@ -2052,6 +2056,8 @@ private:
   std::vector<_FP16> scale_factors_fp16;
 #endif
   std::vector<uint8_t> zero_points;
+
+  uint16_t quantized_bit_size;
 
   std::shared_ptr<BiQGEMM::BCQHW> bcqhw;
 

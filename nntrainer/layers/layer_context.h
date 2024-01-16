@@ -420,6 +420,11 @@ public:
       return;
     }
 
+    if (t_w.getDataType() == Tdatatype::BCQ32) {
+      w = t_w;
+      return;
+    }
+
     unsigned int base_idx = 0;
     Tdatatype o_t = getOutput(base_idx).getDataType();
 
