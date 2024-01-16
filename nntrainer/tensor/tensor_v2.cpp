@@ -180,6 +180,12 @@ void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
 
+TensorDim TensorV2::getDim() const { return itensor->getDim(); }
+
+TensorDim::TensorType TensorV2::getTensorType() const {
+  return itensor->getTensorType();
+};
+
 Initializer TensorV2::getInitializer() const {
   return itensor->getInitializer();
 }

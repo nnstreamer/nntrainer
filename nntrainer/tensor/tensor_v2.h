@@ -530,6 +530,17 @@ public:
   void putData() const;
 
   /**
+   * @brief     return a copy of the Tensor Dim
+   * @retval    TensorDim
+   */
+  TensorDim getDim() const;
+
+  /**
+   * @brief     return Tensor Type
+   */
+  TensorDim::TensorType getTensorType() const;
+
+  /**
    * @brief Get initializer for the tensor
    *
    * @return initializer of the tensor

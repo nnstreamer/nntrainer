@@ -229,6 +229,17 @@ public:
   void putData() const;
 
   /**
+   * @brief     return a copy of the Tensor Dim
+   * @retval    TensorDim
+   */
+  TensorDim getDim() const { return TensorDim(dim); }
+
+  /**
+   * @brief     return Tensor Type
+   */
+  TensorDim::TensorType getTensorType() const { return dim.getTensorType(); }
+
+  /**
    * @brief Get initializer for the tensor
    * @retval initializer of the tensor
    */
@@ -371,6 +382,16 @@ protected:
    * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
    */
   std::shared_ptr<SrcSharedTensorBase> src_tensor;
+
+  struct BroadcastInfoV2;
+
+  /**
+   * @brief compute Loop info for broadcasting and vectorization
+   *
+   * @param m target tensor to be calculated against.
+   * @return BroadcastInfo Loopinfo needed to run external loop
+   */
+  BroadcastInfoV2 computeBroadcastInfo(const TensorV2 &m) const;
 };
 
 /**
