@@ -501,7 +501,7 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
   for (unsigned int i = 0; i < mask_dim_height; ++i) {
     for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
       causal_mask.setValue(
-        0, 0, i, j, _MASK_NUM(attention_weight.getTensorType().data_type));
+        0, 0, i, j, _MASK_NUM(attention_weight.getDataType()));
     }
   }
 
