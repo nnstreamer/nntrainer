@@ -143,7 +143,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
         }
       }
     } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
@@ -159,9 +159,6 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
           dest_tensor.copy(source_tensor);
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
 
     input.reshape(in_dim);
@@ -229,7 +226,7 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
   unsigned int data_copy_size = output_reshape_helper.width();
   TensorDim::TensorType tensor_type = output.getTensorType();
 
- for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+  for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &input = context.getOutgoingDerivative(idx);
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];
@@ -252,7 +249,7 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
         }
       }
     } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
@@ -268,9 +265,6 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
           dest_tensor.copy(source_tensor);
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
 
     input.reshape(in_dim);

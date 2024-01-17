@@ -151,14 +151,10 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
                   incoming_derivative.size(),
                 d_hidden_state_.getData<float>());
     } else if (incoming_derivative.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      std::copy(incoming_derivative.getData<_FP16>(),
-                incoming_derivative.getData<_FP16>() +
-                  incoming_derivative.size(),
-                d_hidden_state_.getData<_FP16>());
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
+      FP16_REQUIRED(std::copy(incoming_derivative.getData<_FP16>(),
+                              incoming_derivative.getData<_FP16>() +
+                                incoming_derivative.size(),
+                              d_hidden_state_.getData<_FP16>()));
     }
   } else {
     unsigned int end_timestep = return_sequences ? max_timestep : 1;
@@ -604,12 +600,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     acti_func.setActiFunc<float>(hidden_state_activation_type);
     recurrent_acti_func.setActiFunc<float>(recurrent_activation_type);
   } else if (context.getActivationDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     acti_func.setActiFunc<_FP16>(hidden_state_activation_type);
     recurrent_acti_func.setActiFunc<_FP16>(recurrent_activation_type);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -718,13 +710,10 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
                 hidden_state.getData<float>() + hidden_state.size(),
                 output.getData<float>());
     } else if (hidden_state.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      std::copy(hidden_state.getData<_FP16>(),
-                hidden_state.getData<_FP16>() + hidden_state.size(),
-                output.getData<_FP16>());
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
+      FP16_REQUIRED(
+        std::copy(hidden_state.getData<_FP16>(),
+                  hidden_state.getData<_FP16>() + hidden_state.size(),
+                  output.getData<_FP16>()));
     }
   } else {
     unsigned int end_timestep = return_sequences ? max_timestep : 1;
@@ -755,7 +744,7 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
         }
       }
     } else if (hidden_state.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       for (unsigned int batch = 0; batch < batch_size; ++batch) {
         for (unsigned int timestep = 0; timestep < end_timestep; ++timestep) {
           _FP16 *hidden_state_data = hidden_state.getAddress<_FP16>(
@@ -781,9 +770,6 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
           }
         }
       }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
     }
   }
 }

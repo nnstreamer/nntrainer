@@ -44,11 +44,7 @@ void ActivationLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(act.empty(), std::invalid_argument)
     << "activation has not been set!";
   if (context.getActivationDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     acti_func.setActiFunc<_FP16>(act.get());
-#else
-    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
-#endif
   } else if (context.getActivationDataType() == TensorDim::DataType::FP32) {
     acti_func.setActiFunc<float>(act.get());
   }

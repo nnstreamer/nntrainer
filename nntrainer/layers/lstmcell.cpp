@@ -167,12 +167,8 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
     acti_func.setActiFunc<float>(hidden_state_activation_type);
     recurrent_acti_func.setActiFunc<float>(recurrent_activation_type);
   } else if (context.getActivationDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     acti_func.setActiFunc<_FP16>(hidden_state_activation_type);
     recurrent_acti_func.setActiFunc<_FP16>(recurrent_activation_type);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 

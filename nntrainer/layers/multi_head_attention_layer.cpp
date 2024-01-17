@@ -171,11 +171,7 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
   if (activation_type.data_type == TensorDim::DataType::FP32) {
     sm.setActiFunc(ActivationType::ACT_SOFTMAX);
   } else if (activation_type.data_type == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
     sm.setActiFunc<_FP16>(ActivationType::ACT_SOFTMAX);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 
   // sm.setActiFunc(ActivationType::ACT_SOFTMAX);
@@ -500,8 +496,8 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
 
   for (unsigned int i = 0; i < mask_dim_height; ++i) {
     for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-      causal_mask.setValue(
-        0, 0, i, j, _MASK_NUM(attention_weight.getDataType()));
+      causal_mask.setValue(0, 0, i, j,
+                           _MASK_NUM(attention_weight.getDataType()));
     }
   }
 
@@ -1171,8 +1167,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
              (cache_value.size() - cache_value.width()) * sizeof(float));
     } else if (cache_key.getDataType() ==
                ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-
+      THROW_UNLESS_FP16_ENABLED;
       _FP16 *buf = cache_key.getAddress<_FP16>(0, 0, 1, 0);
       _FP16 *dbuf = cache_key.getAddress<_FP16>(0, 0, 0, 0);
       memcpy(dbuf, buf, (cache_key.size() - cache_key.width()) * sizeof(_FP16));
@@ -1180,9 +1175,6 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
       dbuf = cache_value.getAddress<_FP16>(0, 0, 0, 0);
       memcpy(dbuf, buf,
              (cache_key.size() - cache_value.width()) * sizeof(_FP16));
-#else
-      throw std::invalid_argument("enable-fp16 is not set");
-#endif
     }
   }
 }

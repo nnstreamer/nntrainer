@@ -559,16 +559,13 @@ public:
 
       if (getWeight(idx).getDataType() ==
           ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+        THROW_UNLESS_FP16_ENABLED;
         _FP16 *data = getWeight(idx).getData<_FP16>();
         float *d = new float[getWeight(idx).size()]();
         weights.emplace_back(d);
         for (unsigned int i = 0; i < getWeight(idx).size(); ++i) {
           weights[idx][i] = static_cast<float>(data[i]);
         }
-#else
-        throw std::runtime_error("enable-fp16 is not set");
-#endif
       } else {
         weights.emplace_back(getWeight(idx).getData());
       }
@@ -597,7 +594,6 @@ public:
     }
     return;
   }
-#ifdef ENABLE_FP16
   /**
    * @brief     Get weight data of the layer
    * @retval    weight data of the layer
@@ -606,6 +602,8 @@ public:
    * @note      layer needs to be finalized before called.
    */
   const std::vector<_FP16 *> getFP16Weights() override {
+    THROW_UNLESS_FP16_ENABLED;
+
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -626,6 +624,8 @@ public:
    */
   void getFP16Weights(std::vector<_FP16 *> &weights,
                       std::vector<TensorDim> &weight_dim) override {
+    THROW_UNLESS_FP16_ENABLED;
+
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -637,7 +637,6 @@ public:
     }
     return;
   }
-#endif
 
   /**
    * @brief     Set weight data of the layer

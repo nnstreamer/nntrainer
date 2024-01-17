@@ -20,6 +20,7 @@ tensor_sources = [
   'optimized_v2_planner.cpp',
   'optimized_v3_planner.cpp',
   'task_executor.cpp',
+  'half_tensor.cpp'
 ]
 
 tensor_headers = [
@@ -31,18 +32,14 @@ tensor_headers = [
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h'
+  'blas_interface.h',
+  'half_tensor.h'
 ]
 
 arch = target_machine.cpu_family()
 
 if get_option('platform') == 'android' or arch == 'aarch64'
   tensor_sources += 'blas_neon.cpp'
-endif
-
-if get_option('enable-fp16')
-  tensor_headers += 'half_tensor.h'
-  tensor_sources += 'half_tensor.cpp'
 endif
 
 foreach s : tensor_sources

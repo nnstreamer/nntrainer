@@ -10,11 +10,8 @@
  */
 
 #include <float_tensor.h>
-#include <tensor_v2.h>
-
-#ifdef ENABLE_FP16
 #include <half_tensor.h>
-#endif
+#include <tensor_v2.h>
 
 namespace nntrainer {
 
@@ -24,11 +21,7 @@ TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
   if (d_type == Tdatatype::FP32) {
     itensor = new FloatTensor(name_, fm);
   } else if (d_type == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
     itensor = new HalfTensor(name_, fm);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   } else {
     throw std::invalid_argument(
       "Error: TensorV2 cannot be constructed because the given d_type is not "
@@ -44,11 +37,7 @@ TensorV2::TensorV2(const TensorDim &d, bool alloc_now, Initializer init,
   if (d.getDataType() == Tdatatype::FP32) {
     itensor = new FloatTensor(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
     itensor = new HalfTensor(d, alloc_now, init, name);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   } else {
     throw std::invalid_argument(
       "Error: TensorV2 cannot be constructed because the given d_type is not "
@@ -63,11 +52,7 @@ TensorV2::TensorV2(const TensorDim &d, const void *buf) {
   if (d.getDataType() == Tdatatype::FP32) {
     itensor = new FloatTensor(d, buf);
   } else if (d.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
     itensor = new HalfTensor(d, buf);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   } else {
     throw std::invalid_argument(
       "Error: TensorV2 cannot be constructed because the given d_type is not "
@@ -82,13 +67,11 @@ TensorV2::TensorV2(
   itensor = new FloatTensor(d, t_type.format);
 }
 
-#ifdef ENABLE_FP16
 TensorV2::TensorV2(
   std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
   ml::train::TensorDim::TensorType t_type) {
   itensor = new HalfTensor(d, t_type.format);
 }
-#endif
 
 bool TensorV2::operator==(const TensorV2 &rhs) const {
   /// compares tensor information
@@ -98,14 +81,8 @@ bool TensorV2::operator==(const TensorV2 &rhs) const {
       return *dynamic_cast<FloatTensor *>(itensor) ==
              *dynamic_cast<FloatTensor *>(rhs.itensor);
     } else if (getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
       return *dynamic_cast<HalfTensor *>(itensor) ==
              *dynamic_cast<HalfTensor *>(rhs.itensor);
-#else
-      throw std::invalid_argument(
-        "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
-        "Please check if the tensor data type is set properly.");
-#endif
     }
   }
   return false;

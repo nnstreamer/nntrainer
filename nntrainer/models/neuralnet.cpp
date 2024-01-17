@@ -847,16 +847,13 @@ std::vector<float *> NeuralNetwork::incremental_inference(
   }
   for (auto &out : output_tensors) {
     if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
+      THROW_UNLESS_FP16_ENABLED;
       auto out_t = *out.get();
       float *vec_fp32 = new float[out_t.width()];
       for (unsigned int i = 0; i < out_t.width(); ++i) {
         (vec_fp32)[i] = static_cast<float>(out_t.getValue<_FP16>(0, 0, idx, i));
       }
       output.emplace_back(vec_fp32);
-#else
-      throw std::invalid_argument("Errro: enable-fp16 is not set");
-#endif
     } else {
       auto out_t = *out.get();
       TensorDim last_out_dim = out_t.getDim();

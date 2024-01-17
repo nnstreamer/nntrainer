@@ -438,10 +438,9 @@ void inv_sqrt_inplace_neon(const unsigned int N, float *X) {
   }
 }
 
-#ifdef ENABLE_FP16
-
 void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta) {
+  THROW_UNLESS_FP16_ENABLED;
   const int batch = 0;
   const __fp16 *__restrict x;
   float Y32[rows];
@@ -701,6 +700,7 @@ void sgemv_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
 void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
                                uint32_t rows, uint32_t cols, float alpha,
                                float beta) {
+  THROW_UNLESS_FP16_ENABLED;
   float Y32[cols];
   const int batch = 20;
   unsigned int idx = 0;
@@ -1117,6 +1117,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
 void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
                      __fp16 *Y) {
 
+  THROW_UNLESS_FP16_ENABLED;
   const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
   const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
 
@@ -1149,6 +1150,7 @@ void saxpy_neon_fp16(const unsigned int N, const float alpha, const __fp16 *X,
 
 __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 
+  THROW_UNLESS_FP16_ENABLED;
   float16x8_t accX8 = vmovq_n_f16(0);
   float16x4_t accX4 = vmov_n_f16(0);
 
@@ -1197,6 +1199,7 @@ __fp16 sdot_neon_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 
 __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X) {
 
+  THROW_UNLESS_FP16_ENABLED;
   float16x8_t accX8 = vmovq_n_f16(0);
   float16x4_t accX4 = vmov_n_f16(0);
 
@@ -1242,6 +1245,7 @@ __fp16 snrm2_neon_fp16(const unsigned int N, const __fp16 *X) {
 }
 
 void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha) {
+  THROW_UNLESS_FP16_ENABLED;
   const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
   const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
 
@@ -1271,6 +1275,7 @@ void sscal_neon_fp16(const unsigned int N, __fp16 *X, const float alpha) {
 }
 
 float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32) {
+  THROW_UNLESS_FP16_ENABLED;
   constexpr uint32_t offsetValue = 0x4b000000;
   const uint32x4_t offsetInt = vdupq_n_u32(offsetValue);
   return vsubq_f32(vreinterpretq_f32_u32(vorrq_u32(u32, offsetInt)),
@@ -1279,6 +1284,7 @@ float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32) {
 
 void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
 
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int idx = 0;
 
   // processing batch of 8
@@ -1301,6 +1307,7 @@ void scopy_neon_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
 void scopy_neon_int4_to_fp16(const unsigned int N, const uint8_t *X,
                              __fp16 *Y) {
 
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int idx = 0;
 
   // keep in mind that : len(X) = N, and len(Y) = 2*N
@@ -1378,6 +1385,7 @@ void scopy_neon_int4_to_fp16(const unsigned int N, const uint8_t *X,
 
 void scopy_neon_int8_to_fp16(const unsigned int N, const uint8_t *X,
                              __fp16 *Y) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int idx = 0;
   for (; (N - idx) >= 16; idx += 16) {
     uint8x16_t batch = vld1q_u8(&X[idx]);
@@ -1406,6 +1414,7 @@ void scopy_neon_int8_to_fp16(const unsigned int N, const uint8_t *X,
 }
 
 void scopy_neon_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int idx = 0;
   for (; (N - idx) >= 16; idx += 16) {
     uint8x16_t batch = vld1q_u8(&X[idx]);
@@ -1448,6 +1457,7 @@ void scopy_neon_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
 }
 
 void scopy_neon_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
+  THROW_UNLESS_FP16_ENABLED;
   int idx = 0;
 
   for (; N - idx >= 8; idx += 8) {
@@ -1470,6 +1480,7 @@ void scopy_neon_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
 }
 
 void scopy_neon_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y) {
+  THROW_UNLESS_FP16_ENABLED;
   int idx = 0;
 
   for (; N - idx >= 8; idx += 8) {
@@ -1496,6 +1507,7 @@ void scopy_neon_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y) {
 
 unsigned int isamax_neon_fp16(const unsigned int N, const __fp16 *X) {
 
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int retIdx;
   __fp16 maxNum;
 
@@ -1550,6 +1562,7 @@ void sgemm_neon_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
                      uint32_t N, uint32_t K, float alpha, float beta,
                      bool TransA, bool TransB) {
 
+  THROW_UNLESS_FP16_ENABLED;
   // dynamic creation to avoid reaching stack limit(causes segmentation fault)
   float *C32 = (float *)malloc(M * N * sizeof(float));
 
@@ -1592,6 +1605,7 @@ void sgemm_neon_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
                              uint32_t M, uint32_t N, uint32_t K, float alpha,
                              float beta) {
 
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int k = 0, n = 0;
   __fp16 a[16];
   for (; (K - k) >= 16; k += 16) {
@@ -1765,6 +1779,7 @@ void sgemm_neon_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
 void sgemm_neon_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
                             uint32_t M, uint32_t N, uint32_t K, float alpha,
                             float beta) {
+  THROW_UNLESS_FP16_ENABLED;
   __fp16 valsB[8];
   float valsC[8];
   for (unsigned int k = 0; k < K; k++) {
@@ -1815,6 +1830,7 @@ void sgemm_neon_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
 void sgemm_neon_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
                             uint32_t M, uint32_t N, uint32_t K, float alpha,
                             float beta) {
+  THROW_UNLESS_FP16_ENABLED;
   __fp16 valsB[8];
   __fp16 valsA[8];
   int m = 0;
@@ -1984,6 +2000,7 @@ void sgemm_neon_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
 void sgemm_neon_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
                              uint32_t M, uint32_t N, uint32_t K, float alpha,
                              float beta, uint32_t idx) {
+  THROW_UNLESS_FP16_ENABLED;
   float vals[8];
   __fp16 vals_fp16[8];
   for (unsigned int n = 0; n < N; n++) {
@@ -2025,6 +2042,7 @@ void sgemm_neon_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
 void elementwise_vector_multiplication_neon_fp16(const unsigned int N,
                                                  const __fp16 *X,
                                                  const __fp16 *Y, __fp16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
   int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2042,6 +2060,7 @@ void elementwise_vector_multiplication_neon_fp16(const unsigned int N,
 void elementwise_vector_addition_neon_fp16(const unsigned int N,
                                            const __fp16 *X, const __fp16 *Y,
                                            __fp16 *Z) {
+  THROW_UNLESS_FP16_ENABLED;
   int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2057,6 +2076,7 @@ void elementwise_vector_addition_neon_fp16(const unsigned int N,
 }
 
 void inv_sqrt_inplace_neon(const unsigned int N, __fp16 *X) {
+  THROW_UNLESS_FP16_ENABLED;
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2071,5 +2091,4 @@ void inv_sqrt_inplace_neon(const unsigned int N, __fp16 *X) {
   }
 }
 
-#endif
 } // namespace nntrainer::neon
