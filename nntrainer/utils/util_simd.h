@@ -60,11 +60,11 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
  * @brief swish function : X = (Y / (1 + exp( -Y ))) * Z
  *
  * @param N number of elements in X
- * @param X __fp16 * for Vector X
- * @param Y __fp16 * for Vector Y
- * @param Z __fp16 * for Vector Z
+ * @param X _FP16 * for Vector X
+ * @param Y _FP16 * for Vector Y
+ * @param Z _FP16 * for Vector Z
  */
-void swish(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z);
+void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
 #endif
 
 } /* namespace nntrainer */
