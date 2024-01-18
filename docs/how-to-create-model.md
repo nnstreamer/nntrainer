@@ -16,12 +16,6 @@ In this tutorial, we will make a simple neuralnet model called MyApp using NNTra
 ...
 ```
 
-- Add the following code at the end of the "Applications/meson.build": "subdir('MyApp/jni')".
-
-```bash
-...
-subdir('MyApp/jni')
-```
 
 ## Writing scripts for MyApp application
 Now let's start implementing a simple neural network in the main.cpp.
@@ -125,11 +119,48 @@ int main(int argc, char *argv[]) {
 ```
 
 ## Build and Run "MyApp" application
+
+### Update `meson.build` file under `Applications/`
+In order to build "MyApp" application, it is required to update `Applications/meson.build`.
+Add the following code at the end of the `Applications/meson.build`: "subdir('MyApp/jni')".
+
+```bash
+...
+subdir('MyApp/jni')
+```
+
+### Create `meson.build` file under `Applications/MyApp/jni/`
+Now, one needs to specify the build configuration for "MyApp" application. To this end, make a `meson.build` under `Applications/MyApp/jni/`.
+Here is an example of `meson.build` file of `MyApp` application.
+
+```
+myapp_sources= [
+    'main.cpp',
+    cifar_path / 'cifar_dataloader.cpp'
+]
+
+myapp_dependencies = [app_utils_dep,
+  nntrainer_ccapi_dep
+]
+
+e = executable('nntrainer_myapp',
+  myapp_sources,
+  include_directories: [include_directories('.'), cifar_include_dir],
+  dependencies: myapp_dependencies,
+  install: get_option('install-app'),
+  install_dir: application_install_dir
+)
+```
+
+### Build "MyApp"
+
 To build MyApp application, execute the following command on the NNTrainer directory: "meson build & ninja -C build".
 ```bash
 meson build & ninja -C build
 ```
 Then, it will create the build directory and compile your app to "build/Applications/MyApp/jni".
+
+### How to run "MyApp"
 
 Finally, you can run your own "MyApp" application with following command on "build/Applications/MyApp/jni" directory.
 
