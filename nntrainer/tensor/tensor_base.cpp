@@ -47,6 +47,23 @@ void TensorBase::putData() const {
   data->invalidate();
 }
 
+void TensorBase::reshape(const TensorDim &d) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot reshape.";
+
+  NNTR_THROW_IF(d.getDataLen() != dim.getDataLen(), std::invalid_argument)
+    << "[Tensor]: reshape cannot change the buffer size, trying reshaping "
+       "\nfrom "
+    << getDim() << " to " << d;
+
+  dim.batch(d.batch());
+  dim.channel(d.channel());
+  dim.height(d.height());
+  dim.width(d.width());
+
+  strides = d.computeStrides();
+}
+
 size_t TensorBase::getIndex(unsigned int b, unsigned int c, unsigned int h,
                             unsigned int w) const noexcept {
   if (getFormat() == Tformat::NCHW) {

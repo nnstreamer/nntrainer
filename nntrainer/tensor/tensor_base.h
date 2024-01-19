@@ -229,6 +229,13 @@ public:
   void putData() const;
 
   /**
+   * @brief     set Tensor Dim
+   * @param[in] d TensorDim
+   * @note      Throws std::invalid_argument if size mismatch
+   */
+  void reshape(const TensorDim &d);
+
+  /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */
