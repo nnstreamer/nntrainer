@@ -354,4 +354,66 @@ void FloatTensor::copy(const void *buf) {
   scopy(size(), (float *)buf, 1, (float *)getData(), 1);
 }
 
+void FloatTensor::apply_broadcast_util(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                     float *)>
+    v_func,
+  TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis, size_t offset,
+  size_t m_offset) const {
+
+  const float *buf = (float *)this->getData();
+  const float *m_buf = m.getData<float>();
+  float *out_buf = output.getData<float>();
+
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    return;
+  }
+
+  cur_axis++;
+  unsigned int continuity[4] = {0, 1, 2, 3};
+  if (getFormat() == Tformat::NHWC) {
+    continuity[1] = 2;
+    continuity[2] = 3;
+    continuity[3] = 1;
+  }
+  for (unsigned int i = 0; i < dim.getTensorDim(continuity[cur_axis]); ++i) {
+    size_t next_offset = offset + i * strides[cur_axis];
+    size_t next_m_offset = m_offset + i * e.strides[cur_axis];
+    apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
+                         next_m_offset);
+  }
+}
+
+void FloatTensor::apply_broadcast(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                     float *)>
+    v_func,
+  TensorV2 &output) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim);
+
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData<float>() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
+  if (dim == m.getDim()) {
+    BroadcastInfoV2 e;
+    e.buffer_size = size();
+    e.strides[3] = 1;
+    e.tensor_type = getTensorType();
+    v_func(e, (float *)getData(), m.getData<float>(), output.getData<float>());
+    return;
+  }
+
+  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
 } // namespace nntrainer

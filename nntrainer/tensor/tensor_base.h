@@ -383,7 +383,31 @@ protected:
    */
   std::shared_ptr<SrcSharedTensorBase> src_tensor;
 
-  struct BroadcastInfoV2;
+  /**
+   * @struct External Loop Info for broadcasted info
+   * @brief External Loop Info for broadcasted iteration. Please refer to
+   * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+   * @note This should better be implemented in iterator fashion before used
+   * extensively.
+   */
+  struct BroadcastInfoV2 {
+
+    /**
+     * @brief Construct a new External Loop Info object
+     */
+    BroadcastInfoV2() :
+      buffer_size(0),
+      buffer_axis(-1),
+      strides{0, 0, 0, 0},
+      tensor_type({Tformat::NCHW, Tdatatype::FP32}) {}
+
+    unsigned int buffer_size; /**< virtual size of the buffer */
+    int buffer_axis;          /**< the smallest axis that should be looped.
+                                   -1 means no loop needed*/
+    std::array<unsigned int, TensorDim::MAXDIM>
+      strides; /**< modified strides for the loop */
+    nntrainer::TensorDim::TensorType tensor_type;
+  };
 
   /**
    * @brief compute Loop info for broadcasting and vectorization
