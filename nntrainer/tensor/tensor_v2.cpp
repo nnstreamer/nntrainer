@@ -180,6 +180,63 @@ void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
 
+void TensorV2::copy(const TensorV2 &from) {
+  /// @todo enable copy to non-contiguous tensor
+  if (!itensor->getContiguous()) {
+    throw std::runtime_error("Cannot copy non-contiguous tensor");
+  }
+
+  if (from.size() != 0 && size() == from.size() &&
+      getDataType() == from.getDataType()) {
+    // if tensor size and data type match, copy data
+    itensor->copy(from);
+  } else {
+    // replace with a new tensor that are the same with the given tensor
+    if (from.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      TensorV2 t = TensorV2(from.getDim(), from.getData<float>());
+      swap(t, *this);
+    } else if (from.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      TensorV2 t = TensorV2(from.getDim(), from.getData<_FP16>());
+      swap(t, *this);
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    }
+  }
+}
+
+void TensorV2::copyData(const TensorV2 &from) { itensor->copyData(from); }
+
+void TensorV2::copy_with_stride(const TensorV2 &from) {
+  if (itensor->getDim() == from.getDim()) {
+    // if the tensor dim matches, copy the data
+    copy(from);
+  } else {
+    // replace with a new tensor that has the same data as the given tensor
+    TensorV2 t = TensorV2(from.getDim(), true);
+    for (unsigned int b = 0; b < t.batch(); ++b) {
+      for (unsigned int c = 0; c < t.channel(); ++c) {
+        for (unsigned int h = 0; h < t.height(); ++h) {
+          for (unsigned int w = 0; w < t.width(); ++w) {
+            if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+              t.setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
+            } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+              /// @todo remove #ifdef ENABLE_FP16
+#ifdef ENABLE_FP16
+              t.setValue(b, c, h, w, from.getValue<_FP16>(b, c, h, w));
+#else
+              throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+            }
+          }
+        }
+      }
+    }
+    swap(t, *this);
+  }
+}
+
 void TensorV2::reshape(const TensorDim &d) { itensor->reshape(d); }
 
 TensorDim TensorV2::getDim() const { return itensor->getDim(); }

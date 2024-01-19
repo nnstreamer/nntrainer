@@ -223,6 +223,20 @@ public:
 #endif
 
   /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   *
+   * @note copy can reshape the tensor to match the shape
+   */
+  virtual void copy(const TensorV2 &from) = 0;
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   */
+  virtual void copyData(const TensorV2 &from) = 0;
+
+  /**
    * @brief     put data of Tensor
    * @note      It is only effective when memory_swap is used
    */

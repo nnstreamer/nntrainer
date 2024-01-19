@@ -530,6 +530,29 @@ public:
   void putData() const;
 
   /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   *
+   * @note copy can reshape the tensor to match the shape
+   * @note support copying data from multiple data type
+   */
+  void copy(const TensorV2 &from);
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   * @note      support copying data from multiple data type
+   */
+  void copyData(const TensorV2 &from);
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   * @note      only support copying data from tensor with the same data type
+   */
+  void copy_with_stride(const TensorV2 &from);
+
+  /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch

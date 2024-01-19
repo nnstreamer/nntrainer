@@ -203,6 +203,16 @@ public:
   }
 
   /**
+   * @copydoc TensorV2::copy(const TensorV2 &from)
+   */
+  void copy(const TensorV2 &from);
+
+  /**
+   * @copydoc TensorV2::copyData(const TensorV2 &from)
+   */
+  void copyData(const TensorV2 &from);
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;
