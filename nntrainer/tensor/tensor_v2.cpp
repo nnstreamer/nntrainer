@@ -180,6 +180,8 @@ void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
 
+void TensorV2::reshape(const TensorDim &d) { itensor->reshape(d); }
+
 TensorDim TensorV2::getDim() const { return itensor->getDim(); }
 
 TensorDim::TensorType TensorV2::getTensorType() const {
