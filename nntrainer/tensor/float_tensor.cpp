@@ -293,6 +293,36 @@ TensorV2 &FloatTensor::apply(std::function<float(float)> f,
   return output;
 }
 
+void FloatTensor::copy(const TensorV2 &from) {
+  reshape(from.getDim());
+  copy(from.getData<float>());
+}
+
+void FloatTensor::copyData(const TensorV2 &from) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot copy.";
+
+  NNTR_THROW_IF(size() != from.size(), std::invalid_argument)
+    << "Size of tensor to copy must match";
+
+  switch (from.getDataType()) {
+  case ml::train::TensorDim::DataType::FP32:
+    copy(from.getData<float>());
+    break;
+  case ml::train::TensorDim::DataType::FP16:
+/// @todo remove #ifdef ENABLE_FP16
+#ifdef ENABLE_FP16
+    scopy(size(), from.getData<_FP16>(), 1, (float *)getData(), 1);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    break;
+  default:
+    throw std::invalid_argument("Error: Unsupported data type");
+    break;
+  }
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();
@@ -342,10 +372,9 @@ void FloatTensor::print(std::ostream &out) const {
   out.copyfmt(init);
 }
 
-/// @todo include getName()
 void FloatTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << "Tensor is not contiguous, cannot copy.";
+    << getName() << " is not contiguous, cannot copy.";
 
   if (buf == getData()) {
     return;

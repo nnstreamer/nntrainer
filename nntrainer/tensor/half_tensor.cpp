@@ -293,6 +293,32 @@ TensorV2 &HalfTensor::apply(std::function<_FP16(_FP16)> f,
   return output;
 }
 
+void HalfTensor::copy(const TensorV2 &from) {
+  reshape(from.getDim());
+  copy(from.getData<_FP16>());
+}
+
+void HalfTensor::copyData(const TensorV2 &from) {
+  if (!contiguous) {
+    throw std::runtime_error("Cannot copy non-contiguous tensor");
+  }
+
+  if (size() != from.size())
+    throw std::invalid_argument("Size of tensor to copy must match");
+
+  switch (from.getDataType()) {
+  case ml::train::TensorDim::DataType::FP32:
+    scopy(size(), from.getData<float>(), 1, (_FP16 *)getData(), 1);
+    break;
+  case ml::train::TensorDim::DataType::FP16:
+    copy(from.getData<_FP16>());
+    break;
+  default:
+    throw std::invalid_argument("Error: Unsupported data type");
+    break;
+  }
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
@@ -343,10 +369,9 @@ void HalfTensor::print(std::ostream &out) const {
   out.copyfmt(init);
 }
 
-/// @todo include getName()
 void HalfTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << "Tensor is not contiguous, cannot copy.";
+    << getName() << " is not contiguous, cannot copy.";
 
   if (buf == getData()) {
     return;
