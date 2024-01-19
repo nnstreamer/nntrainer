@@ -406,6 +406,20 @@ public:
   void initialize(Initializer init);
 
   /**
+   * @brief Apply instantly to the element for _FP16
+   * @param[in] *function function pointer applied
+   * @return int ML_ERROR_NONE if successful
+   * @throws runtime_error if _FP16 is not supported.
+   */
+  int apply_i(std::function<_FP16(_FP16)> f) {
+    THROW_UNLESS_FP16_ENABLED;
+    TensorV2 result = *this;
+    apply<_FP16>(f, result);
+
+    return ML_ERROR_NONE;
+  };
+
+  /**
    * @brief Apply instantly to the element
    * @param[in] *function function pointer applied
    * @return int ML_ERROR_NONE if successful
