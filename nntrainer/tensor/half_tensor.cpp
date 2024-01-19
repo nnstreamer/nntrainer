@@ -355,4 +355,59 @@ void HalfTensor::copy(const void *buf) {
   scopy(size(), (_FP16 *)buf, 1, (_FP16 *)getData(), 1);
 }
 
+void HalfTensor::apply_broadcast(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const _FP16 *, const _FP16 *,
+                     _FP16 *)>
+    v_func,
+  TensorV2 &output) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData<_FP16>() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<_FP16>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
+  if (dim == m.getDim()) {
+    BroadcastInfoV2 e;
+    e.buffer_size = size();
+    e.strides[3] = 1;
+    v_func(e, (_FP16 *)getData(), m.getData<_FP16>(), output.getData<_FP16>());
+    return;
+  }
+
+  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
+void HalfTensor::apply_broadcast_util(
+  TensorV2 const &m,
+  std::function<void(const BroadcastInfoV2 &e, const _FP16 *, const _FP16 *,
+                     _FP16 *)>
+    v_func,
+  TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis, size_t offset,
+  size_t m_offset) const {
+
+  const _FP16 *buf = (_FP16 *)this->getData();
+  const _FP16 *m_buf = m.getData<_FP16>();
+  _FP16 *out_buf = output.getData<_FP16>();
+
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    return;
+  }
+
+  cur_axis++;
+  for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
+    size_t next_offset = offset + i * strides[cur_axis];
+    size_t next_m_offset = m_offset + i * e.strides[cur_axis];
+    apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
+                         next_m_offset);
+  }
+}
+
 } // namespace nntrainer

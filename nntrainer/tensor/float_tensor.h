@@ -215,6 +215,40 @@ private:
    * @param buf buffer to copy from
    */
   void copy(const void *buf);
+
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @param e broadcast info.
+   * @param cur_axis current axis. pass default when calling outside.
+   * @param offset offset for this.  pass default when calling outside.
+   * @param m_offset offset for m.  pass default when calling outside.
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  void apply_broadcast_util(
+    TensorV2 const &m,
+    std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+                       float *)>
+      v_func,
+    TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis = -1,
+    size_t offset = 0, size_t m_offset = 0) const;
+
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   *
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  void
+  apply_broadcast(TensorV2 const &m,
+                  std::function<void(const BroadcastInfoV2 &e, const float *,
+                                     const float *, float *)>
+                    v_func,
+                  TensorV2 &output) const;
 };
 
 } // namespace nntrainer

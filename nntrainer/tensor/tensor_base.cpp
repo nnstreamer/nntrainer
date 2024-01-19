@@ -14,33 +14,6 @@
 
 namespace nntrainer {
 
-/**
- * @struct External Loop Info for broadcasted info
- * @brief External Loop Info for broadcasted iteration. Please refer to
- * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
- * @note This should better be implemented in iterator fashion before used
- * extensively.
- */
-struct TensorBase::BroadcastInfoV2 {
-
-  /**
-   * @brief Construct a new External Loop Info object
-   *
-   */
-  BroadcastInfoV2() :
-    buffer_size(0),
-    buffer_axis(-1),
-    strides{0, 0, 0, 0},
-    tensor_type(nntrainer::TensorDim::TensorType()) {}
-
-  unsigned int buffer_size; /**< virtual size of the buffer */
-  int buffer_axis;          /**< the smallest axis that should be looped.
-                                 -1 means no loop needed*/
-  std::array<unsigned int, TensorDim::MAXDIM>
-    strides; /**< modified strides for the loop */
-  nntrainer::TensorDim::TensorType tensor_type;
-};
-
 TensorBase::TensorBase(const TensorDim &d, bool alloc_now, Initializer init,
                        std::string name_) :
   TensorBase(name_, d.getFormat()) {
