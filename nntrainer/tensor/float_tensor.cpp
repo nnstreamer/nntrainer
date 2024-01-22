@@ -325,6 +325,56 @@ void FloatTensor::copyData(const TensorV2 &from) {
   }
 }
 
+int FloatTensor::multiply_i(float const &value) {
+  float *data = (float *)getData();
+  unsigned int len = size();
+
+  sscal(len, value, data, 1);
+
+  return ML_ERROR_NONE;
+}
+
+TensorV2 &FloatTensor::multiply(float const &value, TensorV2 &out) const {
+  auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
+  apply(f, out);
+  return out;
+}
+
+TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
+                                const float beta) const {
+  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1 &&
+        beta == 0.0) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::multiplies<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf * *m_buf + beta * *out_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.getStrides()[3];
+      }
+    }
+  };
+
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
+
+  NNTR_THROW_IF(!contiguous || !m.getContiguous() || !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  NNTR_THROW_IF(!contiguous || !m.getContiguous() || !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  apply_broadcast(m, f, output);
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();

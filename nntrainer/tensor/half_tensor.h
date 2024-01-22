@@ -190,27 +190,20 @@ public:
 
   /**
    * @copydoc TensorV2::multiply_i(float const &value)
-   * @todo    Need implementation and unit tests
    */
-  int multiply_i(float const &value) override { return 0; }
+  int multiply_i(float const &value) override;
 
   /**
    * @copydoc TensorV2::multiply(float const &value, TensorV2 &out)
-   * @todo    Need implementation and unit tests
    */
-  TensorV2 &multiply(float const &value, TensorV2 &out) const override {
-    return out;
-  }
+  TensorV2 &multiply(float const &value, TensorV2 &out) const override;
 
   /**
    * @copydoc TensorV2::multiply(TensorV2 const &m, TensorV2 &output, const
    * float beta = 0.0)
-   * @todo    Need implementation and unit tests
    */
   TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
-                     const float beta = 0.0) const override {
-    return output;
-  }
+                     const float beta = 0.0) const override;
 
   /**
    * @copydoc TensorV2::copy(const TensorV2 &from)

@@ -173,7 +173,12 @@ TensorV2 &TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
-int TensorV2::multiply_i(float const &value) { return ML_ERROR_NONE; }
+int TensorV2::multiply_i(float const &value) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  return itensor->multiply_i(value);
+}
 
 TensorV2 TensorV2::multiply(float const &value) const {
   TensorV2 t;
@@ -181,10 +186,18 @@ TensorV2 TensorV2::multiply(float const &value) const {
 }
 
 TensorV2 &TensorV2::multiply(float const &value, TensorV2 &out) const {
+  itensor->multiply(value, out);
   return out;
 }
 
 int TensorV2::multiply_i(TensorV2 const &m, const float beta) {
+  try {
+    this->multiply(m, *this, beta);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   return ML_ERROR_NONE;
 }
 
@@ -195,6 +208,7 @@ TensorV2 TensorV2::multiply(TensorV2 const &m, const float beta) const {
 
 TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
                              const float beta) const {
+  itensor->multiply(m, output, beta);
   return output;
 }
 
