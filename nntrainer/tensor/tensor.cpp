@@ -3441,40 +3441,55 @@ Tensor &Tensor::erf(Tensor &out) const {
 }
 
 void Tensor::sin(Tensor &out, float alpha) {
-  NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << getName() << " is not contiguous, cannot calculate sin.";
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::sin must match");
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    sine(size(), getData<float>(), out.getData<float>(), alpha);
+    if (!contiguous) {
+      auto f = [alpha](float val) -> float { return std::sin(alpha * val); };
+      apply<float>(f, out);
+    } else {
+      sine(size(), getData<float>(), out.getData<float>(), alpha);
+    }
   } else
     throw std::invalid_argument("Error: Tensor::sin supports fp32 case only.");
 }
 
 void Tensor::cos(Tensor &out, float alpha) {
-  NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << getName() << " is not contiguous, cannot calculate cos.";
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::sin must match");
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    cosine(size(), getData<float>(), out.getData<float>(), alpha);
+    if (!contiguous) {
+      auto f = [alpha](float val) -> float { return std::cos(alpha * val); };
+      apply<float>(f, out);
+    } else {
+      cosine(size(), getData<float>(), out.getData<float>(), alpha);
+    }
   } else
     throw std::invalid_argument("Error: Tensor::cos supports fp32 case only.");
 }
 
 void Tensor::inv_sqrt_i() {
-  NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << getName() << " is not contiguous, cannot calculate inv_sqrt_i.";
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-    inv_sqrt_inplace(this->size(), getData<float>());
+    if (!contiguous) {
+      apply_i<float>([](float val) -> float { return 1 / std::sqrt(val); });
+    } else {
+      inv_sqrt_inplace(this->size(), getData<float>());
+    }
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    inv_sqrt_inplace(this->size(), getData<_FP16>());
+    if (!contiguous) {
+      apply_i<_FP16>([](_FP16 val) -> _FP16 {
+        return 1 / std::sqrt(static_cast<float>(val));
+      });
+    } else {
+      inv_sqrt_inplace(this->size(), getData<_FP16>());
+    }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else
-    throw std::invalid_argument("Error: inv_sqrt_i only supports fp32, fp16");
+    throw std::invalid_argument(
+      "Error: Tensor::inv_sqrt_i only supports fp32, fp16");
 }
 
 float Tensor::l2norm() const {
