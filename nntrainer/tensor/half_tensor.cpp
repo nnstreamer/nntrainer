@@ -321,6 +321,51 @@ void HalfTensor::copyData(const TensorV2 &from) {
   }
 }
 
+int HalfTensor::multiply_i(float const &value) {
+  _FP16 *data = (_FP16 *)getData();
+  unsigned int len = size();
+  sscal(len, value, data, 1);
+
+  return ML_ERROR_NONE;
+}
+
+TensorV2 &HalfTensor::multiply(float const &value, TensorV2 &out) const {
+  auto f = std::bind(std::multiplies<_FP16>(), std::placeholders::_1,
+                     static_cast<_FP16>(value));
+  apply(f, out);
+  return out;
+}
+
+TensorV2 &HalfTensor::multiply(TensorV2 const &m, TensorV2 &output,
+                               const float beta) const {
+  auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
+               _FP16 *out_buf) {
+    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1 &&
+        beta == 0.0) {
+      ewvm(e.buffer_size, buf, m_buf, out_buf);
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf * *m_buf + static_cast<_FP16>(beta) * *out_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.getStrides()[3];
+      }
+    }
+  };
+
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
+
+  NNTR_THROW_IF(!contiguous || !m.getContiguous() || !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  apply_broadcast(m, f, output);
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
