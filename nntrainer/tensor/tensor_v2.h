@@ -469,6 +469,47 @@ public:
                   TensorV2 &output) const;
 
   /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
+   * @retval    #ML_ERROR_NONE successful
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply_i
+   */
+  int multiply_i_strided(TensorV2 const &m, const float beta = 0.0);
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply
+   */
+  TensorV2 multiply_strided(TensorV2 const &m, const float beta = 0.0) const;
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @param[in] beta scalar to multiply output with and add
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply
+   */
+  TensorV2 &multiply_strided(TensorV2 const &m, TensorV2 &output,
+                             const float beta = 0.0) const;
+
+  /**
    * @brief     Multiply value element by element immediately
    * @param[in] value multiplier
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right

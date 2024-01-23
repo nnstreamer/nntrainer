@@ -179,6 +179,17 @@ public:
                   TensorV2 &output) const override;
 
   /**
+   * @copydoc TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
+   * const float beta)
+   * @todo    Need implementation and unit tests
+   */
+  TensorV2 multiply_strided(TensorV2 const &m, TensorV2 &output,
+                            const float beta) const override {
+    throw std::logic_error("multiply_strided is not implemented yet");
+    return output;
+  }
+
+  /**
    * @copydoc TensorV2::multiply_i(float const &value)
    * @todo    Need implementation and unit tests
    */
