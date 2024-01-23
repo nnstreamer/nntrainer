@@ -151,6 +151,28 @@ TensorV2 &TensorV2::apply(std::function<TensorV2 &(TensorV2, TensorV2 &)> f,
   return f(*this, output);
 }
 
+int TensorV2::multiply_i_strided(TensorV2 const &m, const float beta) {
+  try {
+    this->multiply_strided(m, *this, beta);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+TensorV2 TensorV2::multiply_strided(TensorV2 const &m, const float beta) const {
+  TensorV2 t;
+  return this->multiply_strided(m, t, beta);
+}
+
+TensorV2 &TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
+                                     const float beta) const {
+  throw std::logic_error("multiply_strided is not implemented yet");
+  return output;
+}
+
 int TensorV2::multiply_i(float const &value) { return ML_ERROR_NONE; }
 
 TensorV2 TensorV2::multiply(float const &value) const {

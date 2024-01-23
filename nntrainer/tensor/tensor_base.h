@@ -183,6 +183,13 @@ public:
   virtual void initialize(Initializer init) = 0;
 
   /**
+   * @copydoc TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
+   * const float beta)
+   */
+  virtual TensorV2 multiply_strided(TensorV2 const &m, TensorV2 &output,
+                                    const float beta) const = 0;
+
+  /**
    * @copydoc TensorV2::multiply_i(float const &value)
    */
   virtual int multiply_i(float const &value) = 0;
