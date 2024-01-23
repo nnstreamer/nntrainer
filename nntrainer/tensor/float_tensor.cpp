@@ -261,6 +261,8 @@ void FloatTensor::initialize(Initializer init) {
 
 TensorV2 &FloatTensor::apply(std::function<float(float)> f,
                              TensorV2 &output) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+
   if (contiguous && output.getContiguous()) {
     const float *data = (float *)getData();
     float *rdata = output.getData<float>();
