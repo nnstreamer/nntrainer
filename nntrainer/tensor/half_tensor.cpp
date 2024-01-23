@@ -261,6 +261,8 @@ void HalfTensor::initialize(Initializer init) {
 
 TensorV2 &HalfTensor::apply(std::function<_FP16(_FP16)> f,
                             TensorV2 &output) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+
   if (contiguous && output.getContiguous()) {
     const _FP16 *data = (_FP16 *)getData();
     _FP16 *rdata = output.getData<_FP16>();
