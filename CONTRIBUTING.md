@@ -34,7 +34,17 @@ The committers are:
 * Gichan Jang @gichan-jang
 * Yongjoo Ahn @anyj0527
 * Jihoon Lee @zhoonit
-
+* Hyeonseok Lee @lhs8928
+* Mete Ozay @meteozay
+* Hyunil Park @songgot
+* Jiho Chu @jihochu
+* Yelin Jeong @niley7464
+* Donghak Park @DonghakPark
+* Hyungjun Seo @SeoHyungjun
+* Seungbaek Hong @baek2sm
+* Sungsik Kong @skykongkong8
+* Donghyeon Jeong @djeong20
+* Eunyu Yang @EunjuYang
 
 ## Merging a pull-request
 
