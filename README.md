@@ -191,6 +191,7 @@ Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/mast
 * [Seungbaek Hong](https://github.com/baek2sm)
 * [Sungsik Kong](https://github.com/skykongkong8)
 * [Donghyeon Jeong](https://github.com/djeong20)
+* [Eunyu Yang](https://github.com/EunjuYang)
 
 ## Open Source License
 
