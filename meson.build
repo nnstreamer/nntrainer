@@ -63,10 +63,29 @@ if get_option('enable-fp16')
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
    elif arch == 'aarch64'
-     add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     ## About FP16 in GCC (from GCC-9.1 manual)
+     # https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html
+     # On ARM and AArch64 targets, GCC supports half-precision (16-bit) floating point
+     #   via the __fp16 type defined in the ARM C Language Extensions.
+     # On ARM systems, you must enable this type explicitly with the -mfp16-format
+     #   command-line option in order to use it.
+     if cxx.has_argument('-mfp16-format=ieee')
+       add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     else
+       message ('The compiler does not support -mfp16-format=ieee. However, according to https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html, gcc may use IEEE fp16 anyway. Thus, we will proceed without the option for FP16 support.')
+     endif
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
+   elif arch == 'arm'
+     if cxx.has_argument('-mfp16-format=ieee')
+       add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+       extra_defines += '-DENABLE_FP16=1'
+       extra_defines += '-DUSE__FP16=1'
+       extra_defines += '-DUSE_NEON=1'
+     else
+       error ('The compiler does not support -mfp16-format=ieee')
+     endif
    else
      has_avx512fp16 = cc.has_argument('-mavx512fp16')
      if (has_avx512fp16)
