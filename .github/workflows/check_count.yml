@@ -1,4 +1,4 @@
-name: Upload Data
+name: Check Review
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
     types: [edited, dismissed, submitted]
 
 jobs:
-  label:
+  check_review:
     runs-on: ubuntu-latest
     steps:
       - name: review_count
@@ -27,7 +27,7 @@ jobs:
           echo $review > ./pr/review_num
           echo $IS_CONTAIN > ./pr/contain_bool
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr_number
           path: pr/

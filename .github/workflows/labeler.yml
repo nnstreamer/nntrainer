@@ -1,15 +1,23 @@
-name: Labeler
+name: Review_label
 on:
   workflow_run:
-    workflows: ["Upload Data"]
+    workflows: ["Check Review"]
     types:
       - completed
 jobs:
+
+  on-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed'
+
   label:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: "Download artifact"
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -36,7 +44,7 @@ jobs:
         run: unzip pr_number.zip
 
       - name: Remove label if approved review >= 3
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -55,7 +63,7 @@ jobs:
             }
 
       - name: Make label if approved review < 3
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
