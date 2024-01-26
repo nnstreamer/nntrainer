@@ -73,13 +73,35 @@ if get_option('enable-fp16')
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
    elif arch == 'aarch64'
-     add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     ## About FP16 in GCC (from GCC-9.1 manual)
+     # https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html
+     # On ARM and AArch64 targets, GCC supports half-precision (16-bit) floating point
+     #   via the __fp16 type defined in the ARM C Language Extensions.
+     # On ARM systems, you must enable this type explicitly with the -mfp16-format
+     #   command-line option in order to use it.
+     ## About FP16-SIMD in aarch64
+     # FP16-SIMD is supported since armv8.2. If you enable this forcibly, it won't be
+     # comaptible with armv8.0 machines.
+     if cxx.has_argument('-mfp16-format=ieee')
+       add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     else
+       message ('The compiler does not support -mfp16-format=ieee. However, according to https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html, gcc may use IEEE fp16 anyway. Thus, we will proceed without the option for FP16 support.')
+     endif
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
    elif arch == 'arm'
-     error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
-   else
+     ## About FP16-SIMD in arm
+     # FP16-SIMD is supported since armv8.2.
+     # Thus, even if fp16 is force-enabled, NEON is off.
+     if cxx.has_argument('-mfp16-format=ieee')
+       add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+       extra_defines += '-DENABLE_FP16=1'
+       extra_defines += '-DUSE__FP16=1'
+     else
+       error ('The compiler does not support -mfp16-format=ieee')
+     endif
+   elif arch == 'x86_64'
      if cc.version().version_compare('>=12.1.0')
        message ('Float16 for x86_64 enabled. Modern gcc-x64 generally supports float16 with _Float16.')
        extra_defines += '-DENABLE_FP16=1'
@@ -91,6 +113,10 @@ if get_option('enable-fp16')
      else
        warning ('Float16 for x86_64 enabled. However, software emulation is applied for fp16, making it slower and inconsistent. Use GCC 12+ for FP16 support. This build will probably fail unless you bring a compiler that supports fp16 for x64.')
      endif
+   elif arch == 'riscv64'
+     error ('RISCV64 RVV support and fp16 support is not yet implemented.')
+   else
+     error ('FP16 support for this arch is not yet implemented.')
    endif  
 endif
 
