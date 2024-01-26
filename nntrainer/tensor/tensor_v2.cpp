@@ -22,10 +22,12 @@ TensorV2::TensorV2(std::string name_, Tformat fm, Tdatatype d_type) {
   itensor = nullptr;
 
   if (d_type == Tdatatype::FP32) {
-    itensor = new FloatTensor(name_, fm);
+    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(name_, fm),
+                                           std::default_delete<FloatTensor>());
   } else if (d_type == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = new HalfTensor(name_, fm);
+    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(name_, fm),
+                                          std::default_delete<HalfTensor>());
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -42,10 +44,14 @@ TensorV2::TensorV2(const TensorDim &d, bool alloc_now, Initializer init,
   itensor = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
-    itensor = new FloatTensor(d, alloc_now, init, name);
+    itensor =
+      std::shared_ptr<FloatTensor>(new FloatTensor(d, alloc_now, init, name),
+                                   std::default_delete<FloatTensor>());
   } else if (d.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = new HalfTensor(d, alloc_now, init, name);
+    itensor =
+      std::shared_ptr<HalfTensor>(new HalfTensor(d, alloc_now, init, name),
+                                  std::default_delete<HalfTensor>());
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -61,10 +67,12 @@ TensorV2::TensorV2(const TensorDim &d, const void *buf) {
   itensor = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
-    itensor = new FloatTensor(d, buf);
+    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, buf),
+                                           std::default_delete<FloatTensor>());
   } else if (d.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = new HalfTensor(d, buf);
+    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, buf),
+                                          std::default_delete<HalfTensor>());
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -79,14 +87,16 @@ TensorV2::TensorV2(const TensorDim &d, const void *buf) {
 TensorV2::TensorV2(
   std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
   ml::train::TensorDim::TensorType t_type) {
-  itensor = new FloatTensor(d, t_type.format);
+  itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
+                                         std::default_delete<FloatTensor>());
 }
 
 #ifdef ENABLE_FP16
 TensorV2::TensorV2(
   std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
   ml::train::TensorDim::TensorType t_type) {
-  itensor = new HalfTensor(d, t_type.format);
+  itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, t_type.format),
+                                        std::default_delete<HalfTensor>());
 }
 #endif
 
@@ -95,12 +105,12 @@ bool TensorV2::operator==(const TensorV2 &rhs) const {
   if (*itensor == *rhs.itensor) {
     /// compares tensor data
     if (getDataType() == Tdatatype::FP32) {
-      return *dynamic_cast<FloatTensor *>(itensor) ==
-             *dynamic_cast<FloatTensor *>(rhs.itensor);
+      return *std::dynamic_pointer_cast<FloatTensor>(itensor) ==
+             *std::dynamic_pointer_cast<FloatTensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-      return *dynamic_cast<HalfTensor *>(itensor) ==
-             *dynamic_cast<HalfTensor *>(rhs.itensor);
+      return *std::dynamic_pointer_cast<HalfTensor>(itensor) ==
+             *std::dynamic_pointer_cast<HalfTensor>(rhs.itensor);
 #else
       throw std::invalid_argument(
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
@@ -305,14 +315,16 @@ size_t TensorV2::width() const { return itensor->width(); }
 
 void TensorV2::createSharedDataTensor(const TensorV2 &src, TensorV2 &dest,
                                       size_t offset) const {
-  itensor->createSharedDataTensor(src.itensor, dest.itensor, offset);
+  itensor->createSharedDataTensor(src.itensor.get(), dest.itensor.get(),
+                                  offset);
 }
 
 TensorV2 TensorV2::getSharedDataTensor(const TensorDim dim_, size_t offset,
                                        bool reset_stride,
                                        const std::string &name_) const {
   TensorV2 ret = *this;
-  ret.itensor = itensor->getSharedDataTensor(dim_, offset, reset_stride, name_);
+  ret.itensor = std::shared_ptr<TensorBase>(
+    itensor->getSharedDataTensor(dim_, offset, reset_stride, name_));
   return ret;
 }
 

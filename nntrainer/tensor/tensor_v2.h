@@ -708,7 +708,7 @@ public:
   }
 
 private:
-  TensorBase *itensor;
+  std::shared_ptr<TensorBase> itensor;
 };
 
 } // namespace nntrainer
