@@ -285,7 +285,7 @@ const std::array<size_t, TensorDim::MAXDIM> TensorV2::getStrides() const
 }
 
 bool TensorV2::checkContinuous(unsigned int np1, unsigned int np2) const {
-  if (np1 < 0 || np1 > 3 || np2 < 0 || np2 > 3) {
+  if (np1 > 3 || np2 > 3) {
     throw std::invalid_argument(
       "Error: Input value must be within the range of 0 to 3.");
   }
