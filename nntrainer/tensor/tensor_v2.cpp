@@ -174,7 +174,7 @@ TensorV2 TensorV2::multiply_strided(TensorV2 const &m, const float beta) const {
 
 TensorV2 &TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
                                      const float beta) const {
-  throw std::logic_error("multiply_strided is not implemented yet");
+  itensor->multiply_strided(m, output, beta);
   return output;
 }
 
