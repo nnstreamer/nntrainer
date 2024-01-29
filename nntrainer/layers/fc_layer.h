@@ -99,13 +99,16 @@ public:
    * &value)
    */
   void setProperty(const std::vector<std::string> &values) override;
+  
+  void forwarding_lora(RunLayerContext &context, Tensor &weight);
 
   inline static const std::string type = "fully_connected";
 
 private:
-  std::tuple<props::Unit>
-    fc_props; /**< fc layer properties : unit - number of output neurons */
+  std::tuple<props::Unit, props::LoraRank>
+    fc_props; /**< fc layer properties : unit - number of output neurons, lora_rank : rank of lora (optional) */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
+  std::array<unsigned int, 2> lora_idx; /**< indices of the lora weights */
 };
 } // namespace nntrainer
 
