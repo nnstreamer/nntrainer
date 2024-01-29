@@ -10,6 +10,16 @@ project('nntrainer', 'c', 'cpp',
     'buildtype=release'
   ]
 )
+
+# Set version info
+nntrainer_version = meson.project_version()
+nntrainer_version_split = nntrainer_version.split('.')
+
+add_project_arguments('-DVERSION="' + nntrainer_version + '"', language: ['c', 'cpp'])
+add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language: ['c', 'cpp'])
+add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language: ['c', 'cpp'])
+add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language: ['c', 'cpp'])
+
 extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
