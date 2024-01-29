@@ -24,6 +24,8 @@
 #include <optimizer.h>
 #include <optimizer_wrapped.h>
 
+#include <cstdlib>
+
 namespace ml {
 namespace train {
 
@@ -136,6 +138,16 @@ createLearningRateScheduler(const std::string &type,
                             const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
   return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+}
+
+std::string getVersion() {
+  std::string version = std::to_string(VERSION_MAJOR);
+  version += ".";
+  version += std::to_string(VERSION_MINOR);
+  version += ".";
+  version += std::to_string(VERSION_MICRO);
+
+  return version;
 }
 
 } // namespace train

@@ -18,6 +18,7 @@
 #if __cplusplus >= MIN_CPP_VERSION
 
 #include <nntrainer-api-common.h>
+#include <string>
 
 namespace ml {
 namespace train {
@@ -41,6 +42,11 @@ enum class ExecutionMode {
   INFERENCE, /** Inference mode, label is optional */
   VALIDATE   /** Validate mode, label is necessary */
 };
+
+/**
+ * @brief Get the version of NNTrainer
+ */
+extern std::string getVersion();
 
 } // namespace train
 } // namespace ml
