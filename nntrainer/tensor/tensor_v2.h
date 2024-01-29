@@ -370,7 +370,20 @@ public:
                 float value);
 
   /**
-   * @brief     Fill the Tensor elements with zero
+   * @brief     add the element value to the location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @param[in] value value to be stored
+   * @param[in] beta scalar to multiply output with and add
+   */
+  void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+                float value, float beta) noexcept;
+
+  /**
+   * @brief 
+   * 
    */
   void setZero();
 

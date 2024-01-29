@@ -134,6 +134,11 @@ void TensorV2::setValue(unsigned int b, unsigned int c, unsigned int h,
   itensor->setValue(b, c, h, w, value);
 }
 
+void TensorV2::addValue(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w, float value, float beta) noexcept {
+  itensor->addValue(b, c, h, w, value, beta);
+}
+
 void TensorV2::setZero() { itensor->setZero(); }
 
 void TensorV2::setRandNormal(float mean, float stddev) {
