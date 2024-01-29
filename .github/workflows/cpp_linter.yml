@@ -13,7 +13,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: file
-          extensions: 'cc'
           version: 16
           lines-changed-only: true
 
