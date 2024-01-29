@@ -147,10 +147,16 @@ public:
   virtual void setValue(float value) = 0;
 
   /**
-   * @copydoc TensorV2::setValue(float value)
+   * @copydoc TensorV2::setValue(b, c, h, w, value)
    */
-  virtual void setValue(unsigned int batch, unsigned int c, unsigned int h,
+  virtual void setValue(unsigned int b, unsigned int c, unsigned int h,
                         unsigned int w, float value) = 0;
+
+  /**
+   * @copydoc TensorV2::addValue()
+   */
+  virtual void addValue(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w, float value, float beta) = 0;
 
   /**
    * @copydoc TensorV2::setZero()

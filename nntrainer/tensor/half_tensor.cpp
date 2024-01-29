@@ -162,14 +162,30 @@ const void *HalfTensor::getAddress(unsigned int i) const {
   return &((_FP16 *)getData())[i];
 }
 
+const _FP16 HalfTensor::getValue(unsigned int i) const {
+  return ((_FP16 *)getData())[i];
+}
+
+const _FP16 HalfTensor::getValue(unsigned int b, unsigned int c, unsigned int h,
+                                 unsigned int w) const {
+  return getValue(getIndex(b, c, h, w));
+}
+
 void HalfTensor::setValue(float value) {
   _FP16 *data = (_FP16 *)getData();
   std::fill(data, data + size(), static_cast<_FP16>(value));
 }
 
-void HalfTensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
+void HalfTensor::setValue(unsigned int b, unsigned int c, unsigned int h,
                           unsigned int w, float value) {
-  ((_FP16 *)getData())[getIndex(batch, c, h, w)] = static_cast<_FP16>(value);
+  ((_FP16 *)getData())[getIndex(b, c, h, w)] = static_cast<_FP16>(value);
+}
+
+void HalfTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
+                          unsigned int w, float value, float beta) {
+  auto const &idx = getIndex(b, c, h, w);
+  ((_FP16 *)getData())[idx] *= static_cast<_FP16>(beta);
+  ((_FP16 *)getData())[idx] += static_cast<_FP16>(value);
 }
 
 void HalfTensor::setZero() {
@@ -284,8 +300,7 @@ TensorV2 &HalfTensor::apply(std::function<_FP16(_FP16)> f,
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
           for (unsigned int w = 0; w < width(); ++w) {
-            output.setValue(b, c, h, w,
-                            f(((_FP16 *)getData())[getIndex(b, c, h, w)]));
+            output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
           }
         }
       }

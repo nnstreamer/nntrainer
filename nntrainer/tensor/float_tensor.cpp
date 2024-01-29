@@ -162,14 +162,30 @@ const void *FloatTensor::getAddress(unsigned int i) const {
   return &((float *)getData())[i];
 }
 
+const float FloatTensor::getValue(unsigned int i) const {
+  return ((float *)getData())[i];
+}
+
+const float FloatTensor::getValue(unsigned int b, unsigned int c,
+                                  unsigned int h, unsigned int w) const {
+  return getValue(getIndex(b, c, h, w));
+}
+
 void FloatTensor::setValue(float value) {
   float *data = (float *)getData();
   std::fill(data, data + size(), value);
 }
 
-void FloatTensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
+void FloatTensor::setValue(unsigned int b, unsigned int c, unsigned int h,
                            unsigned int w, float value) {
-  ((float *)getData())[getIndex(batch, c, h, w)] = value;
+  ((float *)getData())[getIndex(b, c, h, w)] = value;
+}
+
+void FloatTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
+                           unsigned int w, float value, float beta) {
+  auto const &idx = getIndex(b, c, h, w);
+  ((float *)getData())[idx] *= beta;
+  ((float *)getData())[idx] += value;
 }
 
 void FloatTensor::setZero() {
@@ -284,8 +300,7 @@ TensorV2 &FloatTensor::apply(std::function<float(float)> f,
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
           for (unsigned int w = 0; w < width(); ++w) {
-            output.setValue(b, c, h, w,
-                            f(((float *)getData())[getIndex(b, c, h, w)]));
+            output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
           }
         }
       }

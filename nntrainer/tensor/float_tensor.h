@@ -116,15 +116,37 @@ public:
   const void *getAddress(unsigned int i) const override;
 
   /**
+   * @brief     return value at specific location
+   * @param[in] i index
+   */
+  const float getValue(unsigned int i) const;
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   */
+  const float getValue(unsigned int b, unsigned int c, unsigned int h,
+                       unsigned int w) const;
+
+  /**
    * @copydoc TensorV2::setValue(float value)
    */
   void setValue(float value) override;
 
   /**
-   * @copydoc TensorV2::setValue(float value)
+   * @copydoc TensorV2::setValue(b, c, h, w, value)
    */
-  void setValue(unsigned int batch, unsigned int c, unsigned int h,
-                unsigned int w, float value) override;
+  void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+                float value) override;
+
+  /**
+   * @copydoc TensorV2::addValue(b, c, h, w, value, beta)
+   */
+  void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+                float value, float beta) override;
 
   /**
    * @copydoc TensorV2::setZero()
