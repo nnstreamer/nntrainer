@@ -310,6 +310,66 @@ TensorV2 &HalfTensor::apply(std::function<_FP16(_FP16)> f,
   return output;
 }
 
+TensorV2 HalfTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
+                                      const float beta) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+
+  if (size() != m.size() || size() != output.size())
+    throw std::invalid_argument(
+      "Strided multiplication does not support broadcasting");
+
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData<_FP16>() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<_FP16>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  if (strides[3] != 1 || m.getStrides()[3] != 1 ||
+      output.getStrides()[3] != 1 || beta != 0.0) {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.addValue(
+              b, c, h, w, getValue(b, c, h, w) * m.getValue<_FP16>(b, c, h, w),
+              beta);
+          }
+        }
+      }
+    }
+  } else {
+    /** @todo optimize by combining these loops where stride is 1 */
+    if (this->getFormat() == Tformat::NCHW) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            _FP16 *out_data = output.getAddress<_FP16>(b, c, h, 0);
+            const _FP16 *m_data = m.getAddress<_FP16>(b, c, h, 0);
+            const _FP16 *in_data = (_FP16 *)getAddress(getIndex(b, c, h, 0));
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::multiplies<_FP16>());
+          }
+        }
+      }
+    } else {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            _FP16 *out_data = output.getAddress<_FP16>(b, 0, h, w);
+            const _FP16 *m_data = m.getAddress<_FP16>(b, 0, h, w);
+            const _FP16 *in_data = (_FP16 *)getAddress(getIndex(b, 0, h, w));
+            std::transform(in_data, in_data + channel(), m_data, out_data,
+                           std::multiplies<_FP16>());
+          }
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 void HalfTensor::copy(const TensorV2 &from) {
   reshape(from.getDim());
   copy(from.getData<_FP16>());

@@ -310,6 +310,66 @@ TensorV2 &FloatTensor::apply(std::function<float(float)> f,
   return output;
 }
 
+TensorV2 FloatTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
+                                       const float beta) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+
+  if (size() != m.size() || size() != output.size())
+    throw std::invalid_argument(
+      "Strided multiplication does not support broadcasting");
+
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(m.getData<float>() == nullptr, std::invalid_argument)
+    << m.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  if (strides[3] != 1 || m.getStrides()[3] != 1 ||
+      output.getStrides()[3] != 1 || beta != 0.0) {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.addValue(
+              b, c, h, w, getValue(b, c, h, w) * m.getValue<float>(b, c, h, w),
+              beta);
+          }
+        }
+      }
+    }
+  } else {
+    /** @todo optimize by combining these loops where stride is 1 */
+    if (getFormat() == Tformat::NCHW) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            float *out_data = output.getAddress<float>(b, c, h, 0);
+            const float *m_data = m.getAddress<float>(b, c, h, 0);
+            const float *in_data = (float *)getAddress(getIndex(b, c, h, 0));
+            std::transform(in_data, in_data + width(), m_data, out_data,
+                           std::multiplies<float>());
+          }
+        }
+      }
+    } else {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            float *out_data = output.getAddress<float>(b, 0, h, w);
+            const float *m_data = m.getAddress<float>(b, 0, h, w);
+            const float *in_data = (float *)getAddress(getIndex(b, 0, h, w));
+            std::transform(in_data, in_data + channel(), m_data, out_data,
+                           std::multiplies<float>());
+          }
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 void FloatTensor::copy(const TensorV2 &from) {
   reshape(from.getDim());
   copy(from.getData<float>());
