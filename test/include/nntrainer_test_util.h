@@ -333,5 +333,34 @@ float mse(Ta *A, Tb *B, uint32_t size) {
   return mse;
 }
 
+/**
+ * @brief A helper struct for performing static_cast operations on types.
+ *
+ * This struct provides a templated function that can be used to perform a
+ * static_cast operation between two types. It is intended to be used with the
+ * std::transform() function from the STL.
+ *
+ * @tparam T The target type to which the value will be converted.
+ */
+template <typename T> // T models Any
+struct static_cast_func {
+  /**
+   * @brief Performs a static_cast operation on a given value.
+   *
+   * This function takes a constant reference to a value of type T1, where T1 is
+   * a type that is statically convertible to T. It performs a static_cast
+   * operation on the value and returns the result as a value of type T.
+   *
+   * @tparam T1 The source type of the value being converted.
+   * @param[in] x The input value to convert.
+   * @return result of the static_cast operation as a value of type
+   * T.
+   */
+  template <typename T1> // T1 models type statically convertible to T
+  T operator()(const T1 &x) const {
+    return static_cast<T>(x);
+  }
+};
+
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */
