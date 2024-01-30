@@ -124,9 +124,10 @@ RecurrentRealizer::RecurrentRealizer(const std::vector<std::string> &properties,
     std::vector<props::InputIsSequence>(), props::DynamicTimeSequence(false))) {
   auto left = loadProperties(properties, *recurrent_props);
 
-  std::transform(input_conns.begin(), input_conns.end(),
-                 std::inserter(this->input_layers, this->input_layers.begin()),
-                 [](const Connection &c) { return c.getName(); });
+  std::transform(
+    input_conns.begin(), input_conns.end(),
+    std::inserter(this->input_layers, this->input_layers.begin()),
+    [](const Connection &c) -> const auto & { return c.getName(); });
 
   /// build end info.
   /// eg)

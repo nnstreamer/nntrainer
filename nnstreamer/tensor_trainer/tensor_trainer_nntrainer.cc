@@ -236,13 +236,13 @@ void NNTrainer::TensorsQueue::push(const GstTensorMemory *input) {
 
 void NNTrainer::TensorsQueue::pop(float **input, float **label, bool *last) {
   ml_logd("<called>");
-  ml_logd("(pop/push: %d/%d)", pop_count, push_count);
 
   pid_t pid = getpid();
   pid_t tid = syscall(SYS_gettid);
   ml_logd("pid[%d], tid[%d]", pid, tid);
 
   std::unique_lock<std::mutex> lock(queue_lock);
+  ml_logd("(pop/push: %d/%d)", pop_count, push_count);
   data_empty.wait(lock, [this] { return !isQueueEmpty(); });
   ml_logd("pop condition is met");
 
