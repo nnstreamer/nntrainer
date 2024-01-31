@@ -305,9 +305,11 @@ const std::vector<std::string> LayerNode::getInputLayers() const {
     std::get<std::vector<props::InputConnection>>(*layer_node_props);
   std::vector<std::string> names;
   names.reserve(input_connections.size());
-  std::transform(input_connections.begin(), input_connections.end(),
-                 std::back_inserter(names),
-                 [](const Connection &con) { return con.getName(); });
+  std::transform(
+    input_connections.begin(), input_connections.end(),
+    std::back_inserter(names), [](const Connection &con) -> const auto & {
+      return con.getName();
+    });
   return names;
 }
 
@@ -571,7 +573,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     layer = std::move(dlayer);
   }
 
-  auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
+  const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
