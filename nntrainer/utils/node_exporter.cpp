@@ -107,7 +107,7 @@ void Exporter::saveTflResult(
 }
 
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
+void Exporter::saveTflResult(const std::tuple<props::Unit, props::LoraRank> &props,
                              const FullyConnectedLayer *self) {
   createIfNull(tf_node);
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
