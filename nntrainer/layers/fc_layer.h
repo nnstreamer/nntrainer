@@ -72,6 +72,9 @@ public:
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
+   * @note
+   * [note for LoRA] implicit calcDerivative is implicitly applied.
+   * The weight is already updated with the LoRA's (W = W + W_lora)
    */
   void calcGradient(RunLayerContext &context) override;
 
@@ -99,16 +102,21 @@ public:
    * &value)
    */
   void setProperty(const std::vector<std::string> &values) override;
-  
+
+  /**
+   * @brief forwarding function for lora.
+   * It would be called during `forwarding` of FC layer.
+   */
   void forwarding_lora(RunLayerContext &context, Tensor &weight);
 
   inline static const std::string type = "fully_connected";
 
 private:
   std::tuple<props::Unit, props::LoraRank>
-    fc_props; /**< fc layer properties : unit - number of output neurons, lora_rank : rank of lora (optional) */
+    fc_props; /**< fc layer properties : unit - number of output neurons,
+                 lora_rank : rank of lora (optional) */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
-  std::array<unsigned int, 2> lora_idx; /**< indices of the lora weights */
+  std::array<unsigned int, 2> lora_idx;   /**< indices of the lora weights */
 };
 } // namespace nntrainer
 
