@@ -217,7 +217,7 @@ public:
                 bool trainable = false,
                 TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
                 bool private_ = true) {
-    auto prefix_ = private_ ? this->name : this->prefix;
+    const auto &prefix_ = private_ ? this->name : this->prefix;
     tensors_spec.emplace_back(dim, init, trainable, prefix_ + ":" + name,
                               lifespan);
     return tensors_spec.size() - 1;
