@@ -339,6 +339,7 @@ void Profiler::unsubscribe(std::shared_ptr<ProfileListener> listener) {
 }
 
 int Profiler::registerTimeItem(const std::string &name) {
+  std::lock_guard<std::mutex> lock_listener(listeners_mutex);
   std::lock_guard<std::mutex> lock(registr_mutex);
 
   int item = time_item_names.size() + 1;
