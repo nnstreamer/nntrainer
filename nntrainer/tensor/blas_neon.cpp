@@ -1106,7 +1106,7 @@ void sgemv_transpose_neon_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
         float32x4_t y0_3_32 = vld1q_f32(y0_3);
         y0_3_32 = vfmaq_n_f32(y0_3_32, vld1q_f32(wvec0_3), x);
 
-        for (int j = 0; j < cols - idx; ++j) {
+        for (unsigned int j = 0; j < cols - idx; ++j) {
           Y32[idx + j] = y0_3_32[j];
         }
       }
