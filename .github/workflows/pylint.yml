@@ -45,6 +45,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint==3.0.2 numpy wheel
+        pip install -r tools/requirements.txt
     - name: Run PyLint on changed files
       run: |
         echo "${{ steps.get_file_changes.outputs.files}}" | tr " " "\n" | grep ".py$" | xargs pylint 
