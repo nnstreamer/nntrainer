@@ -207,6 +207,18 @@ public:
                              const float beta = 0.0) const = 0;
 
   /**
+   * @copydoc TensorV2::add(float const &value, TensorV2 &output)
+   */
+  virtual TensorV2 &add(float const &value, TensorV2 &output) const = 0;
+
+  /**
+   * @copydoc TensorV2::add(TensorV2 const &m, TensorV2 &output, float const
+   * alpha)
+   */
+  virtual TensorV2 &add(TensorV2 const &m, TensorV2 &output,
+                        float const alpha) const = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;

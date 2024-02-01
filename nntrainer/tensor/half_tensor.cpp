@@ -366,6 +366,17 @@ TensorV2 &HalfTensor::multiply(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+TensorV2 &HalfTensor::add(float const &value, TensorV2 &output) const {
+  throw std::logic_error("HalfTensor::add is not implemented yet");
+  return output;
+}
+
+TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
+                          float const alpha) const {
+  throw std::logic_error("HalfTensor::add is not implemented yet");
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
