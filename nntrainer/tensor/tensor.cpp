@@ -3092,7 +3092,9 @@ void Tensor::copyData(const Tensor &from) {
       }
     } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-      if (from.getDataType() == ml::train::TensorDim::DataType::QINT8) {
+      if (from.getDataType() == ml::train::TensorDim::DataType::FP32) {
+        scopy(size(), from.getData<float>(), 1, getData<_FP16>(), 1);
+      } else if (from.getDataType() == ml::train::TensorDim::DataType::QINT8) {
         scopy_int8_to_float16(from.size(), from.getData<uint8_t>(), 1,
                               getData<_FP16>(), 1);
       } else if (from.getDataType() == ml::train::TensorDim::DataType::QINT4) {
