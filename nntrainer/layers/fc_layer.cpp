@@ -197,6 +197,7 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
+  bool is_nchw = (djdw.getFormat() == Tformat::NCHW);
 
   const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -205,11 +206,15 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
 
+    const std::vector<unsigned int> &axes =
+      is_nchw ? std::vector<unsigned int>{0, 1, 2}
+              : std::vector<unsigned int>{0, 2, 3};
+
     if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
-      derivative_.sum({0, 1, 2}, djdb);
+      derivative_.sum(axes, djdb);
     } else {
       /// @todo optimize below by adding beta to Tensor::sum
-      Tensor t = derivative_.sum({0, 1, 2});
+      Tensor t = derivative_.sum(axes);
       djdb.add_i(t);
     }
   }
