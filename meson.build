@@ -67,6 +67,8 @@ if get_option('enable-fp16')
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
+   elif arch == 'arm'
+     error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
    else
      has_avx512fp16 = cc.has_argument('-mavx512fp16')
      if (has_avx512fp16)
