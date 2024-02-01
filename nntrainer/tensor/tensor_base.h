@@ -369,8 +369,8 @@ public:
   size_t batch() const { return dim.batch(); }
 
   /**
-   * @brief     return Tensor batch size
-   * @retval    batch size
+   * @brief     return Tensor channel size
+   * @retval    channel size
    */
   size_t channel() const { return dim.channel(); }
 
@@ -381,7 +381,7 @@ public:
   size_t height() const { return dim.height(); }
 
   /**
-   * @brief     return Tensor batch size
+   * @brief     return Tensor width size
    * @retval    width size
    */
   size_t width() const { return dim.width(); }
