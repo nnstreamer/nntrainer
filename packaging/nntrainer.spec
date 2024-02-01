@@ -47,10 +47,10 @@
 %endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
 %define enable_fp16 0
-%ifarch aarch64
-%define enable_fp16 1
-# x64/x86 requires GCC >= 12 for fp16 support.
-%endif
+### nntrainer fp16 implementation relies on NEON, which requires armv8.2-a
+### armv7l Tizen: do not support fp16 neon.
+### aarch64 Tizen: uses armv8.0a. no fp16 neon.
+### x86/x64 Tizen: it has gcc9. x86 requires gcc >= 12 for fp16
 
 ## Float16 support
 %if 0%{?enable_fp16}
@@ -563,6 +563,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
+%if 0%{?enable_fp16}
+%{_includedir}/nntrainer/util_simd_neon.h
+%endif
 
 %files devel-static
 %{_libdir}/libnntrainer*.a
