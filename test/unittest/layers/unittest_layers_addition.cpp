@@ -29,3 +29,12 @@ auto semantic_addition_multi = LayerSemanticsParamType(
 GTEST_PARAMETER_TEST(Addition, LayerSemantics,
                      ::testing::Values(semantic_addition,
                                        semantic_addition_multi));
+#ifdef ENABLE_FP16
+auto addition_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AdditionLayer>, {}, "2:3:3:3,2:3:3:3",
+  "added_w16a16.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
+  "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(Addition16, LayerGoldenTest,
+                     ::testing::Values(addition_w16a16));
+#endif
