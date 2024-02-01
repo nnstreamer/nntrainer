@@ -572,6 +572,56 @@ public:
                      const float beta = 0.0) const;
 
   /**
+   * @brief     Add Tensor Element immediately to target tensor without mem copy
+   * @param[in] value value to be added
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int add_i(float const &value);
+
+  /**
+   * @brief     Add value Element by Element
+   * @param[in] value value to be added
+   * @retval    Calculated Tensor
+   */
+  TensorV2 add(float const &value) const;
+
+  /**
+   * @brief      Add Tensor Element by Element
+   * @param[in]  value value to be added
+   * @param[out] output Tensor to save output without allocating new memory
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &add(float const &value, TensorV2 &output) const;
+
+  /**
+   * @brief     Add Tensor Element by Element without mem copy
+   * @param[in] m Tensor to be added
+   * @param[in] alpha Values to be scaled
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int add_i(TensorV2 const &m, float const alpha = 1);
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] m Tensor to be added
+   * @param[in] alpha Values to be scaled
+   * @retval    Calculated Tensor
+   */
+  TensorV2 add(TensorV2 const &m, float const alpha = 1) const;
+
+  /**
+   * @brief      Add Tensor Element by Element
+   * @param[in]  m Tensor to be added
+   * @param[out] output Tensor to be out
+   * @param[in]  alpha Values to be scaled
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &add(TensorV2 const &m, TensorV2 &output,
+                float const alpha = 1) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */

@@ -224,6 +224,18 @@ public:
                      const float beta = 0.0) const override;
 
   /**
+   * @copydoc TensorV2::add(float const &value, TensorV2 &output)
+   */
+  TensorV2 &add(float const &value, TensorV2 &output) const override;
+
+  /**
+   * @copydoc TensorV2::add(TensorV2 const &m, TensorV2 &output, float const
+   * alpha)
+   */
+  TensorV2 &add(TensorV2 const &m, TensorV2 &output,
+                float const alpha) const override;
+
+  /**
    * @copydoc TensorV2::copy(const TensorV2 &from)
    */
   void copy(const TensorV2 &from);

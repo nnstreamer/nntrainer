@@ -450,6 +450,17 @@ TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+TensorV2 &FloatTensor::add(float const &value, TensorV2 &output) const {
+  throw std::logic_error("FloatTensor::add is not implemented yet");
+  return output;
+}
+
+TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
+                           float const alpha) const {
+  throw std::logic_error("FloatTensor::add is not implemented yet");
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();

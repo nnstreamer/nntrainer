@@ -227,6 +227,41 @@ TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+int TensorV2::add_i(float const &value) {
+  /// @note will call TensorV2::add(float const &value, TensorV2 &output)
+  throw std::logic_error("TensorV2::add_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::add(float const &value) const {
+  /// @note will call TensorV2::add(float const &value, TensorV2 &output)
+  throw std::logic_error("TensorV2::add is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::add(float const &value, TensorV2 &output) const {
+  throw std::logic_error("TensorV2::add is not implemented yet");
+  return output;
+}
+
+int TensorV2::add_i(TensorV2 const &m, float const alpha) {
+  throw std::logic_error("TensorV2::add_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::add(TensorV2 const &m, float const alpha) const {
+  /// @note will call TensorV2::add(TensorV2 const &m, TensorV2 &output, float
+  /// const alpha)
+  throw std::logic_error("TensorV2::add is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::add(TensorV2 const &m, TensorV2 &output,
+                        float const alpha) const {
+  throw std::logic_error("TensorV2::add is not implemented yet");
+  return output;
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
