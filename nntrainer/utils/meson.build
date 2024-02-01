@@ -24,7 +24,7 @@ if get_option('enable-trace')
   util_headers += 'tracer.h'
 endif
 
-if get_option('platform') == 'android'
+if get_option('enable-fp16')
   util_sources += 'util_simd_neon.cpp'
   util_headers += 'util_simd_neon.h'
 endif
