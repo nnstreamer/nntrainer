@@ -382,15 +382,19 @@ public:
    * @brief Get new tensor which shares memory with current tensor but different
    * shape
    *
-   * @param dim new dimension to be set for this tensor
-   * @param offset offset to be used from the start of the data in elements
+   * @param[in] dim new dimension to be set for this tensor
+   * @param[in] offset offset to be used from the start of the data in elements
+   * @param[in] reset_stride reset stride
+   * @param[in] name_ name of the Tensor
+   * @param[out] ret output TensorBase pointer
    * @note The new tensor will share the same data as the current tensor but
    * can have different size.
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  TensorBase *getSharedDataTensor(const TensorDim dim_, size_t offset,
-                                  bool reset_stride, const std::string &name_);
+  void getSharedDataTensor(const TensorDim dim_, size_t offset,
+                           bool reset_stride, const std::string &name_,
+                           TensorBase *ret);
 
   static constexpr float epsilon = 1e-5;
 
