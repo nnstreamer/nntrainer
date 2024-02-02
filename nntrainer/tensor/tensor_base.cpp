@@ -105,10 +105,10 @@ void TensorBase::createSharedDataTensor(const TensorBase *src, TensorBase *dest,
       src->src_tensor->tensor(), offset + src->src_tensor->offset());
 }
 
-TensorBase *TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
-                                            bool reset_stride,
-                                            const std::string &name_) {
-  TensorBase *ret = this;
+void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
+                                     bool reset_stride,
+                                     const std::string &name_,
+                                     TensorBase *ret) {
   if (dim_.getFormat() != ret->dim.getFormat())
     throw std::invalid_argument("Tensor format does not match");
 
@@ -133,8 +133,6 @@ TensorBase *TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
    * called for the output tensor before operating on the output tensor.
    */
   createSharedDataTensor(this, ret, offset);
-
-  return ret;
 }
 
 TensorBase::BroadcastInfoV2

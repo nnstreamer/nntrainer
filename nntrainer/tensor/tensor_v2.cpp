@@ -359,8 +359,8 @@ TensorV2 TensorV2::getSharedDataTensor(const TensorDim dim_, size_t offset,
                                        bool reset_stride,
                                        const std::string &name_) const {
   TensorV2 ret = *this;
-  ret.itensor = std::shared_ptr<TensorBase>(
-    itensor->getSharedDataTensor(dim_, offset, reset_stride, name_));
+  itensor->getSharedDataTensor(dim_, offset, reset_stride, name_,
+                               ret.itensor.get());
   return ret;
 }
 
