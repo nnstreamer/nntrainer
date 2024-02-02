@@ -3479,7 +3479,7 @@ void Tensor::inv_sqrt_i() {
 #ifdef ENABLE_FP16
     if (!contiguous) {
       apply_i<_FP16>([](_FP16 val) -> _FP16 {
-        return 1 / std::sqrt(static_cast<float>(val));
+        return static_cast<_FP16>(1 / std::sqrt(static_cast<float>(val)));
       });
     } else {
       inv_sqrt_inplace(this->size(), getData<_FP16>());
