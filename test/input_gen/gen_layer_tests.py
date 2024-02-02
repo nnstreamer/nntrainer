@@ -1,25 +1,23 @@
-"""_summary_
-
 """
+!/usr/bin/env python3
+SPDX-License-Identifier: Apache-2.0
+#
+Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 
-#!/usr/bin/env python3
-# SPDX-License-Identifier: Apache-2.0
-##
-# Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
-#
-# @file getLayerTests.py
-# @date 13 Se 2020
-# @brief Generate *.nnlayergolden file
-# *.nnlayergolden file is expected to contain following information **in order**
-# - Initial Weights
-# - inputs
-# - outputs
-# - *gradients
-# - weights
-# - derivatives
-#
-# @author Jihoon Lee <jhoon.it.lee@samsung.com>
-# @author Sungsik Kong <ss.kong@samsung.com>
+@file getLayerTests.py
+@date 13 Se 2020
+@brief Generate *.nnlayergolden file
+*.nnlayergolden file is expected to contain following information **in order**
+- Initial Weights
+- inputs
+- outputs
+- *gradients
+- weights
+- derivatives
+
+@author Jihoon Lee <jhoon.it.lee@samsung.com>
+@author Sungsik Kong <ss.kong@samsung.com>
+"""
 
 import warnings
 from recorder import (
@@ -67,15 +65,26 @@ class PositionalEncoding(tf.keras.layers.Layer):
     """
 
     def __init__(self, position, d_model):
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         self.position = position
         self.d_model = d_model
+        self.pos_encoding = None
+        self.input_shape = None
 
     def get_angles(self, pos, i, d_model):
+        """_summary_
+
+        compute angles to encode
+        """
         angle_rates = 1 / np.power(10000, (2 * (i // 2)) / np.float32(d_model))
         return pos * angle_rates
 
     def build(self, input_shape):
+        """_summary_
+
+        build function for PositionalEncoding
+        """
+        self.input_shape = input_shape
         angle_rads = self.get_angles(
             np.arange(self.position)[:, np.newaxis],
             np.arange(self.d_model)[np.newaxis, :],
@@ -93,6 +102,10 @@ class PositionalEncoding(tf.keras.layers.Layer):
         self.pos_encoding = tf.cast(self.pos_encoding, dtype=tf.float32)
 
     def call(self, inputs):
+        """_summary_
+
+        call function for PositionalEncoding
+        """
         inputs += self.pos_encoding[:, : tf.shape(inputs[0])[-2], :]
         return inputs
 
