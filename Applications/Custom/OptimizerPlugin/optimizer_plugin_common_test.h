@@ -53,7 +53,7 @@ public:
    *
    */
   virtual void SetUp() {
-    auto f = std::get<0>(GetParam());
+    const auto &f = std::get<0>(GetParam());
     opt = std::move(f({}));
     std::tie(std::ignore, expected_type, valid_properties, options, must_fail,
              num_inputs) = GetParam();
