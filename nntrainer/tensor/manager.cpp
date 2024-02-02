@@ -672,7 +672,6 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
   const TensorLifespan &lifespan, bool is_grad_clip,
   Tensor::Initializer initializer) {
-  auto const exec_order = weight_pool.getExecutionOrder(name);
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());

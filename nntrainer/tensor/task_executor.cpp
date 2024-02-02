@@ -43,7 +43,7 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       auto &task_info = task_queue.front();
       lk.unlock();
 
-      auto id = std::get<int>(task_info);
+      const auto &id = std::get<int>(task_info);
       auto callback = std::get<CompleteCallback>(task_info);
 
       auto status = worker(task_info);

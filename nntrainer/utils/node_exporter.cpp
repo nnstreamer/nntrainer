@@ -194,7 +194,7 @@ void Exporter::saveTflResult(
 
   tf_node->setOpType(tflite::BuiltinOperator_CONV_2D);
 
-  auto strides = std::get<std::array<props::Stride, CONV2D_DIM>>(props);
+  auto &strides = std::get<std::array<props::Stride, CONV2D_DIM>>(props);
   assert(strides.size() == CONV2D_DIM);
   auto padding = std::get<props::Padding2D>(props).get();
   if (padding != "same" && padding != "valid") {
@@ -306,7 +306,7 @@ void Exporter::saveTflResult(const std::tuple<props::TargetShape> &props,
   createIfNull(tf_node);
 
   tf_node->setOpType(tflite::BuiltinOperator_RESHAPE);
-  auto targetShape = std::get<props::TargetShape>(props).get();
+  auto &targetShape = std::get<props::TargetShape>(props).get();
 
   /// @todo new shape should be 2 rank {batch, channel * height * width}
   std::vector<int32_t> new_shape_vec = {

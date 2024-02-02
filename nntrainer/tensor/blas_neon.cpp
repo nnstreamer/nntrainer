@@ -392,7 +392,7 @@ void scopy_neon_int8_or_int4(const unsigned int N, const uint8_t *X,
   }
 }
 
-void sine_transformation_neon(const unsigned int N, float *X, float *Y,
+void sine_neon(const unsigned int N, float *X, float *Y,
                               float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
@@ -408,7 +408,7 @@ void sine_transformation_neon(const unsigned int N, float *X, float *Y,
   }
 }
 
-void cosine_transformation_neon(const unsigned int N, float *X, float *Y,
+void cosine_neon(const unsigned int N, float *X, float *Y,
                                 float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {

@@ -241,7 +241,7 @@ size_t OptimizedV2Planner::planLayout(
 #endif
     for (auto &req : wgrad_requests) {
       for (unsigned int idx = 0; idx < wgrad_sorted_req.size(); idx++) {
-        auto const sr = wgrad_sorted_req[idx];
+        const auto &sr = wgrad_sorted_req[idx];
         bool merge = true;
         if (sr.mem_req->size >= req.size) {
           for (auto &interval : sr.start_end) {

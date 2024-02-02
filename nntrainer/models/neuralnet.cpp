@@ -1381,7 +1381,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     std::vector<unsigned int> column_size = {20, 20, 20, 20};
     auto print_graph_layer_info =
       [column_size](std::ostream &out, std::vector<std::string> layer_info) {
-        auto trim_string = [](std::string str, unsigned int column_width) {
+        const auto &trim_string = [](std::string str,
+                                     unsigned int column_width) {
           return str.size() < column_width ? str
                                            : str.substr(0, column_width - 1);
         };
