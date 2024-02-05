@@ -442,13 +442,28 @@ TensorV2 &HalfTensor::multiply(TensorV2 const &m, TensorV2 &output,
 }
 
 TensorV2 &HalfTensor::add(float const &value, TensorV2 &output) const {
-  throw std::logic_error("HalfTensor::add is not implemented yet");
+  auto f = std::bind(std::plus<_FP16>(), std::placeholders::_1,
+                     static_cast<_FP16>(value));
+  apply(f, output);
   return output;
 }
 
 TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
                           float const alpha) const {
-  throw std::logic_error("HalfTensor::add is not implemented yet");
+  auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
+               _FP16 *out_buf) {
+    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 0) {
+      ewva(e.buffer_size, buf, m_buf, out_buf);
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += strides[3];
+      }
+    }
+  };
+  apply_broadcast(m, f, output);
   return output;
 }
 
