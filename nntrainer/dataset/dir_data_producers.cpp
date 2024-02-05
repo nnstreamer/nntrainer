@@ -103,7 +103,7 @@ DirDataProducer::finalize(const std::vector<TensorDim> &input_dims,
                           const std::vector<TensorDim> &label_dims,
                           void *user_data) {
 
-  auto dir_path = std::get<props::DirPath>(*dir_data_props).get();
+  const auto &dir_path = std::get<props::DirPath>(*dir_data_props).get();
 
   for (const auto &entry : std::filesystem::directory_iterator(dir_path))
     class_names.push_back(entry.path());
