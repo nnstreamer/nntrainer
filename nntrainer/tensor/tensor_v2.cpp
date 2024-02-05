@@ -228,37 +228,42 @@ TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
 }
 
 int TensorV2::add_i(float const &value) {
-  /// @note will call TensorV2::add(float const &value, TensorV2 &output)
-  throw std::logic_error("TensorV2::add_i is not implemented yet");
-  return -1;
+  this->add(value, *this);
+  return ML_ERROR_NONE;
 }
 
 TensorV2 TensorV2::add(float const &value) const {
-  /// @note will call TensorV2::add(float const &value, TensorV2 &output)
-  throw std::logic_error("TensorV2::add is not implemented yet");
-  return *this;
+  TensorV2 t("", getFormat(), getDataType());
+  return add(value, t);
 }
 
 TensorV2 &TensorV2::add(float const &value, TensorV2 &output) const {
-  throw std::logic_error("TensorV2::add is not implemented yet");
+  itensor->add(value, output);
   return output;
 }
 
 int TensorV2::add_i(TensorV2 const &m, float const alpha) {
-  throw std::logic_error("TensorV2::add_i is not implemented yet");
-  return -1;
+  try {
+    this->add(m, *this, alpha);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return ML_ERROR_NONE;
 }
 
 TensorV2 TensorV2::add(TensorV2 const &m, float const alpha) const {
-  /// @note will call TensorV2::add(TensorV2 const &m, TensorV2 &output, float
-  /// const alpha)
-  throw std::logic_error("TensorV2::add is not implemented yet");
-  return *this;
+  TensorV2 t("", getFormat(), getDataType());
+  return this->add(m, t, alpha);
 }
 
 TensorV2 &TensorV2::add(TensorV2 const &m, TensorV2 &output,
                         float const alpha) const {
-  throw std::logic_error("TensorV2::add is not implemented yet");
+  NNTR_THROW_IF(!itensor->getContiguous() || !m.getContiguous() ||
+                  !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot add";
+  itensor->add(m, output, alpha);
   return output;
 }
 

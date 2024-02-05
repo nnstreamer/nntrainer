@@ -451,13 +451,28 @@ TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
 }
 
 TensorV2 &FloatTensor::add(float const &value, TensorV2 &output) const {
-  throw std::logic_error("FloatTensor::add is not implemented yet");
+  auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
+  apply(f, output);
   return output;
 }
 
 TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
                            float const alpha) const {
-  throw std::logic_error("FloatTensor::add is not implemented yet");
+  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 0) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::plus<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf + *m_buf * alpha;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += strides[3];
+      }
+    }
+  };
+  apply_broadcast(m, f, output);
   return output;
 }
 
