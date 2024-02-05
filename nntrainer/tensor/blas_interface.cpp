@@ -870,8 +870,7 @@ unsigned int isamax(const unsigned int N, const float *X, const int incX) {
 #endif
 }
 
-void sine(const unsigned int N, float *X, float *Y,
-                         float alpha) {
+void sine(const unsigned int N, float *X, float *Y, float alpha) {
 #ifdef USE_NEON
   nntrainer::neon::sine_neon(N, X, Y, alpha);
 #else
@@ -883,8 +882,7 @@ void sine(const unsigned int N, float *X, float *Y,
 #endif
 }
 
-void cosine(const unsigned int N, float *X, float *Y,
-                           float alpha) {
+void cosine(const unsigned int N, float *X, float *Y, float alpha) {
 #ifdef USE_NEON
   nntrainer::neon::cosine_neon(N, X, Y, alpha);
 #else
