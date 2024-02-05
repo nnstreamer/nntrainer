@@ -97,23 +97,34 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const float alpha, const _FP16 *A,
                        const unsigned int lda, const _FP16 *X, const int incX,
                        const float beta, _FP16 *Y, const int incY) {
-
-  unsigned int incy = abs(incY);
-  unsigned int incx = abs(incX);
-
+#if (defined USE__FP16 && USE_NEON)
   if (TransA == CblasTrans) {
-#if (defined USE__FP16 && USE_NEON)
     nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
-#else
-    sgemv_loop_fp16(i, j, N, M);
-#endif
   } else {
-#if (defined USE__FP16 && USE_NEON)
     nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
-#else
-    sgemv_loop_fp16(j, i, M, N);
-#endif
   }
+#else
+  unsigned int lenX =
+    (TransA == CblasTrans) ? 1 + (M - 1) * abs(incX) : 1 + (N - 1) * abs(incX);
+  unsigned int lenY =
+    (TransA == CblasTrans) ? 1 + (N - 1) * abs(incY) : 1 + (M - 1) * abs(incY);
+
+  float *A_ = new float[M * N];
+  float *X_ = new float[lenX];
+  float *Y_ = new float[lenY];
+
+  scopy(M * N, A, 1, A_, 1);
+  scopy(lenX, X, 1, X_, 1);
+  scopy(lenY, Y, 1, Y_, 1);
+
+  sgemv(order, TransA, M, N, alpha, A_, lda, X_, incX, beta, Y_, incY);
+
+  scopy(lenY, Y_, 1, Y, 1);
+
+  delete[] A_;
+  delete[] X_;
+  delete[] Y_;
+#endif
 }
 
 static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
@@ -303,7 +314,19 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
                                    TransA == CblasTrans, TransB == CblasTrans);
 #else
-  sgemm_loop_fp16();
+  float *A_ = new float[M * K];
+  float *B_ = new float[N * K];
+  float *C_ = new float[M * N];
+
+  scopy(M * K, A, 1, A_, 1);
+  scopy(N * K, B, 1, B_, 1);
+  scopy(M * N, C, 1, C_, 1);
+  sgemm(order, TransA, TransB, M, N, K, alpha, A_, lda, B_, ldb, beta, C_, ldc);
+  scopy(M * N, C_, 1, C, 1);
+
+  delete[] A_;
+  delete[] B_;
+  delete[] C_;
 #endif
 }
 
