@@ -348,7 +348,7 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
         continue;
       }
 
-      if (backbone_path == UNKNOWN_STR) {
+      if (std::strcmp(backbone_path, UNKNOWN_STR) == 0) {
         layer = section2layer<PlainLayer>(ini, sec_name, app_context, "",
                                           pathResolver);
       } else {
