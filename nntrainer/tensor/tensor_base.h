@@ -235,6 +235,11 @@ public:
                         float const alpha) const = 0;
 
   /**
+   * @copydoc TensorV2::subtract(float const &value, TensorV2 &output)
+   */
+  virtual TensorV2 &subtract(float const &value, TensorV2 &output) const = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;

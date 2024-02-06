@@ -452,6 +452,11 @@ TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+TensorV2 &HalfTensor::subtract(float const &value, TensorV2 &output) const {
+  throw std::logic_error("HalfTensor::subtract is not implemented yet");
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
