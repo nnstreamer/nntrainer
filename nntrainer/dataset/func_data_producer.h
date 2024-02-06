@@ -55,7 +55,7 @@ public:
   const std::string getType() const override;
 
   /**
-   * @copydoc DataProducer::setProeprty(const std::vector<std::string>
+   * @copydoc DataProducer::setProperty(const std::vector<std::string>
    * &properties)
    */
   void setProperty(const std::vector<std::string> &properties) override;
