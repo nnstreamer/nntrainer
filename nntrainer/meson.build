@@ -42,7 +42,8 @@ nntrainer_elements = [
   'optimizers',
   'tensor',
   'utils',
-  'graph'
+  'graph',
+  'opencl'
 ]
 
 foreach elem : nntrainer_elements
