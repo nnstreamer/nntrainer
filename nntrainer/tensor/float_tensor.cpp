@@ -451,12 +451,28 @@ TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
 }
 
 TensorV2 &FloatTensor::divide(float const &value, TensorV2 &output) const {
-  throw std::logic_error("FloatTensor::divide is not implemented yet");
+  auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
+  apply(f, output);
   return output;
 }
 
 TensorV2 &FloatTensor::divide(TensorV2 const &m, TensorV2 &output) const {
-  throw std::logic_error("FloatTensor::divide is not implemented yet");
+  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::divides<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf / *m_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.getStrides()[3];
+      }
+    }
+  };
+
+  apply_broadcast(m, f, output);
   return output;
 }
 
