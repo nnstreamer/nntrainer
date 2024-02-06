@@ -503,12 +503,29 @@ void HalfTensor::print(std::ostream &out) const {
 }
 
 TensorV2 &HalfTensor::divide(float const &value, TensorV2 &output) const {
-  throw std::logic_error("HalfTensor::divide is not implemented yet");
+  auto f = std::bind(std::divides<_FP16>(), std::placeholders::_1,
+                     static_cast<_FP16>(value));
+  apply(f, output);
   return output;
 }
 
 TensorV2 &HalfTensor::divide(TensorV2 const &m, TensorV2 &output) const {
-  throw std::logic_error("HalfTensor::divide is not implemented yet");
+  auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
+               _FP16 *out_buf) {
+    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::divides<_FP16>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf / *m_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.getStrides()[3];
+      }
+    }
+  };
+
+  apply_broadcast(m, f, output);
   return output;
 }
 

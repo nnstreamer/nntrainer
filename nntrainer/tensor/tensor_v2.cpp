@@ -228,36 +228,51 @@ TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
 }
 
 int TensorV2::divide_i(float const &value) {
-  /// @note will call TensorV2::divide(float const &value, TensorV2 &out)
-  throw std::logic_error("TensorV2::divide_i is not implemented yet");
-  return -1;
+  if (value == 0.0f) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  this->divide(value, *this);
+  return ML_ERROR_NONE;
 }
 
 TensorV2 TensorV2::divide(float const &value) const {
-  /// @note will call TensorV2::divide(float const &value, TensorV2 &out)
-  throw std::logic_error("TensorV2::divide is not implemented yet");
-  return *this;
+  TensorV2 output("", getFormat(), getDataType());
+  return divide(value, output);
 }
 
 TensorV2 &TensorV2::divide(float const &value, TensorV2 &output) const {
-  throw std::logic_error("TensorV2::divide is not implemented yet");
+  /// @todo add unittest, ZeroDivisionError
+  if (value == 0.0f) {
+    std::stringstream ss;
+    ss << "[Tensor] divide by value failed, value: " << value;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+  itensor->divide(value, output);
   return output;
 }
 
 int TensorV2::divide_i(TensorV2 const &m) {
-  /// @note will call TensorV2::divide(TensorV2 const &m, TensorV2 &output)
-  throw std::logic_error("TensorV2::divide_i is not implemented yet");
-  return -1;
+  try {
+    this->divide(m, *this);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
 }
 
 TensorV2 TensorV2::divide(TensorV2 const &m) const {
-  /// @note will call TensorV2::divide(TensorV2 const &m, TensorV2 &output)
-  throw std::logic_error("TensorV2::divide is not implemented yet");
-  return *this;
+  TensorV2 output("", getFormat(), getDataType());
+  return this->divide(m, output);
 }
 
 TensorV2 &TensorV2::divide(TensorV2 const &m, TensorV2 &output) const {
-  throw std::logic_error("TensorV2::divide is not implemented yet");
+  NNTR_THROW_IF(!getContiguous() || !m.getContiguous() ||
+                  !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot divide";
+  itensor->divide(m, output);
   return output;
 }
 
