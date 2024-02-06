@@ -666,6 +666,51 @@ public:
                 float const alpha = 1) const;
 
   /**
+   * @brief     memcpyless version of subtract
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int subtract_i(float const &value);
+
+  /**
+   * @brief     subtract value Element by Element
+   * @param[in] value value to be subtracted
+   * @retval    Calculated Tensor
+   */
+  TensorV2 subtract(float const &value) const;
+
+  /**
+   * @brief      Subtract Tensor Element by Element
+   * @param[in]  value value to be added
+   * @param[out] output Tensor to save output without allocating new memory
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &subtract(float const &value, TensorV2 &output) const;
+
+  /**
+   * @brief     memcpyless version of subtract
+   * @param[in] m Tensor to be subtracted
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int subtract_i(TensorV2 const &m);
+
+  /**
+   * @brief     Substract Tensor Element by Element
+   * @param[in] m Tensor to be subtracted
+   * @retval    Calculated Tensor
+   */
+  TensorV2 subtract(TensorV2 const &m) const;
+
+  /**
+   * @brief      Subtract Tensor Element by Element
+   * @param[in]  m Tensor to be added
+   * @param[out] output Tensor to be out
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &subtract(TensorV2 const &m, TensorV2 &output) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */

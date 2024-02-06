@@ -311,6 +311,36 @@ TensorV2 &TensorV2::add(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+int TensorV2::subtract_i(float const &value) {
+  throw std::logic_error("TensorV2::subtract_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::subtract(float const &value) const {
+  throw std::logic_error("TensorV2::subtract is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::subtract(float const &value, TensorV2 &output) const {
+  throw std::logic_error("TensorV2::subtract is not implemented yet");
+  return output;
+}
+
+int TensorV2::subtract_i(TensorV2 const &m) {
+  throw std::logic_error("TensorV2::subtract_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::subtract(TensorV2 const &m) const {
+  throw std::logic_error("TensorV2::subtract is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::subtract(TensorV2 const &m, TensorV2 &output) const {
+  throw std::logic_error("TensorV2::subtract is not implemented yet");
+  return output;
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }

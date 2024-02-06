@@ -487,6 +487,11 @@ TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+TensorV2 &FloatTensor::subtract(float const &value, TensorV2 &output) const {
+  throw std::logic_error("FloatTensor::subtract is not implemented yet");
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();
