@@ -227,6 +227,40 @@ TensorV2 &TensorV2::multiply(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
+int TensorV2::divide_i(float const &value) {
+  /// @note will call TensorV2::divide(float const &value, TensorV2 &out)
+  throw std::logic_error("TensorV2::divide_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::divide(float const &value) const {
+  /// @note will call TensorV2::divide(float const &value, TensorV2 &out)
+  throw std::logic_error("TensorV2::divide is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::divide(float const &value, TensorV2 &output) const {
+  throw std::logic_error("TensorV2::divide is not implemented yet");
+  return output;
+}
+
+int TensorV2::divide_i(TensorV2 const &m) {
+  /// @note will call TensorV2::divide(TensorV2 const &m, TensorV2 &output)
+  throw std::logic_error("TensorV2::divide_i is not implemented yet");
+  return -1;
+}
+
+TensorV2 TensorV2::divide(TensorV2 const &m) const {
+  /// @note will call TensorV2::divide(TensorV2 const &m, TensorV2 &output)
+  throw std::logic_error("TensorV2::divide is not implemented yet");
+  return *this;
+}
+
+TensorV2 &TensorV2::divide(TensorV2 const &m, TensorV2 &output) const {
+  throw std::logic_error("TensorV2::divide is not implemented yet");
+  return output;
+}
+
 int TensorV2::add_i(float const &value) {
   /// @note will call TensorV2::add(float const &value, TensorV2 &output)
   throw std::logic_error("TensorV2::add_i is not implemented yet");
