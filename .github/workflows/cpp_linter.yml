@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cpp-linter/cpp-linter-action@v2
+      - uses: cpp-linter/cpp-linter-action@v2.8.0
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -15,7 +15,8 @@ jobs:
           style: file
           version: 16
           lines-changed-only: true
-
+          file-annotations: false
+          step-summary: true
 
       - name: failing fast
         if: steps.linter.outputs.clang-format-checks-failed > 0
