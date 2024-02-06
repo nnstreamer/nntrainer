@@ -1131,7 +1131,7 @@ public:
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum_by_batch() const;
+  Tensor sum_by_batch(bool GPUExecute = false) const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -1157,7 +1157,7 @@ public:
    * @retval    Calculated Tensor
    */
   Tensor &sum(unsigned int axis, Tensor &output, float alpha = 1.0,
-              float beta = 0.0) const;
+              float beta = 0.0, bool GPUExecute = false) const;
 
   /**
    * @brief sum all the Tensor by multiple axes
