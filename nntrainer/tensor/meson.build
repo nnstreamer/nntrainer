@@ -20,6 +20,7 @@ tensor_sources = [
   'optimized_v2_planner.cpp',
   'optimized_v3_planner.cpp',
   'task_executor.cpp',
+  'cl_operations/cl_sgemv.cpp'
 ]
 
 tensor_headers = [
@@ -31,7 +32,8 @@ tensor_headers = [
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h'
+  'blas_interface.h',
+  'cl_interface.h'
 ]
 
 arch = host_machine.cpu_family()
