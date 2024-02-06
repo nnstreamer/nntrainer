@@ -907,6 +907,166 @@ TEST(nntrainer_Tensor, multiply_float_01_p) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(nntrainer_Tensor, multiply_strided_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::TensorV2 result = input.multiply_strided(input);
+
+  _FP16 *data = result.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+  _FP16 *indata = input.getData<_FP16>();
+  ASSERT_NE(nullptr, indata);
+
+  _FP16 *outdata = new _FP16[(input.size())];
+
+  std::transform(indata, indata + batch * height * width * channel, indata,
+                 outdata, std::multiplies<_FP16>());
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if (data[i] != outdata[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  delete[] outdata;
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, multiply_strided_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::TensorV2 test(batch - 1, height - 1, width - 1);
+
+  EXPECT_THROW({ input.multiply_strided(test); }, std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_strided_03_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+  // input is not allocated now : alloc_now == false
+  nntrainer::TensorV2 input(dim, false);
+  nntrainer::TensorV2 test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.multiply_strided(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_strided_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+
+  nntrainer::TensorV2 input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  // test is not allocated.
+  nntrainer::TensorV2 test(dim, false);
+
+  EXPECT_THROW(input.multiply_strided(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_strided_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+
+  nntrainer::TensorV2 input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::TensorV2 test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+  // output is not allocated
+  nntrainer::TensorV2 output(dim, false);
+
+  EXPECT_THROW(input.multiply_strided(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_strided_06_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::TensorV2 output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16});
+  GEN_TEST_INPUT(output, i * (batch * height) + j * (width) + k + 1);
+
+  _FP16 *indata = input.getData<_FP16>();
+  ASSERT_NE(nullptr, indata);
+
+  _FP16 *outdata_beta = new _FP16[(input.size())];
+  _FP16 *indata_mul = new _FP16[(input.size())];
+  _FP16 *outdata = new _FP16[(input.size())];
+
+  std::transform(indata, indata + batch * height * width * channel,
+                 outdata_beta,
+                 std::bind(std::multiplies<_FP16>(), std::placeholders::_1,
+                           static_cast<_FP16>(10.0)));
+
+  std::transform(indata, indata + batch * height * width * channel, indata,
+                 indata_mul, std::multiplies<_FP16>());
+  std::transform(indata_mul, indata_mul + batch * height * width * channel,
+                 outdata_beta, outdata, std::plus<_FP16>());
+
+  input.multiply_strided(input, output, 10.0);
+
+  _FP16 *data = output.getData<_FP16>();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    if (data[i] != outdata[i]) {
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+      break;
+    }
+  }
+
+  delete[] outdata_beta;
+  delete[] indata_mul;
+  delete[] outdata;
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
