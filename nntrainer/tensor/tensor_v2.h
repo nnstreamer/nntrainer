@@ -382,8 +382,7 @@ public:
                 float value, float beta) noexcept;
 
   /**
-   * @brief 
-   * 
+   * @brief     Fill the Tensor elements with zero
    */
   void setZero();
 
@@ -570,6 +569,51 @@ public:
    */
   TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
                      const float beta = 0.0) const;
+
+  /**
+   * @brief     Divide value element by element immediately
+   * @param[in] value divisor
+   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
+   * @retval    #ML_ERROR_NONE Successful
+   */
+  int divide_i(float const &value);
+
+  /**
+   * @brief     Divide value element by element
+   * @param[in] value Divisor
+   * @retval    Calculated Tensor
+   */
+  TensorV2 divide(float const &value) const;
+
+  /**
+   * @brief     Divide value element by element
+   * @param[in] value Divisor
+   * @param[out] output Tensor to store the result
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &divide(float const &value, TensorV2 &output) const;
+
+  /**
+   * @brief     divide Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int divide_i(TensorV2 const &m);
+
+  /**
+   * @brief     Divide Tensor Element by Element
+   * @param[in] m Divisor Tensor
+   * @retval    Calculated Tensor
+   */
+  TensorV2 divide(TensorV2 const &m) const;
+
+  /**
+   * @brief     divide Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const;
 
   /**
    * @brief     Add Tensor Element immediately to target tensor without mem copy

@@ -213,6 +213,16 @@ public:
                              const float beta = 0.0) const = 0;
 
   /**
+   * @copydoc TensorV2::divide(float const &value, TensorV2 &output)
+   */
+  virtual TensorV2 &divide(float const &value, TensorV2 &output) const = 0;
+
+  /**
+   * @copydoc TensorV2::divide(TensorV2 const &m, TensorV2 &output)
+   */
+  virtual TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const = 0;
+
+  /**
    * @copydoc TensorV2::add(float const &value, TensorV2 &output)
    */
   virtual TensorV2 &add(float const &value, TensorV2 &output) const = 0;

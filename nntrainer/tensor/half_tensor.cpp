@@ -502,6 +502,16 @@ void HalfTensor::print(std::ostream &out) const {
   out.copyfmt(init);
 }
 
+TensorV2 &HalfTensor::divide(float const &value, TensorV2 &output) const {
+  throw std::logic_error("HalfTensor::divide is not implemented yet");
+  return output;
+}
+
+TensorV2 &HalfTensor::divide(TensorV2 const &m, TensorV2 &output) const {
+  throw std::logic_error("HalfTensor::divide is not implemented yet");
+  return output;
+}
+
 void HalfTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot copy.";
