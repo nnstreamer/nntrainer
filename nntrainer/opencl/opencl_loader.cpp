@@ -15,8 +15,8 @@
 
 #include <dlfcn.h>
 
-#include <string>
 #include <nntrainer_log.h>
+#include <string>
 
 namespace nntrainer::internal {
 

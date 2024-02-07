@@ -20,7 +20,6 @@ tensor_sources = [
   'optimized_v2_planner.cpp',
   'optimized_v3_planner.cpp',
   'task_executor.cpp',
-  'cl_operations/cl_sgemv.cpp'
 ]
 
 tensor_headers = [
@@ -32,7 +31,14 @@ tensor_headers = [
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h',
+  'blas_interface.h'
+]
+
+cl_sources = [
+  'cl_operations/cl_sgemv.cpp'
+]
+
+cl_headers = [
   'cl_interface.h'
 ]
 
@@ -54,6 +60,11 @@ endif
 if get_option('enable-fp16')
   tensor_headers += 'half_tensor.h'
   tensor_sources += 'half_tensor.cpp'
+endif
+
+if get_option('enable-opencl')
+  tensor_sources += cl_sources
+  tensor_headers += cl_headers
 endif
 
 foreach s : tensor_sources

@@ -93,6 +93,11 @@ if get_option('enable-fp16')
      endif
    endif  
 endif
+
+if get_option('enable-opencl')
+  message ('OpenCL build is enabled. Will work only if OpenCL supported GPU is available.')
+  extra_defines += '-DENABLE_OPENCL=1'
+endif
     
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)

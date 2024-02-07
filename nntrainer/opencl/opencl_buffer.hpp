@@ -14,9 +14,9 @@
 #ifndef GPU_CL_OPENCL_BUFFER_HPP_
 #define GPU_CL_OPENCL_BUFFER_HPP_
 
-#include "third_party/cl.h"
 #include "opencl_command_queue_manager.hpp"
 #include "opencl_context_manager.hpp"
+#include "third_party/cl.h"
 
 namespace nntrainer::internal {
 class Buffer {

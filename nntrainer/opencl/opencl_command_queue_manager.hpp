@@ -14,8 +14,8 @@
 #ifndef GPU_CL_OPENCL_COMMAND_QUEUE_MANAGER_HPP_
 #define GPU_CL_OPENCL_COMMAND_QUEUE_MANAGER_HPP_
 
-#include "third_party/cl.h"
 #include "opencl_kernel.hpp"
+#include "third_party/cl.h"
 
 namespace nntrainer::internal {
 class CommandQueueManager {
