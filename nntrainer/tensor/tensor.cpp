@@ -35,7 +35,10 @@
 #include <stdexcept>
 #include <stdio.h>
 
+#ifdef ENABLE_OPENCL
 #include "cl_interface.h"
+#endif
+
 #include <lazy_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
@@ -1779,8 +1782,12 @@ Tensor Tensor::sum_by_batch(bool GPUExecute) const {
     // sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
     //       ones.getData<float>(), 1, 0.0, rdata, 1);
     if (GPUExecute) {
+#ifdef ENABLE_OPENCL
       gpu_sgemv(data, (const float *)ones.getData<float>(), rdata, 1.0f, 0.0f,
                 batch, feat_len);
+#else
+      ml_loge("%s", "Error: enable-opencl is not enabled");
+#endif
     } else {
       sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
             ones.getData<float>(), 1, 0.0, rdata, 1);
@@ -1849,8 +1856,12 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha, float beta,
         // sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
         //       ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
         if (GPUExecute) {
+#ifdef ENABLE_OPENCL
           gpu_sgemv(data, (const float *)ones.getData<float>(),
                     ret.getData<float>(), 1.0f, beta, m, n);
+#else
+          ml_loge("%s", "Error: enable-opencl is not enabled");
+#endif
         } else {
           sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
                 ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
@@ -1866,9 +1877,13 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha, float beta,
           //       &data[k * dim.getFeatureLen()], feat_len,
           //       ones.getData<float>(), 1, beta, &rdata[k * feat_len], 1);
           if (GPUExecute) {
+#ifdef ENABLE_OPENCL
             gpu_sgemv(&data[k * dim.getFeatureLen()],
                       (const float *)ones.getData<float>(),
                       &rdata[k * feat_len], 1.0f, beta, t_axis, feat_len);
+#else
+            ml_loge("%s", "Error: enable-opencl is not enabled");
+#endif
           } else {
             sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
                   &data[k * dim.getFeatureLen()], feat_len,
@@ -1942,8 +1957,12 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha, float beta,
           // sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
           //       ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
           if (GPUExecute) {
+#ifdef ENABLE_OPENCL
             gpu_sgemv(data, (const float *)ones.getData<float>(),
                       ret.getData<float>(), 1.0f, beta, m, n);
+#else
+            ml_loge("%s", "Error: enable-opencl is not enabled");
+#endif
           } else {
             sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
                   ones.getData<float>(), 1, beta, ret.getData<float>(), 1);

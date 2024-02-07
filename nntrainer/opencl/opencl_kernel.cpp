@@ -27,7 +27,7 @@ bool Kernel::CreateKernelFromProgram(Program program,
   if (!kernel_ || error_code != CL_SUCCESS) {
     kernel_ = nullptr;
     ml_loge("Failed to create %s. OpenCL error code: %d", function_name.c_str(),
-        error_code);
+            error_code);
     return false;
   }
   clRetainProgram(prgm);

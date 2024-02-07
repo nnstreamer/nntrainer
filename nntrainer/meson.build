@@ -42,9 +42,12 @@ nntrainer_elements = [
   'optimizers',
   'tensor',
   'utils',
-  'graph',
-  'opencl'
+  'graph'
 ]
+
+if get_option('enable-opencl')
+  nntrainer_elements += 'opencl'
+endif
 
 foreach elem : nntrainer_elements
   subdir(elem)
