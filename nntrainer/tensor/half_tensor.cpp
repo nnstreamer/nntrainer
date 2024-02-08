@@ -468,7 +468,9 @@ TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
 }
 
 TensorV2 &HalfTensor::subtract(float const &value, TensorV2 &output) const {
-  throw std::logic_error("HalfTensor::subtract is not implemented yet");
+  auto f = std::bind(std::minus<_FP16>(), std::placeholders::_1,
+                     static_cast<_FP16>(value));
+  apply(f, output);
   return output;
 }
 

@@ -503,7 +503,8 @@ TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
 }
 
 TensorV2 &FloatTensor::subtract(float const &value, TensorV2 &output) const {
-  throw std::logic_error("FloatTensor::subtract is not implemented yet");
+  auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
+  apply(f, output);
   return output;
 }
 

@@ -317,33 +317,26 @@ TensorV2 &TensorV2::add(TensorV2 const &m, TensorV2 &output,
 }
 
 int TensorV2::subtract_i(float const &value) {
-  throw std::logic_error("TensorV2::subtract_i is not implemented yet");
-  return -1;
+  this->subtract(value, *this);
+  return ML_ERROR_NONE;
 }
 
 TensorV2 TensorV2::subtract(float const &value) const {
-  throw std::logic_error("TensorV2::subtract is not implemented yet");
-  return *this;
+  TensorV2 output("", getFormat(), getDataType());
+  return subtract(value, output);
 }
 
 TensorV2 &TensorV2::subtract(float const &value, TensorV2 &output) const {
-  throw std::logic_error("TensorV2::subtract is not implemented yet");
+  itensor->subtract(value, output);
   return output;
 }
 
-int TensorV2::subtract_i(TensorV2 const &m) {
-  throw std::logic_error("TensorV2::subtract_i is not implemented yet");
-  return -1;
-}
+int TensorV2::subtract_i(TensorV2 const &m) { return add_i(m, -1); }
 
-TensorV2 TensorV2::subtract(TensorV2 const &m) const {
-  throw std::logic_error("TensorV2::subtract is not implemented yet");
-  return *this;
-}
+TensorV2 TensorV2::subtract(TensorV2 const &m) const { return add(m, -1); }
 
 TensorV2 &TensorV2::subtract(TensorV2 const &m, TensorV2 &output) const {
-  throw std::logic_error("TensorV2::subtract is not implemented yet");
-  return output;
+  return add(m, output, -1);
 }
 
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
