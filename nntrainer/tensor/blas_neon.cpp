@@ -18,7 +18,7 @@
 namespace nntrainer::neon {
 
 void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
-                uint32_t cols, float alpha, float beta) {
+           uint32_t cols, float alpha, float beta) {
   const float *__restrict x;
 
   for (unsigned int i = 0; i < rows; ++i) {
@@ -134,9 +134,8 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
   }
 }
 
-void sgemv_transpose(const float *A, const float *X, float *Y,
-                          uint32_t rows, uint32_t cols, float alpha,
-                          float beta) {
+void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta) {
   const float *__restrict x;
 
   const float32x4_t v_beta = vdupq_n_f32(beta);
@@ -273,7 +272,7 @@ void sgemv_transpose(const float *A, const float *X, float *Y,
   return;
 }
 
-void scopy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
+void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
 
   unsigned int idx = 0;
 
@@ -375,8 +374,7 @@ void scopy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   }
 }
 
-void scopy_int8_or_int4(const unsigned int N, const uint8_t *X,
-                             uint8_t *Y) {
+void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
   ///@note int8 Tensor and int4 Tensor share the same memory offset
   unsigned int idx = 0;
   for (; N - idx >= 16; idx += 16) {
@@ -392,8 +390,7 @@ void scopy_int8_or_int4(const unsigned int N, const uint8_t *X,
   }
 }
 
-void sine(const unsigned int N, float *X, float *Y,
-                              float alpha) {
+void sine(const unsigned int N, float *X, float *Y, float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
@@ -408,8 +405,7 @@ void sine(const unsigned int N, float *X, float *Y,
   }
 }
 
-void cosine(const unsigned int N, float *X, float *Y,
-                                float alpha) {
+void cosine(const unsigned int N, float *X, float *Y, float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
@@ -441,8 +437,8 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
 
 #ifdef ENABLE_FP16
 
-void sgemv_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
-                     uint32_t cols, float alpha, float beta) {
+void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+           uint32_t cols, float alpha, float beta) {
   const int batch = 0;
   const __fp16 *__restrict x;
   float *Y32 = new float[rows];
@@ -695,14 +691,13 @@ void sgemv_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
     }
   }
 
-  scopy_fp32_to_fp16(rows, Y32, Y);
+  copy_fp32_to_fp16(rows, Y32, Y);
   delete[] Y32;
   return;
 }
 
-void sgemv_transpose_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
-                               uint32_t rows, uint32_t cols, float alpha,
-                               float beta) {
+void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta) {
   float *Y32 = new float[cols];
   const int batch = 20;
   unsigned int idx = 0;
@@ -1112,13 +1107,13 @@ void sgemv_transpose_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
       }
     }
   }
-  scopy_fp32_to_fp16(cols, Y32, Y);
+  copy_fp32_to_fp16(cols, Y32, Y);
   delete[] Y32;
   return;
 }
 
-void saxpy_fp16(const unsigned int N, const float alpha, const __fp16 *X,
-                     __fp16 *Y) {
+void haxpy(const unsigned int N, const float alpha, const __fp16 *X,
+           __fp16 *Y) {
 
   const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
   const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
@@ -1150,7 +1145,7 @@ void saxpy_fp16(const unsigned int N, const float alpha, const __fp16 *X,
     Y[idx] = Y[idx] + alpha * X[idx];
 }
 
-__fp16 sdot_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
+__fp16 hdot(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 
   float16x8_t accX8 = vmovq_n_f16(0);
   float16x4_t accX4 = vmov_n_f16(0);
@@ -1198,7 +1193,7 @@ __fp16 sdot_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
   return ret;
 }
 
-__fp16 snrm2_fp16(const unsigned int N, const __fp16 *X) {
+__fp16 hnrm2(const unsigned int N, const __fp16 *X) {
 
   float16x8_t accX8 = vmovq_n_f16(0);
   float16x4_t accX4 = vmov_n_f16(0);
@@ -1244,7 +1239,7 @@ __fp16 snrm2_fp16(const unsigned int N, const __fp16 *X) {
   return ret;
 }
 
-void sscal_fp16(const unsigned int N, __fp16 *X, const float alpha) {
+void hscal(const unsigned int N, __fp16 *X, const float alpha) {
   const float16x8_t v_alphaX8 = vmovq_n_f16(alpha);
   const float16x4_t v_alphaX4 = vmov_n_f16(alpha);
 
@@ -1280,7 +1275,7 @@ float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32) {
                    vreinterpretq_f32_u32(offsetInt));
 }
 
-void scopy_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
+void hcopy(const unsigned int N, const __fp16 *X, __fp16 *Y) {
 
   unsigned int idx = 0;
 
@@ -1301,8 +1296,7 @@ void scopy_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y) {
     Y[idx] = X[idx];
 }
 
-void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
-                             __fp16 *Y) {
+void copy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y) {
 
   unsigned int idx = 0;
 
@@ -1379,8 +1373,7 @@ void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
   }
 }
 
-void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
-                             __fp16 *Y) {
+void copy_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y) {
   unsigned int idx = 0;
   for (; (N - idx) >= 16; idx += 16) {
     uint8x16_t batch = vld1q_u8(&X[idx]);
@@ -1408,7 +1401,7 @@ void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
   }
 }
 
-void scopy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
+void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   unsigned int idx = 0;
   for (; (N - idx) >= 16; idx += 16) {
     uint8x16_t batch = vld1q_u8(&X[idx]);
@@ -1450,7 +1443,7 @@ void scopy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   }
 }
 
-void scopy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
+void copy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
   unsigned int idx = 0;
 
   for (; N - idx >= 8; idx += 8) {
@@ -1472,7 +1465,7 @@ void scopy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
   }
 }
 
-void scopy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y) {
+void copy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y) {
   unsigned int idx = 0;
 
   for (; N - idx >= 8; idx += 8) {
@@ -1497,7 +1490,7 @@ void scopy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y) {
   }
 }
 
-unsigned int isamax_fp16(const unsigned int N, const __fp16 *X) {
+unsigned int isamax(const unsigned int N, const __fp16 *X) {
 
   unsigned int retIdx;
   __fp16 maxNum;
@@ -1549,9 +1542,8 @@ unsigned int isamax_fp16(const unsigned int N, const __fp16 *X) {
   return retIdx;
 }
 
-void sgemm_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
-                     uint32_t N, uint32_t K, float alpha, float beta,
-                     bool TransA, bool TransB) {
+void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
+           uint32_t K, float alpha, float beta, bool TransA, bool TransB) {
 
   // dynamic creation to avoid reaching stack limit(causes segmentation fault)
   float *C32 = (float *)malloc(M * N * sizeof(float));
@@ -1578,22 +1570,21 @@ void sgemm_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
   }
 
   if (!TransA && TransB) {
-    sgemm_fp16_transB(A, B, C32, M, N, K, alpha, beta);
+    hgemm_transB(A, B, C32, M, N, K, alpha, beta);
   } else if (TransA && !TransB) {
-    sgemm_fp16_transA(A, B, C32, M, N, K, alpha, beta);
+    hgemm_transA(A, B, C32, M, N, K, alpha, beta);
   } else if (!TransA && !TransB) {
-    sgemm_fp16_noTrans(A, B, C32, M, N, K, alpha, beta);
+    hgemm_noTrans(A, B, C32, M, N, K, alpha, beta);
   } else { // TransA && TransB
-    sgemm_fp16_transAB(A, B, C32, M, N, K, alpha, beta, idx);
+    hgemm_transAB(A, B, C32, M, N, K, alpha, beta, idx);
   }
 
-  scopy_fp32_to_fp16(M * N, C32, C);
+  copy_fp32_to_fp16(M * N, C32, C);
   free(C32);
 }
 
-void sgemm_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
-                             uint32_t M, uint32_t N, uint32_t K, float alpha,
-                             float beta) {
+void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                   uint32_t N, uint32_t K, float alpha, float beta) {
 
   unsigned int k = 0, n = 0;
   __fp16 a[16];
@@ -1765,9 +1756,8 @@ void sgemm_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
   }
 }
 
-void sgemm_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
-                            uint32_t M, uint32_t N, uint32_t K, float alpha,
-                            float beta) {
+void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta) {
   __fp16 valsB[8];
   float valsC[8];
   for (unsigned int k = 0; k < K; k++) {
@@ -1815,9 +1805,8 @@ void sgemm_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
   }
 }
 
-void sgemm_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
-                            uint32_t M, uint32_t N, uint32_t K, float alpha,
-                            float beta) {
+void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta) {
   __fp16 valsB[8];
   __fp16 valsA[8];
   int m = 0;
@@ -1984,9 +1973,9 @@ void sgemm_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
   }
 }
 
-void sgemm_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
-                             uint32_t M, uint32_t N, uint32_t K, float alpha,
-                             float beta, uint32_t idx) {
+void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                   uint32_t N, uint32_t K, float alpha, float beta,
+                   uint32_t idx) {
   float vals[8];
   __fp16 vals_fp16[8];
   for (unsigned int n = 0; n < N; n++) {
@@ -2025,9 +2014,8 @@ void sgemm_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
   }
 }
 
-void elementwise_vector_multiplication_fp16(const unsigned int N,
-                                                 const __fp16 *X,
-                                                 const __fp16 *Y, __fp16 *Z) {
+void elementwise_vector_multiplication(const unsigned int N, const __fp16 *X,
+                                       const __fp16 *Y, __fp16 *Z) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2042,9 +2030,8 @@ void elementwise_vector_multiplication_fp16(const unsigned int N,
   }
 }
 
-void elementwise_vector_addition_fp16(const unsigned int N,
-                                           const __fp16 *X, const __fp16 *Y,
-                                           __fp16 *Z) {
+void elementwise_vector_addition(const unsigned int N, const __fp16 *X,
+                                 const __fp16 *Y, __fp16 *Z) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);

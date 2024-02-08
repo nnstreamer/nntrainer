@@ -20,7 +20,7 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int alpha) {
 #ifdef USE_NEON
   nntrainer::neon::calc_trigonometric_vals_dup(N_half, angle, cos_, sin_,
-                                                    alpha);
+                                               alpha);
 #else
   throw std::invalid_argument(
     "Error: No implementation of rotary embedding layer incremental_forwarding "
@@ -46,8 +46,8 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
                                     unsigned int w, _FP16 *in, _FP16 *out,
                                     float *cos_, float *sin_) {
 #ifdef USE_NEON
-  nntrainer::neon::compute_rotary_embedding_value(dim, half_, w, in, out,
-                                                       cos_, sin_);
+  nntrainer::neon::compute_rotary_embedding_value(dim, half_, w, in, out, cos_,
+                                                  sin_);
 #else
   throw std::invalid_argument(
     "Error: No implementation of rotary embedding layer incremental_forwarding "

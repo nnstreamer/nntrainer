@@ -32,7 +32,7 @@ namespace nntrainer::neon {
  * @param[in] beta float number
  */
 void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
-                uint32_t cols, const float alpha, const float beta);
+           uint32_t cols, const float alpha, const float beta);
 
 /**
  * @brief     transposed sgemv computation with neon
@@ -46,9 +46,8 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv_transpose(const float *A, const float *X, float *Y,
-                          uint32_t rows, uint32_t cols, float alpha,
-                          float beta);
+void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -56,7 +55,7 @@ void sgemv_transpose(const float *A, const float *X, float *Y,
  * @param[in] X float * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
+void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -64,7 +63,7 @@ void scopy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
+void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -72,8 +71,7 @@ void scopy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy_int8_or_int4(const unsigned int N, const uint8_t *X,
-                             uint8_t *Y);
+void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y);
 /**
  * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
@@ -81,8 +79,7 @@ void scopy_int8_or_int4(const unsigned int N, const uint8_t *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y,
-                              float alpha = 1.0);
+void sine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -91,8 +88,7 @@ void sine(const unsigned int N, float *X, float *Y,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y,
-                                float alpha = 1.0);
+void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
 
 /**
  * @brief inversed squared root transformation with neon : X = 1 / sqrt(X)
@@ -104,7 +100,7 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
 
 #ifdef ENABLE_FP16
 /**
- * @brief     sgemv computation with neon : Y = alpha*A*X + beta*Y
+ * @brief     hgemv computation with neon : Y = alpha*A*X + beta*Y
  * @param[in] A __fp16 * for Matrix A
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
@@ -113,8 +109,8 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
-                     uint32_t cols, float alpha, float beta);
+void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+           uint32_t cols, float alpha, float beta);
 
 /**
  * @brief     elementwise vector multiplication with neon : Z = X ⊙ Y
@@ -123,9 +119,8 @@ void sgemv_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
  */
-void elementwise_vector_multiplication_fp16(const unsigned N,
-                                                 const __fp16 *X,
-                                                 const __fp16 *Y, __fp16 *Z);
+void elementwise_vector_multiplication(const unsigned N, const __fp16 *X,
+                                       const __fp16 *Y, __fp16 *Z);
 /**
  * @brief     elementwise vector addition with neon : Z = X + Y
  * @param[in] N  length of the vector
@@ -133,11 +128,11 @@ void elementwise_vector_multiplication_fp16(const unsigned N,
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
  */
-void elementwise_vector_addition_fp16(const unsigned N, const __fp16 *X,
-                                           const __fp16 *Y, __fp16 *Z);
+void elementwise_vector_addition(const unsigned N, const __fp16 *X,
+                                 const __fp16 *Y, __fp16 *Z);
 
 /**
- * @brief     transposed sgemv computation with neon
+ * @brief     transposed hgemv computation with neon
  *            Y = alpha*transpose(A)*X
  * + beta*Y
  * @param[in] A __fp16 * for Matrix A
@@ -148,42 +143,40 @@ void elementwise_vector_addition_fp16(const unsigned N, const __fp16 *X,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv_transpose_fp16(const __fp16 *A, const __fp16 *X, __fp16 *Y,
-                               uint32_t rows, uint32_t cols, float alpha,
-                               float beta);
+void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
+                     uint32_t cols, float alpha, float beta);
 
 /**
- * @brief     saxpy computation with neon: Y = alpha*X + Y
+ * @brief     haxpy computation with neon: Y = alpha*X + Y
  * @param[in] N number of elements in Y
  * @param[in] alpha float number
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  */
-void saxpy_fp16(const unsigned int N, const float alpha, const __fp16 *X,
-                     __fp16 *Y);
+void haxpy(const unsigned int N, const float alpha, const __fp16 *X, __fp16 *Y);
 
 /**
- * @brief     sdot computation with neon: sum of all X * Y
+ * @brief     hdot computation with neon: sum of all X * Y
  * @param[in] N number of elements in Y
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  */
-__fp16 sdot_fp16(const unsigned int N, const __fp16 *X, const __fp16 *Y);
+__fp16 hdot(const unsigned int N, const __fp16 *X, const __fp16 *Y);
 
 /**
- * @brief     snrm2 computation with neon: Euclidean norm
+ * @brief     hnrm2 computation with neon: Euclidean norm
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  */
-__fp16 snrm2_fp16(const unsigned int N, const __fp16 *X);
+__fp16 hnrm2(const unsigned int N, const __fp16 *X);
 
 /**
- * @brief     sscal computation with neon: X = alpha * X
+ * @brief     hscal computation with neon: X = alpha * X
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  * @param[in] alpha float number
  */
-void sscal_fp16(const unsigned int N, __fp16 *X, const float alpha);
+void hscal(const unsigned int N, __fp16 *X, const float alpha);
 
 /**
  * @brief     convert uint32x4_t to float32x4_t with neon with bitwise
@@ -193,12 +186,12 @@ void sscal_fp16(const unsigned int N, __fp16 *X, const float alpha);
 float32x4_t vcvtq_f32_u32_bitwise(uint32x4_t u32);
 
 /**
- * @brief     copy function with neon: Y = X
+ * @brief     hcopy function with neon: Y = X
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  */
-void scopy_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y);
+void hcopy(const unsigned int N, const __fp16 *X, __fp16 *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -206,7 +199,7 @@ void scopy_fp16(const unsigned int N, const __fp16 *X, __fp16 *Y);
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
+void copy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -214,7 +207,7 @@ void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
+void copy_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -222,7 +215,7 @@ void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  */
-void scopy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y);
+void copy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -230,17 +223,17 @@ void scopy_fp32_to_fp16(const unsigned int N, const float *X, __fp16 *Y);
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y);
+void copy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y);
 
 /**
  * @brief     isamax function with neon: index of first maxima
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  */
-unsigned int isamax_fp16(const unsigned int N, const __fp16 *X);
+unsigned int isamax(const unsigned int N, const __fp16 *X);
 
 /**
- * @brief     sgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
+ * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -251,11 +244,10 @@ unsigned int isamax_fp16(const unsigned int N, const __fp16 *X);
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
-                     uint32_t N, uint32_t K, float alpha, float beta,
-                     bool TransA, bool TransB);
+void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
+           uint32_t K, float alpha, float beta, bool TransA, bool TransB);
 /**
- * @brief     sgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
+ * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -266,11 +258,10 @@ void sgemm_fp16(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
-                             uint32_t M, uint32_t N, uint32_t K, float alpha,
-                             float beta);
+void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                   uint32_t N, uint32_t K, float alpha, float beta);
 /**
- * @brief     sgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
+ * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -281,11 +272,10 @@ void sgemm_fp16_noTrans(const __fp16 *A, const __fp16 *B, float *C,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
-                            uint32_t M, uint32_t N, uint32_t K, float alpha,
-                            float beta);
+void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta);
 /**
- * @brief     sgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
+ * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -296,11 +286,10 @@ void sgemm_fp16_transA(const __fp16 *A, const __fp16 *B, float *C,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
-                            uint32_t M, uint32_t N, uint32_t K, float alpha,
-                            float beta);
+void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta);
 /**
- * @brief     sgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
+ * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -311,9 +300,9 @@ void sgemm_fp16_transB(const __fp16 *A, const __fp16 *B, float *C,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm_fp16_transAB(const __fp16 *A, const __fp16 *B, float *C,
-                             uint32_t M, uint32_t N, uint32_t K, float alpha,
-                             float beta, uint32_t idx);
+void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
+                   uint32_t N, uint32_t K, float alpha, float beta,
+                   uint32_t idx);
 /**
  * @brief squared root transformation with neon : X = sqrt(X)
  *
