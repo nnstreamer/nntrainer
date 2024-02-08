@@ -64,6 +64,8 @@ void ConcatLayer::finalize(InitLayerContext &context) {
     concat_dim_val += dim[concat_dimension];
   }
 
+  bool is_nchw = (context.getFormat() == Tformat::NCHW);
+
   TensorDim output_dim = input_dim_0;
   output_dim.setTensorDim(concat_dimension, concat_dim_val);
 
@@ -78,19 +80,38 @@ void ConcatLayer::finalize(InitLayerContext &context) {
    * easier splitting of the data.
    */
   leading_helper_dim = 1;
+  if (!is_nchw)
+    output_reshape_helper.setFormat(Tformat::NHWC);
+
   output_reshape_helper.channel(1);
   output_reshape_helper.height(1);
   output_reshape_helper.width(1);
-  for (unsigned int idx = 1; idx < concat_dimension; ++idx) {
-    leading_helper_dim *= output_dim.getTensorDim(idx);
+
+  std::vector<unsigned int> dims_order;
+  if (is_nchw)
+    dims_order = {0, 1, 2, 3};
+  else
+    dims_order = {0, 2, 3, 1};
+
+  for (unsigned int idx = 1; idx < 4; ++idx) {
+    if (dims_order[idx] == concat_dimension)
+      break;
+    leading_helper_dim *= output_dim.getTensorDim(dims_order[idx]);
   }
 
-  output_reshape_helper.height(output_dim.getTensorDim(concat_dimension));
+  is_nchw
+    ? output_reshape_helper.height(output_dim.getTensorDim(concat_dimension))
+    : output_reshape_helper.width(output_dim.getTensorDim(concat_dimension));
 
-  for (unsigned int idx = concat_dimension + 1;
-       idx < ml::train::TensorDim::getNumDim(); ++idx) {
-    output_reshape_helper.width(output_reshape_helper.width() *
-                                output_dim.getTensorDim(idx));
+  auto dim_pos =
+    std::find(dims_order.begin(), dims_order.end(), concat_dimension);
+
+  for (dim_pos++; dim_pos < dims_order.end(); dim_pos++) {
+    unsigned int idx = *dim_pos;
+    is_nchw ? output_reshape_helper.width(output_reshape_helper.width() *
+                                          output_dim.getTensorDim(idx))
+            : output_reshape_helper.channel(output_reshape_helper.channel() *
+                                            output_dim.getTensorDim(idx));
   }
 
   /**
@@ -100,8 +121,10 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   input_reshape_helper.resize(input_dims.size());
   for (unsigned int idx = 0; idx < input_reshape_helper.size(); idx++) {
     input_reshape_helper[idx] = output_reshape_helper;
-    input_reshape_helper[idx].height(
-      input_dims[idx].getTensorDim(concat_dimension));
+    is_nchw ? input_reshape_helper[idx].height(
+                input_dims[idx].getTensorDim(concat_dimension))
+            : input_reshape_helper[idx].width(
+                input_dims[idx].getTensorDim(concat_dimension));
   }
 
   setBatch(input_dims[SINGLE_INOUT_IDX].batch());
@@ -114,10 +137,13 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
    */
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
+  bool is_nchw = (output.getFormat() == Tformat::NCHW);
+
   const TensorDim out_dim = output.getDim();
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
-  unsigned int data_copy_size = output_reshape_helper.width();
+  unsigned int data_copy_size =
+    is_nchw ? output_reshape_helper.width() : output_reshape_helper.channel();
   TensorDim::TensorType tensor_type = out_dim.getTensorType();
 
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
@@ -130,15 +156,21 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
+        for (unsigned int count = 0;
+             count < (is_nchw ? irh.height() : irh.width()); count++) {
           Tensor dest_tensor = Tensor::Map<float>(
-            output.getAddress<float>(batch, 0, output_height_offset + count, 0),
+            output.getAddress<float>(
+              batch, 0, is_nchw ? (output_height_offset + count) : 0,
+              is_nchw ? 0 : output_height_offset + count),
             data_copy_size * sizeof(float),
-            {1, 1, 1, data_copy_size, tensor_type});
-          const Tensor source_tensor =
-            Tensor::Map<float>(input.getAddress<float>(batch, 0, count, 0),
-                               data_copy_size * sizeof(float),
-                               {1, 1, 1, data_copy_size, tensor_type});
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
+          const Tensor source_tensor = Tensor::Map<float>(
+            input.getAddress<float>(batch, 0, is_nchw ? count : 0,
+                                    is_nchw ? 0 : count),
+            data_copy_size * sizeof(float),
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
           dest_tensor.copy(source_tensor);
         }
       }
@@ -147,15 +179,21 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
         /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
+        for (unsigned int count = 0;
+             count < (is_nchw ? irh.height() : irh.width()); count++) {
           Tensor dest_tensor = Tensor::Map<_FP16>(
-            output.getAddress<_FP16>(batch, 0, output_height_offset + count, 0),
+            output.getAddress<_FP16>(
+              batch, 0, is_nchw ? (output_height_offset + count) : 0,
+              is_nchw ? 0 : output_height_offset + count),
             data_copy_size * sizeof(_FP16),
-            {1, 1, 1, data_copy_size, tensor_type});
-          const Tensor source_tensor =
-            Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, count, 0),
-                               data_copy_size * sizeof(_FP16),
-                               {1, 1, 1, data_copy_size, tensor_type});
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
+          const Tensor source_tensor = Tensor::Map<_FP16>(
+            input.getAddress<_FP16>(batch, 0, is_nchw ? count : 0,
+                                    is_nchw ? 0 : count),
+            data_copy_size * sizeof(_FP16),
+            {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+             tensor_type});
           dest_tensor.copy(source_tensor);
         }
       }
@@ -165,7 +203,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     }
 
     input.reshape(in_dim);
-    output_height_offset += irh.height();
+    output_height_offset += is_nchw ? irh.height() : irh.width();
   }
 
   output.reshape(out_dim);
@@ -180,10 +218,14 @@ void ConcatLayer::incremental_forwarding(RunLayerContext &context,
    */
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
+  bool is_nchw = (output.getFormat() == Tformat::NCHW);
+
   const TensorDim out_dim = output.getDim();
   output.reshape(output_reshape_helper);
   unsigned int output_height_offset = 0;
-  unsigned int data_copy_size = output_reshape_helper.width();
+  unsigned int data_copy_size =
+    is_nchw ? output_reshape_helper.width() : output_reshape_helper.channel();
+  TensorDim::TensorType tensor_type = out_dim.getTensorType();
 
   // @todo: this implementation is only works when axis is 3(width). Consider
   // for other axes
@@ -199,19 +241,26 @@ void ConcatLayer::incremental_forwarding(RunLayerContext &context,
     for (unsigned int batch = batch_channel * from; batch < batch_channel * to;
          batch++) {
       /** loop over the concat dimension itself */
-      for (unsigned int count = 0; count < irh.height(); count++) {
-        Tensor dest_tensor = Tensor::Map(
-          output.getAddress(batch, 0, output_height_offset + count, 0),
-          data_copy_size * sizeof(float), {1, 1, 1, data_copy_size});
+      for (unsigned int count = 0;
+           count < (is_nchw ? irh.height() : irh.width()); count++) {
+        Tensor dest_tensor =
+          Tensor::Map(output.getAddress(
+                        batch, 0, is_nchw ? (output_height_offset + count) : 0,
+                        is_nchw ? 0 : output_height_offset + count),
+                      data_copy_size * sizeof(float),
+                      {1, is_nchw ? 1 : data_copy_size, 1,
+                       is_nchw ? data_copy_size : 1, tensor_type});
         const Tensor source_tensor = Tensor::Map(
-          input.getAddress(batch, 0, count, 0), data_copy_size * sizeof(float),
-          {1, 1, 1, data_copy_size});
+          input.getAddress(batch, 0, is_nchw ? count : 0, is_nchw ? 0 : count),
+          data_copy_size * sizeof(float),
+          {1, is_nchw ? 1 : data_copy_size, 1, is_nchw ? data_copy_size : 1,
+           tensor_type});
         dest_tensor.copy(source_tensor);
       }
     }
 
     input.reshape(in_dim);
-    output_height_offset += irh.height();
+    output_height_offset += is_nchw ? irh.height() : irh.width();
   }
 
   output.reshape(out_dim);
@@ -229,7 +278,7 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
   unsigned int data_copy_size = output_reshape_helper.width();
   TensorDim::TensorType tensor_type = output.getTensorType();
 
- for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+  for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &input = context.getOutgoingDerivative(idx);
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];

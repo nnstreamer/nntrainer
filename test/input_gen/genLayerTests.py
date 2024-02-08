@@ -336,6 +336,9 @@ if __name__ == "__main__":
     record_single(positional_encoding, [(3, 1, 7, 6)], "positional_encoding_partial")
     record_single(positional_encoding, [(3, 1, 10, 6)], "positional_encoding")
 
+    add = K.layers.Add()
+    record_single(add, [(2, 5, 3, 2), (2, 5, 3, 2)], "addition")
+    
     # embedding
 
     embedding = K.layers.Embedding(10,10)
