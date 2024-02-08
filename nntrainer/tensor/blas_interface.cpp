@@ -83,7 +83,7 @@ static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
 #if (defined USE__FP16 && USE_NEON)
   // USE__FP16 is defined when platform is android
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::saxpy_neon_fp16(N, alpha, X, Y);
+    nntrainer::neon::saxpy_fp16(N, alpha, X, Y);
   } else {
     saxpy_loop_fp16();
   }
@@ -99,9 +99,9 @@ static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const float beta, _FP16 *Y, const int incY) {
 #if (defined USE__FP16 && USE_NEON)
   if (TransA == CblasTrans) {
-    nntrainer::neon::sgemv_transpose_neon_fp16(A, X, Y, M, N, alpha, beta);
+    nntrainer::neon::sgemv_transpose_fp16(A, X, Y, M, N, alpha, beta);
   } else {
-    nntrainer::neon::sgemv_neon_fp16(A, X, Y, M, N, alpha, beta);
+    nntrainer::neon::sgemv_fp16(A, X, Y, M, N, alpha, beta);
   }
 #else
   unsigned int lenX =
@@ -138,7 +138,7 @@ static _FP16 sdot_FP16(const unsigned int N, const _FP16 *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    ret = nntrainer::neon::sdot_neon_fp16(N, X, Y);
+    ret = nntrainer::neon::sdot_fp16(N, X, Y);
   } else {
     for (unsigned int i = 0; i < N; ++i) {
       ret += X[i * incX] * Y[i * incY];
@@ -159,7 +159,7 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::scopy_neon_fp16(N, X, Y);
+    nntrainer::neon::scopy_fp16(N, X, Y);
   } else {
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
@@ -177,7 +177,7 @@ static void scopy_float32_to_float16(const unsigned int N, const float *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::scopy_neon_fp32_to_fp16(N, X, Y);
+    nntrainer::neon::scopy_fp32_to_fp16(N, X, Y);
   } else {
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
@@ -195,7 +195,7 @@ static void scopy_float16_to_float32(const unsigned int N, const _FP16 *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::scopy_neon_fp16_to_fp32(N, X, Y);
+    nntrainer::neon::scopy_fp16_to_fp32(N, X, Y);
   } else {
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
@@ -213,7 +213,7 @@ static void scopy_int4_to_fp16(const unsigned int N, const uint8_t *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::scopy_neon_int4_to_fp16(N, X, Y);
+    nntrainer::neon::scopy_int4_to_fp16(N, X, Y);
   } else {
     throw std::invalid_argument(
       "Error: incX == 1 && incY == 1 is supported only");
@@ -233,7 +233,7 @@ static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::scopy_neon_int8_to_fp16(N, X, Y);
+    nntrainer::neon::scopy_int8_to_fp16(N, X, Y);
   } else {
     throw std::invalid_argument(
       "Error: incX == 1 && incY == 1 is supported only");
@@ -248,7 +248,7 @@ static void scopy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_multiplication_neon_fp16(N, X, Y, Z);
+  nntrainer::neon::elementwise_vector_multiplication_fp16(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
     Z[i] = X[i] * Y[i];
@@ -258,7 +258,7 @@ static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_addition_neon_fp16(N, X, Y, Z);
+  nntrainer::neon::elementwise_vector_addition_fp16(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
     Z[i] = X[i] + Y[i];
@@ -269,7 +269,7 @@ void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1) {
-    nntrainer::neon::sscal_neon_fp16(N, X, alpha);
+    nntrainer::neon::sscal_fp16(N, X, alpha);
   } else {
     for (unsigned int i = 0; i < N; ++i)
       X[i * incx] = static_cast<_FP16>(alpha) * X[i * incx];
@@ -286,7 +286,7 @@ static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   _FP16 tmp;
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1) {
-    sum = nntrainer::neon::snrm2_neon_fp16(N, X);
+    sum = nntrainer::neon::snrm2_fp16(N, X);
   } else {
     for (unsigned int i = 0; i < N; i++) {
       tmp = X[i * incx];
@@ -311,7 +311,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldc) {
 
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::sgemm_neon_fp16(A, B, C, M, N, K, alpha, beta,
+  nntrainer::neon::sgemm_fp16(A, B, C, M, N, K, alpha, beta,
                                    TransA == CblasTrans, TransB == CblasTrans);
 #else
   float *A_ = new float[M * K];
@@ -336,7 +336,7 @@ static unsigned int isamax_FP16(const unsigned int N, const _FP16 *X,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && N >= 8) {
-    max_idx = nntrainer::neon::isamax_neon_fp16(N, X);
+    max_idx = nntrainer::neon::isamax_fp16(N, X);
   } else {
     _FP16 max_val = X[0];
     for (unsigned int n = 1; n < N; n += incX) {
@@ -431,7 +431,7 @@ unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX) {
 
 void inv_sqrt_inplace(const unsigned int N, _FP16 *X) {
 #ifdef USE_NEON
-  nntrainer::neon::inv_sqrt_inplace_neon(N, X);
+  nntrainer::neon::inv_sqrt_inplace(N, X);
 #else
   for (unsigned int i = 0; i < N; ++i) {
     X[i] = static_cast<_FP16>(1 / std::sqrt(static_cast<float>(X[i])));
@@ -760,7 +760,7 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
            const int intY) {
 #ifdef USE_NEON
-  nntrainer::neon::scopy_neon_int8_or_int4(N, X, Y);
+  nntrainer::neon::scopy_int8_or_int4(N, X, Y);
 #else
   for (unsigned int idx = 0; idx < N; idx++) {
     Y[idx] = X[idx];
@@ -771,7 +771,7 @@ void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
                            const int incX, float *Y, const int incY) {
 #ifdef USE_NEON
-  nntrainer::neon::scopy_neon_int4_to_fp32(N, X, Y);
+  nntrainer::neon::scopy_int4_to_fp32(N, X, Y);
 #else
   for (unsigned int idx = 0; idx < N; idx++) {
     Y[2 * idx] = X[idx] >> 4;
@@ -783,7 +783,7 @@ void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
                            const int incX, float *Y, const int incY) {
 #ifdef USE_NEON
-  nntrainer::neon::scopy_neon_int8_to_fp32(N, X, Y);
+  nntrainer::neon::scopy_int8_to_fp32(N, X, Y);
 #else
   for (unsigned int idx = 0; idx < N; idx++) {
     Y[idx] = X[idx];
@@ -872,7 +872,7 @@ unsigned int isamax(const unsigned int N, const float *X, const int incX) {
 
 void sine(const unsigned int N, float *X, float *Y, float alpha) {
 #ifdef USE_NEON
-  nntrainer::neon::sine_neon(N, X, Y, alpha);
+  nntrainer::neon::sine(N, X, Y, alpha);
 #else
   unsigned int i = 0;
   while (i < N) {
@@ -884,7 +884,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha) {
 
 void cosine(const unsigned int N, float *X, float *Y, float alpha) {
 #ifdef USE_NEON
-  nntrainer::neon::cosine_neon(N, X, Y, alpha);
+  nntrainer::neon::cosine(N, X, Y, alpha);
 #else
   unsigned int i = 0;
   while (i < N) {
@@ -896,7 +896,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha) {
 
 void inv_sqrt_inplace(const unsigned int N, float *X) {
 #ifdef USE_NEON
-  nntrainer::neon::inv_sqrt_inplace_neon(N, X);
+  nntrainer::neon::inv_sqrt_inplace(N, X);
 #else
   for (unsigned int i = 0; i < N; ++i) {
     X[i] = 1 / std::sqrt(static_cast<float>(X[i]));
