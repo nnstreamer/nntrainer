@@ -33,7 +33,7 @@
     }                                        \
   } while (0);
 
-#define hgemv_loop(ci, cj, cM, cN)                                 \
+#define hgemv_loop(ci, cj, cM, cN)                                      \
   do {                                                                  \
     float y0;                                                           \
     unsigned int i, j;                                                  \
@@ -45,14 +45,14 @@
     }                                                                   \
   } while (0);
 
-#define haxpy_loop()                                                  \
+#define haxpy_loop()                                                       \
   do {                                                                     \
     unsigned int i;                                                        \
     for (i = 0; i < N; ++i)                                                \
       Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX]; \
   } while (0);
 
-#define hgemm_loop()                                                 \
+#define hgemm_loop()                                                      \
   do {                                                                    \
     for (unsigned int m = 0; m < M; ++m) {                                \
       for (unsigned int n = 0; n < N; ++n) {                              \
@@ -171,7 +171,7 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 }
 
 static void copy_float32_to_float16(const unsigned int N, const float *X,
-                                     const int incX, _FP16 *Y, const int incY) {
+                                    const int incX, _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -189,7 +189,7 @@ static void copy_float32_to_float16(const unsigned int N, const float *X,
 }
 
 static void copy_float16_to_float32(const unsigned int N, const _FP16 *X,
-                                     const int incX, float *Y, const int incY) {
+                                    const int incX, float *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -207,7 +207,7 @@ static void copy_float16_to_float32(const unsigned int N, const _FP16 *X,
 }
 
 static void copy_int4_to_fp16(const unsigned int N, const uint8_t *X,
-                               const int incX, _FP16 *Y, const int incY) {
+                              const int incX, _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -227,7 +227,7 @@ static void copy_int4_to_fp16(const unsigned int N, const uint8_t *X,
 }
 
 static void copy_int8_to_fp16(const unsigned int N, const uint8_t *X,
-                               const int incX, _FP16 *Y, const int incY) {
+                              const int incX, _FP16 *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -248,7 +248,7 @@ static void copy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_multiplication(N, X, Y, Z);
+  nntrainer::neon::ewvm(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
     Z[i] = X[i] * Y[i];
@@ -258,7 +258,7 @@ static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
 static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                       _FP16 *Z) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::elementwise_vector_addition(N, X, Y, Z);
+  nntrainer::neon::ewva(N, X, Y, Z);
 #else
   for (unsigned int i = 0; i < N; ++i)
     Z[i] = X[i] + Y[i];
@@ -311,8 +311,8 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
                        const unsigned int ldc) {
 
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::hgemm(A, B, C, M, N, K, alpha, beta,
-                                   TransA == CblasTrans, TransB == CblasTrans);
+  nntrainer::neon::hgemm(A, B, C, M, N, K, alpha, beta, TransA == CblasTrans,
+                         TransB == CblasTrans);
 #else
   float *A_ = new float[M * K];
   float *B_ = new float[N * K];

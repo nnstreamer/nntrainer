@@ -2014,8 +2014,7 @@ void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
   }
 }
 
-void elementwise_vector_multiplication(const unsigned int N, const __fp16 *X,
-                                       const __fp16 *Y, __fp16 *Z) {
+void ewvm(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2030,8 +2029,7 @@ void elementwise_vector_multiplication(const unsigned int N, const __fp16 *X,
   }
 }
 
-void elementwise_vector_addition(const unsigned int N, const __fp16 *X,
-                                 const __fp16 *Y, __fp16 *Z) {
+void ewva(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);

@@ -119,8 +119,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
  */
-void elementwise_vector_multiplication(const unsigned N, const __fp16 *X,
-                                       const __fp16 *Y, __fp16 *Z);
+void ewvm(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z);
 /**
  * @brief     elementwise vector addition with neon : Z = X + Y
  * @param[in] N  length of the vector
@@ -128,8 +127,7 @@ void elementwise_vector_multiplication(const unsigned N, const __fp16 *X,
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
  */
-void elementwise_vector_addition(const unsigned N, const __fp16 *X,
-                                 const __fp16 *Y, __fp16 *Z);
+void ewva(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z);
 
 /**
  * @brief     transposed hgemv computation with neon
