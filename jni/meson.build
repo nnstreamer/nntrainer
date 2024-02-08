@@ -20,9 +20,9 @@ and_conf.set('MESON_NNTRAINER_INCS', ' '.join(nntrainer_inc_abs))
 and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src))
 and_conf.set('MESON_CCAPI_NNTRAINER_INCS', ' '.join(ccapi_inc_abs))
 
-and_conf.set('VERSION_MAJOR', ' '.join(nntrainer_version_split[0]))
-and_conf.set('VERSION_MINOR', ' '.join(nntrainer_version_split[1]))
-and_conf.set('VERSION_MICRO', ' '.join(nntrainer_version_split[2]))
+and_conf.set('VERSION_MAJOR', nntrainer_version_split[0])
+and_conf.set('VERSION_MINOR', nntrainer_version_split[1])
+and_conf.set('VERSION_MICRO', nntrainer_version_split[2])
 
 if get_option('enable-capi').enabled()
    and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src))
