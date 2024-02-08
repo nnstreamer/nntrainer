@@ -13,9 +13,8 @@
 
 namespace nntrainer::neon {
 
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
-                                      float *cos_, float *sin_,
-                                      unsigned int from) {
+void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
+                                 float *sin_, unsigned int from) {
   cosine(N_half, angle, cos_, from);
   sine(N_half, angle, sin_, from);
 
@@ -58,9 +57,8 @@ void swish(const unsigned int N, float *X, float *Y, float *Z) {
 
 #ifdef ENABLE_FP16
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
-                                         unsigned int w, __fp16 *in,
-                                         __fp16 *out, float *cos_,
-                                         float *sin_) {
+                                    unsigned int w, __fp16 *in, __fp16 *out,
+                                    float *cos_, float *sin_) {
   unsigned int k = 0;
   while (k < dim) {
     unsigned int span = w + k;

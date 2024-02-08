@@ -28,9 +28,8 @@ namespace nntrainer::neon {
  * @param sin_ float* for sin_
  * @param alpha scaling factor
  */
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
-                                      float *cos_, float *sin_,
-                                      unsigned int alpha = 1.0);
+void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
+                                 float *sin_, unsigned int alpha = 1.0);
 
 /**
  * @brief swish function with neon : X = (Y / (1 + exp( -Y ))) * Z
@@ -54,8 +53,8 @@ void swish(const unsigned int N, float *X, float *Y, float *Z);
  * @param sin_ precomputed sin_ for corresponding rotational indices
  */
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
-                                         unsigned int w, __fp16 *in,
-                                         __fp16 *out, float *cos_, float *sin_);
+                                    unsigned int w, __fp16 *in, __fp16 *out,
+                                    float *cos_, float *sin_);
 /**
  * @brief swish function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
