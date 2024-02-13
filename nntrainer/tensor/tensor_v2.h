@@ -733,6 +733,25 @@ public:
   TensorV2 &pow(float exponent, TensorV2 &output) const;
 
   /**
+   * @brief     Gauss error function
+   * @retval    #ML_ERROR_NONE  Successful
+   */
+  int erf_i();
+
+  /**
+   * @brief     Gauss error function
+   * @retval    Calculated Tensor
+   */
+  TensorV2 erf() const;
+
+  /**
+   * @brief      Gauss error function
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &erf(TensorV2 &output) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */
