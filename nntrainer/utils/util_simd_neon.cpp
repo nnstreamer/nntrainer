@@ -72,13 +72,16 @@ float max(const unsigned int N, float *X) {
 void softmax(const unsigned int N, float *X, float *Y) {
   unsigned int i = 0;
   float sum = 0.f;
+  float max_x = max(N, X);
+  float32x4_t max_x_v = vmovq_n_f32(max_x);
   for (; N - i >= VL_FP32; i += VL_FP32) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
+    x0_3 = vsubq_f32(x0_3, max_x_v);
     float32x4_t exp0_3 = exp_ps(x0_3);
     sum += vaddvq_f32(exp0_3);
   }
   while (i < N) {
-    sum += std::exp(X[i]);
+    sum += std::exp(X[i] - max_x);
     ++i;
   }
 
@@ -86,12 +89,13 @@ void softmax(const unsigned int N, float *X, float *Y) {
   float32x4_t sum_vec = vmovq_n_f32(sum);
   for (; N - i >= VL_FP32; i += VL_FP32) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
+    x0_3 = vsubq_f32(x0_3, max_x_v);
     float32x4_t exp0_3 = exp_ps(x0_3);
     float32x4_t softmax0_3 = vdivq_f32(exp0_3, sum_vec);
     vst1q_f32(&Y[i], softmax0_3);
   }
   while (i < N) {
-    Y[i] = std::exp(X[i]) / sum;
+    Y[i] = std::exp(X[i] - max_x) / sum;
     ++i;
   }
 }
@@ -213,18 +217,22 @@ __fp16 max(const unsigned int N, __fp16 *X) {
 void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {
   unsigned int i = 0;
   float sum = 0.f;
+  __fp16 max_x = max(N, X);
+  float32x4_t max_x_v = vmovq_n_f32(static_cast<float>(max_x));
 
   for (; N - i >= VL_FP16; i += VL_FP16) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float32x4_t x0_3 = vcvt_f32_f16(vget_low_f16(x0_7));
     float32x4_t x4_7 = vcvt_f32_f16(vget_high_f16(x0_7));
+    x0_3 = vsubq_f32(x0_3, max_x_v);
+    x4_7 = vsubq_f32(x4_7, max_x_v);
     float32x4_t exp0_3 = exp_ps(x0_3);
     float32x4_t exp4_7 = exp_ps(x4_7);
     sum += vaddvq_f32(exp0_3);
     sum += vaddvq_f32(exp4_7);
   }
   while (i < N) {
-    sum += std::exp(static_cast<float>(X[i]));
+    sum += std::exp(static_cast<float>(X[i] - max_x));
     ++i;
   }
 
@@ -234,6 +242,8 @@ void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float32x4_t x0_3 = vcvt_f32_f16(vget_low_f16(x0_7));
     float32x4_t x4_7 = vcvt_f32_f16(vget_high_f16(x0_7));
+    x0_3 = vsubq_f32(x0_3, max_x_v);
+    x4_7 = vsubq_f32(x4_7, max_x_v);
     float32x4_t exp0_3 = exp_ps(x0_3);
     float32x4_t exp4_7 = exp_ps(x4_7);
     float32x4_t softmax0_3 = vdivq_f32(exp0_3, sum_vec);
@@ -242,7 +252,7 @@ void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {
               vcombine_f16(vcvt_f16_f32(softmax0_3), vcvt_f16_f32(softmax4_7)));
   }
   while (i < N) {
-    Y[i] = std::exp(static_cast<float>(X[i])) / sum;
+    Y[i] = std::exp(static_cast<float>(X[i] - max_x)) / sum;
     ++i;
   }
 }

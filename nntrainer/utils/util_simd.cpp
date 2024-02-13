@@ -60,13 +60,14 @@ void softmax(const unsigned int N, float *X, float *Y) {
 #else
   unsigned int i = 0;
   float sum = 0.f;
+  float max_x = max(N, X);
   while (i < N) {
-    sum += std::exp(X[i]);
+    sum += std::exp(X[i] - max_x);
     ++i;
   }
   i = 0;
   while (i < N) {
-    Y[i] = std::exp(X[i]) / sum;
+    Y[i] = std::exp(X[i] - max_x) / sum;
     ++i;
   }
 #endif
@@ -101,11 +102,11 @@ void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
 #endif
 }
 
-__fp16 max(const unsigned int N, __fp16 *X) {
+_FP16 max(const unsigned int N, _FP16 *X) {
 #ifdef USE_NEON
   return nntrainer::neon::max(N, X);
 #else
-  __fp16 ret = X[0];
+  _FP16 ret = X[0];
   unsigned int i = 1;
   while (i < N) {
     ret = (ret > X[i]) ? ret : X[i];
@@ -119,15 +120,16 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
 #ifdef USE_NEON
   nntrainer::neon::softmax(N, X, Y);
 #else
+  _FP16 max_x = max(N, X);
   unsigned int i = 0;
   float sum = 0.f;
   while (i < N) {
-    sum += std::exp(static_cast<float>(X[i]));
+    sum += std::exp(static_cast<float>(X[i] - max_x));
     ++i;
   }
   i = 0;
   while (i < N) {
-    Y[i] = static_cast<_FP16>(std::exp(static_cast<float>(X[i])) / sum);
+    Y[i] = static_cast<_FP16>(std::exp(static_cast<float>(X[i] - max_x)) / sum);
     ++i;
   }
 #endif
