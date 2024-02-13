@@ -45,6 +45,15 @@ void swish(const unsigned int N, float *X, float *Y, float *Z);
 void swish_neon(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
+ * @brief returns maximum value of the vector X
+ * 
+ * @param N number of elements in X
+ * @param X float * for Vector X
+ * @return float maximum value of vector X
+ */
+float max(const unsigned int N, float* X);
+
+/**
  * @brief soft max function with neon y_i = exp(x_i) / sum( exp(x_i) )
  *
  * @param N number of elements in X
@@ -80,6 +89,15 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
 void swish(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z);
 =======
 void swish_neon(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z);
+
+/**
+ * @brief returns maximum value of the vector X
+ * 
+ * @param N number of elements in X
+ * @param X __fp16 * for Vector X
+ * @return __fp16 maximum value of vector X
+ */
+__fp16 max(const unsigned int N, __fp16* X);
 
 /**
  * @brief soft max function with neon y_i = exp(x_i) / sum( exp(x_i) )
