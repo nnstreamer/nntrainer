@@ -41,6 +41,15 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
  */
 void swish(const unsigned int N, float *X, float *Y, float *Z);
 
+/**
+ * @brief softmax function y_i = exp(x_i) / sum( exp(x_i) )
+ *
+ * @param N number of elements in X
+ * @param X float * for Vector X
+ * @param Y  float * for Vector Y
+ */
+void softmax(const unsigned int N, float *X, float *Y);
+
 #ifdef ENABLE_FP16
 /**
  * @brief Accelerating function for rotary embedding layer forwarding
@@ -65,6 +74,17 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
  * @param Z _FP16 * for Vector Z
  */
 void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
+
+/**
+ * @brief soft max function with neon y_i = exp(x_i) / sum( exp(x_i) )
+ * Note that half-precision softmax function needs to be computed with
+ * single-precision
+ *
+ * @param N number of elements in X
+ * @param X _FP16 * for Vector X
+ * @param Y  _FP16 * for Vector Y
+ */
+void softmax(const unsigned int N, _FP16 *X, _FP16 *Y);
 #endif
 
 } /* namespace nntrainer */

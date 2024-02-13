@@ -40,6 +40,24 @@ void swish(const unsigned int N, float *X, float *Y, float *Z) {
 #endif
 }
 
+void softmax(const unsigned int N, float *X, float *Y) {
+#ifdef USE_NEON
+  nntrainer::neon::softmax(N, X, Y);
+#else
+  unsigned int i = 0;
+  float sum = 0.f;
+  while (i < N) {
+    sum += std::exp(X[i]);
+    ++i;
+  }
+  i = 0;
+  while (i < N) {
+    Y[i] = std::exp(X[i]) / sum;
+    ++i;
+  }
+#endif
+}
+
 #ifdef ENABLE_FP16
 
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
@@ -64,6 +82,24 @@ void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
     X[i] =
       (Y[i] / static_cast<_FP16>(1.f + std::exp(static_cast<float>(-Y[i])))) *
       Z[i];
+    ++i;
+  }
+#endif
+}
+
+void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
+#ifdef USE_NEON
+  nntrainer::neon::softmax(N, X, Y);
+#else
+  unsigned int i = 0;
+  float sum = 0.f;
+  while (i < N) {
+    sum += std::exp(static_cast<float>(X[i]));
+    ++i;
+  }
+  i = 0;
+  while (i < N) {
+    Y[i] = static_cast<_FP16>(std::exp(static_cast<float>(X[i])) / sum);
     ++i;
   }
 #endif
