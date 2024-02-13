@@ -472,6 +472,14 @@ TensorV2 &HalfTensor::subtract(float const &value, TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &HalfTensor::pow(float exponent, TensorV2 &output) const {
+  auto f = [exponent](float in) {
+    return static_cast<_FP16>(powf(in, exponent));
+  };
+  apply(f, output);
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();

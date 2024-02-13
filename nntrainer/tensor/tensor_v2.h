@@ -711,6 +711,28 @@ public:
   TensorV2 &subtract(TensorV2 const &m, TensorV2 &output) const;
 
   /**
+   * @brief     Tensor power element without mem copy
+   * @param[in] exponent exponent
+   * @retval    #ML_ERROR_NONE  Successful
+   */
+  int pow_i(float exponent);
+
+  /**
+   * @brief     Tensor power element by element
+   * @param[in] exponent exponent
+   * @retval    Calculated Tensor
+   */
+  TensorV2 pow(float exponent) const;
+
+  /**
+   * @brief      Tensor power element by element
+   * @param[in]  exponent exponent
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &pow(float exponent, TensorV2 &output) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */

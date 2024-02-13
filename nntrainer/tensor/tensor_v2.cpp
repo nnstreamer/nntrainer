@@ -346,6 +346,21 @@ TensorV2 &TensorV2::subtract(TensorV2 const &m, TensorV2 &output) const {
   return output;
 }
 
+int TensorV2::pow_i(float exponent) {
+  pow(exponent, *this);
+  return ML_ERROR_NONE;
+}
+
+TensorV2 TensorV2::pow(float exponent) const {
+  TensorV2 output("", getFormat(), getDataType());
+  return pow(exponent, output);
+}
+
+TensorV2 &TensorV2::pow(float exponent, TensorV2 &output) const {
+  itensor->pow(exponent, output);
+  return output;
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }

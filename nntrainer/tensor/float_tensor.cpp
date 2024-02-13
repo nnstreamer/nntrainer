@@ -507,6 +507,12 @@ TensorV2 &FloatTensor::subtract(float const &value, TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &FloatTensor::pow(float exponent, TensorV2 &output) const {
+  auto f = [exponent](float in) { return powf(in, exponent); };
+  apply(f, output);
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();

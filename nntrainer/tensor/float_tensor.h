@@ -252,6 +252,11 @@ public:
   TensorV2 &subtract(float const &value, TensorV2 &output) const override;
 
   /**
+   * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
+   */
+  TensorV2 &pow(float exponent, TensorV2 &output) const override;
+
+  /**
    * @copydoc TensorV2::copy(const TensorV2 &from)
    */
   void copy(const TensorV2 &from);
