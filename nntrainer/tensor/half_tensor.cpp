@@ -480,6 +480,14 @@ TensorV2 &HalfTensor::pow(float exponent, TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &HalfTensor::erf(TensorV2 &output) const {
+  auto f = [](_FP16 in) {
+    return static_cast<_FP16>(std::erf(static_cast<float>(in)));
+  };
+  apply(f, output);
+  return output;
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();

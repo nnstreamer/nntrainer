@@ -513,6 +513,12 @@ TensorV2 &FloatTensor::pow(float exponent, TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &FloatTensor::erf(TensorV2 &output) const {
+  auto f = [](float in) { return std::erf(in); };
+  apply(f, output);
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();
