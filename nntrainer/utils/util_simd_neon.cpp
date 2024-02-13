@@ -55,6 +55,20 @@ void swish(const unsigned int N, float *X, float *Y, float *Z) {
   }
 }
 
+float max(const unsigned int N, float *X) {
+  unsigned int i = 0;
+  float ret = X[i];
+  for (; N - i >= VL_FP32; i += VL_FP32) {
+    float32x4_t x0_3 = vld1q_f32(&X[i]);
+    ret = std::fmax(ret, vmaxvq_f32(x0_3));
+  }
+  while (i < N) {
+    ret = std::fmax(ret, X[i]);
+    ++i;
+  }
+  return ret;
+}
+
 void softmax(const unsigned int N, float *X, float *Y) {
   unsigned int i = 0;
   float sum = 0.f;
@@ -179,6 +193,21 @@ void swish(const unsigned int N, __fp16 *X, __fp16 *Y, __fp16 *Z) {
     X[i] = (Y[i] / (1.f + std::exp(static_cast<float>(-Y[i])))) * Z[i];
     ++i;
   }
+}
+
+__fp16 max(const unsigned int N, __fp16 *X) {
+  unsigned int i = 0;
+  __fp16 ret = X[i];
+  for (; N - i >= VL_FP16; i += VL_FP16) {
+    float16x8_t x0_7 = vld1q_f16(&X[i]);
+    __fp16 x_max = vmaxvq_f16(x0_7);
+    ret = (ret > x_max) ? ret : x_max;
+  }
+  while (i < N) {
+    ret = (ret > X[i]) ? ret : X[i];
+    ++i;
+  }
+  return ret;
 }
 
 void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {

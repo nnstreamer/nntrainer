@@ -40,6 +40,20 @@ void swish(const unsigned int N, float *X, float *Y, float *Z) {
 #endif
 }
 
+float max(const unsigned int N, float *X) {
+#ifdef USE_NEON
+  return nntrainer::neon::max(N, X);
+#else
+  float ret = X[0];
+  unsigned int i = 1;
+  while (i < N) {
+    ret = std::fmax(ret, X[i]);
+    ++i;
+  }
+  return ret;
+#endif
+}
+
 void softmax(const unsigned int N, float *X, float *Y) {
 #ifdef USE_NEON
   nntrainer::neon::softmax(N, X, Y);
@@ -84,6 +98,20 @@ void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
       Z[i];
     ++i;
   }
+#endif
+}
+
+__fp16 max(const unsigned int N, __fp16 *X) {
+#ifdef USE_NEON
+  return nntrainer::neon::max(N, X);
+#else
+  __fp16 ret = X[0];
+  unsigned int i = 1;
+  while (i < N) {
+    ret = (ret > X[i]) ? ret : X[i];
+    ++i;
+  }
+  return ret;
 #endif
 }
 
