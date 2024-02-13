@@ -43,12 +43,12 @@ void swish(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
  * @brief returns maximum value of the vector X
- * 
+ *
  * @param N number of elements in X
  * @param X float * for Vector X
  * @return float maximum value of vector X
  */
-float max(const unsigned int N, float* X);
+float max(const unsigned int N, float *X);
 
 /**
  * @brief softmax function y_i = exp(x_i) / sum( exp(x_i) )
@@ -86,12 +86,12 @@ void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
 
 /**
  * @brief returns maximum value of the vector X
- * 
+ *
  * @param N number of elements in X
  * @param X _FP16 * for Vector X
  * @return _FP16 maximum value of vector X
  */
-_FP16 max(const unsigned int N, _FP16* X);
+_FP16 max(const unsigned int N, _FP16 *X);
 
 /**
  * @brief soft max function with neon y_i = exp(x_i) / sum( exp(x_i) )

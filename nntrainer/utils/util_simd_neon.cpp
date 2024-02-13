@@ -100,6 +100,17 @@ void softmax(const unsigned int N, float *X, float *Y) {
   }
 }
 
+void exp_i(const unsigned int N, float *X) {
+  unsigned int i = 0;
+  for (; N - i >= VL_FP32; i += VL_FP32) {
+    vst1q_f32(&X[i], exp_ps(vld1q_f32(&X[i])));
+  }
+  while (i < N) {
+    X[i] = std::exp(X[i]);
+    ++i;
+  }
+}
+
 #ifdef ENABLE_FP16
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
                                     unsigned int w, __fp16 *in, __fp16 *out,
