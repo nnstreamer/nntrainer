@@ -18,7 +18,6 @@
 /// @todo Must find a general solution to optimize the functionality of
 /// multithreading : determining the combination of #threads and size of
 /// (M x K) x (K x N) GEMM
-const int OMP_THRESHOLD = 20000;
 /**
  * @brief Function for setting the number of threads to use for GEMM
  *
