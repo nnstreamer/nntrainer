@@ -213,4 +213,92 @@ TensorBase::computeBroadcastInfo(const TensorV2 &m) const {
   return e;
 }
 
+void TensorBase::calculateFlattenDot(
+  TensorV2 const &input, TensorV2 &output, bool trans, bool trans_in,
+  unsigned int &first_three_flat, unsigned int &last_axis,
+  unsigned int &input_first_three_flat, unsigned int &input_last_axis,
+  unsigned int &M, unsigned int &N, unsigned int &K, unsigned int &lda,
+  unsigned int &ldb, unsigned int &ldc) const {
+
+  if (trans && dim.rank() > 2) {
+    ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
+  }
+
+  if (getFormat() == Tformat::NHWC) {
+    first_three_flat = batch() * height() * width();
+    last_axis = channel();
+    input_first_three_flat = input.batch() * input.height() * input.width();
+    input_last_axis = input.channel();
+  } else {
+    first_three_flat = batch() * channel() * height();
+    last_axis = width();
+    input_first_three_flat = input.batch() * input.channel() * input.height();
+    input_last_axis = input.width();
+  }
+
+  if (!trans && !trans_in) {
+    if (last_axis != input_first_three_flat)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = input_first_three_flat; /** == last_axis */
+    N = input_last_axis;
+    M = first_three_flat;
+    if (getFormat() == Tformat::NHWC) {
+      CREATE_V2_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
+                              getTensorType()); //  NHWC Result Tensor
+    } else {
+      CREATE_V2_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
+                              getTensorType());
+    }
+
+    // We are not set zero the output because of performance reason.
+    // However, output is not initialized properly. There might include
+    // garbage like nan. When we have to use this value as in C = alpha*A*B +
+    // beta*C, then have to check garbage data of C is not effect or not.
+
+  } else if (!trans && trans_in) {
+    if (last_axis != input_last_axis)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = input_last_axis; /** == last_axis */
+    N = input_first_three_flat;
+    M = first_three_flat;
+    if (getFormat() == Tformat::NHWC) {
+      CREATE_V2_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
+                              getTensorType());
+    } else {
+      CREATE_V2_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
+                              getTensorType());
+    }
+  } else if (trans && !trans_in) {
+    if (first_three_flat != input_first_three_flat)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = input_first_three_flat; /** == first_three_flat */
+    N = input_last_axis;
+    M = last_axis;
+    if (getFormat() == Tformat::NHWC) {
+      CREATE_V2_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
+    } else {
+      CREATE_V2_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
+    }
+  } else {
+    if (first_three_flat != input_last_axis)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = input_last_axis; /** == first_three_flat */
+    N = input_first_three_flat;
+    M = last_axis;
+    if (getFormat() == Tformat::NHWC) {
+      CREATE_V2_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
+    } else {
+      CREATE_V2_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
+    }
+  }
+
+  lda = last_axis;
+  ldb = input_last_axis;
+  ldc = (getFormat() == Tformat::NHWC) ? output.channel() : output.width();
+}
+
 } // namespace nntrainer

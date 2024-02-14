@@ -269,6 +269,13 @@ public:
   TensorV2 &erf(TensorV2 &output) const override;
 
   /**
+   *  @copydoc TensorV2::dot(TensorV2 const &input, TensorV2 &output, bool
+   * trans, bool trans_in, float beta)
+   */
+  TensorV2 &dot(TensorV2 const &input, TensorV2 &output, bool trans,
+                bool trans_in, float beta) const override;
+
+  /**
    * @copydoc TensorV2::copy(const TensorV2 &from)
    */
   void copy(const TensorV2 &from);
