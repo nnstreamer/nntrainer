@@ -26,13 +26,13 @@ namespace nntrainer::neon {
  * @param[in] A float * for Matrix A
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
- * @param[in] rows number of A's row
- * @param[in] cols number of A's columns
+ * @param[in] M number of A's row
+ * @param[in] N number of A's columns
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
-           uint32_t cols, const float alpha, const float beta);
+void sgemv(const float *A, const float *X, float *Y, uint32_t M, uint32_t N,
+           const float alpha, const float beta);
 
 /**
  * @brief     transposed sgemv computation with neon
@@ -41,13 +41,13 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
  * @param[in] A float * for Matrix A
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
- * @param[in] rows number of A's row
- * @param[in] cols number of A's columns
+ * @param[in] M number of A's row
+ * @param[in] N number of A's columns
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
-                     uint32_t cols, float alpha, float beta);
+void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t M,
+                     uint32_t N, float alpha, float beta);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -104,13 +104,13 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
  * @param[in] A __fp16 * for Matrix A
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
- * @param[in] rows number of A's row
- * @param[in] cols number of A's columns
+ * @param[in] M number of A's row
+ * @param[in] N number of A's column
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
-           uint32_t cols, float alpha, float beta);
+void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
+           float alpha, float beta);
 
 /**
  * @brief     elementwise vector multiplication with neon : Z = X ⊙ Y
@@ -136,13 +136,13 @@ void ewva(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z);
  * @param[in] A __fp16 * for Matrix A
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
- * @param[in] rows number of A's row
- * @param[in] cols number of A's columns
+ * @param[in] M number of A's row
+ * @param[in] N number of A's column
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
-                     uint32_t cols, float alpha, float beta);
+void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
+                     uint32_t N, float alpha, float beta);
 
 /**
  * @brief     haxpy computation with neon: Y = alpha*X + Y
