@@ -376,6 +376,108 @@ TensorV2 &TensorV2::erf(TensorV2 &output) const {
   return output;
 }
 
+TensorV2 TensorV2::dot(TensorV2 const &input, bool trans, bool trans_in) const {
+  TensorV2 output("", this->getFormat(), this->getDataType());
+  dot(input, output, trans, trans_in);
+
+  return output;
+}
+
+/**
+ * @note: This dot product flattens the fist 3 axis for the purpose of
+ * computation. So, while performing, these matrices are behaving as 2-D
+ * matrices. The dimensions are restored while returning back the tensor
+ * in case of trans is false.
+ */
+TensorV2 &TensorV2::dot(TensorV2 const &input, TensorV2 &output, bool trans,
+                        bool trans_in, float beta) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot dot product.";
+
+  itensor->dot(input, output, trans, trans_in, beta);
+  return output;
+}
+
+TensorV2 &TensorV2::dot_deriv_wrt_1(TensorV2 const &m,
+                                    TensorV2 const &output_deriv, bool trans,
+                                    bool trans_m, float beta) {
+  bool deriv_trans_m = true;
+  bool deriv_trans = false;
+  /** @todo handle all cases of trans and trans_m */
+  if (!trans && trans_m) {
+    deriv_trans_m = false;
+  }
+
+  return output_deriv.dot(m, *this, deriv_trans, deriv_trans_m, beta);
+}
+
+/**
+ * @brief compute the derivative wrt m in the m tensor
+ * @note The caller tensor must be the same tensor as the one which called the
+ * dot() product.
+ */
+TensorV2 &TensorV2::dot_deriv_wrt_2(TensorV2 &m_deriv,
+                                    TensorV2 const &output_deriv, bool trans,
+                                    bool trans_m, float beta) const {
+  bool deriv_trans_m = false;
+  bool deriv_trans = true;
+  /** @todo handle all cases of trans and trans_m */
+
+  if (!trans && trans_m) {
+    output_deriv.dot(*this, m_deriv, deriv_trans, deriv_trans_m, beta);
+    return m_deriv;
+  } else {
+    return dot(output_deriv, m_deriv, deriv_trans, deriv_trans_m, beta);
+  }
+}
+
+TensorV2 &TensorV2::dotBatched(TensorV2 const &m, TensorV2 &result, bool trans,
+                               bool trans_m, float beta) const {
+  if (!result.isAllocated())
+    throw std::invalid_argument(
+      "Output tensor must be preallocated for dotBatched operation");
+  for (unsigned int b = 0; b < batch(); b++) {
+    /** @todo try using transpose to speedup the operation */
+    const TensorV2 this_b = this->getBatchSlice(b, 1);
+    TensorV2 m_b = m.getBatchSlice(b, 1);
+    TensorV2 result_b = result.getBatchSlice(b, 1);
+
+    this_b.dot(m_b, result_b, trans, trans_m, beta);
+  }
+
+  return result;
+}
+
+TensorV2 &TensorV2::dot_batched_deriv_wrt_1(TensorV2 const &m,
+                                            TensorV2 const &output_deriv,
+                                            bool trans, bool trans_m,
+                                            float beta) {
+  bool deriv_trans_m = true;
+  bool deriv_trans = false;
+  /** @todo handle all cases of trans and trans_m */
+  if (!trans && trans_m) {
+    deriv_trans_m = false;
+  }
+
+  return output_deriv.dotBatched(m, *this, deriv_trans, deriv_trans_m, beta);
+}
+
+TensorV2 &TensorV2::dot_batched_deriv_wrt_2(TensorV2 &m_deriv,
+                                            TensorV2 const &output_deriv,
+                                            bool trans, bool trans_m,
+                                            float beta) const {
+  bool deriv_trans_m = false;
+  bool deriv_trans = true;
+  /** @todo handle all cases of trans and trans_m */
+
+  if (!trans && trans_m) {
+    output_deriv.dotBatched(*this, m_deriv, deriv_trans, deriv_trans_m, beta);
+    return m_deriv;
+  } else {
+    return dotBatched(output_deriv, m_deriv, deriv_trans, deriv_trans_m, beta);
+  }
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
@@ -435,6 +537,14 @@ void TensorV2::copy_with_stride(const TensorV2 &from) {
     }
     swap(t, *this);
   }
+}
+
+TensorV2 TensorV2::getBatchSlice(size_t offset, unsigned int size) const {
+  TensorDim dim_ = getDim();
+  dim_.batch(size);
+
+  return getSharedDataTensor(dim_, offset * this->getDim().getFeatureLen(),
+                             true, "");
 }
 
 void TensorV2::reshape(const TensorDim &d) { itensor->reshape(d); }

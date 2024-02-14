@@ -250,6 +250,20 @@ public:
   virtual TensorV2 &erf(TensorV2 &output) const = 0;
 
   /**
+   * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and
+   * second-last dimension of passed tensor m.
+   * @param[in] input Tensor
+   * @param[in] output output Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @param[in] beta beta
+   * @retval    Calculated Tensor
+   */
+  virtual TensorV2 &dot(TensorV2 const &input, TensorV2 &output, bool trans,
+                        bool trans_in, float beta) const = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
@@ -491,6 +505,34 @@ protected:
    * @return BroadcastInfo Loopinfo needed to run external loop
    */
   BroadcastInfoV2 computeBroadcastInfo(const TensorV2 &m) const;
+
+  /**
+   * @brief Calcuates variables needed to perform tensor flatten dot product
+   *
+   * @param[in]  input Tensor
+   * @param[in]  output output Tensor
+   * @param[in]  trans Transpose
+   * @param[in]  trans_in Transpose input
+   * @param[out] first_three_flat flattened the fist 3 axis
+   * @param[out] last_axis last axis
+   * @param[out] input_first_three_flat input's flattened the fist 3 axis
+   * @param[out] input_last_axis input's last axis
+   * @param[out] M number of op(this)'s and output's row
+   * @param[out] N number of op(inputs)'s and output's columns
+   * @param[out] K number of op(this)'s column and op(input)'s row
+   * @param[out] lda leading dimension of this
+   * @param[out] ldb leading dimension of input
+   * @param[out] ldc leading dimension of output
+   *
+   * @note op(X) is one of X or X**T
+   */
+  void calculateFlattenDot(TensorV2 const &input, TensorV2 &output, bool trans,
+                           bool trans_in, unsigned int &first_three_flat,
+                           unsigned int &last_axis,
+                           unsigned int &input_first_three_flat,
+                           unsigned int &input_last_axis, unsigned int &M,
+                           unsigned int &N, unsigned int &K, unsigned int &lda,
+                           unsigned int &ldb, unsigned int &ldc) const;
 };
 
 /**

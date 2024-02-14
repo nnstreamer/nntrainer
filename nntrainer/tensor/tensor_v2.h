@@ -752,6 +752,88 @@ public:
   TensorV2 &erf(TensorV2 &output) const;
 
   /**
+   * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and second-last
+   * dimension of passed input tensor.
+   * @param[in] input Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @retval    Calculated Tensor
+   */
+  TensorV2 dot(TensorV2 const &input, bool trans = false,
+               bool trans_in = false) const;
+
+  /**
+   * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and
+   * second-last dimension of passed input tensor.
+   * @param[in] input Tensor
+   * @param[in] output output Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @param[in] beta beta
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &dot(TensorV2 const &input, TensorV2 &output, bool trans = false,
+                bool trans_in = false, float beta = 0.0f) const;
+
+  /**
+   * @brief compute the derivative of this in the current tensor
+   * @param input same as given to the dot()
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_in same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note This will compute the derivative in-place and will overwrite
+   existing
+   * data in the tensor
+   */
+  TensorV2 &dot_deriv_wrt_1(TensorV2 const &input, TensorV2 const &output_deriv,
+                            bool trans = false, bool trans_in = false,
+                            float beta = 0.0f);
+
+  /**
+   * @brief compute the derivative wrt m in the input tensor
+   * @param input_deriv tensor where derivative wrt m will be stored
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_in same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note The caller tensor must be the same tensor as the one which called
+   the dot() product.
+   */
+  TensorV2 &dot_deriv_wrt_2(TensorV2 &input_deriv, TensorV2 const &output_deriv,
+                            bool trans = false, bool trans_in = false,
+                            float beta = 0.0f) const;
+
+  /**
+   * @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool trans,
+              bool trans_in, float beta) const
+   * @details performs dot operation over a batch of inputs
+   */
+  TensorV2 &dotBatched(TensorV2 const &input, TensorV2 &result,
+                       bool trans = false, bool trans_in = false,
+                       float beta = 0.0f) const;
+
+  /**
+   * @copydoc Tensor::dot_deriv_wrt_1(Tensor const &input, Tensor const
+   &output_deriv, bool trans, bool trans_in, float beta)
+   */
+  TensorV2 &dot_batched_deriv_wrt_1(TensorV2 const &input,
+                                    TensorV2 const &output_deriv,
+                                    bool trans = false, bool trans_in = false,
+                                    float beta = 0.0f);
+
+  /**
+   * @brief Tensor::dot_deriv_wrt_2(Tensor const &input_deriv, Tensor const
+   &output_deriv, bool trans, bool trans_in, float beta) const
+   */
+  TensorV2 &dot_batched_deriv_wrt_2(TensorV2 &input_deriv,
+                                    TensorV2 const &output_deriv,
+                                    bool trans = false, bool trans_in = false,
+                                    float beta = 0.0f) const;
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */
@@ -785,6 +867,16 @@ public:
    * @note      only support copying data from tensor with the same data type
    */
   void copy_with_stride(const TensorV2 &from);
+
+  /**
+   * @brief Get slice of the tensor, sliced by batch
+   * @param[in] offset offset in batch to start the slice
+   * @param[in] size size of the slice
+   * @retval slice of this tensor
+   * @note This function provides a slice of this tensor, and does not create a
+   * copy
+   */
+  TensorV2 getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
    * @brief     set Tensor Dim

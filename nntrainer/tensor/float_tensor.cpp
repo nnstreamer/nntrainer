@@ -519,6 +519,66 @@ TensorV2 &FloatTensor::erf(TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &FloatTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
+                           bool trans_in, float beta) const {
+  // Comment out with intension to support the calculation wrt. batch and height
+  // direction. It supposes to have this->dim as [ BxCxH,W ] and input.dim is
+  // [BxCxH,W] as well if (input.dim.rank() > 2) {
+  //   throw exception::not_supported("Error: support only for rank of dot "
+  //                                  "matrix <= 2");
+  // }
+
+  // Comment out with intension to support the calculation wrt. batch and height
+  // direction of this tensor. It is OK as long as input is 2D
+  if (trans && dim.rank() > 2) {
+    ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
+  }
+  unsigned int first_three_flat, last_axis, input_first_three_flat,
+    input_last_axis, M, N, K, lda, ldb, ldc;
+
+  calculateFlattenDot(input, output, trans, trans_in, first_three_flat,
+                      last_axis, input_first_three_flat, input_last_axis, M, N,
+                      K, lda, ldb, ldc);
+
+  const float *data = (float *)getData();
+  const float *mdata = input.getData<float>();
+  float *rdata = output.getData<float>();
+  const float alpha = 1.0f;
+  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
+  enum CBLAS_TRANSPOSE transB = trans_in ? CblasTrans : CblasNoTrans;
+
+  /// shortcut handling in case of vector
+  /// for vector, (1 * K) == (K * 1) in current memory layout...
+  /// and plaese note that N, K, M is a fixed place holder after considering
+  /// transpose.
+  /// For example, there is no case like (1 * K) X (1 * K) while
+  /// (1 * K) X (1 * M) can be a case
+  /// case1: (1 * K) X (K * 1)
+  if (M == 1 && N == 1) {
+    *rdata = sdot(K, data, 1, mdata, 1) + beta * (*rdata);
+  }
+  /// case2: (M * K) X (K * 1)
+  else if (N == 1) {
+    sgemv(CblasRowMajor, transA, first_three_flat, last_axis, alpha, data, lda,
+          mdata, 1, beta, rdata, 1);
+  }
+  /// case3: (1 * K) X (K * N) = 1 * N = R
+  /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
+  /// Effectively a translation of sgemv
+  else if (M == 1) {
+    transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
+    sgemv(CblasRowMajor, transB, input_first_three_flat, input_last_axis, alpha,
+          mdata, ldb, data, 1, beta, rdata, 1);
+  }
+  /// case others: use gemm
+  else {
+    sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
+          beta, rdata, ldc);
+  }
+
+  return output;
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();
