@@ -441,7 +441,7 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
 
 void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
            float alpha, float beta) {
-  const int batch = 0;
+  const unsigned int batch = 0;
   const __fp16 *__restrict x;
   float *Y32 = new float[M];
 
@@ -665,7 +665,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
   // now, N - idx is under 4 : 0 1 2 3 = N - idx
   if (N != idx) {
     float32x4_t x0_3 = vcvt_f32_f16(vld1_f16(&X[idx]));
-    for (int j = N - idx; j < 4; ++j) {
+    for (unsigned int j = N - idx; j < 4; ++j) {
       x0_3[j] = 0;
     }
 
@@ -681,7 +681,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       w = &A[j * N + idx];
       float32x4_t wvec0_3 = vcvt_f32_f16(vld1_f16(&w[0]));
 
-      for (int n = N - idx; n < 4; ++n) {
+      for (unsigned int n = N - idx; n < 4; ++n) {
         wvec0_3[n] = 0;
       }
 
@@ -962,7 +962,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
         v0[j] = 0;
       }
 
-      for (int j = 0; j < N - idx; ++j) {
+      for (unsigned int j = 0; j < N - idx; ++j) {
         Y32[idx + j] = Y32[idx + j] + v0[j] * x;
       }
     }
@@ -1175,7 +1175,7 @@ void copy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y) {
     uint8x8_t low = vget_low_u8(batch);
     uint8x8_t high = vget_high_u8(batch);
 
-    for (int i = 0; i < 8; ++i) {
+    for (unsigned int i = 0; i < 8; ++i) {
       low0 = low[i] >> 4;
       low1 = low[i] & 0x0f;
 
@@ -1209,7 +1209,7 @@ void copy_int4_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y) {
   for (; (N - idx) >= 8; idx += 8) {
     uint8x8_t batch = vld1_u8(&X[idx]);
 
-    for (int i = 0; i < 8; ++i) {
+    for (unsigned int i = 0; i < 8; ++i) {
       low0 = batch[i] >> 4;
       low1 = batch[i] & 0x0f;
 
@@ -1384,7 +1384,7 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
   // getting the index of the maxima
   maxNum = maxVal[0];
   retIdx = max_index[0];
-  for (int i = 1; i < 8; i++) {
+  for (unsigned int i = 1; i < 8; i++) {
     if (maxVal[i] > maxNum) {
       maxNum = maxVal[i];
       retIdx = max_index[i];
@@ -1862,9 +1862,9 @@ void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
                   uint32_t N, uint32_t K, float alpha, float beta) {
   __fp16 valsB[8];
   __fp16 valsA[8];
-  int m = 0;
+  unsigned int m = 0;
   for (; M - m >= 1; m++) {
-    int n = 0;
+    unsigned int n = 0;
     __fp16 valsB_2[8];
     __fp16 valsB_3[8];
     __fp16 valsB_4[8];
