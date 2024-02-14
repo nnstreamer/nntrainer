@@ -706,7 +706,6 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
   size_t GEMV_NUM_THREADS = get_gemv_num_threads();
 
   float *Y32 = new float[N];
-  const int batch = 20;
   unsigned int idx = 0;
   for (; N - idx >= 8; idx += 8) {
     float32x4_t y0_3_32 = vcvt_f32_f16(vld1_f16(&Y[idx]));
