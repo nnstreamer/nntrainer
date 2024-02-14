@@ -66,7 +66,7 @@ warning_c_flags = [
 
 
 if get_option('enable-fp16')
-   arch = target_machine.cpu_family()
+   arch = host_machine.cpu_family()
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'

@@ -24,9 +24,14 @@ if get_option('enable-trace')
   util_headers += 'tracer.h'
 endif
 
-if get_option('enable-fp16')
-  util_sources += 'util_simd_neon.cpp'
-  util_headers += 'util_simd_neon.h'
+arch = host_machine.cpu_family()
+if get_option('enable-fp16') 
+  if arch == 'arm'
+    error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
+  elif arch == 'aarch64' or get_option('enable-neon')
+    util_sources += 'util_simd_neon.cpp'
+    util_headers += 'util_simd_neon.h'
+  endif
 endif
 
 foreach s : util_sources
