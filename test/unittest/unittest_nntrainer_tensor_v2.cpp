@@ -893,6 +893,502 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, divide_i_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::TensorV2 original;
+  original.copy(input);
+
+  status = input.divide_i((float)2.0);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *data = original.getData<float>();
+  ASSERT_NE(nullptr, data);
+  float *indata = input.getData<float>();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i], indata[i] + indata[i]);
+  }
+}
+
+TEST(nntrainer_Tensor, divide_i_02_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  status = input.divide_i(input);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  float *indata = input.getData<float>();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(indata[i], float(1.0));
+  }
+}
+
+TEST(nntrainer_Tensor, divide_i_01_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  status = input.divide_i((float)0);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_02_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::TensorV2 original(batch, channel, height - 2, width - 1);
+
+  status = input.divide_i(original);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::TensorV2 result = input.divide(1.0);
+
+  float *previous = input.getData<float>();
+  ASSERT_NE(nullptr, previous);
+  float *data = result.getData<float>();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i], previous[i]);
+  }
+}
+
+TEST(nntrainer_Tensor, divide_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorV2 input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW({ input.divide(0.0); }, std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_04_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::TensorV2 input(batch, channel, height, 2 * width);
+  nntrainer::TensorV2 shared_input =
+    input.getSharedDataTensor(dim, 0, false, "");
+  nntrainer::TensorV2 test(dim);
+
+  EXPECT_THROW(shared_input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_05_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::TensorV2 input(dim);
+  nntrainer::TensorV2 test(batch, channel, height, 2 * width);
+  nntrainer::TensorV2 shared_test = test.getSharedDataTensor(dim, 0, false, "");
+
+  EXPECT_THROW(input.divide(shared_test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_06_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::TensorV2 input(dim, false);
+  nntrainer::TensorV2 test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_THROW(input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_07_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::TensorV2 input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::TensorV2 test(dim, false);
+
+  EXPECT_THROW(input.divide(test), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_08_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::TensorV2 input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::TensorV2 test(dim);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
+  nntrainer::TensorV2 output(dim, false);
+
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_i_broadcast_01_p) {
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(1, 2, 4, 5);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       41.0,      21.0,
+      14.333333, 11.0,      9.0,       7.6666665, 6.714286,  6.0,
+      5.4444447, 5.0,       4.6363635, 4.3333335, 4.076923,  3.857143,
+      3.6666667, 3.5,       3.3529413, 3.2222223, 3.1052632, 3.0,
+      2.9047618, 2.8181818, 2.7391305, 2.6666667, 2.6,       2.5384614,
+      2.4814816, 2.4285715, 2.3793104, 2.3333333, 2.2903225, 2.25,
+      2.2121212, 2.1764705, 2.142857,  2.1111112, 2.0810812, 2.0526316,
+      2.025641,  2.0,       81.0,      41.0,      27.666666, 21.0,
+      17.0,      14.333333, 12.428572, 11.0,      9.888889,  9.0,
+      8.272727,  7.6666665, 7.1538463, 6.714286,  6.3333335, 6.0,
+      5.7058825, 5.4444447, 5.2105265, 5.0,       4.8095236, 4.6363635,
+      4.478261,  4.3333335, 4.2,       4.076923,  3.9629629, 3.857143,
+      3.7586207, 3.6666667, 3.580645,  3.5,       3.4242425, 3.3529413,
+      3.2857144, 3.2222223, 3.162162,  3.1052632, 3.0512822, 3.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 1, 4, 5);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       1.0,       1.0,       1.0,       1.0,
+      1.0,       1.0,       21.0,      11.0,      7.6666665, 6.0,
+      5.0,       4.3333335, 3.857143,  3.5,       3.2222223, 3.0,
+      2.8181818, 2.6666667, 2.5384614, 2.4285715, 2.3333333, 2.25,
+      2.1764705, 2.1111112, 2.0526316, 2.0,       1.9523809, 1.9090909,
+      1.8695652, 1.8333334, 1.8,       1.7692307, 1.7407408, 1.7142857,
+      1.6896552, 1.6666666, 1.6451613, 1.625,     1.6060606, 1.5882353,
+      1.5714285, 1.5555556, 1.5405406, 1.5263158, 1.5128205, 1.5,
+      2.9047618, 2.8181818, 2.7391305, 2.6666667, 2.6,       2.5384614,
+      2.4814816, 2.4285715, 2.3793104, 2.3333333, 2.2903225, 2.25,
+      2.2121212, 2.1764705, 2.142857,  2.1111112, 2.0810812, 2.0526316,
+      2.025641,  2.0,       1.9756098, 1.9523809, 1.9302325, 1.9090909,
+      1.8888888, 1.8695652, 1.8510638, 1.8333334, 1.8163265, 1.8,
+      1.7843137, 1.7692307, 1.754717,  1.7407408, 1.7272727, 1.7142857,
+      1.7017543, 1.6896552, 1.6779661, 1.6666666, 2.4634147, 2.4285715,
+      2.3953488, 2.3636363, 2.3333333, 2.3043478, 2.2765958, 2.25,
+      2.2244897, 2.2,       2.1764705, 2.1538463, 2.1320755, 2.1111112,
+      2.090909,  2.0714285, 2.0526316, 2.0344827, 2.0169492, 2.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 2, 4, 1);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       2.0,       3.0,       4.0,       5.0,       3.0,
+      3.5,       4.0,       4.5,       5.0,       3.6666667, 4.0,
+      4.3333335, 4.6666665, 5.0,       4.0,       4.25,      4.5,
+      4.75,      5.0,       4.2,       4.4,       4.6,       4.8,
+      5.0,       4.3333335, 4.5,       4.6666665, 4.8333335, 5.0,
+      4.428571,  4.571429,  4.714286,  4.857143,  5.0,       4.5,
+      4.625,     4.75,      4.875,     5.0,       4.5555553, 4.6666665,
+      4.7777777, 4.888889,  5.0,       4.6,       4.7,       4.8,
+      4.9,       5.0,       4.6363635, 4.7272725, 4.818182,  4.909091,
+      5.0,       4.6666665, 4.75,      4.8333335, 4.9166665, 5.0,
+      4.6923075, 4.769231,  4.8461537, 4.923077,  5.0,       4.714286,
+      4.785714,  4.857143,  4.928571,  5.0,       4.733333,  4.8,
+      4.866667,  4.9333334, 5.0,       4.75,      4.8125,    4.875,
+      4.9375,    5.0,       4.7647057, 4.8235292, 4.882353,  4.9411764,
+      5.0,       4.7777777, 4.8333335, 4.888889,  4.9444447, 5.0,
+      4.7894735, 4.8421054, 4.894737,  4.9473686, 5.0,       4.8,
+      4.85,      4.9,       4.95,      5.0,       4.8095236, 4.857143,
+      4.904762,  4.952381,  5.0,       4.818182,  4.8636365, 4.909091,
+      4.9545455, 5.0,       4.826087,  4.869565,  4.9130435, 4.9565215,
+      5.0,       4.8333335, 4.875,     4.9166665, 4.9583335, 5.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 1, 1, 5);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       1.0,       1.0,       1.0,       1.0,       6.0,
+      3.5,       2.6666667, 2.25,      2.0,       11.0,      6.0,
+      4.3333335, 3.5,       3.0,       16.0,      8.5,       6.0,
+      4.75,      4.0,       21.0,      11.0,      7.6666665, 6.0,
+      5.0,       26.0,      13.5,      9.333333,  7.25,      6.0,
+      31.0,      16.0,      11.0,      8.5,       7.0,       36.0,
+      18.5,      12.666667, 9.75,      8.0,       6.8333335, 6.0,
+      5.375,     4.888889,  4.5,       7.6666665, 6.714286,  6.0,
+      5.4444447, 5.0,       8.5,       7.428571,  6.625,     6.0,
+      5.5,       9.333333,  8.142858,  7.25,      6.5555553, 6.0,
+      10.166667, 8.857142,  7.875,     7.111111,  6.5,       11.0,
+      9.571428,  8.5,       7.6666665, 7.0,       11.833333, 10.285714,
+      9.125,     8.222222,  7.5,       12.666667, 11.0,      9.75,
+      8.777778,  8.0,       7.3636365, 6.8333335, 6.3846154, 6.0,
+      5.6666665, 7.818182,  7.25,      6.769231,  6.357143,  6.0,
+      8.272727,  7.6666665, 7.1538463, 6.714286,  6.3333335, 8.727273,
+      8.083333,  7.5384617, 7.071429,  6.6666665, 9.181818,  8.5,
+      7.923077,  7.428571,  7.0,       9.636364,  8.916667,  8.307693,
+      7.785714,  7.3333335, 10.090909, 9.333333,  8.692307,  8.142858,
+      7.6666665, 10.545455, 9.75,      9.076923,  8.5,       8.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(1, 2, 1, 5);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       1.0,       1.0,       1.0,       1.0,       6.0,
+      3.5,       2.6666667, 2.25,      2.0,       11.0,      6.0,
+      4.3333335, 3.5,       3.0,       16.0,      8.5,       6.0,
+      4.75,      4.0,       3.5,       3.142857,  2.875,     2.6666667,
+      2.5,       4.3333335, 3.857143,  3.5,       3.2222223, 3.0,
+      5.1666665, 4.571429,  4.125,     3.7777777, 3.5,       6.0,
+      5.285714,  4.75,      4.3333335, 4.0,       41.0,      21.0,
+      14.333333, 11.0,      9.0,       46.0,      23.5,      16.0,
+      12.25,     10.0,      51.0,      26.0,      17.666666, 13.5,
+      11.0,      56.0,      28.5,      19.333334, 14.75,     12.0,
+      10.166667, 8.857142,  7.875,     7.111111,  6.5,       11.0,
+      9.571428,  8.5,       7.6666665, 7.0,       11.833333, 10.285714,
+      9.125,     8.222222,  7.5,       12.666667, 11.0,      9.75,
+      8.777778,  8.0,       81.0,      41.0,      27.666666, 21.0,
+      17.0,      86.0,      43.5,      29.333334, 22.25,     18.0,
+      91.0,      46.0,      31.0,      23.5,      19.0,      96.0,
+      48.5,      32.666668, 24.75,     20.0,      16.833334, 14.571428,
+      12.875,    11.555555, 10.5,      17.666666, 15.285714, 13.5,
+      12.111111, 11.0,      18.5,      16.0,      14.125,    12.666667,
+      11.5,      19.333334, 16.714285, 14.75,     13.222222, 12.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 1, 4, 1);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       2.0,       3.0,       4.0,       5.0,       3.0,
+      3.5,       4.0,       4.5,       5.0,       3.6666667, 4.0,
+      4.3333335, 4.6666665, 5.0,       4.0,       4.25,      4.5,
+      4.75,      5.0,       21.0,      22.0,      23.0,      24.0,
+      25.0,      13.0,      13.5,      14.0,      14.5,      15.0,
+      10.333333, 10.666667, 11.0,      11.333333, 11.666667, 9.0,
+      9.25,      9.5,       9.75,      10.0,      8.2,       8.4,
+      8.6,       8.8,       9.0,       7.6666665, 7.8333335, 8.0,
+      8.166667,  8.333333,  7.285714,  7.428571,  7.571429,  7.714286,
+      7.857143,  7.0,       7.125,     7.25,      7.375,     7.5,
+      12.2,      12.4,      12.6,      12.8,      13.0,      11.0,
+      11.166667, 11.333333, 11.5,      11.666667, 10.142858, 10.285714,
+      10.428572, 10.571428, 10.714286, 9.5,       9.625,     9.75,
+      9.875,     10.0,      9.0,       9.111111,  9.222222,  9.333333,
+      9.444445,  8.6,       8.7,       8.8,       8.9,       9.0,
+      8.272727,  8.363636,  8.454545,  8.545455,  8.636364,  8.0,
+      8.083333,  8.166667,  8.25,      8.333333,  11.222222, 11.333333,
+      11.444445, 11.555555, 11.666667, 10.6,      10.7,      10.8,
+      10.9,      11.0,      10.090909, 10.181818, 10.272727, 10.363636,
+      10.454545, 9.666667,  9.75,      9.833333,  9.916667,  10.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(1, 1, 1, 5);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,   1.0,  1.0,       1.0,  1.0,  6.0,   3.5,  2.6666667, 2.25,  2.0,
+      11.0,  6.0,  4.3333335, 3.5,  3.0,  16.0,  8.5,  6.0,       4.75,  4.0,
+      21.0,  11.0, 7.6666665, 6.0,  5.0,  26.0,  13.5, 9.333333,  7.25,  6.0,
+      31.0,  16.0, 11.0,      8.5,  7.0,  36.0,  18.5, 12.666667, 9.75,  8.0,
+      41.0,  21.0, 14.333333, 11.0, 9.0,  46.0,  23.5, 16.0,      12.25, 10.0,
+      51.0,  26.0, 17.666666, 13.5, 11.0, 56.0,  28.5, 19.333334, 14.75, 12.0,
+      61.0,  31.0, 21.0,      16.0, 13.0, 66.0,  33.5, 22.666666, 17.25, 14.0,
+      71.0,  36.0, 24.333334, 18.5, 15.0, 76.0,  38.5, 26.0,      19.75, 16.0,
+      81.0,  41.0, 27.666666, 21.0, 17.0, 86.0,  43.5, 29.333334, 22.25, 18.0,
+      91.0,  46.0, 31.0,      23.5, 19.0, 96.0,  48.5, 32.666668, 24.75, 20.0,
+      101.0, 51.0, 34.333332, 26.0, 21.0, 106.0, 53.5, 36.0,      27.25, 22.0,
+      111.0, 56.0, 37.666668, 28.5, 23.0, 116.0, 58.5, 39.333332, 29.75, 24.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(1, 2, 1, 1);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,  2.0,  3.0,  4.0,   5.0,  6.0,  7.0,  8.0,  9.0,  10.0, 11.0, 12.0,
+      13.0, 14.0, 15.0, 16.0,  17.0, 18.0, 19.0, 20.0, 10.5, 11.0, 11.5, 12.0,
+      12.5, 13.0, 13.5, 14.0,  14.5, 15.0, 15.5, 16.0, 16.5, 17.0, 17.5, 18.0,
+      18.5, 19.0, 19.5, 20.0,  41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0,
+      49.0, 50.0, 51.0, 52.0,  53.0, 54.0, 55.0, 56.0, 57.0, 58.0, 59.0, 60.0,
+      30.5, 31.0, 31.5, 32.0,  32.5, 33.0, 33.5, 34.0, 34.5, 35.0, 35.5, 36.0,
+      36.5, 37.0, 37.5, 38.0,  38.5, 39.0, 39.5, 40.0, 81.0, 82.0, 83.0, 84.0,
+      85.0, 86.0, 87.0, 88.0,  89.0, 90.0, 91.0, 92.0, 93.0, 94.0, 95.0, 96.0,
+      97.0, 98.0, 99.0, 100.0, 50.5, 51.0, 51.5, 52.0, 52.5, 53.0, 53.5, 54.0,
+      54.5, 55.0, 55.5, 56.0,  56.5, 57.0, 57.5, 58.0, 58.5, 59.0, 59.5, 60.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 2, 4, 5);
+    nntrainer::TensorV2 t = rangedV2(3, 2, 4, 5);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 1, 1, 1);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       2.0,       3.0,  4.0,       5.0,       6.0,
+      7.0,       8.0,       9.0,  10.0,      11.0,      12.0,
+      13.0,      14.0,      15.0, 16.0,      17.0,      18.0,
+      19.0,      20.0,      21.0, 22.0,      23.0,      24.0,
+      25.0,      26.0,      27.0, 28.0,      29.0,      30.0,
+      31.0,      32.0,      33.0, 34.0,      35.0,      36.0,
+      37.0,      38.0,      39.0, 40.0,      20.5,      21.0,
+      21.5,      22.0,      22.5, 23.0,      23.5,      24.0,
+      24.5,      25.0,      25.5, 26.0,      26.5,      27.0,
+      27.5,      28.0,      28.5, 29.0,      29.5,      30.0,
+      30.5,      31.0,      31.5, 32.0,      32.5,      33.0,
+      33.5,      34.0,      34.5, 35.0,      35.5,      36.0,
+      36.5,      37.0,      37.5, 38.0,      38.5,      39.0,
+      39.5,      40.0,      27.0, 27.333334, 27.666666, 28.0,
+      28.333334, 28.666666, 29.0, 29.333334, 29.666666, 30.0,
+      30.333334, 30.666666, 31.0, 31.333334, 31.666666, 32.0,
+      32.333332, 32.666668, 33.0, 33.333332, 33.666668, 34.0,
+      34.333332, 34.666668, 35.0, 35.333332, 35.666668, 36.0,
+      36.333332, 36.666668, 37.0, 37.333332, 37.666668, 38.0,
+      38.333332, 38.666668, 39.0, 39.333332, 39.666668, 40.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 5, 1, 4);
+    nntrainer::TensorV2 t = rangedV2(3, 5, 1, 4);
+    t.add_i(1);
+    nntrainer::TensorV2 m = rangedV2(3, 1, 1, 4);
+    m.add_i(1);
+    float answer_data[] = {
+      1.0,       1.0,       1.0,       1.0,       5.0,       3.0,
+      2.3333333, 2.0,       9.0,       5.0,       3.6666667, 3.0,
+      13.0,      7.0,       5.0,       4.0,       17.0,      9.0,
+      6.3333335, 5.0,       4.2,       3.6666667, 3.2857144, 3.0,
+      5.0,       4.3333335, 3.857143,  3.5,       5.8,       5.0,
+      4.428571,  4.0,       6.6,       5.6666665, 5.0,       4.5,
+      7.4,       6.3333335, 5.571429,  5.0,       4.5555553, 4.2,
+      3.909091,  3.6666667, 5.0,       4.6,       4.2727275, 4.0,
+      5.4444447, 5.0,       4.6363635, 4.3333335, 5.888889,  5.4,
+      5.0,       4.6666665, 6.3333335, 5.8,       5.3636365, 5.0};
+    nntrainer::TensorV2 answer(ref_dim, answer_data);
+    int status = t.divide_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+}
+
+TEST(nntrainer_Tensor, divide_i_broadcast_not_supported_01_n) {
+  nntrainer::TensorV2 target(3, 1, 3, 1);
+  nntrainer::TensorV2 target2(3, 1, 3, 3);
+
+  EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_02_n) {
+  nntrainer::TensorV2 target(3, 2, 4, 5);
+  nntrainer::TensorV2 target2(3, 2, 3, 1);
+
+  EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
