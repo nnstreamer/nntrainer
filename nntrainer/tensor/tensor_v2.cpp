@@ -276,6 +276,35 @@ TensorV2 &TensorV2::divide(TensorV2 const &m, TensorV2 &output) const {
   return output;
 }
 
+int TensorV2::add_i_strided(TensorV2 const &input, const float beta) {
+  try {
+    this->add_strided(input, *this, beta);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+TensorV2 TensorV2::add_strided(TensorV2 const &input, const float beta) const {
+  TensorV2 output("", getFormat(), getDataType());
+  return this->add_strided(input, output, beta);
+}
+
+TensorV2 &TensorV2::add_strided(TensorV2 const &input, TensorV2 &output,
+                                const float beta) const {
+  CREATE_V2_IF_EMPTY_DIMS(output, getDim(), nullptr);
+
+  if (size() != input.size() || size() != output.size())
+    throw std::invalid_argument(
+      "Strided addition does not support broadcasting");
+
+  itensor->add_strided(input, output, beta);
+
+  return output;
+}
+
 int TensorV2::add_i(float const &value) {
   this->add(value, *this);
   return ML_ERROR_NONE;
