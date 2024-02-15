@@ -437,6 +437,36 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
   }
 }
 
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z, float alpha, float beta) {
+  unsigned int i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t x0_3 = vld1q_f32(&X[i]);
+    float32x4_t y0_3 = vld1q_f32(&Y[i]);
+    float32x4_t z0_3 = vmulq_f32(x0_3, y0_3);
+
+    vst1q_f32(&Z[i], z0_3);
+  }
+  while (i < N) {
+    Z[i] = X[i] * Y[i];
+    ++i;
+  }
+}
+
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z, float alpha, float beta) {
+  unsigned int i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t x0_3 = vld1q_f32(&X[i]);
+    float32x4_t y0_3 = vld1q_f32(&Y[i]);
+    float32x4_t z0_3 = vaddq_f32(x0_3, y0_3);
+
+    vst1q_f32(&Z[i], z0_3);
+  }
+  while (i < N) {
+    Z[i] = X[i] + Y[i];
+    ++i;
+  }
+}
+
 #ifdef ENABLE_FP16
 
 void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
@@ -2067,7 +2097,7 @@ void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
   }
 }
 
-void ewvm(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z) {
+void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z, __fp16 alpha, __fp16 beta) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
@@ -2082,7 +2112,7 @@ void ewvm(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z) {
   }
 }
 
-void ewva(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z) {
+void ele_add(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z, __fp16 alpha, __fp16 beta) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);

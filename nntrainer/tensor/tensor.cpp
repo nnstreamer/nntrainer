@@ -852,7 +852,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
                  _FP16 *out_buf) {
       if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
           beta == 0.0) {
-        ewvm(e.buffer_size, buf, m_buf, out_buf);
+        ele_mul(e.buffer_size, buf, m_buf, out_buf);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
           *out_buf = *buf * *m_buf + static_cast<_FP16>(beta) * *out_buf;
@@ -1095,7 +1095,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
                  _FP16 *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
           alpha == 0) {
-        ewva(e.buffer_size, buf, m_buf, out_buf);
+        ele_add(e.buffer_size, buf, m_buf, out_buf);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
           *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);

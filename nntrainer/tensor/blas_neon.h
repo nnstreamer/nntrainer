@@ -98,6 +98,30 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
  */
 void inv_sqrt_inplace(const unsigned int N, float *X);
 
+/**
+ * @brief     elementwise vector multiplication : Z = X ⊙ Y
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
+ */
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f);
+
+/**
+ * @brief     elementwise vector addition : Z = X + Y
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
+ */
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f);
+
 #ifdef ENABLE_FP16
 /**
  * @brief     hgemv computation with neon : Y = alpha*A*X + beta*Y
@@ -118,16 +142,22 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
  */
-void ewvm(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z);
+void ele_mul(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
+             __fp16 alpha = 1.f, __fp16 beta = 0.f);
 /**
  * @brief     elementwise vector addition with neon : Z = X + Y
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
  */
-void ewva(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z);
+void ele_add(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
+             __fp16 alpha = 1.f, __fp16 beta = 0.f);
 
 /**
  * @brief     transposed hgemv computation with neon
