@@ -245,25 +245,6 @@ static void copy_int8_to_fp16(const unsigned int N, const uint8_t *X,
 #endif
 }
 
-static void ewvm_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                      _FP16 *Z) {
-#if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::ewvm(N, X, Y, Z);
-#else
-  for (unsigned int i = 0; i < N; ++i)
-    Z[i] = X[i] * Y[i];
-#endif
-}
-
-static void ewva_FP16(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                      _FP16 *Z) {
-#if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::ewva(N, X, Y, Z);
-#else
-  for (unsigned int i = 0; i < N; ++i)
-    Z[i] = X[i] + Y[i];
-#endif
-}
 void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
 
@@ -400,12 +381,28 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
   copy_int8_to_fp16(N, X, incX, Y, incY);
 }
 
-void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
-  ewvm_FP16(N, X, Y, Z);
+void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             _FP16 alpha, _FP16 beta) {
+#if (defined USE__FP16 && USE_NEON)
+  nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+    Z[i] *= beta;
+    Z[i] = alpha * X[i] * Y[i];
+  }
+#endif
 }
 
-void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z) {
-  ewva_FP16(N, X, Y, Z);
+void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             _FP16 alpha, _FP16 beta) {
+#if (defined USE__FP16 && USE_NEON)
+  nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+    Z[i] *= beta;
+    Z[i] = X[i] + alpha * Y[i];
+  }
+#endif
 }
 
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
@@ -900,6 +897,31 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
 #else
   for (unsigned int i = 0; i < N; ++i) {
     X[i] = 1 / std::sqrt(static_cast<float>(X[i]));
+  }
+#endif
+}
+
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta) {
+#ifdef USE_NEON
+  nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+
+    Z[i] *= beta;
+    Z[i] = alpha * X[i] * Y[i];
+  }
+#endif
+}
+
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta) {
+#ifdef USE_NEON
+  nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+#else
+  for (unsigned int i = 0; i < N; ++i) {
+    Z[i] *= beta;
+    Z[i] = X[i] + alpha * Y[i];
   }
 #endif
 }

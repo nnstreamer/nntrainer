@@ -154,20 +154,26 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
 /**
  * @brief     elementwise vector multiplication : Z = X ⊙ Y
  * @param[in] N  length of the vector
- * @param[in] X __fp16 * for Vector X
- * @param[in] Y __fp16 * for Vector Y
- * @param[in] Z __fp16 * for Vector Z
+ * @param[in] X _FP16 * for Vector X
+ * @param[in] Y _FP16 * for Vector Y
+ * @param[in] Z _FP16 * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
  */
-void ewvm(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z);
+void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             _FP16 alpha = 1.f, _FP16 beta = 0.f);
 
 /**
  * @brief     elementwise vector addition : Z = X + Y
  * @param[in] N  length of the vector
- * @param[in] X __fp16 * for Vector X
- * @param[in] Y __fp16 * for Vector Y
- * @param[in] Z __fp16 * for Vector Z
+ * @param[in] X _FP16 * for Vector X
+ * @param[in] Y _FP16 * for Vector Y
+ * @param[in] Z _FP16 * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
  */
-void ewva(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z);
+void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             _FP16 alpha = 1.f, _FP16 beta = 0.f);
 
 /**
  * @brief     isamax function : index of first maxima
@@ -351,8 +357,7 @@ unsigned int isamax(const unsigned int N, const float *X, const int incX);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y,
-                         float alpha = 1.0);
+void sine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -361,8 +366,7 @@ void sine(const unsigned int N, float *X, float *Y,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y,
-                           float alpha = 1.0);
+void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
 
 /**
  * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)
@@ -371,6 +375,29 @@ void cosine(const unsigned int N, float *X, float *Y,
  * @param X float * for Vector X
  */
 void inv_sqrt_inplace(const unsigned int N, float *X);
+/**
+ * @brief     elementwise vector multiplication : Z = X ⊙ Y
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
+ */
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f);
+
+/**
+ * @brief     elementwise vector addition : Z = X + Y
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] alpha scalar multiplier for input
+ * @param[in] beta scalar multiplier for output
+ */
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */
