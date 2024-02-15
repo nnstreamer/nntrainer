@@ -476,6 +476,60 @@ TensorV2 &FloatTensor::divide(TensorV2 const &m, TensorV2 &output) const {
   return output;
 }
 
+TensorV2 &FloatTensor::add_strided(TensorV2 const &input, TensorV2 &output,
+                                   const float beta) const {
+  NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
+    << getName() << " is not allocated";
+  NNTR_THROW_IF(input.getData<float>() == nullptr, std::invalid_argument)
+    << input.getName() << " is not allocated";
+  NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+    << output.getName() << " is not allocated";
+
+  if (strides[3] != 1 || input.getStrides()[3] != 1 ||
+      output.getStrides()[3] != 1 || beta != 0.0) {
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.setValue(b, c, h, w,
+                            getValue(b, c, h, w) +
+                              input.getValue<float>(b, c, h, w) * beta);
+          }
+        }
+      }
+    }
+  } else {
+    /** @todo optimize this with combining these loops where stride is 1 */
+    if (this->getFormat() == Tformat::NCHW) {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int c = 0; c < channel(); ++c) {
+          for (unsigned int h = 0; h < height(); ++h) {
+            float *out_data = output.getAddress<float>(b, c, h, 0);
+            const float *in_data = input.getAddress<float>(b, c, h, 0);
+            const float *_data = (float *)getAddress(getIndex(b, c, h, 0));
+            std::transform(_data, _data + width(), in_data, out_data,
+                           std::plus<float>());
+          }
+        }
+      }
+    } else {
+      for (unsigned int b = 0; b < batch(); ++b) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            float *out_data = output.getAddress<float>(b, 0, h, w);
+            const float *in_data = input.getAddress<float>(b, 0, h, w);
+            const float *_data = (float *)getAddress(getIndex(b, 0, h, w));
+            std::transform(_data, _data + channel(), in_data, out_data,
+                           std::plus<float>());
+          }
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
 TensorV2 &FloatTensor::add(float const &value, TensorV2 &output) const {
   auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
   apply(f, output);

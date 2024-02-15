@@ -223,6 +223,13 @@ public:
   virtual TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const = 0;
 
   /**
+   * @copydoc TensorV2::add_strided(TensorV2 const &input, TensorV2 &output,
+   * const float beta)
+   */
+  virtual TensorV2 &add_strided(TensorV2 const &input, TensorV2 &output,
+                                const float beta) const = 0;
+
+  /**
    * @copydoc TensorV2::add(float const &value, TensorV2 &output)
    */
   virtual TensorV2 &add(float const &value, TensorV2 &output) const = 0;

@@ -616,6 +616,47 @@ public:
   TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const;
 
   /**
+   * @brief     Add Tensor Elementwise
+   * @param[in] input Tensor to be added
+   * @param[in] beta scalar to add output with and add
+   * @retval    #ML_ERROR_NONE successful
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add_i
+   */
+  int add_i_strided(TensorV2 const &input, const float beta = 0.0);
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] input Tensor to be added
+   * @param[in] beta Value to be scale the input tensor
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  TensorV2 add_strided(TensorV2 const &input, const float beta = 0.0) const;
+
+  /**
+   * @brief      Add Tensor Element by Element
+   * @param[in]  input Tensor to be added
+   * @param[out] output Tensor to store the result
+   * @param[in]  beta Value to be scale the input tensor
+   * @retval     Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  TensorV2 &add_strided(TensorV2 const &input, TensorV2 &output,
+                        const float beta = 0.0) const;
+
+  /**
    * @brief     Add Tensor Element immediately to target tensor without mem copy
    * @param[in] value value to be added
    * @retval    #ML_ERROR_NONE  Successful

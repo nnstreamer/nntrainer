@@ -234,6 +234,13 @@ public:
   TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const override;
 
   /**
+   * @copydoc TensorV2::add_strided(TensorV2 const &input, TensorV2 &output,
+   * const float beta)
+   */
+  TensorV2 &add_strided(TensorV2 const &input, TensorV2 &output,
+                        const float beta) const override;
+
+  /**
    * @copydoc TensorV2::add(float const &value, TensorV2 &output)
    */
   TensorV2 &add(float const &value, TensorV2 &output) const override;
