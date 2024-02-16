@@ -109,7 +109,7 @@ private:
       for (int j = 0; j < height; ++j) {            \
         for (int k = 0; k < width; ++k) {           \
           for (int l = 0; l < channel; ++l) {       \
-            float val = eqation_i_j_k_l;            \
+            float val = (eqation_i_j_k_l);          \
             input.setValue(i, l, j, k, val);        \
           }                                         \
         }                                           \
@@ -123,7 +123,7 @@ private:
       for (int j = 0; j < channel; ++j) {      \
         for (int k = 0; k < height; ++k) {     \
           for (int l = 0; l < width; ++l) {    \
-            float val = eqation_i_j_k_l;       \
+            float val = (eqation_i_j_k_l);     \
             input.setValue(i, j, k, l, val);   \
           }                                    \
         }                                      \
@@ -137,7 +137,7 @@ private:
       for (int j = 0; j < channel; ++j) {         \
         for (int k = 0; k < height_b; ++k) {      \
           for (int l = 0; l < width_b; ++l) {     \
-            float val = equation_i_j_k_l;         \
+            float val = (equation_i_j_k_l);       \
             input.setValue(i, j, k, l, val);      \
           }                                       \
         }                                         \
