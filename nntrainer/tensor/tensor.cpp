@@ -1076,7 +1076,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
     auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                  float *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
-          alpha == 0) {
+          alpha == 1.f) {
         std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
                        std::plus<float>());
       } else {
@@ -1094,7 +1094,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                  _FP16 *out_buf) {
       if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
-          alpha == 0) {
+          alpha == 1.f) {
         ele_add(e.buffer_size, buf, m_buf, out_buf);
       } else {
         for (unsigned int i = 0; i < e.buffer_size; ++i) {
