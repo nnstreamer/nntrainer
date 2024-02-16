@@ -146,7 +146,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
  * @param[in] beta scalar multiplier for output
  */
 void ele_mul(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
-             __fp16 alpha = 1.f, __fp16 beta = 0.f);
+             float alpha = 1.f, float beta = 0.f);
 /**
  * @brief     elementwise vector addition with neon : Z = X + Y
  * @param[in] N  length of the vector
@@ -157,7 +157,7 @@ void ele_mul(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
  * @param[in] beta scalar multiplier for output
  */
 void ele_add(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
-             __fp16 alpha = 1.f, __fp16 beta = 0.f);
+             float alpha = 1.f, float beta = 0.f);
 
 /**
  * @brief     transposed hgemv computation with neon

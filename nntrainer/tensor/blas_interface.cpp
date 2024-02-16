@@ -382,25 +382,37 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
 }
 
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             _FP16 alpha, _FP16 beta) {
+             float alpha, float beta) {
 #if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] *= beta;
-    Z[i] = alpha * X[i] * Y[i];
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = static_cast<_FP16>(alpha) * X[i] * Y[i] +
+             static_cast<_FP16>(beta) * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = static_cast<_FP16>(alpha) * X[i] * Y[i];
+    }
   }
 #endif
 }
 
 void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             _FP16 alpha, _FP16 beta) {
+             float alpha, float beta) {
 #if (defined USE__FP16 && USE_NEON)
   nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] *= beta;
-    Z[i] = X[i] + alpha * Y[i];
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] + static_cast<_FP16>(alpha) * Y[i] +
+             static_cast<_FP16>(beta) * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] + static_cast<_FP16>(alpha) * Y[i];
+    }
   }
 #endif
 }
