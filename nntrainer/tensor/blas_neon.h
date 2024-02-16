@@ -99,7 +99,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
 void inv_sqrt_inplace(const unsigned int N, float *X);
 
 /**
- * @brief     elementwise vector multiplication : Z = X ⊙ Y
+ * @brief     elementwise vector multiplication : Z = X ⊙ alpha * Y + beta * Z
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
@@ -111,7 +111,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     elementwise vector addition : Z = X + Y
+ * @brief     elementwise vector addition : Z = X + alpha * Y + beta * Z
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
@@ -122,7 +122,8 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 /**
- * @brief     elementwise vector subtraction with neon : Z = X + Y
+ * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
+ * beta * Z
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
@@ -134,7 +135,8 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     elementwise vector division with neon : Z = X + Y
+ * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
+ * * Z
  * @note ZeroDivisionError is not guaranteed in this function
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
@@ -161,7 +163,8 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
            uint32_t cols, float alpha, float beta);
 
 /**
- * @brief     elementwise vector multiplication with neon : Z = X ⊙ Y
+ * @brief     elementwise vector multiplication with neon : Z = X ⊙ alpha * Y +
+ * beta * Z
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
@@ -172,7 +175,8 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t rows,
 void ele_mul(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha = 1.f, float beta = 0.f);
 /**
- * @brief     elementwise vector addition with neon : Z = X + Y
+ * @brief     elementwise vector addition with neon : Z = X + alpha * Y + beta *
+ * Z
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
@@ -184,7 +188,8 @@ void ele_add(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     elementwise vector subtraction with neon : Z = X + Y
+ * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
+ * beta * Z
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
@@ -196,7 +201,8 @@ void ele_sub(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     elementwise vector division with neon : Z = X + Y
+ * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
+ * * Z
  * @note ZeroDivisionError is not guaranteed in this function
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
