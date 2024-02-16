@@ -417,6 +417,42 @@ void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
 #endif
 }
 
+void ele_sub(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float alpha, float beta) {
+#if (defined USE__FP16 && USE_NEON)
+  nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
+#else
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] - static_cast<_FP16>(alpha) * Y[i] +
+             static_cast<_FP16>(beta) * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] - static_cast<_FP16>(alpha) * Y[i];
+    }
+  }
+#endif
+}
+
+void ele_div(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float alpha, float beta) {
+#if (defined USE__FP16 && USE_NEON)
+  nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
+#else
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] / (static_cast<_FP16>(alpha) * Y[i]) +
+             static_cast<_FP16>(beta) * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] / (static_cast<_FP16>(alpha) * Y[i]);
+    }
+  }
+#endif
+}
+
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
   return snrm2_FP16(N, X, incX);
 }
@@ -919,7 +955,6 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
   nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-
     Z[i] *= beta;
     Z[i] = alpha * X[i] * Y[i];
   }
@@ -934,6 +969,42 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
   for (unsigned int i = 0; i < N; ++i) {
     Z[i] *= beta;
     Z[i] = X[i] + alpha * Y[i];
+  }
+#endif
+}
+
+void ele_sub(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta) {
+#ifdef USE_NEON
+  nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
+#else
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] - alpha * Y[i] +
+             beta * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] - alpha * Y[i];
+    }
+  }
+#endif
+}
+
+void ele_div(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta) {
+#ifdef USE_NEON
+  nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
+#else
+  if (beta != 0.f) {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] / (alpha * Y[i]) +
+             beta * Z[i];
+    }
+  } else {
+    for (unsigned int i = 0; i < N; ++i) {
+      Z[i] = X[i] / (alpha * Y[i]);
+    }
   }
 #endif
 }

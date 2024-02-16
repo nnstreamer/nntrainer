@@ -454,7 +454,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
     else
       Z[i] = alpha * X[i] * Y[i];
@@ -481,7 +481,7 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] + alpha * Y[i];
@@ -508,7 +508,7 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] - alpha * Y[i];
@@ -535,7 +535,7 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
     else
       Z[i] = X[i] / (alpha * Y[i]);
@@ -2142,7 +2142,7 @@ void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
     else
       Z[i] = alpha * X[i] * Y[i];
@@ -2170,7 +2170,7 @@ void ele_add(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] + alpha * Y[i];
@@ -2198,7 +2198,7 @@ void ele_sub(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] - alpha * Y[i];
@@ -2226,7 +2226,7 @@ void ele_div(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 1.f)
+    if (beta != 0.f)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
     else
       Z[i] = X[i] / (alpha * Y[i]);
