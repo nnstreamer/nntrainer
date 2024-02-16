@@ -161,7 +161,7 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
  * @param[in] beta scalar multiplier for output
  */
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             _FP16 alpha = 1.f, _FP16 beta = 0.f);
+             float alpha = 1.f , float beta = 0.f);
 
 /**
  * @brief     elementwise vector addition : Z = X + Y
@@ -173,7 +173,7 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] beta scalar multiplier for output
  */
 void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             _FP16 alpha = 1.f, _FP16 beta = 0.f);
+             float alpha = 1.f, float beta = 0.f);
 
 /**
  * @brief     isamax function : index of first maxima
