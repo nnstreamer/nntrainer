@@ -299,6 +299,21 @@ public:
                         bool trans_in, float beta) const = 0;
 
   /**
+   * @copydoc TensorV2::dropout_mask(float dropout)
+   */
+  virtual void dropout_mask(float dropout) = 0;
+
+  /**
+   * @copydoc TensorV2::filter_mask(const TensorV2 &mask_len, bool reverse)
+   */
+  virtual void filter_mask(const TensorV2 &mask_len, bool reverse) = 0;
+
+  /**
+   * @copydoc TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout)
+   */
+  virtual void zoneout_mask(TensorV2 &opposite, float zoneout) = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
@@ -591,8 +606,7 @@ public:
    * @brief   Constructor for the class
    */
   SrcSharedTensorBase(const TensorBase *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor

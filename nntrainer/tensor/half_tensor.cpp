@@ -582,6 +582,54 @@ TensorV2 &HalfTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
   return output;
 }
 
+void HalfTensor::dropout_mask(float dropout) {
+  _FP16 scale = static_cast<_FP16>(1.0 / (1 - dropout));
+  _FP16 *data_ = (_FP16 *)getData();
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (data_[i] >= dropout)
+      data_[i] = scale;
+    else
+      data_[i] = 0;
+  }
+}
+
+void HalfTensor::filter_mask(const TensorV2 &mask_len, bool reverse) {
+  float fill_mask_val = 0.0;
+  float en_mask_val = 1.0 - fill_mask_val;
+
+  if (reverse) {
+    fill_mask_val = 1.0;
+    en_mask_val = 1.0 - fill_mask_val;
+  }
+
+  setValue(fill_mask_val);
+
+  NNTR_THROW_IF(mask_len.batch() != batch(), std::invalid_argument)
+    << "Number of filter masks mismatched";
+
+  for (unsigned int b = 0; b < batch(); b++) {
+    _FP16 *addr = (_FP16 *)getAddress(getIndex(b, 0, 0, 0));
+    const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
+    std::fill(addr, addr + (*mask_len_val), (_FP16)en_mask_val);
+  }
+}
+
+void HalfTensor::zoneout_mask(TensorV2 &opposite, float zoneout) {
+  _FP16 zoneout_fp16 = (_FP16)zoneout;
+  opposite.setRandBernoulli(zoneout_fp16);
+
+  _FP16 *data = (_FP16 *)getData();
+  _FP16 *opposite_data = opposite.getData<_FP16>();
+
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (opposite_data[i] > epsilon) {
+      data[i] = (_FP16)0.0;
+    } else {
+      data[i] = (_FP16)1.0;
+    }
+  }
+}
+
 void HalfTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const _FP16 *data = (_FP16 *)getData();
