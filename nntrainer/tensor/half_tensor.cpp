@@ -326,7 +326,7 @@ TensorV2 HalfTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
     << output.getName() << " is not allocated";
 
   if (strides[3] != 1 || m.getStrides()[3] != 1 ||
-      output.getStrides()[3] != 1 || beta != 0.0) {
+      output.getStrides()[3] != 1 || std::fpclassify(beta) != FP_ZERO) {
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
@@ -416,7 +416,7 @@ TensorV2 &HalfTensor::multiply(TensorV2 const &m, TensorV2 &output,
   auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
     if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1 &&
-        beta == 0.0) {
+        std::fpclassify(beta) == FP_ZERO) {
       ewvm(e.buffer_size, buf, m_buf, out_buf);
     } else {
       for (unsigned int i = 0; i < e.buffer_size; ++i) {
@@ -455,7 +455,7 @@ TensorV2 &HalfTensor::add_strided(TensorV2 const &input, TensorV2 &output,
     << output.getName() << " is not allocated";
 
   if (strides[3] != 1 || input.getStrides()[3] != 1 ||
-      output.getStrides()[3] != 1 || beta != 0.0) {
+      output.getStrides()[3] != 1 || std::fpclassify(beta) != FP_ZERO) {
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
@@ -510,7 +510,8 @@ TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
                           float const alpha) const {
   auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 0) {
+    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
+        std::fpclassify(alpha) == FP_ZERO) {
       ewva(e.buffer_size, buf, m_buf, out_buf);
     } else {
       for (unsigned int i = 0; i < e.buffer_size; ++i) {
