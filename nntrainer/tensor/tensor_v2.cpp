@@ -500,6 +500,50 @@ TensorV2 &TensorV2::dot_batched_deriv_wrt_2(TensorV2 &m_deriv,
   }
 }
 
+TensorV2 TensorV2::dropout_mask(float dropout) const {
+  TensorV2 output(getDim());
+  output.dropout_mask(dropout);
+  return output;
+}
+
+void TensorV2::dropout_mask(float dropout) {
+  /// @todo add unittest
+  NNTR_THROW_IF(dropout < 0 || dropout > 1, std::invalid_argument)
+    << "[Tensor::dropout_mask] Dropout rate should be between 0 and 1";
+
+  // if the rate is zero, no change is needed
+  if (std::fpclassify(dropout) == FP_ZERO)
+    return;
+
+  setRandUniform(0.0, 1.0);
+  itensor->dropout_mask(dropout);
+}
+
+void TensorV2::filter_mask(const TensorV2 &mask_len, bool reverse) {
+  /// @todo add unittest
+  itensor->filter_mask(mask_len, reverse);
+}
+
+TensorV2 TensorV2::zoneout_mask(float zoneout) {
+  TensorV2 output(getDim());
+  zoneout_mask(output, zoneout);
+  return output;
+}
+
+void TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout) {
+  NNTR_THROW_IF(getDim() != opposite.getDim(), std::invalid_argument)
+    << "[Tensor::zoneout_mask] opposite dimension does not match";
+
+  NNTR_THROW_IF(zoneout < 0 || zoneout > 1, std::invalid_argument)
+    << "[Tensor::zoneout_mask] Zoneout rate should be between 0 and 1";
+
+  // if the rate is zero, no change is needed
+  if (std::fpclassify(zoneout) == FP_ZERO)
+    return;
+
+  itensor->zoneout_mask(opposite, zoneout);
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
@@ -616,8 +660,8 @@ const bool TensorV2::getContiguous() const noexcept {
   return itensor->getContiguous();
 }
 
-const std::array<size_t, TensorDim::MAXDIM> TensorV2::getStrides() const
-  noexcept {
+const std::array<size_t, TensorDim::MAXDIM>
+TensorV2::getStrides() const noexcept {
   return itensor->getStrides();
 }
 

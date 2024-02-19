@@ -701,6 +701,53 @@ TensorV2 &FloatTensor::transpose(const std::string &direction,
   return output;
 }
 
+void FloatTensor::dropout_mask(float dropout) {
+  float scale = 1.0 / (1 - dropout);
+  float *data_ = (float *)getData();
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (data_[i] >= dropout)
+      data_[i] = scale;
+    else
+      data_[i] = 0.0;
+  }
+}
+
+void FloatTensor::filter_mask(const TensorV2 &mask_len, bool reverse) {
+  float fill_mask_val = 0.0;
+  float en_mask_val = 1.0 - fill_mask_val;
+
+  if (reverse) {
+    fill_mask_val = 1.0;
+    en_mask_val = 1.0 - fill_mask_val;
+  }
+
+  setValue(fill_mask_val);
+
+  NNTR_THROW_IF(mask_len.batch() != batch(), std::invalid_argument)
+    << "Number of filter masks mismatched";
+
+  for (unsigned int b = 0; b < batch(); b++) {
+    float *addr = (float *)getAddress(getIndex(b, 0, 0, 0));
+    const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
+    std::fill(addr, addr + (*mask_len_val), en_mask_val);
+  }
+}
+
+void FloatTensor::zoneout_mask(TensorV2 &opposite, float zoneout) {
+  opposite.setRandBernoulli(zoneout);
+
+  float *data = (float *)getData();
+  float *opposite_data = opposite.getData<float>();
+
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (opposite_data[i] > epsilon) {
+      data[i] = 0.0f;
+    } else {
+      data[i] = 1.0f;
+    }
+  }
+}
+
 void FloatTensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = (float *)getData();

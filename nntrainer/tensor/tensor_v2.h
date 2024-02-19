@@ -875,6 +875,46 @@ public:
                                     float beta = 0.0f) const;
 
   /**
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
+   * @param dropout drop out rate
+   * @retval Tensor& reference of drop out mask
+   */
+  TensorV2 dropout_mask(float dropout) const;
+
+  /**
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate) inplace
+   * @param dropout drop out rate
+   */
+  void dropout_mask(float dropout);
+
+  /**
+   * @brief Calculate filter mask
+   * @param mask_len length of each mask along the last axis
+   * @param invert invert the mask
+   */
+  void filter_mask(const TensorV2 &mask_len, bool reverse = false);
+
+  /**
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param zoneout zone out rate
+   * @retval Tensor zone out mask for opposite tensor
+   */
+  TensorV2 zoneout_mask(float zoneout);
+
+  /**
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param opposite opposite zone out mask
+   * @param zoneout zone out rate
+   */
+  void zoneout_mask(TensorV2 &opposite, float zoneout);
+
+  /**
    * @brief     Print element
    * @param[in] out out stream
    */

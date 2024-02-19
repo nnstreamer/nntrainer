@@ -276,6 +276,21 @@ public:
                 bool trans_in, float beta) const override;
 
   /**
+   * @copydoc TensorV2::dropout_mask(float dropout)
+   */
+  void dropout_mask(float dropout) override;
+
+  /**
+   * @copydoc TensorV2::filter_mask(const TensorV2 &mask_len, bool reverse)
+   */
+  void filter_mask(const TensorV2 &mask_len, bool reverse) override;
+
+  /**
+   * @copydoc TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout)
+   */
+  void zoneout_mask(TensorV2 &opposite, float zoneout) override;
+
+  /**
    * @copydoc TensorV2::copy(const TensorV2 &from)
    */
   void copy(const TensorV2 &from);
