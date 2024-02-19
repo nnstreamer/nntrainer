@@ -920,6 +920,27 @@ public:
   TensorV2 getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
+   * @brief     Convient wrapper for inplace copy of @a this.
+   * @retval    Copied version of this
+   */
+  TensorV2 clone() const;
+
+  /**
+   * @brief  Transpose Tensor
+   * @param  direction to transpose ex) 0:2:1
+   * @return Tensor
+   */
+  TensorV2 transpose(const std::string &direction) const;
+
+  /**
+   * @brief      Transpose Tensor
+   * @param      direction to transpose ex) 0:2:1
+   * @param[out] Tensor to save to, dimension is always reshaped.
+   * @retval     Tensor& reference to the out
+   */
+  TensorV2 &transpose(const std::string &direction, TensorV2 &out) const;
+
+  /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch

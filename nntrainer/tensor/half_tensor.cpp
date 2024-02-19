@@ -370,32 +370,6 @@ TensorV2 HalfTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
-void HalfTensor::copy(const TensorV2 &from) {
-  reshape(from.getDim());
-  copy(from.getData<_FP16>());
-}
-
-void HalfTensor::copyData(const TensorV2 &from) {
-  if (!contiguous) {
-    throw std::runtime_error("Cannot copy non-contiguous tensor");
-  }
-
-  if (size() != from.size())
-    throw std::invalid_argument("Size of tensor to copy must match");
-
-  switch (from.getDataType()) {
-  case ml::train::TensorDim::DataType::FP32:
-    scopy(size(), from.getData<float>(), 1, (_FP16 *)getData(), 1);
-    break;
-  case ml::train::TensorDim::DataType::FP16:
-    copy(from.getData<_FP16>());
-    break;
-  default:
-    throw std::invalid_argument("Error: Unsupported data type");
-    break;
-  }
-}
-
 int HalfTensor::multiply_i(float const &value) {
   _FP16 *data = (_FP16 *)getData();
   unsigned int len = size();
@@ -681,6 +655,98 @@ TensorV2 &HalfTensor::divide(TensorV2 const &m, TensorV2 &output) const {
   };
 
   apply_broadcast(m, f, output);
+  return output;
+}
+
+void HalfTensor::copy(const TensorV2 &from) {
+  reshape(from.getDim());
+  copy(from.getData<_FP16>());
+}
+
+void HalfTensor::copyData(const TensorV2 &from) {
+  if (!contiguous) {
+    throw std::runtime_error("Cannot copy non-contiguous tensor");
+  }
+
+  if (size() != from.size())
+    throw std::invalid_argument("Size of tensor to copy must match");
+
+  switch (from.getDataType()) {
+  case ml::train::TensorDim::DataType::FP32:
+    scopy(size(), from.getData<float>(), 1, (_FP16 *)getData(), 1);
+    break;
+  case ml::train::TensorDim::DataType::FP16:
+    copy(from.getData<_FP16>());
+    break;
+  default:
+    throw std::invalid_argument("Error: Unsupported data type");
+    break;
+  }
+}
+
+TensorV2 &HalfTensor::transpose(const std::string &direction,
+                                TensorV2 &output) const {
+  unsigned int SL, SI, SJ, SK;
+
+  output.reshape(dim.transpose(direction));
+
+  int indexI = direction[0] - '0';
+  int indexJ = direction[2] - '0';
+
+  SL = dim.batch(), SI = dim.channel(), SJ = dim.height(), SK = dim.width();
+
+  bool is_format_nchw = (getFormat() == Tformat::NCHW);
+
+  const _FP16 *inptr = (_FP16 *)getData();
+  _FP16 *outptr = output.getData<_FP16>();
+  switch (indexI) {
+  case 0:
+    if (indexJ == 1) {
+      if (is_format_nchw) {
+        transposeloop(l, i, j, k, SL, SI, SJ, SK);
+      } else {
+        transposeloop_nhwc(l, j, k, i, SL, SJ, SK, SI);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, i, k, j, SL, SI, SK, SJ);
+      } else {
+        transposeloop_nhwc(l, k, j, i, SL, SK, SJ, SI);
+      }
+    }
+    break;
+  case 1:
+    if (indexJ == 0) {
+      if (is_format_nchw) {
+        transposeloop(l, j, i, k, SL, SJ, SI, SK);
+      } else {
+        transposeloop_nhwc(l, i, k, j, SL, SI, SK, SJ);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, j, k, i, SL, SJ, SK, SI);
+      } else {
+        transposeloop_nhwc(l, k, i, j, SL, SK, SI, SJ);
+      }
+    }
+    break;
+  case 2:
+    if (indexJ == 0) {
+      if (is_format_nchw) {
+        transposeloop(l, k, i, j, SL, SK, SI, SJ);
+      } else {
+        transposeloop_nhwc(l, i, j, k, SL, SI, SJ, SK);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, k, j, i, SL, SK, SJ, SI);
+      } else {
+        transposeloop_nhwc(l, j, i, k, SL, SJ, SI, SK);
+      }
+    }
+    break;
+  }
+
   return output;
 }
 
