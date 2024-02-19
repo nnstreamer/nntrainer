@@ -449,14 +449,14 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vmulq_f32(x0_3, y0_3);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float32x4_t z0_3 = vmulq_f32(vld1q_f32(&Z[i]), beta_vec);
       vst1q_f32(&Z[i], vaddq_f32(z0_3, xy0_3));
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
     else
       Z[i] = alpha * X[i] * Y[i];
@@ -476,14 +476,14 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vaddq_f32(x0_3, y0_3);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float32x4_t z0_3 = vmulq_f32(vld1q_f32(&Z[i]), beta_vec);
       vst1q_f32(&Z[i], vaddq_f32(z0_3, xy0_3));
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] + alpha * Y[i];
@@ -503,14 +503,14 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vsubq_f32(x0_3, y0_3);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float32x4_t z0_3 = vmulq_f32(vld1q_f32(&Z[i]), beta_vec);
       vst1q_f32(&Z[i], vaddq_f32(z0_3, xy0_3));
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] - alpha * Y[i];
@@ -530,14 +530,14 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vdivq_f32(x0_3, y0_3);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float32x4_t z0_3 = vmulq_f32(vld1q_f32(&Z[i]), beta_vec);
       vst1q_f32(&Z[i], vaddq_f32(z0_3, xy0_3));
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
     else
       Z[i] = X[i] / (alpha * Y[i]);
@@ -2187,7 +2187,7 @@ void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vmulq_f16(x0_7, y0_7);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float16x8_t z0_7 = vmulq_f16(vld1q_f16(&Z[i]), beta_vec);
       vst1q_f16(&Z[i], vaddq_f16(z0_7, xy0_7));
     } else {
@@ -2195,7 +2195,7 @@ void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
     else
       Z[i] = alpha * X[i] * Y[i];
@@ -2215,7 +2215,7 @@ void ele_add(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vaddq_f16(x0_7, y0_7);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float16x8_t z0_7 = vmulq_f16(vld1q_f16(&Z[i]), beta_vec);
       vst1q_f16(&Z[i], vaddq_f16(z0_7, xy0_7));
     } else {
@@ -2223,7 +2223,7 @@ void ele_add(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] + alpha * Y[i];
@@ -2243,7 +2243,7 @@ void ele_sub(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vsubq_f16(x0_7, y0_7);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float16x8_t z0_7 = vmulq_f16(vld1q_f16(&Z[i]), beta_vec);
       vst1q_f16(&Z[i], vaddq_f16(z0_7, xy0_7));
     } else {
@@ -2251,7 +2251,7 @@ void ele_sub(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] - alpha * Y[i];
@@ -2271,7 +2271,7 @@ void ele_div(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vdivq_f16(x0_7, y0_7);
-    if (beta != 0.f) {
+    if (std::abs(beta) > __FLT_MIN__) {
       float16x8_t z0_7 = vmulq_f16(vld1q_f16(&Z[i]), beta_vec);
       vst1q_f16(&Z[i], vaddq_f16(z0_7, xy0_7));
     } else {
@@ -2279,7 +2279,7 @@ void ele_div(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
     }
   }
   while (i < N) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
     else
       Z[i] = X[i] / (alpha * Y[i]);

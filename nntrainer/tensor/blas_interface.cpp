@@ -387,7 +387,7 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
   nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = static_cast<_FP16>(alpha) * X[i] * Y[i] +
              static_cast<_FP16>(beta) * Z[i];
     else
@@ -402,7 +402,7 @@ void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
   nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] + static_cast<_FP16>(alpha) * Y[i] +
              static_cast<_FP16>(beta) * Z[i];
     else
@@ -417,7 +417,7 @@ void ele_sub(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
   nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] - static_cast<_FP16>(alpha) * Y[i] +
              static_cast<_FP16>(beta) * Z[i];
     else
@@ -432,7 +432,7 @@ void ele_div(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
   nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] / (static_cast<_FP16>(alpha) * Y[i]) +
              static_cast<_FP16>(beta) * Z[i];
     else
@@ -943,7 +943,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
   nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
     else
       Z[i] = alpha * X[i] * Y[i];
@@ -957,7 +957,7 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
   nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] + alpha * Y[i];
@@ -971,7 +971,7 @@ void ele_sub(const unsigned int N, const float *X, const float *Y, float *Z,
   nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
     else
       Z[i] = X[i] - alpha * Y[i];
@@ -986,7 +986,7 @@ void ele_div(const unsigned int N, const float *X, const float *Y, float *Z,
   nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
 #else
   for (unsigned int i = 0; i < N; ++i) {
-    if (beta != 0.f)
+    if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
     else
       Z[i] = X[i] / (alpha * Y[i]);
