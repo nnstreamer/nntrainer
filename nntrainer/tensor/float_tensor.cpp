@@ -370,36 +370,6 @@ TensorV2 FloatTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
-void FloatTensor::copy(const TensorV2 &from) {
-  reshape(from.getDim());
-  copy(from.getData<float>());
-}
-
-void FloatTensor::copyData(const TensorV2 &from) {
-  NNTR_THROW_IF(!contiguous, std::invalid_argument)
-    << getName() << " is not contiguous, cannot copy.";
-
-  NNTR_THROW_IF(size() != from.size(), std::invalid_argument)
-    << "Size of tensor to copy must match";
-
-  switch (from.getDataType()) {
-  case ml::train::TensorDim::DataType::FP32:
-    copy(from.getData<float>());
-    break;
-  case ml::train::TensorDim::DataType::FP16:
-/// @todo remove #ifdef ENABLE_FP16
-#ifdef ENABLE_FP16
-    scopy(size(), from.getData<_FP16>(), 1, (float *)getData(), 1);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-    break;
-  default:
-    throw std::invalid_argument("Error: Unsupported data type");
-    break;
-  }
-}
-
 int FloatTensor::multiply_i(float const &value) {
   float *data = (float *)getData();
   unsigned int len = size();
@@ -630,6 +600,102 @@ TensorV2 &FloatTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
   else {
     sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
           beta, rdata, ldc);
+  }
+
+  return output;
+}
+
+void FloatTensor::copy(const TensorV2 &from) {
+  reshape(from.getDim());
+  copy(from.getData<float>());
+}
+
+void FloatTensor::copyData(const TensorV2 &from) {
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot copy.";
+
+  NNTR_THROW_IF(size() != from.size(), std::invalid_argument)
+    << "Size of tensor to copy must match";
+
+  switch (from.getDataType()) {
+  case ml::train::TensorDim::DataType::FP32:
+    copy(from.getData<float>());
+    break;
+  case ml::train::TensorDim::DataType::FP16:
+/// @todo remove #ifdef ENABLE_FP16
+#ifdef ENABLE_FP16
+    scopy(size(), from.getData<_FP16>(), 1, (float *)getData(), 1);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+    break;
+  default:
+    throw std::invalid_argument("Error: Unsupported data type");
+    break;
+  }
+}
+
+TensorV2 &FloatTensor::transpose(const std::string &direction,
+                                 TensorV2 &output) const {
+  unsigned int SL, SI, SJ, SK;
+
+  output.reshape(dim.transpose(direction));
+
+  int indexI = direction[0] - '0';
+  int indexJ = direction[2] - '0';
+
+  SL = dim.batch(), SI = dim.channel(), SJ = dim.height(), SK = dim.width();
+
+  bool is_format_nchw = (getFormat() == Tformat::NCHW);
+
+  const float *inptr = (float *)getData();
+  float *outptr = output.getData<float>();
+  switch (indexI) {
+  case 0:
+    if (indexJ == 1) {
+      if (is_format_nchw) {
+        transposeloop(l, i, j, k, SL, SI, SJ, SK);
+      } else {
+        transposeloop_nhwc(l, j, k, i, SL, SJ, SK, SI);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, i, k, j, SL, SI, SK, SJ);
+      } else {
+        transposeloop_nhwc(l, k, j, i, SL, SK, SJ, SI);
+      }
+    }
+    break;
+  case 1:
+    if (indexJ == 0) {
+      if (is_format_nchw) {
+        transposeloop(l, j, i, k, SL, SJ, SI, SK);
+      } else {
+        transposeloop_nhwc(l, i, k, j, SL, SI, SK, SJ);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, j, k, i, SL, SJ, SK, SI);
+      } else {
+        transposeloop_nhwc(l, k, i, j, SL, SK, SI, SJ);
+      }
+    }
+    break;
+  case 2:
+    if (indexJ == 0) {
+      if (is_format_nchw) {
+        transposeloop(l, k, i, j, SL, SK, SI, SJ);
+      } else {
+        transposeloop_nhwc(l, i, j, k, SL, SI, SJ, SK);
+      }
+    } else {
+      if (is_format_nchw) {
+        transposeloop(l, k, j, i, SL, SK, SJ, SI);
+      } else {
+        transposeloop_nhwc(l, j, i, k, SL, SJ, SI, SK);
+      }
+    }
+    break;
   }
 
   return output;

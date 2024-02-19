@@ -569,6 +569,33 @@ TensorV2 TensorV2::getBatchSlice(size_t offset, unsigned int size) const {
                              true, "");
 }
 
+TensorV2 TensorV2::clone() const {
+  TensorV2 output(getName(), getFormat(), getDataType());
+  output.copy(*this);
+  return output;
+}
+
+TensorV2 TensorV2::transpose(const std::string &direction) const {
+  TensorV2 output(getDim());
+  transpose(direction, output);
+  return output;
+}
+
+TensorV2 &TensorV2::transpose(const std::string &direction,
+                              TensorV2 &output) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot transpose.";
+
+  if (output.getData<char>() == getData<char>()) {
+    TensorV2 result = clone();
+    return result.transpose(direction, output);
+  }
+
+  itensor->transpose(direction, output);
+
+  return output;
+}
+
 void TensorV2::reshape(const TensorDim &d) { itensor->reshape(d); }
 
 TensorDim TensorV2::getDim() const { return itensor->getDim(); }
