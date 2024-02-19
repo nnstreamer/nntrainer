@@ -79,7 +79,7 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
+void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -88,7 +88,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.0);
+void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
 
 /**
  * @brief inversed squared root transformation with neon : X = 1 / sqrt(X)
