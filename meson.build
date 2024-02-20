@@ -80,13 +80,16 @@ if get_option('enable-fp16')
    elif arch == 'arm'
      error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
    else
-     has_avx512fp16 = cc.has_argument('-mavx512fp16')
-     if (has_avx512fp16)
-       # add_project_arguments(['-mavx512fp16'], language: ['c','cpp'])
-       message ('Float16 for x86_64 enabled. Modern gcc-x64 genrally supports float16 with _Float16. -mavx512fp16 added for hardware acceleration')
+     if cc.version().version_compare('>=12.1.0')
+       message ('Float16 for x86_64 enabled. Modern gcc-x64 generally supports float16 with _Float16.')
        extra_defines += '-DENABLE_FP16=1'
+       if get_option('enable-avx')
+        extra_defines += '-DUSE_AVX=1'
+        add_project_arguments(['-march=native'], language: ['c','cpp'])
+        message('-march=native added for AVX hardware acceleration.')
+       endif
      else
-       warning ('Float16 for x86_64 enabled. However, software emulation is applied for fp16, making it slower and inconsistent. Use GCC 12+ for AVX512 FP16 support. This build will probably fail unless you bring a compiler that supports fp16 for x64.')
+       warning ('Float16 for x86_64 enabled. However, software emulation is applied for fp16, making it slower and inconsistent. Use GCC 12+ for FP16 support. This build will probably fail unless you bring a compiler that supports fp16 for x64.')
      endif
    endif  
 endif

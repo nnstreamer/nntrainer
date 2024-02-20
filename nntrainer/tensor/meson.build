@@ -43,6 +43,9 @@ if get_option('enable-fp16')
       tensor_sources += 'blas_neon.cpp'
       tensor_headers += 'blas_neon.h'
     endif
+  elif get_option('enable-avx')
+    tensor_sources += 'blas_avx.cpp'
+    tensor_headers += 'blas_avx.h'
   endif
 endif
 
