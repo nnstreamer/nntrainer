@@ -19,6 +19,10 @@
 #include <blas_neon.h>
 #endif
 
+#if USE_AVX
+#include <blas_avx.h>
+#endif
+
 #include <cmath>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
@@ -182,6 +186,13 @@ static void copy_float32_to_float16(const unsigned int N, const float *X,
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
   }
+#elif USE_AVX
+  if (incX == 1 && incY == 1) {
+    nntrainer::avx::vcvt_f32_f16(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      Y[i * incy] = static_cast<_FP16>(X[i * incx]);
+  }
 #else
   for (unsigned int i = 0; i < N; ++i)
     Y[i * incy] = static_cast<_FP16>(X[i * incx]);
@@ -199,6 +210,13 @@ static void copy_float16_to_float32(const unsigned int N, const _FP16 *X,
   } else {
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
+  }
+#elif USE_AVX
+  if (incX == 1 && incY == 1) {
+    nntrainer::avx::vcvt_f16_f32(N, X, Y);
+  } else {
+    for (unsigned int i = 0; i < N; ++i)
+      Y[i * incy] = static_cast<float>(X[i * incx]);
   }
 #else
   for (unsigned int i = 0; i < N; ++i)
