@@ -54,6 +54,7 @@ namespace nntrainer {
 using TensorDim = ml::train::TensorDim;
 using Tformat = ml::train::TensorDim::Format;
 using Tdatatype = ml::train::TensorDim::DataType;
+using TStorageOrder = ml::train::TensorDim::StorageOrder;
 
 /**
  * @brief     Enumeration of Weight Initialization Type
@@ -275,6 +276,19 @@ public:
   virtual TensorV2 &subtract(float const &value, TensorV2 &output) const = 0;
 
   /**
+   * @brief      Sum all the Tensor elements according to the batch
+   * @param[out] output Tensor(batch, 1, 1, 1)
+   */
+  virtual void sum_by_batch(TensorV2 &output) const = 0;
+
+  /**
+   * @copydoc TensorV2::sum(unsigned int axis, TensorV2 &output, float alpha,
+   * float beta) const
+   */
+  virtual TensorV2 &sum(unsigned int axis, TensorV2 &output, float alpha,
+                        float beta) const = 0;
+
+  /**
    * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
    */
   virtual TensorV2 &pow(float exponent, TensorV2 &output) const = 0;
@@ -470,6 +484,14 @@ public:
    * @retval    width size
    */
   size_t width() const { return dim.width(); }
+
+  /**
+   * @brief Merge the given two axis for tensor at second axis inplace
+   *
+   * @param axis1 first axis to merge
+   * @param axis2 second axis to merge
+   */
+  void mergeAxis(unsigned int axis1, unsigned int axis2);
 
   /**
    * @brief Allocate data based on the source tensor

@@ -506,6 +506,131 @@ TensorV2 &HalfTensor::subtract(float const &value, TensorV2 &output) const {
   return output;
 }
 
+void HalfTensor::sum_by_batch(TensorV2 &output) const {
+  size_t feat_len = dim.getFeatureLen();
+  size_t batch = dim.batch();
+
+  const _FP16 *data = (_FP16 *)getData();
+  _FP16 *out_data = output.getData<_FP16>();
+
+  TensorV2 ones(1, 1, 1, feat_len, this->getTensorType());
+  ones.setValue((_FP16)1.0);
+  sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
+        ones.getData<_FP16>(), 1, 0.0, out_data, 1);
+}
+
+TensorV2 &HalfTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
+                          float beta) const {
+
+  const _FP16 *data = (_FP16 *)getData();
+
+  NNTR_THROW_IF(!contiguous, std::invalid_argument)
+    << getName() << " is not contiguous, cannot sum";
+
+  if (axis >= 4)
+    throw std::out_of_range("Error: axis is invalid");
+
+  if (dim.getDim()[axis] == 1 and alpha == 1.0 and !beta) {
+    CREATE_V2_IF_EMPTY_DIMS(output, dim);
+    scopy(size(), (_FP16 *)getData(), 1, output.getData<_FP16>(), 1);
+    return output;
+  }
+
+  switch (axis) {
+  case 0: {
+    CREATE_V2_IF_EMPTY_DIMS(output, 1, dim.channel(), dim.height(), dim.width(),
+                            this->getTensorType());
+    size_t feat_len = dim.getFeatureLen();
+    size_t batch = dim.batch();
+    TensorV2 ones(1, 1, 1, batch, this->getTensorType());
+    ones.setValue(alpha);
+    sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
+          ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
+  } break;
+  case 1: {
+    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
+    if (this->getFormat() == Tformat::NHWC) {
+      unsigned int feat_len = output.getDim().getDataLen();
+      unsigned int t_axis = dim[1];
+      TensorV2 ones(1, 1, 1, t_axis, this->getTensorType());
+      ones.setValue(alpha);
+      sgemv(CblasRowMajor, CblasNoTrans, feat_len, t_axis, 1, data, t_axis,
+            ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
+    } else {
+      unsigned int feat_len = dim[2] * dim[3];
+      unsigned int t_axis = dim[1];
+      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      ones.setValue(alpha);
+      _FP16 *rdata = output.getData<_FP16>();
+      for (unsigned int k = 0; k < dim[0]; ++k) {
+        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+              &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
+              1, beta, &rdata[k * feat_len], 1);
+      }
+    }
+  } break;
+  case 2: {
+    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], dim[1], 1, dim[3], getTensorType());
+
+    if (this->getFormat() == Tformat::NHWC) {
+      unsigned int feat_len = dim[1] * dim[3];
+      unsigned int t_axis = dim[2];
+      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      ones.setValue(alpha);
+      _FP16 *rdata = output.getData<_FP16>();
+      for (unsigned int k = 0; k < dim[0]; ++k) {
+        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+              &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
+              1, beta, &rdata[k * feat_len], 1);
+      }
+    } else {
+      unsigned int t_3 = dim[3];
+      unsigned int t_axis = dim[2];
+      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      ones.setValue(alpha);
+      _FP16 *rdata = output.getData<_FP16>();
+      for (unsigned int k = 0; k < dim[0]; ++k) {
+        for (unsigned int c = 0; c < dim[1]; ++c) {
+          unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
+          unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[3];
+          sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+                ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
+        }
+      }
+    }
+  } break;
+  case 3: {
+    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], dim[1], dim[2], 1, getTensorType());
+    if (this->getFormat() == Tformat::NHWC) {
+      unsigned int t_3 = dim[1];
+      unsigned int t_axis = dim[3];
+      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      ones.setValue(alpha);
+      _FP16 *rdata = output.getData<_FP16>();
+      for (unsigned int k = 0; k < dim[0]; ++k) {
+        for (unsigned int c = 0; c < dim[2]; ++c) {
+          unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
+          unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[1];
+          sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+                ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
+        }
+      }
+    } else {
+      unsigned int m = output.getDim().getDataLen();
+      unsigned int n = dim[3];
+      TensorV2 ones(1, 1, 1, n, getTensorType());
+      ones.setValue(alpha);
+      sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+            ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
+    }
+  } break;
+  default:
+    throw std::out_of_range("Error: Dimension cannot exceed 3");
+  }
+
+  return output;
+}
+
 TensorV2 &HalfTensor::pow(float exponent, TensorV2 &output) const {
   auto f = [exponent](float in) {
     return static_cast<_FP16>(powf(in, exponent));

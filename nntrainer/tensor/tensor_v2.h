@@ -752,6 +752,58 @@ public:
   TensorV2 &subtract(TensorV2 const &m, TensorV2 &output) const;
 
   /**
+   * @brief     sum all the Tensor elements according to the batch
+   * @retval    Calculated Tensor(batch, 1, 1, 1)
+   */
+  TensorV2 sum_by_batch() const;
+
+  /**
+   * @brief     sum all the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
+   * @param[in] axis Axis to calculate sum along
+   * @param[in] alpha Scale the sum by this value
+   * @retval    Calculated Tensor
+   */
+  TensorV2 sum(unsigned int axis, float alpha = 1.0) const;
+
+  /**
+   * @brief     sum all the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
+   * @param[in] axis Axis to calculate sum along
+   * @param[out] output output tensor
+   * @param[in] alpha Scale the sum by this value
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &sum(unsigned int axis, TensorV2 &output, float alpha = 1.0,
+                float beta = 0.0) const;
+
+  /**
+   * @brief sum all the Tensor by multiple axes
+   *
+   * @param axes axes to sum along
+   * @param alpha Scale the sum by this value
+   * @return Tensor
+   */
+  TensorV2 sum(const std::vector<unsigned int> &axes, float alpha = 1.0) const;
+
+  /**
+   * @brief sum all the Tensor by multiple axes
+   *
+   * @param axes axes to sum along
+   * @param[out] output output tensor
+   * @param alpha Scale the sum by this value
+   * @return Tensor
+   */
+  TensorV2 &sum(const std::vector<unsigned int> &axes, TensorV2 &output,
+                float alpha = 1.0) const;
+
+  /**
    * @brief     Tensor power element without mem copy
    * @param[in] exponent exponent
    * @retval    #ML_ERROR_NONE  Successful
@@ -1096,6 +1148,14 @@ public:
    * @retval    width size
    */
   size_t width() const;
+
+  /**
+   * @brief Merge the given two axis for tensor at second axis inplace
+   *
+   * @param axis1 first axis to merge
+   * @param axis2 second axis to merge
+   */
+  void mergeAxis(unsigned int axis1, unsigned int axis2);
 
   /**
    * @brief Update destination tensor to share memory with source tensor
