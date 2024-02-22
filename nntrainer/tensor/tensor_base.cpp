@@ -73,6 +73,11 @@ size_t TensorBase::getIndex(unsigned int b, unsigned int c, unsigned int h,
   }
 }
 
+void TensorBase::mergeAxis(unsigned int axis1, unsigned int axis2) {
+  dim.setTensorDim(axis2, dim.getTensorDim(axis1) * dim.getTensorDim(axis2));
+  dim.setTensorDim(axis1, 1);
+}
+
 void TensorBase::allocateSrcTensor() {
   if (src_tensor) {
     data = src_tensor->tensor()->data;

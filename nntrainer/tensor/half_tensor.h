@@ -258,6 +258,18 @@ public:
   TensorV2 &subtract(float const &value, TensorV2 &output) const override;
 
   /**
+   *  @copydoc TensorBase::sum_by_batch(TensorV2 &output)
+   */
+  void sum_by_batch(TensorV2 &output) const override;
+
+  /**
+   * @copydoc TensorV2::sum(unsigned int axis, TensorV2 &output, float alpha,
+   * float beta) const
+   */
+  TensorV2 &sum(unsigned int axis, TensorV2 &output, float alpha,
+                float beta) const override;
+
+  /**
    * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
    */
   TensorV2 &pow(float exponent, TensorV2 &output) const override;
