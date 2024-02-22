@@ -38,9 +38,11 @@ arch = host_machine.cpu_family()
 if get_option('enable-fp16') 
   if arch == 'arm'
     error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
-  elif arch == 'aarch64' or get_option('enable-neon')
-    tensor_sources += 'blas_neon.cpp'
-    tensor_headers += 'blas_neon.h'
+  elif arch == 'aarch64' or get_option('platform') == 'android'
+    if get_option('enable-neon')
+      tensor_sources += 'blas_neon.cpp'
+      tensor_headers += 'blas_neon.h'
+    endif
   endif
 endif
 

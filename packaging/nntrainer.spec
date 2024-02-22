@@ -57,7 +57,13 @@
 %define fp16_support -Denable-fp16=true
 %else
 %define fp16_support -Denable-fp16=false
-%endif
+%endif # enalbe_fp16
+
+%ifarch aarch64
+%define neon_support -Denable-neon=true
+%else
+%define neon_support -Denable-neon=false
+%endif # arch aarch64
 
 
 Name:		nntrainer
@@ -414,7 +420,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      %{fp16_support} build
+      %{fp16_support} %{neon_support} build
 
 ninja -C build %{?_smp_mflags}
 
