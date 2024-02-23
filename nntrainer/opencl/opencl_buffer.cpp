@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_buffer.cpp
  * @date    06 Feb 2024
@@ -11,13 +11,13 @@
  *
  */
 
-#include "opencl_buffer.hpp"
+#include "opencl_buffer.h"
 
-#include "opencl_loader.hpp"
+#include "opencl_loader.h"
 
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 Buffer::Buffer(ContextManager &context_manager, int size_in_bytes,
                bool read_only, void *data) {
@@ -73,4 +73,4 @@ void Buffer::Release() {
   size_ = 0;
 }
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

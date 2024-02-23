@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    cl_interface.h
  * @date    06 Feb 2024
@@ -9,12 +9,14 @@
  * @bug     No known bugs except for NYI items
  * @brief   Interface for GPU tensor operations
  *
+ * @note This file is experimental and is kept for testing purpose
+ *
  */
 
 #ifndef __CL_INTERFACE_H_
 #define __CL_INTERFACE_H_
 
-#include "cl_operations/cl_sgemv.hpp"
+#include "cl_sgemv.h"
 
 namespace nntrainer {
 

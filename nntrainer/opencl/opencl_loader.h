@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file    opencl_loader.hpp
+ * @file    opencl_loader.h
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
@@ -20,7 +20,7 @@
 #define CL_API_CALL
 #define CL_CALLBACK
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 bool LoadOpenCL();
 
@@ -134,6 +134,6 @@ extern PFN_clRetainCommandQueue clRetainCommandQueue;
 extern PFN_clReleaseCommandQueue clReleaseCommandQueue;
 extern PFN_clReleaseMemObject clReleaseMemObject;
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
 
 #endif // GPU_CL_OPENCL_LOADER_HPP_

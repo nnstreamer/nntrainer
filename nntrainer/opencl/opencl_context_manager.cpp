@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_context_manager.cpp
  * @date    06 Feb 2024
@@ -11,15 +11,15 @@
  *
  */
 
-#include "opencl_context_manager.hpp"
+#include "opencl_context_manager.h"
 
 #include <vector>
 
-#include "opencl_loader.hpp"
+#include "opencl_loader.h"
 
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 ContextManager &ContextManager::GetInstance() {
   static ContextManager instance;
@@ -134,4 +134,4 @@ bool ContextManager::CreateCLContext() {
 
   return true;
 }
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

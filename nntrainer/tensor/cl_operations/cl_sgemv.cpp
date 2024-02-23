@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    cl_sgemv.cpp
  * @date    06 Feb 2024
@@ -9,12 +9,13 @@
  * @bug     No known bugs except for NYI items
  * @brief   Experimental SGEMV implementation using OpenCL
  *
+ * @note This file is experimental and is kept for testing purpose
+ *
  */
 
-#include "cl_sgemv.hpp"
+#include "cl_sgemv.h"
 #include <iostream>
-#include <opencl_buffer.hpp>
-#include <opencl_loader.hpp>
+#include <opencl_buffer.h>
 
 #include <nntrainer_log.h>
 
@@ -36,11 +37,11 @@ T *GpuCLSgemv::CLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata,
 
     size_t dim1_size = sizeof(T) * dim1;
     size_t dim2_size = sizeof(T) * dim2;
-    Buffer inputA(context_inst_, dim1_size * dim2_size, true, nullptr);
+    opencl::Buffer inputA(context_inst_, dim1_size * dim2_size, true, nullptr);
 
-    Buffer inputX(context_inst_, dim1_size, true, nullptr);
+    opencl::Buffer inputX(context_inst_, dim1_size, true, nullptr);
 
-    Buffer inOutY(context_inst_, dim2_size, true, nullptr);
+    opencl::Buffer inOutY(context_inst_, dim2_size, true, nullptr);
 
     result = inputA.WriteData(command_queue_inst_, matAdata);
     if (!result) {

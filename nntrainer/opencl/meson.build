@@ -10,7 +10,11 @@ opencl_sources = [
 
 opencl_headers = [
   'third_party/cl_platform.h',
-  'opencl_op_interface.hpp'
+  'opencl_op_interface.h',
+  'opencl_command_queue_manager.h',
+  'opencl_context_manager.h',
+  'opencl_kernel.h',
+  'opencl_program.h'
 ]
 
 foreach s : opencl_sources

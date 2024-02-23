@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file    opencl_op_interface.hpp
+ * @file    opencl_op_interface.h
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   Manage OpenCL operation flow
  *
+ * @note This class is experimental and might be deprecated in future
+ * 
  */
 
 #ifndef GPU_CL_OP_INTERFACE_HPP_
@@ -18,12 +20,12 @@
 #include <string>
 #include <vector>
 
-#include "opencl_command_queue_manager.hpp"
-#include "opencl_context_manager.hpp"
-#include "opencl_kernel.hpp"
-#include "opencl_program.hpp"
+#include "opencl_command_queue_manager.h"
+#include "opencl_context_manager.h"
+#include "opencl_kernel.h"
+#include "opencl_program.h"
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 class GpuCLOpInterface {
 
 protected:
@@ -36,6 +38,6 @@ protected:
 
   ~GpuCLOpInterface();
 };
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
 
 #endif // GPU_CL_OP_INTERFACE_HPP_
