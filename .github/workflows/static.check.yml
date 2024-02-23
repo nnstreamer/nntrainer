@@ -45,6 +45,7 @@ jobs:
         # Originally from "pr-prebuild-clang"
         # Need "clang-format"
         run: |
+          clang-format --version
           echo "Check .clang-format file"
           if [ ! -f ".clang-format" ]; then
             echo "::error .clang-format file not found"
