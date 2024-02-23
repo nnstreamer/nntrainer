@@ -510,8 +510,8 @@ TensorV2 &HalfTensor::add(TensorV2 const &m, TensorV2 &output,
                           float const alpha) const {
   auto f = [&](const BroadcastInfoV2 &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 0) {
-      ewva(e.buffer_size, buf, m_buf, out_buf);
+    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 1) {
+      ele_add(e.buffer_size, buf, m_buf, out_buf);
     } else {
       for (unsigned int i = 0; i < e.buffer_size; ++i) {
         *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);

@@ -127,8 +127,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
