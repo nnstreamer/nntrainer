@@ -6,6 +6,7 @@
  * @date   1 April 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer node for network graph
  *
@@ -191,6 +192,15 @@ public:
    */
   void setOutputConnection(unsigned nth, const std::string &name,
                            unsigned index);
+
+#ifdef ENABLE_OPENCL
+  /**
+   * @brief set the compute engine for this node
+   * @param compute engine (CPU/GPU)
+   */
+  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
+                          ml::train::LayerComputeEngine::CPU);
+#endif
 
   /**
    * @brief     Get the input connections for this node
@@ -998,10 +1008,13 @@ properties in the context/graph unless intended. */
  *
  * @params[in] type Type of the layer to be constructed
  * @params[in] properties Properties of the layer
+ * @params[in] compute engine for the layer to run on
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
-                const std::vector<std::string> &properties = {});
+                const std::vector<std::string> &properties = {},
+                const ml::train::LayerComputeEngine &compute_engine =
+                  ml::train::LayerComputeEngine::CPU);
 
 /**
  * @brief LayerNode creator with constructor
@@ -1018,10 +1031,13 @@ createLayerNode(const std::string &type,
  *
  * @params[in] layer Already constructed layer
  * @params[in] properties Properties of the layer
+ * @params[in] compute engine for the layer to run on
  */
 std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
-                const std::vector<std::string> &properties);
+                const std::vector<std::string> &properties,
+                const ml::train::LayerComputeEngine &compute_engine =
+                  ml::train::LayerComputeEngine::CPU);
 
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

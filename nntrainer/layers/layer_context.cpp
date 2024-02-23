@@ -6,6 +6,7 @@
  * @date   26 July 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer context for each layer
  */
@@ -564,5 +565,37 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
 
   return ret;
 }
+
+#ifdef ENABLE_OPENCL
+bool RunLayerContext::clCreateKernel(std::string kernel_string,
+                                     std::string kernel_name) {
+  if (kernel_initialized) {
+    ml_logi("Kernel already initialized: %s", kernel_name.c_str());
+    return true;
+  }
+
+  ml_logi("Kernel initializing: %s", kernel_name.c_str());
+
+  bool result = false;
+
+  do {
+    opencl::Program program;
+    result =
+      program.CreateCLProgram(context_inst_.GetContext(),
+                              context_inst_.GetDeviceId(), kernel_string, "");
+    if (!result) {
+      break;
+    }
+
+    result = kernel_.CreateKernelFromProgram(program, kernel_name);
+    if (!result) {
+      break;
+    }
+    kernel_initialized = true;
+  } while (false);
+
+  return result;
+}
+#endif
 
 } // namespace nntrainer

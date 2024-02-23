@@ -61,6 +61,11 @@ nntrainer_common_sources = [
   'app_context.cpp'
 ]
 
+if get_option('enable-opencl')
+  nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
+  nntrainer_common_sources += 'cl_context.cpp'
+endif
+
 foreach s : nntrainer_common_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach

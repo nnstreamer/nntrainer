@@ -6,6 +6,7 @@
  * @date   1 April 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer node for network graph
  */
@@ -30,6 +31,10 @@
 #include <time_dist.h>
 #include <tracer.h>
 #include <util_func.h>
+
+#ifdef ENABLE_OPENCL
+#include <cl_context.h>
+#endif
 
 namespace nntrainer {
 
@@ -129,7 +134,15 @@ LayerNode::~LayerNode() = default;
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
-                const std::vector<std::string> &properties) {
+                const std::vector<std::string> &properties,
+                const ml::train::LayerComputeEngine &compute_engine) {
+#ifdef ENABLE_OPENCL
+  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
+    auto &cc = nntrainer::ClContext::Global();
+    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
+                           compute_engine);
+  }
+#endif
   auto &ac = nntrainer::AppContext::Global();
   return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
 }
@@ -149,10 +162,17 @@ createLayerNode(const std::string &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
-                const std::vector<std::string> &properties) {
+                const std::vector<std::string> &properties,
+                const ml::train::LayerComputeEngine &compute_engine) {
   auto lnode = std::make_unique<LayerNode>(std::move(layer));
 
   lnode->setProperty(properties);
+#ifdef ENABLE_OPENCL
+  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
+    lnode->setComputeEngine(compute_engine);
+  }
+#endif
+
   return lnode;
 }
 
@@ -246,6 +266,13 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
 
   con = std::make_unique<Connection>(name, index);
 }
+
+#ifdef ENABLE_OPENCL
+void LayerNode::setComputeEngine(
+  const ml::train::LayerComputeEngine &compute_engine) {
+  run_context->setComputeEngine(compute_engine);
+}
+#endif
 
 const std::string LayerNode::getName() const noexcept {
   auto &name = std::get<props::Name>(*layer_node_props);
