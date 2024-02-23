@@ -39,7 +39,7 @@ cl_sources = [
 ]
 
 cl_headers = [
-  'cl_interface.h'
+  'cl_operations/cl_interface.h'
 ]
 
 arch = host_machine.cpu_family()

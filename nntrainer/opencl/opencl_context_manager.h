@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file    opencl_context_manager.hpp
+ * @file    opencl_context_manager.h
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
@@ -18,7 +18,7 @@
 
 #include "third_party/cl.h"
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 class ContextManager {
   cl_platform_id platform_id_{nullptr};
   cl_device_id device_id_{nullptr};
@@ -41,5 +41,5 @@ public:
   ContextManager(ContextManager const &) = delete;
   ~ContextManager();
 };
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
 #endif // GPU_CL_OPENCL_CONTEXT_MANAGER_HPP_

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file    opencl_kernel.hpp
+ * @file    opencl_kernel.h
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
@@ -16,10 +16,10 @@
 
 #include <string>
 
-#include "opencl_program.hpp"
+#include "opencl_program.h"
 #include "third_party/cl.h"
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 class Kernel {
   cl_kernel kernel_{nullptr};
 
@@ -31,5 +31,5 @@ public:
                           size_t size);
   const cl_kernel GetKernel();
 };
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
 #endif // GPU_CL_OPENCL_KERNEL_HPP_

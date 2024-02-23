@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file    opencl_buffer.hpp
+ * @file    opencl_buffer.h
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
@@ -14,11 +14,11 @@
 #ifndef GPU_CL_OPENCL_BUFFER_HPP_
 #define GPU_CL_OPENCL_BUFFER_HPP_
 
-#include "opencl_command_queue_manager.hpp"
-#include "opencl_context_manager.hpp"
+#include "opencl_command_queue_manager.h"
+#include "opencl_context_manager.h"
 #include "third_party/cl.h"
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 class Buffer {
   cl_mem mem_buf_{nullptr};
   size_t size_{0};
@@ -41,5 +41,5 @@ public:
   bool WriteData(CommandQueueManager &command_queue_inst, const void *data);
   bool ReadData(CommandQueueManager &command_queue_inst, void *data);
 };
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
 #endif // GPU_CL_OPENCL_BUFFER_HPP_

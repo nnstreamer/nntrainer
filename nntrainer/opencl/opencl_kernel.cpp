@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_kernel.cpp
  * @date    06 Feb 2024
@@ -11,13 +11,13 @@
  *
  */
 
-#include "opencl_kernel.hpp"
+#include "opencl_kernel.h"
 
-#include "opencl_loader.hpp"
+#include "opencl_loader.h"
 
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 bool Kernel::CreateKernelFromProgram(Program program,
                                      const std::string &function_name) {
@@ -49,4 +49,4 @@ bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
 
 const cl_kernel Kernel::GetKernel() { return kernel_; }
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

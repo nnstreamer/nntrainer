@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_op_interface.cpp
  * @date    06 Feb 2024
@@ -9,12 +9,14 @@
  * @bug     No known bugs except for NYI items
  * @brief   Manage OpenCL operation flow
  *
+ * @note This class is experimental and might be deprecated in future
+ *
  */
 
-#include "opencl_op_interface.hpp"
+#include "opencl_op_interface.h"
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 bool GpuCLOpInterface::Init(std::string kernel_string,
                             std::string kernel_name) {
   if (initialized_) {
@@ -56,4 +58,4 @@ GpuCLOpInterface::~GpuCLOpInterface() {
     context_inst_.ReleaseContext();
   }
 }
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

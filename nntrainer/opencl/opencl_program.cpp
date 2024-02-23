@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_program.cpp
  * @date    06 Feb 2024
@@ -11,15 +11,15 @@
  *
  */
 
-#include "opencl_program.hpp"
+#include "opencl_program.h"
 
 #include <string>
 
-#include "opencl_loader.hpp"
+#include "opencl_loader.h"
 
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 bool Program::BuildProgram(cl_device_id device_id,
                            const std::string &compiler_options) {
@@ -75,4 +75,4 @@ bool Program::CreateCLProgram(const cl_context &context,
 
 const cl_program &Program::GetProgram() { return program_; }
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

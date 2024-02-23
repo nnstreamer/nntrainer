@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_command_queue_manager.cpp
  * @date    06 Feb 2024
@@ -11,14 +11,14 @@
  *
  */
 
-#include "opencl_command_queue_manager.hpp"
+#include "opencl_command_queue_manager.h"
 
-#include "opencl_context_manager.hpp"
-#include "opencl_loader.hpp"
+#include "opencl_context_manager.h"
+#include "opencl_loader.h"
 
 #include <nntrainer_log.h>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 CommandQueueManager &CommandQueueManager::GetInstance() {
   static CommandQueueManager instance;
   return instance;
@@ -26,6 +26,7 @@ CommandQueueManager &CommandQueueManager::GetInstance() {
 
 bool CommandQueueManager::CreateCommandQueue() {
   if (command_queue_) {
+    ml_logi("opencl_command_queue_manager: Retained command queue");
     clRetainCommandQueue(command_queue_);
     return true;
   }
@@ -40,18 +41,22 @@ bool CommandQueueManager::CreateCommandQueue() {
             error_code);
     return false;
   }
+  ml_logi("opencl_command_queue_manager: Created command queue");
   clRetainCommandQueue(command_queue_);
+  ml_logi("opencl_command_queue_manager: Retained command queue");
   return true;
 }
 
 void CommandQueueManager::ReleaseCommandQueue() {
   if (command_queue_) {
+    ml_logi("opencl_command_queue_manager: Released command queue");
     clReleaseCommandQueue(command_queue_);
   }
 }
 
 CommandQueueManager::~CommandQueueManager() {
   if (command_queue_) {
+    ml_logi("opencl_command_queue_manager: Destroyed command queue");
     clReleaseCommandQueue(command_queue_);
     command_queue_ = nullptr;
     ContextManager::GetInstance().ReleaseContext();
@@ -116,4 +121,4 @@ bool CommandQueueManager::DispatchCommand(Kernel kernel,
   return true;
 }
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl

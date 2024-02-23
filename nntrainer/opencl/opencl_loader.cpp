@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Debadri Samaddar <s.debadri@samsung.com>
+ * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file    opencl_loader.cpp
  * @date    06 Feb 2024
@@ -11,14 +11,14 @@
  *
  */
 
-#include "opencl_loader.hpp"
+#include "opencl_loader.h"
 
 #include <dlfcn.h>
 
 #include <nntrainer_log.h>
 #include <string>
 
-namespace nntrainer::internal {
+namespace nntrainer::opencl {
 
 #define LoadFunction(function) \
   function = reinterpret_cast<PFN_##function>(dlsym(libopencl, #function));
@@ -92,4 +92,4 @@ PFN_clRetainCommandQueue clRetainCommandQueue;
 PFN_clReleaseCommandQueue clReleaseCommandQueue;
 PFN_clReleaseMemObject clReleaseMemObject;
 
-} // namespace nntrainer::internal
+} // namespace nntrainer::opencl
