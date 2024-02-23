@@ -6,6 +6,7 @@
  * @date   14 October 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is implementaion for factory builder interface for c++ API
  */
@@ -30,8 +31,9 @@ namespace ml {
 namespace train {
 
 std::unique_ptr<Layer> createLayer(const LayerType &type,
-                                   const std::vector<std::string> &properties) {
-  return nntrainer::createLayerNode(type, properties);
+                                   const std::vector<std::string> &properties,
+                                   const LayerComputeEngine &compute_engine) {
+  return nntrainer::createLayerNode(type, properties, compute_engine);
 }
 
 /**

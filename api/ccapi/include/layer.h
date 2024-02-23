@@ -6,6 +6,7 @@
  * @date   14 October 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug	   No known bugs except for NYI items
  * @brief  This is layers interface for c++ API
  *
@@ -98,6 +99,14 @@ enum LayerType {
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
+};
+
+/**
+ * @brief     Enumeration of layer compute engine
+ */
+enum LayerComputeEngine {
+  CPU, /**< CPU as the compute engine */
+  GPU, /**< GPU as the compute engine */
 };
 
 /**
@@ -239,7 +248,8 @@ public:
  */
 std::unique_ptr<Layer>
 createLayer(const LayerType &type,
-            const std::vector<std::string> &properties = {});
+            const std::vector<std::string> &properties = {},
+            const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU);
 
 /**
  * @brief Factory creator with constructor for layer
@@ -279,9 +289,10 @@ Input(const std::vector<std::string> &properties = {}) {
 /**
  * @brief Helper function to create fully connected layer
  */
-inline std::unique_ptr<Layer>
-FullyConnected(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_FC, properties);
+inline std::unique_ptr<Layer> FullyConnected(
+  const std::vector<std::string> &properties = {},
+  const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_FC, properties, compute_engine);
 }
 
 /**

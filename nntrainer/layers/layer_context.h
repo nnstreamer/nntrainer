@@ -6,6 +6,7 @@
  * @date   10 June 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer context for each layer
  */
@@ -17,10 +18,17 @@
 #include <vector>
 
 #include <common_properties.h>
+#include <layer.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <tensor_wrap_specs.h>
 #include <weight.h>
+
+#ifdef ENABLE_OPENCL
+#include <opencl_context_manager.h>
+#include <opencl_kernel.h>
+#include <opencl_program.h>
+#endif
 
 namespace nntrainer {
 
@@ -799,6 +807,40 @@ public:
    */
   std::vector<Weight *> getWeights() { return weights; }
 
+#ifdef ENABLE_OPENCL
+  /**
+   * @brief set the compute engine for this node
+   * @param compute engine: (CPU/GPU)
+   */
+  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
+                          ml::train::LayerComputeEngine::CPU) {
+    this->compute_engine = compute_engine;
+  }
+
+  /**
+   * @brief get the compute engine for this node
+   * @return ompute engine: (CPU/GPU)
+   */
+  ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
+
+  /**
+   * @brief create OpenCl kernel
+   * @param kernel implementation string
+   * @param kernel name
+   * @return true if kernel creation is successful, false otherwise
+   */
+  bool clCreateKernel(std::string kernel_string, std::string kernel_name);
+
+  /**
+   * @brief destructor to release opencl context
+   */
+  ~RunLayerContext() {
+    if (kernel_initialized) {
+      context_inst_.ReleaseContext();
+    }
+  }
+#endif
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
@@ -808,6 +850,18 @@ private:
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
   std::vector<Var_Grad *> outputs; /**< outputs of the layer */
   std::vector<Var_Grad *> tensors; /**< tensors of the layer */
+
+  ml::train::LayerComputeEngine compute_engine =
+    ml::train::LayerComputeEngine::CPU;
+
+#ifdef ENABLE_OPENCL
+  // getting static instances of commandqueue, context and kernel
+  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
+  opencl::Kernel kernel_;
+#endif
+
+  // flag to check whether opencl kernel is initialized or not
+  bool kernel_initialized = false;
 
 #ifdef DEBUG
   std::map<std::string, const void *>
