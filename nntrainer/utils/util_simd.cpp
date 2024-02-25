@@ -44,13 +44,8 @@ float max(const unsigned int N, float *X) {
 #ifdef USE_NEON
   return nntrainer::neon::max(N, X);
 #else
-  float ret = X[0];
-  unsigned int i = 1;
-  while (i < N) {
-    ret = std::fmax(ret, X[i]);
-    ++i;
-  }
-  return ret;
+  std::vector<float> v(X, X + N);
+  return *std::max_element(v.begin(), v.end());
 #endif
 }
 
@@ -106,13 +101,8 @@ _FP16 max(const unsigned int N, _FP16 *X) {
 #ifdef USE_NEON
   return nntrainer::neon::max(N, X);
 #else
-  _FP16 ret = X[0];
-  unsigned int i = 1;
-  while (i < N) {
-    ret = (ret > X[i]) ? ret : X[i];
-    ++i;
-  }
-  return ret;
+  std::vector<_FP16> v(X, X + N);
+  return *std::max_element(v.begin(), v.end());
 #endif
 }
 
