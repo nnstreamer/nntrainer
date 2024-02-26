@@ -433,6 +433,66 @@ TensorV2 &TensorV2::sum(const std::vector<unsigned int> &axes, TensorV2 &output,
   return output;
 }
 
+TensorV2 TensorV2::average(unsigned int axis) const {
+  TensorV2 output("", this->getFormat(), this->getDataType());
+  return average(axis, output);
+}
+
+TensorV2 &TensorV2::average(unsigned int axis, TensorV2 &output) const {
+  if (axis >= TensorDim::MAXDIM)
+    throw std::out_of_range(
+      "negative axis or axis more then MAXDIM is invalid");
+
+  unsigned int axis_size = getDim()[axis];
+  if (axis_size == 1)
+    output.copy(*this);
+  else
+    this->sum(axis, output, 1.0 / ((float)axis_size));
+
+  return output;
+}
+
+TensorV2 TensorV2::average(const std::vector<unsigned int> &axes) const {
+  TensorV2 output("", this->getFormat(), this->getDataType());
+  return average(axes, output);
+}
+
+TensorV2 &TensorV2::average(const std::vector<unsigned int> &axes,
+                            TensorV2 &output) const {
+  if (axes.empty())
+    return this->average(output);
+
+  TensorDim ret_shape(getTensorType());
+
+  for (const auto &idx : axes) {
+    if (idx >= TensorDim::MAXDIM) {
+      throw std::out_of_range("axis more then MAXDIM is invalid");
+    }
+    ret_shape.setTensorDim(idx, getDim().getTensorDim(idx));
+  }
+
+  return this->sum(axes, output, 1.0 / (float)ret_shape.getDataLen());
+}
+
+TensorV2 TensorV2::average() const {
+  TensorV2 output = *this;
+  unsigned int axis = 0;
+  if (this->getFormat() == Tformat::NHWC) {
+    output.reshape({1, getDim().getDataLen(), 1, 1, this->getTensorType()});
+    axis = 1;
+  } else {
+    output.reshape({1, 1, 1, getDim().getDataLen(), this->getTensorType()});
+    axis = 3;
+  }
+  return output.average(axis);
+}
+
+TensorV2 &TensorV2::average(TensorV2 &output) const {
+  TensorV2 result = *this;
+  result.reshape({1, 1, 1, getDim().getDataLen()});
+  return result.average(3, output);
+}
+
 int TensorV2::pow_i(float exponent) {
   pow(exponent, *this);
   return ML_ERROR_NONE;
