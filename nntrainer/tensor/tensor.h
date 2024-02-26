@@ -2014,6 +2014,20 @@ public:
 
     scale_factors_fp16 = scales;
   }
+
+  /**
+   * @brief Get the Single Tensor object
+   *
+   * @param input
+   * @return Tensor
+   */
+  Tensor getSingleTensor() const {
+    TensorDim output_dim = getDim();
+    output_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+    Tensor output(output_dim, true);
+    output.copyData(*this);
+    return output;
+  }
 #endif
 
   /**
