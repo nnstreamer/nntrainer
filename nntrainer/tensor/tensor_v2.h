@@ -804,6 +804,50 @@ public:
                 float alpha = 1.0) const;
 
   /**
+   * @brief     Averaging the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
+   * @retval    Calculated Tensor
+   */
+  TensorV2 average(unsigned int axis) const;
+
+  /**
+   * @brief     Averaging the Tensor elements according to the axis
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &average(unsigned int axis, TensorV2 &output) const;
+
+  /**
+   * @brief     Average all the Tensor by multiple axes
+   * @param[in] axes axes to sum along
+   * @retval    Calculated Tensor
+   */
+  TensorV2 average(const std::vector<unsigned int> &axes) const;
+
+  /**
+   * @brief      Average all the Tensor by multiple axes
+   * @param[in]  axes axes to sum along
+   * @param[out] output output tensor
+   * @retval     Calculated Tensor
+   */
+  TensorV2 &average(const std::vector<unsigned int> &axes,
+                    TensorV2 &output) const;
+
+  /**
+   * @brief     Average the Tensor elements by all axis
+   * @retval    Calculated Tensor
+   */
+  TensorV2 average() const;
+
+  /**
+   * @brief     Averaging the Tensor elements by all axis
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &average(TensorV2 &output) const;
+
+  /**
    * @brief     Tensor power element without mem copy
    * @param[in] exponent exponent
    * @retval    #ML_ERROR_NONE  Successful
