@@ -15,6 +15,7 @@ message('compile flags are:' + ' '.join(flags))
 flags = extra_defines + flags
 
 and_conf.set('MESON_CFLAGS', ' '.join(flags))
+and_conf.set('MESON_CXXFLAGS', ' '.join(flags))
 and_conf.set('MESON_NNTRAINER_SRCS', ' '.join(nntrainer_sources))
 and_conf.set('MESON_NNTRAINER_INCS', ' '.join(nntrainer_inc_abs))
 and_conf.set('MESON_CCAPI_NNTRAINER_SRCS', ' '.join(ccapi_src))
