@@ -1048,6 +1048,29 @@ void HalfTensor::copyData(const TensorV2 &from) {
   }
 }
 
+std::vector<unsigned int> HalfTensor::argmax() const {
+  std::vector<unsigned int> result;
+  const _FP16 *data = (_FP16 *)getData();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
+
+  result.resize(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    auto max_iter =
+      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
+    result[b] = std::distance(data, max_iter) - (b * feature_len);
+  }
+
+  return result;
+}
+
+float HalfTensor::max_abs() const {
+  const _FP16 *data = (_FP16 *)getData();
+  unsigned int idx = isamax(size(), data, 1);
+  return (float)(*(data + idx));
+}
+
 TensorV2 &HalfTensor::transpose(const std::string &direction,
                                 TensorV2 &output) const {
   unsigned int SL, SI, SJ, SK;

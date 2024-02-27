@@ -246,6 +246,36 @@ public:
   bool operator!=(const TensorV2 &rhs) const { return !(*this == rhs); }
 
   /**
+   * @brief Construct a new Tensor object from a buffer
+   * This will not copy buffer to a new tensor but directly uses it
+   *
+   * @param[in] buf buffer
+   * @param[in] bytes buffer size in bytes
+   * @param[in] d tensor dim
+   * @param[in] offset offset to be used from current
+   * @return    Tensor object
+   * @throws    std::invalid_argument if buf is null
+   * @note      Note that the buffer is not owned by the mapped tensor
+   */
+  template <typename T = float>
+  static TensorV2 Map(T *buf, unsigned int bytes, const TensorDim &d,
+                      size_t offset = 0) {
+    if (d.getDataLen() == 0 || buf == nullptr) {
+      throw std::invalid_argument(
+        "[Tensor::Map] empty tensor dim is not allowed");
+    }
+
+    if (d.getDataLen() * sizeof(T) + offset > bytes) {
+      throw std::invalid_argument(
+        "Creating shared tensor of size bigger than tensor memory.");
+    }
+
+    TensorV2 output;
+    output.setTensorVar(d, buf, offset);
+    return output;
+  };
+
+  /**
    * @brief    Allocate memory for this tensor
    */
   void allocate();
@@ -1052,6 +1082,17 @@ public:
   void putData() const;
 
   /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  const std::shared_ptr<MemoryData> getMemoryData() const;
+
+  /**
+   * @brief     return offset
+   */
+  size_t getOffset() const;
+
+  /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    *
@@ -1089,6 +1130,30 @@ public:
    * @retval    Copied version of this
    */
   TensorV2 clone() const;
+
+  /**
+   * @brief     Save the Tensor into file
+   * @param[in] file output file stream
+   */
+  void save(std::ostream &file);
+
+  /**
+   * @brief     Read the Tensor from file
+   * @param[in] file input file stream
+   */
+  void read(std::ifstream &file);
+
+  /**
+   * @brief     return argument index which value is max by batch
+   * @retval    unsigned int argument indices
+   */
+  std::vector<unsigned int> argmax() const;
+
+  /**
+   * @brief     return max of the absolute values of the tensor
+   * @retval    maximum absolute value
+   */
+  float max_abs() const;
 
   /**
    * @brief  Transpose Tensor
@@ -1142,6 +1207,28 @@ public:
    * @return data type of the tensor
    */
   Tdatatype getDataType() const;
+
+  /**
+   * @brief     update batch size for this tensor
+   * @param     batch size
+   * @note      The batchsize of src_tensor need not be related with this
+   * tensor's batch size
+   *
+   * @note      The memory for this tensor will re-allocated/re-assigned if the
+   * updated batch size is different than the current batch size.
+   *
+   * @note      If this tensor is/was the src_tensor for some other, then
+   * reduction in batch size can make the dependent tensors allocate fail due to
+   * memory smaller. Caller must handle this in their own end.
+   *
+   * @note      If this tensor is re-allocated, then the memory might not be
+   * immediately freed as the tensor already depending on this tensor also
+   * share the same memory. So, the peak memory consumption in worst case can
+   * reach the total memory requirements of a model with old batchsize and the
+   * new batch size. It is recommended to first deallocate all the tensors,
+   * updateBatch and then allocate again to avoid such issues.
+   */
+  void updateBatch(unsigned int batch);
 
   /**
    * @brief     return whether tensor is contiguous or not.
@@ -1270,7 +1357,21 @@ public:
 
 private:
   std::shared_ptr<TensorBase> itensor;
+
+  /**
+   * @brief Set tensor variables
+   *
+   * @param[in] d TensorDim
+   * @param[in] buf buffer
+   * @param[in] offset offset to be used
+   */
+  void setTensorVar(TensorDim d, void *buf, size_t offset);
 };
+
+/**
+ * @brief   Overriding output stream
+ */
+std::ostream &operator<<(std::ostream &out, TensorV2 const &input);
 
 } // namespace nntrainer
 

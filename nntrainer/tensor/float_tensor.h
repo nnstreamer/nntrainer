@@ -339,6 +339,16 @@ public:
   void copyData(const TensorV2 &from);
 
   /**
+   * @copydoc TensorV2::argmax()
+   */
+  std::vector<unsigned int> argmax() const override;
+
+  /**
+   * @copydoc TensorV2::max_abs()
+   */
+  float max_abs() const override;
+
+  /**
    * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)
    */
   TensorV2 &transpose(const std::string &direction,

@@ -736,6 +736,12 @@ void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
 
+const std::shared_ptr<MemoryData> TensorV2::getMemoryData() const {
+  return itensor->getMemoryData();
+}
+
+size_t TensorV2::getOffset() const { return itensor->getOffset(); }
+
 void TensorV2::copy(const TensorV2 &from) {
   /// @todo enable copy to non-contiguous tensor
   if (!itensor->getContiguous()) {
@@ -807,6 +813,45 @@ TensorV2 TensorV2::clone() const {
   return output;
 }
 
+void TensorV2::save(std::ostream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot save.";
+
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
+  putData();
+}
+
+void TensorV2::read(std::ifstream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot read.";
+
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, getData<char>(), sz, "[Tensor::read] operation failed");
+  putData();
+}
+
+std::vector<unsigned int> TensorV2::argmax() const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot get argmax.";
+  return itensor->argmax();
+}
+
+float TensorV2::max_abs() const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot get max_abs.";
+  return itensor->max_abs();
+}
+
 TensorV2 TensorV2::transpose(const std::string &direction) const {
   TensorV2 output(getDim());
   transpose(direction, output);
@@ -843,6 +888,8 @@ Initializer TensorV2::getInitializer() const {
 TensorDim::Format TensorV2::getFormat() const { return itensor->getFormat(); }
 
 Tdatatype TensorV2::getDataType() const { return itensor->getDataType(); }
+
+void TensorV2::updateBatch(unsigned int batch) { itensor->updateBatch(batch); }
 
 const bool TensorV2::getContiguous() const noexcept {
   return itensor->getContiguous();
@@ -918,6 +965,15 @@ TensorV2 TensorV2::getSharedDataTensor(const TensorDim dim_, size_t offset,
   itensor->getSharedDataTensor(dim_, offset, reset_stride, name_,
                                ret.itensor.get());
   return ret;
+}
+
+void TensorV2::setTensorVar(TensorDim d, void *buf, size_t offset) {
+  itensor->setTensorVar(d, buf, offset);
+}
+
+std::ostream &operator<<(std::ostream &out, TensorV2 const &input) {
+  input.print(out);
+  return out;
 }
 
 } // namespace nntrainer

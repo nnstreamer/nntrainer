@@ -129,6 +129,11 @@ public:
   bool operator!=(const TensorBase &rhs) const { return !(*this == rhs); }
 
   /**
+   * @copydoc TensorV2::setTensorVar(TensorDim d, void *buf, size_t offset)
+   */
+  void setTensorVar(TensorDim d, void *buf, size_t offset);
+
+  /**
    * @brief Basic Destructor
    */
   virtual ~TensorBase() {}
@@ -370,6 +375,16 @@ public:
   virtual void copyData(const TensorV2 &from) = 0;
 
   /**
+   * @copydoc TensorV2::argmax()
+   */
+  virtual std::vector<unsigned int> argmax() const = 0;
+
+  /**
+   * @copydoc TensorV2::max_abs()
+   */
+  virtual float max_abs() const = 0;
+
+  /**
    * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)
    */
   virtual TensorV2 &transpose(const std::string &direction,
@@ -380,6 +395,17 @@ public:
    * @note      It is only effective when memory_swap is used
    */
   void putData() const;
+
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  const std::shared_ptr<MemoryData> getMemoryData() const;
+
+  /**
+   * @brief     return offset
+   */
+  size_t getOffset() const;
 
   /**
    * @brief     set Tensor Dim
@@ -416,6 +442,12 @@ public:
    * @retval data type of the tensor
    */
   Tdatatype getDataType() const { return dim.getDataType(); }
+
+  /**
+   * @brief     update batch size for this tensor
+   * @param     batch size
+   */
+  void updateBatch(unsigned int batch);
 
   /**
    * @brief     return whether tensor is contiguous or not.

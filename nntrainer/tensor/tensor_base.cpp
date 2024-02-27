@@ -40,12 +40,27 @@ bool TensorBase::operator==(const TensorBase &rhs) const {
   return true;
 }
 
+void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
+  dim = d;
+  strides = d.computeStrides();
+  /// Tensor does not own the memory
+  data = std::shared_ptr<MemoryData>(new MemoryData((void *)buf),
+                                     std::default_delete<MemoryData>());
+  offset = offset;
+}
+
 void TensorBase::putData() const {
   if (!data)
     return;
 
   data->invalidate();
 }
+
+const std::shared_ptr<MemoryData> TensorBase::getMemoryData() const {
+  return data;
+}
+
+size_t TensorBase::getOffset() const { return offset; }
 
 void TensorBase::reshape(const TensorDim &d) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
@@ -62,6 +77,16 @@ void TensorBase::reshape(const TensorDim &d) {
   dim.width(d.width());
 
   strides = d.computeStrides();
+}
+
+void TensorBase::updateBatch(unsigned int batch) {
+  if (dim.batch() == batch) {
+    return;
+  }
+
+  if (isAllocated())
+    throw std::invalid_argument("Cannot update batch for an allocated tensor");
+  dim.batch(batch);
 }
 
 size_t TensorBase::getIndex(unsigned int b, unsigned int c, unsigned int h,
