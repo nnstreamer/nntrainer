@@ -812,67 +812,35 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
    * @note this does not work correctly with differently strided inputs.
    * Use multiply_strided alternatively
    */
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
+
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
   if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                  float *out_buf) {
-      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
-          beta == 0.0) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::multiplies<float>());
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf * *m_buf + beta * *out_buf;
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += output.strides[3];
-        }
-      }
+      ele_mul(e.buffer_size, buf, m_buf, out_buf, 1, beta, e.strides[3],
+              strides[3]);
     };
-
-    NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
-      << "Tensor Format of " << getName() << ":"
-      << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
-      << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
-
-    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                  std::invalid_argument)
-      << getName() << " is not contiguous, cannot multiply";
-
-    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                  std::invalid_argument)
-      << getName() << " is not contiguous, cannot multiply";
-
     apply_broadcast(m, f, output);
-    return output;
 
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                  _FP16 *out_buf) {
-      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
-          beta == 0.0) {
-        ele_mul(e.buffer_size, buf, m_buf, out_buf);
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf * *m_buf + static_cast<_FP16>(beta) * *out_buf;
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += output.strides[3];
-        }
-      }
+      ele_mul(e.buffer_size, buf, m_buf, out_buf, 1, beta, e.strides[3],
+              strides[3]);
     };
-
-    NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
-      << "Tensor Format of " << getName() << ":"
-      << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
-      << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
-
-    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                  std::invalid_argument)
-      << getName() << " is not contiguous, cannot multiply";
-
     apply_broadcast(m, f, output);
-    return output;
+
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif

@@ -160,9 +160,12 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
  * @param[in] Z _FP16 * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
@@ -173,9 +176,12 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] Z _FP16 * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -185,9 +191,12 @@ void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] Z _FP16 * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
@@ -199,9 +208,12 @@ void ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] Z _FP16 * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_div(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     isamax function : index of first maxima
@@ -412,9 +424,12 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
  * @param[in] Z float * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
@@ -425,9 +440,12 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] Z float * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -437,9 +455,12 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] Z float * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
@@ -451,9 +472,12 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
  * @param[in] Z float * for Vector Z
  * @param[in] alpha scalar multiplier for input
  * @param[in] beta scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
  */
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */
