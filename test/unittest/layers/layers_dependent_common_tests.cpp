@@ -17,6 +17,10 @@
 #include <layer_devel.h>
 #include <layer_node.h>
 
+#ifdef ENABLE_OPENCL
+#include <cl_context.h>
+#endif
+
 constexpr unsigned SAMPLE_TRIES = 10;
 
 TEST_P(LayerSemantics, createFromAppContext_pn) {
@@ -28,6 +32,18 @@ TEST_P(LayerSemantics, createFromAppContext_pn) {
   EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
             expected_type);
 }
+
+#ifdef ENABLE_OPENCL
+TEST_P(LayerSemantics, createFromClContext_pn) {
+  auto &ac = nntrainer::ClContext::Global();
+  if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
+    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
+  }
+
+  EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
+            expected_type);
+}
+#endif
 
 TEST_P(LayerPropertySemantics, setPropertiesInvalid_n) {
   auto lnode = nntrainer::createLayerNode(expected_type);
