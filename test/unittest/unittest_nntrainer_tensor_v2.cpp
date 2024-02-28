@@ -861,6 +861,9 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   float *indata = input.getData<float>();
   ASSERT_NE(nullptr, indata);
 
+  float *data = output.getData<float>();
+  ASSERT_NE(nullptr, data);
+
   float *outdata_beta = new float[(input.size())];
   float *indata_mul = new float[(input.size())];
   float *outdata = new float[(input.size())];
@@ -875,9 +878,6 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
                  outdata_beta, outdata, std::plus<float>());
 
   input.multiply_strided(input, output, 10.0);
-
-  float *data = output.getData<float>();
-  ASSERT_NE(nullptr, data);
 
   for (int i = 0; i < batch * height * width; ++i) {
     if (data[i] != outdata[i]) {
