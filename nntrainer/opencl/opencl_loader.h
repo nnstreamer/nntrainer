@@ -22,6 +22,11 @@
 
 namespace nntrainer::opencl {
 
+/**
+ * @brief Loading OpenCL libraries and required function
+ *
+ * @return true if successfull or false otherwise
+ */
 bool LoadOpenCL();
 
 typedef cl_int(CL_API_CALL *PFN_clGetPlatformIDs)(

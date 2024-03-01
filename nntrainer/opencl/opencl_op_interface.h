@@ -10,7 +10,7 @@
  * @brief   Manage OpenCL operation flow
  *
  * @note This class is experimental and might be deprecated in future
- * 
+ *
  */
 
 #ifndef GPU_CL_OP_INTERFACE_HPP_
@@ -26,6 +26,13 @@
 #include "opencl_program.h"
 
 namespace nntrainer::opencl {
+
+/**
+ * @class GpuCLOpInterface contains utility for kernel initialization, might be
+ * deprecated later
+ * @brief Utility for kernel initialization
+ *
+ */
 class GpuCLOpInterface {
 
 protected:
@@ -34,8 +41,19 @@ protected:
   ContextManager &context_inst_ = ContextManager::GetInstance();
   CommandQueueManager &command_queue_inst_ = CommandQueueManager::GetInstance();
 
+  /**
+   * @brief Initialize OpenCL kernel
+   *
+   * @param kernel_string
+   * @param kernel_name
+   * @return true if successful or false otherwise
+   */
   bool Init(std::string kernel_string, std::string kernel_name);
 
+  /**
+   * @brief Destroy the GpuCLOpInterface object
+   *
+   */
   ~GpuCLOpInterface();
 };
 } // namespace nntrainer::opencl

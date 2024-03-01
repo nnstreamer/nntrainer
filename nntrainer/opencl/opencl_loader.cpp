@@ -23,11 +23,22 @@ namespace nntrainer::opencl {
 #define LoadFunction(function) \
   function = reinterpret_cast<PFN_##function>(dlsym(libopencl, #function));
 
+/**
+ * @brief Declaration of loading function for OpenCL APIs
+ *
+ * @param libopencl
+ */
 void LoadOpenCLFunctions(void *libopencl);
 
 static bool open_cl_initialized = false;
 
+/**
+ * @brief Loading OpenCL libraries and required function
+ *
+ * @return true if successfull or false otherwise
+ */
 bool LoadOpenCL() {
+  // check if already loaded
   if (open_cl_initialized) {
     return true;
   }
@@ -48,6 +59,11 @@ bool LoadOpenCL() {
   return false;
 }
 
+/**
+ * @brief Utility to load the required OpenCL APIs
+ *
+ * @param libopencl
+ */
 void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clGetPlatformIDs);
   LoadFunction(clGetDeviceIDs);
