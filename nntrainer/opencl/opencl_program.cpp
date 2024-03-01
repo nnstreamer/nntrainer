@@ -21,8 +21,17 @@
 
 namespace nntrainer::opencl {
 
+/**
+ * @brief Build OpenCL program
+ *
+ * @param device_id OpenCL device id
+ * @param compiler_options string compiler options
+ * @return true if successful or false otherwise
+ */
 bool Program::BuildProgram(cl_device_id device_id,
                            const std::string &compiler_options) {
+
+  // clBuildProgram returns NULL with error code if fails
   const int error_code = clBuildProgram(
     program_, 0, nullptr, compiler_options.c_str(), nullptr, nullptr);
   if (error_code != CL_SUCCESS) {
@@ -35,9 +44,18 @@ bool Program::BuildProgram(cl_device_id device_id,
   return true;
 }
 
+/**
+ * @brief Get the information on the program build
+ *
+ * @param device_id OpenCL device id
+ * @param info flag for the information to fetch
+ * @return std::string
+ */
 std::string Program::GetProgramBuildInfo(cl_device_id device_id,
                                          cl_program_build_info info) {
   size_t size;
+
+  // getting the size of the string informationz
   cl_int error_code =
     clGetProgramBuildInfo(program_, device_id, info, 0, nullptr, &size);
   if (error_code != CL_SUCCESS) {
@@ -45,6 +63,7 @@ std::string Program::GetProgramBuildInfo(cl_device_id device_id,
     return "";
   }
 
+  // getting the actual information
   std::string result(size - 1, 0);
   error_code =
     clGetProgramBuildInfo(program_, device_id, info, size, &result[0], nullptr);
@@ -55,6 +74,15 @@ std::string Program::GetProgramBuildInfo(cl_device_id device_id,
   return result;
 }
 
+/**
+ * @brief Create OpenCL program from source
+ *
+ * @param context OpenCL context
+ * @param device_id
+ * @param code kernel source code string
+ * @param compiler_options
+ * @return true if successful or false otherwise
+ */
 bool Program::CreateCLProgram(const cl_context &context,
                               const cl_device_id &device_id,
                               const std::string &code,
@@ -62,6 +90,7 @@ bool Program::CreateCLProgram(const cl_context &context,
   int error_code;
   const char *source = code.c_str();
 
+  // returns NULL with error code if fails
   program_ =
     clCreateProgramWithSource(context, 1, &source, nullptr, &error_code);
   if (!program_ || error_code != CL_SUCCESS) {
@@ -70,9 +99,15 @@ bool Program::CreateCLProgram(const cl_context &context,
     return false;
   }
 
+  // building the created program
   return BuildProgram(device_id, compiler_options);
 }
 
+/**
+ * @brief Get the Program object
+ *
+ * @return const cl_program
+ */
 const cl_program &Program::GetProgram() { return program_; }
 
 } // namespace nntrainer::opencl

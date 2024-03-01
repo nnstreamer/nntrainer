@@ -21,15 +21,27 @@
 
 namespace nntrainer::opencl {
 
+/**
+ * @brief Get the global instance object
+ *
+ * @return ContextManager global instance
+ */
 ContextManager &ContextManager::GetInstance() {
   static ContextManager instance;
   return instance;
 }
 
+/**
+ * @brief Get the OpenCL context object
+ *
+ * @return const cl_context
+ */
 const cl_context &ContextManager::GetContext() {
+  // loading the OpenCL library and required functions
   LoadOpenCL();
 
   if (context_) {
+    // increments the context reference count
     clRetainContext(context_);
     return context_;
   }
@@ -47,6 +59,7 @@ const cl_context &ContextManager::GetContext() {
       break;
     }
 
+    // increments the context reference count
     clRetainContext(context_);
 
   } while (false);
@@ -61,21 +74,39 @@ const cl_context &ContextManager::GetContext() {
 
 void ContextManager::ReleaseContext() {
   if (context_) {
+    // decrements the context reference count
     clReleaseContext(context_);
   }
 }
 
+/**
+ * @brief Get the Device Id object
+ *
+ * @return const cl_device_id
+ */
 const cl_device_id ContextManager::GetDeviceId() { return device_id_; }
 
+/**
+ * @brief Destroy the Context Manager object
+ *
+ */
 ContextManager::~ContextManager() {
   if (context_) {
+    // decrements the context reference count
     clReleaseContext(context_);
     context_ = nullptr;
   }
 }
 
+/**
+ * @brief Create a Default GPU Device object
+ *
+ * @return true if successful or false otherwise
+ */
 bool ContextManager::CreateDefaultGPUDevice() {
   cl_uint num_platforms;
+
+  // returns number of OpenCL supported platforms
   cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
   if (status != CL_SUCCESS) {
     ml_loge("clGetPlatformIDs returned %d", status);
@@ -85,6 +116,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
     ml_loge("No supported OpenCL platform.");
     return false;
   }
+
+  // getting the platform IDs
   std::vector<cl_platform_id> platforms(num_platforms);
   status = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
   if (status != CL_SUCCESS) {
@@ -92,9 +125,12 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
+  // platform is a specific OpenCL implementation, for instance ARM
   cl_platform_id platform_id_ = platforms[0];
 
   cl_uint num_devices;
+
+  // getting available GPU devices
   status =
     clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, 0, nullptr, &num_devices);
   if (status != CL_SUCCESS) {
@@ -106,6 +142,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
+  // getting the GPU device IDs
   std::vector<cl_device_id> devices(num_devices);
   status = clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, num_devices,
                           devices.data(), nullptr);
@@ -114,16 +151,25 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
+  // setting the first GPU ID and platform (ARM)
   device_id_ = devices[0];
   platform_id_ = platform_id_;
 
   return true;
 }
 
+/**
+ * @brief Create OpenCL context
+ *
+ * @return true if successful or false otherwise
+ */
 bool ContextManager::CreateCLContext() {
   int error_code;
   cl_context_properties properties[] = {CL_CONTEXT_PLATFORM,
                                         (cl_context_properties)platform_id_, 0};
+
+  // creating valid ARM GPU OpenCL context, will return NULL with error code if
+  // fails
   context_ =
     clCreateContext(properties, 1, &device_id_, nullptr, nullptr, &error_code);
   if (!context_) {

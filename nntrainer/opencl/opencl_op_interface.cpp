@@ -17,6 +17,14 @@
 #include <nntrainer_log.h>
 
 namespace nntrainer::opencl {
+
+/**
+ * @brief Initialize OpenCL kernel
+ *
+ * @param kernel_string
+ * @param kernel_name
+ * @return true if successful or false otherwise
+ */
 bool GpuCLOpInterface::Init(std::string kernel_string,
                             std::string kernel_name) {
   if (initialized_) {
@@ -29,12 +37,15 @@ bool GpuCLOpInterface::Init(std::string kernel_string,
   bool result = false;
 
   do {
+    // creating command queue
     result = command_queue_inst_.CreateCommandQueue();
     if (!result) {
       break;
     }
 
     Program program;
+
+    // creating program
     result =
       program.CreateCLProgram(context_inst_.GetContext(),
                               context_inst_.GetDeviceId(), kernel_string, "");
@@ -52,8 +63,14 @@ bool GpuCLOpInterface::Init(std::string kernel_string,
   return result;
 }
 
+/**
+ * @brief Destroy the GpuCLOpInterface object
+ *
+ */
 GpuCLOpInterface::~GpuCLOpInterface() {
   if (initialized_) {
+    // releaseing command queue and context since they are created in
+    // GpuCLOpInterface::Init
     command_queue_inst_.ReleaseCommandQueue();
     context_inst_.ReleaseContext();
   }
