@@ -919,6 +919,36 @@ public:
   TensorV2 &erf(TensorV2 &output) const;
 
   /**
+   * @brief     l2norm the Tensor elements
+   * @retval    Calculated l2norm
+   */
+  float l2norm() const;
+
+  /**
+   * @brief     Normalize the Tensor elements
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &normalization(TensorV2 &output) const;
+
+  /**
+   * @brief     Standardize the Tensor elements
+   * @retval    Calculated Tensor
+   */
+  TensorV2 &standardization(TensorV2 &output) const;
+
+  /**
+   * @brief     Normalize the Tensor elements in-place
+   * @retval    Calculated Tensor
+   */
+  void normalization_i();
+
+  /**
+   * @brief     Standardize the Tensor elements in-place
+   * @retval    Calculated Tensor
+   */
+  void standardization_i();
+
+  /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and second-last
    * dimension of passed input tensor.
@@ -1154,6 +1184,18 @@ public:
    * @retval    maximum absolute value
    */
   float max_abs() const;
+
+  /**
+   * @brief  return maximum value
+   * @retval Maximum value of the tensor data
+   */
+  float maxValue() const;
+
+  /**
+   * @brief  return minimum value
+   * @retval Minimum value of the tensor data
+   */
+  float minValue() const;
 
   /**
    * @brief  Transpose Tensor

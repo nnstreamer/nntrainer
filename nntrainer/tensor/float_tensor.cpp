@@ -688,6 +688,10 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
   return output;
 }
 
+float FloatTensor::l2norm() const {
+  return snrm2(size(), (float *)getData(), 1);
+}
+
 TensorV2 &FloatTensor::pow(float exponent, TensorV2 &output) const {
   auto f = [exponent](float in) { return powf(in, exponent); };
   apply(f, output);
@@ -810,6 +814,16 @@ float FloatTensor::max_abs() const {
   const float *data = (float *)getData();
   unsigned int idx = isamax(size(), data, 1);
   return *(data + idx);
+}
+
+float FloatTensor::maxValue() const {
+  const float *data = (float *)getData();
+  return *std::max_element(data, data + size());
+}
+
+float FloatTensor::minValue() const {
+  const float *data = (float *)getData();
+  return *std::min_element(data, data + size());
 }
 
 TensorV2 &FloatTensor::transpose(const std::string &direction,
