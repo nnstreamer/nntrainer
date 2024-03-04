@@ -403,7 +403,40 @@ static void ele_mul_fallback(const unsigned int N, const _FP16 *X,
                              const _FP16 *Y, _FP16 *Z, float alpha, float beta,
                              unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = static_cast<_FP16>(alpha) * *X * *Y + static_cast<_FP16>(beta) * *Z;
+    *Z = *X * static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_add_fallback(const unsigned int N, const _FP16 *X,
+                             const _FP16 *Y, _FP16 *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X + static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_sub_fallback(const unsigned int N, const _FP16 *X,
+                             const _FP16 *Y, _FP16 *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X - static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_div_fallback(const unsigned int N, const _FP16 *X,
+                             const _FP16 *Y, _FP16 *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X / (static_cast<_FP16>(alpha) * *Y) + static_cast<_FP16>(beta) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -413,53 +446,53 @@ static void ele_mul_fallback(const unsigned int N, const _FP16 *X,
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #if (defined USE__FP16 && USE_NEON)
-  if (i_stride == 1 && o_stride == 1)
     nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
-  else
-    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #else
-  ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] =
-      X[i] + static_cast<_FP16>(alpha) * Y[i] + static_cast<_FP16>(beta) * Z[i];
-  }
+    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_sub(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] =
-      X[i] - static_cast<_FP16>(alpha) * Y[i] + static_cast<_FP16>(beta) * Z[i];
-  }
+    ele_sub_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_sub_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_div(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] = X[i] / (static_cast<_FP16>(alpha) * Y[i]) +
-           static_cast<_FP16>(beta) * Z[i];
-  }
+    ele_div_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_div_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 _FP16 snrm2(const int N, const _FP16 *X, const int incX) {
@@ -961,7 +994,40 @@ static void ele_mul_fallback(const unsigned int N, const float *X,
                              const float *Y, float *Z, float alpha, float beta,
                              unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = alpha * *X * *Y + beta * *Z;
+    *Z = *X * alpha * *Y + beta * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_add_fallback(const unsigned int N, const float *X,
+                             const float *Y, float *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X + alpha * *Y + beta * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_sub_fallback(const unsigned int N, const float *X,
+                             const float *Y, float *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X - alpha * *Y + beta * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }
+}
+
+static void ele_div_fallback(const unsigned int N, const float *X,
+                             const float *Y, float *Z, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X / (alpha * *Y) + beta * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -971,51 +1037,53 @@ static void ele_mul_fallback(const unsigned int N, const float *X,
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #ifdef USE_NEON
-  if (i_stride == 1 && o_stride == 1)
     nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
-  else
-    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #else
-  ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #ifdef USE_NEON
-  nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
-  }
+    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_sub(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #ifdef USE_NEON
-  nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
-  }
-
+    ele_sub_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_sub_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_div(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
+  if (i_stride == 1 && o_stride == 1) {
 #ifdef USE_NEON
-  nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
 #else
-  for (unsigned int i = 0; i < N; ++i) {
-    Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
-  }
+    ele_div_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 #endif
+  } else
+    ele_div_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 } // namespace nntrainer
