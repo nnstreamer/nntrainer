@@ -903,48 +903,24 @@ Tensor Tensor::divide(Tensor const &m) const {
 }
 
 Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
+
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot divide";
   if (getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                  float *out_buf) {
-      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::divides<float>());
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf / *m_buf;
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += output.strides[3];
-        }
-      }
+      ele_div(e.buffer_size, buf, m_buf, out_buf, 1, 0, e.strides[3],
+              strides[3]);
     };
-
-    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                  std::invalid_argument)
-      << getName() << " is not contiguous, cannot divide";
-
     apply_broadcast(m, f, output);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                  _FP16 *out_buf) {
-      if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::divides<_FP16>());
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf / *m_buf;
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += output.strides[3];
-        }
-      }
+      ele_div(e.buffer_size, buf, m_buf, out_buf, 1, 0, e.strides[3],
+              strides[3]);
     };
-
-    NNTR_THROW_IF(!contiguous || !m.contiguous || !output.contiguous,
-                  std::invalid_argument)
-      << getName() << " is not contiguous, cannot divide";
-
     apply_broadcast(m, f, output);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -1092,10 +1068,36 @@ Tensor &Tensor::subtract(float const &value, Tensor &out) const {
 
 int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 
-Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
+Tensor Tensor::subtract(Tensor const &m) const {
+  Tensor t;
+  return this->subtract(m, t);
+}
 
 Tensor &Tensor::subtract(Tensor const &m, Tensor &out) const {
-  return add(m, out, -1);
+  NNTR_THROW_IF(!contiguous || !m.contiguous || !out.contiguous,
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot add";
+
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+                 float *out_buf) {
+      ele_sub(e.buffer_size, buf, m_buf, out_buf, 1, 0, e.strides[3],
+              strides[3]);
+    };
+    apply_broadcast(m, f, out);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
+                 _FP16 *out_buf) {
+      ele_sub(e.buffer_size, buf, m_buf, out_buf, 1, 0, e.strides[3],
+              strides[3]);
+    };
+    apply_broadcast(m, f, out);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+  return out;
 }
 
 int Tensor::pow_i(float exponent) {
