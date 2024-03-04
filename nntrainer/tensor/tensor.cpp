@@ -1042,35 +1042,16 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
   if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                  float *out_buf) {
-      if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
-          alpha == 1.f) {
-        std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                       std::plus<float>());
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf + *m_buf * alpha;
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += strides[3];
-        }
-      }
+      ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
+              strides[3]);
     };
     apply_broadcast(m, f, output);
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                  _FP16 *out_buf) {
-      if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
-          alpha == 1.f) {
-        ele_add(e.buffer_size, buf, m_buf, out_buf);
-      } else {
-        for (unsigned int i = 0; i < e.buffer_size; ++i) {
-          *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);
-          buf += strides[3];
-          m_buf += e.strides[3];
-          out_buf += strides[3];
-        }
-      }
+      ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
+              strides[3]);
     };
     apply_broadcast(m, f, output);
 #else
