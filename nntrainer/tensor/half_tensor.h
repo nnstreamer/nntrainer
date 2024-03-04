@@ -286,6 +286,11 @@ public:
                 float beta) const override;
 
   /**
+   * @copydoc TensorV2::l2norm
+   */
+  float l2norm() const override;
+
+  /**
    * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
    */
   TensorV2 &pow(float exponent, TensorV2 &output) const override;
@@ -346,6 +351,16 @@ public:
    * @copydoc TensorV2::max_abs()
    */
   float max_abs() const override;
+
+  /**
+   * @copydoc Tensor::maxValue()
+   */
+  float maxValue() const override;
+
+  /**
+   * @copydoc Tensor::minValue()
+   */
+  float minValue() const override;
 
   /**
    * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)

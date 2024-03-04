@@ -638,6 +638,10 @@ TensorV2 &HalfTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
   return output;
 }
 
+float HalfTensor::l2norm() const {
+  return snrm2(size(), (_FP16 *)getData(), 1);
+}
+
 TensorV2 &HalfTensor::pow(float exponent, TensorV2 &output) const {
   auto f = [exponent](float in) {
     return static_cast<_FP16>(powf(in, exponent));
@@ -1069,6 +1073,16 @@ float HalfTensor::max_abs() const {
   const _FP16 *data = (_FP16 *)getData();
   unsigned int idx = isamax(size(), data, 1);
   return (float)(*(data + idx));
+}
+
+float HalfTensor::maxValue() const {
+  const _FP16 *data = (_FP16 *)getData();
+  return (float)*std::max_element(data, data + size());
+}
+
+float HalfTensor::minValue() const {
+  const _FP16 *data = (_FP16 *)getData();
+  return (float)*std::min_element(data, data + size());
 }
 
 TensorV2 &HalfTensor::transpose(const std::string &direction,

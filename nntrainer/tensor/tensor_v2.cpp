@@ -523,6 +523,57 @@ TensorV2 &TensorV2::erf(TensorV2 &output) const {
   return output;
 }
 
+float TensorV2::l2norm() const { return itensor->l2norm(); }
+
+void TensorV2::normalization_i() {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot do normalization.";
+
+  const float min = minValue();
+  const float max = maxValue();
+
+  if (max == min) {
+    TensorV2 tmp = *this;
+    this->subtract_i(tmp);
+  } else {
+    this->subtract_i(min);
+    this->divide_i(max - min);
+  }
+}
+
+void TensorV2::standardization_i() {
+  TensorV2 mean_by_batch = this->sum_by_batch();
+  mean_by_batch.divide_i(getDim().getFeatureLen());
+
+  this->subtract_i(mean_by_batch);
+  TensorV2 std_dev_by_batch(batch(), 1, 1, 1, getFormat(), getDataType());
+  std_dev_by_batch.setZero();
+
+  /// @todo remove conditional statement
+  if (getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *std_dev = std_dev_by_batch.getData<float>();
+
+    for (unsigned int k = 0; k < batch(); ++k) {
+      TensorV2 sub_this = this->getBatchSlice(k, 1);
+      std_dev[k] = sub_this.l2norm();
+    }
+  } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    _FP16 *std_dev = std_dev_by_batch.getData<_FP16>();
+
+    for (unsigned int k = 0; k < batch(); ++k) {
+      TensorV2 sub_this = this->getBatchSlice(k, 1);
+      std_dev[k] = static_cast<_FP16>(sub_this.l2norm());
+    }
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+
+  std_dev_by_batch.divide_i(getDim().getFeatureLen());
+  this->divide_i(std_dev_by_batch);
+}
+
 TensorV2 TensorV2::dot(TensorV2 const &input, bool trans, bool trans_in) const {
   TensorV2 output("", this->getFormat(), this->getDataType());
   dot(input, output, trans, trans_in);
@@ -851,6 +902,10 @@ float TensorV2::max_abs() const {
     << getName() << " is not contiguous, cannot get max_abs.";
   return itensor->max_abs();
 }
+
+float TensorV2::maxValue() const { return itensor->maxValue(); }
+
+float TensorV2::minValue() const { return itensor->minValue(); }
 
 TensorV2 TensorV2::transpose(const std::string &direction) const {
   TensorV2 output(getDim());

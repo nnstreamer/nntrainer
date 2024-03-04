@@ -294,6 +294,11 @@ public:
                         float beta) const = 0;
 
   /**
+   * @copydoc TensorV2::l2norm
+   */
+  virtual float l2norm() const = 0;
+
+  /**
    * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
    */
   virtual TensorV2 &pow(float exponent, TensorV2 &output) const = 0;
@@ -383,6 +388,16 @@ public:
    * @copydoc TensorV2::max_abs()
    */
   virtual float max_abs() const = 0;
+
+  /**
+   * @copydoc TensorV2::maxValue()
+   */
+  virtual float maxValue() const = 0;
+
+  /**
+   * @copydoc TensorV2::minValue()
+   */
+  virtual float minValue() const = 0;
 
   /**
    * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)
