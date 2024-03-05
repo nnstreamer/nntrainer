@@ -33,7 +33,7 @@ namespace nntrainer {
 void gpu_sgemv(const float *A, const float *X, float *Y, float alpha,
                float beta, unsigned int rows, unsigned int cols) {
   static internal::GpuCLSgemv cl_gpu_sgemv;
-  cl_gpu_sgemv.CLSgemv(A, X, Y, alpha, beta, rows, cols);
+  cl_gpu_sgemv.cLSgemv(A, X, Y, alpha, beta, rows, cols);
 }
 } // namespace nntrainer
 

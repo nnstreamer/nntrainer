@@ -808,6 +808,11 @@ public:
   std::vector<Weight *> getWeights() { return weights; }
 
 #ifdef ENABLE_OPENCL
+
+  // getting static instances of commandqueue, context and kernel
+  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
+  opencl::Kernel kernel_;
+
   /**
    * @brief set the compute engine for this node
    * @param compute engine: (CPU/GPU)
@@ -853,12 +858,6 @@ private:
 
   ml::train::LayerComputeEngine compute_engine =
     ml::train::LayerComputeEngine::CPU;
-
-#ifdef ENABLE_OPENCL
-  // getting static instances of commandqueue, context and kernel
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
-  opencl::Kernel kernel_;
-#endif
 
   // flag to check whether opencl kernel is initialized or not
   bool kernel_initialized = false;

@@ -48,7 +48,7 @@ Buffer::Buffer(ContextManager &context_manager, int size_in_bytes,
 }
 
 /**
- * @brief Copy constructor for buffer
+ * @brief Move constructor for buffer by deleting the previous buffer
  *
  * @param buffer
  */

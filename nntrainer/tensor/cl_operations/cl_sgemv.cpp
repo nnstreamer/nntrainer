@@ -14,7 +14,6 @@
  */
 
 #include "cl_sgemv.h"
-#include <iostream>
 #include <opencl_buffer.h>
 
 #include <nntrainer_log.h>
@@ -22,7 +21,7 @@
 namespace nntrainer::internal {
 
 template <typename T>
-T *GpuCLSgemv::CLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata,
+T *GpuCLSgemv::cLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata,
                        T alpha, T beta, unsigned int dim1, unsigned int dim2) {
 
   ml_logi("GpuCLSgemv::CLSgemv");
@@ -112,7 +111,11 @@ T *GpuCLSgemv::CLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata,
   return vecYdata;
 }
 
-template float *GpuCLSgemv::CLSgemv<float>(const float *matAdata,
+/**
+ * @brief Template declaration for float CLSgemv call
+ *
+ */
+template float *GpuCLSgemv::cLSgemv<float>(const float *matAdata,
                                            const float *vecXdata,
                                            float *vecYdata, float alpha,
                                            float beta, unsigned int dim1,

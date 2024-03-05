@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_BUFFER_HPP_
-#define GPU_CL_OPENCL_BUFFER_HPP_
+#ifndef __OPENCL_BUFFER_H__
+#define __OPENCL_BUFFER_H__
 
 #include "opencl_command_queue_manager.h"
 #include "opencl_context_manager.h"
@@ -58,7 +58,7 @@ public:
          void *data);
 
   /**
-   * @brief Copy constructor for buffer
+   * @brief Move constructor for buffer by deleting the previous buffer
    *
    * @param buffer
    */
@@ -116,4 +116,4 @@ public:
   bool ReadData(CommandQueueManager &command_queue_inst, void *data);
 };
 } // namespace nntrainer::opencl
-#endif // GPU_CL_OPENCL_BUFFER_HPP_
+#endif // __OPENCL_BUFFER_H__

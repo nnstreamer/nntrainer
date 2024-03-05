@@ -13,12 +13,17 @@
  *
  */
 
-#ifndef GPU_CL_SGEMV_HPP_
-#define GPU_CL_SGEMV_HPP_
+#ifndef __CL_SGEMV_H__
+#define __CL_SGEMV_H__
 
 #include <opencl_op_interface.h>
 
 namespace nntrainer::internal {
+/**
+ * @class   GpuCLSgemv class
+ * @brief   Kernel and implementation of naive SGEMV. USed for
+ * testing/experimentation.
+ */
 class GpuCLSgemv : public nntrainer::opencl::GpuCLOpInterface {
   std::string sgemv_kernel_ =
     R"(__kernel void sgemv(const __global float* A, const __global float* X,
@@ -31,10 +36,23 @@ class GpuCLSgemv : public nntrainer::opencl::GpuCLOpInterface {
     })";
 
 public:
+/**
+ * @brief Function to set buffers and kernel arguments for SGEMV
+ * 
+ * @tparam T 
+ * @param matAdata 
+ * @param vecXdata 
+ * @param vecYdata 
+ * @param alpha 
+ * @param beta 
+ * @param dim1 
+ * @param dim2 
+ * @return T* 
+ */
   template <typename T>
-  T *CLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata, T alpha, T beta,
+  T *cLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata, T alpha, T beta,
              unsigned int dim1, unsigned int dim2);
 };
 } // namespace nntrainer::internal
 
-#endif // GPU_CL_SGEMV_HPP_
+#endif // __CL_SGEMV_H__
