@@ -22,10 +22,9 @@ std::mutex cl_factory_mutex;
 std::once_flag global_cl_context_init_flag;
 
 static void add_default_object(ClContext &cc) {
-  using LayerType = ml::train::LayerType;
 
   cc.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
-                     FullyConnectedLayer::type, LayerType::LAYER_FC);
+                     FullyConnectedLayer::type, ml::train::LayerType::LAYER_FC);
 }
 
 static void registerer(ClContext &cc) noexcept {

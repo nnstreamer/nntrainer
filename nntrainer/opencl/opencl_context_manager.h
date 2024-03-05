@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_CONTEXT_MANAGER_HPP_
-#define GPU_CL_OPENCL_CONTEXT_MANAGER_HPP_
+#ifndef __OPENCL_CONTEXT_MANAGER_H__
+#define __OPENCL_CONTEXT_MANAGER_H__
 
 #include <mutex>
 
@@ -97,4 +97,4 @@ public:
   ~ContextManager();
 };
 } // namespace nntrainer::opencl
-#endif // GPU_CL_OPENCL_CONTEXT_MANAGER_HPP_
+#endif // __OPENCL_CONTEXT_MANAGER_H__

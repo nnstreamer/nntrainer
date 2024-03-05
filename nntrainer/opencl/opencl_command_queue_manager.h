@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_COMMAND_QUEUE_MANAGER_HPP_
-#define GPU_CL_OPENCL_COMMAND_QUEUE_MANAGER_HPP_
+#ifndef __OPENCL_COMMAND_QUEUE_MANAGER_H__
+#define __OPENCL_COMMAND_QUEUE_MANAGER_H__
 
 #include "opencl_kernel.h"
 #include "third_party/cl.h"
@@ -126,4 +126,4 @@ public:
 };
 } // namespace nntrainer::opencl
 
-#endif // GPU_CL_OPENCL_COMMAND_QUEUE_MANAGER_HPP_
+#endif // __OPENCL_COMMAND_QUEUE_MANAGER_H__

@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_KERNEL_HPP_
-#define GPU_CL_OPENCL_KERNEL_HPP_
+#ifndef __OPENCL_KERNEL_H__
+#define __OPENCL_KERNEL_H__
 
 #include <string>
 
@@ -59,4 +59,4 @@ public:
   const cl_kernel GetKernel();
 };
 } // namespace nntrainer::opencl
-#endif // GPU_CL_OPENCL_KERNEL_HPP_
+#endif // __OPENCL_KERNEL_H__

@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_PROGRAM_HPP_
-#define GPU_CL_OPENCL_PROGRAM_HPP_
+#ifndef __OPENCL_PROGRAM_H__
+#define __OPENCL_PROGRAM_H__
 
 #include <string>
 
@@ -70,4 +70,4 @@ public:
   const cl_program &GetProgram();
 };
 } // namespace nntrainer::opencl
-#endif // GPU_CL_OPENCL_PROGRAM_HPP_
+#endif // __OPENCL_PROGRAM_H__

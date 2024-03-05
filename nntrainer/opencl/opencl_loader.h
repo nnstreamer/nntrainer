@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef GPU_CL_OPENCL_LOADER_HPP_
-#define GPU_CL_OPENCL_LOADER_HPP_
+#ifndef __OPENCL_LOADER_H__
+#define __OPENCL_LOADER_H__
 
 #include "third_party/cl.h"
 
@@ -141,4 +141,4 @@ extern PFN_clReleaseMemObject clReleaseMemObject;
 
 } // namespace nntrainer::opencl
 
-#endif // GPU_CL_OPENCL_LOADER_HPP_
+#endif // __OPENCL_LOADER_H__

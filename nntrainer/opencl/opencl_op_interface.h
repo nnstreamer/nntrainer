@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef GPU_CL_OP_INTERFACE_HPP_
-#define GPU_CL_OP_INTERFACE_HPP_
+#ifndef __OPENCL_OP_INTERFACE_H__
+#define __OPENCL_OP_INTERFACE_H__
 
 #include <cstdint>
 #include <string>
@@ -58,4 +58,4 @@ protected:
 };
 } // namespace nntrainer::opencl
 
-#endif // GPU_CL_OP_INTERFACE_HPP_
+#endif // __OPENCL_OP_INTERFACE_H__
