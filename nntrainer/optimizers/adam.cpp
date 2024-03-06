@@ -95,26 +95,60 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   Tensor &wm = context.getOptimizerVariable(AdamParams::wm);
   Tensor &wv = context.getOptimizerVariable(AdamParams::wv);
 
-  wm.multiply_i(beta1);
-  wm.add_i(x_grad, 1.0f - beta1);
+  if (context.getNumOptMasterVariable() != 0) {
+    Tensor &wm_m = context.getOptimizerMasterVariable(AdamParams::wm);
+    Tensor &wv_m = context.getOptimizerMasterVariable(AdamParams::wv);
+    Tensor x_grad_ = x_grad.clone(wm_m.getDataType());
 
-  wv.multiply_i(beta2);
-  wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
+    wm_m.multiply_i(beta1);
+    wm_m.add_i(x_grad_, 1.0f - beta1);
+
+    wv_m.multiply_i(beta2);
+    wv_m.add_i(x_grad_.multiply(x_grad_), 1.0f - beta2);
+
+    wm.copyData(wm_m);
+    wv.copyData(wv_m);
+  } else {
+    wm.multiply_i(beta1);
+    wm.add_i(x_grad, 1.0f - beta1);
+
+    wv.multiply_i(beta2);
+    wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
+  }
 
   if (torch_ref) {
-    Tensor denom = wv.apply<float>(sqrtFloat<float>);
-    denom.divide_i(sqrtFloat(biasCorrection2));
-    denom.add_i(epsilon);
-    wm.divide(denom, x_grad);
+    if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      Tensor denom = wv.apply<float>(sqrtFloat<float>);
+      denom.divide_i(sqrtFloat(biasCorrection2));
+      denom.add_i(epsilon);
+      wm.divide(denom, x_grad);
+#ifdef ENABLE_FP16
+    } else if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP16) {
+      Tensor denom = wv.apply<_FP16>(sqrtFloat<_FP16>);
+      denom.divide_i(sqrtFloat(biasCorrection2));
+      denom.add_i(epsilon);
+      wm.divide(denom, x_grad);
+#endif
+    } else {
+      throw std::runtime_error("Not supported datatype");
+    }
 
     context.applyGradient(context.getLearningRate() / biasCorrection1, x_grad);
 
   } else {
-    std::function<double(double)> sqrtEps = [epsilon](double f) {
-      return 1 / (sqrtDouble(f) + epsilon);
+    auto sqrtEps = [epsilon]<typename T>(T f) -> T {
+      return 1 / (static_cast<T>(sqrtDouble(f)) + static_cast<T>(epsilon));
     };
 
-    x_grad = wv.apply<float>(sqrtEps, x_grad);
+    if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP32)
+      x_grad = wv.apply<float>(sqrtEps, x_grad);
+#ifdef ENABLE_FP16
+    else if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP16)
+      x_grad = wv.apply<_FP16>(sqrtEps, x_grad);
+#endif
+    else
+      throw std::runtime_error("Not supported datatype");
+
     x_grad.multiply_i(wm);
     context.applyGradient(
       getUpdatedLearningRate(context.getIteration(), context.getLearningRate()),
