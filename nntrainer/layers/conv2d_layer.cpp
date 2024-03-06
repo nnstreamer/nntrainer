@@ -38,7 +38,8 @@ namespace {
 static TensorDim calcCol2ImOutputDim(const TensorDim &out,
                                      const TensorDim &kdim) {
 
-  return TensorDim({kdim.getFeatureLen(), out.width() * out.height()});
+  return TensorDim({kdim.getFeatureLen(), out.width() * out.height()},
+                   out.getTensorType());
 }
 
 /**
@@ -56,7 +57,10 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<props::Stride, CONV2D_DIM> &mstride,
                    const std::array<props::Dilation, CONV2D_DIM> &dilation,
                    Tensor &image) {
-  auto [pt, pb, pl, pr] = padding;
+  auto pt = padding[0];
+  auto pb = padding[1];
+  auto pl = padding[2];
+  auto pr = padding[3];
 
   unsigned k_height = kdim.height();
   unsigned k_width = kdim.width();
@@ -84,32 +88,48 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   int h_stride_end = im_eff_height - eff_k_height - pt;
   int w_stride_end = im_eff_width - eff_k_width - pl;
 
-  unsigned col_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
-    for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
-      unsigned col_h = 0;
-      int patch_height_end = hs + eff_k_height;
-      int patch_width_end = ws + eff_k_width;
-      for (unsigned c = 0; c < im_channel; c++) {
-        for (int h = hs; h < patch_height_end; h += hdilation) {
-          if (h < 0 || im_height <= h) {
-            col_h += k_width;
-            continue;
-          }
-          for (int w = ws; w < patch_width_end; w += wdilation) {
-            if (w < 0 || im_width <= w) {
-              col_h++;
+  auto apply_data = [&]<typename T>(T *val) {
+    unsigned col_w = 0;
+    for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
+      for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
+        unsigned col_h = 0;
+        int patch_height_end = hs + eff_k_height;
+        int patch_width_end = ws + eff_k_width;
+        for (unsigned c = 0; c < im_channel; c++) {
+          for (int h = hs; h < patch_height_end; h += hdilation) {
+            if (h < 0 || im_height <= h) {
+              col_h += k_width;
               continue;
             }
+            for (int w = ws; w < patch_width_end; w += wdilation) {
+              if (w < 0 || im_width <= w) {
+                col_h++;
+                continue;
+              }
 
-            float *val = image.getAddress<float>(0, c, h, w);
-            *val += col_matrix.getValue<float>(0, 0, col_h, col_w);
-            col_h++;
+              val = image.getAddress<T>(0, c, h, w);
+              *val += col_matrix.getValue<T>(0, 0, col_h, col_w);
+              col_h++;
+            }
           }
         }
+        col_w++;
       }
-      col_w++;
     }
+  };
+
+  if (image.getDataType() == nntrainer::Tdatatype::FP32) {
+    float val;
+    apply_data(&val);
+  }
+#ifdef ENABLE_FP16
+  else if (image.getDataType() == nntrainer::Tdatatype::FP16) {
+    _FP16 val;
+    apply_data(&val);
+  }
+#endif
+  else {
+    throw std::runtime_error("Not supported datatype");
   }
 }
 
@@ -179,7 +199,10 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   //   }
   */
 
-  auto [pt, pb, pl, pr] = padding;
+  auto pt = padding[0];
+  auto pb = padding[1];
+  auto pl = padding[2];
+  auto pr = padding[3];
 
   unsigned int channel = in.channel();
   int in_height = in.height();
@@ -198,46 +221,62 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
   out.reshape(
-    TensorDim({out_height * out_width, in.channel() * k_height * k_width}));
-  float *out_data = out.getData();
+    TensorDim({out_height * out_width, in.channel() * k_height * k_width},
+              in.getTensorType()));
 
-  int h_stride_end = height - eff_k_height - pt;
-  int w_stride_end = width - eff_k_width - pl;
+  auto apply_data = [&]<typename T>(T *out_data) {
+    int h_stride_end = height - eff_k_height - pt;
+    int w_stride_end = width - eff_k_width - pl;
 
-  /// get a patch, size of kernel
-  /// hs is height_strided, ws is width_strided
-  unsigned int owidth = out.width();
-  unsigned int base_im_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
-    unsigned int base_im_h = 0;
-    int patch_height_end = eff_k_height + hs;
-    /// map the patch to a single line looping through channel
-    for (unsigned int c = 0; c < channel; ++c) {
-      for (int h = hs; h < patch_height_end; h += dilation[0]) {
-        if (h < 0 || in_height <= h) {
-          base_im_h += k_width;
-          continue;
-        }
-
-        unsigned int im_w = base_im_w;
-        for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
-          unsigned int im_h = base_im_h;
-          int patch_width_end = eff_k_width + ws;
-
-          for (int w = ws; w < patch_width_end; w += dilation[1]) {
-            if (w < 0 || in_width <= w) {
-              im_h++;
-              continue;
-            }
-            out_data[im_w * owidth + im_h] = in.getValue<float>(0, c, h, w);
-            im_h++;
+    /// get a patch, size of kernel
+    /// hs is height_strided, ws is width_strided
+    unsigned int owidth = out.width();
+    unsigned int base_im_w = 0;
+    for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
+      unsigned int base_im_h = 0;
+      int patch_height_end = eff_k_height + hs;
+      /// map the patch to a single line looping through channel
+      for (unsigned int c = 0; c < channel; ++c) {
+        for (int h = hs; h < patch_height_end; h += dilation[0]) {
+          if (h < 0 || in_height <= h) {
+            base_im_h += k_width;
+            continue;
           }
-          im_w++;
+
+          unsigned int im_w = base_im_w;
+          for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
+            unsigned int im_h = base_im_h;
+            int patch_width_end = eff_k_width + ws;
+
+            for (int w = ws; w < patch_width_end; w += dilation[1]) {
+              if (w < 0 || in_width <= w) {
+                im_h++;
+                continue;
+              }
+              out_data[im_w * owidth + im_h] = in.getValue<T>(0, c, h, w);
+              im_h++;
+            }
+            im_w++;
+          }
+          base_im_h += k_width;
         }
-        base_im_h += k_width;
       }
+      base_im_w += out_width;
     }
-    base_im_w += out_width;
+  };
+
+  if (out.getDataType() == nntrainer::Tdatatype::FP32) {
+    float *out_data = out.getData<float>();
+    apply_data(out_data);
+  }
+#ifdef ENABLE_FP16
+  else if (out.getDataType() == nntrainer::Tdatatype::FP16) {
+    _FP16 *out_data = out.getData<_FP16>();
+    apply_data(out_data);
+  }
+#endif
+  else {
+    throw std::runtime_error("Not supported datatype");
   }
 }
 
@@ -279,9 +318,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
-  TensorDim kernel_dim =
-    TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
-  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
+  auto in_t_type = in_dim.getTensorType();
+  in_t_type.data_type = context.getWeightDataType();
+  TensorDim kernel_dim = TensorDim(filter_size, in_dim.channel(),
+                                   kernel_size[0], kernel_size[1], in_t_type);
+  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, in_t_type);
 
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, kernel_dim, {stride[0], stride[1]},
@@ -309,6 +350,7 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   out_dim.channel(filter_size);
   out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
   out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
+  out_dim.setTensorType(in_dim.getTensorType());
   context.setOutputDimensions({out_dim});
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
@@ -324,19 +366,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     << "Failed to initialize: Calculated patch end is over int max";
 }
 
-void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
-  int status = ML_ERROR_NONE;
-
-  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
-  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
-  auto &dilation =
-    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
-
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-
-  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
-
+static inline void forwarding_internal(
+  Tensor &input, Tensor &hidden, Tensor &filter_kernel, Tensor &bias_kernel,
+  unsigned int filter_size, const std::array<unsigned int, 4> &padding,
+  const std::array<props::Stride, CONV2D_DIM> &stride,
+  const std::array<props::Dilation, CONV2D_DIM> &dilation, bool enable_bias) {
   /** Calculate Convolution 2D
    *
    * This is the 2D Matrix Shape [ height ] x [ width ]
@@ -373,8 +407,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
    *   -> [Channel ( = filter_size = output_dim.channel )]
    *       x [output_dim.height x output_dim.width]
    */
-  const TensorDim &in_dim = input_.getDim();
-  const TensorDim &out_dim = hidden_.getDim();
+  const TensorDim &in_dim = input.getDim();
+  const TensorDim &out_dim = hidden.getDim();
   const TensorDim &filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
@@ -390,9 +424,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
     result.setZero();
     for (unsigned int b = s; b < e; ++b) {
-      Tensor out = hidden_.getBatchSlice(b, 1);
+      Tensor out = hidden.getBatchSlice(b, 1);
       out.reshape({filter_size, out_dim.width() * out_dim.height()});
-      Tensor in_sub = input_.getBatchSlice(b, 1);
+      Tensor in_sub = input.getBatchSlice(b, 1);
 
       im2col(in_sub, filter_dim, padding, stride, dilation, result);
       filter_kernel.dot(result, out, false, true);
@@ -409,26 +443,49 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   }
 
   filter_kernel.reshape(filter_dim);
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
-    status = hidden_.add_i(bias_kernel);
+  if (enable_bias) {
+    auto status = hidden.add_i(bias_kernel);
     if (status != ML_ERROR_NONE) {
       throw std::invalid_argument("[Conv2D] adding bias failed");
     }
   }
 }
 
-void Conv2DLayer::calcDerivative(RunLayerContext &context) {
+void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
+  int status = ML_ERROR_NONE;
+
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
-  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+  Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
+
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+  bool enable_bias = disable_bias.empty() || disable_bias.get() == false;
+
+  const auto &in_type = input_.getDataType();
+  if (in_type == filter_kernel.getDataType()) {
+    forwarding_internal(input_, hidden_, filter_kernel, bias_kernel,
+                        filter_size, padding, stride, dilation, enable_bias);
+  } else {
+    Tensor filter_kernel_ = filter_kernel.clone(in_type);
+    Tensor bias_kernel_ = bias_kernel.clone(in_type);
+
+    forwarding_internal(input_, hidden_, filter_kernel_, bias_kernel_,
+                        filter_size, padding, stride, dilation, enable_bias);
+  }
+}
+
+static inline void calcDerivative_internal(
+  const Tensor &derivative, Tensor &input_derivative, Tensor &filter_kernel,
+  unsigned int filter_size, const std::array<unsigned int, 4> &padding,
+  const std::array<props::Stride, CONV2D_DIM> &stride,
+  const std::array<props::Dilation, CONV2D_DIM> &dilation) {
   TensorDim filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
@@ -466,20 +523,41 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   filter_kernel.reshape(filter_dim);
 }
 
-void Conv2DLayer::calcGradient(RunLayerContext &context) {
+void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
   const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
-  Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
+  const auto &deriv_type = derivative.getDataType();
+  if (deriv_type == filter_kernel.getDataType()) {
+    // filter_kernel = filter_kernel_.clone(input_.getDataType());
+    calcDerivative_internal(derivative, input_derivative, filter_kernel,
+                            filter_size, padding, stride, dilation);
+
+  } else {
+    // filter_kernel = filter_kernel_;
+    Tensor filter_kernel_ = filter_kernel.clone(deriv_type);
+    calcDerivative_internal(derivative, input_derivative, filter_kernel_,
+                            filter_size, padding, stride, dilation);
+  }
+}
+
+static inline void calcGradient_internal(
+  Tensor &input, Tensor &delK, Tensor &delBias, const Tensor &derivative,
+
+  unsigned int filter_size, const std::array<unsigned int, 4> &padding,
+  const std::array<props::Stride, CONV2D_DIM> &stride,
+  const std::array<props::Dilation, CONV2D_DIM> &dilation, bool enable_bias) {
   delK.setZero();
 
   TensorDim filter_dim = delK.getDim();
-  TensorDim filter_dim_squeezed{filter_dim.batch(), filter_dim.getFeatureLen()};
+  TensorDim filter_dim_squeezed{filter_dim.batch(), filter_dim.getFeatureLen(),
+                                delK.getTensorType()};
 
   delK.reshape(filter_dim_squeezed);
 
@@ -489,14 +567,15 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
    */
 
   TensorDim out_dim_squeezed{filter_size,
-                             derivative.width() * derivative.height()};
-  auto workers = ParallelBatch(input_.batch());
+                             derivative.width() * derivative.height(),
+                             input.getTensorType()};
+  auto workers = ParallelBatch(input.batch());
   /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
   /// so delK = dy x column_matrix ^ T;
   if (workers.getNumWorkers() > 1) {
 
     TensorDim delK_ext = filter_dim_squeezed;
-    delK_ext.batch(input_.batch());
+    delK_ext.batch(input.batch());
 
     Tensor delK_par = Tensor(delK_ext);
     delK_par.setZero();
@@ -511,7 +590,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
         Tensor delK_sub = delK_par.getBatchSlice(b, 1);
         deriv_sub.reshape(out_dim_squeezed);
 
-        Tensor in_sub = input_.getBatchSlice(b, 1);
+        Tensor in_sub = input.getBatchSlice(b, 1);
 
         /**
          * @todo this result can be cached from the forward iteration at the
@@ -528,21 +607,20 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
 
     workers.run();
 
-    for (unsigned int b = 0; b < input_.batch(); ++b) {
+    for (unsigned int b = 0; b < input.batch(); ++b) {
       Tensor delK_sub = delK_par.getBatchSlice(b, 1);
       delK.add_i(delK_sub);
     }
-
   } else {
     Tensor result =
       Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
     result.setZero();
 
-    for (unsigned int b = 0; b < input_.batch(); ++b) {
+    for (unsigned int b = 0; b < input.batch(); ++b) {
       Tensor deriv_sub = derivative.getBatchSlice(b, 1);
       deriv_sub.reshape(out_dim_squeezed);
 
-      Tensor in_sub = input_.getBatchSlice(b, 1);
+      Tensor in_sub = input.getBatchSlice(b, 1);
 
       /**
        * @todo this result can be cached from the forward iteration at the
@@ -555,10 +633,37 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
     result.deallocate();
   }
   delK.reshape(filter_dim);
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
+  if (enable_bias) {
     derivative.sum({0, 2, 3}, delBias);
+  }
+}
+
+void Conv2DLayer::calcGradient(RunLayerContext &context) {
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
+
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+
+  Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
+  Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
+
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+  bool enable_bias = disable_bias.empty() || disable_bias.get() == false;
+
+  const auto &in_type = input.getDataType();
+  if (in_type == delK.getDataType()) {
+    calcGradient_internal(input, delK, delBias, derivative, filter_size,
+                          padding, stride, dilation, enable_bias);
+  } else {
+    Tensor delK_ = delK.clone(in_type);
+    Tensor delBias_ = delBias.clone(in_type);
+    calcGradient_internal(input, delK_, delBias_, derivative, filter_size,
+                          padding, stride, dilation, enable_bias);
+    delK.copyData(delK_);
+    delBias.copyData(delBias_);
   }
 }
 

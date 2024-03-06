@@ -24,6 +24,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void FlattenLayer::finalize(InitLayerContext &context) {
   const TensorDim &in_dim = context.getInputDimensions()[0];
+  TensorDim out_dim;
 
   std::string target_shape =
     "target_shape=1:1:" + std::to_string(in_dim.getFeatureLen());

@@ -326,6 +326,25 @@ Tensor &RunLayerContext::getOutgoingDerivative(unsigned int idx) {
   return getInputGrad(idx);
 }
 
+bool RunLayerContext::validateDerivatives() {
+  auto num_in = getNumInputs();
+  auto num_out = getNumOutputs();
+
+  for (unsigned int i = 0; i < num_in; ++i) {
+    auto deriv = getIncomingDerivative(i);
+    if (deriv.checkDataValidation(false) == false)
+      return false;
+  }
+
+  for (unsigned int i = 0; i < num_out; ++i) {
+    auto deriv = getOutgoingDerivative(i);
+    if (deriv.checkDataValidation(false) == false)
+      return false;
+  }
+
+  return true;
+}
+
 /**
  * @brief Get the Tensor object
  *

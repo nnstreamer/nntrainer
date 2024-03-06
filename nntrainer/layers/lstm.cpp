@@ -625,91 +625,37 @@ void LSTMLayer::exportTo(Exporter &exporter,
   exporter.saveResult(lstm_props, method, this);
 }
 
-void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
-  const bool disable_bias =
-    std::get<props::DisableBias>(*layer_impl_props).get();
+static inline void forwarding_internal(
+  LSTMLayer *layer, const bool disable_bias, const unsigned int unit,
+  const bool integrate_bias, const bool return_sequences,
+  const bool bidirectional, const float dropout_rate,
+  const unsigned int max_timestep, const unsigned int bidirectional_constant,
+  bool enable_dropout, const Tensor &input, Tensor &output,
+  const Tensor &weight_ih, const Tensor &weight_hh, const Tensor &bias_h,
+  const Tensor &bias_ih, const Tensor &bias_hh, Tensor &hidden_state,
+  Tensor &cell_state, Tensor &ifgo, Tensor &mask, Tensor &reverse_weight_ih,
+  Tensor &reverse_weight_hh, Tensor &reverse_bias_h, Tensor &reverse_bias_ih,
+  Tensor &reverse_bias_hh, Tensor &reverse_hidden_state,
+  Tensor &reverse_cell_state, Tensor &reverse_ifgo, ActiFunc &acti_func,
+  ActiFunc &recurrent_acti_func) {
 
-  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
-  const bool integrate_bias =
-    std::get<props::IntegrateBias>(lstmcore_props).get();
-
-  const bool return_sequences =
-    std::get<props::ReturnSequences>(lstm_props).get();
-  const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
-  const float dropout_rate = std::get<props::DropOutRate>(lstm_props).get();
-  const unsigned int max_timestep =
-    std::get<props::MaxTimestep>(lstm_props).get();
-
-  const unsigned int bidirectional_constant = bidirectional ? 2 : 1;
-  bool enable_dropout = dropout_rate > epsilon && training;
-
-  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   const TensorDim input_dim = input.getDim();
   const unsigned int batch_size = input_dim.batch();
   const unsigned int feature_size = input_dim.width();
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
-  const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
-  const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
-
-  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
-
-  const Tensor &bias_h = !disable_bias && integrate_bias
-                           ? context.getWeight(wt_idx[LSTMParams::bias_h])
-                           : empty;
-  const Tensor &bias_ih = !disable_bias && !integrate_bias
-                            ? context.getWeight(wt_idx[LSTMParams::bias_ih])
-                            : empty;
-  const Tensor &bias_hh = !disable_bias && !integrate_bias
-                            ? context.getWeight(wt_idx[LSTMParams::bias_hh])
-                            : empty;
-
-  Tensor &hidden_state = context.getTensor(wt_idx[LSTMParams::hidden_state]);
-  Tensor &cell_state = context.getTensor(wt_idx[LSTMParams::cell_state]);
-  Tensor &ifgo = context.getTensor(wt_idx[LSTMParams::ifgo]);
-
-  Tensor &mask = enable_dropout
-                   ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
-                   : empty;
-
-  forwardingBatchFirstLSTM(NUM_GATE, batch_size, feature_size, disable_bias,
-                           unit, integrate_bias, acti_func, recurrent_acti_func,
-                           enable_dropout, dropout_rate, max_timestep, false,
-                           input, weight_ih, weight_hh, bias_h, bias_ih,
-                           bias_hh, hidden_state, cell_state, ifgo, mask);
+  layer->forwardingBatchFirstLSTM(
+    layer->NUM_GATE, batch_size, feature_size, disable_bias, unit,
+    integrate_bias, acti_func, recurrent_acti_func, enable_dropout,
+    dropout_rate, max_timestep, false, input, weight_ih, weight_hh, bias_h,
+    bias_ih, bias_hh, hidden_state, cell_state, ifgo, mask);
 
   if (bidirectional) {
-    const Tensor &reverse_weight_ih =
-      context.getWeight(wt_idx[LSTMParams::reverse_weight_ih]);
-    const Tensor &reverse_weight_hh =
-      context.getWeight(wt_idx[LSTMParams::reverse_weight_hh]);
-    const Tensor &reverse_bias_h =
-      !disable_bias && integrate_bias
-        ? context.getWeight(wt_idx[LSTMParams::reverse_bias_h])
-        : empty;
-    const Tensor &reverse_bias_ih =
-      !disable_bias && !integrate_bias
-        ? context.getWeight(wt_idx[LSTMParams::reverse_bias_ih])
-        : empty;
-    const Tensor &reverse_bias_hh =
-      !disable_bias && !integrate_bias
-        ? context.getWeight(wt_idx[LSTMParams::reverse_bias_hh])
-        : empty;
-
-    Tensor &reverse_hidden_state =
-      context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
-    Tensor &reverse_cell_state =
-      context.getTensor(wt_idx[LSTMParams::reverse_cell_state]);
-    Tensor &reverse_ifgo = context.getTensor(wt_idx[LSTMParams::reverse_ifgo]);
-
-    forwardingBatchFirstLSTM(
-      NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
-      acti_func, recurrent_acti_func, enable_dropout, dropout_rate,
-      max_timestep, true, input, reverse_weight_ih, reverse_weight_hh,
-      reverse_bias_h, reverse_bias_ih, reverse_bias_hh, reverse_hidden_state,
-      reverse_cell_state, reverse_ifgo, mask);
+    layer->forwardingBatchFirstLSTM(
+      layer->NUM_GATE, batch_size, feature_size, disable_bias, unit,
+      integrate_bias, acti_func, recurrent_acti_func, enable_dropout,
+      dropout_rate, max_timestep, true, input, reverse_weight_ih,
+      reverse_weight_hh, reverse_bias_h, reverse_bias_ih, reverse_bias_hh,
+      reverse_hidden_state, reverse_cell_state, reverse_ifgo, mask);
   }
 
   if (return_sequences && !bidirectional) {
@@ -742,8 +688,6 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
           std::copy(hidden_state_data, hidden_state_data + unit, output_data);
 
           if (bidirectional) {
-            Tensor &reverse_hidden_state =
-              context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
             float *reverse_hidden_state_data =
               reverse_hidden_state.getAddress<float>(
                 batch * max_timestep * unit +
@@ -769,8 +713,6 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
           std::copy(hidden_state_data, hidden_state_data + unit, output_data);
 
           if (bidirectional) {
-            Tensor &reverse_hidden_state =
-              context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
             _FP16 *reverse_hidden_state_data =
               reverse_hidden_state.getAddress<_FP16>(
                 batch * max_timestep * unit +
@@ -788,23 +730,205 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
+void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
+  const bool disable_bias =
+    std::get<props::DisableBias>(*layer_impl_props).get();
+  const unsigned int unit = std::get<props::Unit>(lstmcore_props).get();
+  const bool integrate_bias =
+    std::get<props::IntegrateBias>(lstmcore_props).get();
+  const bool return_sequences =
+    std::get<props::ReturnSequences>(lstm_props).get();
+  const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
+  const float dropout_rate = std::get<props::DropOutRate>(lstm_props).get();
+  const unsigned int max_timestep =
+    std::get<props::MaxTimestep>(lstm_props).get();
+  const unsigned int bidirectional_constant = bidirectional ? 2 : 1;
+  bool enable_dropout = dropout_rate > epsilon && training;
+
+  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
+  const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
+
+  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
+  Tensor empty;
+  empty.setTensorType(weight_tensor_type);
+
+  const Tensor &bias_h = !disable_bias && integrate_bias
+                           ? context.getWeight(wt_idx[LSTMParams::bias_h])
+                           : empty;
+  const Tensor &bias_ih = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[LSTMParams::bias_ih])
+                            : empty;
+  const Tensor &bias_hh = !disable_bias && !integrate_bias
+                            ? context.getWeight(wt_idx[LSTMParams::bias_hh])
+                            : empty;
+  Tensor &hidden_state = context.getTensor(wt_idx[LSTMParams::hidden_state]);
+  Tensor &cell_state = context.getTensor(wt_idx[LSTMParams::cell_state]);
+  Tensor &ifgo = context.getTensor(wt_idx[LSTMParams::ifgo]);
+
+  Tensor &mask = enable_dropout
+                   ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
+                   : empty;
+
+  Tensor &reverse_weight_ih =
+    bidirectional ? context.getWeight(wt_idx[LSTMParams::reverse_weight_ih])
+                  : empty;
+  Tensor &reverse_weight_hh =
+    bidirectional ? context.getWeight(wt_idx[LSTMParams::reverse_weight_hh])
+                  : empty;
+  Tensor &reverse_bias_h =
+    !disable_bias && integrate_bias && bidirectional
+      ? context.getWeight(wt_idx[LSTMParams::reverse_bias_h])
+      : empty;
+  Tensor &reverse_bias_ih =
+    !disable_bias && !integrate_bias && bidirectional
+      ? context.getWeight(wt_idx[LSTMParams::reverse_bias_ih])
+      : empty;
+  Tensor &reverse_bias_hh =
+    !disable_bias && !integrate_bias && bidirectional
+      ? context.getWeight(wt_idx[LSTMParams::reverse_bias_hh])
+      : empty;
+
+  Tensor &reverse_hidden_state =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_hidden_state])
+                  : empty;
+  Tensor &reverse_cell_state =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_cell_state])
+                  : empty;
+  Tensor &reverse_ifgo =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_ifgo]) : empty;
+
+  const auto in_type = input.getDataType();
+  if (in_type != weight_ih.getDataType()) {
+    Tensor weight_ih_ = weight_ih.clone(in_type);
+    Tensor weight_hh_ = weight_hh.clone(in_type);
+    Tensor bias_h_ = bias_h.clone(in_type);
+    Tensor bias_ih_ = bias_ih.clone(in_type);
+    Tensor bias_hh_ = bias_hh.clone(in_type);
+    Tensor hidden_state_ = hidden_state.clone(in_type);
+    Tensor cell_state_ = cell_state.clone(in_type);
+    Tensor ifgo_ = ifgo.clone(in_type);
+    Tensor mask_ = mask.clone(in_type);
+    Tensor reverse_weight_ih_ = reverse_weight_ih.clone(in_type);
+    Tensor reverse_weight_hh_ = reverse_weight_hh.clone(in_type);
+    Tensor reverse_bias_h_ = reverse_bias_h.clone(in_type);
+    Tensor reverse_bias_ih_ = reverse_bias_ih.clone(in_type);
+    Tensor reverse_bias_hh_ = reverse_bias_hh.clone(in_type);
+    Tensor reverse_hidden_state_ = reverse_hidden_state.clone(in_type);
+    Tensor reverse_cell_state_ = reverse_cell_state.clone(in_type);
+    Tensor reverse_ifgo_ = reverse_ifgo.clone(in_type);
+
+    forwarding_internal(
+      this, disable_bias, unit, integrate_bias, return_sequences, bidirectional,
+      dropout_rate, max_timestep, bidirectional_constant, enable_dropout, input,
+      output, weight_ih_, weight_hh_, bias_h_, bias_ih_, bias_hh_,
+      hidden_state_, cell_state_, ifgo_, mask_, reverse_weight_ih_,
+      reverse_weight_hh_, reverse_bias_h_, reverse_bias_ih_, reverse_bias_hh_,
+      reverse_hidden_state_, reverse_cell_state_, reverse_ifgo_, acti_func,
+      recurrent_acti_func);
+
+    hidden_state.copyData(hidden_state_);
+    cell_state.copyData(cell_state_);
+    ifgo.copyData(ifgo_);
+    mask.copyData(mask_);
+    reverse_hidden_state.copyData(reverse_hidden_state_);
+    reverse_cell_state.copyData(reverse_cell_state_);
+    reverse_ifgo.copyData(reverse_ifgo_);
+  } else {
+    forwarding_internal(
+      this, disable_bias, unit, integrate_bias, return_sequences, bidirectional,
+      dropout_rate, max_timestep, bidirectional_constant, enable_dropout, input,
+      output, weight_ih, weight_hh, bias_h, bias_ih, bias_hh, hidden_state,
+      cell_state, ifgo, mask, reverse_weight_ih, reverse_weight_hh,
+      reverse_bias_h, reverse_bias_ih, reverse_bias_hh, reverse_hidden_state,
+      reverse_cell_state, reverse_ifgo, acti_func, recurrent_acti_func);
+  }
+}
+
+void calcDerivativeInternal(LSTMLayer *layer, bool bidirectional,
+                            Tensor &outgoing_derivative, Tensor &weight_ih,
+                            Tensor &d_ifgos, Tensor &reverse_weight_ih,
+                            Tensor &reverse_d_ifgos) {
+  layer->calcDerivativeLSTM(outgoing_derivative, weight_ih, d_ifgos);
+
+  if (bidirectional) {
+    layer->calcDerivativeLSTM(outgoing_derivative, reverse_weight_ih,
+                              reverse_d_ifgos, 1.0f);
+  }
+}
+
 void LSTMLayer::calcDerivative(RunLayerContext &context) {
   const bool bidirectional = std::get<props::Bidirectional>(lstm_props).get();
 
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
-  const Tensor &d_ifgos = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
+  Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
+  Tensor &d_ifgos = context.getTensorGrad(wt_idx[LSTMParams::ifgo]);
 
-  calcDerivativeLSTM(outgoing_derivative, weight_ih, d_ifgos);
+  Tensor empty;
+  empty.setTensorType(outgoing_derivative.getTensorType());
+
+  Tensor &reverse_weight_ih =
+    bidirectional ? context.getWeight(wt_idx[LSTMParams::reverse_weight_ih])
+                  : empty;
+  Tensor &reverse_d_ifgos =
+    bidirectional ? context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo])
+                  : empty;
+
+  const auto out_type = outgoing_derivative.getDataType();
+  if (out_type != weight_ih.getDataType()) {
+    Tensor weight_ih_ = weight_ih.clone(out_type);
+    Tensor d_ifgos_ = d_ifgos.clone(out_type);
+    Tensor reverse_weight_ih_ = reverse_weight_ih.clone(out_type);
+    Tensor reverse_d_ifgos_ = reverse_d_ifgos.clone(out_type);
+
+    calcDerivativeInternal(this, bidirectional, outgoing_derivative, weight_ih_,
+                           d_ifgos_, reverse_weight_ih_, reverse_d_ifgos_);
+
+    d_ifgos.copyData(d_ifgos_);
+    reverse_d_ifgos.copyData(reverse_d_ifgos_);
+  } else {
+    calcDerivativeInternal(this, bidirectional, outgoing_derivative, weight_ih,
+                           d_ifgos, reverse_weight_ih, reverse_d_ifgos);
+  }
+}
+
+static void calcGradientInternal(
+  LSTMLayer *layer, const unsigned int batch_size,
+  const unsigned int feature_size, const bool disable_bias,
+  const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
+  ActiFunc &recurrent_acti_func, const bool return_sequences,
+  const bool bidirectional, const bool enable_dropout, const float dropout_rate,
+  const unsigned int max_timestep, const bool reverse, const Tensor &input,
+  const Tensor &incoming_derivative, Tensor &d_weight_ih,
+  const Tensor &weight_hh, Tensor &d_weight_hh, Tensor &d_bias_h,
+  Tensor &d_bias_ih, Tensor &d_bias_hh, const Tensor &hidden_state,
+  Tensor &d_hidden_state, const Tensor &cell_state, Tensor &d_cell_state,
+  const Tensor &ifgo, Tensor &d_ifgo, const Tensor &mask,
+  Tensor &reverse_d_weight_ih, const Tensor &reverse_weight_hh,
+  Tensor &reverse_d_weight_hh, Tensor &reverse_d_bias_h,
+  Tensor &reverse_d_bias_ih, Tensor &reverse_d_bias_hh,
+  const Tensor &reverse_hidden_state, Tensor &reverse_d_hidden_state,
+  const Tensor &reverse_cell_state, Tensor &reverse_d_cell_state,
+  const Tensor &reverse_ifgo, Tensor &reverse_d_ifgo) {
+  layer->calcGradientBatchFirstLSTM(
+    layer->NUM_GATE, batch_size, feature_size, disable_bias, unit,
+    integrate_bias, acti_func, recurrent_acti_func, return_sequences,
+    bidirectional, enable_dropout, dropout_rate, max_timestep, false, input,
+    incoming_derivative, d_weight_ih, weight_hh, d_weight_hh, d_bias_h,
+    d_bias_ih, d_bias_hh, hidden_state, d_hidden_state, cell_state,
+    d_cell_state, ifgo, d_ifgo, mask);
 
   if (bidirectional) {
-    const Tensor &reverse_weight_ih =
-      context.getWeight(wt_idx[LSTMParams::reverse_weight_ih]);
-    const Tensor &reverse_d_ifgos =
-      context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo]);
-
-    calcDerivativeLSTM(outgoing_derivative, reverse_weight_ih, reverse_d_ifgos,
-                       1.0f);
+    layer->calcGradientBatchFirstLSTM(
+      layer->NUM_GATE, batch_size, feature_size, disable_bias, unit,
+      integrate_bias, acti_func, recurrent_acti_func, return_sequences,
+      bidirectional, enable_dropout, dropout_rate, max_timestep, true, input,
+      incoming_derivative, reverse_d_weight_ih, reverse_weight_hh,
+      reverse_d_weight_hh, reverse_d_bias_h, reverse_d_bias_ih,
+      reverse_d_bias_hh, reverse_hidden_state, reverse_d_hidden_state,
+      reverse_cell_state, reverse_d_cell_state, reverse_ifgo, reverse_d_ifgo,
+      mask);
   }
 }
 
@@ -864,57 +988,113 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
                          ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
                          : empty;
 
-  calcGradientBatchFirstLSTM(
-    NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
-    acti_func, recurrent_acti_func, return_sequences, bidirectional,
-    enable_dropout, dropout_rate, max_timestep, false, input,
-    incoming_derivative, d_weight_ih, weight_hh, d_weight_hh, d_bias_h,
-    d_bias_ih, d_bias_hh, hidden_state, d_hidden_state, cell_state,
-    d_cell_state, ifgo, d_ifgo, mask);
+  Tensor &reverse_d_weight_ih =
+    bidirectional ? context.getWeightGrad(wt_idx[LSTMParams::reverse_weight_ih])
+                  : empty;
+  const Tensor &reverse_weight_hh =
+    bidirectional ? context.getWeight(wt_idx[LSTMParams::reverse_weight_hh])
+                  : empty;
+  Tensor &reverse_d_weight_hh =
+    bidirectional ? context.getWeightGrad(wt_idx[LSTMParams::reverse_weight_hh])
+                  : empty;
+  Tensor &reverse_d_bias_h =
+    !disable_bias && integrate_bias && bidirectional
+      ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_h])
+      : empty;
+  Tensor &reverse_d_bias_ih =
+    !disable_bias && !integrate_bias && bidirectional
+      ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_ih])
+      : empty;
+  Tensor &reverse_d_bias_hh =
+    !disable_bias && !integrate_bias && bidirectional
+      ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_hh])
+      : empty;
+  const Tensor &reverse_hidden_state =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_hidden_state])
+                  : empty;
+  Tensor &reverse_d_hidden_state =
+    bidirectional
+      ? context.getTensorGrad(wt_idx[LSTMParams::reverse_hidden_state])
+      : empty;
+  const Tensor &reverse_cell_state =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_cell_state])
+                  : empty;
+  Tensor &reverse_d_cell_state =
+    bidirectional
+      ? context.getTensorGrad(wt_idx[LSTMParams::reverse_cell_state])
+      : empty;
 
-  if (bidirectional) {
-    Tensor &reverse_d_weight_ih =
-      context.getWeightGrad(wt_idx[LSTMParams::reverse_weight_ih]);
-    const Tensor &reverse_weight_hh =
-      context.getWeight(wt_idx[LSTMParams::reverse_weight_hh]);
-    Tensor &reverse_d_weight_hh =
-      context.getWeightGrad(wt_idx[LSTMParams::reverse_weight_hh]);
-    Tensor &reverse_d_bias_h =
-      !disable_bias && integrate_bias
-        ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_h])
-        : empty;
-    Tensor &reverse_d_bias_ih =
-      !disable_bias && !integrate_bias
-        ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_ih])
-        : empty;
-    Tensor &reverse_d_bias_hh =
-      !disable_bias && !integrate_bias
-        ? context.getWeightGrad(wt_idx[LSTMParams::reverse_bias_hh])
-        : empty;
+  const Tensor &reverse_ifgo =
+    bidirectional ? context.getTensor(wt_idx[LSTMParams::reverse_ifgo]) : empty;
+  Tensor &reverse_d_ifgo =
+    bidirectional ? context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo])
+                  : empty;
 
-    const Tensor &reverse_hidden_state =
-      context.getTensor(wt_idx[LSTMParams::reverse_hidden_state]);
-    Tensor &reverse_d_hidden_state =
-      context.getTensorGrad(wt_idx[LSTMParams::reverse_hidden_state]);
-    const Tensor &reverse_cell_state =
-      context.getTensor(wt_idx[LSTMParams::reverse_cell_state]);
-    Tensor &reverse_d_cell_state =
-      context.getTensorGrad(wt_idx[LSTMParams::reverse_cell_state]);
+  const auto in_type = input.getDataType();
+  if (in_type != d_weight_ih.getDataType()) {
+    Tensor weight_hh_ = weight_hh.clone(in_type);
+    Tensor d_weight_ih_ = d_weight_ih.clone(in_type);
+    Tensor d_weight_hh_ = d_weight_hh.clone(in_type);
+    Tensor d_bias_h_ = d_bias_h.clone(in_type);
+    Tensor d_bias_ih_ = d_bias_ih.clone(in_type);
+    Tensor d_bias_hh_ = d_bias_hh.clone(in_type);
+    Tensor hidden_state_ = hidden_state.clone(in_type);
+    Tensor d_hidden_state_ = d_hidden_state.clone(in_type);
+    Tensor cell_state_ = cell_state.clone(in_type);
+    Tensor d_cell_state_ = d_cell_state.clone(in_type);
+    Tensor ifgo_ = ifgo.clone(in_type);
+    Tensor d_ifgo_ = d_ifgo.clone(in_type);
+    Tensor mask_ = mask.clone(in_type);
+    Tensor reverse_d_weight_ih_ = reverse_d_weight_ih.clone(in_type);
+    Tensor reverse_weight_hh_ = reverse_weight_hh.clone(in_type);
+    Tensor reverse_d_bias_h_ = reverse_d_bias_h.clone(in_type);
+    Tensor reverse_d_bias_ih_ = reverse_d_bias_ih.clone(in_type);
+    Tensor reverse_d_bias_hh_ = reverse_d_bias_hh.clone(in_type);
+    Tensor reverse_hidden_state_ = reverse_hidden_state.clone(in_type);
+    Tensor reverse_d_hidden_state_ = reverse_d_hidden_state.clone(in_type);
+    Tensor reverse_cell_state_ = reverse_cell_state.clone(in_type);
+    Tensor reverse_d_cell_state_ = reverse_d_cell_state.clone(in_type);
+    Tensor reverse_ifgo_ = reverse_ifgo.clone(in_type);
+    Tensor reverse_d_ifgo_ = reverse_d_ifgo.clone(in_type);
 
-    const Tensor &reverse_ifgo =
-      context.getTensor(wt_idx[LSTMParams::reverse_ifgo]);
-    Tensor &reverse_d_ifgo =
-      context.getTensorGrad(wt_idx[LSTMParams::reverse_ifgo]);
-
-    calcGradientBatchFirstLSTM(
-      NUM_GATE, batch_size, feature_size, disable_bias, unit, integrate_bias,
+    calcGradientInternal(
+      this, batch_size, feature_size, disable_bias, unit, integrate_bias,
       acti_func, recurrent_acti_func, return_sequences, bidirectional,
-      enable_dropout, dropout_rate, max_timestep, true, input,
-      incoming_derivative, reverse_d_weight_ih, reverse_weight_hh,
+      enable_dropout, dropout_rate, max_timestep, false, input,
+      incoming_derivative, d_weight_ih_, weight_hh_, d_weight_hh_, d_bias_h_,
+      d_bias_ih_, d_bias_hh_, hidden_state_, d_hidden_state_, cell_state_,
+      d_cell_state_, ifgo_, d_ifgo_, mask_, reverse_d_weight_ih_,
+      reverse_weight_hh_, reverse_weight_hh_, reverse_d_bias_h_,
+      reverse_d_bias_ih_, reverse_d_bias_hh_, reverse_hidden_state_,
+      reverse_d_hidden_state_, reverse_cell_state_, reverse_d_cell_state_,
+      reverse_ifgo_, reverse_d_ifgo_);
+
+    d_weight_ih.copyData(d_weight_ih_);
+    d_weight_hh.copyData(d_weight_hh_);
+    d_hidden_state.copyData(d_hidden_state_);
+    d_cell_state.copyData(d_cell_state_);
+    d_bias_h.copyData(d_bias_h_);
+    d_bias_ih.copyData(d_bias_ih_);
+    d_bias_hh.copyData(d_bias_hh_);
+    d_ifgo.copyData(d_ifgo_);
+    reverse_d_weight_ih.copyData(reverse_d_weight_ih_);
+    reverse_d_bias_h.copyData(reverse_d_bias_h_);
+    reverse_d_bias_ih.copyData(reverse_d_bias_ih_);
+    reverse_d_bias_hh.copyData(reverse_d_bias_hh_);
+    reverse_d_hidden_state.copyData(reverse_d_hidden_state_);
+    reverse_d_cell_state.copyData(reverse_d_cell_state_);
+    reverse_d_ifgo.copyData(reverse_d_ifgo_);
+  } else {
+    calcGradientInternal(
+      this, batch_size, feature_size, disable_bias, unit, integrate_bias,
+      acti_func, recurrent_acti_func, return_sequences, bidirectional,
+      enable_dropout, dropout_rate, max_timestep, false, input,
+      incoming_derivative, d_weight_ih, weight_hh, d_weight_hh, d_bias_h,
+      d_bias_ih, d_bias_hh, hidden_state, d_hidden_state, cell_state,
+      d_cell_state, ifgo, d_ifgo, mask, reverse_d_weight_ih, reverse_weight_hh,
       reverse_d_weight_hh, reverse_d_bias_h, reverse_d_bias_ih,
       reverse_d_bias_hh, reverse_hidden_state, reverse_d_hidden_state,
-      reverse_cell_state, reverse_d_cell_state, reverse_ifgo, reverse_d_ifgo,
-      mask);
+      reverse_cell_state, reverse_d_cell_state, reverse_ifgo, reverse_d_ifgo);
   }
 }
 

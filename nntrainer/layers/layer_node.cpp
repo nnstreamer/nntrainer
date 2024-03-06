@@ -15,6 +15,7 @@
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 #include <activation_layer.h>
@@ -307,9 +308,8 @@ const std::vector<std::string> LayerNode::getInputLayers() const {
   names.reserve(input_connections.size());
   std::transform(
     input_connections.begin(), input_connections.end(),
-    std::back_inserter(names), [](const Connection &con) -> const auto & {
-      return con.getName();
-    });
+    std::back_inserter(names),
+    [](const Connection &con) -> const auto & { return con.getName(); });
   return names;
 }
 

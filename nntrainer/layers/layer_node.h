@@ -889,6 +889,11 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
+  /**
+   * @brief Set loss scale factor
+   */
+  void setLossSacle(float scale) { layer->setLossSacle(scale); }
+
 private:
   /**
    * @brief     Get the Input Layers object

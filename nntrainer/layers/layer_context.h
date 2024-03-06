@@ -564,6 +564,11 @@ public:
   Tensor &getOutgoingDerivative(unsigned int idx);
 
   /**
+   * @brief validate input/output derivatives of the layer
+   */
+  bool validateDerivatives();
+
+  /**
    * @brief Get the Tensor object
    *
    * @param idx Identifier of the tensor
