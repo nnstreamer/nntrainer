@@ -295,13 +295,15 @@ public:
    * @brief     return Data pointer of TensorV2
    * @retval    template T pointer
    */
-  template <typename T> T *getData() const { return (T *)itensor->getData(); }
+  template <typename T = float> T *getData() const {
+    return (T *)itensor->getData();
+  }
 
   /**
    * @brief     return Data pointer of TensorV2
    * @retval    template T pointer
    */
-  template <typename T> T *getData(size_t idx) const {
+  template <typename T = float> T *getData(size_t idx) const {
     return (T *)itensor->getData(idx);
   }
 
@@ -309,7 +311,7 @@ public:
    * @brief     i data index
    * @retval    template T pointer (address of ith data)
    */
-  template <typename T> T *getAddress(unsigned int i) {
+  template <typename T = float> T *getAddress(unsigned int i) {
     return (T *)itensor->getAddress(i);
   }
 
@@ -317,7 +319,7 @@ public:
    * @brief     i data index
    * @retval    template T pointer (address of ith data)
    */
-  template <typename T> const T *getAddress(unsigned int i) const {
+  template <typename T = float> const T *getAddress(unsigned int i) const {
     return (T *)itensor->getAddress(i);
   }
 
@@ -398,6 +400,18 @@ public:
    */
   void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
                 float value);
+
+  /**
+   * @brief     Set the element value
+   * @param[in] offset offset from start location
+   * @param[in] value value to be stored
+   *
+   * @todo      This is a temporary workout. Remove this
+   */
+  void setValueInt(unsigned int offset, int value) noexcept {
+    int *data_int = (int *)getData();
+    data_int[offset] = value;
+  }
 
   /**
    * @brief     add the element value to the location
@@ -919,6 +933,18 @@ public:
   TensorV2 &erf(TensorV2 &output) const;
 
   /**
+   * @brief    sin transform function
+   * @param[out] out out to store the result
+   */
+  void sin(TensorV2 &out, float alpha = 1.0);
+
+  /**
+   * @brief    cos transform function
+   * @param[out] out out to store the result
+   */
+  void cos(TensorV2 &out, float alpha = 1.0);
+
+  /**
    * @brief     l2norm the Tensor elements
    * @retval    Calculated l2norm
    */
@@ -1112,6 +1138,15 @@ public:
   void putData() const;
 
   /**
+   * @brief Set the memory buffer for the tensor
+   *
+   * @param buf the memory buffer
+   * @param init intialize the buffer
+   */
+  void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
+               bool init = false);
+
+  /**
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
@@ -1218,6 +1253,17 @@ public:
    * @note      Throws std::invalid_argument if size mismatch
    */
   void reshape(const TensorDim &d);
+
+  /**
+   * @brief fill tensor data with current value,
+   * if dimension is not exactly same, it is a hard error in this function
+   * so, only stride is overriden to @a this
+   *
+   * @param from Tensor to fill the data from
+   * @param allocate if unallocated, allocate with from.getDim()
+   * @throws std::invalid_argument if dimension and stride does not match
+   */
+  void fill(const TensorV2 &from, bool allocate = false);
 
   /**
    * @brief     return a copy of the Tensor Dim
@@ -1385,8 +1431,8 @@ public:
    * tensor.
    */
   TensorV2 getSharedDataTensor(const TensorDim dim_, size_t offset,
-                               bool reset_stride,
-                               const std::string &name_) const;
+                               bool reset_stride = true,
+                               const std::string &name_ = "") const;
 
   /**
    * @brief    Swaps Tensor lhs and rhs

@@ -302,6 +302,16 @@ public:
   TensorV2 &erf(TensorV2 &output) const override;
 
   /**
+   * @copydoc TensorV2::sin(TensorV2 &out, float alpha)
+   */
+  void sin(TensorV2 &out, float alpha) override;
+
+  /**
+   * @copydoc TensorV2::cos(TensorV2 &out, float alpha)
+   */
+  void cos(TensorV2 &out, float alpha) override;
+
+  /**
    *  @copydoc TensorV2::dot(TensorV2 const &input, TensorV2 &output, bool
    * trans, bool trans_in, float beta)
    */

@@ -309,6 +309,24 @@ public:
   virtual TensorV2 &erf(TensorV2 &output) const = 0;
 
   /**
+   * @brief    sin transform function
+   * @param[out] out out to store the result
+   */
+  virtual void sin(TensorV2 &out, float alpha = 1.0) {
+    throw std::invalid_argument(
+      "Tensor::sin not supported in current tensor data type.");
+  }
+
+  /**
+   * @brief    cos transform function
+   * @param[out] out out to store the result
+   */
+  virtual void cos(TensorV2 &out, float alpha = 1.0) {
+    throw std::invalid_argument(
+      "Tensor::cos not supported in current tensor data type.");
+  }
+
+  /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and
    * second-last dimension of passed tensor m.
@@ -410,6 +428,13 @@ public:
    * @note      It is only effective when memory_swap is used
    */
   void putData() const;
+
+  /**
+   * @brief Set the memory buffer for the tensor
+   * @param buf the memory buffer
+   * @param off offset
+   */
+  void setMemoryData(const std::shared_ptr<MemoryData> buf, size_t off);
 
   /**
    * @brief     return Data pointer of Tensor

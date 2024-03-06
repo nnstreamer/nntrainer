@@ -56,6 +56,17 @@ void TensorBase::putData() const {
   data->invalidate();
 }
 
+void TensorBase::setMemoryData(const std::shared_ptr<MemoryData> buf,
+                               size_t off) {
+  if (buf) {
+    data = buf;
+    offset = off;
+  } else {
+    data = nullptr;
+    offset = 0;
+  }
+}
+
 const std::shared_ptr<MemoryData> TensorBase::getMemoryData() const {
   return data;
 }
