@@ -246,6 +246,11 @@ public:
   }
 
   /**
+   * @brief     Apply scaler for gradient of the weight
+   */
+  void applyScaler(float scale = 1.0f) { grad->divide_i(scale); }
+
+  /**
    * @brief     Calculate gradient from the regularization of the weight
    */
   void calcRegularizationGradient() {

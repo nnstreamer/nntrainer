@@ -127,8 +127,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, size_t offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -844,6 +843,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
       << getName() << " is not contiguous, cannot multiply";
 
     apply_broadcast(m, f, output);
+
     return output;
 
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -1105,6 +1105,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
         }
       }
     };
+
     apply_broadcast(m, f, output);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -3060,6 +3061,13 @@ void Tensor::copyData(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
+  if (size() == 0) {
+    TensorDim dim = from.getDim();
+    dim.setDataType(getDataType());
+    Tensor t = Tensor(dim, true);
+    swap(t, *this);
+  }
+
   if (size() != from.size())
     throw std::invalid_argument("Size of tensor to copy must match");
 
@@ -3111,6 +3119,15 @@ void Tensor::copyData(const Tensor &from) {
 Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);
+  t.name = name;
+  return t;
+}
+
+Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor t(dim, true);
+  t.copyData(*this);
   t.name = name;
   return t;
 }
