@@ -85,6 +85,14 @@ int NetworkGraph::compile(const std::string &loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
+  /* @note It can be integrated with addLossLayer method
+   * if it removes adding loss layer to the model directly.
+   */
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &ln = *iter;
+    ln->setLossSacle(loss_scale);
+  }
+
   compiled = true;
 
   return status;
@@ -353,10 +361,11 @@ sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    forwarding_op(*iter, training);
+    forwarding_op(ln, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
@@ -397,7 +406,7 @@ void NetworkGraph::backwarding(
   int iteration,
   std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
   std::function<void(Weight &, int)> &apply_grad_clip_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) const {
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -426,14 +435,51 @@ void NetworkGraph::backwarding(
   if (clip_weights.empty())
     return;
 
+  // update loss scale
+  auto update_loss_scale = [&](float scale) {
+    ml_logd("set loss scale = %f", scale);
+    for (auto iter = cbegin(); iter != cend(); iter++) {
+      auto &ln = *iter;
+      ln->setLossSacle(scale);
+    }
+    loss_scale = scale;
+  };
+
+  // check first layer's derivative is valid
+  // loss scale is adjusted between 1.0f ~ 256.0f
+  // @TODO provide max scale property
+  auto &ln = *(cbegin() + 1);
+  if (loss_scale != 0.0f && !ln->getRunContext().validateDerivatives()) {
+    // It will not apply train results if data is invalid
+    float scale = loss_scale - 0.5f;
+    ml_logd(
+      "Derivative validation failed. Skip applying gradient. loss_scale(%f)",
+      scale);
+    update_loss_scale(scale);
+    return;
+  }
+
   /** calculate the global norm */
   Tensor global_norm_t(
     TensorDim({1u, 1u, 1u, (unsigned int)clip_weights.size()}));
   float *global_norm_data = global_norm_t.getData();
   for (unsigned int idx = 0; idx < clip_weights.size(); idx++) {
     auto const &w = clip_weights[idx];
+
+    if (loss_scale != 0.0f) {
+      w->applyScaler(loss_scale);
+      if (w->getGradient().checkDataValidation(false) == false) {
+        float scale = loss_scale - 0.5f;
+        ml_loge("gradient validation failed. skip update. loss_scale(%f)",
+                scale);
+        update_loss_scale(scale);
+        return;
+      }
+    }
+
     global_norm_data[idx] = w->getGradientNorm();
   }
+
   float global_norm = global_norm_t.l2norm();
   /** apply the gradient with the above global norm */
   for (auto w : clip_weights) {
@@ -442,6 +488,12 @@ void NetworkGraph::backwarding(
   /** apply the gradient with the above global norm */
   for (auto w : clip_weights) {
     apply_grad_clip_op(*w, iteration);
+  }
+
+  // update loss scale
+  if (loss_scale != 0.0f) {
+    float scale = loss_scale + 2.0f;
+    update_loss_scale(scale);
   }
 }
 
@@ -755,9 +807,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
-  std::transform(prev_inputs.begin(), prev_inputs.end(),
-                 std::back_inserter(input_names),
-                 [](auto const &vg) -> const auto &{ return vg->getName(); });
+  std::transform(
+    prev_inputs.begin(), prev_inputs.end(), std::back_inserter(input_names),
+    [](auto const &vg) -> const auto & { return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
@@ -1520,12 +1572,14 @@ void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
 
   std::vector<Tensor> ins;
-  std::transform(inputs.begin(), inputs.end(), std::back_inserter(ins),
-                 [](auto const &val) -> const auto &{ return *val.get(); });
+  std::transform(
+    inputs.begin(), inputs.end(), std::back_inserter(ins),
+    [](auto const &val) -> const auto & { return *val.get(); });
 
   std::vector<Tensor> labs;
-  std::transform(labels.begin(), labels.end(), std::back_inserter(labs),
-                 [](auto const &val) -> const auto &{ return *val.get(); });
+  std::transform(
+    labels.begin(), labels.end(), std::back_inserter(labs),
+    [](auto const &val) -> const auto & { return *val.get(); });
 
   setInputsLabels(ins, labs);
 }
