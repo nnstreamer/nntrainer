@@ -1029,6 +1029,7 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
       ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
               strides[3]);
     };
+
     apply_broadcast(m, f, output);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -3010,6 +3011,13 @@ void Tensor::copyData(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
+  if (size() == 0) {
+    TensorDim dim = from.getDim();
+    dim.setDataType(getDataType());
+    Tensor t = Tensor(dim, true);
+    swap(t, *this);
+  }
+
   if (size() != from.size())
     throw std::invalid_argument("Size of tensor to copy must match");
 
@@ -3061,6 +3069,15 @@ void Tensor::copyData(const Tensor &from) {
 Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);
+  t.name = name;
+  return t;
+}
+
+Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor t(dim, true);
+  t.copyData(*this);
   t.name = name;
   return t;
 }

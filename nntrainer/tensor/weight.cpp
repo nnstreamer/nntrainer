@@ -27,11 +27,26 @@ Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
   regularizer_constant(reg_const),
   decay(decay_const),
   clip_by_global_norm(max_norm),
-  output_axis(axis) {
+  output_axis(axis),
+  var_master(nullptr) {
   if (init == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
+}
+
+void Weight::applyGradient(double lr) {
+  if (var_master.get()) {
+    Tensor grad_ = grad->clone(var_master->getDataType());
+    var_master->add_i(grad_, -lr);
+  } else {
+    var->add_i(*grad.get(), -lr);
+  }
+}
+
+void Weight::applyMaster() {
+  if (var_master.get())
+    var->copyData(*var_master);
 }
 
 } // namespace nntrainer

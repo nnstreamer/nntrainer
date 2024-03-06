@@ -9,10 +9,12 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Jiho Chu <jiho.chu@samsung.com>
  * @bug    No known bugs except for NYI items
  *
  */
 
+#include "dataset.h"
 #ifdef __ANDROID__
 #include <android/sharedmem.h>
 #endif
@@ -52,10 +54,7 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -148,13 +147,20 @@ void Manager::reinitialize() {
 }
 
 void Manager::allocateWeights(unsigned int max_exec_order_) {
+  if (!weight_master_pool.isAllocated()) {
+    finalizeTensorPool(weight_master_pool, 0, max_exec_order_);
+    weight_master_pool.allocate();
+  }
   if (!weight_pool.isAllocated()) {
     finalizeTensorPool(weight_pool, 0, max_exec_order_);
     weight_pool.allocate();
   }
 }
 
-void Manager::deallocateWeights() { weight_pool.deallocate(); }
+void Manager::deallocateWeights() {
+  weight_pool.deallocate();
+  weight_master_pool.deallocate();
+}
 
 static Tensor *requestTensor_(const TensorSpecV2 &spec,
                               const GraphNode::ExecutionOrder &exec_order,
@@ -366,7 +372,8 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  */
 std::vector<Weight *> Manager::requestWeights(
   const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
-  bool trainable, const std::vector<std::string> &shared_names) {
+  bool trainable, const std::vector<std::string> &shared_names,
+  TensorDim::DataType act_type) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order,
               applyGradient_order] = node.getExecutionOrder();
 
@@ -416,14 +423,23 @@ std::vector<Weight *> Manager::requestWeights(
       // var_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
     }
 
-    Tensor *var = nullptr, *grad = nullptr;
+    Tensor *var = nullptr, *grad = nullptr, *var_m = nullptr;
     bool is_dependent = !shared_names.empty();
+    TensorDim dim_a = dim;
     if (is_dependent) {
       /// shared_name is used and the orignal name is discarded
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
-      var = weight_pool.requestOrExtend(shared_name, dim, var_exec_order,
-                                        var_ls, t_initializer);
+      if (act_type == TensorDim::DataType::NONE) {
+        var = weight_pool.requestOrExtend(shared_name, dim_a, var_exec_order,
+                                          var_ls, t_initializer);
+      } else {
+        dim_a.setDataType(act_type);
+        var = weight_pool.requestOrExtend(shared_name, dim_a, var_exec_order,
+                                          var_ls, t_initializer);
+        var_m = weight_master_pool.requestOrExtend(
+          shared_name, dim, var_exec_order, var_ls, t_initializer);
+      }
 
       if (trainable && need_gradient) {
         /** We cannot use the tensor schedulding for weight gradient if the
@@ -431,13 +447,21 @@ std::vector<Weight *> Manager::requestWeights(
          * for each layer anymore and it is hard to overwritten.
          */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
-                                           dim, grad_exec_order, grad_ls,
+                                           dim_a, grad_exec_order, grad_ls,
                                            Tensor::Initializer::ZEROS);
       }
     } else {
       /** case requesting fresh weights */
-      var =
-        weight_pool.request(name, dim, var_exec_order, var_ls, t_initializer);
+      if (act_type == TensorDim::DataType::NONE) {
+        var = weight_pool.request(name, dim_a, var_exec_order, var_ls,
+                                  t_initializer);
+      } else {
+        dim_a.setDataType(act_type);
+        var = weight_pool.request(name, dim_a, var_exec_order, var_ls,
+                                  t_initializer);
+        var_m = weight_master_pool.request(name, dim, var_exec_order, var_ls,
+                                           t_initializer);
+      }
 
       if (trainable && need_gradient) {
         /** is_wgrad is the index which is true when it is the gradient tensor
@@ -447,14 +471,15 @@ std::vector<Weight *> Manager::requestWeights(
         bool is_wgrad = true;
         if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
           is_wgrad = false;
-        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim,
+        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_a,
                                    grad_exec_order, grad_ls,
                                    Tensor::Initializer::ZEROS, is_wgrad);
       }
     }
 
-    weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad, w_reg, w_reg_const, decay, is_dependent, clip_by_global_norm));
+    weights_v2.emplace_back(
+      std::make_unique<Weight>(var, grad, w_reg, w_reg_const, decay,
+                               is_dependent, clip_by_global_norm, 3, var_m));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
@@ -671,7 +696,7 @@ bool Manager::isSecondLastAccess(const std::string &name,
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
   const TensorLifespan &lifespan, bool is_grad_clip,
-  Tensor::Initializer initializer) {
+  Tensor::Initializer initializer, bool is_master) {
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());
@@ -686,9 +711,16 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
 
   /// @note this is assuming weight optimizer variables is treated as weight, if
   /// not, there is room to optimize below behavior
-  for (unsigned int idx = 0; idx < dims.size(); idx++)
-    ret.push_back(weight_pool.request(name + ":opt" + std::to_string(idx),
-                                      dims[idx], exec, lifespan, initializer));
+  for (unsigned int idx = 0; idx < dims.size(); idx++) {
+    if (is_master)
+      ret.push_back(
+        weight_master_pool.request(name + ":opt" + std::to_string(idx),
+                                   dims[idx], exec, lifespan, initializer));
+    else
+      ret.push_back(weight_pool.request(name + ":opt" + std::to_string(idx),
+                                        dims[idx], exec, lifespan,
+                                        initializer));
+  }
 
   return ret;
 }
