@@ -70,7 +70,7 @@ NeuralNetwork::NeuralNetwork() :
     props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
     props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
     props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+    props::TensorFormat(), props::ModelTensorDataType(), props::LossScale()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -88,7 +88,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
     props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
     props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
     props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+    props::TensorFormat(), props::ModelTensorDataType(), props::LossScale()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -179,8 +179,9 @@ int NeuralNetwork::compile() {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
+  const float loss_scale = std::get<props::LossScale>(model_flex_props);
   model_graph = NetworkGraph(memory_swap, memory_swap_path, lookahead,
-                             tensor_format, tensor_type);
+                             tensor_format, tensor_type, loss_scale);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
