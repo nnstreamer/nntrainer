@@ -6,6 +6,7 @@
  * @date    19 Oct 2020
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Jijoong Moon <jijoong.moon@samsung.com>
+ * @author  Jiho Chu <jiho.chu@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This is Network Graph Class for Neural Network
  *
@@ -84,6 +85,14 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
+
+  /* @note It can be integrated with addLossLayer method
+   * if it removes adding loss layer to the model directly.
+   */
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &ln = *iter;
+    ln->setLossScale(loss_scale);
+  }
 
   compiled = true;
 
@@ -353,10 +362,15 @@ sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
+  for (auto w : clip_weights) {
+    w->applyMaster();
+  }
+
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    forwarding_op(*iter, training);
+    forwarding_op(ln, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
@@ -397,7 +411,7 @@ void NetworkGraph::backwarding(
   int iteration,
   std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
   std::function<void(Weight &, int)> &apply_grad_clip_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) const {
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -426,6 +440,46 @@ void NetworkGraph::backwarding(
   if (clip_weights.empty())
     return;
 
+  /**
+   * mixed precision trainging needs gradient clipping and loss scale,
+   * cause all weights are updated with clipping option.
+   * also, loss scale makes to avoid unexpected training result.
+   */
+  auto update_loss_scale = [&](float scale) {
+    ml_logd("set loss scale = %f", scale);
+    for (auto iter = cbegin(); iter != cend(); iter++) {
+      auto &ln = *iter;
+      ln->setLossScale(scale);
+    }
+    loss_scale = scale;
+  };
+
+  // check first layer's derivative is valid
+  // loss scale is adjusted between 1.0f ~ 256.0f
+  // @TODO provide max scale property
+  auto &ln = *(cbegin() + 1);
+  if (loss_scale != 0.0f && !ln->getRunContext().validateDerivatives()) {
+    // It will not apply train results if data is invalid
+    float scale = loss_scale > 1.5f ? loss_scale - 0.5f : 1.0f;
+    ml_logd(
+      "Derivative validation failed. Skip applying gradient. loss_scale(%f)",
+      scale);
+    update_loss_scale(scale);
+    return;
+  } else {
+    for (unsigned int idx = 0; idx < clip_weights.size(); idx++) {
+      auto const &w = clip_weights[idx];
+      w->applyScaler(loss_scale);
+      if (w->getGradient().checkDataValidation(false) == false) {
+        float scale = loss_scale > 1.5f ? loss_scale - 0.5f : 1.0f;
+        ml_loge("gradient validation failed. skip update. loss_scale(%f)",
+                scale);
+        update_loss_scale(scale);
+        return;
+      }
+    }
+  }
+
   /** calculate the global norm */
   Tensor global_norm_t(
     TensorDim({1u, 1u, 1u, (unsigned int)clip_weights.size()}));
@@ -434,6 +488,7 @@ void NetworkGraph::backwarding(
     auto const &w = clip_weights[idx];
     global_norm_data[idx] = w->getGradientNorm();
   }
+
   float global_norm = global_norm_t.l2norm();
   /** apply the gradient with the above global norm */
   for (auto w : clip_weights) {
@@ -442,6 +497,12 @@ void NetworkGraph::backwarding(
   /** apply the gradient with the above global norm */
   for (auto w : clip_weights) {
     apply_grad_clip_op(*w, iteration);
+  }
+
+  // update loss scale
+  if (loss_scale != 0.0f) {
+    float scale = loss_scale + 2.0f;
+    update_loss_scale(scale);
   }
 }
 
@@ -606,6 +667,14 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     };
 
   /**
+   * if the layer's input and output type is not FP32, then it cannot be
+   * inplace. We assume that the input is always FP32.
+   */
+  if (lnode->getInputConnections().empty() &&
+      !istrequal(getTensorType()[2], "FP32"))
+    return InPlace::NONE;
+
+  /**
    * @note Conditions to decide if this layer node can be in-place:
    * 1. if the layer is a no-op, then it can operate in-place as it is not
    * modifying its input/output tensors and does not need to check its
@@ -684,15 +753,6 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       return InPlace::NON_RESTRICTING;
 
     return InPlace::RESTRICTING;
-  }
-
-  /**
-   * if the layer's input and output type is not FP32, then it cannot be
-   * inplace. We assume that the input is always FP32.
-   */
-  if (lnode->getInputConnections().empty()) {
-    if (!istrequal(getTensorType()[2], "FP32"))
-      return InPlace::NONE;
   }
 
   return InPlace::NONE;
@@ -876,7 +936,11 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
-                                   lnode->getTrainable(), shared_weight_names),
+                                   lnode->getTrainable(), shared_weight_names,
+                                   init_context.getActivationDataType() !=
+                                       init_context.getWeightDataType()
+                                     ? init_context.getActivationDataType()
+                                     : TensorDim::DataType::NONE),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    lnode->getTrainable(), shared_tensor_names));
@@ -1551,6 +1615,7 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
 void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
   bool request_only_trainable) {
+  bool need_master = !istrequal(getTensorType()[1], getTensorType()[2]);
   for (auto const &w : tensor_manager->getWeights()) {
     if (w->isGradientLastAccess() && w->hasGradient()) {
       const TensorDim &dim = w->getDim();
@@ -1558,6 +1623,17 @@ void NetworkGraph::requestOptimizerVariable(
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
         w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS));
+      if (need_master) {
+        for (auto &dim : dims)
+          dim.setDataType(
+            str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+              from_string(getTensorType()[1]));
+        w->setOptimizerMasterVariables(
+          tensor_manager->requestWeightOptimizerVariables(
+            dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+            w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS,
+            need_master));
+      }
     }
   }
 }
