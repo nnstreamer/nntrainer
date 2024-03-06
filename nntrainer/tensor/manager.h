@@ -145,6 +145,8 @@ public:
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
           const std::string tensor_dtype_ = "FP32-FP32") :
     weight_pool(enable_swap, swap_path, "weight_pool"),
+    /* @todo weight master does not support cache pool yet */
+    weight_master_pool(enable_swap, swap_path, "weight_master_pool"),
     tensor_pool(enable_swap, swap_path, "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
@@ -191,14 +193,16 @@ public:
    * @param weights_spec Specification for the weights
    * @param trainable make the weight trainable if true
    * @param shared_names name to refer to when the weights are borrowed from the
-   * original source. if not shared pass empty vector
+   * @param act_type activation data type if data type is different from weight,
+   * otherwise NONE. original source. if not shared pass empty vector
    *
    * @return created weights list
    */
   std::vector<Weight *>
   requestWeights(const GraphNode &node,
                  const std::vector<Weight::Spec> &weights_spec, bool trainable,
-                 const std::vector<std::string> &shared_names);
+                 const std::vector<std::string> &shared_names,
+                 TensorDim::DataType act_type = TensorDim::DataType::NONE);
 
   /**
    * @brief     Create tensors with the given spec
@@ -225,7 +229,8 @@ public:
   std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
     const TensorLifespan &lifespan, bool is_grad_clip,
-    Tensor::Initializer initializer = Tensor::Initializer::NONE);
+    Tensor::Initializer initializer = Tensor::Initializer::NONE,
+    bool is_master = false);
 
   /**
    * @brief     Create tensors with the given spec
@@ -509,6 +514,8 @@ private:
     tensor_book; /**< reference to tensor book kept */
 
   TensorPool weight_pool; /**< tensor pool to request tensors */
+  TensorPool
+    weight_master_pool;   /**< weight pool for store master float 32 weights */
   TensorPool tensor_pool; /**< tensor pool to request tensors */
 
   std::map<unsigned int, std::tuple<int, int>> async_task_eos;

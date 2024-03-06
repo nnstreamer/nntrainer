@@ -107,6 +107,8 @@ void MemoryPool::allocate() {
   msg.append(std::to_string(seq++));
   PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
 #endif
+
+  ml_loge("allocate memory: %zu", pool_size);
 }
 
 /**

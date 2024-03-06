@@ -55,7 +55,8 @@ public:
     QINT4, /** quantized int 4*/
     QINT8, /** quantized int 8*/
     FP16,  /** half precision */
-    FP32   /** single precision */
+    FP32,  /** single precision */
+    NONE,  /** not specified */
   };
 
   /**
@@ -97,9 +98,7 @@ public:
      */
     TensorType(Format fm, DataType d_type,
                StorageOrder order = StorageOrder::ROW_MAJOR) :
-      format(fm),
-      data_type(d_type),
-      storage_order(order){};
+      format(fm), data_type(d_type), storage_order(order){};
   };
 
   /**
