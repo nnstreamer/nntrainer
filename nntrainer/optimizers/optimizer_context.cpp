@@ -37,6 +37,21 @@ Tensor &RunOptimizerContext::getOptimizerVariable(unsigned int idx) const {
 }
 
 /**
+ * @brief Get the optimizer variable associated to this weight
+ */
+Tensor &
+RunOptimizerContext::getOptimizerMasterVariable(unsigned int idx) const {
+  return weight->getOptimizerMasterVariableRef(idx);
+}
+
+/**
+ * @brief Get number of optimizer master variable
+ */
+int RunOptimizerContext::getNumOptMasterVariable() {
+  return weight->getNumOptMasterVariable();
+}
+
+/**
  * @brief   Apply the gradient with the given learning rate
  */
 void RunOptimizerContext::applyGradient(double lr) const {

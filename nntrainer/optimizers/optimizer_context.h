@@ -62,6 +62,21 @@ public:
   Tensor &getOptimizerVariable(unsigned int idx) const;
 
   /**
+   * @brief Get the optimizer Master variable associated to this weight
+   *
+   * @param idx Identifier of the associated weight
+   * @return Tensor& Reference to the optimizer variable
+   */
+  Tensor &getOptimizerMasterVariable(unsigned int idx) const;
+
+  /**
+   * @brief Get number of the optimizer Master variable
+   *
+   * @return number of optimizer master variable
+   */
+  int getNumOptMasterVariable();
+
+  /**
    * @brief   Check if run context is set and is ready to use
    *
    * @return true if ready, else false
