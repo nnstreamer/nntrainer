@@ -328,6 +328,11 @@ public:
   virtual void zoneout_mask(TensorV2 &opposite, float zoneout) = 0;
 
   /**
+   * @copydoc TensorV2::split(std::vector<size_t> sizes, int axis)
+   */
+  virtual std::vector<TensorV2> split(std::vector<size_t> sizes, int axis) = 0;
+
+  /**
    * @copydoc TensorV2::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;

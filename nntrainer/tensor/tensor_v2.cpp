@@ -669,6 +669,69 @@ void TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout) {
   itensor->zoneout_mask(opposite, zoneout);
 }
 
+std::vector<TensorV2> TensorV2::split(unsigned num_size, int axis) {
+  NNTR_THROW_IF(num_size == 0, std::invalid_argument)
+    << "num size cannot be zero";
+
+  if (axis == -1) {
+    axis = 3;
+  }
+
+  NNTR_THROW_IF(!(0 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(getDim().getTensorDim(axis) % num_size != 0,
+                std::invalid_argument)
+    << "axis is not divisible by num_size, axis: " << axis
+    << " num size: " << num_size;
+
+  std::vector<size_t> sizes;
+  sizes.resize(num_size);
+
+  unsigned int sz = getDim().getTensorDim(axis) / num_size;
+  std::fill(sizes.begin(), sizes.end(), sz);
+
+  return split(sizes, axis);
+}
+
+std::vector<TensorV2> TensorV2::split(std::vector<size_t> sizes, int axis) {
+  NNTR_THROW_IF(sizes.size() == 0, std::invalid_argument)
+    << "num size cannot be zero";
+
+  NNTR_THROW_IF(!(-1 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(
+    std::any_of(sizes.begin(), sizes.end(), [](size_t sz) { return !sz; }),
+    std::invalid_argument)
+    << "among given sizes at least one of size is 0";
+
+  return itensor->split(sizes, axis);
+}
+
+TensorV2 TensorV2::cat(const std::vector<TensorV2> &tensors, int axis) {
+  NNTR_THROW_IF(!(-1 <= axis && axis < 4), std::invalid_argument)
+    << "cannot split axis of axis: " << axis;
+
+  NNTR_THROW_IF(tensors.empty(), std::invalid_argument)
+    << "given tensor vector is empty";
+
+  TensorV2 output;
+  Tdatatype dtype = tensors.front().getDim().getDataType();
+
+  if (dtype == Tdatatype::FP32) {
+    output = FloatTensor::cat(tensors, axis);
+  } else if (dtype == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    output = HalfTensor::cat(tensors, axis);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+
+  return output;
+}
+
 void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }

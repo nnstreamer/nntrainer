@@ -119,7 +119,13 @@ public:
    * @brief     return value at specific location
    * @param[in] i index
    */
-  const float getValue(unsigned int i) const;
+  const float &getValue(unsigned int i) const;
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] i index
+   */
+  float &getValue(unsigned int i);
 
   /**
    * @brief     return value at specific location
@@ -128,8 +134,18 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  const float getValue(unsigned int b, unsigned int c, unsigned int h,
-                       unsigned int w) const;
+  const float &getValue(unsigned int b, unsigned int c, unsigned int h,
+                        unsigned int w) const;
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   */
+  float &getValue(unsigned int b, unsigned int c, unsigned int h,
+                  unsigned int w);
 
   /**
    * @copydoc TensorV2::setValue(float value)
@@ -301,6 +317,16 @@ public:
    * @copydoc TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout)
    */
   void zoneout_mask(TensorV2 &opposite, float zoneout) override;
+
+  /**
+   * @copydoc TensorV2::split(std::vector<size_t> sizes, int axis)
+   */
+  std::vector<TensorV2> split(std::vector<size_t> sizes, int axis) override;
+
+  /**
+   * @copydoc TensorV2::cat(const std::vector<TensorV2> &tensors, int axis)
+   */
+  static TensorV2 cat(const std::vector<TensorV2> &tensors, int axis);
 
   /**
    * @copydoc TensorV2::copy(const TensorV2 &from)
