@@ -523,6 +523,20 @@ TensorV2 &TensorV2::erf(TensorV2 &output) const {
   return output;
 }
 
+void TensorV2::sin(TensorV2 &out, float alpha) {
+  if (size() != out.size())
+    throw std::invalid_argument("Error: Size of out of Tensor::sin must match");
+
+  itensor->sin(out, alpha);
+}
+
+void TensorV2::cos(TensorV2 &out, float alpha) {
+  if (size() != out.size())
+    throw std::invalid_argument("Error: Size of out of Tensor::cos must match");
+
+  itensor->cos(out, alpha);
+}
+
 float TensorV2::l2norm() const { return itensor->l2norm(); }
 
 void TensorV2::normalization_i() {
@@ -787,6 +801,15 @@ void TensorV2::print(std::ostream &out) const { itensor->print(out); }
 
 void TensorV2::putData() const { itensor->putData(); }
 
+void TensorV2::setData(const std::shared_ptr<MemoryData> buf, size_t off,
+                       bool init) {
+  itensor->setMemoryData(buf, off);
+
+  if (buf && init) {
+    initialize();
+  }
+}
+
 const std::shared_ptr<MemoryData> TensorV2::getMemoryData() const {
   return itensor->getMemoryData();
 }
@@ -929,6 +952,31 @@ TensorV2 &TensorV2::transpose(const std::string &direction,
 }
 
 void TensorV2::reshape(const TensorDim &d) { itensor->reshape(d); }
+
+void TensorV2::fill(const TensorV2 &from, bool allocate) {
+  if (allocate && this->empty()) {
+    this->copy(from);
+    return;
+  }
+
+  if (!from.getContiguous() || !getContiguous()) {
+    /// @todo enable this if needed
+    throw nntrainer::exception::not_supported(
+      "[Tensor::fill] non-contiguous tensors are not supported");
+  }
+
+  if (getDim() != from.getDim()) {
+    throw std::invalid_argument("[Tensor::fill] dimension must be the same");
+  }
+
+  if (getStrides() != from.getStrides()) {
+    /// @todo length does not represent buffer size, there should be way to
+    /// get the buffer size
+    throw std::invalid_argument("[Tensor::fill] buffer size must be the same");
+  }
+
+  copyData(from);
+}
 
 TensorDim TensorV2::getDim() const { return itensor->getDim(); }
 

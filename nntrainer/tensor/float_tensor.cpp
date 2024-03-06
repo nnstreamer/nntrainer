@@ -704,6 +704,24 @@ TensorV2 &FloatTensor::erf(TensorV2 &output) const {
   return output;
 }
 
+void FloatTensor::sin(TensorV2 &out, float alpha) {
+  if (!contiguous) {
+    auto f = [alpha](float val) -> float { return std::sin(alpha * val); };
+    apply(f, out);
+  } else {
+    sine(size(), (float *)getData(), out.getData<float>(), alpha);
+  }
+}
+
+void FloatTensor::cos(TensorV2 &out, float alpha) {
+  if (!contiguous) {
+    auto f = [alpha](float val) -> float { return std::cos(alpha * val); };
+    apply(f, out);
+  } else {
+    cosine(size(), (float *)getData(), out.getData<float>(), alpha);
+  }
+}
+
 TensorV2 &FloatTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
                            bool trans_in, float beta) const {
   // Comment out with intension to support the calculation wrt. batch and height
