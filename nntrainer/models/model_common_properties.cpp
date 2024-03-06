@@ -39,4 +39,6 @@ MemorySwapLookahead::MemorySwapLookahead(const unsigned int &value) {
 ModelTensorDataType::ModelTensorDataType(ModelTensorDataTypeInfo::Enum value) {
   set(value);
 }
+LossScale::LossScale(float value) { set(value); }
+
 } // namespace nntrainer::props
