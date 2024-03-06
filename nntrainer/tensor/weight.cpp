@@ -18,7 +18,7 @@
 
 namespace nntrainer {
 
-Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
+Weight::Weight(const TensorDim &dim, const Initializer init,
                const WeightRegularizer reg, const float reg_const,
                const float decay_const, const float max_norm, bool train,
                bool alloc_now_, std::string name, unsigned int axis) :
@@ -28,7 +28,7 @@ Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
   decay(decay_const),
   clip_by_global_norm(max_norm),
   output_axis(axis) {
-  if (init == Tensor::Initializer::NONE)
+  if (init == Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");

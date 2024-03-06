@@ -282,9 +282,9 @@ void FloatTensor::initialize(Initializer init) {
   initialize();
 }
 
-TensorV2 &FloatTensor::apply(std::function<float(float)> f,
-                             TensorV2 &output) const {
-  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+Tensor &FloatTensor::apply(std::function<float(float)> f,
+                           Tensor &output) const {
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (contiguous && output.getContiguous()) {
     const float *data = (float *)getData();
@@ -317,9 +317,9 @@ TensorV2 &FloatTensor::apply(std::function<float(float)> f,
   return output;
 }
 
-TensorV2 FloatTensor::multiply_strided(TensorV2 const &m, TensorV2 &output,
-                                       const float beta) const {
-  CREATE_V2_IF_EMPTY_DIMS(output, dim, nullptr);
+Tensor FloatTensor::multiply_strided(Tensor const &m, Tensor &output,
+                                     const float beta) const {
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (size() != m.size() || size() != output.size())
     throw std::invalid_argument(
@@ -386,15 +386,15 @@ int FloatTensor::multiply_i(float const &value) {
   return ML_ERROR_NONE;
 }
 
-TensorV2 &FloatTensor::multiply(float const &value, TensorV2 &out) const {
+Tensor &FloatTensor::multiply(float const &value, Tensor &out) const {
   auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
   apply(f, out);
   return out;
 }
 
-TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
-                                const float beta) const {
-  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+Tensor &FloatTensor::multiply(Tensor const &m, Tensor &output,
+                              const float beta) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1 &&
         std::fpclassify(beta) == FP_ZERO) {
@@ -427,14 +427,14 @@ TensorV2 &FloatTensor::multiply(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
-TensorV2 &FloatTensor::divide(float const &value, TensorV2 &output) const {
+Tensor &FloatTensor::divide(float const &value, Tensor &output) const {
   auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
   apply(f, output);
   return output;
 }
 
-TensorV2 &FloatTensor::divide(TensorV2 const &m, TensorV2 &output) const {
-  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+Tensor &FloatTensor::divide(Tensor const &m, Tensor &output) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1) {
       std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
@@ -453,8 +453,8 @@ TensorV2 &FloatTensor::divide(TensorV2 const &m, TensorV2 &output) const {
   return output;
 }
 
-TensorV2 &FloatTensor::add_strided(TensorV2 const &input, TensorV2 &output,
-                                   const float beta) const {
+Tensor &FloatTensor::add_strided(Tensor const &input, Tensor &output,
+                                 const float beta) const {
   NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
   NNTR_THROW_IF(input.getData<float>() == nullptr, std::invalid_argument)
@@ -507,15 +507,15 @@ TensorV2 &FloatTensor::add_strided(TensorV2 const &input, TensorV2 &output,
   return output;
 }
 
-TensorV2 &FloatTensor::add(float const &value, TensorV2 &output) const {
+Tensor &FloatTensor::add(float const &value, Tensor &output) const {
   auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
   apply(f, output);
   return output;
 }
 
-TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
-                           float const alpha) const {
-  auto f = [&](const BroadcastInfoV2 &e, const float *buf, const float *m_buf,
+Tensor &FloatTensor::add(Tensor const &m, Tensor &output,
+                         float const alpha) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 &&
         std::fpclassify(alpha) == FP_ZERO) {
@@ -534,27 +534,27 @@ TensorV2 &FloatTensor::add(TensorV2 const &m, TensorV2 &output,
   return output;
 }
 
-TensorV2 &FloatTensor::subtract(float const &value, TensorV2 &output) const {
+Tensor &FloatTensor::subtract(float const &value, Tensor &output) const {
   auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
   apply(f, output);
   return output;
 }
 
-void FloatTensor::sum_by_batch(TensorV2 &output) const {
+void FloatTensor::sum_by_batch(Tensor &output) const {
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
   const float *data = (float *)getData();
   float *out_data = output.getData<float>();
 
-  TensorV2 ones(1, 1, 1, feat_len, this->getFormat());
+  Tensor ones(1, 1, 1, feat_len, this->getFormat());
   ones.setValue(1.0);
   sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
         ones.getData<float>(), 1, 0.0, out_data, 1);
 }
 
-TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
-                           float beta) const {
+Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
+                         float beta) const {
   const float *data = (float *)getData();
 
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
@@ -564,35 +564,35 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
     throw std::out_of_range("Error: axis is invalid");
 
   if (dim.getDim()[axis] == 1 and alpha == 1.0 and !beta) {
-    CREATE_V2_IF_EMPTY_DIMS(output, dim);
+    CREATE_IF_EMPTY_DIMS(output, dim);
     scopy(size(), (float *)getData(), 1, output.getData<float>(), 1);
     return output;
   }
 
   switch (axis) {
   case 0: {
-    CREATE_V2_IF_EMPTY_DIMS(output, 1, dim.channel(), dim.height(), dim.width(),
-                            getTensorType());
+    CREATE_IF_EMPTY_DIMS(output, 1, dim.channel(), dim.height(), dim.width(),
+                         getTensorType());
     size_t feat_len = dim.getFeatureLen();
     size_t batch = dim.batch();
-    TensorV2 ones(1, 1, 1, batch, getTensorType());
+    Tensor ones(1, 1, 1, batch, getTensorType());
     ones.setValue(alpha);
     sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
           ones.getData<float>(), 1, beta, output.getData<float>(), 1);
   } break;
   case 1: {
-    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
+    CREATE_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
     if (this->getFormat() == Tformat::NHWC) {
       unsigned int feat_len = output.getDim().getDataLen();
       unsigned int t_axis = dim[1];
-      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
       sgemv(CblasRowMajor, CblasNoTrans, feat_len, t_axis, 1, data, t_axis,
             ones.getData<float>(), 1, beta, output.getData<float>(), 1);
     } else {
       unsigned int feat_len = dim[2] * dim[3];
       unsigned int t_axis = dim[1];
-      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -603,11 +603,11 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
     }
   } break;
   case 2: {
-    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], dim[1], 1, dim[3], getTensorType());
+    CREATE_IF_EMPTY_DIMS(output, dim[0], dim[1], 1, dim[3], getTensorType());
     if (this->getFormat() == Tformat::NHWC) {
       unsigned int feat_len = dim[1] * dim[3];
       unsigned int t_axis = dim[2];
-      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -618,7 +618,7 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
     } else {
       unsigned int t_3 = dim[3];
       unsigned int t_axis = dim[2];
-      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
 
       if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
@@ -641,12 +641,12 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
     }
   } break;
   case 3: {
-    CREATE_V2_IF_EMPTY_DIMS(output, dim[0], dim[1], dim[2], 1,
-                            this->getTensorType());
+    CREATE_IF_EMPTY_DIMS(output, dim[0], dim[1], dim[2], 1,
+                         this->getTensorType());
     if (this->getFormat() == Tformat::NHWC) {
       unsigned int t_3 = dim[1];
       unsigned int t_axis = dim[3];
-      TensorV2 ones(1, 1, 1, t_axis, getTensorType());
+      Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
@@ -660,7 +660,7 @@ TensorV2 &FloatTensor::sum(unsigned int axis, TensorV2 &output, float alpha,
     } else {
       unsigned int m = output.getDim().getDataLen();
       unsigned int n = dim[3];
-      TensorV2 ones(1, 1, 1, n, getTensorType());
+      Tensor ones(1, 1, 1, n, getTensorType());
       ones.setValue(alpha);
 
       if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
@@ -692,19 +692,19 @@ float FloatTensor::l2norm() const {
   return snrm2(size(), (float *)getData(), 1);
 }
 
-TensorV2 &FloatTensor::pow(float exponent, TensorV2 &output) const {
+Tensor &FloatTensor::pow(float exponent, Tensor &output) const {
   auto f = [exponent](float in) { return powf(in, exponent); };
   apply(f, output);
   return output;
 }
 
-TensorV2 &FloatTensor::erf(TensorV2 &output) const {
+Tensor &FloatTensor::erf(Tensor &output) const {
   auto f = [](float in) { return std::erf(in); };
   apply(f, output);
   return output;
 }
 
-void FloatTensor::sin(TensorV2 &out, float alpha) {
+void FloatTensor::sin(Tensor &out, float alpha) {
   if (!contiguous) {
     auto f = [alpha](float val) -> float { return std::sin(alpha * val); };
     apply(f, out);
@@ -713,7 +713,7 @@ void FloatTensor::sin(TensorV2 &out, float alpha) {
   }
 }
 
-void FloatTensor::cos(TensorV2 &out, float alpha) {
+void FloatTensor::cos(Tensor &out, float alpha) {
   if (!contiguous) {
     auto f = [alpha](float val) -> float { return std::cos(alpha * val); };
     apply(f, out);
@@ -722,8 +722,16 @@ void FloatTensor::cos(TensorV2 &out, float alpha) {
   }
 }
 
-TensorV2 &FloatTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
-                           bool trans_in, float beta) const {
+void FloatTensor::inv_sqrt(Tensor &out) {
+  if (!contiguous) {
+    apply([](float val) -> float { return 1 / std::sqrt(val); }, out);
+  } else {
+    inv_sqrt_inplace(out.size(), out.getData<float>());
+  }
+}
+
+Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
+                         bool trans_in, float beta) const {
   // Comment out with intension to support the calculation wrt. batch and height
   // direction. It supposes to have this->dim as [ BxCxH,W ] and input.dim is
   // [BxCxH,W] as well if (input.dim.rank() > 2) {
@@ -782,12 +790,12 @@ TensorV2 &FloatTensor::dot(TensorV2 const &input, TensorV2 &output, bool trans,
   return output;
 }
 
-void FloatTensor::copy(const TensorV2 &from) {
+void FloatTensor::copy(const Tensor &from) {
   reshape(from.getDim());
   copy(from.getData<float>());
 }
 
-void FloatTensor::copyData(const TensorV2 &from) {
+void FloatTensor::copyData(const Tensor &from) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot copy.";
 
@@ -844,8 +852,8 @@ float FloatTensor::minValue() const {
   return *std::min_element(data, data + size());
 }
 
-TensorV2 &FloatTensor::transpose(const std::string &direction,
-                                 TensorV2 &output) const {
+Tensor &FloatTensor::transpose(const std::string &direction,
+                               Tensor &output) const {
   unsigned int SL, SI, SJ, SK;
 
   output.reshape(dim.transpose(direction));
@@ -921,7 +929,7 @@ void FloatTensor::dropout_mask(float dropout) {
   }
 }
 
-void FloatTensor::filter_mask(const TensorV2 &mask_len, bool reverse) {
+void FloatTensor::filter_mask(const Tensor &mask_len, bool reverse) {
   float fill_mask_val = 0.0;
   float en_mask_val = 1.0 - fill_mask_val;
 
@@ -942,7 +950,7 @@ void FloatTensor::filter_mask(const TensorV2 &mask_len, bool reverse) {
   }
 }
 
-void FloatTensor::zoneout_mask(TensorV2 &opposite, float zoneout) {
+void FloatTensor::zoneout_mask(Tensor &opposite, float zoneout) {
   opposite.setRandBernoulli(zoneout);
 
   float *data = (float *)getData();
@@ -957,7 +965,7 @@ void FloatTensor::zoneout_mask(TensorV2 &opposite, float zoneout) {
   }
 }
 
-std::vector<TensorV2> FloatTensor::split(std::vector<size_t> sizes, int axis) {
+std::vector<Tensor> FloatTensor::split(std::vector<size_t> sizes, int axis) {
   size_t num_size = sizes.size();
 
   if (axis == -1) {
@@ -977,7 +985,7 @@ std::vector<TensorV2> FloatTensor::split(std::vector<size_t> sizes, int axis) {
   }
 
   bool is_format_nchw = (dim.getFormat() == Tformat::NCHW) ? true : false;
-  std::vector<TensorV2> ret;
+  std::vector<Tensor> ret;
 
   auto iter_value = [this, is_format_nchw](
                       std::array<size_t, 4> &loc,
@@ -1059,17 +1067,17 @@ std::vector<TensorV2> FloatTensor::split(std::vector<size_t> sizes, int axis) {
   return ret;
 }
 
-TensorV2 FloatTensor::cat(const std::vector<TensorV2> &tensors, int axis) {
+Tensor FloatTensor::cat(const std::vector<Tensor> &tensors, int axis) {
   if (axis == -1) {
     axis = 3;
   }
 
-  TensorV2 ret;
+  Tensor ret;
   auto ref_dim = tensors.front().getDim();
   bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW);
   ref_dim.setTensorDim(axis, 1);
   NNTR_THROW_IF(!std::all_of(tensors.begin(), tensors.end(),
-                             [&ref_dim, axis](const TensorV2 &t) {
+                             [&ref_dim, axis](const Tensor &t) {
                                auto cur_dim = t.getDim();
                                cur_dim.setTensorDim(axis, 1);
                                return ref_dim == cur_dim;
@@ -1079,12 +1087,12 @@ TensorV2 FloatTensor::cat(const std::vector<TensorV2> &tensors, int axis) {
     << ref_dim << " axis : " << axis;
 
   auto axis_dim = std::accumulate(tensors.begin(), tensors.end(), 0u,
-                                  [axis](unsigned cur, const TensorV2 &t) {
+                                  [axis](unsigned cur, const Tensor &t) {
                                     return cur += t.getDim().getTensorDim(axis);
                                   });
   auto iter_value =
     [is_format_nchw](std::array<unsigned, 4> &loc,
-                     const std::array<unsigned, 4> &start_loc, TensorV2 &t,
+                     const std::array<unsigned, 4> &start_loc, Tensor &t,
                      const std::array<unsigned, 4> &ref_dim_arr) -> float & {
     auto &value = is_format_nchw
                     ? t.getValue<float>(loc[0], loc[1], loc[2], loc[3])
@@ -1104,7 +1112,7 @@ TensorV2 FloatTensor::cat(const std::vector<TensorV2> &tensors, int axis) {
   auto ret_dim = ref_dim;
   ret_dim.setTensorDim(axis, axis_dim);
 
-  ret = TensorV2(ret_dim);
+  ret = Tensor(ret_dim);
 
   std::array<unsigned, 4> loc = {0, 0, 0, 0};
   for (auto &t : tensors) {
@@ -1143,7 +1151,6 @@ TensorV2 FloatTensor::cat(const std::vector<TensorV2> &tensors, int axis) {
 }
 
 void FloatTensor::print(std::ostream &out) const {
-  printInstance(out, this);
   const float *data = (float *)getData();
   unsigned int len = size();
   out << "data addr: " << data << '\n';
@@ -1203,11 +1210,11 @@ void FloatTensor::copy(const void *buf) {
 }
 
 void FloatTensor::apply_broadcast_util(
-  TensorV2 const &m,
-  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, const float *, const float *,
                      float *)>
     v_func,
-  TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis, size_t offset,
+  Tensor &output, const BroadcastInfo &e, int cur_axis, size_t offset,
   size_t m_offset) const {
 
   const float *buf = (float *)this->getData();
@@ -1235,12 +1242,12 @@ void FloatTensor::apply_broadcast_util(
 }
 
 void FloatTensor::apply_broadcast(
-  TensorV2 const &m,
-  std::function<void(const BroadcastInfoV2 &e, const float *, const float *,
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, const float *, const float *,
                      float *)>
     v_func,
-  TensorV2 &output) const {
-  CREATE_V2_IF_EMPTY_DIMS(output, dim);
+  Tensor &output) const {
+  CREATE_IF_EMPTY_DIMS(output, dim);
 
   NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
@@ -1253,7 +1260,7 @@ void FloatTensor::apply_broadcast(
   /// note that buffer_size, the last stride is only used in v_func but it
   /// might be changed
   if (dim == m.getDim()) {
-    BroadcastInfoV2 e;
+    BroadcastInfo e;
     e.buffer_size = size();
     e.strides[3] = 1;
     e.tensor_type = getTensorType();
