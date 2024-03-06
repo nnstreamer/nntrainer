@@ -32,8 +32,7 @@ namespace nntrainer {
  */
 Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
                             const std::vector<unsigned int> &exec_order,
-                            TensorLifespan lifespan,
-                            const Tensor::Initializer &init,
+                            TensorLifespan lifespan, const Initializer &init,
                             bool is_weight_grad) {
   return registerRequestSpec(
     {is_weight_grad, std::make_unique<Tensor>(dim, false, init, name),
@@ -101,8 +100,7 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
   /** @note default is_weight_grad for view is false. view is for the
    * activation. */
   return registerRequestSpec(
-    {false,
-     std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
+    {false, std::make_unique<Tensor>(dim, false, Initializer::NONE, name),
      TensorPool::DependentDetails{parent_idx, adjusted_offset}});
 }
 
@@ -365,7 +363,7 @@ Tensor *TensorPool::requestOrExtend(const std::string &name,
                                     const TensorDim &dim,
                                     const std::vector<unsigned int> &exec_order,
                                     TensorLifespan lifespan,
-                                    const Tensor::Initializer &init) {
+                                    const Initializer &init) {
   NNTR_THROW_IF(lifespan == TensorLifespan::UNMANAGED, std::invalid_argument)
     << "unmanaged life span is not supported";
 

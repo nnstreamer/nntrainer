@@ -34,9 +34,9 @@ LSTMCellLayer::LSTMCellLayer() : lstmcell_props(props::DropOutRate()) {
 }
 
 void LSTMCellLayer::finalize(InitLayerContext &context) {
-  const Tensor::Initializer weight_initializer =
+  const Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
-  const Tensor::Initializer bias_initializer =
+  const Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props).get();
   const WeightRegularizer weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props).get();
@@ -151,16 +151,16 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   const TensorDim ifgo_dim(batch_size, 1, 1, NUM_GATE * unit,
                            weight_tensor_type);
   wt_idx[LSTMCellParams::ifgo] =
-    context.requestTensor(ifgo_dim, "ifgo", Tensor::Initializer::NONE, true,
+    context.requestTensor(ifgo_dim, "ifgo", Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch_size, 1, 1, unit ]
     const TensorDim dropout_mask_dim(batch_size, 1, 1, unit,
                                      weight_tensor_type);
-    wt_idx[LSTMCellParams::dropout_mask] = context.requestTensor(
-      dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[LSTMCellParams::dropout_mask] =
+      context.requestTensor(dropout_mask_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   if (context.getActivationDataType() == TensorDim::DataType::FP32) {

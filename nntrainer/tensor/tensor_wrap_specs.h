@@ -75,9 +75,8 @@ enum class TensorLifespan {
  * regularizer_constant, decay, clip gradient constant, need_gradient property,
  * name, output axis of the tensor object and loss Scale Factor.
  */
-typedef std::tuple<TensorDim, TensorDim, Tensor::Initializer, WeightRegularizer,
-                   float, float, float, bool, const std::string, unsigned int,
-                   float>
+typedef std::tuple<TensorDim, TensorDim, Initializer, WeightRegularizer, float,
+                   float, float, bool, const std::string, unsigned int, float>
   WeightSpec;
 
 /**
@@ -86,7 +85,7 @@ typedef std::tuple<TensorDim, TensorDim, Tensor::Initializer, WeightRegularizer,
  * @details The tuple values are dimension, initializer, need_gradient property,
  * the name, and lifespan of the Var_Grad object.
  */
-typedef std::tuple<TensorDim, Tensor::Initializer, bool, const std::string,
+typedef std::tuple<TensorDim, Initializer, bool, const std::string,
                    TensorLifespan>
   VarGradSpec;
 
@@ -131,8 +130,7 @@ struct TensorSpecV2 {
   std::string name;                               /**< Identifier */
   TensorDim dim;                                  /**< dimension */
   TensorLifespan ls;                              /**< lifespan */
-  Tensor::Initializer initializer =
-    Tensor::Initializer::NONE; /**< initializer */
+  Initializer initializer = Initializer::NONE;    /**< initializer */
 
   /** ONLY USED FOR READ_ONLY_VIEW, MAYBE_MODIFYING_VIEW */
   unsigned int offset = 0u;   /**< tensor offset */

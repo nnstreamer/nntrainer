@@ -969,7 +969,7 @@ public:
  * @brief     Enumeration of tensor initialization type
  */
 struct InitializerInfo {
-  using Enum = Tensor::Initializer;
+  using Enum = Initializer;
   static constexpr std::initializer_list<Enum> EnumList = {
     Enum::ZEROS,         Enum::ONES,          Enum::LECUN_NORMAL,
     Enum::LECUN_UNIFORM, Enum::XAVIER_NORMAL, Enum::XAVIER_UNIFORM,
@@ -990,8 +990,7 @@ public:
   /**
    * @brief Construct a WeightInitializer object
    */
-  WeightInitializer(
-    Tensor::Initializer value = Tensor::Initializer::XAVIER_UNIFORM);
+  WeightInitializer(Initializer value = Initializer::XAVIER_UNIFORM);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "weight_initializer";
 };
@@ -1005,7 +1004,7 @@ public:
   /**
    * @brief Construct a BiasInitializer object
    */
-  BiasInitializer(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  BiasInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "bias_initializer";
 };
@@ -1019,7 +1018,7 @@ public:
   /**
    * @brief Construct a BNPARAMS_MU_INIT object
    */
-  BNPARAMS_MU_INIT(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  BNPARAMS_MU_INIT(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_mean_initializer";
 };
@@ -1033,7 +1032,7 @@ public:
   /**
    * @brief Construct a BNPARAMS_VAR_INIT object
    */
-  BNPARAMS_VAR_INIT(Tensor::Initializer value = Tensor::Initializer::ONES);
+  BNPARAMS_VAR_INIT(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_variance_initializer";
 };
@@ -1047,7 +1046,7 @@ public:
   /**
    * @brief Construct a BNPARAMS_GAMMA_INIT object
    */
-  BNPARAMS_GAMMA_INIT(Tensor::Initializer value = Tensor::Initializer::ONES);
+  BNPARAMS_GAMMA_INIT(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "gamma_initializer";
 };
@@ -1061,7 +1060,7 @@ public:
   /**
    * @brief Construct a BNPARAMS_BETA_INIT object
    */
-  BNPARAMS_BETA_INIT(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  BNPARAMS_BETA_INIT(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "beta_initializer";
 };

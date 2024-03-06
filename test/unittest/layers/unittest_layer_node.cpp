@@ -123,9 +123,9 @@ TEST(nntrainer_LayerNode, finalize_04_p) {
  */
 TEST(nntrainer_LayerNode, finalize_05_n) {
   std::unique_ptr<nntrainer::LayerNode> lnode;
-  nntrainer::Var_Grad input = nntrainer::Var_Grad(
-    nntrainer::TensorDim({1, 1, 1, 1}), nntrainer::Tensor::Initializer::NONE,
-    true, false, "dummy");
+  nntrainer::Var_Grad input =
+    nntrainer::Var_Grad(nntrainer::TensorDim({1, 1, 1, 1}),
+                        nntrainer::Initializer::NONE, true, false, "dummy");
 
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
@@ -284,16 +284,15 @@ TEST(nntrainer_LayerNode, setWeights_01_n) {
  */
 TEST(nntrainer_LayerNode, setWeights_02_n) {
   std::unique_ptr<nntrainer::LayerNode> lnode;
-  nntrainer::Weight weight =
-    nntrainer::Weight(nntrainer::TensorDim({1, 1, 1, 1}),
-                      nntrainer::Tensor::Initializer::XAVIER_UNIFORM,
-                      nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, 0.0f,
-                      true, false, "weight");
+  nntrainer::Weight weight = nntrainer::Weight(
+    nntrainer::TensorDim({1, 1, 1, 1}), nntrainer::Initializer::XAVIER_UNIFORM,
+    nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, 0.0f, true, false,
+    "weight");
   float *float_ptr[2] = {nullptr, nullptr};
   const std::vector<float *> new_weights({float_ptr[0], float_ptr[1]});
-  nntrainer::Var_Grad input = nntrainer::Var_Grad(
-    nntrainer::TensorDim({1, 1, 1, 1}), nntrainer::Tensor::Initializer::NONE,
-    true, false, "dummy");
+  nntrainer::Var_Grad input =
+    nntrainer::Var_Grad(nntrainer::TensorDim({1, 1, 1, 1}),
+                        nntrainer::Initializer::NONE, true, false, "dummy");
 
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));

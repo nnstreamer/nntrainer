@@ -111,44 +111,44 @@ void MoLAttentionLayer::finalize(InitLayerContext &context) {
   TensorDim fc_out_dim = query_dim;
   fc_out_dim.width(fc_w_dim.width());
   wt_idx[MoLAttentionParams::fc_out] =
-    context.requestTensor(fc_out_dim, "fc_out", Tensor::Initializer::NONE,
-                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    context.requestTensor(fc_out_dim, "fc_out", Initializer::NONE, false,
+                          TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   wt_idx[MoLAttentionParams::fc_tanh] =
-    context.requestTensor(fc_out_dim, "fc_tanh", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(fc_out_dim, "fc_tanh", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim fc_proj_out_dim = fc_out_dim;
   fc_proj_out_dim.width(fc_proj_w_dim.width());
-  wt_idx[MoLAttentionParams::fc_proj_out] = context.requestTensor(
-    fc_proj_out_dim, "fc_proj_out", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[MoLAttentionParams::fc_proj_out] =
+    context.requestTensor(fc_proj_out_dim, "fc_proj_out", Initializer::NONE,
+                          false, TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim scores_dim =
     TensorDim({value_dim.batch(), 1, 1, value_dim.height()});
   wt_idx[MoLAttentionParams::scores] =
-    context.requestTensor(scores_dim, "scores", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(scores_dim, "scores", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim prob_dim = value_dim;
   prob_dim.width(mol_k);
   wt_idx[MoLAttentionParams::prob] =
-    context.requestTensor(prob_dim, "prob", Tensor::Initializer::NONE, false,
+    context.requestTensor(prob_dim, "prob", Initializer::NONE, false,
                           TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[MoLAttentionParams::prob_left] =
-    context.requestTensor(prob_dim, "prob_left", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(prob_dim, "prob_left", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[MoLAttentionParams::prob_right] =
-    context.requestTensor(prob_dim, "prob_right", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(prob_dim, "prob_right", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[MoLAttentionParams::u_neg_div] =
-    context.requestTensor(prob_dim, "u_neg_div", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(prob_dim, "u_neg_div", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[MoLAttentionParams::u_pos_div] =
-    context.requestTensor(prob_dim, "u_pos_div", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(prob_dim, "u_pos_div", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[MoLAttentionParams::dstate] =
-    context.requestTensor(state_dim, "dstate", Tensor::Initializer::NONE, false,
+    context.requestTensor(state_dim, "dstate", Initializer::NONE, false,
                           TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 
   if (context.getNumRequestedOutputs() == 2)

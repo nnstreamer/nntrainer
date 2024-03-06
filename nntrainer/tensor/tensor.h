@@ -1,53 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2019 Samsung Electronics Co., Ltd. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *   http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
  * @file	tensor.h
- * @date	04 December 2019
- * @brief	This is Tensor class for calculation
+ * @date	01 December 2023
+ * @brief	This is a Tensor class
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @author	Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug		No known bugs except for NYI items
- *
- * @todo deprecate new tensor allocation for out of place operations.
  */
 
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
 #ifdef __cplusplus
-
-#include <array>
-#include <functional>
-#include <memory>
-#include <random>
-#include <stdexcept>
-#include <vector>
-
-#include <blas_interface.h>
-#include <iostream>
-#include <memory_data.h>
-#include <nntrainer_error.h>
-#include <nntrainer_log.h>
-#include <tensor_dim.h>
-#include <util_func.h>
-
-#ifdef DEBUG
-#define EXCEPT_WHEN_DEBUG
-#else
-#define EXCEPT_WHEN_DEBUG noexcept
-#endif
-
-#define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
 
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
@@ -55,51 +19,24 @@
       tensor = Tensor(__VA_ARGS__);       \
   } while (0);
 
+#include <cstddef>
+
+#include <nntrainer_log.h>
+#include <tensor_base.h>
+
 namespace nntrainer {
 
-using TensorDim = ml::train::TensorDim;
-using Tformat = ml::train::TensorDim::Format;
-using Tdatatype = ml::train::TensorDim::DataType;
-using TStorageOrder = ml::train::TensorDim::StorageOrder;
-
-class LazyTensor;
-class SrcSharedTensor;
-
 /**
- * @class   Tensor Class for Calculation
- * @brief   Tensor Class for Calculation
+ * @class   Tensor Class
+ * @brief   Tensor Class
  */
 class Tensor {
 public:
   /**
-   * @brief     Enumeration of Weight Initialization Type
-   * @todo      support intialization from file
-   */
-  enum class Initializer {
-    ZEROS,          /** Zero initialization */
-    ONES,           /** One initialization */
-    LECUN_NORMAL,   /** LeCun normal initialization */
-    LECUN_UNIFORM,  /** uniform initialization */
-    XAVIER_NORMAL,  /** Xavier normal initialization */
-    XAVIER_UNIFORM, /** Xavier uniform initialization */
-    HE_NORMAL,      /** He normal initialization */
-    HE_UNIFORM,     /** He uniform initialization */
-    NONE            /** No initialization */
-  };
-
-  /**
    * @brief     Basic Constructor of Tensor
    */
   Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32) :
-    dim(TensorDim(fm, d_type)),
-    strides(dim.computeStrides()),
-    contiguous(true),
-    initializer(Initializer::NONE),
-    name(name_),
-    data(nullptr),
-    offset(0),
-    src_tensor() {}
+         Tdatatype d_type = Tdatatype::FP32);
 
   /**
    * @brief     Constructor of Tensor with dimension, possibly lazily
@@ -125,6 +62,8 @@ public:
    * @param[in] d1 Channel
    * @param[in] d2 Height
    * @param[in] d3 Width
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
          Tdatatype d_type = Tdatatype::FP32) :
@@ -135,6 +74,8 @@ public:
    * @param[in] d1 Channel
    * @param[in] d2 Height
    * @param[in] d3 Width
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
    */
   Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
          Tdatatype d_type = Tdatatype::FP32) :
@@ -144,6 +85,8 @@ public:
    * @brief     Constructor of Tensor with batch size one and d1 size one
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
    */
   Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
          Tdatatype d_type = Tdatatype::FP32) :
@@ -152,6 +95,8 @@ public:
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] fm Tensor Format
+   * @param[in] d_type Tensor Data Type
    */
   explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
                   Tdatatype d_type = Tdatatype::FP32) :
@@ -163,6 +108,7 @@ public:
    * @param[in] d1 Channel (NCHW) or Height (NHWC)
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
          ml::train::TensorDim::TensorType t_type) :
@@ -173,6 +119,7 @@ public:
    * @param[in] d1 Channel
    * @param[in] d2 Height
    * @param[in] d3 Width
+   * @param[in] t_type Tensor Type
    */
   Tensor(size_t d1, size_t d2, size_t d3,
          ml::train::TensorDim::TensorType t_type) :
@@ -182,6 +129,7 @@ public:
    * @brief     Constructor of Tensor with batch size one and d1 size one
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
    */
   Tensor(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3,
@@ -190,6 +138,7 @@ public:
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
+   * @param[in] t_type Tensor Type
    */
   explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3, 1,
@@ -198,62 +147,16 @@ public:
   /**
    * @brief     Constructor of Tensor
    * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
    */
-
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
-      throw std::out_of_range(
-        "[Tensor] trying to initialize Tensor from empty vector");
-    }
-    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
-    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
-    // dim[1] == height, dim[2] == width, dim[3] == channel
-    dim.setTensorDim(0, d.size());
-    if (t_type.format == Tformat::NCHW) {
-      dim.setTensorDim(1, d[0].size());
-      dim.setTensorDim(2, d[0][0].size());
-      dim.setTensorDim(3, d[0][0][0].size());
-    } else {
-      dim.setTensorDim(2, d[0].size());
-      dim.setTensorDim(3, d[0][0].size());
-      dim.setTensorDim(1, d[0][0][0].size());
-    }
-
-    setTensorType(t_type);
-
-    strides = dim.computeStrides();
-
-    MemoryData *mem_data =
-      new MemoryData((void *)(new float[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<float>();
-    });
-    offset = 0;
-    contiguous = true;
-    initializer = Initializer::NONE;
-    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
-    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
-    // dim[1] == height, dim[2] == width, dim[3] == channel
-    if (t_type.format == Tformat::NCHW) {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < channel(); ++j)
-          for (unsigned int k = 0; k < height(); ++k)
-            for (unsigned int l = 0; l < width(); ++l)
-              this->setValue(i, j, k, l, d[i][j][k][l]);
-    } else {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < height(); ++j)
-          for (unsigned int k = 0; k < width(); ++k)
-            for (unsigned int l = 0; l < channel(); ++l)
-              this->setValue(i, l, j, k, d[i][j][k][l]);
-    }
-  };
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<float>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
@@ -263,6 +166,7 @@ public:
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<float>> const &d,
          ml::train::TensorDim::TensorType t_type) :
@@ -273,63 +177,16 @@ public:
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-
-    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
-      throw std::out_of_range(
-        "[Tensor] trying to initialize Tensor from empty vector");
-    }
-
-    dim.setTensorDim(0, d.size());
-    if (t_type.format == Tformat::NCHW) {
-      dim.setTensorDim(1, d[0].size());
-      dim.setTensorDim(2, d[0][0].size());
-      dim.setTensorDim(3, d[0][0][0].size());
-    } else {
-      dim.setTensorDim(2, d[0].size());
-      dim.setTensorDim(3, d[0][0].size());
-      dim.setTensorDim(1, d[0][0][0].size());
-    }
-
-    setTensorType(t_type);
-
-    strides = dim.computeStrides();
-
-    MemoryData *mem_data =
-      new MemoryData((void *)(new _FP16[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<_FP16>();
-    });
-    offset = 0;
-    contiguous = true;
-    initializer = Initializer::NONE;
-
-    setDataType(Tdatatype::FP16);
-
-    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
-    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
-    // dim[1] == height, dim[2] == width, dim[3] == channel
-    if (t_type.format == Tformat::NCHW) {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < channel(); ++j)
-          for (unsigned int k = 0; k < height(); ++k)
-            for (unsigned int l = 0; l < width(); ++l)
-              this->setValue(i, j, k, l, d[i][j][k][l]);
-    } else {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < height(); ++j)
-          for (unsigned int k = 0; k < width(); ++k)
-            for (unsigned int l = 0; l < channel(); ++l)
-              this->setValue(i, l, j, k, d[i][j][k][l]);
-    }
-  };
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<_FP16>>> const &d,
          ml::train::TensorDim::TensorType t_type) :
@@ -339,6 +196,7 @@ public:
    * @brief     Constructor of Tensor
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<_FP16>> const &d,
          ml::train::TensorDim::TensorType t_type) :
@@ -347,87 +205,9 @@ public:
 #endif
 
   /**
-   * @brief     Constructor of Tensor
-   * @param[in] d data for the Tensor. It needs to set format properly.
-   * @param[in] t_type Tensor type.
+   * @brief Basic Destructor
    */
-  Tensor(std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
-      throw std::out_of_range(
-        "[Tensor] trying to initialize Tensor from empty vector");
-    }
-
-    if (t_type.data_type != Tdatatype::QINT8 &&
-        t_type.data_type != Tdatatype::QINT4) {
-      throw std::out_of_range(
-        "[Tensor] TensorType do not match with input data type");
-    }
-
-    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
-    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
-    // dim[1] == height, dim[2] == width, dim[3] == channel
-    dim.setTensorDim(0, d.size());
-    if (t_type.format == Tformat::NCHW) {
-      dim.setTensorDim(1, d[0].size());
-      dim.setTensorDim(2, d[0][0].size());
-      dim.setTensorDim(3, d[0][0][0].size());
-    } else {
-      dim.setTensorDim(2, d[0].size());
-      dim.setTensorDim(3, d[0][0].size());
-      dim.setTensorDim(1, d[0][0][0].size());
-    }
-
-    setTensorType(t_type);
-
-    strides = dim.computeStrides();
-
-    MemoryData *mem_data =
-      (t_type.data_type == Tdatatype::QINT8)
-        ? new MemoryData((void *)(new uint8_t[dim.getDataLen()]()))
-        : new MemoryData((void *)(new uint8_t[(dim.getDataLen() + 1) / 2]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<uint8_t>();
-    });
-    offset = 0;
-    contiguous = true;
-    initializer = Initializer::NONE;
-
-    // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
-    // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
-    // dim[1] == height, dim[2] == width, dim[3] == channel
-    if (t_type.format == Tformat::NCHW) {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < channel(); ++j)
-          for (unsigned int k = 0; k < height(); ++k)
-            for (unsigned int l = 0; l < width(); ++l)
-              this->setValue(i, j, k, l, d[i][j][k][l]);
-    } else {
-      for (unsigned int i = 0; i < batch(); ++i)
-        for (unsigned int j = 0; j < height(); ++j)
-          for (unsigned int k = 0; k < width(); ++k)
-            for (unsigned int l = 0; l < channel(); ++l)
-              this->setValue(i, l, j, k, d[i][j][k][l]);
-    }
-  };
-
-  /**
-   * @brief     Constructor of Tensor
-   * @note      This constructor copies vector again. needs refactoring
-   * @param[in] d data for the Tensor. It needs to set format properly.
-   */
-  Tensor(std::vector<std::vector<std::vector<uint8_t>>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
-
-  /**
-   * @brief     Constructor of Tensor
-   * @note      This constructor copies vector again. needs refactoring
-   * @param[in] d data for the Tensor with batch size one
-   */
-  Tensor(std::vector<std::vector<uint8_t>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+  ~Tensor() = default;
 
   /**
    *  @brief  Copy constructor of Tensor.
@@ -454,15 +234,27 @@ public:
   Tensor &operator=(Tensor &&rhs) noexcept = default;
 
   /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator==(const Tensor &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
+
+  /**
    * @brief Construct a new Tensor object from a buffer
    * This will not copy buffer to a new tensor but directly uses it
    *
-   * @param buf buffer
-   * @param bytes buffer size in bytes
-   * @param d tensor dim
-   * @param offset offset to be used from current
-   * @return Tensor object
-   * @throws std::invalid_argument if buf is null
+   * @param[in] buf buffer
+   * @param[in] bytes buffer size in bytes
+   * @param[in] d tensor dim
+   * @param[in] offset offset to be used from current
+   * @return    Tensor object
+   * @throws    std::invalid_argument if buf is null
    */
   template <typename T = float>
   static Tensor Map(T *buf, unsigned int bytes, const TensorDim &d,
@@ -477,37 +269,10 @@ public:
         "Creating shared tensor of size bigger than tensor memory.");
     }
 
-    Tensor tmp;
-    tmp.dim = d;
-    tmp.strides = d.computeStrides();
-    /// Tensor does not own the memory
-    tmp.data = std::shared_ptr<MemoryData>(new MemoryData((void *)buf),
-                                           std::default_delete<MemoryData>());
-    tmp.offset = offset;
-
-    return tmp;
+    Tensor output;
+    output.setTensorVar(d, buf, offset);
+    return output;
   };
-
-  friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
-    std::swap(lhs.dim, rhs.dim);
-    std::swap(lhs.strides, rhs.strides);
-    std::swap(lhs.contiguous, rhs.contiguous);
-    std::swap(lhs.initializer, rhs.initializer);
-    std::swap(lhs.data, rhs.data);
-    std::swap(lhs.name, rhs.name);
-  }
-
-  /**
-   * @brief     Comparison operator overload
-   * @param[in] rhs Tensor to be compared with
-   */
-  bool operator==(const Tensor &rhs) const;
-
-  /**
-   * @brief     Comparison operator overload
-   * @param[in] rhs Tensor to be compared with
-   */
-  bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
 
   /**
    * @brief    Allocate memory for this tensor
@@ -518,33 +283,61 @@ public:
    * @brief    Deallocate memory for this tensor
    * @note     This will not necessary free the memory as tensors share memory
    */
-  void deallocate() {
-    data = nullptr;
-    offset = 0;
-  }
+  void deallocate();
 
   /**
    * @brief    Check if the tensor has memory allocated/assigned/associated
    */
-  bool isAllocated() const { return data != nullptr; }
+  bool isAllocated();
 
   /**
-   * @brief     return value at specific location
-   * @param[in] batch batch location
-   * @param[in] c channel location
-   * @param[in] h height location
-   * @param[in] w width location
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer
    */
-  template <typename T = float>
-  const T &getValue(unsigned int batch, unsigned int c, unsigned int h,
-                    unsigned int w) const noexcept {
-    return getValue<T>(getIndex(batch, c, h, w));
+  template <typename T = float> T *getData() const {
+    return (T *)itensor->getData();
   }
 
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer
+   */
+  template <typename T = float> T *getData(size_t idx) const {
+    return (T *)itensor->getData(idx);
+  }
+
+  /**
+   * @brief     i data index
+   * @retval    template T pointer (address of ith data)
+   */
+  template <typename T = float> T *getAddress(unsigned int i) {
+    return (T *)itensor->getAddress(i);
+  }
+
+  /**
+   * @brief     i data index
+   * @retval    template T pointer (address of ith data)
+   */
+  template <typename T = float> const T *getAddress(unsigned int i) const {
+    return (T *)itensor->getAddress(i);
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
   template <typename T = float>
-  T &getValue(unsigned int batch, unsigned int c, unsigned int h,
-              unsigned int w) noexcept {
-    return getValue<T>(getIndex(batch, c, h, w));
+  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                unsigned int w) {
+    return getAddress<T>(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  template <typename T = float>
+  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                      unsigned int w) const {
+    return getAddress<T>(getIndex(b, c, h, w));
   }
 
   /**
@@ -553,9 +346,6 @@ public:
    */
   template <typename T = float>
   const T &getValue(unsigned int idx) const noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData<T>()[idx / 2];
-    }
     return getData<T>()[idx];
   }
 
@@ -564,149 +354,174 @@ public:
    * @param[in] idx location
    */
   template <typename T = float> T &getValue(unsigned int idx) noexcept {
-    if (getDataType() == Tdatatype::QINT4) {
-      return getData<T>()[idx / 2];
-    }
     return getData<T>()[idx];
   }
 
   /**
    * @brief     return value at specific location
-   * @param[in] idx location
-   * @retval    qint4 value in location
-   */
-  uint8_t getValueQint4(unsigned int idx) const noexcept {
-    uint8_t value = getData<uint8_t>()[idx / 2];
-    return decode_qint(value, (idx % 2 == 0));
-  }
-
-  /**
-   * @brief     return value at specific location
-   * @param[in] idx location
-   * @retval    qint4 value in location
-   */
-  uint8_t getValueQint4(unsigned int idx) noexcept {
-    uint8_t value = getData<uint8_t>()[idx / 2];
-    return decode_qint(value, (idx % 2 == 0));
-  }
-
-  /**
-   * @brief     return value at specific location
    * @param[in] b batch location
    * @param[in] c channel location
    * @param[in] h height location
    * @param[in] w width location
-   * @retval    qint4 value in location
-   */
-  uint8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w) const noexcept {
-    size_t idx = getIndex(b, c, h, w);
-    uint8_t value = getData<uint8_t>()[idx / 2];
-    return decode_qint(value, (idx % 2 == 0));
-  }
-
-  /**
-   * @brief     return value at specific location
-   * @param[in] b batch location
-   * @param[in] c channel location
-   * @param[in] h height location
-   * @param[in] w width location
-   * @retval    qint4 value in location
-   */
-  uint8_t getValueQint4(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w) noexcept {
-    size_t idx = getIndex(b, c, h, w);
-    uint8_t value = getData<uint8_t>()[idx / 2];
-    return decode_qint(value, (idx % 2 == 0));
-  }
-
-  /**
-   * @brief Get the Value thinking that it is padded
-   * for example, for the tensor (virtually padded) below,
-   * getValue(0, 0, 2, 2, 1, 1, .0f) will return 5
-   * padding available for height and width axis for now
-   * 0 0 0 0 0
-   * 0 1 2 3 0
-   * 0 4 5 6 0
-   * 0 7 8 9 0
-   * 0 0 0 0 0
-   * @param b batch index
-   * @param c channel index
-   * @param h height index
-   * @param w width index
-   * @param ph padding height
-   * @param pw padding width
-   * @return float value
    */
   template <typename T = float>
-  const T getValuePaddedVirtual(unsigned int b, unsigned int c, unsigned int h,
-                                unsigned int w, unsigned int ph,
-                                unsigned int pw,
-                                T pad_value = 0) const EXCEPT_WHEN_DEBUG {
-#if DEBUG
-    unsigned int padded_h = 2 * ph + h;
-    unsigned int padded_w = 2 * pw + w;
-    if (h > padded_h && w > padded_w) {
-      throw std::out_of_range(
-        "[Tensor::getValuePadded] trying to access out of range");
-    }
-#endif
-
-    if (ph <= h && h < ph + height() && pw <= w && w < pw + width()) {
-      return getValue<T>(b, c, h - ph, w - pw);
-    }
-
-    return pad_value;
+  const T &getValue(unsigned int b, unsigned int c, unsigned int h,
+                    unsigned int w) const noexcept {
+    return getValue<T>(getIndex(b, c, h, w));
   }
 
   /**
-   * @brief     Multiply value element by element immediately
-   * @param[in] value multiplier
-   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
-   * @retval    #ML_ERROR_NONE Successful
+   * @brief     return value at specific location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
    */
-  int multiply_i(float const &value);
+  template <typename T = float>
+  T &getValue(unsigned int b, unsigned int c, unsigned int h,
+              unsigned int w) noexcept {
+    return getValue<T>(getIndex(b, c, h, w));
+  }
 
   /**
-   * @brief     Multiply value element by element
-   * @param[in] value multiplier
-   * @retval    Calculated Tensor
+   * @brief     Fill the Tensor elements with value
+   * @param[in] value value to be stored
    */
-  Tensor multiply(float const &value) const;
+  void setValue(float value);
 
   /**
-   * @brief     multiply value element by element
-   * @param[in] value multiplier
-   * @param[out] out out tensor to store the result
-   * @retval    Calculated Tensor
+   * @brief     Set the element value
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @param[in] value value to be stored
    */
-  Tensor &multiply(float const &value, Tensor &out) const;
+  void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+                float value);
 
   /**
-   * @brief     Multiply Tensor Elementwise
-   * @param[in] m Tensor to be multiplied
+   * @brief     Set the element value
+   * @param[in] offset offset from start location
+   * @param[in] value value to be stored
+   *
+   * @todo      This is a temporary workout. Remove this
+   */
+  void setValueInt(unsigned int offset, int value) noexcept {
+    int *data_int = (int *)getData();
+    data_int[offset] = value;
+  }
+
+  /**
+   * @brief     add the element value to the location
+   * @param[in] b batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @param[in] value value to be stored
    * @param[in] beta scalar to multiply output with and add
-   * @retval    #ML_ERROR_NONE successful
    */
-  int multiply_i(Tensor const &m, const float beta = 0.0);
+  void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+                float value, float beta) noexcept;
 
   /**
-   * @brief     Multiply Tensor Element by Element ( Not the MxM )
-   * @param[in] m Tensor to be multiplied
-   * @param[in] beta scalar to multiply output with and add
-   * @retval    Calculated Tensor
+   * @brief     Fill the Tensor elements with zero
    */
-  Tensor multiply(Tensor const &m, const float beta = 0.0) const;
+  void setZero();
 
   /**
-   * @brief     Multiply Tensor Element by Element ( Not the MxM )
-   * @param[in] m Tensor to be multiplied
-   * @param[out] output Tensor to store the result
-   * @param[in] beta scalar to multiply output with and add
-   * @retval    Calculated Tensor
+   * @brief     Set the tensor with random normal distribution
+   * @param[in] mean mean of the distribution
+   * @param[in] std standard deviation of the distribution
    */
-  Tensor &multiply(Tensor const &m, Tensor &output,
-                   const float beta = 0.0) const;
+  void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
+
+  /**
+   * @brief     Set the tensor with random uniform distribution
+   * @param[in] min minimum value for the distribution
+   * @param[in] max maximum value for the distribution
+   */
+  void setRandUniform(float min = -0.05f, float max = 0.05f);
+
+  /**
+   * @brief     Set the tensor with random bernoulli distribution
+   * @param[in] probability probability value for the distribution
+   */
+  void setRandBernoulli(float probability = 0.5f);
+
+  /**
+   * @brief     Initialize the memory of the given tensor
+   */
+  void initialize();
+
+  /**
+   * @brief     Initialize the memory of the given tensor
+   * @param     init Initiailizer to use for the initialization
+   */
+  void initialize(Initializer init);
+
+  /**
+   * @brief Apply instantly to the element
+   * @param[in] *function function pointer applied
+   * @return int ML_ERROR_NONE if successful
+   */
+  template <typename T = float> int apply_i(std::function<T(T)> f) {
+    Tensor result = *this;
+    apply<T>(f, result);
+
+    return ML_ERROR_NONE;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
+    Tensor result;
+    apply<T>(f, result);
+
+    return result;
+  };
+
+  /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  template <typename T = float>
+  Tensor &apply(std::function<T(T)> f, Tensor &output) const {
+    CREATE_IF_EMPTY_DIMS(output, {itensor->getFormat(), itensor->getDataType()},
+                         nullptr);
+
+    if (itensor->getFormat() != output.itensor->getFormat() ||
+        itensor->getDataType() != itensor->getDataType()) {
+      /// @todo add unittest
+      throw std::invalid_argument(
+        "[Tensor::apply] output dimension does not match");
+    }
+
+    itensor->apply(f, output);
+
+    return output;
+  }
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  Tensor apply(std::function<Tensor(Tensor)> f) const;
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
+                Tensor &output) const;
 
   /**
    * @brief     Multiply Tensor Elementwise
@@ -750,45 +565,53 @@ public:
                            const float beta = 0.0) const;
 
   /**
-   * @brief     Add Tensor Elementwise
-   * @param[in] m Tensor to be added
-   * @param[in] beta scalar to add output with and add
+   * @brief     Multiply value element by element immediately
+   * @param[in] value multiplier
+   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
+   * @retval    #ML_ERROR_NONE Successful
+   */
+  int multiply_i(float const &value);
+
+  /**
+   * @brief     Multiply value element by element
+   * @param[in] value multiplier
+   * @retval    Calculated Tensor
+   */
+  Tensor multiply(float const &value) const;
+
+  /**
+   * @brief      multiply value element by element
+   * @param[in]  value multiplier
+   * @param[out] out out tensor to store the result
+   * @retval     Calculated Tensor
+   */
+  Tensor &multiply(float const &value, Tensor &out) const;
+
+  /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    #ML_ERROR_NONE successful
-   *
-   * @note support different strided inputs and output
-   * @note does not support broadcasting
-   *
-   * @todo merge this to add_i
    */
-  int add_i_strided(Tensor const &m, const float beta = 0.0);
+  int multiply_i(Tensor const &m, const float beta = 0.0);
 
   /**
-   * @brief     Add Tensor Element by Element
-   * @param[in] m Tensor to be added
-   * @param[in] beta Value to be scale the added tensor
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
-   *
-   * @note support different strided inputs and output
-   * @note does not support broadcasting
-   *
-   * @todo merge this to add
    */
-  Tensor add_strided(Tensor const &m, const float beta = 0.0) const;
+  Tensor multiply(Tensor const &m, const float beta = 0.0) const;
 
   /**
-   * @brief     Add Tensor Element by Element
-   * @param[in] m Tensor to be added
+   * @brief      Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in]  m Tensor to be multiplied
    * @param[out] output Tensor to store the result
-   * @param[in] beta Value to be scale the added tensor
-   * @retval    Calculated Tensor
-   *
-   * @note support different strided inputs and output
-   * @note does not support broadcasting
-   *
-   * @todo merge this to add
+   * @param[in]  beta scalar to multiply output with and add
+   * @retval     Calculated Tensor
    */
-  Tensor &add_strided(Tensor const &m, Tensor &output,
-                      const float beta = 0.0) const;
+  Tensor &multiply(Tensor const &m, Tensor &output,
+                   const float beta = 0.0) const;
 
   /**
    * @brief     Divide value element by element immediately
@@ -808,10 +631,10 @@ public:
   /**
    * @brief     Divide value element by element
    * @param[in] value Divisor
-   * @param[out] out out parameter to store the result
+   * @param[out] output Tensor to store the result
    * @retval    Calculated Tensor
    */
-  Tensor &divide(float const &value, Tensor &out) const;
+  Tensor &divide(float const &value, Tensor &output) const;
 
   /**
    * @brief     divide Tensor Elementwise
@@ -836,10 +659,51 @@ public:
   Tensor &divide(Tensor const &m, Tensor &output) const;
 
   /**
-   * @brief Add Tensor Element immediately to target tensor without mem copy
+   * @brief     Add Tensor Elementwise
+   * @param[in] input Tensor to be added
+   * @param[in] beta scalar to add output with and add
+   * @retval    #ML_ERROR_NONE successful
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add_i
+   */
+  int add_i_strided(Tensor const &input, const float beta = 0.0);
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] input Tensor to be added
+   * @param[in] beta Value to be scale the input tensor
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  Tensor add_strided(Tensor const &input, const float beta = 0.0) const;
+
+  /**
+   * @brief      Add Tensor Element by Element
+   * @param[in]  input Tensor to be added
+   * @param[out] output Tensor to store the result
+   * @param[in]  beta Value to be scale the input tensor
+   * @retval     Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to add
+   */
+  Tensor &add_strided(Tensor const &input, Tensor &output,
+                      const float beta = 0.0) const;
+
+  /**
+   * @brief     Add Tensor Element immediately to target tensor without mem copy
    * @param[in] value value to be added
-   * @retval #ML_ERROR_NONE  Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int add_i(float const &value);
 
@@ -851,19 +715,19 @@ public:
   Tensor add(float const &value) const;
 
   /**
-   * @brief     Add Tensor Element by Element
-   * @param[in] value value to be added
-   * @param[out] out Tensor to save output without allocating new memory
-   * @retval    Calculated Tensor
+   * @brief      Add Tensor Element by Element
+   * @param[in]  value value to be added
+   * @param[out] output Tensor to save output without allocating new memory
+   * @retval     Calculated Tensor
    */
-  Tensor &add(float const &value, Tensor &out) const;
+  Tensor &add(float const &value, Tensor &output) const;
 
   /**
-   * @brief Add Tensor Element by Element without mem copy
+   * @brief     Add Tensor Element by Element without mem copy
    * @param[in] m Tensor to be added
-   * @param[out] alpha Values to be scaled
-   * @retval #ML_ERROR_NONE  Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @param[in] alpha Values to be scaled
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int add_i(Tensor const &m, float const alpha = 1.F);
 
@@ -887,23 +751,24 @@ public:
   /**
    * @brief     Add Tensor Element by Element
    * @param[in] m Tensor to be added
+   * @param[in] alpha Values to be scaled
    * @retval    Calculated Tensor
    */
   Tensor add(Tensor const &m, float const alpha = 1) const;
 
   /**
-   * @brief     Add Tensor Element by Element
-   * @param[in] m Tensor to be added
-   * @param[out] m Tensor to be out
-   * @retval    Calculated Tensor
+   * @brief      Add Tensor Element by Element
+   * @param[in]  m Tensor to be added
+   * @param[out] output Tensor to be out
+   * @param[in]  alpha Values to be scaled
+   * @retval     Calculated Tensor
    */
-  Tensor &add(Tensor const &m, Tensor &out, float const alpha = 1) const;
+  Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1) const;
 
   /**
    * @brief     memcpyless version of subtract
-   * @param[in] value value to subtract
-   * @retval #ML_ERROR_NONE  Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int subtract_i(float const &value);
 
@@ -915,18 +780,18 @@ public:
   Tensor subtract(float const &value) const;
 
   /**
-   * @brief     Subtract Tensor Element by Element
-   * @param[in] value value to be added
-   * @param[out] out Tensor to save output without allocating new memory
-   * @retval    Calculated Tensor
+   * @brief      Subtract Tensor Element by Element
+   * @param[in]  value value to be added
+   * @param[out] output Tensor to save output without allocating new memory
+   * @retval     Calculated Tensor
    */
-  Tensor &subtract(float const &value, Tensor &out) const;
+  Tensor &subtract(float const &value, Tensor &output) const;
 
   /**
    * @brief     memcpyless version of subtract
    * @param[in] m Tensor to be subtracted
-   * @retval #ML_ERROR_NONE  Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @retval    #ML_ERROR_NONE  Successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int subtract_i(Tensor const &m);
 
@@ -938,211 +803,12 @@ public:
   Tensor subtract(Tensor const &m) const;
 
   /**
-   * @brief     Subtract Tensor Element by Element
-   * @param[in] m Tensor to be added
-   * @param[out] m Tensor to be out
-   * @retval    Calculated Tensor
+   * @brief      Subtract Tensor Element by Element
+   * @param[in]  m Tensor to be added
+   * @param[out] output Tensor to be out
+   * @retval     Calculated Tensor
    */
-  Tensor &subtract(Tensor const &m, Tensor &out) const;
-
-  /**
-   * @brief Tensor power elementwise
-   *
-   * @param exponent exponent
-   * @return int ML_ERROR_NONE if successful
-   */
-  int pow_i(float exponent);
-
-  /**
-   * @brief    Tensor power Element by Element
-   * @param[in] exponent exponent
-   * @retval Calculated Tensor
-   */
-  Tensor pow(float exponent) const;
-
-  /**
-   * @brief    Tensor power Element by Element
-   * @param[in] exponent exponent
-   * @param[out] out out to store the result
-   * @retval Calculated Tensor
-   */
-  Tensor &pow(float exponent, Tensor &out) const;
-
-  /**
-   * @brief  gaussian error function
-   * @return int ML_ERROR_NONE if successful
-   */
-  int erf_i();
-
-  /**
-   * @brief    gaussian error function
-   * @retval Calculated Tensor
-   */
-  Tensor erf() const;
-
-  /**
-   * @brief    gaussian error function
-   * @param[out] out out to store the result
-   * @retval Calculated Tensor
-   */
-  Tensor &erf(Tensor &out) const;
-
-  /**
-   * @brief    sin transform function
-   * @param[out] out out to store the result
-   */
-  void sin(Tensor &out, float alpha = 1.0);
-
-  /**
-   * @brief    cos transform function
-   * @param[out] out out to store the result
-   */
-  void cos(Tensor &out, float alpha = 1.0);
-
-  /**
-   * @brief inverse squared root function
-   *
-   */
-  void inv_sqrt_i();
-
-  /**
-   * @brief  getter of size of data
-   * @retval size of data
-   */
-  unsigned int sizeofData() { return dim.getDataTypeSize(); }
-
-  /**
-   * @brief     Dot Product of Tensor ( equal MxM )
-   * @details   This applies dot of the last dimension of this and second-last
-   * dimension of passed tensor m.
-   * @param[in] m Tensor
-   * @param[in] trans Transpose
-   * @param[in] trans_m Transpose m
-   * @retval    Calculated Tensor
-   */
-  Tensor dot(Tensor const &m, bool trans = false, bool trans_m = false) const;
-
-  /**
-   * @brief     Dot Product of Tensor ( equal MxM )
-   * @details   This applies dot of the last dimension of this and second-last
-   * dimension of passed tensor m.
-   * @param[in] m Tensor
-   * @param[in] output output Tensor
-   * @param[in] trans Transpose
-   * @param[in] trans_m Transpose m
-   * @param[in] beta beta
-   * @retval    Calculated Tensor
-   */
-  Tensor &dot(Tensor const &m, Tensor &output, bool trans = false,
-              bool trans_m = false, float beta = 0.0f) const;
-
-  /**
-   * @brief compute the derivative of this in the current tensor
-   * @param m same as given to the dot()
-   * @param output_deriv the derivative of the output
-   * @param[in] trans same as given to the dot()
-   * @param[in] trans_m same as given to the dot()
-   * @param[in] beta same as given to the dot()
-   * @note This will compute the derivative in-place and will overwrite existing
-   * data in the tensor
-   */
-  Tensor &dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
-                          bool trans = false, bool trans_m = false,
-                          float beta = 0.0f);
-
-  /**
-   * @brief compute the derivative wrt m in the m tensor
-   * @param m_deriv tensor where derivative wrt m will be stored
-   * @param output_deriv the derivative of the output
-   * @param[in] trans same as given to the dot()
-   * @param[in] trans_m same as given to the dot()
-   * @param[in] beta same as given to the dot()
-   * @note The caller tensor must be the same tensor as the one which called the
-   * dot() product.
-   */
-  Tensor &dot_deriv_wrt_2(Tensor &m_deriv, Tensor const &output_deriv,
-                          bool trans = false, bool trans_m = false,
-                          float beta = 0.0f) const;
-
-  /**
-   * @copydoc Tensor::dot(Tensor const &m, Tensor &output, bool trans,
-              bool trans_m, float beta) const
-   * @details performs dot operation over a batch of inputs
-   */
-  Tensor &dotBatched(Tensor const &m, Tensor &result, bool trans = false,
-                     bool trans_m = false, float beta = 0.0f) const;
-
-  /**
-   * @copydoc Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const
-   &output_deriv, bool trans, bool trans_m, float beta)
-   */
-  Tensor &dot_batched_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
-                                  bool trans = false, bool trans_m = false,
-                                  float beta = 0.0f);
-
-  /**
-   * @brief Tensor::dot_deriv_wrt_2(Tensor const &m_deriv, Tensor const
-   &output_deriv, bool trans, bool trans_m, float beta) const
-   */
-  Tensor &dot_batched_deriv_wrt_2(Tensor &m_deriv, Tensor const &output_deriv,
-                                  bool trans = false, bool trans_m = false,
-                                  float beta = 0.0f) const;
-
-  /**
-   * @brief Transpose Tensor
-   *
-   * @param direction to transpose ex) 0:2:1
-   * @return Tensor
-   */
-  Tensor transpose(const std::string &direction) const;
-
-  /**
-   * @brief Transpose Tensor
-   * @param direction to transpose ex) 0:2:1
-   * @param[out] Tensor to save to, dimension is always reshaped.
-   * @retval Tensor& reference to the out
-   */
-  Tensor &transpose(const std::string &direction, Tensor &out) const;
-
-  /**
-   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
-   * @param dropout drop out rate
-   * @retval Tensor& reference of drop out mask
-   */
-  Tensor dropout_mask(float dropout) const;
-
-  /**
-   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate) inplace
-   * @param dropout drop out rate
-   */
-  void dropout_mask(float dropout);
-
-  /**
-   * @brief Calculate filter mask
-   * @param mask_len length of each mask along the last axis
-   * @param invert invert the mask
-   */
-  void filter_mask(const Tensor &mask_len, bool reverse = false);
-
-  /**
-   * @brief Calculate 2 Zone Out Mask
-   * @details Calculate zone out mask according to the bernoulli distribution.
-   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
-   * with rate @a (1-zoneout).
-   * @param zoneout zone out rate
-   * @retval Tensor zone out mask for opposite tensor
-   */
-  Tensor zoneout_mask(float zoneout);
-
-  /**
-   * @brief Calculate 2 Zone Out Mask
-   * @details Calculate zone out mask according to the bernoulli distribution.
-   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
-   * with rate @a (1-zoneout).
-   * @param opposite opposite zone out mask
-   * @param zoneout zone out rate
-   */
-  void zoneout_mask(Tensor &opposite, float zoneout);
+  Tensor &subtract(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     sum all the Tensor elements according to the batch
@@ -1205,32 +871,30 @@ public:
    * @retval    Calculated Tensor
    */
   Tensor average(unsigned int axis) const;
+
   /**
    * @brief     Averaging the Tensor elements according to the axis
-   *
    * @retval    Calculated Tensor
    */
   Tensor &average(unsigned int axis, Tensor &output) const;
 
   /**
-   * @brief average all the Tensor by multiple axes
-   *
-   * @param axes axes to sum along
-   * @return Tensor
+   * @brief     Average all the Tensor by multiple axes
+   * @param[in] axes axes to sum along
+   * @retval    Calculated Tensor
    */
   Tensor average(const std::vector<unsigned int> &axes) const;
 
   /**
-   * @brief average all the Tensor by multiple axes
-   *
-   * @param axes axes to sum along
-   * @param output output tensor
-   * @return Tensor
+   * @brief      Average all the Tensor by multiple axes
+   * @param[in]  axes axes to sum along
+   * @param[out] output output tensor
+   * @retval     Calculated Tensor
    */
   Tensor &average(const std::vector<unsigned int> &axes, Tensor &output) const;
 
   /**
-   * @brief     Averaging the Tensor elements by all axis
+   * @brief     Average the Tensor elements by all axis
    * @retval    Calculated Tensor
    */
   Tensor average() const;
@@ -1242,16 +906,62 @@ public:
   Tensor &average(Tensor &output) const;
 
   /**
-   * @brief     Anchor a starting point to defer following evaluation
-   * @retval    LazyTensor class that can be used with run();
+   * @brief     Tensor power element without mem copy
+   * @param[in] exponent exponent
+   * @retval    #ML_ERROR_NONE  Successful
    */
-  LazyTensor chain() const;
+  int pow_i(float exponent);
 
   /**
-   * @brief     Softmax the Tensor elements
+   * @brief     Tensor power element by element
+   * @param[in] exponent exponent
    * @retval    Calculated Tensor
    */
-  Tensor softmax() const;
+  Tensor pow(float exponent) const;
+
+  /**
+   * @brief      Tensor power element by element
+   * @param[in]  exponent exponent
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  Tensor &pow(float exponent, Tensor &output) const;
+
+  /**
+   * @brief     Gauss error function
+   * @retval    #ML_ERROR_NONE  Successful
+   */
+  int erf_i();
+
+  /**
+   * @brief     Gauss error function
+   * @retval    Calculated Tensor
+   */
+  Tensor erf() const;
+
+  /**
+   * @brief      Gauss error function
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  Tensor &erf(Tensor &output) const;
+
+  /**
+   * @brief    sin transform function
+   * @param[out] out out to store the result
+   */
+  void sin(Tensor &out, float alpha = 1.0);
+
+  /**
+   * @brief    cos transform function
+   * @param[out] out out to store the result
+   */
+  void cos(Tensor &out, float alpha = 1.0);
+
+  /**
+   * @brief inverse squared root function
+   */
+  void inv_sqrt_i();
 
   /**
    * @brief     l2norm the Tensor elements
@@ -1284,371 +994,126 @@ public:
   void standardization_i();
 
   /**
-   * @brief     i data index
-   * @retval    address of ith data
+   * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and second-last
+   * dimension of passed input tensor.
+   * @param[in] input Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @retval    Calculated Tensor
    */
-  template <typename T = float> T *getAddress(unsigned int i) {
-    size_t index = getIndex(batch(), channel(), height(), width());
-    if (i > index) {
-      return nullptr;
-    }
-    if (getDataType() == Tdatatype::QINT4)
-      return &getData<T>()[i / 2];
-    return &getData<T>()[i];
-  }
+  Tensor dot(Tensor const &input, bool trans = false,
+             bool trans_in = false) const;
 
   /**
-   * @brief     i data index
-   * @retval    address of ith data
+   * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and
+   * second-last dimension of passed input tensor.
+   * @param[in] input Tensor
+   * @param[in] output output Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @param[in] beta beta
+   * @retval    Calculated Tensor
    */
-  template <typename T = float> const T *getAddress(unsigned int i) const {
-    size_t index = getIndex(batch(), channel(), height(), width());
-    if (i > index) {
-      return nullptr;
-    }
-
-    if (getDataType() == Tdatatype::QINT4)
-      return &getData<T>()[i / 2];
-    return &getData<T>()[i];
-  }
+  Tensor &dot(Tensor const &input, Tensor &output, bool trans = false,
+              bool trans_in = false, float beta = 0.0f) const;
 
   /**
-   * @brief    get address of n-d data
+   * @brief compute the derivative of this in the current tensor
+   * @param input same as given to the dot()
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_in same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note This will compute the derivative in-place and will overwrite
+   existing
+   * data in the tensor
    */
-  template <typename T = float>
-  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                unsigned int w) {
-    return getAddress<T>(getIndex(b, c, h, w));
-  }
+  Tensor &dot_deriv_wrt_1(Tensor const &input, Tensor const &output_deriv,
+                          bool trans = false, bool trans_in = false,
+                          float beta = 0.0f);
 
   /**
-   * @brief    get address of n-d data
+   * @brief compute the derivative wrt m in the input tensor
+   * @param input_deriv tensor where derivative wrt m will be stored
+   * @param output_deriv the derivative of the output
+   * @param[in] trans same as given to the dot()
+   * @param[in] trans_in same as given to the dot()
+   * @param[in] beta same as given to the dot()
+   * @note The caller tensor must be the same tensor as the one which called
+   the dot() product.
    */
-  template <typename T = float>
-  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                      unsigned int w) const {
-    return getAddress<T>(getIndex(b, c, h, w));
-  }
+  Tensor &dot_deriv_wrt_2(Tensor &input_deriv, Tensor const &output_deriv,
+                          bool trans = false, bool trans_in = false,
+                          float beta = 0.0f) const;
 
   /**
-   * @brief Apply instantly to the element
-   *
-   * @param f function to apply
-   * @return int ML_ERROR_NONE if successful
+   * @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool trans,
+              bool trans_in, float beta) const
+   * @details performs dot operation over a batch of inputs
    */
-  template <typename T = float> int apply_i(std::function<T(T)> f) {
-    Tensor result = *this;
-    apply<T>(f, result);
-
-    return ML_ERROR_NONE;
-  };
+  Tensor &dotBatched(Tensor const &input, Tensor &result, bool trans = false,
+                     bool trans_in = false, float beta = 0.0f) const;
 
   /**
-   * @brief     Apply function element by element
-   * @param[in] *function function pointer applied
-   * @param[out] output output tensor
-   * @retval    Tensor
+   * @copydoc Tensor::dot_deriv_wrt_1(Tensor const &input, Tensor const
+   &output_deriv, bool trans, bool trans_in, float beta)
    */
-  template <typename T = float>
-  Tensor &apply(std::function<T(T)> f, Tensor &output) const {
-    CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
-
-    if (dim != output.dim) {
-      /// @todo add unittest
-      throw std::invalid_argument(
-        "[Tensor::apply] output dimension does not match");
-    }
-
-    if (contiguous && output.contiguous) {
-      const T *data = (getData<T>());
-      T *rdata = (output.getData<T>());
-
-      std::transform(data, data + size(), rdata, f);
-    } else if (strides[3] == 1 && output.strides[3] == 1) {
-      /** @todo optimize this with combining these loops where stride is 1 */
-      for (unsigned int b = 0; b < batch(); ++b) {
-        for (unsigned int c = 0; c < channel(); ++c) {
-          for (unsigned int h = 0; h < height(); ++h) {
-            T *out_data = output.getAddress<T>(b, c, h, 0);
-            const T *in_data = getAddress<T>(b, c, h, 0);
-            std::transform(in_data, in_data + width(), out_data, f);
-          }
-        }
-      }
-    } else {
-      for (unsigned int b = 0; b < batch(); ++b) {
-        for (unsigned int c = 0; c < channel(); ++c) {
-          for (unsigned int h = 0; h < height(); ++h) {
-            for (unsigned int w = 0; w < width(); ++w) {
-              output.setValue(b, c, h, w, f(getValue<T>(b, c, h, w)));
-            }
-          }
-        }
-      }
-    }
-
-    return output;
-  };
+  Tensor &dot_batched_deriv_wrt_1(Tensor const &input,
+                                  Tensor const &output_deriv,
+                                  bool trans = false, bool trans_in = false,
+                                  float beta = 0.0f);
 
   /**
-   * @brief     Apply function element by element
-   * @param[in] *function function pointer applied
-   * @retval    Tensor
+   * @brief Tensor::dot_deriv_wrt_2(Tensor const &input_deriv, Tensor const
+   &output_deriv, bool trans, bool trans_in, float beta) const
    */
-  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
-    Tensor result;
-    apply<T>(f, result);
-
-    return result;
-  };
+  Tensor &dot_batched_deriv_wrt_2(Tensor &input_deriv,
+                                  Tensor const &output_deriv,
+                                  bool trans = false, bool trans_in = false,
+                                  float beta = 0.0f) const;
 
   /**
-   * @brief     Apply function to Tensor
-   * @param[in] *function function pointer applied
-   * @retval    Tensor
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
+   * @param dropout drop out rate
+   * @retval Tensor& reference of drop out mask
    */
-  Tensor apply(std::function<Tensor(Tensor)> f) const;
+  Tensor dropout_mask(float dropout) const;
 
   /**
-   * @brief     Apply function to Tensor
-   * @param[in] *function function pointer applied
-   * @param[out] output output tensor
-   * @retval    Tensor
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate) inplace
+   * @param dropout drop out rate
    */
-  Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
-                Tensor &output) const;
+  void dropout_mask(float dropout);
 
   /**
-   * @brief     Print element
-   * @param[in] out out stream
-   * @retval    Tensor
+   * @brief Calculate filter mask
+   * @param mask_len length of each mask along the last axis
+   * @param invert invert the mask
    */
-  void print(std::ostream &out) const;
+  void filter_mask(const Tensor &mask_len, bool reverse = false);
 
   /**
-   * @brief     Print element
-   * @param[in] out out stream
-   * @param[in] opt print formatting option. opt=0 would pretty print the data,
-   * else it would print the raw data.
-   * @retval    Tensor
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param zoneout zone out rate
+   * @retval Tensor zone out mask for opposite tensor
    */
-  void print_(std::ostream &out, uint opt = 0) const;
+  Tensor zoneout_mask(float zoneout);
 
   /**
-   * @brief     Get size of current tensor
-   * @retval    unsigned int size of the current tensor
+   * @brief Calculate 2 Zone Out Mask
+   * @details Calculate zone out mask according to the bernoulli distribution.
+   * Zone out mask with rate @a zoneout for inplace and the other zone out mask
+   * with rate @a (1-zoneout).
+   * @param opposite opposite zone out mask
+   * @param zoneout zone out rate
    */
-  size_t size() const { return dim.getDataLen(); }
+  void zoneout_mask(Tensor &opposite, float zoneout);
 
-  /**
-   * @brief     Get if the tensor is empty
-   * @retval    true if the tensor is empty
-   */
-  bool empty() const { return size() == 0; }
-
-  /**
-   * @brief     Get size of the data in bytes
-   * @retval    size_t Size in bytes
-   */
-  size_t bytes() const {
-    if (getDataType() == Tdatatype::QINT4) {
-      return (size() * dim.getDataTypeSize() + 1) / 2;
-    }
-    return size() * dim.getDataTypeSize();
-  }
-
-  /**
-   * @brief     Set the element value
-   * @param[in] batch batch location
-   * @param[in] c channel location
-   * @param[in] h height location
-   * @param[in] w width location
-   * @param[in] value value to be stored
-   */
-  void setValue(unsigned int batch, unsigned int c, unsigned int h,
-                unsigned int w, float value) noexcept {
-    if (getDataType() == Tdatatype::FP32) {
-      getData<float>()[getIndex(batch, c, h, w)] = value;
-    } else if (getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-      getData<_FP16>()[getIndex(batch, c, h, w)] = static_cast<_FP16>(value);
-#else
-      ml_loge("%s", "Error: enable-fp16 is not enabled");
-#endif
-    } else if (getDataType() == Tdatatype::QINT8) {
-      getData<uint8_t>()[getIndex(batch, c, h, w)] = value;
-    } else if (getDataType() == Tdatatype::QINT4) {
-      int idx = getIndex(batch, c, h, w);
-
-      if (idx % 2 == 0) {
-        getData<uint8_t>()[idx / 2] =
-          encode_qint(value, getData<uint8_t>()[idx / 2]);
-      } else {
-        getData<uint8_t>()[idx / 2] =
-          encode_qint(getData<uint8_t>()[idx / 2] >> 4, value);
-      }
-    }
-  }
-
-  /**
-   * @brief     add the element value to the location
-   * @param[in] batch batch location
-   * @param[in] c channel location
-   * @param[in] h height location
-   * @param[in] w width location
-   * @param[in] value value to be stored
-   * @param[in] beta scalar to multiply output with and add
-   */
-  void addValue(unsigned int batch, unsigned int c, unsigned int h,
-                unsigned int w, float value, float beta) noexcept {
-    auto const &idx = getIndex(batch, c, h, w);
-    if (dim.getDataType() == Tdatatype::FP32) {
-      getData<float>()[idx] *= beta;
-      getData<float>()[idx] += value;
-    } else if (dim.getDataType() == Tdatatype::FP16) {
-#ifdef ENABLE_FP16
-      getData<_FP16>()[idx] *= static_cast<_FP16>(beta);
-      getData<_FP16>()[idx] += static_cast<_FP16>(value);
-#else
-      ml_loge("%s", "Error: enable-fp16 is not enabled");
-#endif
-    } else if (getDataType() == Tdatatype::QINT8) {
-      getData<uint8_t>()[idx] *= beta;
-      getData<uint8_t>()[idx] += value;
-    }
-  }
-
-  /**
-   * @brief     Set the element value
-   * @param[in] offset offset from start location
-   * @param[in] value value to be stored
-   *
-   * @todo      This is a temporary workout. Remove this once multiple datatypes
-   * are supported.
-   */
-  void setValueInt(unsigned int offset, int value) noexcept {
-    int *data_int = (int *)getData();
-    data_int[offset] = value;
-  }
-
-  /**
-   * @brief     Fill the Tensor elements with value
-   * @param[in] value value to be stored
-   */
-  void setValue(float value);
-
-  /**
-   * @brief     Fill the Tensor elements with zero
-   */
-  void setZero();
-
-  /**
-   * @brief Set the Dist object
-   *
-   * @tparam T distrubution engine
-   * @param dist distribution engine
-   */
-  template <typename T, typename Engine> void setDist(Engine dist) {
-    NNTR_THROW_IF(!contiguous, std::invalid_argument)
-      << getName() << " Tensor is not contiguous, cannot set distribution";
-
-    T *data_ = getData<T>();
-    unsigned int len = size();
-    for (unsigned int i = 0; i < len; ++i) {
-      data_[i] = (T)dist(rng);
-    }
-  };
-
-  /**
-   * @brief     Set the tensor with random normal distribution
-   * @param[in] mean mean of the distribution
-   * @param[in] std standard deviation of the distribution
-   */
-  void setRandNormal(float mean = 0.0f, float std = 0.05f);
-
-  /**
-   * @brief     Set the tensor with random uniform distribution
-   * @param[in] min minimum value for the distribution
-   * @param[in] max maximum value for the distribution
-   */
-  void setRandUniform(float min = -0.05f, float max = 0.05f);
-
-  /**
-   * @brief     Set the tensor with random bernoulli distribution
-   * @param[in] probability probability value for the distribution
-   */
-  void setRandBernoulli(float probability = 0.5f);
-
-  /**
-   * @brief     Initialize the memory of the given tensor
-   */
-  void initialize();
-
-  /**
-   * @brief     Initialize the memory of the given tensor
-   * @param     init Initiailizer to use for the initialization
-   */
-  void initialize(Initializer init) {
-    initializer = init;
-    initialize();
-  }
-
-  /**
-   * @brief     set the memory format
-   * @param     fm format of Tensor
-   */
-  void convertFormat(TensorDim::Format fm) {
-    if (getFormat() != fm) {
-      transpose("2:1:0");
-    }
-
-    dim.setFormat(fm);
-  }
-
-  /**
-   * @brief     Copy the Tensor
-   * @param[in] from Tensor to be copied
-   *
-   * @note copy can reshape the tensor to match the shape
-   */
-  void copy(const Tensor &from);
-
-  /**
-   * @brief     Copy the Tensor
-   * @param[in] from Tensor to be copied
-   */
-  void copyData(const Tensor &from);
-
-  /**
-   * @brief     Copy the Tensor
-   * @param[in] from Tensor to be copied
-   */
-  void copy_with_stride(const Tensor &from);
-
-  /**
-   * @brief Get slice of the tensor, sliced by batch
-   * @param[in] offset offset in batch to start the slice
-   * @param[in] size size of the slice
-   * @retval slice of this tensor
-   * @note This function provides a slice of this tensor, and does not create a
-   * copy
-   */
-  Tensor getBatchSlice(size_t offset, unsigned int size) const;
-
-  /**
-   * @brief Get new tensor which shares memory with current tensor but different
-   * shape
-   *
-   * @param dim new dimension to be set for this tensor
-   * @param offset offset to be used from the start of the data in elements
-   * @note The new tensor will share the same data as the current tensor but
-   * can have different size.
-   * @note New size added with offset must be less than the size of the original
-   * tensor.
-   */
-  Tensor getSharedDataTensor(const TensorDim dim, size_t offset,
-                             bool reset_stride = true,
-                             const std::string &name_ = "") const;
   /**
    * @brief split tensor along axis.
    *
@@ -1679,17 +1144,69 @@ public:
   static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
 
   /**
-   * @brief make this tensor share memory with given tensor
-   *
-   * @param src Source tensor whose memory is to be shared
-   * @param offset offset to be used from the start of the data in bytes
-   * @note This tensor will share the same data as the current tensor but
-   * can have different size.
-   * @note This tensor's size added with offset must be less than the size of
-   * the source tensor.
-   * @note The stride of the source tensor and this tensor must be same.
+   * @brief     Print element
+   * @param[in] out out stream
    */
-  void makeSharedDataTensor(const Tensor &src, size_t offset = 0);
+  void print(std::ostream &out) const;
+
+  /**
+   * @brief     put data of Tensor
+   * @note      It is only effective when memory_swap is used
+   */
+  void putData() const;
+
+  /**
+   * @brief Set the memory buffer for the tensor
+   *
+   * @param buf the memory buffer
+   * @param init intialize the buffer
+   */
+  void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
+               bool init = false);
+
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  const std::shared_ptr<MemoryData> getMemoryData() const;
+
+  /**
+   * @brief     return offset
+   */
+  size_t getOffset() const;
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   *
+   * @note copy can reshape the tensor to match the shape
+   * @note support copying data from multiple data type
+   */
+  void copy(const Tensor &from);
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   * @note      support copying data from multiple data type
+   */
+  void copyData(const Tensor &from);
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   * @note      only support copying data from tensor with the same data type
+   */
+  void copy_with_stride(const Tensor &from);
+
+  /**
+   * @brief Get slice of the tensor, sliced by batch
+   * @param[in] offset offset in batch to start the slice
+   * @param[in] size size of the slice
+   * @retval slice of this tensor
+   * @note This function provides a slice of this tensor, and does not create a
+   * copy
+   */
+  Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.
@@ -1706,13 +1223,12 @@ public:
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
-   * @param[in] s_type scale factor data type
    */
-  void read(std::ifstream &file, Tdatatype s_type = Tdatatype::FP32);
+  void read(std::ifstream &file);
 
   /**
    * @brief     return argument index which value is max by batch
-   * @retval    unsigned int argument index
+   * @retval    unsigned int argument indices
    */
   std::vector<unsigned int> argmax() const;
 
@@ -1723,51 +1239,80 @@ public:
   float max_abs() const;
 
   /**
+   * @brief  return maximum value
+   * @retval Maximum value of the tensor data
+   */
+  float maxValue() const;
+
+  /**
+   * @brief  return minimum value
+   * @retval Minimum value of the tensor data
+   */
+  float minValue() const;
+
+  /**
+   * @brief  Transpose Tensor
+   * @param  direction to transpose ex) 0:2:1
+   * @return Tensor
+   */
+  Tensor transpose(const std::string &direction) const;
+
+  /**
+   * @brief      Transpose Tensor
+   * @param      direction to transpose ex) 0:2:1
+   * @param[out] Tensor to save to, dimension is always reshaped.
+   * @retval     Tensor& reference to the out
+   */
+  Tensor &transpose(const std::string &direction, Tensor &out) const;
+
+  /**
+   * @brief     set Tensor Dim
+   * @param[in] d TensorDim
+   * @note      Throws std::invalid_argument if size mismatch
+   */
+  void reshape(const TensorDim &d);
+
+  /**
+   * @brief fill tensor data with current value,
+   * if dimension is not exactly same, it is a hard error in this function
+   * so, only stride is overriden to @a this
+   *
+   * @param from Tensor to fill the data from
+   * @param allocate if unallocated, allocate with from.getDim()
+   * @throws std::invalid_argument if dimension and stride does not match
+   */
+  void fill(const Tensor &from, bool allocate = false);
+
+  /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */
-  TensorDim getDim() const { return TensorDim(dim); }
-
-  /**
-   * @brief     return Tensor Dim for a given axis
-   * @retval    dimension
-   */
-  size_t getTensorDim(unsigned int axis);
+  TensorDim getDim() const;
 
   /**
    * @brief     return Tensor Type
    */
-  TensorDim::TensorType getTensorType() const { return dim.getTensorType(); };
+  TensorDim::TensorType getTensorType() const;
 
   /**
-   * @brief     return Tensor batch size
-   * @retval    batch size
+   * @brief Get initializer for the tensor
+   *
+   * @return initializer of the tensor
    */
-  size_t batch() const { return dim.batch(); }
+  Initializer getInitializer() const;
 
   /**
-   * @brief     return Tensor batch size
-   * @retval    batch size
+   * @brief Get format for the tensor
+   * @return format of the tensor
    */
-  size_t channel() const { return dim.channel(); }
+  TensorDim::Format getFormat() const;
 
   /**
-   * @brief     return Tensor height size
-   * @retval    height size
+   * @brief Get data type for the tensor
+   *
+   * @return data type of the tensor
    */
-  size_t height() const { return dim.height(); }
-
-  /**
-   * @brief     return Tensor batch size
-   * @retval    width size
-   */
-  size_t width() const { return dim.width(); }
-
-  /**
-   * @brief     return Tensor Data Type Size
-   * @retval    data type size
-   */
-  uint getDataTypeSize() const { return dim.getDataTypeSize(); }
+  Tdatatype getDataType() const;
 
   /**
    * @brief     update batch size for this tensor
@@ -1789,372 +1334,94 @@ public:
    * new batch size. It is recommended to first deallocate all the tensors,
    * updateBatch and then allocate again to avoid such issues.
    */
-  void updateBatch(unsigned int batch) {
-    if (dim.batch() == batch) {
-      return;
-    }
-
-    if (isAllocated())
-      throw std::invalid_argument(
-        "Cannot update batch for an allocated tensor");
-    dim.batch(batch);
-  }
+  void updateBatch(unsigned int batch);
 
   /**
-   * @brief     return Data pointer of Tensor
-   * @retval    template T pointer (float pointer as default)
+   * @brief     return whether tensor is contiguous or not.
+   * @retval    bool contiguous
    */
-  template <typename T = float> T *getData() {
-    if (!data)
-      return nullptr;
-
-    data->validate();
-    return data->getAddr<T>() + offset;
-  }
-
-  /**
-   * @brief     return Data pointer of Tensor
-   * @retval    template T pointer (float pointer as default)
-   */
-  template <typename T = float> const T *getData() const {
-    if (!data)
-      return nullptr;
-
-    data->validate();
-    return data->getAddr<T>() + offset;
-  }
-
-  /**
-   * @brief     return Data pointer of Tensor
-   * @retval    template T pointer (float pointer as default)
-   */
-  template <typename T = float> T *getData(size_t idx) const {
-    if (!data)
-      return nullptr;
-
-    size_t index = idx;
-
-    data->validate();
-    return data->getAddr<T>() + offset + index;
-  }
-
-  /**
-   * @brief     setter data type
-   * @param[in] Data Type
-   */
-  void setDataType(Tdatatype d_type) { dim.setDataType(d_type); }
-
-  /**
-   * @brief     setter tensor type
-   * @param[in] tensor Type
-   */
-  void setTensorType(ml::train::TensorDim::TensorType t_type) {
-    dim.setTensorType(t_type);
-  }
-
-  /**
-   * @brief     put data of Tensor
-   *
-   * @note      It is only effective when memory_swap is used
-   */
-  void putData() const {
-    if (!data)
-      return;
-
-    data->invalidate();
-  }
-
-  /**
-   * @brief     return Data pointer of Tensor
-   * @retval    template T pointer (float pointer as default)
-   */
-  const std::shared_ptr<MemoryData> getMemoryData() const { return data; }
-
-  /**
-   * @brief     return offset
-   */
-  size_t getOffset() const { return offset; }
-
-  /**
-   * @brief     i data index
-   * @retval    address of ith data
-   */
-  /**
-   * @brief     set Tensor Dim
-   * @param[in] d TensorDim
-   * @note      Throws std::invalid_argument if size mismatch
-   */
-  void reshape(const TensorDim &d);
-
-  /**
-   * @brief fill tensor data with current value,
-   * if dimension is not exactly same, it is a hard error in this function
-   * so, only stride is overriden to @a this
-   *
-   * @param from Tensor to fill the data from
-   * @param allocate if unallocated, allocate with from.getDim()
-   * @throws std::invalid_argument if dimension and stride does not match
-   */
-  void fill(const Tensor &from, bool allocate = false);
+  const bool getContiguous() const noexcept;
 
   /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
-    return strides;
-  }
+  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept;
+
+  /**
+   * @brief     Check if two given axes are contiguous
+   * @param[in] np1 first axis
+   * @param[in] np2 second axis to compare with first axis
+   * @retval    bool continuous
+   */
+  bool checkContinuous(unsigned int np1, unsigned int np2) const;
+
+  /**
+   * @brief     Set name of the tensor
+   * @param[in] name_ tensor name
+   */
+  void setName(const std::string &name_);
+
+  /**
+   * @brief     Get name of the tensor
+   * @retval    string name
+   */
+  const std::string &getName() const;
+
   /**
    * @brief Get linear index given the n-d index
    */
-  inline size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
-                         unsigned int w) const noexcept {
-    if (getFormat() == Tformat::NCHW) {
-      if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
-        return (b * strides[0] + c * strides[1] + h * strides[2] +
-                w * strides[3]);
-      } else {
-        return b * dim[1] * dim[2] * dim[3] + c * dim[2] * dim[3] + h +
-               w * dim[2];
-      }
-
-    } else {
-      return (b * strides[0] + h * strides[1] + w * strides[2] +
-              c * strides[3]);
-    }
-  }
-
+  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                  unsigned int w) const noexcept;
   /**
-   * @brief Check if two given axes are contiguous
+   * @brief     Get size of current tensor
+   * @retval    unsigned int size of the current tensor
    */
-  bool checkContinuous(unsigned int n, unsigned int np1) const {
-    std::vector<unsigned int> continuous_order_nhwc = {0, 3, 1, 2};
-    bool continuous = false;
-    if (getFormat() == Tformat::NHWC) {
-      if (continuous_order_nhwc[np1] == continuous_order_nhwc[n] + 1)
-        continuous = true;
-    } else {
-      if (n + 1 == np1)
-        continuous = true;
-    }
-    return continuous;
-  }
+  size_t size() const;
 
   /**
-   * @brief   Get name of the tensor
+   * @brief     Get if the tensor is empty
+   * @retval    true if the tensor is empty
+   */
+  bool empty() const;
+
+  /**
+   * @brief     Get size of the data in bytes
+   * @retval    size_t Size in bytes
+   */
+  size_t bytes() const;
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  size_t batch() const;
+
+  /**
+   * @brief     return Tensor channel size
+   * @retval    channel size
+   */
+  size_t channel() const;
+
+  /**
+   * @brief     return Tensor height size
+   * @retval    height size
+   */
+  size_t height() const;
+
+  /**
+   * @brief     return Tensor width size
+   * @retval    width size
+   */
+  size_t width() const;
+
+  /**
+   * @brief Merge the given two axis for tensor at second axis inplace
    *
-   * @return name of the tensor
+   * @param axis1 first axis to merge
+   * @param axis2 second axis to merge
    */
-  void setName(const std::string &name_) { name = name_; }
-
-  /**
-   * @brief   Get name of the tensor
-   *
-   * @return name of the tensor
-   */
-  const std::string &getName() const { return name; }
-
-  /**
-   * @brief Set the memory buffer for the tensor
-   *
-   * @param buf the memory buffer
-   * @param init intialize the buffer
-   */
-  void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
-               bool init = false) {
-    if (buf) {
-      data = buf;
-      offset = off;
-      if (init)
-        initialize();
-    } else {
-      data = nullptr;
-      offset = 0;
-    }
-  }
-
-  /**
-   * @brief Get initializer for the tensor
-   *
-   * @return initializer of the tensor
-   */
-  Tensor::Initializer getInitializer() const { return initializer; }
-
-  /**
-   * @brief Get format for the tensor
-   *
-   * @return format of the tensor
-   */
-  TensorDim::Format getFormat() const { return dim.getFormat(); }
-
-  /**
-   * @brief Get data type for the tensor
-   *
-   * @return data type of the tensor
-   */
-  Tdatatype getDataType() const { return dim.getDataType(); }
-
-  /**
-   * @brief     Set fp32 scale factors of the tensor
-   * @param[in] scales fp32 scale factors
-   */
-  void setScaleFactors(std::vector<float> scales) {
-    if (scales.empty()) {
-      throw std::invalid_argument("Error: invalid parameter");
-    }
-
-    scale_factors_fp32 = scales;
-  }
-
-  /**
-   * @brief Get scale factors of the tensor
-   *
-   * @return scale factors of the tensor
-   */
-  std::vector<float> getScaleFactors() const;
-
-  /**
-   * @brief     Set output axis of the tensor
-   * @param[in] zp zero points
-   */
-  void setZeroPoints(std::vector<uint8_t> zp);
-
-#ifdef ENABLE_FP16
-  /**
-   * @brief     Set fp16 scale factors of the tensor
-   * @param[in] scales fp16 scale factors
-   */
-  void setScaleFactorsFP16(std::vector<_FP16> scales) {
-    if (scales.empty()) {
-      throw std::invalid_argument("Error: invalid parameter");
-    }
-
-    scale_factors_fp16 = scales;
-  }
-#endif
-
-  /**
-   * @brief Get zero points of the tensor
-   *
-   * @return zero points of the tensor
-   */
-  std::vector<uint8_t> getZeroPoints() const;
-
-  /**
-   * @brief      Dequantize Tensor to output tensor datatype
-   * @param[out] output Tensor to store the result
-   */
-  void dequantize(Tensor &output, unsigned int axis) const;
-
-  static constexpr float epsilon = 1e-5;
-
-private:
-  /**< handle the data as a std::shared_ptr<float> type */
-  TensorDim dim;
-  std::array<size_t, TensorDim::MAXDIM> strides;
-  bool contiguous;
-  Tensor::Initializer initializer;
-  std::string name; /**< name of the tensor */
-  std::shared_ptr<MemoryData> data;
-  size_t offset;
-  std::vector<float> scale_factors_fp32;
-#ifdef ENABLE_FP16
-  std::vector<_FP16> scale_factors_fp16;
-#endif
-  std::vector<uint8_t> zero_points;
-
-  /**<
-   * When using shared_data with tensor, this stores the ptr of the source
-   * tensor which handles the full memory. If tensor data is already allocated,
-   * this does not affect the tensor. If the tensor data is not allocated, and
-   * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
-   */
-  std::shared_ptr<SrcSharedTensor> src_tensor;
-
-  struct BroadcastInfo;
-
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @param e broadcast info.
-   * @param cur_axis current axis. pass default when calling outside.
-   * @param offset offset for this.  pass default when calling outside.
-   * @param m_offset offset for m.  pass default when calling outside.
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void
-  apply_broadcast_util(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output, const BroadcastInfo &e,
-                       int cur_axis = -1, size_t offset = 0,
-                       size_t m_offset = 0) const;
-
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   *
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void apply_broadcast(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output) const;
-#ifdef ENABLE_FP16
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @param e broadcast info.
-   * @param cur_axis current axis. pass default when calling outside.
-   * @param offset offset for this.  pass default when calling outside.
-   * @param m_offset offset for m.  pass default when calling outside.
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void
-  apply_broadcast_util(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const _FP16 *,
-                                          const _FP16 *, _FP16 *)>
-                         v_func,
-                       Tensor &output, const BroadcastInfo &e,
-                       int cur_axis = -1, size_t offset = 0,
-                       size_t m_offset = 0) const;
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   *
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void apply_broadcast(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const _FP16 *,
-                                          const _FP16 *, _FP16 *)>
-                         v_func,
-                       Tensor &output) const;
-#endif
-  /**
-   * @brief compute Loop info for broadcasting and vectorization
-   *
-   * @param m target tensor to be calculated against.
-   * @return BroadcastInfo Loopinfo needed to run external loop
-   */
-  BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
-
-  /**
-   * @brief copy a buffer to @a this, the caller has to ensure that @a this is
-   * initialized otherwise undefined behavior
-   *
-   * @param buf buffer to copy from
-   */
-  void copy(const void *buf);
+  void mergeAxis(unsigned int axis1, unsigned int axis2);
 
   /**
    * @brief Update destination tensor to share memory with source tensor
@@ -2167,57 +1434,50 @@ private:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  static void createSharedDataTensor(const Tensor &src, Tensor &dest,
-                                     size_t offset);
+  void createSharedDataTensor(const Tensor &src, Tensor &dest,
+                              size_t offset) const;
 
   /**
-   * @brief    Reallocate memory for this tensor
-   * @note     This will not necessary free the memory as tensors share memory
-   * @note     This can increase the peak memory consumption when callled on all
-   * the tensors of a model sequentially. It is advised to first deallocate all
-   * the tensors and then allocate, than reallocate tensors one by one.
+   * @brief Get new tensor which shares memory with current tensor but different
+   * shape
+   *
+   * @param dim new dimension to be set for this tensor
+   * @param offset offset to be used from the start of the data in elements
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
    */
-  void reallocate() {
-    deallocate();
-    allocate();
+  Tensor getSharedDataTensor(const TensorDim dim_, size_t offset,
+                             bool reset_stride = true,
+                             const std::string &name_ = "") const;
+
+  /**
+   * @brief    Swaps Tensor lhs and rhs
+   * @param[in] lhs Tensor to be swapped
+   * @param[in] rhs Tensor to be swapped
+   */
+  friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
+    std::swap(lhs.itensor, rhs.itensor);
   }
 
+private:
+  std::shared_ptr<TensorBase> itensor;
+
   /**
-   * @brief Merge the given two axis for tensor at second axis inplace
+   * @brief Set tensor variables
    *
-   * @param axis1 first axis to merge
-   * @param axis2 second axis to merge
+   * @param[in] d TensorDim
+   * @param[in] buf buffer
+   * @param[in] offset offset to be used
    */
-  void mergeAxis(unsigned int axis1, unsigned int axis2);
-
-  /**
-   * @brief     rotate 180 dgree
-   * @param[in] in input Tensor
-   * @retVal Tensor rotated tensor (180 degree)
-   */
-  Tensor rotate_180(Tensor in);
-
-  /**
-   * @brief      Encode two int4 values to one int8 value
-   * @param[in]  high value for first 4 bits
-   * @param[in]  low value for last 4 bits
-   * @retval     Encoded value
-   */
-  uint8_t encode_qint(uint8_t high, uint8_t low) const;
-
-  /**
-   * @brief      Decode int8 value to a int4 value
-   * @param[in]  idx index to retrieve value
-   * @retval     Decoded value
-   */
-  uint8_t decode_qint(uint8_t val, bool isHigh) const;
-
-}; // namespace nntrainer
+  void setTensorVar(TensorDim d, void *buf, size_t offset);
+};
 
 /**
  * @brief   Overriding output stream
  */
-std::ostream &operator<<(std::ostream &out, Tensor const &m);
+std::ostream &operator<<(std::ostream &out, Tensor const &input);
 
 typedef std::shared_ptr<Tensor> sharedTensor;
 
@@ -2227,7 +1487,7 @@ typedef std::vector<sharedConstTensor> sharedConstTensors;
 
 typedef std::vector<sharedTensor> sharedTensors;
 
-} /* namespace nntrainer */
+} // namespace nntrainer
 
 #endif /* __cplusplus */
 #endif /* __TENSOR_H__ */

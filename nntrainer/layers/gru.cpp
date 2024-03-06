@@ -64,9 +64,9 @@ GRULayer::GRULayer() :
 }
 
 void GRULayer::finalize(InitLayerContext &context) {
-  const Tensor::Initializer weight_initializer =
+  const Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
-  const Tensor::Initializer bias_initializer =
+  const Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props).get();
   const WeightRegularizer weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props).get();
@@ -148,27 +148,27 @@ void GRULayer::finalize(InitLayerContext &context) {
 
   // hidden_state_dim = [ batch, 1, max_timestep, unit ]
   TensorDim hidden_state_dim(batch_size, 1, max_timestep, unit);
-  wt_idx[GRUParams::hidden_state] = context.requestTensor(
-    hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[GRUParams::hidden_state] =
+    context.requestTensor(hidden_state_dim, "hidden_state", Initializer::NONE,
+                          true, TensorLifespan::ITERATION_LIFESPAN);
 
   // zrg_dim = [ batch, 1, max_timestep, NUM_GATE * unit ]
   TensorDim zrg_dim(batch_size, 1, max_timestep, NUM_GATE * unit);
   wt_idx[GRUParams::zrg] =
-    context.requestTensor(zrg_dim, "zrg", Tensor::Initializer::NONE, true,
+    context.requestTensor(zrg_dim, "zrg", Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 
   // h_prev_dim = [ batch, 1, 1, unit ]
   TensorDim h_prev_dim = TensorDim({batch_size, 1, 1, unit});
   wt_idx[GRUParams::h_prev] =
-    context.requestTensor(h_prev_dim, "h_prev", Tensor::Initializer::NONE,
-                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    context.requestTensor(h_prev_dim, "h_prev", Initializer::NONE, false,
+                          TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   if (dropout_rate > epsilon) {
     TensorDim dropout_mask_dim(batch_size, 1, max_timestep, unit);
-    wt_idx[GRUParams::dropout_mask] = context.requestTensor(
-      output_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[GRUParams::dropout_mask] =
+      context.requestTensor(output_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   acti_func.setActiFunc(hidden_state_activation_type);

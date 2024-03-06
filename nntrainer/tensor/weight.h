@@ -59,14 +59,13 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(
-    const TensorDim &dim,
-    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
-    const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, const float decay = 0.0f,
-    const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 0.0);
+  explicit Weight(const TensorDim &dim,
+                  const Initializer init = Initializer::XAVIER_UNIFORM,
+                  const WeightRegularizer reg = WeightRegularizer::NONE,
+                  const float reg_const = 1.0f, const float decay = 0.0f,
+                  const float clip_by_global_norm = 0.0f, bool ng = true,
+                  bool alloc_now = false, std::string name = "",
+                  unsigned int axis = 3, float loss_scale_ = 0.0);
 
   /**
    * @brief Construct a new Weight object
@@ -80,14 +79,13 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(
-    const TensorDim &dim_v, const TensorDim &dim_g,
-    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
-    const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, const float decay = 0.0f,
-    const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 0.0);
+  explicit Weight(const TensorDim &dim_v, const TensorDim &dim_g,
+                  const Initializer init = Initializer::XAVIER_UNIFORM,
+                  const WeightRegularizer reg = WeightRegularizer::NONE,
+                  const float reg_const = 1.0f, const float decay = 0.0f,
+                  const float clip_by_global_norm = 0.0f, bool ng = true,
+                  bool alloc_now = false, std::string name = "",
+                  unsigned int axis = 3, float loss_scale_ = 0.0);
 
   /**
    * @brief Construct a new Weight object
@@ -97,7 +95,7 @@ public:
   explicit Weight(const Spec &spec, bool alloc_now = false) :
     Weight(std::get<0>(spec), // TensorDim for Variable
            std::get<1>(spec), // TensorDim for Gradient
-           std::get<2>(spec), // Tensor::Initializer
+           std::get<2>(spec), // Initializer
            std::get<3>(spec), // WeightRegularizer
            std::get<4>(spec), // WeightRegularizerConstant
            std::get<5>(spec), // weight decay constant

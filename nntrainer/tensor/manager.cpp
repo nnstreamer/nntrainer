@@ -430,7 +430,7 @@ std::vector<Weight *> Manager::requestWeights(
          */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim_g, grad_exec_order, grad_ls,
-                                           Tensor::Initializer::ZEROS);
+                                           Initializer::ZEROS);
       }
     } else {
       /** case requesting fresh weights */
@@ -446,8 +446,8 @@ std::vector<Weight *> Manager::requestWeights(
         if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
           is_wgrad = false;
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
-                                   grad_exec_order, grad_ls,
-                                   Tensor::Initializer::ZEROS, is_wgrad);
+                                   grad_exec_order, grad_ls, Initializer::ZEROS,
+                                   is_wgrad);
       }
     }
 
@@ -515,17 +515,16 @@ std::vector<Var_Grad *> Manager::requestTensors(
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim, grad_exec_order, tspan,
-                                           Tensor::Initializer::ZEROS);
+                                           Initializer::ZEROS);
       }
     } else {
       var = tensor_pool.request(name, dim, var_exec_order, tspan, t_init);
 
       if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
-        grad =
-          tensor_pool.request(name + Var_Grad::grad_suffix, /// name
-                              dim, grad_exec_order, tspan,
-                              Tensor::Initializer::ZEROS /// tensor initializer
-          );
+        grad = tensor_pool.request(name + Var_Grad::grad_suffix, /// name
+                                   dim, grad_exec_order, tspan,
+                                   Initializer::ZEROS /// tensor initializer
+        );
       }
     }
 
@@ -668,8 +667,7 @@ bool Manager::isSecondLastAccess(const std::string &name,
  */
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
-  const TensorLifespan &lifespan, bool is_grad_clip,
-  Tensor::Initializer initializer) {
+  const TensorLifespan &lifespan, bool is_grad_clip, Initializer initializer) {
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());
