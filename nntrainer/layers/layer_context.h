@@ -184,8 +184,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const TensorDim &dim,
-                             const Tensor::Initializer init,
+  unsigned int requestWeight(const TensorDim &dim, const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
                              bool trainable = true, unsigned int out_axis = 3) {
@@ -231,7 +230,7 @@ public:
    */
   unsigned int
   requestTensor(const TensorDim &dim, const std::string &name,
-                const Tensor::Initializer init = Tensor::Initializer::NONE,
+                const Initializer init = Initializer::NONE,
                 bool trainable = false,
                 TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
                 bool private_ = true) {
@@ -441,7 +440,7 @@ public:
     }
     unsigned int o_ax = getWeightObject(idx).getOutputAxis();
 
-    t_w.dequantize(w, o_ax);
+    // t_w.dequantize(w, o_ax);
 
     return;
   }

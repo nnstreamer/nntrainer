@@ -72,7 +72,7 @@ enum class Initializer {
   NONE            /** No initialization */
 };
 
-class TensorV2;
+class Tensor;
 class SrcSharedTensorBase;
 
 /**
@@ -129,7 +129,7 @@ public:
   bool operator!=(const TensorBase &rhs) const { return !(*this == rhs); }
 
   /**
-   * @copydoc TensorV2::setTensorVar(TensorDim d, void *buf, size_t offset)
+   * @copydoc Tensor::setTensorVar(TensorDim d, void *buf, size_t offset)
    */
   void setTensorVar(TensorDim d, void *buf, size_t offset);
 
@@ -139,27 +139,27 @@ public:
   virtual ~TensorBase() {}
 
   /**
-   * @copydoc TensorV2::allocate()
+   * @copydoc Tensor::allocate()
    */
   virtual void allocate() = 0;
 
   /**
-   * @copydoc TensorV2::deallocate()
+   * @copydoc Tensor::deallocate()
    */
   virtual void deallocate() = 0;
 
   /**
-   * @copydoc TensorV2::isAllocated()
+   * @copydoc Tensor::isAllocated()
    */
   bool isAllocated() { return data != nullptr; }
 
   /**
-   * @copydoc TensorV2::getData()
+   * @copydoc Tensor::getData()
    */
   virtual void *getData() const = 0;
 
   /**
-   * @copydoc TensorV2::getData(size_t idx)
+   * @copydoc Tensor::getData(size_t idx)
    */
   virtual void *getData(size_t idx) const = 0;
 
@@ -176,143 +176,143 @@ public:
   virtual const void *getAddress(unsigned int i) const = 0;
 
   /**
-   * @copydoc TensorV2::setValue(float value)
+   * @copydoc Tensor::setValue(float value)
    */
   virtual void setValue(float value) = 0;
 
   /**
-   * @copydoc TensorV2::setValue(b, c, h, w, value)
+   * @copydoc Tensor::setValue(b, c, h, w, value)
    */
   virtual void setValue(unsigned int b, unsigned int c, unsigned int h,
                         unsigned int w, float value) = 0;
 
   /**
-   * @copydoc TensorV2::addValue()
+   * @copydoc Tensor::addValue()
    */
   virtual void addValue(unsigned int b, unsigned int c, unsigned int h,
                         unsigned int w, float value, float beta) = 0;
 
   /**
-   * @copydoc TensorV2::setZero()
+   * @copydoc Tensor::setZero()
    */
   virtual void setZero() = 0;
 
   /**
-   * @copydoc TensorV2::setRandNormal()
+   * @copydoc Tensor::setRandNormal()
    */
   virtual void setRandNormal(float mean, float stddev) = 0;
 
   /**
-   * @copydoc TensorV2::setRandBernoulli()
+   * @copydoc Tensor::setRandBernoulli()
    */
   virtual void setRandUniform(float min, float max) = 0;
 
   /**
-   * @copydoc TensorV2::setRandBernoulli()
+   * @copydoc Tensor::setRandBernoulli()
    */
   virtual void setRandBernoulli(float probability) = 0;
 
   /**
-   * @copydoc TensorV2::initialize()
+   * @copydoc Tensor::initialize()
    */
   virtual void initialize() = 0;
 
   /**
-   * @copydoc TensorV2::initialize(Initializer init)
+   * @copydoc Tensor::initialize(Initializer init)
    */
   virtual void initialize(Initializer init) = 0;
 
   /**
-   * @copydoc TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
+   * @copydoc Tensor::multiply_strided(Tensor const &m, Tensor &output,
    * const float beta)
    */
-  virtual TensorV2 multiply_strided(TensorV2 const &m, TensorV2 &output,
-                                    const float beta) const = 0;
+  virtual Tensor multiply_strided(Tensor const &m, Tensor &output,
+                                  const float beta) const = 0;
 
   /**
-   * @copydoc TensorV2::multiply_i(float const &value)
+   * @copydoc Tensor::multiply_i(float const &value)
    */
   virtual int multiply_i(float const &value) = 0;
 
   /**
-   * @copydoc TensorV2::multiply(float const &value, TensorV2 &out)
+   * @copydoc Tensor::multiply(float const &value, Tensor &out)
    */
-  virtual TensorV2 &multiply(float const &value, TensorV2 &out) const = 0;
+  virtual Tensor &multiply(float const &value, Tensor &out) const = 0;
 
   /**
-   * @copydoc TensorV2::multiply(TensorV2 const &m, TensorV2 &output, const
+   * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
    * float beta = 0.0)
    */
-  virtual TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
-                             const float beta = 0.0) const = 0;
+  virtual Tensor &multiply(Tensor const &m, Tensor &output,
+                           const float beta = 0.0) const = 0;
 
   /**
-   * @copydoc TensorV2::divide(float const &value, TensorV2 &output)
+   * @copydoc Tensor::divide(float const &value, Tensor &output)
    */
-  virtual TensorV2 &divide(float const &value, TensorV2 &output) const = 0;
+  virtual Tensor &divide(float const &value, Tensor &output) const = 0;
 
   /**
-   * @copydoc TensorV2::divide(TensorV2 const &m, TensorV2 &output)
+   * @copydoc Tensor::divide(Tensor const &m, Tensor &output)
    */
-  virtual TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const = 0;
+  virtual Tensor &divide(Tensor const &m, Tensor &output) const = 0;
 
   /**
-   * @copydoc TensorV2::add_strided(TensorV2 const &input, TensorV2 &output,
+   * @copydoc Tensor::add_strided(Tensor const &input, Tensor &output,
    * const float beta)
    */
-  virtual TensorV2 &add_strided(TensorV2 const &input, TensorV2 &output,
-                                const float beta) const = 0;
+  virtual Tensor &add_strided(Tensor const &input, Tensor &output,
+                              const float beta) const = 0;
 
   /**
-   * @copydoc TensorV2::add(float const &value, TensorV2 &output)
+   * @copydoc Tensor::add(float const &value, Tensor &output)
    */
-  virtual TensorV2 &add(float const &value, TensorV2 &output) const = 0;
+  virtual Tensor &add(float const &value, Tensor &output) const = 0;
 
   /**
-   * @copydoc TensorV2::add(TensorV2 const &m, TensorV2 &output, float const
+   * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  virtual TensorV2 &add(TensorV2 const &m, TensorV2 &output,
-                        float const alpha) const = 0;
+  virtual Tensor &add(Tensor const &m, Tensor &output,
+                      float const alpha) const = 0;
 
   /**
-   * @copydoc TensorV2::subtract(float const &value, TensorV2 &output)
+   * @copydoc Tensor::subtract(float const &value, Tensor &output)
    */
-  virtual TensorV2 &subtract(float const &value, TensorV2 &output) const = 0;
+  virtual Tensor &subtract(float const &value, Tensor &output) const = 0;
 
   /**
    * @brief      Sum all the Tensor elements according to the batch
    * @param[out] output Tensor(batch, 1, 1, 1)
    */
-  virtual void sum_by_batch(TensorV2 &output) const = 0;
+  virtual void sum_by_batch(Tensor &output) const = 0;
 
   /**
-   * @copydoc TensorV2::sum(unsigned int axis, TensorV2 &output, float alpha,
+   * @copydoc Tensor::sum(unsigned int axis, Tensor &output, float alpha,
    * float beta) const
    */
-  virtual TensorV2 &sum(unsigned int axis, TensorV2 &output, float alpha,
-                        float beta) const = 0;
+  virtual Tensor &sum(unsigned int axis, Tensor &output, float alpha,
+                      float beta) const = 0;
 
   /**
-   * @copydoc TensorV2::l2norm
+   * @copydoc Tensor::l2norm
    */
   virtual float l2norm() const = 0;
 
   /**
-   * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
+   * @copydoc Tensor::pow(float exponent, Tensor &output)
    */
-  virtual TensorV2 &pow(float exponent, TensorV2 &output) const = 0;
+  virtual Tensor &pow(float exponent, Tensor &output) const = 0;
 
   /**
-   * @copydoc TensorV2::erf(TensorV2 &output)
+   * @copydoc Tensor::erf(Tensor &output)
    */
-  virtual TensorV2 &erf(TensorV2 &output) const = 0;
+  virtual Tensor &erf(Tensor &output) const = 0;
 
   /**
    * @brief    sin transform function
    * @param[out] out out to store the result
    */
-  virtual void sin(TensorV2 &out, float alpha = 1.0) {
+  virtual void sin(Tensor &out, float alpha = 1.0) {
     throw std::invalid_argument(
       "Tensor::sin not supported in current tensor data type.");
   }
@@ -321,9 +321,18 @@ public:
    * @brief    cos transform function
    * @param[out] out out to store the result
    */
-  virtual void cos(TensorV2 &out, float alpha = 1.0) {
+  virtual void cos(Tensor &out, float alpha = 1.0) {
     throw std::invalid_argument(
       "Tensor::cos not supported in current tensor data type.");
+  }
+
+  /**
+   * @brief      inverse squared root function
+   * @param[out] out out to store the result
+   */
+  virtual void inv_sqrt(Tensor &out) {
+    throw std::invalid_argument(
+      "Tensor::inv_sqrt not supported in current tensor data type.");
   }
 
   /**
@@ -337,48 +346,46 @@ public:
    * @param[in] beta beta
    * @retval    Calculated Tensor
    */
-  virtual TensorV2 &dot(TensorV2 const &input, TensorV2 &output, bool trans,
-                        bool trans_in, float beta) const = 0;
+  virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
+                      bool trans_in, float beta) const = 0;
 
   /**
-   * @copydoc TensorV2::dropout_mask(float dropout)
+   * @copydoc Tensor::dropout_mask(float dropout)
    */
   virtual void dropout_mask(float dropout) = 0;
 
   /**
-   * @copydoc TensorV2::filter_mask(const TensorV2 &mask_len, bool reverse)
+   * @copydoc Tensor::filter_mask(const Tensor &mask_len, bool reverse)
    */
-  virtual void filter_mask(const TensorV2 &mask_len, bool reverse) = 0;
+  virtual void filter_mask(const Tensor &mask_len, bool reverse) = 0;
 
   /**
-   * @copydoc TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout)
+   * @copydoc Tensor::zoneout_mask(Tensor &opposite, float zoneout)
    */
-  virtual void zoneout_mask(TensorV2 &opposite, float zoneout) = 0;
+  virtual void zoneout_mask(Tensor &opposite, float zoneout) = 0;
 
   /**
-   * @copydoc TensorV2::split(std::vector<size_t> sizes, int axis)
+   * @copydoc Tensor::split(std::vector<size_t> sizes, int axis)
    */
-  virtual std::vector<TensorV2> split(std::vector<size_t> sizes, int axis) = 0;
+  virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis) = 0;
 
   /**
-   * @copydoc TensorV2::print(std::ostream &out)
+   * @copydoc Tensor::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
 
   /**
-   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    */
-  virtual TensorV2 &apply(std::function<float(float)> f,
-                          TensorV2 &output) const {
+  virtual Tensor &apply(std::function<float(float)> f, Tensor &output) const {
     return output;
   }
 
 #ifdef ENABLE_FP16
   /**
-   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    */
-  virtual TensorV2 &apply(std::function<_FP16(_FP16)> f,
-                          TensorV2 &output) const {
+  virtual Tensor &apply(std::function<_FP16(_FP16)> f, Tensor &output) const {
     return output;
   }
 #endif
@@ -389,39 +396,39 @@ public:
    *
    * @note copy can reshape the tensor to match the shape
    */
-  virtual void copy(const TensorV2 &from) = 0;
+  virtual void copy(const Tensor &from) = 0;
 
   /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    */
-  virtual void copyData(const TensorV2 &from) = 0;
+  virtual void copyData(const Tensor &from) = 0;
 
   /**
-   * @copydoc TensorV2::argmax()
+   * @copydoc Tensor::argmax()
    */
   virtual std::vector<unsigned int> argmax() const = 0;
 
   /**
-   * @copydoc TensorV2::max_abs()
+   * @copydoc Tensor::max_abs()
    */
   virtual float max_abs() const = 0;
 
   /**
-   * @copydoc TensorV2::maxValue()
+   * @copydoc Tensor::maxValue()
    */
   virtual float maxValue() const = 0;
 
   /**
-   * @copydoc TensorV2::minValue()
+   * @copydoc Tensor::minValue()
    */
   virtual float minValue() const = 0;
 
   /**
-   * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)
+   * @copydoc Tensor::transpose(const std::string &direction, Tensor &out)
    */
-  virtual TensorV2 &transpose(const std::string &direction,
-                              TensorV2 &out) const = 0;
+  virtual Tensor &transpose(const std::string &direction,
+                            Tensor &out) const = 0;
 
   /**
    * @brief     put data of Tensor
@@ -634,12 +641,12 @@ protected:
    * @note This should better be implemented in iterator fashion before used
    * extensively.
    */
-  struct BroadcastInfoV2 {
+  struct BroadcastInfo {
 
     /**
      * @brief Construct a new External Loop Info object
      */
-    BroadcastInfoV2() :
+    BroadcastInfo() :
       buffer_size(0),
       buffer_axis(-1),
       strides{0, 0, 0, 0},
@@ -659,7 +666,7 @@ protected:
    * @param m target tensor to be calculated against.
    * @return BroadcastInfo Loopinfo needed to run external loop
    */
-  BroadcastInfoV2 computeBroadcastInfo(const TensorV2 &m) const;
+  BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
 
   /**
    * @brief Calcuates variables needed to perform tensor flatten dot product
@@ -681,7 +688,7 @@ protected:
    *
    * @note op(X) is one of X or X**T
    */
-  void calculateFlattenDot(TensorV2 const &input, TensorV2 &output, bool trans,
+  void calculateFlattenDot(Tensor const &input, Tensor &output, bool trans,
                            bool trans_in, unsigned int &first_three_flat,
                            unsigned int &last_axis,
                            unsigned int &input_first_three_flat,

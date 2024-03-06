@@ -48,9 +48,10 @@ public:
    * @param needg If the tensor needs gradient
    * @param name Name for this tensor
    */
-  explicit Tensor(const TensorDim &dim,
-                  const iTensor::Initializer init = iTensor::Initializer::ZEROS,
-                  bool ng = false, std::string name = ""){};
+  explicit Tensor(
+    const TensorDim &dim,
+    const nntrainer::Initializer init = nntrainer::Initializer::ZEROS,
+    bool ng = false, std::string name = ""){};
 
   /**
    * @brief Swap for weight

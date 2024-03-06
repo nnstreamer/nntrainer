@@ -261,52 +261,52 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     {batch_size, 1, query_height, num_heads * projected_query_dim_prop},
     activation_type);
   weight_idx[AttentionParams::projected_query] = context.requestTensor(
-    projected_query_dim, "projected_query", Tensor::Initializer::NONE, true,
+    projected_query_dim, "projected_query", Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
   /** tensor for output of key fc */
   TensorDim projected_key_dim(
     {batch_size, 1, key_height, num_heads * projected_key_dim_prop},
     activation_type);
-  weight_idx[AttentionParams::projected_key] = context.requestTensor(
-    projected_key_dim, "projected_key", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  weight_idx[AttentionParams::projected_key] =
+    context.requestTensor(projected_key_dim, "projected_key", Initializer::NONE,
+                          true, TensorLifespan::ITERATION_LIFESPAN);
   /** tensor for output of value fc */
   TensorDim projected_value_dim(
     {batch_size, 1, value_height, num_heads * projected_value_dim_prop},
     activation_type);
   weight_idx[AttentionParams::projected_value] = context.requestTensor(
-    projected_value_dim, "projected_value", Tensor::Initializer::NONE, true,
+    projected_value_dim, "projected_value", Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
-  weight_idx[AttentionParams::cache_key] = context.requestTensor(
-    projected_key_dim, "cache_key", Tensor::Initializer::NONE, true,
-    TensorLifespan::MAX_LIFESPAN);
+  weight_idx[AttentionParams::cache_key] =
+    context.requestTensor(projected_key_dim, "cache_key", Initializer::NONE,
+                          true, TensorLifespan::MAX_LIFESPAN);
 
-  weight_idx[AttentionParams::cache_value] = context.requestTensor(
-    projected_value_dim, "cache_value", Tensor::Initializer::NONE, true,
-    TensorLifespan::MAX_LIFESPAN);
+  weight_idx[AttentionParams::cache_value] =
+    context.requestTensor(projected_value_dim, "cache_value", Initializer::NONE,
+                          true, TensorLifespan::MAX_LIFESPAN);
 
   if (provide_attention_mask) {
     /** Intended comment for bool type mask */
     // TensorDim attention_mask_dim(
     //   {batch_size, num_heads, query_height, key_height});
     // weight_idx[AttentionParams::attention_mask] = context.requestTensor(
-    //   attention_mask_dim, "attention_mask", Tensor::Initializer::NONE, false,
+    //   attention_mask_dim, "attention_mask", Initializer::NONE, false,
     //   TensorLifespan::FORWARD_FUNC_LIFESPAN);
   }
   /** tensor for attention weight */
   TensorDim attention_weight_dim(
     {batch_size, num_heads, query_height, key_height}, activation_type);
   weight_idx[AttentionParams::attention_weight] = context.requestTensor(
-    attention_weight_dim, "attention_weight", Tensor::Initializer::NONE, true,
+    attention_weight_dim, "attention_weight", Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
   if (dropout_rate > epsilon) {
     /** tensor for dropout mask */
     TensorDim dropout_mask_dim(
       {batch_size, num_heads, query_height, key_height}, activation_type);
-    weight_idx[AttentionParams::dropout_mask] = context.requestTensor(
-      dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    weight_idx[AttentionParams::dropout_mask] =
+      context.requestTensor(dropout_mask_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   /** tensor for attention output */
@@ -314,7 +314,7 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     {batch_size, 1, query_height, num_heads * projected_value_dim_prop},
     activation_type);
   weight_idx[AttentionParams::attention_output] = context.requestTensor(
-    attention_output_dim, "attention_output", Tensor::Initializer::NONE, true,
+    attention_output_dim, "attention_output", Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
   TensorDim output_dim({batch_size, 1, query_height, output_shape},

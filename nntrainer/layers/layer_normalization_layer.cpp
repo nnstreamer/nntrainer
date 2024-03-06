@@ -98,25 +98,25 @@ void LayerNormalizationLayer::finalize(InitLayerContext &context) {
 
   /** caches the deviation -> input - avg(input) */
   wt_idx[LNParams::deviation] =
-    context.requestTensor(input_dim, "deviation", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(input_dim, "deviation", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /** caches variance + epsilon as well */
   wt_idx[LNParams::variance] =
-    context.requestTensor(remain_dim, "variance", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(remain_dim, "variance", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /** caches the inverse standard deviation */
   wt_idx[LNParams::inv_std_dev] =
-    context.requestTensor(remain_dim, "inv_std_dev", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(remain_dim, "inv_std_dev", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   /** temporary tensor (origin size) */
-  wt_idx[LNParams::temp_origin_size] = context.requestTensor(
-    input_dim, "temp_origin_size", Tensor::Initializer::NONE, false,
-    TensorLifespan::CALC_DERIV_LIFESPAN);
+  wt_idx[LNParams::temp_origin_size] =
+    context.requestTensor(input_dim, "temp_origin_size", Initializer::NONE,
+                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
   /** temporary tensor (normalized size) */
-  wt_idx[LNParams::temp_normalized_size] = context.requestTensor(
-    remain_dim, "temp_normalized_size", Tensor::Initializer::NONE, false,
-    TensorLifespan::CALC_DERIV_LIFESPAN);
+  wt_idx[LNParams::temp_normalized_size] =
+    context.requestTensor(remain_dim, "temp_normalized_size", Initializer::NONE,
+                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
 }
 
 void LayerNormalizationLayer::setProperty(

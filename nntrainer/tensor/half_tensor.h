@@ -13,8 +13,8 @@
 #define __HALF_TENSOR_H__
 #ifdef __cplusplus
 
+#include <tensor.h>
 #include <tensor_base.h>
-#include <tensor_v2.h>
 
 #ifdef DEBUG
 #define EXCEPT_WHEN_DEBUG
@@ -83,22 +83,22 @@ public:
   bool operator!=(const HalfTensor &rhs) const { return !(*this == rhs); }
 
   /**
-   * @copydoc TensorV2::allocate()
+   * @copydoc Tensor::allocate()
    */
   void allocate() override;
 
   /**
-   * @copydoc TensorV2::deallocate()
+   * @copydoc Tensor::deallocate()
    */
   void deallocate() override;
 
   /**
-   * @copydoc TensorV2::getData()
+   * @copydoc Tensor::getData()
    */
   void *getData() const override;
 
   /**
-   * @copydoc TensorV2::getData(size_t idx)
+   * @copydoc Tensor::getData(size_t idx)
    */
   void *getData(size_t idx) const override;
 
@@ -147,24 +147,24 @@ public:
                   unsigned int w);
 
   /**
-   * @copydoc TensorV2::setValue(float value)
+   * @copydoc Tensor::setValue(float value)
    */
   void setValue(float value) override;
 
   /**
-   * @copydoc TensorV2::setValue(b, c, h, w, value)
+   * @copydoc Tensor::setValue(b, c, h, w, value)
    */
   void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
                 float value) override;
 
   /**
-   * @copydoc TensorV2::addValue(b, c, h, w, value, beta)
+   * @copydoc Tensor::addValue(b, c, h, w, value, beta)
    */
   void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
                 float value, float beta) override;
 
   /**
-   * @copydoc TensorV2::setZero()
+   * @copydoc Tensor::setZero()
    */
   void setZero() override;
 
@@ -185,170 +185,174 @@ public:
   };
 
   /**
-   * @copydoc TensorV2::setRandNormal()
+   * @copydoc Tensor::setRandNormal()
    */
   void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
 
   /**
-   * @copydoc TensorV2::setRandUniform()
+   * @copydoc Tensor::setRandUniform()
    */
   void setRandUniform(float min = -0.05f, float max = 0.05f);
 
   /**
-   * @copydoc TensorV2::setRandBernoulli()
+   * @copydoc Tensor::setRandBernoulli()
    */
   void setRandBernoulli(float probability = 0.5f);
 
   /**
-   * @copydoc TensorV2::initialize()
+   * @copydoc Tensor::initialize()
    */
   void initialize() override;
 
   /**
-   * @copydoc TensorV2::initialize(Initializer init)
+   * @copydoc Tensor::initialize(Initializer init)
    */
   void initialize(Initializer init) override;
 
   /**
-   * @copydoc TensorV2::apply(std::function<T(T)> f, TensorV2 &output)
+   * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    */
-  TensorV2 &apply(std::function<_FP16(_FP16)> f,
-                  TensorV2 &output) const override;
+  Tensor &apply(std::function<_FP16(_FP16)> f, Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::multiply_strided(TensorV2 const &m, TensorV2 &output,
+   * @copydoc Tensor::multiply_strided(Tensor const &m, Tensor &output,
    * const float beta)
    */
-  TensorV2 multiply_strided(TensorV2 const &m, TensorV2 &output,
-                            const float beta) const override;
+  Tensor multiply_strided(Tensor const &m, Tensor &output,
+                          const float beta) const override;
 
   /**
-   * @copydoc TensorV2::multiply_i(float const &value)
+   * @copydoc Tensor::multiply_i(float const &value)
    */
   int multiply_i(float const &value) override;
 
   /**
-   * @copydoc TensorV2::multiply(float const &value, TensorV2 &out)
+   * @copydoc Tensor::multiply(float const &value, Tensor &out)
    */
-  TensorV2 &multiply(float const &value, TensorV2 &out) const override;
+  Tensor &multiply(float const &value, Tensor &out) const override;
 
   /**
-   * @copydoc TensorV2::multiply(TensorV2 const &m, TensorV2 &output, const
+   * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
    * float beta = 0.0)
    */
-  TensorV2 &multiply(TensorV2 const &m, TensorV2 &output,
-                     const float beta = 0.0) const override;
+  Tensor &multiply(Tensor const &m, Tensor &output,
+                   const float beta = 0.0) const override;
 
   /**
-   * @copydoc TensorV2::divide(float const &value, TensorV2 &output)
+   * @copydoc Tensor::divide(float const &value, Tensor &output)
    */
-  TensorV2 &divide(float const &value, TensorV2 &output) const override;
+  Tensor &divide(float const &value, Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::divide(TensorV2 const &m, TensorV2 &output)
+   * @copydoc Tensor::divide(Tensor const &m, Tensor &output)
    */
-  TensorV2 &divide(TensorV2 const &m, TensorV2 &output) const override;
+  Tensor &divide(Tensor const &m, Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::add_strided(TensorV2 const &input, TensorV2 &output,
+   * @copydoc Tensor::add_strided(Tensor const &input, Tensor &output,
    * const float beta)
    */
-  TensorV2 &add_strided(TensorV2 const &input, TensorV2 &output,
-                        const float beta) const override;
+  Tensor &add_strided(Tensor const &input, Tensor &output,
+                      const float beta) const override;
 
   /**
-   * @copydoc TensorV2::add(float const &value, TensorV2 &output)
+   * @copydoc Tensor::add(float const &value, Tensor &output)
    */
-  TensorV2 &add(float const &value, TensorV2 &output) const override;
+  Tensor &add(float const &value, Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::add(TensorV2 const &m, TensorV2 &output, float const
+   * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  TensorV2 &add(TensorV2 const &m, TensorV2 &output,
-                float const alpha) const override;
+  Tensor &add(Tensor const &m, Tensor &output,
+              float const alpha) const override;
 
   /**
-   * @copydoc TensorV2::subtract(float const &value, TensorV2 &output)
+   * @copydoc Tensor::subtract(float const &value, Tensor &output)
    */
-  TensorV2 &subtract(float const &value, TensorV2 &output) const override;
+  Tensor &subtract(float const &value, Tensor &output) const override;
 
   /**
-   *  @copydoc TensorBase::sum_by_batch(TensorV2 &output)
+   *  @copydoc TensorBase::sum_by_batch(Tensor &output)
    */
-  void sum_by_batch(TensorV2 &output) const override;
+  void sum_by_batch(Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::sum(unsigned int axis, TensorV2 &output, float alpha,
+   * @copydoc Tensor::sum(unsigned int axis, Tensor &output, float alpha,
    * float beta) const
    */
-  TensorV2 &sum(unsigned int axis, TensorV2 &output, float alpha,
-                float beta) const override;
+  Tensor &sum(unsigned int axis, Tensor &output, float alpha,
+              float beta) const override;
 
   /**
-   * @copydoc TensorV2::l2norm
+   * @copydoc Tensor::l2norm
    */
   float l2norm() const override;
 
   /**
-   * @copydoc TensorV2::pow(float exponent, TensorV2 &output)
+   * @copydoc Tensor::pow(float exponent, Tensor &output)
    */
-  TensorV2 &pow(float exponent, TensorV2 &output) const override;
+  Tensor &pow(float exponent, Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::erf(TensorV2 &output)
+   * @copydoc Tensor::erf(Tensor &output)
    */
-  TensorV2 &erf(TensorV2 &output) const override;
+  Tensor &erf(Tensor &output) const override;
 
   /**
-   *  @copydoc TensorV2::dot(TensorV2 const &input, TensorV2 &output, bool
+   * @copydoc TensorBase::inv_sqrt(Tensor &out)
+   */
+  void inv_sqrt(Tensor &out) override;
+
+  /**
+   *  @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool
    * trans, bool trans_in, float beta)
    */
-  TensorV2 &dot(TensorV2 const &input, TensorV2 &output, bool trans,
-                bool trans_in, float beta) const override;
+  Tensor &dot(Tensor const &input, Tensor &output, bool trans, bool trans_in,
+              float beta) const override;
 
   /**
-   * @copydoc TensorV2::dropout_mask(float dropout)
+   * @copydoc Tensor::dropout_mask(float dropout)
    */
   void dropout_mask(float dropout) override;
 
   /**
-   * @copydoc TensorV2::filter_mask(const TensorV2 &mask_len, bool reverse)
+   * @copydoc Tensor::filter_mask(const Tensor &mask_len, bool reverse)
    */
-  void filter_mask(const TensorV2 &mask_len, bool reverse) override;
+  void filter_mask(const Tensor &mask_len, bool reverse) override;
 
   /**
-   * @copydoc TensorV2::zoneout_mask(TensorV2 &opposite, float zoneout)
+   * @copydoc Tensor::zoneout_mask(Tensor &opposite, float zoneout)
    */
-  void zoneout_mask(TensorV2 &opposite, float zoneout) override;
+  void zoneout_mask(Tensor &opposite, float zoneout) override;
 
   /**
-   * @copydoc TensorV2::split(std::vector<size_t> sizes, int axis)
+   * @copydoc Tensor::split(std::vector<size_t> sizes, int axis)
    */
-  std::vector<TensorV2> split(std::vector<size_t> sizes, int axis) override;
+  std::vector<Tensor> split(std::vector<size_t> sizes, int axis) override;
 
   /**
-   * @copydoc TensorV2::cat(const std::vector<TensorV2> &tensors, int axis)
+   * @copydoc Tensor::cat(const std::vector<Tensor> &tensors, int axis)
    */
-  static TensorV2 cat(const std::vector<TensorV2> &tensors, int axis);
+  static Tensor cat(const std::vector<Tensor> &tensors, int axis);
 
   /**
-   * @copydoc TensorV2::copy(const TensorV2 &from)
+   * @copydoc Tensor::copy(const Tensor &from)
    */
-  void copy(const TensorV2 &from);
+  void copy(const Tensor &from);
 
   /**
-   * @copydoc TensorV2::copyData(const TensorV2 &from)
+   * @copydoc Tensor::copyData(const Tensor &from)
    */
-  void copyData(const TensorV2 &from);
+  void copyData(const Tensor &from);
 
   /**
-   * @copydoc TensorV2::argmax()
+   * @copydoc Tensor::argmax()
    */
   std::vector<unsigned int> argmax() const override;
 
   /**
-   * @copydoc TensorV2::max_abs()
+   * @copydoc Tensor::max_abs()
    */
   float max_abs() const override;
 
@@ -363,13 +367,13 @@ public:
   float minValue() const override;
 
   /**
-   * @copydoc TensorV2::transpose(const std::string &direction, TensorV2 &out)
+   * @copydoc Tensor::transpose(const std::string &direction, Tensor &out)
    */
-  TensorV2 &transpose(const std::string &direction,
-                      TensorV2 &output) const override;
+  Tensor &transpose(const std::string &direction,
+                    Tensor &output) const override;
 
   /**
-   * @copydoc TensorV2::print(std::ostream &out)
+   * @copydoc Tensor::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;
 
@@ -393,13 +397,14 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void apply_broadcast_util(
-    TensorV2 const &m,
-    std::function<void(const BroadcastInfoV2 &e, const _FP16 *, const _FP16 *,
-                       _FP16 *)>
-      v_func,
-    TensorV2 &output, const BroadcastInfoV2 &e, int cur_axis = -1,
-    size_t offset = 0, size_t m_offset = 0) const;
+  void
+  apply_broadcast_util(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const _FP16 *,
+                                          const _FP16 *, _FP16 *)>
+                         v_func,
+                       Tensor &output, const BroadcastInfo &e,
+                       int cur_axis = -1, size_t offset = 0,
+                       size_t m_offset = 0) const;
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
@@ -409,12 +414,11 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void
-  apply_broadcast(TensorV2 const &m,
-                  std::function<void(const BroadcastInfoV2 &e, const _FP16 *,
-                                     const _FP16 *, _FP16 *)>
-                    v_func,
-                  TensorV2 &output) const;
+  void apply_broadcast(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const _FP16 *,
+                                          const _FP16 *, _FP16 *)>
+                         v_func,
+                       Tensor &output) const;
 };
 
 } // namespace nntrainer

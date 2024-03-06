@@ -1337,16 +1337,29 @@ static void testNoOverlap(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
  * @param t2 t2 tensor 2
  */
 static void testSubset(nntrainer::Tensor *t1, nntrainer::Tensor *t2) {
-  _FP16 *t1_start = t1->getData<_FP16>();
-  _FP16 *t1_end = t1_start + t1->size();
+  if (t1->getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *t1_start = t1->getData<float>();
+    float *t1_end = t1_start + t1->size();
 
-  _FP16 *t2_start = t2->getData<_FP16>();
-  _FP16 *t2_end = t2_start + t2->size();
+    float *t2_start = t2->getData<float>();
+    float *t2_end = t2_start + t2->size();
 
-  EXPECT_NE(t1_start, nullptr);
-  EXPECT_NE(t2_start, nullptr);
-  EXPECT_TRUE(t1_start <= t2_start && t2_end <= t1_end)
-    << "t2 is not subset of t1";
+    EXPECT_NE(t1_start, nullptr);
+    EXPECT_NE(t2_start, nullptr);
+    EXPECT_TRUE(t1_start <= t2_start && t2_end <= t1_end)
+      << "t2 is not subset of t1";
+  } else {
+    _FP16 *t1_start = t1->getData<_FP16>();
+    _FP16 *t1_end = t1_start + t1->size();
+
+    _FP16 *t2_start = t2->getData<_FP16>();
+    _FP16 *t2_end = t2_start + t2->size();
+
+    EXPECT_NE(t1_start, nullptr);
+    EXPECT_NE(t2_start, nullptr);
+    EXPECT_TRUE(t1_start <= t2_start && t2_end <= t1_end)
+      << "t2 is not subset of t1";
+  }
 }
 
 TEST(TensorPool, create_allocate_has_data_01_p) {
@@ -2069,21 +2082,21 @@ TEST(TensorPool, createOrExtend_different_type_02_n) {
 TEST(TensorPool, createOrExtend_init_01_n) {
   nntrainer::TensorPool pool;
   pool.requestOrExtend("t", {{10}, FP16_}, {0}, max_ls,
-                       nntrainer::Tensor::Initializer::ONES);
+                       nntrainer::Initializer::ONES);
   EXPECT_ANY_THROW(pool.requestOrExtend("t", {{10}, FP16_}, {1}, max_ls,
-                                        nntrainer::Tensor::Initializer::ZEROS));
+                                        nntrainer::Initializer::ZEROS));
 }
 
 TEST(TensorPool, createOrExtend_init_02_n) {
   nntrainer::TensorPool pool;
   pool.requestOrExtend("t0", {{10}, FP16_}, {0}, max_ls,
-                       nntrainer::Tensor::Initializer::ONES);
+                       nntrainer::Initializer::ONES);
   EXPECT_ANY_THROW(pool.requestOrExtend("t0", {{10}, FP16_}, {1}, max_ls,
-                                        nntrainer::Tensor::Initializer::ZEROS));
+                                        nntrainer::Initializer::ZEROS));
   pool.requestOrExtend("t1", {{10}, FP32_}, {0}, max_ls,
-                       nntrainer::Tensor::Initializer::ONES);
+                       nntrainer::Initializer::ONES);
   EXPECT_ANY_THROW(pool.requestOrExtend("t1", {{10}, FP32_}, {1}, max_ls,
-                                        nntrainer::Tensor::Initializer::ZEROS));
+                                        nntrainer::Initializer::ZEROS));
 }
 
 TEST(TensorPool, createOrExtend_unmanaged_01_n) {

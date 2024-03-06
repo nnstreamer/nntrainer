@@ -112,13 +112,13 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
    */
   if (pooling_type == props::PoolingTypeInfo::Enum::global_max) {
     pool_helper_idx =
-      context.requestTensor(in_dim, "helper_idx", Tensor::Initializer::NONE,
-                            false, TensorLifespan::ITERATION_LIFESPAN);
+      context.requestTensor(in_dim, "helper_idx", Initializer::NONE, false,
+                            TensorLifespan::ITERATION_LIFESPAN);
     pool_helper_size.resize(in_dim.batch() * in_dim.channel());
   } else {
     pool_helper_idx =
-      context.requestTensor(out_dim, "helper_idx", Tensor::Initializer::NONE,
-                            false, TensorLifespan::ITERATION_LIFESPAN);
+      context.requestTensor(out_dim, "helper_idx", Initializer::NONE, false,
+                            TensorLifespan::ITERATION_LIFESPAN);
   }
 }
 

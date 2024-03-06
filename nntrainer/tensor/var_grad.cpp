@@ -18,7 +18,7 @@
 
 namespace nntrainer {
 
-Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
+Var_Grad::Var_Grad(const TensorDim &dim, const Initializer init,
                    bool need_gradient, bool alloc_now,
                    const std::string &name) :
   is_dependent(false),
@@ -32,15 +32,15 @@ Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
      * @todo gradient initializer should be none, and then they should be set
      * zero right before using by the user itself.
      */
-    grad = std::make_shared<Tensor>(dim, alloc_now, Tensor::Initializer::ZEROS,
-                                    grad_name);
+    grad =
+      std::make_shared<Tensor>(dim, alloc_now, Initializer::ZEROS, grad_name);
   else
     grad = std::make_shared<Tensor>(grad_name);
 }
 
 Var_Grad::Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
-                   const Tensor::Initializer init, bool need_gradient,
-                   bool alloc_now, const std::string &name) :
+                   const Initializer init, bool need_gradient, bool alloc_now,
+                   const std::string &name) :
   is_dependent(false),
   is_first_access_gradient(false),
   is_last_access_gradient(false) {
@@ -53,8 +53,8 @@ Var_Grad::Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
      * zero right before using by the user itself.
      */
 
-    grad = std::make_shared<Tensor>(dim_g, alloc_now,
-                                    Tensor::Initializer::ZEROS, grad_name);
+    grad =
+      std::make_shared<Tensor>(dim_g, alloc_now, Initializer::ZEROS, grad_name);
   else
     grad = std::make_shared<Tensor>(grad_name);
 }

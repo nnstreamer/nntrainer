@@ -49,8 +49,7 @@ namespace nntrainer {
 IniGraphInterpreter::IniGraphInterpreter(
   const AppContext &app_context_,
   std::function<const std::string(const std::string &)> pathResolver_) :
-  app_context(app_context_),
-  pathResolver(pathResolver_) {}
+  app_context(app_context_), pathResolver(pathResolver_) {}
 
 IniGraphInterpreter::~IniGraphInterpreter() {}
 
@@ -235,8 +234,8 @@ referenced
 //     /** TODO #361: this needs update in model file to be of dictionary format
 //     */
 //     // if (preload) {
-//     //   layer->weight_initializer = Tensor::Initializer::FILE_INITIALIZER;
-//     //   layer->bias_initializer = Tensor::Initializer::FILE_INITIALIZER;
+//     //   layer->weight_initializer = Initializer::FILE_INITIALIZER;
+//     //   layer->bias_initializer = Initializer::FILE_INITIALIZER;
 //     //   layer->initializer_file = backbone.save_path;
 //     // }
 //   }

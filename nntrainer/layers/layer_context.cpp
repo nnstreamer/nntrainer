@@ -244,7 +244,7 @@ const Tensor &RunLayerContext::getOutput(unsigned int idx) const {
  */
 const Tensor RunLayerContext::getOutputGrad(unsigned int idx) const {
   if (!outputs[idx]->hasGradient()) {
-    return Tensor(outputs[idx]->getDim(), true, Tensor::Initializer::ZEROS);
+    return Tensor(outputs[idx]->getDim(), true, Initializer::ZEROS);
   }
   return const_cast<RunLayerContext *>(this)->getOutputGradUnsafe(idx);
 }

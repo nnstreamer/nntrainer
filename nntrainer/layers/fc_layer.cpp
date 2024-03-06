@@ -136,20 +136,20 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
       is_nchw ? 0b0001 : 0b0100);
 
     lora_idx[LORAParams::loraA] = context.requestWeight(
-      loraA_dim, Tensor::Initializer::ZEROS, weight_regularizer,
+      loraA_dim, Initializer::ZEROS, weight_regularizer,
       weight_regularizer_constant, weight_decay, "loraA", true);
 
     lora_idx[LORAParams::loraB] = context.requestWeight(
-      loraB_dim, Tensor::Initializer::LECUN_NORMAL, weight_regularizer,
+      loraB_dim, Initializer::LECUN_NORMAL, weight_regularizer,
       weight_regularizer_constant, weight_decay, "loraB", true);
 
-    lora_idx[LORAParams::loraTmp] = context.requestTensor(
-      loraTmp_dim, "hidden_tmp_lora", Tensor::Initializer::NONE, true,
-      TensorLifespan::FORWARD_DERIV_LIFESPAN);
+    lora_idx[LORAParams::loraTmp] =
+      context.requestTensor(loraTmp_dim, "hidden_tmp_lora", Initializer::NONE,
+                            true, TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
     lora_idx[LORAParams::loraOut] =
-      context.requestTensor(bias_dim, "hidden_lora", Tensor::Initializer::NONE,
-                            true, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+      context.requestTensor(bias_dim, "hidden_lora", Initializer::NONE, true,
+                            TensorLifespan::FORWARD_FUNC_LIFESPAN);
   }
 }
 
@@ -181,7 +181,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     unsigned int axis =
       context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
 
-    weight.dequantize(weight_, axis);
+    // weight.dequantize(weight_, axis);
     input_.dot(weight_, hidden_, false, false);
   } else {
     input_.dot(weight, hidden_, false, false);
