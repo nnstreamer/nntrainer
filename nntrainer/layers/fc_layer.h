@@ -103,12 +103,6 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  /**
-   * @brief forwarding function for lora.
-   * It would be called during `forwarding` of FC layer.
-   */
-  void forwarding_lora(RunLayerContext &context, Tensor &weight);
-
   inline static const std::string type = "fully_connected";
 
 private:

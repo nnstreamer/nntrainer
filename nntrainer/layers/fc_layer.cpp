@@ -37,11 +37,10 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum FCParams { weight, bias };
-enum LORAParams { loraA, loraB, loraW };
+enum LORAParams { loraA, loraB, loraW, loraOut };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(),
-  fc_props(props::Unit(), props::LoraRank()) {
+  LayerImpl(), fc_props(props::Unit(), props::LoraRank()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -107,19 +106,17 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
                             1.0f, bias_decay, "bias", true);
   }
 
-  // create weights for LoRA
+  /** create weights for LoRA */
   if (lora_rank) {
 
-    /** set LoRA specifications */
-    // loraA is a row vector (in_dim.width, lora_rank), loraB is a col vector of
-    // weight (lora_rank, out_dim), where shape of (loraA @ loraB) = shape of
-    // (W)
+    /** loraA : (in_dim.width, lora_rank) */
     TensorDim loraA_dim(
       1, is_nchw ? 1 : lora_rank, is_nchw ? in_dim.width() : 1,
       is_nchw ? lora_rank : in_dim.channel(),
       TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
       is_nchw ? 0b0011 : 0b0101);
 
+    /** loraAB: (lora_rank, out_dim) */
     TensorDim loraB_dim(
       1, is_nchw ? 1 : unit, is_nchw ? lora_rank : 1,
       is_nchw ? unit : in_dim.channel(),
@@ -134,10 +131,13 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
       loraB_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay, "loraB", true);
 
-    // save weight_lora as a tensor to be updated by (loraA @ loraB)
     lora_idx[LORAParams::loraW] = context.requestTensor(
       weight_dim, "weight_lora", Tensor::Initializer::NONE, true,
-      TensorLifespan::ITERATION_LIFESPAN);
+      TensorLifespan::FORWARD_DERIV_LIFESPAN);
+
+    lora_idx[LORAParams::loraOut] =
+      context.requestTensor(bias_dim, "hidden_lora", Tensor::Initializer::NONE,
+                            true, TensorLifespan::FORWARD_FUNC_LIFESPAN);
   }
 }
 
@@ -150,15 +150,6 @@ void FullyConnectedLayer::exportTo(
 void FullyConnectedLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, fc_props);
   LayerImpl::setProperty(remain_props);
-}
-
-void FullyConnectedLayer::forwarding_lora(RunLayerContext &context,
-                                          Tensor &weight) {
-  Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
-  Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
-  Tensor &weight_lora = context.getTensor(lora_idx[LORAParams::loraW]);
-  loraA.dot(loraB, weight_lora); // weight_lora = loraA @ loraB
-  weight.add_i(weight_lora);
 }
 
 void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
@@ -179,13 +170,19 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
 
     weight.dequantize(weight_, axis);
-    if (!std::get<props::LoraRank>(fc_props).empty())
-      forwarding_lora(context, weight_);
     input_.dot(weight_, hidden_, false, false);
   } else {
-    if (!std::get<props::LoraRank>(fc_props).empty())
-      forwarding_lora(context, weight);
     input_.dot(weight, hidden_, false, false);
+  }
+
+  if (!std::get<props::LoraRank>(fc_props).empty()) {
+    Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
+    Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
+    Tensor &weight_lora = context.getTensor(lora_idx[LORAParams::loraW]);
+    Tensor &hidden_lora = context.getTensor(lora_idx[LORAParams::loraOut]);
+    loraA.dot(loraB, weight_lora); /* weight_lora = loraA @ loraB */
+    input_.dot(weight_lora, hidden_lora, false, false);
+    hidden_.add_i(hidden_lora);
   }
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
@@ -242,12 +239,17 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
+  if (!std::get<props::LoraRank>(fc_props).empty()) {
+    Tensor &weight_lora = context.getTensor(lora_idx[LORAParams::loraW]);
+    ret_.dot_deriv_wrt_1(weight.add(weight_lora), derivative_, false, false);
+  } else {
+    ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
+  }
 }
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
 
-  // (baseline) calcGradient
+  /** vinala calcGradient */
   if (std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
 
@@ -271,27 +273,24 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
       djdw, derivative_, false, false,
       !context.isGradientFirstAccess(weight_idx[FCParams::weight]));
   } else {
-    // (LoRA) calcGradient
+    /** (lora) calcGradient */
     Tensor &djdla = context.getWeightGrad(lora_idx[LORAParams::loraA]);
     Tensor &djdlb = context.getWeightGrad(lora_idx[LORAParams::loraB]);
     Tensor &djdlora_w = context.getTensorGrad(lora_idx[LORAParams::loraW]);
 
     const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-    Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
-    Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
+    Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
+    Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
 
-    // (cf) forward
-    // input_.dot(lora_weight, hidden) : hidden = input @ lora_weight
-    // lora_A.dot(lora_B, lora_weight) : lora_weight = lora_A @ lora_B
     input_.dot_deriv_wrt_2(
       djdlora_w, derivative_, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraW]));
-    lora_A.dot_deriv_wrt_2(
+    loraA.dot_deriv_wrt_2(
       djdlb, djdlora_w, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
     djdla.dot_deriv_wrt_1(
-      lora_B, djdlora_w, false, false,
+      loraB, djdlora_w, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]));
   }
 }
