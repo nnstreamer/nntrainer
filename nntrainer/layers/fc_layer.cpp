@@ -116,7 +116,7 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
       TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
       is_nchw ? 0b0011 : 0b0101);
 
-    /** loraAB: (lora_rank, out_dim) */
+    /** loraB: (lora_rank, out_dim) */
     TensorDim loraB_dim(
       1, is_nchw ? 1 : unit, is_nchw ? lora_rank : 1,
       is_nchw ? unit : in_dim.channel(),
@@ -249,7 +249,7 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
 
-  /** vinala calcGradient */
+  /** (default) calcGradient - compute gradient of weight and bias */
   if (std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
 
@@ -273,7 +273,7 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
       djdw, derivative_, false, false,
       !context.isGradientFirstAccess(weight_idx[FCParams::weight]));
   } else {
-    /** (lora) calcGradient */
+    /** (lora) calcGradient - compute gradients of LoRA params only */
     Tensor &djdla = context.getWeightGrad(lora_idx[LORAParams::loraA]);
     Tensor &djdlb = context.getWeightGrad(lora_idx[LORAParams::loraB]);
     Tensor &djdlora_w = context.getTensorGrad(lora_idx[LORAParams::loraW]);
