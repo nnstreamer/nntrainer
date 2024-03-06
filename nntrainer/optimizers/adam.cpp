@@ -86,19 +86,40 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
   if (torch_ref) {
-    Tensor denom = wv.apply<float>(sqrtFloat<float>);
-    denom.divide_i(sqrtFloat(biasCorrection2));
-    denom.add_i(epsilon);
-    wm.divide(denom, x_grad);
+    if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      Tensor denom = wv.apply<float>(sqrtFloat<float>);
+      denom.divide_i(sqrtFloat(biasCorrection2));
+      denom.add_i(epsilon);
+      wm.divide(denom, x_grad);
+#ifdef ENABLE_FP16
+    } else if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP16) {
+      Tensor x_grad_(x_grad.getDim());
+      Tensor denom = wv.apply<float>(sqrtFloat<float>);
+      denom.divide_i(sqrtFloat(biasCorrection2));
+      denom.add_i(epsilon);
+      wm.divide(denom, x_grad_);
+      x_grad.copyData(x_grad_);
+#endif
+    } else {
+      throw std::runtime_error("Not supported datatype");
+    }
 
     context.applyGradient(context.getLearningRate() / biasCorrection1);
 
   } else {
-    std::function<double(double)> sqrtEps = [epsilon](double f) {
-      return 1 / (sqrtDouble(f) + epsilon);
+    auto sqrtEps = [epsilon]<typename T>(T f) -> T {
+      return 1 / (static_cast<T>(sqrtDouble(f)) + static_cast<T>(epsilon));
     };
 
-    x_grad = wv.apply<float>(sqrtEps, x_grad);
+    if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP32)
+      x_grad = wv.apply<float>(sqrtEps, x_grad);
+#ifdef ENABLE_FP16
+    else if (x_grad.getDataType() == ml::train::TensorDim::DataType::FP16)
+      x_grad = wv.apply<_FP16>(sqrtEps, x_grad);
+#endif
+    else
+      throw std::runtime_error("Not supported datatype");
+
     x_grad.multiply_i(wm);
     context.applyGradient(getUpdatedLearningRate(context.getIteration(),
                                                  context.getLearningRate()));
