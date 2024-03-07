@@ -500,8 +500,8 @@ void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
 
   for (unsigned int i = 0; i < mask_dim_height; ++i) {
     for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-      causal_mask.setValue(
-        0, 0, i, j, _MASK_NUM(attention_weight.getDataType()));
+      causal_mask.setValue(0, 0, i, j,
+                           _MASK_NUM(attention_weight.getDataType()));
     }
   }
 
@@ -629,9 +629,8 @@ void MultiHeadAttentionLayer::initial_incremental_forwarding(
   Tensor &key = context.getInput(INOUT_INDEX::KEY);
   Tensor &value = context.getInput(INOUT_INDEX::VALUE);
 
-  Tensor empty_tensor;
-
-  empty_tensor.setTensorType(value.getTensorType());
+  Tensor empty_tensor =
+    Tensor("empty_tensor", value.getFormat(), value.getDataType());
 
   Tensor &mask =
     provide_attention_mask ? context.getInput(INOUT_INDEX::MASK) : empty_tensor;
@@ -909,9 +908,8 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   Tensor &key = context.getInput(INOUT_INDEX::KEY);
   Tensor &value = context.getInput(INOUT_INDEX::VALUE);
 
-  Tensor empty_tensor;
-
-  empty_tensor.setTensorType(value.getTensorType());
+  Tensor empty_tensor =
+    Tensor("empty_tensor", value.getFormat(), value.getDataType());
 
   Tensor &mask =
     provide_attention_mask ? context.getInput(INOUT_INDEX::MASK) : empty_tensor;

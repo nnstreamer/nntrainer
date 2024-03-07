@@ -114,8 +114,8 @@ void LSTMCore::calcGradientLSTM(
   Tensor d_output_gate = d_ifgo.getSharedDataTensor(
     {batch_size, 1, 1, unit, tensor_type}, unit * 3, false);
 
-  Tensor activated_cell_state;
-  activated_cell_state.setTensorType(cell_state.getTensorType());
+  Tensor activated_cell_state = Tensor(
+    "activated_cell_state", cell_state.getFormat(), cell_state.getDataType());
 
   acti_func.run_fn(cell_state, activated_cell_state);
   d_hidden_state.multiply_strided(activated_cell_state, d_output_gate);

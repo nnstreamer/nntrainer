@@ -227,7 +227,6 @@ void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
   deviation.multiply(inv_std_dev, output);
   output.multiply_i(gamma);
   output.add_i(beta);
-
 }
 
 void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
@@ -236,8 +235,8 @@ void LayerNormalizationLayer::calcDerivative(RunLayerContext &context) {
   TensorDim::TensorType weight_tensor_type =
     context.getWeight(wt_idx[LNParams::gamma]).getTensorType();
 
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
+  Tensor empty =
+    Tensor("empty", weight_tensor_type.format, weight_tensor_type.data_type);
 
   Tensor &outgoing_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   const Tensor &incoming_derivative =

@@ -69,8 +69,9 @@ void LSTMLayer::forwardingBatchFirstLSTM(
     for (unsigned int t = 0; t < max_timestep; ++t) {
       Tensor input = input_sample.getSharedDataTensor(
         input_tensor_dim, (reverse ? max_timestep - 1 - t : t) * feature_size);
-      Tensor prev_hidden_state;
-      prev_hidden_state.setTensorType(tensor_type);
+
+      Tensor prev_hidden_state = Tensor(
+        "prev_hidden_state", weight_ih.getFormat(), weight_ih.getDataType());
 
       if (!t) {
         prev_hidden_state = Tensor(unit, tensor_type);
@@ -285,8 +286,9 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
           // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
           // already have precalculated values from incomming derivatives
-          Tensor d_prev_hidden_state_temp;
-          d_prev_hidden_state_temp.setTensorType(tensor_type);
+          Tensor d_prev_hidden_state_temp =
+            Tensor("d_prev_hidden_state_temp", tensor_type.format,
+                   tensor_type.data_type);
 
           calcGradientLSTM(
             1, unit, disable_bias, integrate_bias, acti_func,
@@ -383,8 +385,9 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
         // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
         // already have precalculated values from incomming derivatives
-        Tensor d_prev_hidden_state_temp;
-        d_prev_cell_state.setTensorType(tensor_type);
+        Tensor d_prev_hidden_state_temp =
+          Tensor("d_prev_hidden_state_temp", tensor_type.format,
+                 tensor_type.data_type);
 
         calcGradientLSTM(1, unit, disable_bias, integrate_bias, acti_func,
                          recurrent_acti_func, input, prev_hidden_state,
@@ -652,9 +655,8 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   const Tensor &weight_ih = context.getWeight(wt_idx[LSTMParams::weight_ih]);
   const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
 
-  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
+  Tensor empty =
+    Tensor("empty", weight_ih.getFormat(), weight_ih.getDataType());
 
   const Tensor &bias_h = !disable_bias && integrate_bias
                            ? context.getWeight(wt_idx[LSTMParams::bias_h])
@@ -836,9 +838,8 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   const Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
   Tensor &d_weight_hh = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
 
-  TensorDim::TensorType weight_tensor_type = weight_hh.getTensorType();
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
+  Tensor empty =
+    Tensor("empty", weight_hh.getFormat(), weight_hh.getDataType());
 
   Tensor &d_bias_h = !disable_bias && integrate_bias
                        ? context.getWeightGrad(wt_idx[LSTMParams::bias_h])
