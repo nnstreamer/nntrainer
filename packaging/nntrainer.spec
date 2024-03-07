@@ -554,6 +554,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer_context.h
 %{_includedir}/nntrainer/layer_devel.h
 %{_includedir}/nntrainer/layer_impl.h
+%{_includedir}/nntrainer/loss_layer.h
 # custom layer kits
 %{_includedir}/nntrainer/app_context.h
 # optimizer headers
