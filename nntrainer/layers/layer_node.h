@@ -193,14 +193,12 @@ public:
   void setOutputConnection(unsigned nth, const std::string &name,
                            unsigned index);
 
-#ifdef ENABLE_OPENCL
   /**
    * @brief set the compute engine for this node
    * @param compute engine (CPU/GPU)
    */
   void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
                           ml::train::LayerComputeEngine::CPU);
-#endif
 
   /**
    * @brief     Get the input connections for this node

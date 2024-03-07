@@ -167,11 +167,10 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
   auto lnode = std::make_unique<LayerNode>(std::move(layer));
 
   lnode->setProperty(properties);
-#ifdef ENABLE_OPENCL
+
   if (compute_engine == ml::train::LayerComputeEngine::GPU) {
     lnode->setComputeEngine(compute_engine);
   }
-#endif
 
   return lnode;
 }
@@ -267,12 +266,10 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
   con = std::make_unique<Connection>(name, index);
 }
 
-#ifdef ENABLE_OPENCL
 void LayerNode::setComputeEngine(
   const ml::train::LayerComputeEngine &compute_engine) {
   run_context->setComputeEngine(compute_engine);
 }
-#endif
 
 const std::string LayerNode::getName() const noexcept {
   auto &name = std::get<props::Name>(*layer_node_props);
@@ -334,9 +331,8 @@ const std::vector<std::string> LayerNode::getInputLayers() const {
   names.reserve(input_connections.size());
   std::transform(
     input_connections.begin(), input_connections.end(),
-    std::back_inserter(names), [](const Connection &con) -> const auto & {
-      return con.getName();
-    });
+    std::back_inserter(names),
+    [](const Connection &con) -> const auto & { return con.getName(); });
   return names;
 }
 

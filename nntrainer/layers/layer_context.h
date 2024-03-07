@@ -814,21 +814,6 @@ public:
   opencl::Kernel kernel_;
 
   /**
-   * @brief set the compute engine for this node
-   * @param compute engine: (CPU/GPU)
-   */
-  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
-                          ml::train::LayerComputeEngine::CPU) {
-    this->compute_engine = compute_engine;
-  }
-
-  /**
-   * @brief get the compute engine for this node
-   * @return ompute engine: (CPU/GPU)
-   */
-  ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
-
-  /**
    * @brief create OpenCl kernel
    * @param kernel implementation string
    * @param kernel name
@@ -845,6 +830,21 @@ public:
     }
   }
 #endif
+
+  /**
+   * @brief set the compute engine for this node
+   * @param compute engine: (CPU/GPU)
+   */
+  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
+                          ml::train::LayerComputeEngine::CPU) {
+    this->compute_engine = compute_engine;
+  }
+
+  /**
+   * @brief get the compute engine for this node
+   * @return ompute engine: (CPU/GPU)
+   */
+  ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
 
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */

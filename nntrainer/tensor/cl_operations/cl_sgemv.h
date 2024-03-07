@@ -36,19 +36,19 @@ class GpuCLSgemv : public nntrainer::opencl::GpuCLOpInterface {
     })";
 
 public:
-/**
- * @brief Function to set buffers and kernel arguments for SGEMV
- * 
- * @tparam T 
- * @param matAdata 
- * @param vecXdata 
- * @param vecYdata 
- * @param alpha 
- * @param beta 
- * @param dim1 
- * @param dim2 
- * @return T* 
- */
+  /**
+   * @brief Function to set buffers and kernel arguments for SGEMV
+   *
+   * @tparam T
+   * @param matAdata
+   * @param vecXdata
+   * @param vecYdata
+   * @param alpha
+   * @param beta
+   * @param dim1
+   * @param dim2
+   * @return T*
+   */
   template <typename T>
   T *cLSgemv(const T *matAdata, const T *vecXdata, T *vecYdata, T alpha, T beta,
              unsigned int dim1, unsigned int dim2);
