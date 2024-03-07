@@ -53,8 +53,7 @@ Buffer::Buffer(ContextManager &context_manager, int size_in_bytes,
  * @param buffer
  */
 Buffer::Buffer(Buffer &&buffer) :
-  mem_buf_(buffer.mem_buf_),
-  size_(buffer.size_) {
+  mem_buf_(buffer.mem_buf_), size_(buffer.size_) {
   buffer.mem_buf_ = nullptr;
   buffer.size_ = 0;
 }
