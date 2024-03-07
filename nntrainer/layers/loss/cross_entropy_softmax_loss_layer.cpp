@@ -68,9 +68,7 @@ void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   auto dataType = y.getDataType();
-
-  Tensor ret;
-  ret.setDataType(dataType);
+  Tensor ret = Tensor("ret", y.getFormat(), y.getDataType());
   if (dataType == ml::train::TensorDim::DataType::FP32) {
     y.apply(ActiFunc::softmax<float>, ret);
   } else if (dataType == ml::train::TensorDim::DataType::FP16) {

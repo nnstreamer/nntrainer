@@ -213,9 +213,8 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
   const Tensor &weight_hh =
     context.getWeight(wt_idx[LSTMCellParams::weight_hh]);
 
-  TensorDim::TensorType weight_tensor_type = weight_ih.getTensorType();
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
+  Tensor empty =
+    Tensor("empty", weight_ih.getFormat(), weight_ih.getDataType());
 
   const Tensor &bias_h = !disable_bias && integrate_bias
                            ? context.getWeight(wt_idx[LSTMCellParams::bias_h])
@@ -286,9 +285,8 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor &d_weight_hh =
     context.getWeightGrad(wt_idx[LSTMCellParams::weight_hh]);
 
-  TensorDim::TensorType weight_tensor_type = weight_hh.getTensorType();
-  Tensor empty;
-  empty.setTensorType(weight_tensor_type);
+  Tensor empty =
+    Tensor("empty", weight_hh.getFormat(), weight_hh.getDataType());
 
   Tensor &d_bias_h = !disable_bias && integrate_bias
                        ? context.getWeightGrad(wt_idx[LSTMCellParams::bias_h])
@@ -324,8 +322,8 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     }
   }
 
-  Tensor d_hidden_state_masked;
-  d_hidden_state_masked.setTensorType(weight_tensor_type);
+  Tensor d_hidden_state_masked = Tensor(
+    "d_hidden_state_masked", weight_hh.getFormat(), weight_hh.getDataType());
 
   if (dropout_rate > epsilon) {
     Tensor &dropout_mask =
