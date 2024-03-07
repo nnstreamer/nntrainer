@@ -76,7 +76,8 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
 
   float divider = ((float)y.size()) / 2;
 
-  /* ret_derivative may be eliminated by big divider with fp16 calculation.
+  /**
+   * ret_derivative may be eliminated by big divider with fp16 calculation.
    * So, it calcuated with larger precision.
    */
   int ret;
