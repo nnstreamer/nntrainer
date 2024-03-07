@@ -86,7 +86,8 @@ int NetworkGraph::compile(const std::string &loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
-  /* @note It can be integrated with addLossLayer method
+  /**
+   * @note It can be integrated with addLossLayer method
    * if it removes adding loss layer to the model directly.
    */
   for (auto iter = cbegin(); iter != cend(); iter++) {
@@ -456,7 +457,7 @@ void NetworkGraph::backwarding(
 
   // check first layer's derivative is valid
   // loss scale is adjusted between 1.0f ~ 256.0f
-  // @TODO provide max scale property
+  // @todo provide max scale property
   auto &ln = *(cbegin() + 1);
   if (loss_scale != 0.0f && !ln->getRunContext().validateDerivatives()) {
     // It will not apply train results if data is invalid
