@@ -115,6 +115,21 @@ public:
     TensorBase(d, true) {}
 
   /**
+   *  @brief  Copy constructor of TensorBase.
+   *  @param[in] Tensor &
+   */
+  TensorBase(const TensorBase &rhs) {
+    dim = rhs.dim;
+    strides = rhs.strides;
+    contiguous = rhs.contiguous;
+    initializer = rhs.initializer;
+    name = rhs.name;
+    data = rhs.data;
+    offset = rhs.offset;
+    src_tensor = rhs.src_tensor;
+  }
+
+  /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor information
@@ -262,6 +277,11 @@ public:
    */
   virtual Tensor &add_strided(Tensor const &input, Tensor &output,
                               const float beta) const = 0;
+
+  /**
+   * @copydoc Tensor::add_i(Tensor const &m, float const alpha)
+   */
+  virtual int add_i(Tensor const &m, Tensor &output, float const alpha) = 0;
 
   /**
    * @copydoc Tensor::add(float const &value, Tensor &output)

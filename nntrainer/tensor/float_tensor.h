@@ -65,6 +65,12 @@ public:
     Tformat fm);
 
   /**
+   * @brief Construct a new FloatTensor object
+   * @param rhs TensorBase object to copy
+   */
+  FloatTensor(TensorBase &rhs) : TensorBase(rhs) {}
+
+  /**
    * @brief Basic Destructor
    */
   ~FloatTensor() {}
@@ -255,6 +261,11 @@ public:
    */
   Tensor &add_strided(Tensor const &input, Tensor &output,
                       const float beta) const override;
+
+  /**
+   * @copydoc Tensor::add_i(Tensor const &m, float const alpha)
+   */
+  int add_i(Tensor const &m, Tensor &output, float const alpha) override;
 
   /**
    * @copydoc Tensor::add(float const &value, Tensor &output)

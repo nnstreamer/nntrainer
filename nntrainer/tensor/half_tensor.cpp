@@ -479,6 +479,22 @@ Tensor &HalfTensor::add_strided(Tensor const &input, Tensor &output,
   return output;
 }
 
+int HalfTensor::add_i(Tensor const &m, Tensor &output, float const alpha) {
+  auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
+               _FP16 *out_buf) {
+    saxpy(e.buffer_size, alpha, m_buf, e.strides[3], out_buf, strides[3]);
+    /// @todo: saxpy is not valid for _FP16
+  };
+
+  try {
+    apply_broadcast(m, f, output);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return ML_ERROR_NONE;
+}
+
 Tensor &HalfTensor::add(float const &value, Tensor &output) const {
   auto f = std::bind(std::plus<_FP16>(), std::placeholders::_1,
                      static_cast<_FP16>(value));
