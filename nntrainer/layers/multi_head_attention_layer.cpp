@@ -570,9 +570,7 @@ void MultiHeadAttentionLayer::incremental_forwarding(RunLayerContext &context,
   Tensor &key = context.getInput(INOUT_INDEX::KEY);
   Tensor &value = context.getInput(INOUT_INDEX::VALUE);
 
-  Tensor empty_tensor;
-
-  empty_tensor.setTensorType(value.getTensorType());
+  Tensor empty_tensor("empty", value.getFormat(), value.getDataType());
 
   Tensor &mask =
     provide_attention_mask ? context.getInput(INOUT_INDEX::MASK) : empty_tensor;

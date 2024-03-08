@@ -13,6 +13,8 @@
 #define __TENSOR_H__
 #ifdef __cplusplus
 
+#define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
+
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
     if (tensor.empty())                   \
@@ -25,6 +27,8 @@
 #include <tensor_base.h>
 
 namespace nntrainer {
+
+class LazyTensor;
 
 /**
  * @class   Tensor Class
@@ -213,7 +217,7 @@ public:
    *  @brief  Copy constructor of Tensor.
    *  @param[in] Tensor &
    */
-  Tensor(const Tensor &rhs) = default;
+  Tensor(const Tensor &rhs);
 
   /**
    *  @brief  Move constructor of Tensor.
@@ -225,7 +229,7 @@ public:
    * @brief  Copy assignment operator.
    * @param[in] rhs Tensor to be copied.
    */
-  Tensor &operator=(const Tensor &rhs) = default;
+  Tensor &operator=(const Tensor &rhs);
 
   /**
    * @brief  Move assignment operator.
@@ -269,7 +273,7 @@ public:
         "Creating shared tensor of size bigger than tensor memory.");
     }
 
-    Tensor output;
+    Tensor output("", d.getFormat(), d.getDataType());
     output.setTensorVar(d, buf, offset);
     return output;
   };
@@ -964,6 +968,12 @@ public:
   void inv_sqrt_i();
 
   /**
+   * @brief     Anchor a starting point to defer following evaluation
+   * @retval    LazyTensor class that can be used with run();
+   */
+  LazyTensor chain() const;
+
+  /**
    * @brief     l2norm the Tensor elements
    * @retval    Calculated l2norm
    */
@@ -1460,6 +1470,8 @@ public:
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.itensor, rhs.itensor);
   }
+
+  static constexpr float epsilon = 1e-5;
 
 private:
   std::shared_ptr<TensorBase> itensor;

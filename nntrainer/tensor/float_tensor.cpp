@@ -507,6 +507,21 @@ Tensor &FloatTensor::add_strided(Tensor const &input, Tensor &output,
   return output;
 }
 
+int FloatTensor::add_i(Tensor const &m, Tensor &output, float const alpha) {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    saxpy(e.buffer_size, alpha, m_buf, e.strides[3], out_buf, strides[3]);
+  };
+
+  try {
+    apply_broadcast(m, f, output);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return ML_ERROR_NONE;
+}
+
 Tensor &FloatTensor::add(float const &value, Tensor &output) const {
   auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
   apply(f, output);
