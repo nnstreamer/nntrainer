@@ -24,7 +24,7 @@
 
 namespace nntrainer {
 
-namespace props{
+namespace props {
 
 /**
  * @brief RMS_NORM_GAMMA_INIT_GPU Initialization Enumeration Information
@@ -36,15 +36,14 @@ public:
   /**
    * @brief Construct a RMS_NORM_GAMMA_INIT object
    */
-  RMS_NORM_GAMMA_INIT_GPU(::nntrainer::Tensor::Initializer value =
-                        ::nntrainer::Tensor::Initializer::ONES) {
+  RMS_NORM_GAMMA_INIT_GPU(
+    ::nntrainer::Initializer value = ::nntrainer::Initializer::ONES) {
     set(value);
   };
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "gamma_initializer";
 };
-};
-
+}; // namespace props
 
 /**
  * @class   RMSNormLayer
@@ -111,9 +110,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
-    return RMSNormLayerCl::type;
-  };
+  const std::string getType() const override { return RMSNormLayerCl::type; };
 
   static opencl::Kernel kernel_rmsnorm;
   static opencl::Kernel kernel_rmsnorm_fp16;
@@ -127,10 +124,8 @@ public:
    * @param[in] RunLayerContext reference
    */
 
-
-  void rmsnormProcess(Tensor const &input, Tensor &result, Tensor const &gamma, const float epsilon,
-                    RunLayerContext &context);
-
+  void rmsnormProcess(Tensor const &input, Tensor &result, Tensor const &gamma,
+                      const float epsilon, RunLayerContext &context);
 
   /**
    * @brief Process data and dimensions for FP16 rms norm operation
@@ -141,15 +136,13 @@ public:
    * @param[in] RunLayerContext reference
    */
 
-
-  void rmsnormProcess_fp16(Tensor const &input, Tensor &result, Tensor const &gamma, const float epsilon,
-                    RunLayerContext &context);
+  void rmsnormProcess_fp16(Tensor const &input, Tensor &result,
+                           Tensor const &gamma, const float epsilon,
+                           RunLayerContext &context);
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override {
-    return false;
-  }
+  bool supportBackwarding() const override { return false; }
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
@@ -167,4 +160,3 @@ private:
 
 #endif /* __cplusplus */
 #endif /* __RMSNORM_LAYER_CL__ */
-

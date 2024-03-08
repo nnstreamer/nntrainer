@@ -124,7 +124,8 @@ void FullyConnectedLayerCl::forwarding(RunLayerContext &context,
     unsigned int axis =
       context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
 
-    weight.dequantize(weight_, axis);
+    // Dequantize is currently disabled
+    // weight.dequantize(weight_, axis);
 
     dotCl(input_, weight_, hidden_, context);
   } else {

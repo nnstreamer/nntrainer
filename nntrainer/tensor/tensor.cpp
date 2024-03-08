@@ -10,6 +10,7 @@
  */
 
 #include <float_tensor.h>
+#include <lazy_tensor.h>
 #include <tensor.h>
 
 #ifdef ENABLE_FP16
@@ -100,6 +101,35 @@ Tensor::Tensor(
 }
 #endif
 
+Tensor::Tensor(const Tensor &rhs) {
+  if (rhs.getDataType() == Tdatatype::FP32) {
+    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
+                                           std::default_delete<FloatTensor>());
+  } else if (rhs.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(*rhs.itensor),
+                                          std::default_delete<HalfTensor>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+}
+
+Tensor &Tensor::operator=(const Tensor &rhs) {
+  if (rhs.getDataType() == Tdatatype::FP32) {
+    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
+                                           std::default_delete<FloatTensor>());
+  } else if (rhs.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(*rhs.itensor),
+                                          std::default_delete<HalfTensor>());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+  return *this;
+}
+
 bool Tensor::operator==(const Tensor &rhs) const {
   /// compares tensor information
   if (*itensor == *rhs.itensor) {
@@ -176,7 +206,7 @@ int Tensor::multiply_i_strided(Tensor const &m, const float beta) {
 }
 
 Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
-  Tensor t;
+  Tensor t("", getFormat(), getDataType());
   return this->multiply_strided(m, t, beta);
 }
 
@@ -194,7 +224,7 @@ int Tensor::multiply_i(float const &value) {
 }
 
 Tensor Tensor::multiply(float const &value) const {
-  Tensor t;
+  Tensor t("", getFormat(), getDataType());
   return multiply(value, t);
 }
 
@@ -319,13 +349,7 @@ Tensor &Tensor::add(float const &value, Tensor &output) const {
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  try {
-    this->add(m, *this, alpha);
-  } catch (std::exception &err) {
-    ml_loge("%s %s", typeid(err).name(), err.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  return ML_ERROR_NONE;
+  return itensor->add_i(m, *this, alpha);
 }
 
 int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
@@ -555,6 +579,8 @@ void Tensor::cos(Tensor &out, float alpha) {
 }
 
 void Tensor::inv_sqrt_i() { itensor->inv_sqrt(*this); }
+
+LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
 float Tensor::l2norm() const { return itensor->l2norm(); }
 
@@ -865,7 +891,15 @@ void Tensor::copyData(const Tensor &from) { itensor->copyData(from); }
 void Tensor::copy_with_stride(const Tensor &from) {
   if (itensor->getDim() == from.getDim()) {
     // if the tensor dim matches, copy the data
-    copy(from);
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
+          }
+        }
+      }
+    }
   } else {
     // replace with a new tensor that has the same data as the given tensor
     Tensor t = Tensor(from.getDim(), true);
