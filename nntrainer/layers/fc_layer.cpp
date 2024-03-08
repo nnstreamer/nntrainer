@@ -180,7 +180,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
     Tensor &weight_lora = context.getTensor(lora_idx[LORAParams::loraW]);
     Tensor &hidden_lora = context.getTensor(lora_idx[LORAParams::loraOut]);
-    loraA.dot(loraB, weight_lora); /* weight_lora = loraA @ loraB */
+    loraA.dot(loraB, weight_lora); 
     input_.dot(weight_lora, hidden_lora, false, false);
     hidden_.add_i(hidden_lora);
   }
