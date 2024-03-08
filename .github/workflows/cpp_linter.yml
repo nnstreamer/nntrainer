@@ -13,7 +13,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: file
-          version: 16
+          version: 14
           lines-changed-only: true
           file-annotations: false
           step-summary: true
