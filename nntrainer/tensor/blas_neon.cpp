@@ -834,11 +834,12 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
     Y32[idx] = beta * Y[idx];
   }
   unsigned int i = 0;
+  unsigned int N8 = N & -8;
   for (; M - i >= 8; i += 8) {
     __fp16 x[8];
     vst1q_f16(&x[0], vmulq_n_f16(vld1q_f16(&X[i]), alpha));
 #pragma omp parallel for schedule(guided) num_threads(GEMV_NUM_THREADS)
-    for (unsigned int idx = 0; idx < N - 8; idx += 8) {
+    for (unsigned int idx = 0; idx < N8; idx += 8) {
       float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
       wvec0_7_f16 =
         vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 1) * N + idx]), x[1]);
@@ -867,37 +868,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
       vst1q_f32(&Y32[idx + 4], y4_7);
     }
 
-    if (N % 8 == 0) {
-      unsigned int idx = N - 8;
-      float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
-      wvec0_7_f16 =
-        vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 1) * N + idx]), x[1]);
-      wvec0_7_f16 =
-        vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 2) * N + idx]), x[2]);
-      wvec0_7_f16 =
-        vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 3) * N + idx]), x[3]);
-
-      float16x8_t w2vec0_7_f16 =
-        vmulq_n_f16(vld1q_f16(&A[(i + 4) * N + idx]), x[4]);
-      w2vec0_7_f16 =
-        vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 5) * N + idx]), x[5]);
-      w2vec0_7_f16 =
-        vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 6) * N + idx]), x[6]);
-      w2vec0_7_f16 =
-        vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 7) * N + idx]), x[7]);
-
-      float32x4_t y0_3 = vaddq_f32(vld1q_f32(&Y32[idx]),
-                                   vcvt_f32_f16(vget_low_f16(wvec0_7_f16)));
-      y0_3 = vaddq_f32(y0_3, vcvt_f32_f16(vget_low_f16(w2vec0_7_f16)));
-      float32x4_t y4_7 = vaddq_f32(vld1q_f32(&Y32[idx + 4]),
-                                   vcvt_f32_f16(vget_high_f16(wvec0_7_f16)));
-      y4_7 = vaddq_f32(y4_7, vcvt_f32_f16(vget_high_f16(w2vec0_7_f16)));
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-    }
-
-    else if (N % 8 != 0) {
+    if (N != N8) {
       unsigned int idx = 8 * (N / 8);
 
       float y0_7[8];
@@ -956,7 +927,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
     __fp16 x[4];
     vst1_f16(&x[0], vmul_n_f16(vld1_f16(&X[i]), alpha));
 #pragma omp parallel for schedule(guided) num_threads(GEMV_NUM_THREADS)
-    for (unsigned int idx = 0; idx < N - 8; idx += 8) {
+    for (unsigned int idx = 0; idx < N8; idx += 8) {
       float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
       wvec0_7_f16 =
         vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 1) * N + idx]), x[1]);
@@ -975,29 +946,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
       vst1q_f32(&Y32[idx], y0_3);
       vst1q_f32(&Y32[idx + 4], y4_7);
     }
-
-    if (N % 8 == 0) {
-      unsigned int idx = N - 8;
-      float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
-      wvec0_7_f16 =
-        vfmaq_n_f16(wvec0_7_f16, vld1q_f16(&A[(i + 1) * N + idx]), x[1]);
-      float16x8_t w2vec0_7_f16 =
-        vmulq_n_f16(vld1q_f16(&A[(i + 2) * N + idx]), x[2]);
-      w2vec0_7_f16 =
-        vfmaq_n_f16(w2vec0_7_f16, vld1q_f16(&A[(i + 3) * N + idx]), x[3]);
-
-      float32x4_t y0_3 = vaddq_f32(vld1q_f32(&Y32[idx]),
-                                   vcvt_f32_f16(vget_low_f16(wvec0_7_f16)));
-      y0_3 = vaddq_f32(y0_3, vcvt_f32_f16(vget_low_f16(w2vec0_7_f16)));
-      float32x4_t y4_7 = vaddq_f32(vld1q_f32(&Y32[idx + 4]),
-                                   vcvt_f32_f16(vget_high_f16(wvec0_7_f16)));
-      y4_7 = vaddq_f32(y4_7, vcvt_f32_f16(vget_high_f16(w2vec0_7_f16)));
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-    }
-
-    else if (N % 8 != 0) {
+    if (N != N8) {
       unsigned int idx = 8 * (N / 8);
       float y0_3_0[8];
       float v0[8], v1[8], v2[8], v3[8];
@@ -1040,7 +989,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
   for (; i < M; ++i) {
     __fp16 x = alpha * (X[i]);
 #pragma omp parallel for schedule(guided) num_threads(GEMV_NUM_THREADS)
-    for (unsigned int idx = 0; idx < N - 8; idx += 8) {
+    for (unsigned int idx = 0; idx < N8; idx += 8) {
       float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x);
       float32x4_t y0_3 = vaddq_f32(vld1q_f32(&Y32[idx]),
                                    vcvt_f32_f16(vget_low_f16(wvec0_7_f16)));
@@ -1050,17 +999,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
       vst1q_f32(&Y32[idx], y0_3);
       vst1q_f32(&Y32[idx + 4], y4_7);
     }
-    if (N % 8 == 0) {
-      unsigned int idx = N - 8;
-      float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x);
-      float32x4_t y0_3 = vaddq_f32(vld1q_f32(&Y32[idx]),
-                                   vcvt_f32_f16(vget_low_f16(wvec0_7_f16)));
-      float32x4_t y4_7 = vaddq_f32(vld1q_f32(&Y32[idx + 4]),
-                                   vcvt_f32_f16(vget_high_f16(wvec0_7_f16)));
-
-      vst1q_f32(&Y32[idx], y0_3);
-      vst1q_f32(&Y32[idx + 4], y4_7);
-    } else if (N % 8 != 0) {
+    if (N != N8) {
       unsigned int idx = 8 * (N / 8);
       float v0[8];
       for (unsigned int j = 0; j < N - idx; ++j) {
