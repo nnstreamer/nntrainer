@@ -836,7 +836,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
   unsigned int i = 0;
   for (; M - i >= 8; i += 8) {
     __fp16 x[8];
-    vst1q_f16(&x[0], vmulq_n_f16(vld1q_f16(&A[i]), alpha));
+    vst1q_f16(&x[0], vmulq_n_f16(vld1q_f16(&X[i]), alpha));
 #pragma omp parallel for schedule(guided) num_threads(GEMV_NUM_THREADS)
     for (unsigned int idx = 0; idx < N - 8; idx += 8) {
       float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
@@ -954,7 +954,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
   }
   for (; M - i >= 4; i += 4) {
     __fp16 x[4];
-    vst1_f16(&x[0], vmul_n_f16(vld1_f16(&A[i]), alpha));
+    vst1_f16(&x[0], vmul_n_f16(vld1_f16(&X[i]), alpha));
 #pragma omp parallel for schedule(guided) num_threads(GEMV_NUM_THREADS)
     for (unsigned int idx = 0; idx < N - 8; idx += 8) {
       float16x8_t wvec0_7_f16 = vmulq_n_f16(vld1q_f16(&A[i * N + idx]), x[0]);
