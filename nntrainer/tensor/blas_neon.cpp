@@ -834,7 +834,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
     Y32[idx] = beta * Y[idx];
   }
   unsigned int i = 0;
-  unsigned int N8 = N & -8;
+  unsigned int N8 = (N >> 3) << 3;
   for (; M - i >= 16; i += 16) {
     __fp16 x[16];
     vst1q_f16(&x[0], vmulq_n_f16(vld1q_f16(&X[i]), alpha));
@@ -891,7 +891,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
     }
 
     if (N != N8) {
-      unsigned int idx = 8 * (N / 8);
+      unsigned int idx = N8;
 
       float y0_7[8];
       float v0[8], v1[8], v2[8], v3[8];
@@ -1007,7 +1007,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
     }
 
     if (N != N8) {
-      unsigned int idx = 8 * (N / 8);
+      unsigned int idx = N8;
 
       float y0_7[8];
       float v0[8], v1[8], v2[8], v3[8];
@@ -1085,7 +1085,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
       vst1q_f32(&Y32[idx + 4], y4_7);
     }
     if (N != N8) {
-      unsigned int idx = 8 * (N / 8);
+      unsigned int idx = N8;
       float y0_3_0[8];
       float v0[8], v1[8], v2[8], v3[8];
       unsigned int n = 0;
@@ -1138,7 +1138,7 @@ void hgemv_transpose(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M,
       vst1q_f32(&Y32[idx + 4], y4_7);
     }
     if (N != N8) {
-      unsigned int idx = 8 * (N / 8);
+      unsigned int idx = N8;
       float v0[8];
       for (unsigned int j = 0; j < N - idx; ++j) {
         v0[j] = A[i * N + idx + j];
@@ -1633,13 +1633,14 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
 
   size_t GEMM_NUM_THREADS = get_gemm_num_threads();
   unsigned int k = 0;
+  unsigned int N8 = (N >> 3) << 3;
   __fp16 a[16];
   for (; (K - k) >= 16; k += 16) {
     for (unsigned int m = 0; m < M; m++) {
       vst1q_f16(&a[0], vmulq_n_f16(vld1q_f16(&A[m * K + k]), alpha));
       vst1q_f16(&a[8], vmulq_n_f16(vld1q_f16(&A[m * K + k + 8]), alpha));
 #pragma omp parallel for schedule(guided) num_threads(GEMM_NUM_THREADS)
-      for (unsigned int n = 0; n < N - 8; n += 8) {
+      for (unsigned int n = 0; n < N8; n += 8) {
         float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
         b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
         b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
@@ -1665,36 +1666,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
         vst1q_f32(&C[m * N + n], c0_7_low_32);
         vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
       }
-      if (N % 8 == 0) {
-        unsigned int n = N - 8;
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 4) * N + n]), a[4]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 5) * N + n]), a[5]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 6) * N + n]), a[6]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 7) * N + n]), a[7]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 8) * N + n]), a[8]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 9) * N + n]), a[9]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 10) * N + n]), a[10]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 11) * N + n]), a[11]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 12) * N + n]), a[12]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 13) * N + n]), a[13]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 14) * N + n]), a[14]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 15) * N + n]), a[15]);
-
-        float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
-                                            vcvt_f32_f16(vget_low_f16(b0_7_0)));
-        float32x4_t c0_7_high_32 = vaddq_f32(
-          vld1q_f32(&C[m * N + n + 4]), vcvt_f32_f16(vget_high_f16(b0_7_0)));
-
-        vst1q_f32(&C[m * N + n], c0_7_low_32);
-        vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
-      }
-      // remaining N values :: should do for N and this time's 16-K
-      else if (N % 8 != 0) {
-        unsigned int n = 8 * (N / 8);
+      if (N != N8) {
+        unsigned int n = N8;
         __fp16 valsB_0[8];
         __fp16 valsB_1[8];
         __fp16 valsB_2[8];
@@ -1770,7 +1743,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
       vst1q_f16(a, vmulq_n_f16(vld1q_f16(&A[m * K + k]), alpha));
 
 #pragma omp parallel for schedule(guided) num_threads(GEMM_NUM_THREADS)
-      for (unsigned int n = 0; n < N - 8; n += 8) {
+      for (unsigned int n = 0; n < N8; n += 8) {
         float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
         b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
         b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
@@ -1788,28 +1761,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
         vst1q_f32(&C[m * N + n], c0_7_low_32);
         vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
       }
-      if (N % 8 == 0) {
-        unsigned int n = N - 8;
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 4) * N + n]), a[4]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 5) * N + n]), a[5]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 6) * N + n]), a[6]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 7) * N + n]), a[7]);
-
-        float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
-                                            vcvt_f32_f16(vget_low_f16(b0_7_0)));
-        float32x4_t c0_7_high_32 = vaddq_f32(
-          vld1q_f32(&C[m * N + n + 4]), vcvt_f32_f16(vget_high_f16(b0_7_0)));
-
-        vst1q_f32(&C[m * N + n], c0_7_low_32);
-        vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
-      }
-      // remaining N values :: should do for N and this time's 8-K
-      else if (N % 8 != 0) {
-        unsigned int n = 8 * (N / 8);
+      if (N != N8) {
+        unsigned int n = N8;
         __fp16 valsB_0[8];
         __fp16 valsB_1[8];
         __fp16 valsB_2[8];
@@ -1861,7 +1814,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
       vst1_f16(a, vmul_n_f16(vld1_f16(&A[m * K + k]), alpha));
 
 #pragma omp parallel for schedule(guided) num_threads(GEMM_NUM_THREADS)
-      for (unsigned int n = 0; n < N - 8; n += 8) {
+      for (unsigned int n = 0; n < N8; n += 8) {
 
         float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
         b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
@@ -1881,24 +1834,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
         vst1q_f32(&C[m * N + n], c0_7_low_32);
         vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
       }
-      if (N % 8 == 0) {
-        unsigned int n = N - 8;
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 1) * N + n]), a[1]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 2) * N + n]), a[2]);
-        b0_7_0 = vfmaq_n_f16(b0_7_0, vld1q_f16(&B[(k + 3) * N + n]), a[3]);
-
-        float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
-                                            vcvt_f32_f16(vget_low_f16(b0_7_0)));
-        float32x4_t c0_7_high_32 = vaddq_f32(
-          vld1q_f32(&C[m * N + n + 4]), vcvt_f32_f16(vget_high_f16(b0_7_0)));
-
-        vst1q_f32(&C[m * N + n], c0_7_low_32);
-        vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
-      }
-      // remaining N values :: should do for N and this time's 4-K
-      else if (N % 8 != 0) {
-        unsigned int n = 8 * (N / 8);
+      if (N != N8) {
+        unsigned int n = N8;
         __fp16 valsB_0[8];
         __fp16 valsB_1[8];
         __fp16 valsB_2[8];
@@ -1939,7 +1876,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
       __fp16 a0 = alpha * A[m * K + k];
 
 #pragma omp parallel for schedule(guided) num_threads(GEMM_NUM_THREADS)
-      for (unsigned int n = 0; n < N - 8; n += 8) {
+      for (unsigned int n = 0; n < N8; n += 8) {
         float16x8_t b0_7 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a0);
 
         float32x4_t c0_7_low_32 =
@@ -1951,21 +1888,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, uint32_t M,
         vst1q_f32(&C[m * N + n], c0_7_low_32);
         vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
       }
-      if (N % 8 == 0) {
-        unsigned int n = N - 8;
-        float16x8_t b0_7_0 = vmulq_n_f16(vld1q_f16(&B[k * N + n]), a[0]);
-
-        float32x4_t c0_7_low_32 = vaddq_f32(vld1q_f32(&C[m * N + n]),
-                                            vcvt_f32_f16(vget_low_f16(b0_7_0)));
-        float32x4_t c0_7_high_32 = vaddq_f32(
-          vld1q_f32(&C[m * N + n + 4]), vcvt_f32_f16(vget_high_f16(b0_7_0)));
-
-        vst1q_f32(&C[m * N + n], c0_7_low_32);
-        vst1q_f32(&C[m * N + n + 4], c0_7_high_32);
-      }
-      // remaining N values :: should do for N and this time's 4-K
-      else if (N % 8 != 0) {
-        unsigned int n = 8 * (N / 8);
+      if (N != N8) {
+        unsigned int n = N8;
         __fp16 valsB[8];
         float valsC[8];
         for (unsigned int idx = n; idx < N; idx++) {
