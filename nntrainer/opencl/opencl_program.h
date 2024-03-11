@@ -35,8 +35,16 @@ class Program {
    * @param compiler_options string compiler options
    * @return true if successful or false otherwise
    */
-  bool BuildProgram(cl_device_id device_id,
-                    const std::string &compiler_options);
+  bool BuildProgram(cl_device_id device_id, const std::string &compiler_options,
+                    bool binaryCreated = false);
+
+  /**
+   * @brief Utility to get program info and save kernel binaries
+   *
+   * @param device_id OpenCL device id
+   * @return true if successful or false otherwise
+   */
+  bool GetProgramInfo(cl_device_id device_id);
 
   /**
    * @brief Get the information on the program build
@@ -61,6 +69,22 @@ public:
   bool CreateCLProgram(const cl_context &context, const cl_device_id &device_id,
                        const std::string &code,
                        const std::string &compiler_options);
+
+  /**
+   * @brief Create OpenCL program from pre compiled binary
+   *
+   * @param context OpenCL context
+   * @param device_id OpenCL device id
+   * @param size binary file size
+   * @param binary data saved as binary
+   * @param binary_name name of binary file for logging
+   * @param compiler_options string compiler options
+   * @return true if successful or false otherwise
+   */
+  bool CreateCLProgramWithBinary(const cl_context &context,
+                                 const cl_device_id &device_id, size_t size,
+                                 unsigned char *binary, std::string binary_name,
+                                 const std::string &compiler_options);
 
   /**
    * @brief Get the Program object
