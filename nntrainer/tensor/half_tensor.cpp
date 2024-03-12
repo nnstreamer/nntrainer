@@ -19,17 +19,21 @@
 namespace nntrainer {
 
 HalfTensor::HalfTensor(std::string name_, Tformat fm) :
-  TensorBase(name_, fm, Tdatatype::FP16) {}
+  TensorBase(name_, fm, Tdatatype::FP16) {
+  THROW_UNLESS_FP16_ENABLED;
+}
 
 HalfTensor::HalfTensor(const TensorDim &d, bool alloc_now, Initializer init,
                        std::string name) :
   TensorBase(d, alloc_now, init, name) {
+  THROW_UNLESS_FP16_ENABLED;
   if (alloc_now)
     allocate();
 }
 
 HalfTensor::HalfTensor(const TensorDim &d, const void *buf) :
   HalfTensor(d, true) {
+  THROW_UNLESS_FP16_ENABLED;
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
@@ -40,6 +44,7 @@ HalfTensor::HalfTensor(
   std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
   Tformat fm) {
 
+  THROW_UNLESS_FP16_ENABLED;
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize HalfTensor from empty vector");
@@ -89,6 +94,7 @@ HalfTensor::HalfTensor(
 }
 
 bool HalfTensor::operator==(const HalfTensor &rhs) const {
+  THROW_UNLESS_FP16_ENABLED;
   const _FP16 *_data = (_FP16 *)getData();
   const _FP16 *_rdata = (_FP16 *)rhs.getData();
   for (size_t i = 0; i < size(); ++i) {
@@ -102,6 +108,7 @@ bool HalfTensor::operator==(const HalfTensor &rhs) const {
 
 /// @todo support allocation by src_tensor
 void HalfTensor::allocate() {
+  THROW_UNLESS_FP16_ENABLED;
   if (empty() || data)
     /// already allocated
     return;
