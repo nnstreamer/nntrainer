@@ -16,6 +16,7 @@
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 #include <activation_layer.h>

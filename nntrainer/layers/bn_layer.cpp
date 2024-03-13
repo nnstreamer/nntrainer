@@ -175,31 +175,79 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor t_full = hidden_;
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
-  if (training) {
-    input_.average(axes_to_reduce, t_reduced);
-    input_.subtract(t_reduced, deviation);
+  const auto &in_type = input_.getDataType();
+  if (in_type != mu.getDataType()) {
+    // It calculates with activation data type
+    Tensor mu_ = mu.clone(in_type);
+    Tensor var_ = var.clone(in_type);
+    Tensor gamma_ = gamma.clone(in_type);
+    Tensor beta_ = beta.clone(in_type);
+    Tensor deviation_ = deviation.clone(in_type);
+    Tensor invstd_ = invstd.clone(in_type);
+    Tensor t_reduced_ = t_reduced.clone(in_type);
+    Tensor cvar_ = cvar.clone(in_type);
 
-    mu.multiply_i(momentum);
-    mu.add_i(t_reduced, 1 - momentum);
+    if (training) {
+      input_.average(axes_to_reduce, t_reduced_);
+      input_.subtract(t_reduced_, deviation_);
 
-    deviation.pow(2.0f, t_full);
-    t_full.average(axes_to_reduce, cvar);
+      mu_.multiply_i(momentum);
+      mu_.add_i(t_reduced_, 1 - momentum);
 
-    var.multiply_i(momentum);
-    var.add_i(cvar, 1 - momentum);
+      deviation_.pow(2.0f, t_full);
+      t_full.average(axes_to_reduce, cvar_);
 
-    cvar.add_i(epsilon);
-    cvar.pow(-0.5f, invstd);
+      var_.multiply_i(momentum);
+      var_.add_i(cvar_, 1 - momentum);
+
+      cvar_.add_i(epsilon);
+      cvar_.pow(-0.5f, invstd_);
+    } else {
+      input_.subtract(mu_, deviation_);
+      /** @todo do below 2 lines only for first iteration */
+      var_.add(epsilon, invstd_);
+      invstd_.pow_i(-0.5f);
+    }
+
+    deviation_.multiply(invstd_, hidden_);
+    hidden_.multiply_i(gamma_);
+    hidden_.add_i(beta_);
+
+    mu.copyData(mu_);
+    var.copyData(var_);
+    gamma.copyData(gamma_);
+    beta.copyData(beta_);
+    deviation.copyData(deviation_);
+    invstd.copyData(invstd_);
+    t_reduced.copyData(t_reduced_);
+    cvar.copyData(cvar_);
   } else {
-    input_.subtract(mu, deviation);
-    /** @todo do below 2 lines only for first iteration */
-    var.add(epsilon, invstd);
-    invstd.pow_i(-0.5f);
-  }
+    if (training) {
+      input_.average(axes_to_reduce, t_reduced);
+      input_.subtract(t_reduced, deviation);
 
-  deviation.multiply(invstd, hidden_);
-  hidden_.multiply_i(gamma);
-  hidden_.add_i(beta);
+      mu.multiply_i(momentum);
+      mu.add_i(t_reduced, 1 - momentum);
+
+      deviation.pow(2.0f, t_full);
+      t_full.average(axes_to_reduce, cvar);
+
+      var.multiply_i(momentum);
+      var.add_i(cvar, 1 - momentum);
+
+      cvar.add_i(epsilon);
+      cvar.pow(-0.5f, invstd);
+    } else {
+      input_.subtract(mu, deviation);
+      /** @todo do below 2 lines only for first iteration */
+      var.add(epsilon, invstd);
+      invstd.pow_i(-0.5f);
+    }
+
+    deviation.multiply(invstd, hidden_);
+    hidden_.multiply_i(gamma);
+    hidden_.add_i(beta);
+  }
 }
 
 void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
@@ -214,33 +262,84 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
   Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full]);
 
-  deviation.multiply(deriv, t_full);
-  t_full.average(axes_to_reduce, t_reduced);
-  t_reduced.divide_i(cvar);
-  deviation.multiply_i(t_reduced);
+  const auto &deriv_type = deriv.getDataType();
 
-  if (context.getTrainable()) {
-    /**
-     * This calculates dgamma tensor.
-     */
-    Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
-    t_full.multiply_i(invstd);
-    t_full.sum(axes_to_reduce, dgamma);
+  if (deriv_type != gamma.getDataType()) {
+    Tensor gamma_ = gamma.clone(deriv_type);
+    Tensor deviation_ = deviation.clone(deriv_type);
+    Tensor invstd_ = invstd.clone(deriv_type);
+    Tensor cvar_ = cvar.clone(deriv_type);
+    Tensor t_reduced_ = t_reduced.clone(deriv_type);
+    Tensor t_full_ = t_full.clone(deriv_type);
 
-    /**
-     * This implementation depends on the pre-calculated dbeta calculated.
-     */
-    Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
-    dbeta.divide(divider, t_reduced);
+    deviation_.multiply(deriv, t_full_);
+    t_full_.average(axes_to_reduce, t_reduced_);
+    t_reduced_.divide_i(cvar_);
+    deviation_.multiply_i(t_reduced_);
+
+    if (context.getTrainable()) {
+      /**
+       * This calculates dgamma tensor.
+       */
+      Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+      Tensor dgamma_ = dgamma.clone(deriv_type);
+      t_full_.multiply_i(invstd_);
+      t_full_.sum(axes_to_reduce, dgamma_);
+      dgamma.copyData(dgamma_);
+
+      /**
+       * This implementation depends on the pre-calculated dbeta calculated.
+       */
+      Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+      Tensor dbeta_ = dbeta.clone(deriv_type);
+      dbeta_.divide(divider, t_reduced_);
+    } else {
+      deriv.average(axes_to_reduce, t_reduced_);
+    }
+
+    deriv.subtract(t_reduced_, dx);
+    dx.subtract_i(deviation_);
+
+    invstd_.multiply_i(gamma_);
+    dx.multiply_i(invstd_);
+
+    if (deriv.checkDataValidation(false) && dx.checkDataValidation(false)) {
+      gamma.copyData(gamma_);
+      deviation.copyData(deviation_);
+      invstd.copyData(invstd_);
+      cvar.copyData(cvar_);
+      t_reduced.copyData(t_reduced_);
+      t_full.copyData(t_full_);
+    }
   } else {
-    deriv.average(axes_to_reduce, t_reduced);
+    deviation.multiply(deriv, t_full);
+    t_full.average(axes_to_reduce, t_reduced);
+    t_reduced.divide_i(cvar);
+    deviation.multiply_i(t_reduced);
+
+    if (context.getTrainable()) {
+      /**
+       * This calculates dgamma tensor.
+       */
+      Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+      t_full.multiply_i(invstd);
+      t_full.sum(axes_to_reduce, dgamma);
+
+      /**
+       * This implementation depends on the pre-calculated dbeta calculated.
+       */
+      Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+      dbeta.divide(divider, t_reduced);
+    } else {
+      deriv.average(axes_to_reduce, t_reduced);
+    }
+
+    deriv.subtract(t_reduced, dx);
+    dx.subtract_i(deviation);
+
+    invstd.multiply_i(gamma);
+    dx.multiply_i(invstd);
   }
-
-  deriv.subtract(t_reduced, dx);
-  dx.subtract_i(deviation);
-
-  invstd.multiply_i(gamma);
-  dx.multiply_i(invstd);
 }
 
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
@@ -248,7 +347,14 @@ void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
   const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
-  deriv.sum(axes_to_reduce, dbeta);
+  const auto &deriv_type = deriv.getDataType();
+  if (deriv_type == dbeta.getDataType()) {
+    deriv.sum(axes_to_reduce, dbeta);
+  } else {
+    Tensor dbeta_ = dbeta.clone(deriv_type);
+    deriv.sum(axes_to_reduce, dbeta_);
+    dbeta.copyData(dbeta_);
+  }
 }
 
 void BatchNormalizationLayer::exportTo(

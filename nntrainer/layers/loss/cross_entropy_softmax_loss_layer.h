@@ -37,7 +37,7 @@ public:
   ~CrossEntropySoftmaxLossLayer() = default;
 
   /**
-   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training
    */
   void forwarding(RunLayerContext &context, bool training) override;
 

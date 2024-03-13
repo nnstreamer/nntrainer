@@ -154,12 +154,12 @@ public:
     unsigned int bch_size = input.getDim().getDataLen() / width;
 
     // copy will not executed in inplace case
-    output.copy(input);
+    output.copyData(input);
 
     T *output_data = output.getData<T>();
 
     // prevent overflow
-    Tensor tmp(width, input.getTensorType());
+    Tensor tmp(width, output.getTensorType());
     for (unsigned int i = 0; i < bch_size; i++) {
       T *ptr = output_data + i * width;
 

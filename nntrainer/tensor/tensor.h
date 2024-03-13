@@ -1589,6 +1589,20 @@ public:
   }
 
   /**
+   * @brief     set the memory format
+   * @param     fm format of Tensor
+   */
+  void convertDataType(TensorDim::DataType type) {
+    if (getDataType() == type)
+      return;
+
+    Tensor t(getDim(), true);
+    t.copy(*this);
+    setDataType(type);
+    copyData(t);
+  }
+
+  /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    *
@@ -1679,6 +1693,12 @@ public:
    * @retval    Copied version of this
    */
   Tensor clone() const;
+
+  /**
+   * @brief     Convient wrapper for inplace copy of @a this.
+   * @retval    Copied version of this
+   */
+  Tensor clone(ml::train::TensorDim::DataType type) const;
 
   /**
    * @brief     Save the Tensor into file
@@ -1887,6 +1907,7 @@ public:
   const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
     return strides;
   }
+
   /**
    * @brief Get linear index given the n-d index
    */
@@ -1921,6 +1942,54 @@ public:
         continuous = true;
     }
     return continuous;
+  }
+
+  /**
+   * @brief Check if data is valid number
+   */
+  bool checkDataValidation(bool print = false) const {
+    bool ret = true;
+
+    // It only support FP16 and FP32
+    if (getDataType() != Tdatatype::FP32 && getDataType() != Tdatatype::FP16)
+      return true;
+
+    std::string data;
+    for (unsigned int i = 0, len = size(); i < len; ++i) {
+      if (print) {
+        if (getDataType() == Tdatatype::FP32) {
+          data.append(std::to_string(static_cast<float>(getData<float>()[i])) +
+                      ", ");
+        }
+#ifdef ENABLE_FP16
+        else if (getDataType() == Tdatatype::FP16) {
+          data.append(std::to_string(static_cast<float>(getData<_FP16>()[i])) +
+                      ", ");
+        }
+#endif
+      }
+
+      if (getDataType() == Tdatatype::FP32) {
+        if (!std::isfinite(getData<float>()[i])) {
+          ret = false;
+          break;
+        }
+      }
+#ifdef ENABLE_FP16
+      else if (getDataType() == Tdatatype::FP16) {
+        if (!std::isfinite(static_cast<float>(getData<_FP16>()[i]))) {
+          ret = false;
+          break;
+        }
+      }
+#endif
+    }
+
+    if (print && !ret) {
+      ml_loge("Tensor[%s]: %s", getName().c_str(), data.c_str());
+    }
+
+    return ret;
   }
 
   /**

@@ -39,8 +39,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 enum FCParams { weight, bias };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(),
-  fc_props(props::Unit()) {
+  LayerImpl(), fc_props(props::Unit()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -116,32 +115,45 @@ void FullyConnectedLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
-  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
+  Tensor &weight_ = context.getWeight(weight_idx[FCParams::weight]);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+  bool enable_bias = disable_bias.empty() || disable_bias.get() == false;
 
-  if (weight.getDataType() == nntrainer::Tdatatype::QINT4 ||
-      weight.getDataType() == nntrainer::Tdatatype::QINT8) {
-    Tdatatype dtype = input_.getDataType();
-
-    Tensor weight_(
-      {{weight.batch(), weight.channel(), weight.height(), weight.width()},
-       {weight.getFormat(), dtype}},
+  const auto &in_type = input_.getDataType();
+  if (weight_.getDataType() == nntrainer::Tdatatype::QINT4 ||
+      weight_.getDataType() == nntrainer::Tdatatype::QINT8) {
+    Tensor weight(
+      {{weight_.batch(), weight_.channel(), weight_.height(), weight_.width()},
+       {weight_.getFormat(), in_type}},
       true);
 
     unsigned int axis =
       context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
 
-    weight.dequantize(weight_, axis);
-    input_.dot(weight_, hidden_, false, false);
-  } else {
+    weight_.dequantize(weight, axis);
     input_.dot(weight, hidden_, false, false);
-  }
+    if (enable_bias) {
+      Tensor bias =
+        context.getWeight(weight_idx[FCParams::bias]).clone(in_type);
+      hidden_.add_i(bias);
+    }
+  } else if (in_type != weight_.getDataType()) {
+    Tensor weight = weight_.clone(in_type);
 
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
-    hidden_.add_i(bias);
+    input_.dot(weight, hidden_, false, false);
+    if (enable_bias) {
+      Tensor bias =
+        context.getWeight(weight_idx[FCParams::bias]).clone(in_type);
+      hidden_.add_i(bias);
+    }
+  } else {
+    input_.dot(weight_, hidden_, false, false);
+    if (enable_bias) {
+      Tensor &bias_ = context.getWeight(weight_idx[FCParams::bias]);
+      hidden_.add_i(bias_);
+    }
   }
 }
 
@@ -155,6 +167,8 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+  bool enable_bias = disable_bias.empty() || disable_bias.get() == false;
 
   TensorDim input_dim = input_.getDim();
   TensorDim hidden_dim = hidden_.getDim();
@@ -172,51 +186,92 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
   input_step_dim.height(to - from);
   hidden_step_dim.height(to - from);
 
+  const auto &in_type = input_.getDataType();
+
   // @todo: set reset stride as false. This implementation only works when batch
   // size is 1
   Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
   Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
 
-  input_step.dot(weight, hidden_step, false, false);
+  if (in_type != weight.getDataType()) {
+    Tensor weight_ = weight.clone(in_type);
+    input_step.dot(weight_, hidden_step, false, false);
+    if (enable_bias) {
+      Tensor bias =
+        context.getWeight(weight_idx[FCParams::bias]).clone(in_type);
+      hidden_step.add_i(bias);
+    }
+  } else {
+    input_step.dot(weight, hidden_step, false, false);
 
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
-    hidden_step.add_i(bias);
+    if (enable_bias) {
+      Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
+      hidden_step.add_i(bias);
+    }
   }
 }
 
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
+  Tensor &weight_ = context.getWeight(weight_idx[FCParams::weight]);
 
   const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
+  const auto &deriv_type = derivative_.getDataType();
+  if (deriv_type != weight_.getDataType()) {
+    Tensor weight = weight_.clone(deriv_type);
+    ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
+  } else {
+    ret_.dot_deriv_wrt_1(weight_, derivative_, false, false);
+  }
 }
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
-  Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
+  Tensor &djdw_ = context.getWeightGrad(weight_idx[FCParams::weight]);
 
   const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+  bool enable_bias = disable_bias.empty() || disable_bias.get() == false;
+  bool wg_first_access =
+    context.isGradientFirstAccess(weight_idx[FCParams::weight]);
 
-  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
-      disable_bias.empty() || disable_bias.get() == false) {
-    Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
+  const auto &in_type = input_.getDataType();
+  if (in_type != djdw_.getDataType()) {
+    if (enable_bias) {
+      Tensor &djdb_ = context.getWeightGrad(weight_idx[FCParams::bias]);
+      Tensor djdb = djdb_.clone(in_type);
+      bool b_first_access =
+        context.isGradientFirstAccess(weight_idx[FCParams::bias]);
 
-    if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
-      derivative_.sum({0, 1, 2}, djdb);
-    } else {
-      /// @todo optimize below by adding beta to Tensor::sum
-      Tensor t = derivative_.sum({0, 1, 2});
-      djdb.add_i(t);
+      if (b_first_access) {
+        derivative_.sum({0, 1, 2}, djdb);
+      } else {
+        /// @todo optimize below by adding beta to Tensor::sum
+        Tensor t = derivative_.sum({0, 1, 2});
+        djdb.add_i(t);
+      }
+      djdb_.copyData(djdb);
     }
-  }
+    Tensor djdw = djdw_.clone(in_type);
+    input_.dot_deriv_wrt_2(djdw, derivative_, false, false, !wg_first_access);
+    djdw_.copyData(djdw);
+  } else {
+    if (enable_bias) {
+      Tensor &djdb_ = context.getWeightGrad(weight_idx[FCParams::bias]);
+      bool b_first_access =
+        context.isGradientFirstAccess(weight_idx[FCParams::bias]);
 
-  input_.dot_deriv_wrt_2(
-    djdw, derivative_, false, false,
-    !context.isGradientFirstAccess(weight_idx[FCParams::weight]));
+      if (b_first_access) {
+        derivative_.sum({0, 1, 2}, djdb_);
+      } else {
+        /// @todo optimize below by adding beta to Tensor::sum
+        Tensor t = derivative_.sum({0, 1, 2});
+        djdb_.add_i(t);
+      }
+    }
+    input_.dot_deriv_wrt_2(djdw_, derivative_, false, false, !wg_first_access);
+  }
 }
 
 } /* namespace nntrainer */
