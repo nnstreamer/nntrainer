@@ -900,6 +900,11 @@ public:
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
 
+  /**
+   * @brief Set loss scale factor
+   */
+  void setLossScale(float scale) { layer->setLossScale(scale); }
+
 private:
   /**
    * @brief     Get the Input Layers object

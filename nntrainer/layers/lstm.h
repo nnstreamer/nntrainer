@@ -99,7 +99,6 @@ public:
 
   inline static const std::string type = "lstm";
 
-private:
   static constexpr unsigned int NUM_GATE = 4;
 
   /** common properties like Unit, IntegrateBias, HiddenStateActivation and

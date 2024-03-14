@@ -28,6 +28,11 @@ namespace nntrainer {
 class LossLayer : public Layer {
 public:
   /**
+   * @brief     Constructor of Loss Layer
+   */
+  LossLayer();
+
+  /**
    * @brief     Destructor of Loss Layer
    */
   virtual ~LossLayer() = default;
@@ -48,9 +53,17 @@ public:
   virtual bool supportBackwarding() const override { return true; }
 
   /**
+   * @brief Set loss scale factor
+   */
+  virtual void setLossScale(float scale) override { loss_scale = scale; }
+
+private:
+  /**
    * @copydoc Layer::requireLabel()
    */
   bool requireLabel() const override { return true; }
+
+  float loss_scale; /**< loss scale factor */
 
 protected:
   /**

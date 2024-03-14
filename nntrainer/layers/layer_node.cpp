@@ -16,6 +16,7 @@
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 #include <activation_layer.h>
@@ -465,8 +466,12 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
         /// @note read optimizer variables
+        auto num_w_opt_m = run_context->getNumWeightOptMasterVar(i);
         for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
-          run_context->getWeightOptVar(i, j).read(file);
+          if (num_w_opt_m > 0)
+            run_context->getWeightOptMasterVar(i, j).read(file);
+          else
+            run_context->getWeightOptVar(i, j).read(file);
         }
       }
     }
@@ -474,7 +479,11 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).read(file);
+        auto w = run_context->getWeightMaster(i);
+        if (w)
+          w->read(file);
+        else
+          run_context->getWeight(i).read(file);
       }
     }
   }
@@ -489,9 +498,13 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
         // @note save optimizer variables
         if (run_context->weightHasGradient(i)) {
+          auto num_w_opt_m = run_context->getNumWeightOptMasterVar(i);
           for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
                ++j) {
-            run_context->getWeightOptVar(i, j).save(file);
+            if (num_w_opt_m > 0)
+              run_context->getWeightOptMasterVar(i, j).save(file);
+            else
+              run_context->getWeightOptVar(i, j).save(file);
           }
         }
       }
@@ -500,7 +513,13 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
     // @note shared weights are only be saved at the first access
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).save(file);
+        if (run_context->getNumWeights()) {
+          auto w = run_context->getWeightMaster(i);
+          if (w)
+            w->save(file);
+          else
+            run_context->getWeight(i).save(file);
+        }
       }
     }
   }

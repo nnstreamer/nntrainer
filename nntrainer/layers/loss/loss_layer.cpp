@@ -15,6 +15,9 @@
 #include <loss_layer.h>
 
 namespace nntrainer {
+
+LossLayer::LossLayer() : Layer(), loss_scale(0.0f) {}
+
 void LossLayer::finalize(InitLayerContext &context) {
   std::vector<TensorDim> input_dim = context.getInputDimensions();
   std::vector<TensorDim> output_dim = input_dim;
