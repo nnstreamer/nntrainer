@@ -33,8 +33,7 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 InputLayer::InputLayer() :
-  Layer(),
-  input_props(props::Normalization(), props::Standardization()) {}
+  Layer(), input_props(props::Normalization(), props::Standardization()) {}
 
 void InputLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, input_props);
@@ -47,7 +46,7 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   if (!context.executeInPlace()) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-    hidden_.copy(input_);
+    hidden_.copyData(input_);
   }
 
   if (std::get<props::Normalization>(input_props))
@@ -70,6 +69,10 @@ void InputLayer::finalize(InitLayerContext &context) {
 
   std::vector<TensorDim> output_dims = context.getInputDimensions();
 
+  NNTR_THROW_IF(output_dims.size() != 1, std::invalid_argument);
+
+  output_dims[0].setTensorType(
+    {context.getFormat(), context.getActivationDataType()});
   context.setOutputDimensions(output_dims);
 }
 

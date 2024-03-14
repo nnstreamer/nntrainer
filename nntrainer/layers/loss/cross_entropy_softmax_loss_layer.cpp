@@ -30,9 +30,14 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   // fill the output
-  auto dataType = y.getDataType();
-  if (dataType == ml::train::TensorDim::DataType::FP32) {
-    hidden_ = y.apply(ActiFunc::softmax<float>, hidden_);
+  auto out_type = hidden_.getDataType();
+  if (out_type == ml::train::TensorDim::DataType::FP32) {
+    if (y.getDataType() != out_type) {
+      Tensor y_ = y.clone(out_type);
+      hidden_ = y_.apply(ActiFunc::softmax<float>, hidden_);
+    } else {
+      hidden_ = y.apply(ActiFunc::softmax<float>, hidden_);
+    }
 
     if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
       Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
@@ -43,9 +48,14 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
       // update the loss value
       LossLayer::updateLoss(context, l);
     }
-  } else if (dataType == ml::train::TensorDim::DataType::FP16) {
+  } else if (out_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    hidden_ = y.apply(ActiFunc::softmax<_FP16>, hidden_);
+    if (y.getDataType() != out_type) {
+      Tensor y_ = y.clone(out_type);
+      hidden_ = y_.apply(ActiFunc::softmax<_FP16>, hidden_);
+    } else {
+      hidden_ = y.apply(ActiFunc::softmax<_FP16>, hidden_);
+    }
 
     if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
       Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
@@ -68,7 +78,8 @@ void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   auto dataType = y.getDataType();
-  Tensor ret = Tensor("ret", y.getFormat(), y.getDataType());
+
+  Tensor ret(y.getDim());
   if (dataType == ml::train::TensorDim::DataType::FP32) {
     y.apply(ActiFunc::softmax<float>, ret);
   } else if (dataType == ml::train::TensorDim::DataType::FP16) {
@@ -83,7 +94,18 @@ void CrossEntropySoftmaxLossLayer::calcDerivative(RunLayerContext &context) {
   /// operation
   // TODO: verify y and ret_derivative must not be same as loss layer is not
   // working in-place
-  ret.subtract(y2, ret_derivative);
+  if (ret.getDataType() != y2.getDataType()) {
+    ret.subtract(y2.clone(ret.getDataType()), ret_derivative);
+  } else {
+    ret.subtract(y2, ret_derivative);
+  }
+
+  /**
+   * loss scale is applied for mixed precision
+   * every loss layers need to specify this applying code.
+   */
+  applyLossScale(ret_derivative);
+
   if (ret_derivative.divide_i(ret.batch()) != ML_ERROR_NONE) {
     throw std::runtime_error("[CrossEntropySoftmaxLossLayer::calcDerivative] "
                              "Error when calculating loss");

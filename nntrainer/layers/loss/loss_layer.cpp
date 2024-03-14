@@ -15,6 +15,9 @@
 #include <loss_layer.h>
 
 namespace nntrainer {
+
+LossLayer::LossLayer() : Layer(), loss_scale(0.0f) {}
+
 void LossLayer::finalize(InitLayerContext &context) {
   std::vector<TensorDim> input_dim = context.getInputDimensions();
   std::vector<TensorDim> output_dim = input_dim;
@@ -22,7 +25,7 @@ void LossLayer::finalize(InitLayerContext &context) {
     d.setDataType(
       str_converter<enum_class_prop_tag,
                     nntrainer::TensorDataTypeInfo>::from_string("FP32"));
-  
+
   context.setOutputDimensions(output_dim);
 }
 
