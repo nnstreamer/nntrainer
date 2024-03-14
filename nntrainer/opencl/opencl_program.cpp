@@ -57,19 +57,16 @@ bool Program::BuildProgram(cl_device_id device_id,
  * @return true if successful or false otherwise
  */
 bool Program::GetProgramInfo(cl_device_id device_id) {
-  // since only GPU is being used
+  // since only one GPU is being used
   unsigned int num_devices = 1;
 
   cl_int error_code = CL_SUCCESS;
-  size_t *binaries_size = NULL;
-  unsigned char **binaries_ptr = NULL;
-  char *kernel_names;
 
   // Read the binary size
-  size_t binaries_size_alloc_size = sizeof(size_t) * num_devices;
-  binaries_size = (size_t *)malloc(binaries_size_alloc_size);
-  error_code = clGetProgramInfo(program_, CL_PROGRAM_BINARY_SIZES,
-                                binaries_size_alloc_size, binaries_size, NULL);
+  size_t binaries_size[num_devices];
+  error_code =
+    clGetProgramInfo(program_, CL_PROGRAM_BINARY_SIZES,
+                     sizeof(size_t) * num_devices, binaries_size, nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program binary size. OpenCL error code: %d. %s",
@@ -78,10 +75,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
     return false;
   }
 
-  // Read the kernel name
-  size_t *kernel_names_size;
-  error_code = clGetProgramInfo(program_, CL_PROGRAM_KERNEL_NAMES, 0, NULL,
-                                kernel_names_size);
+  // Read the kernel name size
+  size_t kernel_names_size;
+  error_code = clGetProgramInfo(program_, CL_PROGRAM_KERNEL_NAMES, 0, nullptr,
+                                &kernel_names_size);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program kernel name size. OpenCL error code: %d. %s",
@@ -90,11 +87,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
     return false;
   }
 
-  // since only one kernel is being saved via this function at a time
-  // kernel_names_size -> array with 1 element
-  kernel_names = (char *)malloc(kernel_names_size[0]);
+  // getting the kernel names
+  char kernel_names[kernel_names_size];
   error_code = clGetProgramInfo(program_, CL_PROGRAM_KERNEL_NAMES,
-                                kernel_names_size[0], kernel_names, NULL);
+                                kernel_names_size, kernel_names, nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program kernel names. OpenCL error code: %d. %s",
@@ -107,24 +103,29 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
 
   // Read the binary
   size_t binaries_ptr_alloc_size = sizeof(unsigned char *) * num_devices;
-  binaries_ptr = (unsigned char **)malloc(binaries_ptr_alloc_size);
+  unsigned char *binaries_ptr[num_devices];
 
-  memset(binaries_ptr, 0, binaries_ptr_alloc_size);
   for (unsigned int i = 0; i < num_devices; ++i) {
-    binaries_ptr[i] = (unsigned char *)malloc(binaries_size[i]);
+    binaries_ptr[i] = new unsigned char[binaries_size[i]];
   }
 
   error_code = clGetProgramInfo(program_, CL_PROGRAM_BINARIES,
-                                binaries_ptr_alloc_size, binaries_ptr, NULL);
+                                binaries_ptr_alloc_size, binaries_ptr, nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program binary data. OpenCL error code: %d. %s",
             error_code,
             (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
+
+    // cleanup
+    for (unsigned int i = 0; i < num_devices; ++i) {
+      delete[] binaries_ptr[i];
+    }
     return false;
   }
 
   // Write the binary to file
+  // All kernels in the program will be saved in the binary file
   for (unsigned int i = 0; i < num_devices; ++i) {
     std::ofstream fs(std::string(kernel_names) + "_kernel.bin",
                      std::ios::out | std::ios::binary | std::ios::app);
@@ -133,14 +134,9 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
   }
 
   // cleanup
-  if (binaries_ptr) {
-    for (unsigned int i = 0; i < num_devices; ++i) {
-      free(binaries_ptr[i]);
-    }
-    free(binaries_ptr);
+  for (unsigned int i = 0; i < num_devices; ++i) {
+    delete[] binaries_ptr[i];
   }
-  free(binaries_size);
-  free(kernel_names);
 
   return true;
 }
