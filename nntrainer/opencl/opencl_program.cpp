@@ -21,6 +21,12 @@
 
 #include <nntrainer_log.h>
 
+#ifdef OPENCL_KERNEL_PATH
+const std::string DEFAULT_KERNEL_PATH = OPENCL_KERNEL_PATH;
+#else
+const std::string DEFAULT_KERNEL_PATH = "";
+#endif
+
 namespace nntrainer::opencl {
 
 /**
@@ -28,6 +34,7 @@ namespace nntrainer::opencl {
  *
  * @param device_id OpenCL device id
  * @param compiler_options string compiler options
+ * @param binaryCreated true if binary is already present false otherwise
  * @return true if successful or false otherwise
  */
 bool Program::BuildProgram(cl_device_id device_id,
@@ -127,8 +134,20 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
   // Write the binary to file
   // All kernels in the program will be saved in the binary file
   for (unsigned int i = 0; i < num_devices; ++i) {
-    std::ofstream fs(std::string(kernel_names) + "_kernel.bin",
+    std::ofstream fs(DEFAULT_KERNEL_PATH + "/" + std::string(kernel_names) +
+                       "_kernel.bin",
                      std::ios::out | std::ios::binary | std::ios::app);
+    if (!fs) {
+      ml_loge(
+        "opencl_program: could not find directory to save kernel binary - %s",
+        DEFAULT_KERNEL_PATH.c_str());
+
+      // cleanup
+      for (unsigned int i = 0; i < num_devices; ++i) {
+        delete[] binaries_ptr[i];
+      }
+      return false;
+    }
     fs.write((char *)binaries_ptr[i], binaries_size[i]);
     fs.close();
   }
