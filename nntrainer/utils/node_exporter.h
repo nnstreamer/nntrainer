@@ -283,8 +283,9 @@ class FullyConnectedLayer;
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Unit, props::LoraRank> &props,
-                             const FullyConnectedLayer *self);
+void Exporter::saveTflResult(
+  const std::tuple<props::Unit, props::LoraRank> &props,
+  const FullyConnectedLayer *self);
 
 class ActivationLayer;
 /**
