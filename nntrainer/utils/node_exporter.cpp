@@ -57,9 +57,7 @@ Exporter::Exporter() : stored_result(nullptr), is_exported(false) {
  *
  */
 Exporter::Exporter(flatbuffers::FlatBufferBuilder *fbb) :
-  fbb(fbb),
-  stored_result(nullptr),
-  is_exported(false) {}
+  fbb(fbb), stored_result(nullptr), is_exported(false) {}
 #endif
 
 /**
@@ -196,7 +194,7 @@ void Exporter::saveTflResult(
 
   auto &strides = std::get<std::array<props::Stride, CONV2D_DIM>>(props);
   assert(strides.size() == CONV2D_DIM);
-  auto padding = std::get<props::Padding2D>(props).get();
+  const auto &padding = std::get<props::Padding2D>(props).get();
   if (padding != "same" && padding != "valid") {
     std::ostringstream ss;
     ss << "Unsupported padding type; \"" << padding
