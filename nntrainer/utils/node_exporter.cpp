@@ -57,9 +57,7 @@ Exporter::Exporter() : stored_result(nullptr), is_exported(false) {
  *
  */
 Exporter::Exporter(flatbuffers::FlatBufferBuilder *fbb) :
-  fbb(fbb),
-  stored_result(nullptr),
-  is_exported(false) {}
+  fbb(fbb), stored_result(nullptr), is_exported(false) {}
 #endif
 
 /**
@@ -265,7 +263,7 @@ void Exporter::saveTflResult(
   assert(strides.size() == POOLING2D_DIM);
   auto poolSize = std::get<std::vector<props::PoolSize>>(props);
   assert(poolSize.size() == POOLING2D_DIM);
-  auto padding = std::get<props::Padding2D>(props).get();
+  const auto &padding = std::get<props::Padding2D>(props).get();
   assert(padding == "same" || padding == "valid");
 
   switch (poolingType.get()) {
