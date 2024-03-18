@@ -213,9 +213,9 @@ typedef struct {
     ML_TRAIN_VERIFY_VALID_HANDLE(obj_h);                                       \
     std::lock_guard<std::mutex> ml_train_lock(GLOCK);                          \
     ML_TRAIN_GET_VALID_HANDLE(obj, obj_h, obj_type, obj_name);                 \
+    obj->m.lock();                                                             \
     if (!obj->in_use)                                                          \
       obj->magic = 0;                                                          \
-    obj->m.lock();                                                             \
   } while (0)
 
 /**
@@ -243,8 +243,8 @@ typedef struct {
     ML_TRAIN_VERIFY_VALID_HANDLE(model);                                \
     std::lock_guard<std::mutex> ml_train_lock(GLOCK);                   \
     ML_TRAIN_GET_VALID_HANDLE(nnmodel, model, ml_train_model, "model"); \
-    nnmodel->magic = 0;                                                 \
     nnmodel->m.lock();                                                  \
+    nnmodel->magic = 0;                                                 \
   } while (0)
 
 /**
