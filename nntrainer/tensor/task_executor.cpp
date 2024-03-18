@@ -29,9 +29,7 @@ namespace nntrainer {
 std::atomic_int32_t TaskExecutor::ids(1);
 
 TaskExecutor::TaskExecutor(const std::string &n) :
-  name(n),
-  run_thread(true),
-  wait_complete(false) {
+  name(n), run_thread(true), wait_complete(false) {
   task_thread = std::thread([&]() {
     ml_logd("Task Thread(%s): start thread", name.c_str());
     while (run_thread) {
@@ -44,7 +42,7 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       lk.unlock();
 
       const auto &id = std::get<int>(task_info);
-      auto callback = std::get<CompleteCallback>(task_info);
+      const auto &callback = std::get<CompleteCallback>(task_info);
 
       auto status = worker(task_info);
       callback(id, status);

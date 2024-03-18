@@ -263,7 +263,7 @@ void Exporter::saveTflResult(
   assert(strides.size() == POOLING2D_DIM);
   auto poolSize = std::get<std::vector<props::PoolSize>>(props);
   assert(poolSize.size() == POOLING2D_DIM);
-  auto padding = std::get<props::Padding2D>(props).get();
+  const auto &padding = std::get<props::Padding2D>(props).get();
   assert(padding == "same" || padding == "valid");
 
   switch (poolingType.get()) {
