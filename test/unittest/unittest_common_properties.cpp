@@ -17,26 +17,23 @@
 #include <tensor_dim.h>
 
 #include <array>
+/**
+ * @brief NamePropertyTest
+ * @tparam std::string string which will be used as name
+ */
+class NamePropertyTest : public ::testing::TestWithParam<std::string> {};
 
-/// @todo change this to typed param test
-/// <type, list of string, value pair, list of invalid string, value pair>
-TEST(NameProperty, setPropertyValid_p) {
+TEST_P(NamePropertyTest, setPropertyValid_p) {
   nntrainer::props::Name n;
-  EXPECT_NO_THROW(n.set("layer"));
-  EXPECT_EQ(n.get(), "layer");
+  std::string param = GetParam();
 
-  EXPECT_NO_THROW(n.set("layer-"));
-  EXPECT_EQ(n.get(), "layer-");
-
-  EXPECT_NO_THROW(n.set("laye-r"));
-  EXPECT_EQ(n.get(), "laye-r");
-
-  EXPECT_NO_THROW(n.set("layer/a"));
-  EXPECT_EQ(n.get(), "layer/a");
-
-  EXPECT_NO_THROW(n.set("laye__r"));
-  EXPECT_EQ(n.get(), "laye__r");
+  EXPECT_NO_THROW(n.set(param));
+  EXPECT_EQ(n.get(), param);
 }
+
+GTEST_PARAMETER_TEST(NamePropertyTests, NamePropertyTest,
+                     ::testing::Values("layer", "layer-", "laye-r", "layer/a",
+                                       "laye__r"));
 
 /**
  * @brief NameTest
@@ -72,7 +69,7 @@ GTEST_PARAMETER_TEST(ForbiddenSuffixTests, NameTest,
                                        "=", "+0", "(0)", "{0}", "[0]", "<0>",
                                        ";", ":", ",", "?", " ", " layer"));
 
-TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
+TEST(NamePropertyTest, mustStartWithAlphaNumeric_01_n) {
   nntrainer::props::Name n;
   EXPECT_THROW(n.set("/layer"), std::invalid_argument);
 }
