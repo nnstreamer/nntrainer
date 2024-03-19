@@ -455,6 +455,18 @@ void NetworkGraph::backwarding(
     loss_scale = scale;
   };
 
+  auto check_weights = [](std::vector<Weight *> &weights) {
+    bool valid = true;
+    for (auto &w : weights) {
+      auto grad = w->getGradient();
+      if (grad.checkDataValidation(false) == false) {
+        grad.setZero();
+        valid = false;
+      }
+    }
+    return valid;
+  };
+
   // check first layer's derivative is valid
   // loss scale is adjusted between 1.0f ~ 256.0f
   // @todo provide max scale property
@@ -465,13 +477,15 @@ void NetworkGraph::backwarding(
     ml_logd(
       "Derivative validation failed. Skip applying gradient. loss_scale(%f)",
       scale);
+    check_weights(clip_weights);
     update_loss_scale(scale);
     return;
   } else {
     for (unsigned int idx = 0; idx < clip_weights.size(); idx++) {
       auto const &w = clip_weights[idx];
       w->applyScaler(loss_scale);
-      if (w->getGradient().checkDataValidation(false) == false) {
+
+      if (!check_weights(clip_weights)) {
         float scale = loss_scale > 1.5f ? loss_scale - 0.5f : 1.0f;
         ml_loge("gradient validation failed. skip update. loss_scale(%f)",
                 scale);
