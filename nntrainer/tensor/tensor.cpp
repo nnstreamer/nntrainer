@@ -3329,10 +3329,13 @@ void Tensor::setZero() {
       apply_i<float>([](float val) -> float { return 0; });
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    if (contiguous)
-      sscal(size(), 0, getData<_FP16>(), 1);
-    else
+    if (contiguous) {
+      _FP16 zero = (_FP16)0.0f;
+      scopy(size(), &zero, 0, getData<_FP16>(), 1,
+            ml::train::TensorDim::DataType::FP16);
+    } else {
       apply_i<_FP16>([](_FP16 val) -> _FP16 { return 0; });
+    }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif

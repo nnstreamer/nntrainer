@@ -182,6 +182,11 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
   if (training) {
+    t_reduced.setZero();
+    deviation.setZero();
+    invstd.setZero();
+    cvar.setZero();
+
     input_.average(axes_to_reduce, t_reduced);
     input_.subtract(t_reduced, deviation);
 
