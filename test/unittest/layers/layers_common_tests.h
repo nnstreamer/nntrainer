@@ -61,7 +61,7 @@ public:
    *
    */
   virtual void SetUp() {
-    auto f = std::get<0>(GetParam());
+    auto &f = std::get<0>(GetParam());
     layer = std::move(f({}));
     std::tie(std::ignore, expected_type, valid_properties, options, must_fail,
              num_inputs) = GetParam();
