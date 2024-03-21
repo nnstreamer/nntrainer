@@ -160,6 +160,8 @@ public:
    */
   virtual void finalize(InitLayerContext &context) = 0;
 
+  virtual void initialize(RunLayerContext &context){};
+
   /**
    * @brief     Forward Propagation of a layer
    * @param     context Context of the layer

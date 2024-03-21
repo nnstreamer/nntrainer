@@ -2,8 +2,19 @@
 
 set -e
 
-TARGET=$1
-[ -z $1 ] && TARGET=$(pwd)
+BASEDIR=$(dirname $0)
+
+BiQGEMM_NUM_THREADS=$1
+[ -z $1 ] && BiQGEMM_NUM_THREADS=6
+GEMM_NUM_THREADS=$2
+[ -z $2 ] && GEMM_NUM_THREADS=4
+GEMV_NUM_THREADS=$3
+[ -z $3 ] && GEMV_NUM_THREADS=2
+
+$BASEDIR/../build_for_llama.sh $BiQGEMM_NUM_THREADS $GEMM_NUM_THREADS $GEMV_NUM_THREADS
+
+TARGET=$4
+[ -z $4 ] && TARGET=$(pwd)
 echo $TARGET
 
 if [ ! -d $TARGET ]; then
