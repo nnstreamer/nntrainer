@@ -131,6 +131,8 @@ public:
    */
   virtual const std::string getType() const = 0;
 
+  virtual void initialize() = 0;
+
   /**
    * @brief     Default allowed properties
    * - input shape : string
