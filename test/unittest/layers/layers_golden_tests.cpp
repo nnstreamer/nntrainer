@@ -310,25 +310,32 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   constexpr bool skip_compare = true;
 
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, skip_compare, skip_cos_sim, "initial_weights");
-  compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getInput(idx); }, always_read,
-                  !skip_compare, skip_cos_sim, "inputs");
   compare_tensors(
-    rc.getNumOutputs(), [&rc](unsigned idx) { return rc.getOutput(idx); },
+    rc.getNumWeights(),
+    [&rc](unsigned idx) -> const auto & { return rc.getWeight(idx); },
+    always_read, skip_compare, skip_cos_sim, "initial_weights");
+  compare_tensors(
+    rc.getNumInputs(),
+    [&rc](unsigned idx) -> const auto & { return rc.getInput(idx); },
+    always_read, !skip_compare, skip_cos_sim, "inputs");
+  compare_tensors(
+    rc.getNumOutputs(),
+    [&rc](unsigned idx) -> const auto & { return rc.getOutput(idx); },
     always_read, !skip_compare, skip_cos_sim, "outputs", match_percentage);
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-                  only_read_trainable, skip_grad, skip_cos_sim, "gradients");
-  compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); },
-                  always_read, !skip_compare, skip_cos_sim, "weights");
-  compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always_read, skip_deriv, skip_cos_sim, "derivatives",
-                  match_percentage);
+  compare_tensors(
+    rc.getNumWeights(),
+    [&rc](unsigned idx) -> const auto & { return rc.getWeightGrad(idx); },
+    only_read_trainable, skip_grad, skip_cos_sim, "gradients");
+  compare_tensors(
+    rc.getNumWeights(),
+    [&rc](unsigned idx) -> const auto & { return rc.getWeight(idx); },
+    always_read, !skip_compare, skip_cos_sim, "weights");
+  compare_tensors(
+    rc.getNumInputs(),
+    [&rc](unsigned idx) -> const auto & {
+      return rc.getOutgoingDerivative(idx);
+    },
+    always_read, skip_deriv, skip_cos_sim, "derivatives", match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}

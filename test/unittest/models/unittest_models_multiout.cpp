@@ -249,6 +249,5 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(split_and_join_dangle, "split_and_join_dangle",
                  ModelTestOption::ALL_V2),
   }),
-  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
-    return std::get<1>(info.param);
-  });
+  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
+    -> const auto & { return std::get<1>(info.param); });

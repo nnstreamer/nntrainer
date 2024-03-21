@@ -54,7 +54,7 @@ protected:
     name = std::string(std::get<0>(GetParam()));
     std::cout << "starting test case : " << name << std::endl << std::endl;
 
-    auto sections = std::get<1>(GetParam());
+    const auto &sections = std::get<1>(GetParam());
 
     ini = nntrainer::IniWrapper(name, sections);
 
