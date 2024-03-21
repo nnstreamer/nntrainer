@@ -858,7 +858,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
       throw std::invalid_argument("Errro: enable-fp16 is not set");
 #endif
     } else {
-      auto out_t = *out.get();
+      const auto &out_t = *out.get();
       TensorDim last_out_dim = out_t.getDim();
       last_out_dim.height(1);
       Tensor last_out =

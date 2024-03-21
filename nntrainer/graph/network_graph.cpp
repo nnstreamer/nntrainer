@@ -755,9 +755,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
-  std::transform(prev_inputs.begin(), prev_inputs.end(),
-                 std::back_inserter(input_names),
-                 [](auto const &vg) -> const auto &{ return vg->getName(); });
+  std::transform(
+    prev_inputs.begin(), prev_inputs.end(), std::back_inserter(input_names),
+    [](auto const &vg) -> const auto & { return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
@@ -904,9 +904,9 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
-  std::transform(prev_inputs.begin(), prev_inputs.end(),
-                 std::back_inserter(input_names),
-                 [](auto const &vg) { return vg->getName(); });
+  std::transform(
+    prev_inputs.begin(), prev_inputs.end(), std::back_inserter(input_names),
+    [](auto const &vg) -> const auto & { return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
@@ -1520,12 +1520,14 @@ void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
 
   std::vector<Tensor> ins;
-  std::transform(inputs.begin(), inputs.end(), std::back_inserter(ins),
-                 [](auto const &val) -> const auto &{ return *val.get(); });
+  std::transform(
+    inputs.begin(), inputs.end(), std::back_inserter(ins),
+    [](auto const &val) -> const auto & { return *val.get(); });
 
   std::vector<Tensor> labs;
-  std::transform(labels.begin(), labels.end(), std::back_inserter(labs),
-                 [](auto const &val) -> const auto &{ return *val.get(); });
+  std::transform(
+    labels.begin(), labels.end(), std::back_inserter(labs),
+    [](auto const &val) -> const auto & { return *val.get(); });
 
   setInputsLabels(ins, labs);
 }

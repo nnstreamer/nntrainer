@@ -99,7 +99,7 @@ std::vector<float> run_tflite(std::string tf_file_name,
 
   EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
 
-  auto in_indices = tf_interpreter->inputs();
+  auto &in_indices = tf_interpreter->inputs();
   float *tf_input = tf_interpreter->typed_input_tensor<float>(0);
 
   for (unsigned int i = 0; i < input_vector.size(); i++) {
