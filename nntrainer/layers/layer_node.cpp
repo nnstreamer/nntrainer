@@ -697,7 +697,7 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
     layer = std::move(dlayer);
   }
 
-  auto scope = getSharedFrom().empty() ? getName() : getSharedFrom();
+  const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();

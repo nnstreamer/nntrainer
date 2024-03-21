@@ -1047,7 +1047,7 @@ GTEST_PARAMETER_TEST(
       // this must match training (verify only forwarding output values) for 2 iterations with tolerance 1.2e-4
       // mkResNet18Tc(2, ModelTestOption::COMPARE)
     }
-), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
+), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info) -> const auto &{
  return std::get<1>(info.param);
 });
 // clang-format on
