@@ -370,7 +370,7 @@ bool LayerGoldenTest::shouldSkipCosineSimilarity() {
 }
 
 TEST_P(LayerGoldenTest, run) {
-  auto f = std::get<0>(GetParam());
+  const auto &f = std::get<0>(GetParam());
   auto layer = f(std::get<1>(GetParam()));
   std::string format = std::get<5>(GetParam());
   std::string type_w = std::get<6>(GetParam());
