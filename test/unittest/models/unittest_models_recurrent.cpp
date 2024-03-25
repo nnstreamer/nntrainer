@@ -673,6 +673,5 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeStackedGRUCellFC, "grucell_fc", ModelTestOption::ALL_V2),
   }),
-  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info) {
-    return std::get<1>(info.param);
-  });
+  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
+    -> const auto & { return std::get<1>(info.param); });
