@@ -170,9 +170,10 @@ IterationQueue::MarkableIteration::MarkableIteration(
   num_observed(0), iteration(input_dims, label_dims), iq(iq) {}
 
 IterationQueue::MarkableIteration::MarkableIteration(MarkableIteration &&rhs) :
-  num_observed(rhs.num_observed),
-  iteration(std::move(rhs.iteration)),
-  iq(rhs.iq) {}
+  iteration(std::move(rhs.iteration)), iq(rhs.iq) {
+  std::lock_guard notify_lock_guard(notify_mutex);
+  num_observed = rhs.num_observed;
+}
 
 void IterationQueue::MarkableIteration::reset() {
   std::lock_guard notify_lock_guard(notify_mutex);

@@ -142,8 +142,9 @@ public:
     auto to_tensors = [](sharedConstTensors &sts) {
       std::vector<Tensor> ts;
       ts.reserve(sts.size());
-      std::transform(sts.begin(), sts.end(), std::back_inserter(ts),
-                     [](const auto &ts) { return *ts; });
+      std::transform(
+        sts.begin(), sts.end(), std::back_inserter(ts),
+        [](const auto &ts) -> const auto & { return *ts; });
       return ts;
     };
 
@@ -303,17 +304,14 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 }
 
 GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
-  nn(new nntrainer::NeuralNetwork()),
-  expected_losses{},
-  optimize(opt) {
+  nn(new nntrainer::NeuralNetwork()), expected_losses{}, optimize(opt) {
   nn->loadFromConfig(config);
   initialize();
 }
 
 GraphWatcher::GraphWatcher(std::unique_ptr<nntrainer::NeuralNetwork> &&net,
                            const bool opt) :
-  nn(std::move(net)),
-  optimize(opt) {
+  nn(std::move(net)), optimize(opt) {
   initialize();
 }
 
