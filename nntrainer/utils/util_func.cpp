@@ -210,7 +210,8 @@ char *getRealpath(const char *name, char *resolved) {
 #ifdef _WIN32
   return _fullpath(resolved, name, MAX_PATH_LENGTH);
 #else
-  return realpath(name, resolved);
+  resolved = realpath(name, nullptr);
+  return resolved;
 #endif
 }
 
