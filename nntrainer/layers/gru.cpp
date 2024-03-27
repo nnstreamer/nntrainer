@@ -94,6 +94,8 @@ void GRULayer::finalize(InitLayerContext &context) {
   const TensorDim &input_dim = context.getInputDimensions()[0];
   const unsigned int batch_size = input_dim.batch();
   const unsigned int max_timestep = input_dim.height();
+  NNTR_THROW_IF(max_timestep < 1, std::runtime_error)
+    << "max timestep must be greator than 0 in gru layer.";
   const unsigned int feature_size = input_dim.width();
 
   // if return_sequences == False :

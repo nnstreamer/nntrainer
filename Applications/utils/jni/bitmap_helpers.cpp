@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 @file	bitmat_helpers.cpp
 @brief  bitmap_helpers from tensorflow
+@author TensorFlow Authors
+@bug there are no known bugs
 
 ==============================================================================*/
 
@@ -89,7 +91,7 @@ uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
 
   const uint8_t *img_bytes = new uint8_t[len];
   file.seekg(0, std::ios::beg);
-  file.read((char *)img_bytes, len);
+  file.read((char *)img_bytes, static_cast<std::streamsize>(len));
   const int32_t header_size =
     *(reinterpret_cast<const int32_t *>(img_bytes + 10));
   *width = *(reinterpret_cast<const int32_t *>(img_bytes + 18));

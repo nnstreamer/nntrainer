@@ -454,6 +454,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   if (!std::get<props::MaxTimestep>(lstm_props).empty())
     max_timestep =
       std::max(max_timestep, std::get<props::MaxTimestep>(lstm_props).get());
+  NNTR_THROW_IF(max_timestep < 1, std::runtime_error)
+    << "max timestep must be greator than 0 in lstm layer.";
   std::get<props::MaxTimestep>(lstm_props).set(max_timestep);
   const unsigned int feature_size = input_dim.width();
 
