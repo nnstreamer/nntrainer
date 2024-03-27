@@ -174,32 +174,86 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   /** use hidden_ as temporary tensor before setting the result in hidden */
   Tensor t_full = hidden_;
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
+  if (input_.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    Tensor mu32 = mu.getSingleTensor();
+    Tensor var32 = var.getSingleTensor();
+    Tensor gamma32 = gamma.getSingleTensor();
+    Tensor beta32 = beta.getSingleTensor();
+    Tensor input_32 = input_.getSingleTensor();
+    Tensor hidden_32 = hidden_.getSingleTensor();
+    Tensor t_full32 = hidden_32;
+    Tensor deviation32 = deviation.getSingleTensor();
+    Tensor invstd32 = invstd.getSingleTensor();
+    Tensor t_reduced32 = t_reduced.getSingleTensor();
+    Tensor cvar32 = cvar.getSingleTensor();
 
-  if (training) {
-    input_.average(axes_to_reduce, t_reduced);
-    input_.subtract(t_reduced, deviation);
+    if (training) {
+      input_32.average(axes_to_reduce, t_reduced32);
+      input_32.subtract(t_reduced32, deviation32);
 
-    mu.multiply_i(momentum);
-    mu.add_i(t_reduced, 1 - momentum);
+      mu32.multiply_i(momentum);
+      mu32.add_i(t_reduced32, 1 - momentum);
 
-    deviation.pow(2.0f, t_full);
-    t_full.average(axes_to_reduce, cvar);
+      deviation32.pow(2.0f, t_full32);
+      t_full32.average(axes_to_reduce, cvar32);
 
-    var.multiply_i(momentum);
-    var.add_i(cvar, 1 - momentum);
+      var32.multiply_i(momentum);
+      var32.add_i(cvar32, 1 - momentum);
 
-    cvar.add_i(epsilon);
-    cvar.pow(-0.5f, invstd);
+      cvar32.add_i(epsilon);
+      cvar32.pow(-0.5f, invstd32);
+    } else {
+      input_32.subtract(mu32, deviation32);
+      /** @todo do below 2 lines only for first iteration */
+      var32.add(epsilon, invstd32);
+      invstd32.pow_i(-0.5f);
+    }
+
+    deviation32.multiply(invstd32, hidden_32);
+    hidden_32.multiply_i(gamma32);
+    hidden_32.add_i(beta32);
+
+    mu.copyData(mu32);
+    var.copyData(var32);
+    gamma.copyData(gamma32);
+    beta.copyData(beta32);
+    input_.copyData(input_32);
+    hidden_.copyData(hidden_32);
+    deviation.copyData(deviation32);
+    invstd.copyData(invstd32);
+    t_reduced.copyData(t_reduced32);
+    cvar.copyData(cvar32);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
   } else {
-    input_.subtract(mu, deviation);
-    /** @todo do below 2 lines only for first iteration */
-    var.add(epsilon, invstd);
-    invstd.pow_i(-0.5f);
-  }
+    if (training) {
+      input_.average(axes_to_reduce, t_reduced);
+      input_.subtract(t_reduced, deviation);
 
-  deviation.multiply(invstd, hidden_);
-  hidden_.multiply_i(gamma);
-  hidden_.add_i(beta);
+      mu.multiply_i(momentum);
+      mu.add_i(t_reduced, 1 - momentum);
+
+      deviation.pow(2.0f, t_full);
+      t_full.average(axes_to_reduce, cvar);
+
+      var.multiply_i(momentum);
+      var.add_i(cvar, 1 - momentum);
+
+      cvar.add_i(epsilon);
+      cvar.pow(-0.5f, invstd);
+    } else {
+      input_.subtract(mu, deviation);
+      /** @todo do below 2 lines only for first iteration */
+      var.add(epsilon, invstd);
+      invstd.pow_i(-0.5f);
+    }
+
+    deviation.multiply(invstd, hidden_);
+    hidden_.multiply_i(gamma);
+    hidden_.add_i(beta);
+  }
 }
 
 void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
@@ -213,42 +267,105 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
   Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full]);
+  if (deriv.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    Tensor gamma32 = gamma.getSingleTensor();
+    Tensor deriv32 = deriv.getSingleTensor();
+    Tensor dx32 = dx.getSingleTensor();
+    Tensor deviation32 = deviation.getSingleTensor();
+    Tensor invstd32 = invstd.getSingleTensor();
+    Tensor cvar32 = cvar.getSingleTensor();
+    Tensor t_reduced32 = t_reduced.getSingleTensor();
+    Tensor t_full32 = t_full.getSingleTensor();
 
-  deviation.multiply(deriv, t_full);
-  t_full.average(axes_to_reduce, t_reduced);
-  t_reduced.divide_i(cvar);
-  deviation.multiply_i(t_reduced);
+    deviation32.multiply(deriv32, t_full32);
+    t_full32.average(axes_to_reduce, t_reduced32);
+    t_reduced32.divide_i(cvar32);
+    deviation32.multiply_i(t_reduced32);
 
-  if (context.getTrainable()) {
-    /**
-     * This calculates dgamma tensor.
-     */
-    Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
-    t_full.multiply_i(invstd);
-    t_full.sum(axes_to_reduce, dgamma);
+    if (context.getTrainable()) {
+      /**
+       * This calculates dgamma tensor.
+       */
+      Tensor dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+      Tensor dgamma32 = dgamma.getSingleTensor();
+      t_full32.multiply_i(invstd32);
+      t_full32.sum(axes_to_reduce, dgamma32);
+      dgamma.copyData(dgamma32);
 
-    /**
-     * This implementation depends on the pre-calculated dbeta calculated.
-     */
-    Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
-    dbeta.divide(divider, t_reduced);
+      /**
+       * This implementation depends on the pre-calculated dbeta calculated.
+       */
+      Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+      Tensor dbeta32 = dbeta.getSingleTensor();
+      dbeta32.divide(divider, t_reduced32);
+    } else {
+      deriv32.average(axes_to_reduce, t_reduced32);
+    }
+
+    deriv32.subtract(t_reduced32, dx32);
+    dx32.subtract_i(deviation32);
+
+    invstd32.multiply_i(gamma32);
+    dx32.multiply_i(invstd32);
+
+    gamma.copyData(gamma32);
+    dx.copyData(dx32);
+    deviation.copyData(deviation32);
+    invstd.copyData(invstd32);
+    cvar.copyData(cvar32);
+    t_reduced.copyData(t_reduced32);
+    t_full.copyData(t_full32);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
   } else {
-    deriv.average(axes_to_reduce, t_reduced);
+    deviation.multiply(deriv, t_full);
+    t_full.average(axes_to_reduce, t_reduced);
+    t_reduced.divide_i(cvar);
+    deviation.multiply_i(t_reduced);
+
+    if (context.getTrainable()) {
+      /**
+       * This calculates dgamma tensor.
+       */
+      Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+      t_full.multiply_i(invstd);
+      t_full.sum(axes_to_reduce, dgamma);
+
+      /**
+       * This implementation depends on the pre-calculated dbeta calculated.
+       */
+      Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+      dbeta.divide(divider, t_reduced);
+    } else {
+      deriv.average(axes_to_reduce, t_reduced);
+    }
+
+    deriv.subtract(t_reduced, dx);
+    dx.subtract_i(deviation);
+
+    invstd.multiply_i(gamma);
+    dx.multiply_i(invstd);
   }
-
-  deriv.subtract(t_reduced, dx);
-  dx.subtract_i(deviation);
-
-  invstd.multiply_i(gamma);
-  dx.multiply_i(invstd);
 }
 
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   /** dgamma is calculated in calcDerivative. dbeta is calculated here */
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
   const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-
-  deriv.sum(axes_to_reduce, dbeta);
+  if (deriv.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    Tensor dbeta32 = dbeta.getSingleTensor();
+    Tensor deriv32 = deriv.getSingleTensor();
+    deriv32.sum(axes_to_reduce, dbeta32);
+    dbeta.copyData(dbeta32);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
+  } else {
+    deriv.sum(axes_to_reduce, dbeta);
+  }
 }
 
 void BatchNormalizationLayer::exportTo(
