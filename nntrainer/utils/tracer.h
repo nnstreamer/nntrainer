@@ -17,11 +17,14 @@
 #include <exception>
 #include <fstream>
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <sys/types.h>
 #include <tuple>
 #include <type_traits>
+#include <unistd.h>
 
 #ifdef TRACE
 
@@ -171,14 +174,12 @@ public:
   /**
    * @brief     Start tracing
    */
-  Tracer &traceStart(const std::string &tag, const std::string &msg) override {
-    return (*this);
-  }
+  Tracer &traceStart(const std::string &tag, const std::string &msg) override;
 
   /**
    * @brief     End tracing
    */
-  Tracer &traceEnd(const std::string &tag) override { return (*this); }
+  Tracer &traceEnd(const std::string &tag) override;
 
   /**
    * @brief     Trace point
@@ -197,8 +198,11 @@ private:
   TimeTracer(const std::string &name, bool flush = false);
 
   std::list<std::tuple<unsigned long, std::string>>
-    trace_info_; /**< time point (ms), msg */
-  bool flush_;   /**< flush to file */
+    time_trace_info_; /**< time point (ms), msg */
+  std::list<std::tuple<std::string, std::string, std::string>>
+    trace_info_;                            /**< time point (ms), msg */
+  std::map<std::string, std::string> tags_; /**< tag, msg */
+  bool flush_;                              /**< flush to file */
 };
 
 } // namespace nntrainer
@@ -209,6 +213,9 @@ private:
 #define TRACE_TIME_POINT(msg) \
   nntrainer::TimeTracer::getInstance()->tracePoint(msg)
 #define TRACE_TIME() *(nntrainer::TimeTracer::getInstance())
+#define TRACE_TIME_START(tag, msg) \
+  nntrainer::TimeTracer::getInstance()->traceStart(tag, msg)
+#define TRACE_TIME_END(tag) nntrainer::TimeTracer::getInstance()->traceEnd(tag)
 
 #else
 
@@ -216,6 +223,8 @@ private:
 #define TRACE_MEMORY() std::ostream(nullptr)
 #define TRACE_TIME_POINT(msg)
 #define TRACE_TIME() std::ostream(nullptr)
+#define TRACE_TIME_START(tag, msg)
+#define TRACE_TIME_END(tag)
 
 #endif
 
