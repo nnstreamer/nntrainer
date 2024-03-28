@@ -72,12 +72,23 @@ typedef cl_program(CL_API_CALL *PFN_clCreateProgramWithSource)(
   const char ** /**< strings */, const size_t * /**< lengths */,
   cl_int * /**< errcode_ret */);
 
+typedef cl_program(CL_API_CALL *PFN_clCreateProgramWithBinary)(
+  cl_context /**< context */, cl_uint /**< num_devices */,
+  const cl_device_id * /**< device_list */, const size_t * /**< lengths */,
+  const unsigned char ** /**< binaries */, cl_int * /**< binary_status */,
+  cl_int * /**< errcode_ret */);
+
 typedef cl_int(CL_API_CALL *PFN_clBuildProgram)(
   cl_program /**< program */, cl_uint /**< num_devices */,
   const cl_device_id * /**< device_list */, const char * /**< options */,
   void(CL_CALLBACK * /**< pfn_notify */)(cl_program /**< program */,
                                          void * /**< user_data */),
   void * /**< user_data */);
+
+typedef cl_int(CL_API_CALL *PFN_clGetProgramInfo)(
+  cl_program /**< program */, cl_program_info /**< param_name */,
+  size_t /**< param_value_size */, void * /**< param_value */,
+  size_t * /**< param_value_size_ret */);
 
 typedef cl_int(CL_API_CALL *PFN_clGetProgramBuildInfo)(
   cl_program /**< program */, cl_device_id /**< device */,
@@ -128,7 +139,9 @@ extern PFN_clCreateBuffer clCreateBuffer;
 extern PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 extern PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
 extern PFN_clCreateProgramWithSource clCreateProgramWithSource;
+extern PFN_clCreateProgramWithBinary clCreateProgramWithBinary;
 extern PFN_clBuildProgram clBuildProgram;
+extern PFN_clGetProgramInfo clGetProgramInfo;
 extern PFN_clGetProgramBuildInfo clGetProgramBuildInfo;
 extern PFN_clRetainProgram clRetainProgram;
 extern PFN_clCreateKernel clCreateKernel;

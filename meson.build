@@ -98,6 +98,11 @@ if get_option('enable-opencl')
   message ('OpenCL build is enabled. Will work only if OpenCL supported GPU is available.')
   extra_defines += '-DENABLE_OPENCL=1'
 endif
+
+if get_option('opencl-kernel-path') != ''
+  message ('OpenCL kernel path set to: @0@'.format(get_option('opencl-kernel-path')))
+  extra_defines += '-DOPENCL_KERNEL_PATH=\"@0@\"'.format(get_option('opencl-kernel-path'))
+endif
     
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
