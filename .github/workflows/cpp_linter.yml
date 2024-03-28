@@ -12,8 +12,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          style: file
-          version: 14
+          style: ''
+          version: 16
           lines-changed-only: true
           file-annotations: false
           step-summary: true
