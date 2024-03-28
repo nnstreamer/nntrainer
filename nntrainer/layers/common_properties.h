@@ -1333,6 +1333,17 @@ public:
 };
 
 /**
+ * @brief LoRA rank property, it is used to set rank of LoRA weight.
+ * @details
+ */
+class LoraRank : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "lora_rank"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                 /**< property type */
+  ;
+};
+
+/**
  * @brief properties for getting the clipping value to clip the gradient by norm
  *
  */
