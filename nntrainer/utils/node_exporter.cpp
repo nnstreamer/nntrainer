@@ -287,7 +287,7 @@ void Exporter::saveTflResult(const std::tuple<props::TargetShape> &props,
   createIfNull(tf_node);
 
   tf_node->setOpType(tflite::BuiltinOperator_RESHAPE);
-  auto targetShape = std::get<props::TargetShape>(props).get();
+  const auto &targetShape = std::get<props::TargetShape>(props).get();
   std::vector<int32_t> new_shape_vec = {
     static_cast<int32_t>(targetShape.batch()),
     static_cast<int32_t>(targetShape.height()),

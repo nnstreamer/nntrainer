@@ -189,7 +189,7 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
 template <typename... Args>
 static int ml_train_dataset_add_(ml_train_dataset_h dataset,
                                  ml_train_dataset_mode_e mode,
-                                 ml::train::DatasetType type, Args &&... args) {
+                                 ml::train::DatasetType type, Args &&...args) {
   check_feature_state();
   std::shared_ptr<ml::train::Dataset> underlying_dataset;
 
@@ -412,7 +412,6 @@ int ml_train_model_destroy(ml_train_model_h model) {
     ML_TRAIN_RESET_VALIDATED_HANDLE(x.second);
     delete (x.second);
   }
-  nnmodel->layers_map.clear();
 
   delete nnmodel;
 
@@ -785,12 +784,12 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   {
     ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, optimizer);
     ML_TRAIN_ADOPT_LOCK(nnopt, optimizer_lock);
-  }
 
-  if (nnopt->in_use) {
-    ml_loge("Cannot delete optimizer already set to a model."
-            "Delete model will delete this optimizer.");
-    return ML_ERROR_INVALID_PARAMETER;
+    if (nnopt->in_use) {
+      ml_loge("Cannot delete optimizer already set to a model."
+              "Delete model will delete this optimizer.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
   }
 
   if (nnopt->lr_scheduler) {
