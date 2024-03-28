@@ -117,11 +117,11 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    * more in-place calculation) can save memory during memory optimization.
    */
   wt_idx[BNParams::deviation] =
-    context.requestTensor(in_dim, "deviation", Tensor::Initializer::NONE, false,
+    context.requestTensor(in_dim, "deviation", Initializer::NONE, false,
                           TensorLifespan::ITERATION_LIFESPAN);
   /** caches the inverse standard deviation */
   wt_idx[BNParams::invstd] =
-    context.requestTensor(dim, "invstd", Tensor::Initializer::NONE, false,
+    context.requestTensor(dim, "invstd", Initializer::NONE, false,
                           TensorLifespan::ITERATION_LIFESPAN);
   /**
    * Temporary tensor to store the full sized tensors in order to allow batch
@@ -130,20 +130,19 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    * as the output of this layer need not be stored all the time.
    */
   wt_idx[BNParams::t_full] =
-    context.requestTensor(in_dim, "tensor_full", Tensor::Initializer::NONE,
-                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
+    context.requestTensor(in_dim, "tensor_full", Initializer::NONE, false,
+                          TensorLifespan::CALC_DERIV_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */
-  wt_idx[BNParams::cvar] =
-    context.requestTensor(dim, "cvar", Tensor::Initializer::NONE, false,
-                          TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[BNParams::cvar] = context.requestTensor(
+    dim, "cvar", Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
   /**
    * Temporary tensor to store the reduced tensors along the axes_to_reduce.
    */
   wt_idx[BNParams::t_reduced] =
-    context.requestTensor(dim, "tensor_reduced", Tensor::Initializer::NONE,
-                          false, TensorLifespan::FORWARD_DERIV_LIFESPAN);
+    context.requestTensor(dim, "tensor_reduced", Initializer::NONE, false,
+                          TensorLifespan::FORWARD_DERIV_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(

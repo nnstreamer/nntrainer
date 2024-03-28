@@ -9,8 +9,8 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <tensor.h>
 #include <tensor_base.h>
-#include <tensor_v2.h>
 
 namespace nntrainer {
 
@@ -176,14 +176,14 @@ void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
   createSharedDataTensor(this, ret, offset);
 }
 
-TensorBase::BroadcastInfoV2
-TensorBase::computeBroadcastInfo(const TensorV2 &m) const {
+TensorBase::BroadcastInfo
+TensorBase::computeBroadcastInfo(const Tensor &m) const {
   if (m.size() > this->size())
     throw exception::not_supported("broadcasting *this is not supported");
 
   const TensorDim m_dim = m.getDim();
 
-  BroadcastInfoV2 e;
+  BroadcastInfo e;
   e.tensor_type = getTensorType();
 
   uint continuity[4] = {0, 1, 2, 3};
@@ -255,7 +255,7 @@ TensorBase::computeBroadcastInfo(const TensorV2 &m) const {
 }
 
 void TensorBase::calculateFlattenDot(
-  TensorV2 const &input, TensorV2 &output, bool trans, bool trans_in,
+  Tensor const &input, Tensor &output, bool trans, bool trans_in,
   unsigned int &first_three_flat, unsigned int &last_axis,
   unsigned int &input_first_three_flat, unsigned int &input_last_axis,
   unsigned int &M, unsigned int &N, unsigned int &K, unsigned int &lda,
@@ -285,11 +285,11 @@ void TensorBase::calculateFlattenDot(
     N = input_last_axis;
     M = first_three_flat;
     if (getFormat() == Tformat::NHWC) {
-      CREATE_V2_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
-                              getTensorType()); //  NHWC Result Tensor
+      CREATE_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
+                           getTensorType()); //  NHWC Result Tensor
     } else {
-      CREATE_V2_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
-                              getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
+                           getTensorType());
     }
 
     // We are not set zero the output because of performance reason.
@@ -305,11 +305,11 @@ void TensorBase::calculateFlattenDot(
     N = input_first_three_flat;
     M = first_three_flat;
     if (getFormat() == Tformat::NHWC) {
-      CREATE_V2_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
-                              getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, batch(), N, height(), width(),
+                           getTensorType());
     } else {
-      CREATE_V2_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
-                              getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, batch(), channel(), height(), N,
+                           getTensorType());
     }
   } else if (trans && !trans_in) {
     if (first_three_flat != input_first_three_flat)
@@ -319,9 +319,9 @@ void TensorBase::calculateFlattenDot(
     N = input_last_axis;
     M = last_axis;
     if (getFormat() == Tformat::NHWC) {
-      CREATE_V2_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
     } else {
-      CREATE_V2_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
     }
   } else {
     if (first_three_flat != input_last_axis)
@@ -331,9 +331,9 @@ void TensorBase::calculateFlattenDot(
     N = input_first_three_flat;
     M = last_axis;
     if (getFormat() == Tformat::NHWC) {
-      CREATE_V2_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, 1, N, M, 1, getTensorType());
     } else {
-      CREATE_V2_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
+      CREATE_IF_EMPTY_DIMS(output, 1, 1, M, N, getTensorType());
     }
   }
 

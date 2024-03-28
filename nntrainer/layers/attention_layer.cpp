@@ -65,8 +65,8 @@ void AttentionLayer::finalize(InitLayerContext &context) {
   auto weights_dim = query_dim;
   weights_dim.width(value_dim.height());
   wt_idx[AttentionParams::weights] =
-    context.requestTensor(weights_dim, "weights", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(weights_dim, "weights", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   context.setOutputDimensions({query_dim});
 

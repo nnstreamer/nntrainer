@@ -90,7 +90,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
     vg.reserve(dims.size());
 
     for (auto &dim : dims) {
-      vg.emplace_back(dim, Tensor::Initializer::NONE, true, true, "golden");
+      vg.emplace_back(dim, Initializer::NONE, true, true, "golden");
       sizeCheckedReadTensor(vg.back().getVariableRef(), file,
                             vg.back().getName());
     }
@@ -113,8 +113,8 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
 
     for (auto &spec : specs) {
       /// @todo initializer should be depending is as well
-      vg.emplace_back(spec.variable_spec.dim, Tensor::Initializer::NONE, true,
-                      true, "golden");
+      vg.emplace_back(spec.variable_spec.dim, Initializer::NONE, true, true,
+                      "golden");
     }
     return vg;
   };
