@@ -67,8 +67,9 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
                                  std::vector<Tensor> &labels) {
     NNTR_THROW_IF(idx >= sz, std::range_error)
       << "given index is out of bound, index: " << idx << " size: " << sz;
-    file.seekg(idx * sample_size * RawFileDataProducer::pixel_size,
-               std::ios_base::beg);
+    std::streamoff offset = static_cast<std::streamoff>(
+      idx * sample_size * RawFileDataProducer::pixel_size);
+    file.seekg(offset, std::ios_base::beg);
     for (auto &input : inputs) {
       input.read(file);
     }
@@ -107,7 +108,8 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
   //   << " Given file does not align with the given sample size, sample size: "
   //   << sample_size << " file_size: " << file_size;
 
-  return file_size / (sample_size * RawFileDataProducer::pixel_size);
+  return static_cast<unsigned int>(file_size) /
+         (sample_size * RawFileDataProducer::pixel_size);
 }
 
 void RawFileDataProducer::exportTo(

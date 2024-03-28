@@ -77,6 +77,8 @@ void RNNLayer::finalize(InitLayerContext &context) {
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   const unsigned int batch_size = input_dim.batch();
   const unsigned int max_timestep = input_dim.height();
+  NNTR_THROW_IF(max_timestep < 1, std::runtime_error)
+    << "max timestep must be greator than 0 in rnn layer.";
   const unsigned int feature_size = input_dim.width();
 
   // output_dim = [ batch, 1, (return_sequences ? time_iteration : 1), unit ]
