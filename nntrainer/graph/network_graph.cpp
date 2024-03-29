@@ -1044,7 +1044,7 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
   std::map<std::string, std::vector<unsigned int>> exec_orders;
 
   for (auto &spec : out_specs) {
-    const auto name = lnode->getName() + ":" + spec.variable_spec.name;
+    const auto &name = lnode->getName() + ":" + spec.variable_spec.name;
     auto orders = tensor_manager->getTensorExecutionOrders(name, false);
     exec_orders.insert({name, orders});
     try {
@@ -1058,7 +1058,7 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
   }
 
   for (auto &spec : weight_specs) {
-    const auto name = std::get<const std::string>(spec);
+    const auto &name = std::get<const std::string>(spec);
     auto orders = tensor_manager->getTensorExecutionOrders(name, true);
     exec_orders.insert({name, orders});
     try {

@@ -55,8 +55,7 @@ public:
    *
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
-                     size_t off, size_t len,
-                     std::shared_ptr<MemoryData> data,
+                     size_t off, size_t len, std::shared_ptr<MemoryData> data,
                      CachePolicy pol = CachePolicy::ALWAYS_SYNCED) :
     initial_opt(Options::FIRST_ACCESS),
     device(dev),
@@ -92,7 +91,10 @@ public:
    *
    * @return active status
    */
-  bool isActive() const { return active; }
+  bool isActive() const {
+    std::scoped_lock lg(device_mutex);
+    return active;
+  }
 
   /**
    * @brief get length of cache element
@@ -115,14 +117,14 @@ public:
   void reset() { initial_opt = Options::FIRST_ACCESS; }
 
 private:
-  Options initial_opt;                /**< accessed */
-  std::mutex device_mutex;            /**< protect device */
-  std::shared_ptr<SwapDevice> device; /**< swap device */
-  bool active;                        /**< element is loaded */
-  unsigned int id;                    /**< memory id */
-  size_t offset;                      /**< element offset from swap device */
-  size_t length;                      /**< element size */
-  CachePolicy policy;                 /**< cache policy */
+  Options initial_opt;                  /**< accessed */
+  mutable std::mutex device_mutex;      /**< protect device */
+  std::shared_ptr<SwapDevice> device;   /**< swap device */
+  bool active;                          /**< element is loaded */
+  unsigned int id;                      /**< memory id */
+  size_t offset;                        /**< element offset from swap device */
+  size_t length;                        /**< element size */
+  CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
 };
 
