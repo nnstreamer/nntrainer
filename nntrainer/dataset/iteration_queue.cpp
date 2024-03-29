@@ -194,11 +194,13 @@ IterationQueue::MarkableIteration::operator=(MarkableIteration &&rhs) {
 }
 
 void IterationQueue::MarkableIteration::markSampleFilled() {
-  std::scoped_lock notify_lock_guard(notify_mutex);
+  std::unique_lock notify_lock_guard(notify_mutex);
   num_observed++;
   if (num_observed == iteration.batch()) {
-    iq->markFilled(this);
     num_observed = 0;
+    notify_lock_guard.unlock();
+    iq->markFilled(this);
+    notify_lock_guard.lock();
   }
 }
 
