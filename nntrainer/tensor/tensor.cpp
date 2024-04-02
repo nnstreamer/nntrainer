@@ -9,6 +9,7 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <char_tensor.h>
 #include <float_tensor.h>
 #include <lazy_tensor.h>
 #include <tensor.h>
@@ -32,6 +33,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d_type == Tdatatype::QINT8) {
+    itensor = std::shared_ptr<CharTensor>(new CharTensor(name_, fm),
+                                          std::default_delete<CharTensor>());
   } else {
     throw std::invalid_argument(
       "Error: Tensor cannot be constructed because the given d_type is not "
@@ -56,6 +60,10 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::QINT8) {
+    itensor =
+      std::shared_ptr<CharTensor>(new CharTensor(d, alloc_now, init, name),
+                                  std::default_delete<CharTensor>());
   } else {
     throw std::invalid_argument(
       "Error: Tensor cannot be constructed because the given d_type is not "
@@ -77,6 +85,9 @@ Tensor::Tensor(const TensorDim &d, const void *buf) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::QINT8) {
+    itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf),
+                                          std::default_delete<CharTensor>());
   } else {
     throw std::invalid_argument(
       "Error: Tensor cannot be constructed because the given d_type is not "
@@ -96,6 +107,9 @@ Tensor::Tensor(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::QINT8) {
+    itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
+                                          std::default_delete<CharTensor>());
   }
 }
 
@@ -110,6 +124,9 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::QINT8) {
+    itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
+                                          std::default_delete<CharTensor>());
   }
   return *this;
 }
@@ -130,6 +147,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
         "Please check if the tensor data type is set properly.");
 #endif
+    } else if (getDataType() == Tdatatype::QINT8) {
+      return *std::dynamic_pointer_cast<CharTensor>(itensor) ==
+             *std::dynamic_pointer_cast<CharTensor>(rhs.itensor);
     }
   }
   return false;
