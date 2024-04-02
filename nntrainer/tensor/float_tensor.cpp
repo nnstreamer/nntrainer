@@ -758,6 +758,10 @@ void FloatTensor::copyData(const Tensor &from) {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
     break;
+  case ml::train::TensorDim::DataType::QINT8:
+    scopy_int8_to_float32(from.size(), from.getData<uint8_t>(), 1,
+                          (float *)getData(), 1);
+    break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;
