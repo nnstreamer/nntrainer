@@ -199,33 +199,33 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-// TEST(nntrainer_Tensor, Tensor_04_p) {
-//   int status = ML_ERROR_NONE;
-//   int batch = 3;
-//   int height = 3;
-//   int width = 10;
-//   std::vector<std::vector<std::vector<uint8_t>>> in;
+TEST(nntrainer_Tensor, Tensor_04_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<int8_t>>> in;
 
-//   for (int k = 0; k < batch; ++k) {
-//     std::vector<std::vector<uint8_t>> ttv;
-//     for (int i = 0; i < height; ++i) {
-//       std::vector<uint8_t> tv;
-//       for (int j = 0; j < width; ++j) {
-//         tv.push_back(k * height * width + i * width + j);
-//       }
-//       ttv.push_back(tv);
-//     }
-//     in.push_back(ttv);
-//   }
+  for (int k = 0; k < batch; ++k) {
+    std::vector<std::vector<int8_t>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<int8_t> tv;
+      for (int j = 0; j < width; ++j) {
+        tv.push_back(k * height * width + i * width + j);
+      }
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
 
-//   nntrainer::Tensor tensor = nntrainer::Tensor(
-//     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
-//   ASSERT_NE(nullptr, tensor.getData<uint8_t>());
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  ASSERT_NE(nullptr, tensor.getData<int8_t>());
 
-//   if (tensor.getValue<uint8_t>(0, 0, 0, 1) != 1)
-//     status = ML_ERROR_INVALID_PARAMETER;
-//   EXPECT_EQ(status, ML_ERROR_NONE);
-// }
+  if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
+    status = ML_ERROR_INVALID_PARAMETER;
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
 // TEST(nntrainer_Tensor, Tensor_05_p) {
 //   int status = ML_ERROR_NONE;
@@ -3342,15 +3342,15 @@ TEST(nntrainer_Tensor, allocate_03_p) {
   EXPECT_TRUE(t.isAllocated());
 }
 
-// TEST(nntrainer_Tensor, allocate_04_p) {
-//   nntrainer::Tensor t(
-//     {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}},
-//     true);
-//   EXPECT_TRUE(t.isAllocated());
+TEST(nntrainer_Tensor, allocate_04_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}},
+    true);
+  EXPECT_TRUE(t.isAllocated());
 
-//   t.allocate();
-//   EXPECT_TRUE(t.isAllocated());
-// }
+  t.allocate();
+  EXPECT_TRUE(t.isAllocated());
+}
 
 // TEST(nntrainer_Tensor, allocate_05_p) {
 //   nntrainer::Tensor t(
@@ -3467,17 +3467,17 @@ TEST(nntrainer_Tensor, initialize_08_p) {
   EXPECT_EQ(golden, t);
 }
 
-// TEST(nntrainer_Tensor, initialize_09_p) {
-//   nntrainer::Tensor t(
-//     {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4}},
-//     true, nntrainer::Initializer::ONES);
-//   nntrainer::Tensor golden(
-//     {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4}},
-//     true, nntrainer::Initializer::ZEROS);
-//   EXPECT_NE(golden, t);
-//   golden.initialize(nntrainer::Initializer::ONES);
-//   EXPECT_EQ(golden, t);
-// }
+TEST(nntrainer_Tensor, initialize_09_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}}, true,
+    nntrainer::Initializer::ONES);
+  nntrainer::Tensor golden(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}}, true,
+    nntrainer::Initializer::ZEROS);
+  EXPECT_NE(golden, t);
+  golden.initialize(nntrainer::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
 
 TEST(nntrainer_Tensor, split_01_p) {
   {
