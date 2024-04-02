@@ -156,42 +156,38 @@ createCustomOptimizer(const AC::PropsType &v) {
   return p;
 }
 
-/// @todo change this to TEST_P to add other types of object
-TEST(nntrainerAppContextObjs, RegisterCreateCustomOptimizer_p) {
+/**
+ * @brief AppContextTest for parametrized test
+ *
+ * @param std::string key of the registerFactory
+ * @param int int_key of the registerFactory
+ */
+class AppContextTest : public ::testing::TestWithParam<
+        std::tuple<std::string, int> > {};
 
-  // register without key in this case, getType() will be called and used
-  {
+TEST_P(AppContextTest, RegisterCreateCustomOptimizer_p) {
+    std::tuple<std::string, int> param = GetParam();
+    std::string key = std::get<0>(param);
+    int int_key = std::get<1>(param);
+
     auto ac = nntrainer::AppContext();
-    int num_id = ac.registerFactory(createCustomOptimizer);
-    auto opt = ac.createObject<nntrainer::Optimizer>("identity_optimizer", {});
+    int num_id = ac.registerFactory(createCustomOptimizer, key, int_key);
+    EXPECT_EQ(num_id, int_key);
+    auto opt = ac.createObject<nntrainer::Optimizer>(
+            ((key == "")? "identity_optimizer" : key), {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
     opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-  }
-
-  // register with key
-  {
-    auto ac = nntrainer::AppContext();
-    int num_id = ac.registerFactory(createCustomOptimizer, "custom_key");
-    auto opt = ac.createObject<nntrainer::Optimizer>("custom_key", {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-  }
-
-  // register with key and custom id
-  {
-    auto ac = nntrainer::AppContext();
-    int num_id = ac.registerFactory(createCustomOptimizer, "custom_key", 5);
-    EXPECT_EQ(num_id, 5);
-    auto opt = ac.createObject<nntrainer::Optimizer>("custom_key", {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-  }
 }
 
-TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingKey_n) {
+GTEST_PARAMETER_TEST(RegisterCreateCustomOptimizerTests, AppContextTest,
+                    ::testing::Values(
+                            std::make_tuple("", -1),
+                            std::make_tuple("custom_key", -1),
+                            std::make_tuple("custom_key", 5)
+                    ));
+
+TEST(AppContextTest, RegisterFactoryWithClashingKey_n) {
   auto ac = nntrainer::AppContext();
 
   ac.registerFactory(createCustomOptimizer, "custom_key");
@@ -200,7 +196,7 @@ TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingKey_n) {
                std::invalid_argument);
 }
 
-TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingIntKey_n) {
+TEST(AppContextTest, RegisterFactoryWithClashingIntKey_n) {
   auto ac = nntrainer::AppContext();
 
   ac.registerFactory(createCustomOptimizer, "custom_key", 3);
@@ -208,7 +204,7 @@ TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingIntKey_n) {
                std::invalid_argument);
 }
 
-TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingAutoKey_n) {
+TEST(AppContextTest, RegisterFactoryWithClashingAutoKey_n) {
   auto ac = nntrainer::AppContext();
 
   ac.registerFactory(createCustomOptimizer);
@@ -216,7 +212,7 @@ TEST(nntrainerAppContextObjs, RegisterFactoryWithClashingAutoKey_n) {
                std::invalid_argument);
 }
 
-TEST(nntrainerAppContextObjs, createObjectNotExistingKey_n) {
+TEST(AppContextTest, createObjectNotExistingKey_n) {
   auto ac = nntrainer::AppContext();
 
   ac.registerFactory(createCustomOptimizer);
@@ -224,7 +220,7 @@ TEST(nntrainerAppContextObjs, createObjectNotExistingKey_n) {
                nntrainer::exception::not_supported);
 }
 
-TEST(nntrainerAppContextObjs, createObjectNotExistingIntKey_n) {
+TEST(AppContextTest, createObjectNotExistingIntKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(createCustomOptimizer);
@@ -232,7 +228,7 @@ TEST(nntrainerAppContextObjs, createObjectNotExistingIntKey_n) {
                nntrainer::exception::not_supported);
 }
 
-TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithKey_n) {
+TEST(AppContextTest, callingUnknownFactoryOptimizerWithKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(
@@ -244,7 +240,7 @@ TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithKey_n) {
                std::invalid_argument);
 }
 
-TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithIntKey_n) {
+TEST(AppContextTest, callingUnknownFactoryOptimizerWithIntKey_n) {
   auto ac = nntrainer::AppContext();
 
   int num = ac.registerFactory(
