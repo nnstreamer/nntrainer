@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error during RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 
   /** reset tizen feature check state */

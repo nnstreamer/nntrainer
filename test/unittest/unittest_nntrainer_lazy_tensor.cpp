@@ -19,6 +19,10 @@
 #include <tensor.h>
 #include <tensor_dim.h>
 
+/**
+ * @brief The nntrainer_LazyTensorOpsTest class provides a test fixture for
+ *        nntrainer Lazy Tensor Operations.
+ */
 class nntrainer_LazyTensorOpsTest : public ::testing::Test {
 protected:
   nntrainer_LazyTensorOpsTest() {}
@@ -166,14 +170,14 @@ int main(int argc, char **argv) {
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing IniGoogleTest" << std::endl;
+    std::cerr << "Error during IniGoogleTest" << std::endl;
     return 0;
   }
 
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 
   return result;
