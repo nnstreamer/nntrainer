@@ -790,7 +790,7 @@ int main(int argc, char **argv) {
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing IniGoogleTest" << std::endl;
+    std::cerr << "Error during IniGoogleTest" << std::endl;
     return 0;
   }
 
@@ -804,7 +804,7 @@ int main(int argc, char **argv) {
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
 
 #if defined(__TIZEN__)
