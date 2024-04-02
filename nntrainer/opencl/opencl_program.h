@@ -58,6 +58,8 @@ class Program {
                                   cl_program_build_info info);
 
 public:
+  static const std::string DEFAULT_KERNEL_PATH;
+
   /**
    * @brief Create OpenCL program from source
    *

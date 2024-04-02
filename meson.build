@@ -101,7 +101,7 @@ endif
 
 if get_option('opencl-kernel-path') != ''
   message ('OpenCL kernel path set to: @0@'.format(get_option('opencl-kernel-path')))
-  extra_defines += '-DOPENCL_KERNEL_PATH=\"@0@\"'.format(get_option('opencl-kernel-path'))
+  extra_defines += '-DOPENCL_KERNEL_PATH=@0@'.format(get_option('opencl-kernel-path'))
 endif
     
 foreach extra_arg : warning_flags
