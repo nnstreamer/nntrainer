@@ -9,6 +9,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <ctime>
@@ -99,80 +100,82 @@ static std::string withKey(const std::string &key,
   return ss.str();
 }
 
-int generate(float *logits, bool temperature = true,
-             unsigned int NUM_VOCAB = 96000) {
-  // return argmax if temperature is 0
-  if (temperature < 1e-5) {
-    int argmax_idx =
-      std::distance(logits, std::max_element(logits, logits + NUM_VOCAB));
-    return argmax_idx;
+/**
+ * @brief Apply temperature & top-k & top-p to logits
+ * @return Max logit for softmax
+ */
+float applyTKP(float *logits, int len, float temperature, unsigned int top_k,
+               float top_p) {
+  // Apply temperature & Sort logits
+  std::vector<std::pair<int, float>> top_indices_and_logits;
+  for (int i = 0; i < len; ++i) {
+    if (temperature > 1e-5)
+      logits[i] = logits[i] / temperature;
+    top_indices_and_logits.push_back({i, logits[i]});
+  }
+  sort(top_indices_and_logits.begin(), top_indices_and_logits.end(),
+       [](auto &a, auto &b) { return a.second > b.second; });
+
+  // Accumulate logits
+  float cum_prob = 0;
+  unsigned int top_index = 0;
+  while (cum_prob <= top_p && top_index < top_k) {
+    cum_prob += top_indices_and_logits[top_index].second;
+    ++top_index;
   }
 
-  // transform logits to softmax
-  std::vector<float> logits_vec;
-  logits_vec.reserve(NUM_VOCAB);
-
-  float max_logits = *std::max_element(logits, logits + NUM_VOCAB);
-  float sum_exp_logits = 0;
-  for (unsigned int i = 0; i < NUM_VOCAB; i++) {
-    float exp_x = exp(logits[i] - max_logits);
-    sum_exp_logits += exp_x;
-    logits_vec.push_back(exp_x);
+  // Apply Top-K and Top-P
+  std::fill_n(logits, sizeof(len), -INFINITY);
+  for (unsigned int i = 0; i < top_index; ++i) {
+    logits[top_indices_and_logits[top_index].first] =
+      top_indices_and_logits[top_index].second;
   }
 
-  for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
-    logits_vec[i] /= sum_exp_logits;
-  }
+  return top_indices_and_logits[0].second;
+}
 
-  // sort logits by descending order
-  std::vector<size_t> logits_idx(NUM_VOCAB);
-  std::iota(logits_idx.begin(), logits_idx.end(), 0);
-  std::sort(logits_idx.begin(), logits_idx.end(),
-            [&logits_vec](size_t i1, size_t i2) {
-              return logits_vec[i1] > logits_vec[i2];
-            });
-  std::sort(logits_vec.begin(), logits_vec.end(), std::greater<float>());
+std::vector<int> generate(float *logits, bool do_sample = false,
+                          float temperature = 1, unsigned int top_k = 1,
+                          float top_p = 0, unsigned int NUM_BATCH = 1,
+                          unsigned int NUM_VOCAB = 96000) {
+  std::vector<int> outputs;
+  for (unsigned int iteration = 0; iteration < NUM_BATCH; ++iteration) {
+    // return argmax if do_sample is false
+    if (do_sample == false) {
+      int argmax_idx =
+        std::distance(logits, std::max_element(logits, logits + NUM_VOCAB));
+      outputs.push_back(argmax_idx);
+    } else {
+      // apply temperature & top-k & top-p to logits
+      float max_logits = applyTKP(logits, NUM_VOCAB, temperature, top_k, top_p);
 
-  // calculate cumulative logit
-  float cum_logit = 0.0;
-  std::vector<float> cum_logits(NUM_VOCAB);
-  for (size_t i = 0; i < NUM_VOCAB; ++i) {
-    cum_logit += logits_vec[i];
-    cum_logits[i] = cum_logit;
-  }
+      // transform logits to softmax
+      float sum_exp_logits = 0;
+      for (unsigned int i = 0; i < NUM_VOCAB; i++) {
+        float exp_x = exp(logits[i] - max_logits);
+        sum_exp_logits += exp_x;
+        logits[i] = exp_x;
+      }
 
-  // filter logits by temperature
-  size_t mask_idx = 0;
-  for (; mask_idx < NUM_VOCAB; ++mask_idx) {
-    if (cum_logits[mask_idx] > temperature) {
-      break;
+      for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
+        logits[i] /= sum_exp_logits;
+      }
+
+      // sample from final logits
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::discrete_distribution<int> dist(logits, logits + NUM_VOCAB);
+      int sampled_idx = dist(gen);
+
+      // add sampled word
+      outputs.push_back(sampled_idx);
     }
+
+    // set batch offset
+    logits = logits + NUM_VOCAB;
   }
 
-  // return argmax if all logits are filtered
-  if (mask_idx == 0)
-    return logits_idx[mask_idx];
-
-  // mask logits
-  for (size_t i = mask_idx; i < NUM_VOCAB; ++i) {
-    logits_vec[i] = 0.0;
-  }
-
-  // normalize masked logits
-  float sum_logits = std::accumulate(logits_vec.begin(), logits_vec.end(), 0.0);
-
-  for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
-    logits_vec[i] /= sum_logits;
-  }
-
-  // sample from masked logits
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::discrete_distribution<int> dist(logits_vec.begin(), logits_vec.end());
-  int sampled_idx = dist(gen);
-
-  // return sampled word indexs
-  return logits_idx[sampled_idx];
+  return outputs;
 }
 
 template <typename T>
@@ -551,7 +554,7 @@ void run(std::string text, bool apply_temperature) {
   for (unsigned int i = input_len + 1; i < input_len + NUM_TO_GENERATE; ++i) {
     auto output_interval =
       g_model->incremental_inference(1, input, label, MAX_SEQ_LEN, i - 1, i);
-    unsigned int ids = generate(output[0], apply_temperature, NUM_VOCAB);
+    unsigned int ids = generate(output[0], true, 1, 1, 0, 1, NUM_VOCAB)[0];
 
     if (i < input_len) {
       input_sample[0] = static_cast<float>(init_input[i]);
