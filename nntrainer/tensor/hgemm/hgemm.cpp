@@ -27,6 +27,10 @@
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
   if (alpha == 1.F && beta == 0.F) {
+    if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
+      hgemm_noTrans_8x16(M, N, K, A, K, B, N, C32, N, alpha, beta);
+    }
+    else
     if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
@@ -36,6 +40,22 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
     }
   } else
     hgemm_noTrans_fallback(M, N, K, A, K, B, N, C32, N, alpha, beta);
+}
+
+void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
+                   unsigned int N, unsigned int K, float alpha, float beta) {
+  if (alpha == 1.F && beta == 0.F) {
+    if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
+      hgemm_noTrans_8x16(M, N, K, A, K, B, N, C, N, alpha, beta);
+    } else 
+    if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
+      hgemm_noTrans_8x8(M, N, K, A, K, B, N, C, N, alpha, beta);
+    } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
+      hgemm_noTrans_4x8(M, N, K, A, K, B, N, C, N, alpha, beta);
+    } else if (M % 4 == 0 && N % 4 == 0 && K % 4 == 0) {
+      hgemm_noTrans_4x4(M, N, K, A, K, B, N, C, N, alpha, beta);
+    }
+  }
 }
 
 void hgemm_noTrans_4x4(unsigned int M, unsigned int N, unsigned int K,
@@ -428,6 +448,79 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
         }
 
         packing_A8(m2_min, k_min, A + ms2 * lda + ks, lda,
+                   sA + k_min * (ms2 - ms) * stride_l1);
+
+        HGEMM_KERNEL_8x16(m2_min, n_min, k_min,
+                          sA + stride_l1 * k_min * (ms2 - ms), sB,
+                          C + ms2 * ldc, ldc);
+      }
+
+      for (ns = n_min; ns < N; ns += n_min) {
+        n_min = N - ns;
+        if (n_min >= N_BLOCKING * 2) {
+          n_min = N_BLOCKING;
+        } else if (n_min > N_BLOCKING) {
+          n_min = (n_min / 2 + GEMM_UNROLLING_8 - 1) & ~(GEMM_UNROLLING_8 - 1);
+        }
+
+        packing_B16(k_min, n_min, B + ns + ldb * ks, ldb, sB);
+        HGEMM_KERNEL_8x16(m_min, n_min, k_min, sA, sB, C + ms * ldc + ns, ldc);
+      }
+    }
+  }
+
+  free(sA);
+  free(sB);
+}
+
+void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
+                        const __fp16 *A, unsigned int lda, const __fp16 *B,
+                        unsigned int ldb, float *C, unsigned int ldc,
+                        float alpha, float beta) {
+
+  __fp16 *sA = alignedMalloc(M * K);
+  __fp16 *sB = alignedMalloc(K * N);
+
+  unsigned int ms, ms2, ns, ks;
+  unsigned int m_min, m2_min, n_min, k_min;
+  unsigned int stride_l1 = 1;
+
+  for (ms = 0; ms < M; ms += M_BLOCKING) {
+    m_min = M - ms;
+    if (m_min > M_BLOCKING) {
+      m_min = M_BLOCKING;
+    }
+
+    for (ks = 0; ks < K; ks += k_min) {
+      k_min = K - ks;
+      if (k_min >= (K_BLOCKING << 1)) {
+        k_min = K_BLOCKING;
+      } else if (k_min > K_BLOCKING) {
+        k_min = (k_min / 2 + GEMM_UNROLLING_4 - 1) & ~(GEMM_UNROLLING_4 - 1);
+      }
+
+      n_min = N;
+      if (N >= N_BLOCKING * 2) {
+        n_min = N_BLOCKING;
+      } else if (N > N_BLOCKING) {
+        n_min = ((n_min / 2 + GEMM_UNROLLING_16 - 1) / GEMM_UNROLLING_16) *
+                GEMM_UNROLLING_16;
+      } else {
+        stride_l1 = 0;
+      }
+      packing_B16(k_min, n_min, B + ks * ldb, ldb, sB);
+
+      for (ms2 = ms; ms2 < ms + m_min; ms2 += m2_min) {
+        m2_min = (ms + m_min) - ms2;
+        if (m2_min >= 3 * GEMM_UNROLLING_8) {
+          m2_min = 3 * GEMM_UNROLLING_8;
+        } else if (m2_min >= 2 * GEMM_UNROLLING_8) {
+          m2_min = 2 * GEMM_UNROLLING_8;
+        } else if (m2_min > GEMM_UNROLLING_8) {
+          m2_min = GEMM_UNROLLING_8;
+        }
+
+        packing_A8(m2_min, k_min, A + ms2 * lda + ks, lda,
                    sA + k_min * (ms2 - ms));
 
         HGEMM_KERNEL_8x16(m2_min, n_min, k_min, sA + k_min * (ms2 - ms), sB,
@@ -442,7 +535,7 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
           n_min = (n_min / 2 + GEMM_UNROLLING_8 - 1) & ~(GEMM_UNROLLING_8 - 1);
         }
 
-        packing_B8(k_min, n_min, B + ns + ldb * ks, ldb, sB);
+        packing_B16(k_min, n_min, B + ns + ldb * ks, ldb, sB);
         HGEMM_KERNEL_8x16(m_min, n_min, k_min, sA, sB, C + ms * ldc + ns, ldc);
       }
     }
