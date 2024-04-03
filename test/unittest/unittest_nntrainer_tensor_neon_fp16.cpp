@@ -360,17 +360,17 @@ TEST(nntrainer_Tensor, sum_gemv_2_10) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
-TEST(nntrainer_Tensor, dot_gemm_16_8_16) {
+TEST(nntrainer_Tensor, dot_gemm_16_16_16) {
   /// @note GEMM : A X B = C
   int batch = 1;
   int channel = 1;
-  int height = 8;
+  int height = 16;
   int width = 16;
 
-  int height_b = 8;
+  int height_b = 16;
   int width_b = 16;
 
-  bool transA = true;
+  bool transA = false;
   bool transB = false;
 
   const float alpha = 1e-1;
@@ -479,15 +479,15 @@ TEST(nntrainer_Tensor, dot_gemm_1024_1024_1024) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
-TEST(nntrainer_Tensor, dot_gemm_50_768_96000) {
+TEST(nntrainer_Tensor, dot_gemm_768) {
   /// @note GEMM : A X B = C
   int batch = 1;
   int channel = 1;
-  int height = 1;
+  int height = 768;
   int width = 768;
 
   int height_b = 768;
-  int width_b = 10000;
+  int width_b = 768;
 
   bool transA = false;
   bool transB = false;
@@ -662,7 +662,7 @@ TEST(nntrainer_Tensor, dot_gemv_768_96000) {
   /// @note GEMV : A X B = C
   int batch = 1;
   int channel = 1;
-  int height = 50;
+  int height = 1;
   int width = 768;
 
   int height_b = 768;
