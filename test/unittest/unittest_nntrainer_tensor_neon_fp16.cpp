@@ -424,11 +424,11 @@ TEST(nntrainer_Tensor, dot_gemm_1024_1024_1024) {
   /// @note GEMM : A X B = C
   int batch = 1;
   int channel = 1;
-  int height = 1;
-  int width = 144;
+  int height = 1024;
+  int width = 1024;
 
-  int height_b = 144;
-  int width_b = 144;
+  int height_b = 1024;
+  int width_b = 1024;
 
   bool transA = false;
   bool transB = false;
