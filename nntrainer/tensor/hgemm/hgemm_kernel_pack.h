@@ -350,3 +350,32 @@ void packing_B8(unsigned int K, unsigned int N, const __fp16 *src,
     }
   }
 }
+
+/**
+ * @brief packing function of input matrix B
+ *
+ * @param M length of the row of the matrix
+ * @param K length of the col of the matrix
+ * @param src input of original source of the matrix
+ * @param ldb leading dimension of the matrix
+ * @param dst output of packed data of the matrix
+ */
+void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
+                unsigned int ldb, const __fp16 *dst) {
+  assert(K != 0 && N != 0 && N % 16 == 0);
+
+  for (int i = 0; i < K; i++) {
+    const __fp16 *a_off = src + i * ldb;
+    __fp16 *b_off = (__fp16 *)dst + i * 16;
+    for (int j = 0; j < N; j += 16) {
+      float16x8_t v0_7 = vld1q_f16(a_off);
+      float16x8_t v8_15 = vld1q_f16(a_off + 8);
+      a_off += 16;
+
+      vst1q_f16(b_off, v0_7);
+      vst1q_f16(b_off + 8, v8_15);
+      b_off += 16 * K;
+    }
+  }
+}
+

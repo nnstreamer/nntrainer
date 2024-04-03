@@ -42,17 +42,6 @@ cl_headers = [
   'cl_operations/cl_interface.h'
 ]
 
-hgemm_headers = [
-  'hgemm/hgemm.h',
-  'hgemm/hgemm_util.h',
-  'hgemm/hgemm_kernel_pack.h',
-  'hgemm/hgemm_kernel_4x4.h',
-  'hgemm/hgemm_kernel_8x8.h',
-]
-
-hgemm_sources = [
-  
-]
 
 arch = host_machine.cpu_family()
 if get_option('enable-fp16') 
@@ -62,7 +51,9 @@ if get_option('enable-fp16')
     if get_option('enable-neon')
       tensor_sources += 'blas_neon.cpp'
       tensor_headers += 'blas_neon.h'
-      tensor_headers += hgemm_headers
+      subdir('hgemm')
+      nntrainer_inc += include_directories('hgemm')
+      nntrainer_inc_abs += meson.current_source_dir() / 'hgemm'
     endif
   elif get_option('enable-avx')
     tensor_sources += 'blas_avx.cpp'
