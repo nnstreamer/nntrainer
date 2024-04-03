@@ -11,31 +11,29 @@
  *
  */
 
-#include <cmath>
 #include <hgemm_common.h>
-#include <math.h>
 #include <stdlib.h>
 
 /**
  * @brief hgemm 4x4 kernel sc = sa * sb
- * 
+ *
  * @param m length of the row of matrix A
- * @param n length of the col of matrix B 
+ * @param n length of the col of matrix B
  * @param k length of the col of matrix A
  * @param sa sub-matrix of input matrix A
  * @param sb sub-matrix of input matrix B
  * @param sc sub-matrix of output matrix C
  * @param ldc leading dimension of matrix C
  */
-void hgemm_kernel_4x4(unsigned int m, unsigned int n, unsigned int k,
+void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
                       __fp16 *sa, __fp16 *sb, __fp16 *sc, unsigned int ldc) {
-  assert(m > 0 && n > 0 && k > 0);
-  assert(m % 4 == 0 && n % 4 == 0 && k % 4 == 0);
+  assert(M > 0 && N > 0 && K > 0);
+  assert(M % 4 == 0 && N % 4 == 0 && K % 4 == 0);
 
   __fp16 *a = sa, *b = sb, *c = sc;
   unsigned int i, j, l;
-  for (i = 0; i < m; i += VL_FP16_HALF) {
-    for (j = 0; j < n; j += VL_FP16_HALF) {
+  for (i = 0; i < M; i += VL_FP16_HALF) {
+    for (j = 0; j < N; j += VL_FP16_HALF) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
@@ -44,7 +42,7 @@ void hgemm_kernel_4x4(unsigned int m, unsigned int n, unsigned int k,
       float16x4_t v26 = {0};
       float16x4_t v27 = {0};
 
-      for (l = 0; l < k; l += VL_FP16_HALF) {
+      for (l = 0; l < K; l += VL_FP16_HALF) {
         float16x4_t v0 = vld1_f16(b);
         float16x4_t v16 = vld1_f16(a);
 
@@ -95,12 +93,11 @@ void hgemm_kernel_4x4(unsigned int m, unsigned int n, unsigned int k,
       vst1_f16(c + 3 * ldc, v27);
 
       c += 4;
-      a -= 4 * k;
+      a -= 4 * K;
     }
     sc += ldc * 4;
     c = sc;
-    a += 4 * k;
+    a += 4 * K;
     b = sb;
   }
 }
-

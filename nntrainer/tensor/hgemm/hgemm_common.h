@@ -10,14 +10,16 @@
  * @brief  This is common settings for hgemm
  *
  */
+#include <arm_neon.h>
+#include <assert.h>
 
 #define A(i, j) a[(i)*lda + (j)]
 #define B(i, j) b[(i)*ldb + (j)]
 #define C(i, j) c[(i)*ldc + (j)]
 
-#define GEMM_N (384)
-#define GEMM_K (256)
-#define GEMM_M (4096)
+#define N_BLOCKING (384)
+#define K_BLOCKING (256)
+#define M_BLOCKING (4096)
 #define GEMM_UNROLLING_8 (8)
 #define GEMM_UNROLLING_4 (4)
 #define VL_FP16 (8)

@@ -14,13 +14,13 @@
 
 /**
  * @brief aligned dynamic allocation function
- * 
- * @param size amount of data to allocate
+ *
+ * @param sz amount of data to allocate
  * @return __fp16* addr of allocated memory
  */
-static inline __fp16 *alignedMalloc(int size) {
-  void *ptr = 0;
-  int iRet = posix_memalign(&ptr, 64, size * sizeof(__fp16));
+static inline __fp16 *alignedMalloc(int sz) {
+  void *addr = 0;
+  int iRet = posix_memalign(&addr, 64, sz * sizeof(__fp16));
   assert(0 == iRet);
-  return (__fp16 *)ptr;
+  return (__fp16 *)addr;
 }
