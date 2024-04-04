@@ -140,13 +140,10 @@ You can run with
 $ python3 Training_Keras.py
 ```
 
-```mnist_trainingSet.data``` must be in the same directory with ```Training_Keras.py```.
+```mnist_trainingSet.dat``` must be in the same directory with ```Training_Keras.py```.
 
 
 ### Comparison with Tensorflow
 This is the comparison with tensorflow-1.14.0 for the two cases. One is with zero initialization of weight and bias and the other is random weight initialization data using the default intializers for each layer from tensorflow. As can be seen with the result below, the results are same within the margin of error.
-
-![image](/docs/images/image2020-9-1_8-23-40.png?raw=true)
-
 
 ![image](/docs/images/image2020-9-1_8-23-40.png?raw=true)
