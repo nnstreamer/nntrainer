@@ -14,6 +14,9 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
+/// @note Following KERNELs are the combinations of accuracy-latency
+/// tradeoff. User can select which kernel to use by replacing them.
+
 // 1. Partial sum 256 digits : worst accuracy, best latency
 #define KERNEL_4x8_ACC8()               \
   v0 = vdupq_n_f16(0.F);                \
@@ -69,6 +72,8 @@
   v6 = vfmaq_lane_f16(v6, v31, dv7, 2); \
   v9 = vfmaq_lane_f16(v9, v31, dv7, 3); \
   l += 8;                               \
+  __builtin_prefetch(b + 64, 0, 3);     \
+  __builtin_prefetch(a + 32, 0, 3);     \
   b += 8 * 8;                           \
   a += 4 * 8;
 
@@ -103,6 +108,8 @@
   v6 = vfmaq_lane_f16(v6, v27, dv3, 2); \
   v9 = vfmaq_lane_f16(v9, v27, dv3, 3); \
   l += 4;                               \
+  __builtin_prefetch(b + 32, 0, 3);     \
+  __builtin_prefetch(a + 16, 0, 3);     \
   b += 8 * 4;                           \
   a += 4 * 4;
 
@@ -119,6 +126,8 @@
   v6 = vfmaq_lane_f16(v6, v24, dv0, 2); \
   v9 = vfmaq_lane_f16(v9, v24, dv0, 3); \
   l += 1;                               \
+  __builtin_prefetch(b + 8, 0, 3);      \
+  __builtin_prefetch(a + 4, 0, 3);      \
   b += 8 * 1;                           \
   a += 4 * 1;
 
