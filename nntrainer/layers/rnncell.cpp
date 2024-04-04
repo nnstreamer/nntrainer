@@ -54,9 +54,9 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightRegularizer>(*layer_impl_props);
   const float weight_regularizer_constant =
     std::get<props::WeightRegularizerConstant>(*layer_impl_props);
-  const Tensor::Initializer weight_initializer =
+  const Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props);
-  const Tensor::Initializer bias_initializer =
+  const Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props);
   auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
   auto &bias_decay = std::get<props::BiasDecay>(*layer_impl_props);
@@ -138,9 +138,9 @@ void RNNCellLayer::finalize(InitLayerContext &context) {
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch, 1, 1, unit ]
     const TensorDim dropout_mask_dim(batch_size, 1, 1, unit);
-    wt_idx[RNNCellParams::dropout_mask] = context.requestTensor(
-      dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[RNNCellParams::dropout_mask] =
+      context.requestTensor(dropout_mask_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   acti_func.setActiFunc(hidden_state_activation_type);

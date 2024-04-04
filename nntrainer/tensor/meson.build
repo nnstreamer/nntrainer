@@ -6,7 +6,6 @@ tensor_sources = [
   'lazy_tensor.cpp',
   'manager.cpp',
   'tensor.cpp',
-  'tensor_v2.cpp',
   'tensor_base.cpp',
   'float_tensor.cpp',
   'tensor_dim.cpp',
@@ -25,7 +24,6 @@ tensor_sources = [
 tensor_headers = [
   'memory_data.h',
   'tensor.h',
-  'tensor_v2.h',
   'tensor_base.h',
   'float_tensor.h',
   'weight.h',

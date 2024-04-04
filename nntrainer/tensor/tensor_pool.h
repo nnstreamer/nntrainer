@@ -43,8 +43,7 @@ public:
    * @brief     Constructor of TensorPool
    */
   TensorPool() :
-    mem_pool(std::make_unique<MemoryPool>()),
-    cache_loader(nullptr) {}
+    mem_pool(std::make_unique<MemoryPool>()), cache_loader(nullptr) {}
 
   /**
    * @brief     Constructor of TensorPool
@@ -179,7 +178,7 @@ public:
   Tensor *request(const std::string &name, const TensorDim &dim,
                   const std::vector<unsigned int> &exec_order,
                   TensorLifespan lifespan,
-                  const Tensor::Initializer &init = Tensor::Initializer::NONE,
+                  const Initializer &init = Initializer::NONE,
                   bool is_weight_grad = false);
 
   /**
@@ -237,11 +236,10 @@ public:
    * @return Tensor* ptr to either to the existing tensor or newly created
    * tensor
    */
-  Tensor *
-  requestOrExtend(const std::string &name, const TensorDim &dim,
-                  const std::vector<unsigned int> &exec_order,
-                  TensorLifespan lifespan,
-                  const Tensor::Initializer &init = Tensor::Initializer::NONE);
+  Tensor *requestOrExtend(const std::string &name, const TensorDim &dim,
+                          const std::vector<unsigned int> &exec_order,
+                          TensorLifespan lifespan,
+                          const Initializer &init = Initializer::NONE);
 
   /**
    * @brief reidentify the source of already created tensor (or view).

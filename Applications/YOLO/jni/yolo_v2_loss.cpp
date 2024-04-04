@@ -319,141 +319,136 @@ void YoloV2LossLayer::finalize(nntrainer::InitLayerContext &context) {
   nntrainer::TensorDim bbox_x_pred_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_x_pred] = context.requestTensor(
-    bbox_x_pred_dim, "bbox_x_pred", nntrainer::Tensor::Initializer::NONE, true,
+    bbox_x_pred_dim, "bbox_x_pred", nntrainer::Initializer::NONE, true,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_y_pred_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_y_pred] = context.requestTensor(
-    bbox_y_pred_dim, "bbox_y_pred", nntrainer::Tensor::Initializer::NONE, true,
+    bbox_y_pred_dim, "bbox_y_pred", nntrainer::Initializer::NONE, true,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_w_pred_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_w_pred] = context.requestTensor(
-    bbox_w_pred_dim, "bbox_w_pred", nntrainer::Tensor::Initializer::NONE, true,
+    bbox_w_pred_dim, "bbox_w_pred", nntrainer::Initializer::NONE, true,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_h_pred_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_h_pred] = context.requestTensor(
-    bbox_h_pred_dim, "bbox_h_pred", nntrainer::Tensor::Initializer::NONE, true,
+    bbox_h_pred_dim, "bbox_h_pred", nntrainer::Initializer::NONE, true,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim confidence_pred_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
-  wt_idx[YoloV2LossParams::confidence_pred] =
-    context.requestTensor(confidence_pred_dim, "confidence_pred",
-                          nntrainer::Tensor::Initializer::NONE, true,
-                          nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+  wt_idx[YoloV2LossParams::confidence_pred] = context.requestTensor(
+    confidence_pred_dim, "confidence_pred", nntrainer::Initializer::NONE, true,
+    nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim class_pred_dim(batch_size,
                                       grid_height_number * grid_width_number,
                                       NUM_ANCHOR, class_number);
   wt_idx[YoloV2LossParams::class_pred] = context.requestTensor(
-    class_pred_dim, "class_pred", nntrainer::Tensor::Initializer::NONE, true,
+    class_pred_dim, "class_pred", nntrainer::Initializer::NONE, true,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_w_pred_anchor_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
-  wt_idx[YoloV2LossParams::bbox_w_pred_anchor] =
-    context.requestTensor(bbox_w_pred_anchor_dim, "bbox_w_pred_anchor",
-                          nntrainer::Tensor::Initializer::NONE, false,
-                          nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+  wt_idx[YoloV2LossParams::bbox_w_pred_anchor] = context.requestTensor(
+    bbox_w_pred_anchor_dim, "bbox_w_pred_anchor", nntrainer::Initializer::NONE,
+    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_h_pred_anchor_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
-  wt_idx[YoloV2LossParams::bbox_h_pred_anchor] =
-    context.requestTensor(bbox_h_pred_anchor_dim, "bbox_h_pred_anchor",
-                          nntrainer::Tensor::Initializer::NONE, false,
-                          nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+  wt_idx[YoloV2LossParams::bbox_h_pred_anchor] = context.requestTensor(
+    bbox_h_pred_anchor_dim, "bbox_h_pred_anchor", nntrainer::Initializer::NONE,
+    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_x_gt_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_x_gt] = context.requestTensor(
-    bbox_x_gt_dim, "bbox_x_gt", nntrainer::Tensor::Initializer::NONE, false,
+    bbox_x_gt_dim, "bbox_x_gt", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_y_gt_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_y_gt] = context.requestTensor(
-    bbox_y_gt_dim, "bbox_y_gt", nntrainer::Tensor::Initializer::NONE, false,
+    bbox_y_gt_dim, "bbox_y_gt", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_w_gt_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_w_gt] = context.requestTensor(
-    bbox_w_gt_dim, "bbox_w_gt", nntrainer::Tensor::Initializer::NONE, false,
+    bbox_w_gt_dim, "bbox_w_gt", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_h_gt_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox_h_gt] = context.requestTensor(
-    bbox_h_gt_dim, "bbox_h_gt", nntrainer::Tensor::Initializer::NONE, false,
+    bbox_h_gt_dim, "bbox_h_gt", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim confidence_gt_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::confidence_gt] = context.requestTensor(
-    confidence_gt_dim, "confidence_gt", nntrainer::Tensor::Initializer::NONE,
-    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+    confidence_gt_dim, "confidence_gt", nntrainer::Initializer::NONE, false,
+    nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim class_gt_dim(batch_size,
                                     grid_height_number * grid_width_number,
                                     NUM_ANCHOR, class_number);
   wt_idx[YoloV2LossParams::class_gt] = context.requestTensor(
-    class_gt_dim, "class_gt", nntrainer::Tensor::Initializer::NONE, false,
+    class_gt_dim, "class_gt", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox_class_mask_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
-  wt_idx[YoloV2LossParams::bbox_class_mask] =
-    context.requestTensor(bbox_class_mask_dim, "bbox_class_mask",
-                          nntrainer::Tensor::Initializer::NONE, false,
-                          nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+  wt_idx[YoloV2LossParams::bbox_class_mask] = context.requestTensor(
+    bbox_class_mask_dim, "bbox_class_mask", nntrainer::Initializer::NONE, false,
+    nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim iou_mask_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::iou_mask] = context.requestTensor(
-    iou_mask_dim, "iou_mask", nntrainer::Tensor::Initializer::NONE, false,
+    iou_mask_dim, "iou_mask", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox1_width_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox1_width] = context.requestTensor(
-    bbox1_width_dim, "bbox1_width", nntrainer::Tensor::Initializer::NONE, false,
+    bbox1_width_dim, "bbox1_width", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim bbox1_height_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::bbox1_height] = context.requestTensor(
-    bbox1_height_dim, "bbox1_height", nntrainer::Tensor::Initializer::NONE,
-    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+    bbox1_height_dim, "bbox1_height", nntrainer::Initializer::NONE, false,
+    nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim is_xy_min_max_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 4);
   wt_idx[YoloV2LossParams::is_xy_min_max] = context.requestTensor(
-    is_xy_min_max_dim, "is_xy_min_max", nntrainer::Tensor::Initializer::NONE,
-    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+    is_xy_min_max_dim, "is_xy_min_max", nntrainer::Initializer::NONE, false,
+    nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim intersection_width_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
-  wt_idx[YoloV2LossParams::intersection_width] =
-    context.requestTensor(intersection_width_dim, "intersection_width",
-                          nntrainer::Tensor::Initializer::NONE, false,
-                          nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
+  wt_idx[YoloV2LossParams::intersection_width] = context.requestTensor(
+    intersection_width_dim, "intersection_width", nntrainer::Initializer::NONE,
+    false, nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim intersection_height_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::intersection_height] =
     context.requestTensor(intersection_height_dim, "intersection_height",
-                          nntrainer::Tensor::Initializer::NONE, false,
+                          nntrainer::Initializer::NONE, false,
                           nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 
   nntrainer::TensorDim unions_dim(
     batch_size, grid_height_number * grid_width_number, NUM_ANCHOR, 1);
   wt_idx[YoloV2LossParams::unions] = context.requestTensor(
-    unions_dim, "unions", nntrainer::Tensor::Initializer::NONE, false,
+    unions_dim, "unions", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::FORWARD_DERIV_LIFESPAN);
 }
 

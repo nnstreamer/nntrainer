@@ -39,8 +39,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 enum FCParams { weight, bias };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(),
-  fc_props(props::Unit()) {
+  LayerImpl(), fc_props(props::Unit()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -132,7 +131,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     unsigned int axis =
       context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
 
-    weight.dequantize(weight_, axis);
+    // weight.dequantize(weight_, axis);
     input_.dot(weight_, hidden_, false, false);
   } else {
     input_.dot(weight, hidden_, false, false);
