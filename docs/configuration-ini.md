@@ -12,7 +12,7 @@ If you want more about iniparser, please visit
 ## Sections
 ### Model Section
 
-Model section includes the hyper-parameters for the Network such type, epochs, loss, save path and batch size.
+Model section includes the hyper-parameters for the Network such as type, epochs, loss, save path and batch size.
 
 Start with "[Model]"
 
