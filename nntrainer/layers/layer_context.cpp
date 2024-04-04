@@ -16,6 +16,7 @@
 #include <memory>
 #include <tensor_wrap_specs.h>
 
+#include <fstream>
 #include <iterator>
 #include <layer_context.h>
 #include <nntrainer_log.h>
@@ -567,34 +568,93 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
 }
 
 #ifdef ENABLE_OPENCL
+
+/**
+ * @brief Global bit mask to check if kernel already initialized.
+ */
+unsigned int RunLayerContext::kernelInitializedMask = 0;
+
+/**
+ * @brief create OpenCl kernel
+ * @param kernel_string implementation string
+ * @param layerKernel LayerKernel
+ * @return true if kernel creation is successful, false otherwise
+ */
 bool RunLayerContext::clCreateKernel(std::string kernel_string,
-                                     std::string kernel_name) {
-  if (kernel_initialized) {
-    ml_logi("Kernel already initialized: %s", kernel_name.c_str());
+                                     LayerKernel layerKernel,
+                                     opencl::Kernel &kernel_) {
+
+  // checking bitmask for already initialized kernel. eg: 010 & 000 -> 0 but 010
+  // & 110 -> 010
+  if (layerKernel == (kernelInitializedMask & layerKernel)) {
+    ml_logi("Kernel already initialized: %s",
+            getKernelName(layerKernel).c_str());
     return true;
   }
 
-  ml_logi("Kernel initializing: %s", kernel_name.c_str());
+  ml_logi("Kernel initializing: %s", getKernelName(layerKernel).c_str());
 
   bool result = false;
 
   do {
     opencl::Program program;
-    result =
-      program.CreateCLProgram(context_inst_.GetContext(),
-                              context_inst_.GetDeviceId(), kernel_string, "");
+
+    // reading binary
+    std::ifstream fs(opencl::Program::DEFAULT_KERNEL_PATH + "/" +
+                       getKernelName(layerKernel) + "_kernel.bin",
+                     std::ios::binary | std::ios::in);
+
+    if (fs) {
+      fs.seekg(0, std::ios::end);
+      size_t binary_size = fs.tellg();
+      fs.seekg(0, std::ios::beg);
+
+      unsigned char chunk[binary_size];
+      fs.read((char *)chunk, binary_size);
+
+      result = program.CreateCLProgramWithBinary(
+        context_inst_.GetContext(), context_inst_.GetDeviceId(), binary_size,
+        chunk,
+        opencl::Program::DEFAULT_KERNEL_PATH + "/" +
+          getKernelName(layerKernel) + "_kernel.bin",
+        "");
+    } else {
+      result =
+        program.CreateCLProgram(context_inst_.GetContext(),
+                                context_inst_.GetDeviceId(), kernel_string, "");
+    }
+
     if (!result) {
       break;
     }
 
-    result = kernel_.CreateKernelFromProgram(program, kernel_name);
+    result =
+      kernel_.CreateKernelFromProgram(program, getKernelName(layerKernel));
     if (!result) {
       break;
     }
-    kernel_initialized = true;
+
+    // setting bitmask for current initialized kernel. eg: 010 | 000 -> 010
+    kernelInitializedMask = kernelInitializedMask | layerKernel;
   } while (false);
 
   return result;
+}
+
+/**
+ * @brief Resolve kernel name from LayerKernel enum
+ * @param layerKernel enumerator of type LayerKernel
+ * @return string name of kernel
+ */
+std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
+  switch (layerKernel) {
+  case LayerKernel::KERNEL_NAME1:
+    return "kernel_name1";
+  case LayerKernel::KERNEL_NAME2:
+    return "kernel_name2";
+  default:
+    return "";
+  }
 }
 #endif
 

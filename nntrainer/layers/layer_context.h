@@ -25,6 +25,7 @@
 #include <weight.h>
 
 #ifdef ENABLE_OPENCL
+#include <opencl_command_queue_manager.h>
 #include <opencl_context_manager.h>
 #include <opencl_kernel.h>
 #include <opencl_program.h>
@@ -808,24 +809,42 @@ public:
   std::vector<Weight *> getWeights() { return weights; }
 
 #ifdef ENABLE_OPENCL
-
-  // getting static instances of commandqueue, context and kernel
+  // getting static instances of commandqueue and context
   opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
-  opencl::Kernel kernel_;
+  opencl::CommandQueueManager &command_queue_inst_ =
+    opencl::CommandQueueManager::GetInstance();
+
+  /**
+   * @brief Enumerator for implemented OpenCL layer kernels. Used for resolving
+   * kernelInitializedMask. All kernels should be added with value as enum index
+   * to the power of 2 (e.g: 1, 2, 4, 8 ...). Should also be resolved in
+   * getKernelName function.
+   */
+  enum LayerKernel {
+    KERNEL_NAME1 = 1, /**< placeholder for kernel name */
+    KERNEL_NAME2 = 2  /**< placeholder for kernel name */
+  };
+
+  /**
+   * @brief Global bit mask to check if kernel already initialized.
+   */
+  static unsigned int kernelInitializedMask;
 
   /**
    * @brief create OpenCl kernel
-   * @param kernel implementation string
-   * @param kernel name
+   * @param kernel_string implementation string
+   * @param layerKernel LayerKernel
+   * @param kernel_ reference of Kernel
    * @return true if kernel creation is successful, false otherwise
    */
-  bool clCreateKernel(std::string kernel_string, std::string kernel_name);
+  bool clCreateKernel(std::string kernel_string, LayerKernel layerKernel,
+                      opencl::Kernel &kernel_);
 
   /**
    * @brief destructor to release opencl context
    */
   ~RunLayerContext() {
-    if (kernel_initialized) {
+    if (kernelInitializedMask > 0) {
       context_inst_.ReleaseContext();
     }
   }
@@ -859,9 +878,6 @@ private:
   ml::train::LayerComputeEngine compute_engine =
     ml::train::LayerComputeEngine::CPU;
 
-  // flag to check whether opencl kernel is initialized or not
-  bool kernel_initialized = false;
-
 #ifdef DEBUG
   std::map<std::string, const void *>
     tensor_map; /**< map of tensor name to tensor address */
@@ -874,6 +890,15 @@ private:
    * @return float Value of the loss
    */
   float getWeightRegularizationLoss(unsigned int idx) const;
+
+#ifdef ENABLE_OPENCL
+  /**
+   * @brief Resolve kernel name from LayerKernel enum
+   * @param layerKernel enumerator of type LayerKernel
+   * @return string name of kernel
+   */
+  std::string getKernelName(LayerKernel layerKernel);
+#endif
 };
 
 } // namespace nntrainer
