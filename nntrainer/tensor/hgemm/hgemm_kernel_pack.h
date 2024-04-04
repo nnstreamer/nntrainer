@@ -361,7 +361,7 @@ void packing_B8(unsigned int K, unsigned int N, const __fp16 *src,
  * @param dst output of packed data of the matrix
  */
 void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
-                unsigned int ldb, const __fp16 *dst) {
+                 unsigned int ldb, const __fp16 *dst) {
   assert(K != 0 && N != 0 && N % 16 == 0);
 
   for (int i = 0; i < K; i++) {
@@ -378,4 +378,3 @@ void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
     }
   }
 }
-

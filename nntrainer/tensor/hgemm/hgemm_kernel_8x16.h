@@ -151,7 +151,7 @@
   v120_127 = vfmaq_laneq_f16(v120_127, v27, va5, 7); \
   va6 = vld1q_f16(a + 48);                           \
   v28 = vld1q_f16(b + 96);                           \
-  v29 = vld1q_f16(b + 104);                           \
+  v29 = vld1q_f16(b + 104);                          \
   v0_7 = vfmaq_laneq_f16(v0_7, v28, va6, 0);         \
   v8_15 = vfmaq_laneq_f16(v8_15, v28, va6, 1);       \
   v16_23 = vfmaq_laneq_f16(v16_23, v28, va6, 2);     \
@@ -169,8 +169,8 @@
   v112_119 = vfmaq_laneq_f16(v112_119, v29, va6, 6); \
   v120_127 = vfmaq_laneq_f16(v120_127, v29, va6, 7); \
   va7 = vld1q_f16(a + 56);                           \
-  v30 = vld1q_f16(b + 112);                           \
-  v31 = vld1q_f16(b + 120);                           \
+  v30 = vld1q_f16(b + 112);                          \
+  v31 = vld1q_f16(b + 120);                          \
   v0_7 = vfmaq_laneq_f16(v0_7, v30, va7, 0);         \
   v8_15 = vfmaq_laneq_f16(v8_15, v30, va7, 1);       \
   v16_23 = vfmaq_laneq_f16(v16_23, v30, va7, 2);     \

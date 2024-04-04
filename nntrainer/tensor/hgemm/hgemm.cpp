@@ -29,9 +29,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
   if (alpha == 1.F && beta == 0.F) {
     if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
       hgemm_noTrans_8x16(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    }
-    else
-    if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
+    } else if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
@@ -47,8 +45,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
   if (alpha == 1.F && beta == 0.F) {
     if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
       hgemm_noTrans_8x16(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else 
-    if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
+    } else if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C, N, alpha, beta);
     } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C, N, alpha, beta);
