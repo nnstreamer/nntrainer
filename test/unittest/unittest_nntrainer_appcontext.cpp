@@ -24,6 +24,7 @@
 
 #include <app_context.h>
 #include <nntrainer_error.h>
+#include <nntrainer_test_util.h>
 
 /**
  * @brief   Directory for appcontext unittests
@@ -172,7 +173,7 @@ TEST_P(AppContextTest, RegisterCreateCustomOptimizer_p) {
 
     auto ac = nntrainer::AppContext();
     int num_id = ac.registerFactory(createCustomOptimizer, key, int_key);
-    EXPECT_EQ(num_id, int_key);
+    EXPECT_EQ(num_id, ((int_key == -1) ? (-1) * int_key : int_key));
     auto opt = ac.createObject<nntrainer::Optimizer>(
             ((key == "")? "identity_optimizer" : key), {});
     EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
