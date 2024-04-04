@@ -163,30 +163,28 @@ createCustomOptimizer(const AC::PropsType &v) {
  * @param std::string key of the registerFactory
  * @param int int_key of the registerFactory
  */
-class AppContextTest : public ::testing::TestWithParam<
-        std::tuple<std::string, int> > {};
+class AppContextTest
+  : public ::testing::TestWithParam<std::tuple<std::string, int>> {};
 
 TEST_P(AppContextTest, RegisterCreateCustomOptimizer_p) {
-    std::tuple<std::string, int> param = GetParam();
-    std::string key = std::get<0>(param);
-    int int_key = std::get<1>(param);
+  std::tuple<std::string, int> param = GetParam();
+  std::string key = std::get<0>(param);
+  int int_key = std::get<1>(param);
 
-    auto ac = nntrainer::AppContext();
-    int num_id = ac.registerFactory(createCustomOptimizer, key, int_key);
-    EXPECT_EQ(num_id, ((int_key == -1) ? (-1) * int_key : int_key));
-    auto opt = ac.createObject<nntrainer::Optimizer>(
-            ((key == "")? "identity_optimizer" : key), {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
-    opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
-    EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
+  auto ac = nntrainer::AppContext();
+  int num_id = ac.registerFactory(createCustomOptimizer, key, int_key);
+  EXPECT_EQ(num_id, ((int_key == -1) ? (-1) * int_key : int_key));
+  auto opt = ac.createObject<nntrainer::Optimizer>(
+    ((key == "") ? "identity_optimizer" : key), {});
+  EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
+  opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
+  EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
 }
 
 GTEST_PARAMETER_TEST(RegisterCreateCustomOptimizerTests, AppContextTest,
-                    ::testing::Values(
-                            std::make_tuple("", -1),
-                            std::make_tuple("custom_key", -1),
-                            std::make_tuple("custom_key", 5)
-                    ));
+                     ::testing::Values(std::make_tuple("", -1),
+                                       std::make_tuple("custom_key", -1),
+                                       std::make_tuple("custom_key", 5)));
 
 TEST(AppContextTest, RegisterFactoryWithClashingKey_n) {
   auto ac = nntrainer::AppContext();
