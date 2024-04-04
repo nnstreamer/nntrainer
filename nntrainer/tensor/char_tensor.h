@@ -1,93 +1,86 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * @file	float_tensor.h
- * @date	01 December 2023
- * @brief	This is FloatTensor class for 32-bit floating point calculation
+ * @file	char_tensor.h
+ * @date	02 April 2024
+ * @brief	This is CharTensor class for 8-bit integer calculation
  * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @author	Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug		No known bugs except for NYI items
  */
 
-#ifndef __FLOAT_TENSOR_H__
-#define __FLOAT_TENSOR_H__
+#ifndef __CHAR_TENSOR_H__
+#define __CHAR_TENSOR_H__
 #ifdef __cplusplus
 
 #include <tensor.h>
 #include <tensor_base.h>
 
-#ifdef DEBUG
-#define EXCEPT_WHEN_DEBUG
-#else
-#define EXCEPT_WHEN_DEBUG noexcept
-#endif
-
 namespace nntrainer {
 
 /**
- * @class FloatTensor class
- * @brief FloatTensor class for 32-bit floating point calculation
+ * @class CharTensor class
+ * @brief CharTensor class for 8-bit integer calculation
  */
-class FloatTensor : public TensorBase {
+class CharTensor : public TensorBase {
 public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
+  CharTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
 
   /**
-   * @brief Construct a new FloatTensor object
+   * @brief Construct a new CharTensor object
    *
    * @param d Tensor dim for this float tensor
    * @param alloc_now Allocate memory to this tensor or not
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    */
-  FloatTensor(const TensorDim &d, bool alloc_now,
-              Initializer init = Initializer::NONE, std::string name = "");
+  CharTensor(const TensorDim &d, bool alloc_now,
+             Initializer init = Initializer::NONE, std::string name = "");
 
   /**
-   * @brief Construct a new FloatTensor object
+   * @brief Construct a new CharTensor object
    *
    * @param d Tensor dim for this tensor
    * @param buf buffer
    */
-  FloatTensor(const TensorDim &d, const void *buf = nullptr);
+  CharTensor(const TensorDim &d, const void *buf = nullptr);
 
   /**
-   * @brief Construct a new FloatTensor object
+   * @brief Construct a new CharTensor object
    *
    * @param d data for the Tensor
    * @param fm format for the Tensor
    */
-  FloatTensor(
-    std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+  CharTensor(
+    std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
     Tformat fm);
 
   /**
-   * @brief Construct a new FloatTensor object
+   * @brief Construct a new CharTensor object
    * @param rhs TensorBase object to copy
    */
-  FloatTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  CharTensor(TensorBase &rhs) : TensorBase(rhs) {}
 
   /**
    * @brief Basic Destructor
    */
-  ~FloatTensor() {}
+  ~CharTensor() {}
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator==(const FloatTensor &rhs) const;
+  bool operator==(const CharTensor &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator!=(const FloatTensor &rhs) const { return !(*this == rhs); }
+  bool operator!=(const CharTensor &rhs) const { return !(*this == rhs); }
 
   /**
    * @copydoc Tensor::allocate()
@@ -125,13 +118,13 @@ public:
    * @brief     return value at specific location
    * @param[in] i index
    */
-  const float &getValue(unsigned int i) const;
+  const int8_t &getValue(unsigned int i) const;
 
   /**
    * @brief     return value at specific location
    * @param[in] i index
    */
-  float &getValue(unsigned int i);
+  int8_t &getValue(unsigned int i);
 
   /**
    * @brief     return value at specific location
@@ -140,8 +133,8 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  const float &getValue(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w) const;
+  const int8_t &getValue(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w) const;
 
   /**
    * @brief     return value at specific location
@@ -150,8 +143,8 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  float &getValue(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w);
+  int8_t &getValue(unsigned int b, unsigned int c, unsigned int h,
+                   unsigned int w);
 
   /**
    * @copydoc Tensor::setValue(float value)
@@ -174,22 +167,6 @@ public:
    * @copydoc Tensor::setZero()
    */
   void setZero() override;
-
-  /**
-   * @brief Set the Dist object
-   * @param dist distribution engine
-   */
-  template <typename Engine> void setDist(Engine dist) {
-    NNTR_THROW_IF(!contiguous, std::invalid_argument)
-      // << getName() << " Tensor is not contiguous, cannot set distribution";
-      << " Tensor is not contiguous, cannot set distribution";
-
-    float *data_ = (float *)getData();
-    unsigned int len = size();
-    for (unsigned int i = 0; i < len; ++i) {
-      data_[i] = (float)dist(rng);
-    }
-  };
 
   /**
    * @copydoc Tensor::setRandNormal()
@@ -215,11 +192,6 @@ public:
    * @copydoc Tensor::initialize(Initializer init)
    */
   void initialize(Initializer init) override;
-
-  /**
-   * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
-   */
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const override;
 
   /**
    * @copydoc Tensor::multiply_strided(Tensor const &m, Tensor &output,
@@ -312,21 +284,6 @@ public:
   Tensor &erf(Tensor &output) const override;
 
   /**
-   * @copydoc Tensor::sin(Tensor &out, float alpha)
-   */
-  void sin(Tensor &out, float alpha) override;
-
-  /**
-   * @copydoc Tensor::cos(Tensor &out, float alpha)
-   */
-  void cos(Tensor &out, float alpha) override;
-
-  /**
-   * @copydoc TensorBase::inv_sqrt(Tensor &out)
-   */
-  void inv_sqrt(Tensor &out) override;
-
-  /**
    *  @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool
    * trans, bool trans_in, float beta)
    */
@@ -354,11 +311,6 @@ public:
   std::vector<Tensor> split(std::vector<size_t> sizes, int axis) override;
 
   /**
-   * @copydoc Tensor::cat(const std::vector<Tensor> &tensors, int axis)
-   */
-  static Tensor cat(const std::vector<Tensor> &tensors, int axis);
-
-  /**
    * @copydoc Tensor::copy(const Tensor &from)
    */
   void copy(const Tensor &from);
@@ -377,6 +329,7 @@ public:
    * @copydoc Tensor::max_abs()
    */
   float max_abs() const override;
+
   /**
    * @copydoc Tensor::maxValue()
    */
@@ -406,43 +359,9 @@ private:
    * @param buf buffer to copy from
    */
   void copy(const void *buf);
-
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @param e broadcast info.
-   * @param cur_axis current axis. pass default when calling outside.
-   * @param offset offset for this.  pass default when calling outside.
-   * @param m_offset offset for m.  pass default when calling outside.
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void
-  apply_broadcast_util(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output, const BroadcastInfo &e,
-                       int cur_axis = -1, size_t offset = 0,
-                       size_t m_offset = 0) const;
-
-  /**
-   * @brief Applies the given operator to the tensor with the passed argument
-   *
-   * @param[in] m Tensor
-   * @param[in] v_func vectorized function to apply
-   * @retval #ML_ERROR_NONE Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  void apply_broadcast(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output) const;
 };
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __FLOAT_TENSOR_H__ */
+#endif /* __CHAR_TENSOR_H__ */

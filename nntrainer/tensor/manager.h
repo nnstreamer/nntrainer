@@ -225,7 +225,7 @@ public:
   std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
     const TensorLifespan &lifespan, bool is_grad_clip,
-    Tensor::Initializer initializer = Tensor::Initializer::NONE);
+    Initializer initializer = Initializer::NONE);
 
   /**
    * @brief     Create tensors with the given spec

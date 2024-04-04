@@ -62,11 +62,11 @@ void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
   auto samples_seen = nntrainer::TensorDim({num_class});
 
   weight_idx[KNNParams::map] = context.requestWeight(
-    map_dim, nntrainer::Tensor::Initializer::ZEROS,
-    nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, "map", false);
+    map_dim, nntrainer::Initializer::ZEROS, nntrainer::WeightRegularizer::NONE,
+    1.0f, 0.0f, "map", false);
 
   weight_idx[KNNParams::num_samples] = context.requestWeight(
-    samples_seen, nntrainer::Tensor::Initializer::ZEROS,
+    samples_seen, nntrainer::Initializer::ZEROS,
     nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, "num_samples", false);
 }
 

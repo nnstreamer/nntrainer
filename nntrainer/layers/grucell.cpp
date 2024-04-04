@@ -276,9 +276,9 @@ GRUCellLayer::GRUCellLayer() :
 }
 
 void GRUCellLayer::finalize(InitLayerContext &context) {
-  const Tensor::Initializer weight_initializer =
+  const Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
-  const Tensor::Initializer bias_initializer =
+  const Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props).get();
   const WeightRegularizer weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props).get();
@@ -368,15 +368,15 @@ void GRUCellLayer::finalize(InitLayerContext &context) {
   // zrg_dim = [ batch_size, 1, 1, NUM_GATE * unit ]
   TensorDim zrg_dim(batch_size, 1, 1, NUM_GATE * unit);
   wt_idx[GRUCellParams::zrg] =
-    context.requestTensor(zrg_dim, "zrg", Tensor::Initializer::NONE, true,
+    context.requestTensor(zrg_dim, "zrg", Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch_size, 1, 1, unit ]
     TensorDim dropout_mask_dim(batch_size, 1, 1, unit);
-    wt_idx[GRUCellParams::dropout_mask] = context.requestTensor(
-      dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[GRUCellParams::dropout_mask] =
+      context.requestTensor(dropout_mask_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   acti_func.setActiFunc(hidden_state_activation_type);

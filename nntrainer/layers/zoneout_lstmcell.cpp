@@ -58,9 +58,9 @@ bool ZoneoutLSTMCellLayer::CellStateZoneOutRate::isValid(
 }
 
 void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
-  const Tensor::Initializer weight_initializer =
+  const Initializer weight_initializer =
     std::get<props::WeightInitializer>(*layer_impl_props).get();
-  const Tensor::Initializer bias_initializer =
+  const Initializer bias_initializer =
     std::get<props::BiasInitializer>(*layer_impl_props).get();
   const WeightRegularizer weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props).get();
@@ -187,7 +187,7 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
    * ] */
   const TensorDim ifgo_dim(batch_size, 1, 1, NUM_GATE * unit);
   wt_idx[ZoneoutLSTMParams::ifgo] =
-    context.requestTensor(ifgo_dim, "ifgo", Tensor::Initializer::NONE, true,
+    context.requestTensor(ifgo_dim, "ifgo", Initializer::NONE, true,
                           TensorLifespan::ITERATION_LIFESPAN);
 
   // hidden_state_zoneout_mask_dim = [ max_timestep
@@ -196,15 +196,14 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
                                                 unit);
   if (test) {
     wt_idx[ZoneoutLSTMParams::hidden_state_zoneout_mask] =
-      context.requestWeight(hidden_state_zoneout_mask_dim,
-                            Tensor::Initializer::NONE, WeightRegularizer::NONE,
-                            1.0f, 0.0f, "hidden_state_zoneout_mask", false);
+      context.requestWeight(hidden_state_zoneout_mask_dim, Initializer::NONE,
+                            WeightRegularizer::NONE, 1.0f, 0.0f,
+                            "hidden_state_zoneout_mask", false);
   } else {
     wt_idx[ZoneoutLSTMParams::hidden_state_zoneout_mask] =
       context.requestTensor(hidden_state_zoneout_mask_dim,
-                            "hidden_state_zoneout_mask",
-                            Tensor::Initializer::NONE, false,
-                            TensorLifespan::ITERATION_LIFESPAN, false);
+                            "hidden_state_zoneout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN, false);
   }
 
   // cell_state_zoneout_mask_dim = [ max_timestep * batch_size, 1, 1, unit ]
@@ -212,19 +211,18 @@ void ZoneoutLSTMCellLayer::finalize(InitLayerContext &context) {
                                               unit);
   if (test) {
     wt_idx[ZoneoutLSTMParams::cell_state_zoneout_mask] = context.requestWeight(
-      cell_state_zoneout_mask_dim, Tensor::Initializer::NONE,
-      WeightRegularizer::NONE, 1.0f, 0.0f, "cell_state_zoneout_mask", false);
+      cell_state_zoneout_mask_dim, Initializer::NONE, WeightRegularizer::NONE,
+      1.0f, 0.0f, "cell_state_zoneout_mask", false);
   } else {
     wt_idx[ZoneoutLSTMParams::cell_state_zoneout_mask] = context.requestTensor(
-      cell_state_zoneout_mask_dim, "cell_state_zoneout_mask",
-      Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN,
-      false);
+      cell_state_zoneout_mask_dim, "cell_state_zoneout_mask", Initializer::NONE,
+      false, TensorLifespan::ITERATION_LIFESPAN, false);
   }
 
   // lstm_cell_state_dim = [ batch_size, 1, 1, unit ]
   const TensorDim lstm_cell_state_dim(batch_size, 1, 1, unit);
   wt_idx[ZoneoutLSTMParams::lstm_cell_state] = context.requestTensor(
-    lstm_cell_state_dim, "lstm_cell_state", Tensor::Initializer::NONE, true,
+    lstm_cell_state_dim, "lstm_cell_state", Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
   acti_func.setActiFunc(hidden_state_activation_type);
@@ -441,7 +439,9 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor hidden_state_zoneout_mask = hs_zoneout_mask.getBatchSlice(timestep, 1);
   hidden_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
   Tensor prev_hidden_state_zoneout_mask = hidden_state_zoneout_mask.apply(
-    (std::function<float (float)>) [epsilon = epsilon](float x) { return x < epsilon; });
+    (std::function<float(float)>)[epsilon = epsilon](float x) {
+      return x < epsilon;
+    });
 
   d_hidden_state.multiply(prev_hidden_state_zoneout_mask,
                           d_prev_hidden_state_residual);
@@ -456,7 +456,9 @@ void ZoneoutLSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor cell_state_zoneout_mask = cs_zoneout_mask.getBatchSlice(timestep, 1);
   cell_state_zoneout_mask.reshape({batch_size, 1, 1, unit});
   Tensor prev_cell_state_zoneout_mask = cell_state_zoneout_mask.apply(
-    (std::function<float (float)>) [epsilon = epsilon](float x) { return x < epsilon; });
+    (std::function<float(float)>)[epsilon = epsilon](float x) {
+      return x < epsilon;
+    });
 
   d_cell_state.multiply(prev_cell_state_zoneout_mask,
                         d_prev_cell_state_residual);

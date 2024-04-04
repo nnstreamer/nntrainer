@@ -47,7 +47,7 @@ void PositionalEncodingLayer::finalize(InitLayerContext &context) {
     {context.getFormat(), context.getWeightDataType()});
   weight_idx[PositionalEncodingParams::positional_encoding] =
     context.requestTensor(pe_dim, "positional_encoding",
-                          nntrainer::Tensor::Initializer::NONE, false,
+                          nntrainer::Initializer::NONE, false,
                           nntrainer::TensorLifespan::MAX_LIFESPAN);
 }
 

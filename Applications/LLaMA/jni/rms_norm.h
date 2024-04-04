@@ -38,8 +38,8 @@ public:
   /**
    * @brief Construct a RMS_NORM_GAMMA_INIT object
    */
-  RMS_NORM_GAMMA_INIT(nntrainer::Tensor::Initializer value =
-                        nntrainer::Tensor::Initializer::ONES) {
+  RMS_NORM_GAMMA_INIT(
+    nntrainer::Initializer value = nntrainer::Initializer::ONES) {
     set(value);
   };
 

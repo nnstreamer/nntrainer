@@ -39,7 +39,6 @@ test_target = [
   ['unittest_nntrainer_internal', []],
   ['unittest_nntrainer_lazy_tensor', []],
   ['unittest_nntrainer_tensor', []],
-  ['unittest_nntrainer_tensor_v2', []],
   ['unittest_nntrainer_tensor_nhwc', []],
   ['unittest_util_func', []],
   ['unittest_nntrainer_modelfile', []],
@@ -58,7 +57,6 @@ test_target = [
 if get_option('enable-fp16')
   test_target += [['unittest_nntrainer_tensor_fp16', []]]
   test_target += [['unittest_nntrainer_tensor_pool_fp16', []]]
-  test_target += [['unittest_nntrainer_tensor_v2_fp16', []]]
 endif
 
 if get_option('enable-profile')

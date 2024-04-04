@@ -205,9 +205,8 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
   // TODO: This transposed Input Tensor could be resued for backwarding
   Tensor in = transposeTensor(input_);
 
-  Tensor out =
-    Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true,
-           Tensor::Initializer::NONE, context.getName() + ":inter_output");
+  Tensor out = Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true,
+                      Initializer::NONE, context.getName() + ":inter_output");
 
   TensorDim i_dim = in_dim;
   i_dim.channel(1);
@@ -223,8 +222,8 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
     h_g = transposeTensor(hidden_g);
   }
 
-  Var_Grad in_var(i_dim, Tensor::Initializer::NONE, false, false, "input");
-  Var_Grad out_var(h_dim, Tensor::Initializer::NONE,
+  Var_Grad in_var(i_dim, Initializer::NONE, false, false, "input");
+  Var_Grad out_var(h_dim, Initializer::NONE,
                    dist_layer->requireLabel() &&
                      context.isLabelAvailable(SINGLE_INOUT_IDX),
                    false, "output");
@@ -280,8 +279,8 @@ void TimeDistLayer::calcDerivative(RunLayerContext &context) {
   TensorDim r_dim = {ret_dim[2], 1, 1, ret_dim[3]};
   TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
 
-  Var_Grad in_var(r_dim, Tensor::Initializer::NONE, true, false, "input");
-  Var_Grad out_var(d_dim, Tensor::Initializer::NONE, true, false, "output");
+  Var_Grad in_var(r_dim, Initializer::NONE, true, false, "input");
+  Var_Grad out_var(d_dim, Initializer::NONE, true, false, "output");
 
   fillWeightsFromContext(context);
   fillTensorsFromContext(context);
@@ -346,8 +345,8 @@ void TimeDistLayer::calcGradient(RunLayerContext &context) {
     Tensor d_iter = derivative_.getSharedDataTensor(
       d_dim, i * d_dim.batch() * d_dim.width(), true, derivative_.getName());
 
-    Var_Grad in_var(i_dim, Tensor::Initializer::NONE, true, false, "input");
-    Var_Grad out_var(d_dim, Tensor::Initializer::NONE, true, false, "output");
+    Var_Grad in_var(i_dim, Initializer::NONE, true, false, "input");
+    Var_Grad out_var(d_dim, Initializer::NONE, true, false, "output");
 
     in_var.initializeVariable(in_iter);
     out_var.initializeGradient(d_iter);
@@ -388,8 +387,8 @@ void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
     TensorDim i_dim = {in_dim[2], 1, 1, in_dim[3]};
     TensorDim o_dim = {out_dim[2], 1, 1, out_dim[3]};
 
-    Var_Grad in_var(i_dim, Tensor::Initializer::NONE, true, false, "input");
-    Var_Grad out_var(o_dim, Tensor::Initializer::NONE, true, false, "output");
+    Var_Grad in_var(i_dim, Initializer::NONE, true, false, "input");
+    Var_Grad out_var(o_dim, Initializer::NONE, true, false, "output");
 
     fillWeightsFromContext(context);
     fillTensorsFromContext(context);
