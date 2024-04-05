@@ -40,7 +40,7 @@ enum FCParams { weight, bias };
 enum LORAParams { loraA, loraB, loraTmp, loraOut };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(), fc_props(props::Unit(), props::LoraRank()) {
+  LayerImpl(), fc_props(props::Unit(), props::LoraRank(), props::LoraAlpha()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -56,10 +56,13 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
   auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
 
-  auto unit = std::get<props::Unit>(fc_props).get();
-  auto lora_rank = (std::get<props::LoraRank>(fc_props).empty())
-                     ? 0
-                     : std::get<props::LoraRank>(fc_props).get();
+  const auto &unit = std::get<props::Unit>(fc_props).get();
+  const auto &lora_rank = (std::get<props::LoraRank>(fc_props).empty())
+                            ? 0
+                            : std::get<props::LoraRank>(fc_props).get();
+  lora_scaling = (lora_rank && !std::get<props::LoraAlpha>(fc_props).empty())
+                   ? (float)std::get<props::LoraAlpha>(fc_props) / lora_rank
+                   : 1;
 
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Fully connected layer takes only one input";
@@ -130,11 +133,11 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
       is_nchw ? 0b0001 : 0b0100);
 
     lora_idx[LORAParams::loraA] = context.requestWeight(
-      loraA_dim, weight_initializer, weight_regularizer,
+      loraA_dim, Tensor::Initializer::ZEROS, weight_regularizer,
       weight_regularizer_constant, weight_decay, "loraA", true);
 
     lora_idx[LORAParams::loraB] = context.requestWeight(
-      loraB_dim, weight_initializer, weight_regularizer,
+      loraB_dim, Tensor::Initializer::LECUN_NORMAL, weight_regularizer,
       weight_regularizer_constant, weight_decay, "loraB", true);
 
     lora_idx[LORAParams::loraTmp] = context.requestTensor(
@@ -189,6 +192,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
 
     input_.dot(loraA, hidden_tmp_lora, false, false);
     hidden_tmp_lora.dot(loraB, hidden_out_lora, false, false);
+    hidden_out_lora.multiply_i(lora_scaling);
     hidden_.add_i(hidden_out_lora);
   }
 
@@ -249,8 +253,8 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   if (!std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
-    ret_.dot_deriv_wrt_1(weight.add(lora_A.dot(lora_B)), derivative_, false,
-                         false);
+    ret_.dot_deriv_wrt_1(weight.add(lora_A.dot(lora_B).multiply(lora_scaling)),
+                         derivative_, false, false);
   } else {
     ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
   }
@@ -292,13 +296,14 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
     Tensor &loraTmp = context.getTensor(lora_idx[LORAParams::loraTmp]);
+    const auto &lora_derivative_ = derivative_.multiply(lora_scaling);
 
     loraTmp.dot_deriv_wrt_2(
-      djdlb, derivative_, false, false,
+      djdlb, lora_derivative_, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
     djdtmp.dot_deriv_wrt_1(
-      loraB, derivative_, false, false,
-      !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
+      loraB, lora_derivative_, false, false,
+      !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp]));
     input_.dot_deriv_wrt_2(
       djdla, djdtmp, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]));
