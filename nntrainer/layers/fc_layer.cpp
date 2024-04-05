@@ -40,7 +40,8 @@ enum FCParams { weight, bias };
 enum LORAParams { loraA, loraB, loraTmp, loraOut };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(), fc_props(props::Unit(), props::LoraRank()) {
+  LayerImpl(),
+  fc_props(props::Unit(), props::LoraRank(), props::LoraScaling()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -186,9 +187,11 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
     Tensor &hidden_tmp_lora = context.getTensor(lora_idx[LORAParams::loraTmp]);
     Tensor &hidden_out_lora = context.getTensor(lora_idx[LORAParams::loraOut]);
+    const auto &lora_scaling = std::get<props::LoraScaling>(fc_props).get();
 
     input_.dot(loraA, hidden_tmp_lora, false, false);
     hidden_tmp_lora.dot(loraB, hidden_out_lora, false, false);
+    hidden_out_lora.multiply_i(lora_scaling);
     hidden_.add_i(hidden_out_lora);
   }
 
@@ -249,8 +252,9 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   if (!std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
-    ret_.dot_deriv_wrt_1(weight.add(lora_A.dot(lora_B)), derivative_, false,
-                         false);
+    const auto &lora_scaling = std::get<props::LoraScaling>(fc_props).get();
+    ret_.dot_deriv_wrt_1(weight.add(lora_A.dot(lora_B).multiply(lora_scaling)),
+                         derivative_, false, false);
   } else {
     ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
   }
@@ -292,13 +296,15 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
     Tensor &loraTmp = context.getTensor(lora_idx[LORAParams::loraTmp]);
+    const auto &lora_scaling = std::get<props::LoraScaling>(fc_props).get();
+    const auto &lora_derivative_ = derivative_.multiply(lora_scaling);
 
     loraTmp.dot_deriv_wrt_2(
-      djdlb, derivative_, false, false,
+      djdlb, lora_derivative_, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
     djdtmp.dot_deriv_wrt_1(
-      loraB, derivative_, false, false,
-      !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
+      loraB, lora_derivative_, false, false,
+      !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp]));
     input_.dot_deriv_wrt_2(
       djdla, djdtmp, false, false,
       !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]));

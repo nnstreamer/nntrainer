@@ -1340,7 +1340,19 @@ class LoraRank : public PositiveIntegerProperty {
 public:
   static constexpr const char *key = "lora_rank"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                 /**< property type */
-  ;
+};
+
+/**
+ * @brief LoRA scaling parameter
+ * @details It is used to set the scaling factor of LoRA, which is calculated as
+ * `scaling = alpha / rank` in the original paper. Defulat = 1.
+ */
+class LoraScaling : public Property<float> {
+public:
+  LoraScaling(float value = 1.0) : nntrainer::Property<float>(value) {}
+  static constexpr const char *key =
+    "lora_scaling";                /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
 };
 
 /**
