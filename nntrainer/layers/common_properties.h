@@ -1343,7 +1343,17 @@ class LoraRank : public PositiveIntegerProperty {
 public:
   static constexpr const char *key = "lora_rank"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                 /**< property type */
-  ;
+};
+
+/**
+ * @brief LoRA alpha parameter
+ * @details It is used to set the scaling factor of LoRA, which is calculated as
+ * `scaling = alpha / rank` in the original paper.
+ */
+class LoraAlpha : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "lora_alpha"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                  /**< property type */
 };
 
 /**
