@@ -841,37 +841,36 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
   std::vector<float *> output;
 
-  unsigned int idx = 0;
-  if (!from) {
-    idx = to - 1;
-  }
+  unsigned int step = from ? 0 : to - 1;
+
   for (auto &out : output_tensors) {
-    if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
+    const auto &out_t = *out.get();
+    float *last_out_buf_data = new float[batch_size * out_t.width()];
+
+    for (unsigned int batch = 0; batch < batch_size; ++batch) {
+      if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-      auto out_t = *out.get();
-      float *vec_fp32 = new float[out_t.width()];
-      for (unsigned int i = 0; i < out_t.width(); ++i) {
-        (vec_fp32)[i] = static_cast<float>(out_t.getValue<_FP16>(0, 0, idx, i));
-      }
-      output.emplace_back(vec_fp32);
+        const _FP16 *out_t_batch_ptr = out_t.getData<_FP16>() +
+                                       batch * out_t.getDim().getFeatureLen() +
+                                       step * out_t.getDim().width();
+        scopy(out_t.getDim().width(), out_t_batch_ptr, 1,
+              last_out_buf_data + batch * out_t.width(), 1);
+
 #else
-      throw std::invalid_argument("Errro: enable-fp16 is not set");
+        const float *out_t_batch_ptr = out_t.getData() +
+                                       batch * out_t.getDim().getFeatureLen() +
+                                       step * out_t.getDim().width();
+        scopy(out_t.getDim().width(), (float *)out_t_batch_ptr, 1,
+              last_out_buf_data + batch * out_t.width(), 1);
 #endif
-    } else {
-      const auto &out_t = *out.get();
-      TensorDim last_out_dim = out_t.getDim();
-      last_out_dim.height(1);
-      Tensor last_out =
-        out_t.getSharedDataTensor(last_out_dim, out_t.width() * idx, true);
-      output.push_back(last_out.getData());
+      }
     }
-    idx++;
+
+    output.push_back(last_out_buf_data);
   }
 
   return output;
 }
-
-//
 
 int NeuralNetwork::setDataset(const DatasetModeType &mode,
                               std::shared_ptr<ml::train::Dataset> dataset) {
