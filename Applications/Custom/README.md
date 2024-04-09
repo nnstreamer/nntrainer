@@ -22,4 +22,4 @@ There are two ways to apply custom object to the code.
 
 
 1. **Pow Layer**: A custom layer object which get x -> returns x^(exponent), exponent can be set by `layer.setProperty({"exponent={n}"});`.
-2. **Mean Absoulute Error(MAE) Loss Layer**: A loss layer object which calculates MAE.
+2. **Mean Absolute Error(MAE) Loss Layer**: A loss layer object which calculates MAE.
