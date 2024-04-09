@@ -81,6 +81,9 @@ public:
     case ActivationType::ACT_NONE:
       this->setActivation<T>(no_op<T>, no_op_prime<T>);
       break;
+    case ActivationType::ACT_ELU:
+      this->setActivation<T>(elu<T>, eluPrime<T>);
+      break;
     case ActivationType::ACT_UNKNOWN:
     default:
       throw std::runtime_error("Error: Not Supported Activation Type");
@@ -425,6 +428,35 @@ public:
   }
 
   /**
+   * @brief elu function
+   * @note alpha parameter is needed for elu, but supporting property on
+   * this class will need extensive refactoring. For now 1.0 is used for
+   * alpha.
+   *
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T elu(T x) {
+    return x >= static_cast<T>(0.0) ? x : static_cast<T>(alpha) * (exp(x) - 1);
+  }
+
+  /**
+   * @brief elu prime function
+   * @note alpha parameter is needed for elu, but supporting property on
+   * this class will need extensive refactoring. For now 1.0 is used for
+   * alpha.
+   *
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T eluPrime(T x) {
+    return x >= static_cast<T>(0.0) ? static_cast<T>(1.0)
+                                    : static_cast<T>(alpha) * exp(x);
+  }
+
+  /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative
@@ -588,6 +620,8 @@ public:
   }
 
 private:
+  constexpr static inline float alpha = 1.0f; /**< alpha for elu */
+
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
   std::function<Tensor &(Tensor const &, Tensor &, Tensor &, Tensor const &)>
     _act_prime_fn; /**< prime function with input and output*/

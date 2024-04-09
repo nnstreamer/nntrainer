@@ -594,6 +594,14 @@ Softmax(const std::vector<std::string> &properties = {}) {
   return Activation("Activation=softmax", properties);
 }
 
+/**
+ * @brief Helper function to create elu activation layer
+ */
+inline std::unique_ptr<Layer>
+ELU(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=elu", properties);
+}
+
 } // namespace layer
 
 namespace loss {
