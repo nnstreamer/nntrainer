@@ -4,7 +4,7 @@
  *
  * @file   reorganization.h
  * @date   4 April 2023
- * @brief  This file contains the mean absoulte error loss as a sample layer
+ * @brief  This file contains the mean absolute error loss as a sample layer
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @bug    No known bugs except for NYI items
