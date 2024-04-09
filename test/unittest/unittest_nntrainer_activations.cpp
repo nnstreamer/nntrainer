@@ -412,6 +412,57 @@ TEST(nntrainer_activation, geluPrime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, elu_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {-0.32967997, -0.25918180, -0.18126923, -0.09516257, 0.0,
+                      0.1,         0.2,         0.3,         0.4,         0.5,
+                      -0.55067104, -0.45118839, -0.32967997, -0.18126923, 0.0,
+                      0.2,         0.4,         0.6,         0.8,         1.0,
+                      -0.69880581, -0.59343034, -0.45118839, -0.25918180, 0.0,
+                      0.3,         0.6,         0.9,         1.2,         1.5};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor elu_result =
+    input.apply<float>(nntrainer::ActiFunc::elu<float>);
+  float *data = elu_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, eluPrime_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float answer[30] = {0.67032003, 0.74081820, 0.81873077, 0.90483743, 1.0,
+                      1.0,        1.0,        1.0,        1.0,        1.0,
+                      0.44932896, 0.54881161, 0.67032003, 0.81873077, 1.0,
+                      1.0,        1.0,        1.0,        1.0,        1.0,
+                      0.30119419, 0.40656966, 0.54881161, 0.74081820, 1.0,
+                      1.0,        1.0,        1.0,        1.0,        1.0};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor elu_prime_result =
+    input.apply<float>(nntrainer::ActiFunc::eluPrime<float>);
+  float *data = elu_prime_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 /**
  * @brief Main gtest
  */

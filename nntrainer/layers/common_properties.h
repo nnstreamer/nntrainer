@@ -37,6 +37,7 @@ enum class ActivationType {
   ACT_GELU,       /**< GELU */
   ACT_SOFTMAX,    /**< softmax */
   ACT_LEAKY_RELU, /**< Leaky ReLU */
+  ACT_ELU,        /**< ELU */
   ACT_NONE,       /**< no op */
   ACT_UNKNOWN     /**< unknown */
 };
