@@ -122,6 +122,60 @@ TEST(nntrainer_activation, softmax_prime_02_n) {
                std::invalid_argument);
 }
 
+TEST(nntrainer_activation, softplus_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    0.51301527, 0.55435520, 0.59813887, 0.64439666, 0.69314718, 0.74439669,
+    0.79813886, 0.85435522, 0.91301525, 0.97407699, 0.37110066, 0.43748793,
+    0.51301527, 0.59813887, 0.69314718, 0.79813886, 0.91301525, 1.03748798,
+    1.17110062, 1.31326163, 0.26328245, 0.34115386, 0.43748793, 0.55435526,
+    0.69314718, 0.85435528, 1.03748798, 1.24115384, 1.46328247, 1.70141327};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor softplus_result =
+    input.apply<float>(nntrainer::ActiFunc::softplus<float>);
+
+  float *data = softplus_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, softplusPrime_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    0.40131232, 0.42555746, 0.45016599, 0.47502083, 0.50000000, 0.52497917,
+    0.54983401, 0.57444251, 0.59868765, 0.62245935, 0.31002554, 0.35434368,
+    0.40131232, 0.45016599, 0.50000000, 0.54983401, 0.59868771, 0.64565635,
+    0.68997449, 0.73105860, 0.23147520, 0.28905049, 0.35434368, 0.42555746,
+    0.50000000, 0.57444257, 0.64565635, 0.71094948, 0.76852477, 0.81757450};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor softplus_prime_result =
+    input.apply<float>(nntrainer::ActiFunc::softplusPrime<float>);
+
+  float *data = softplus_prime_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 TEST(nntrainer_activation, sigmoid_01_p) {
   int batch = 3;
   int channel = 1;

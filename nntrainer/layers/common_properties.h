@@ -36,6 +36,7 @@ enum class ActivationType {
   ACT_SWISH,      /**< Swish */
   ACT_GELU,       /**< GELU */
   ACT_SOFTMAX,    /**< softmax */
+  ACT_SOFTPLUS,   /**< softplus */
   ACT_LEAKY_RELU, /**< Leaky ReLU */
   ACT_ELU,        /**< ELU */
   ACT_NONE,       /**< no op */
