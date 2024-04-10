@@ -78,6 +78,9 @@ public:
       in_place = false;
       this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
       break;
+    case ActivationType::ACT_SOFTPLUS:
+      this->setActivation<T>(softplus<T>, softplusPrime<T>);
+      break;
     case ActivationType::ACT_NONE:
       this->setActivation<T>(no_op<T>, no_op_prime<T>);
       break;
@@ -345,6 +348,27 @@ public:
   template <typename T = float> static T leakyReluPrime(T x) {
     return x >= static_cast<T>(0.0) ? static_cast<T>(1.0)
                                     : static_cast<T>(NEGATIVE_SLOPE);
+  }
+
+  /**
+   * @brief     Softplus activation function
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T softplus(T x) {
+    /** TODO: Change beta to be a property */
+    return static_cast<T>(log(1 + exp_util<T>(beta * x)) / beta);
+  }
+
+  /**
+   * @brief     derivative softplus function
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T softplusPrime(T x) {
+    return sigmoid<T>(beta * x);
   }
 
   /**
@@ -621,6 +645,7 @@ public:
 
 private:
   constexpr static inline float alpha = 1.0f; /**< alpha for elu */
+  constexpr static inline float beta = 1.0f;  /**< beta for Softplus */
 
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
   std::function<Tensor &(Tensor const &, Tensor &, Tensor &, Tensor const &)>
