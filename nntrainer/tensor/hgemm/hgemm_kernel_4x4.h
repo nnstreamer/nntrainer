@@ -14,6 +14,84 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
+// 1. Partial sum 128 digits : worst accuracy, best latency
+#define KERNEL_4x4_ACC8()                \
+  v24 = vdup_n_f16(0.F);                 \
+  v25 = vdup_n_f16(0.F);                 \
+  v26 = vdup_n_f16(0.F);                 \
+  v27 = vdup_n_f16(0.F);                 \
+  dv0 = vld1_f16(a);                     \
+  vb0 = vld1_f16(b);                     \
+  v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
+  v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
+  v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
+  v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
+  dv1 = vld1_f16(a + 4);                 \
+  vb1 = vld1_f16(b + 4);                 \
+  v24 = vfma_lane_f16(v24, vb1, dv1, 0); \
+  v25 = vfma_lane_f16(v25, vb1, dv1, 1); \
+  v26 = vfma_lane_f16(v26, vb1, dv1, 2); \
+  v27 = vfma_lane_f16(v27, vb1, dv1, 3); \
+  dv2 = vld1_f16(a + 8);                 \
+  vb2 = vld1_f16(b + 8);                 \
+  v24 = vfma_lane_f16(v24, vb2, dv2, 0); \
+  v25 = vfma_lane_f16(v25, vb2, dv2, 1); \
+  v26 = vfma_lane_f16(v26, vb2, dv2, 2); \
+  v27 = vfma_lane_f16(v27, vb2, dv2, 3); \
+  dv3 = vld1_f16(a + 12);                \
+  vb3 = vld1_f16(b + 12);                \
+  v24 = vfma_lane_f16(v24, vb3, dv3, 0); \
+  v25 = vfma_lane_f16(v25, vb3, dv3, 1); \
+  v26 = vfma_lane_f16(v26, vb3, dv3, 2); \
+  v27 = vfma_lane_f16(v27, vb3, dv3, 3); \
+  dv4 = vld1_f16(a + 16);                \
+  vb4 = vld1_f16(b + 16);                \
+  v24 = vfma_lane_f16(v24, vb4, dv4, 0); \
+  v25 = vfma_lane_f16(v25, vb4, dv4, 1); \
+  v26 = vfma_lane_f16(v26, vb4, dv4, 2); \
+  v27 = vfma_lane_f16(v27, vb4, dv4, 3); \
+  dv5 = vld1_f16(a + 20);                \
+  vb5 = vld1_f16(b + 20);                \
+  v24 = vfma_lane_f16(v24, vb5, dv5, 0); \
+  v25 = vfma_lane_f16(v25, vb5, dv5, 1); \
+  v26 = vfma_lane_f16(v26, vb5, dv5, 2); \
+  v27 = vfma_lane_f16(v27, vb5, dv5, 3); \
+  dv6 = vld1_f16(a + 24);                \
+  vb6 = vld1_f16(b + 24);                \
+  v24 = vfma_lane_f16(v24, vb6, dv6, 0); \
+  v25 = vfma_lane_f16(v25, vb6, dv6, 1); \
+  v26 = vfma_lane_f16(v26, vb6, dv6, 2); \
+  v27 = vfma_lane_f16(v27, vb6, dv6, 3); \
+  dv7 = vld1_f16(a + 28);                \
+  vb7 = vld1_f16(b + 28);                \
+  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+  l += 8;                                \
+  __builtin_prefetch(b + 32, 0, 3);      \
+  __builtin_prefetch(a + 32, 0, 3);      \
+  b += 4 * 8;                            \
+  a += 4 * 8;
+
+// 2. Partial sum 16 digits : Best accuracy, worst latency
+#define KERNEL_4x4_ACC1()                \
+  v24 = vdup_n_f16(0.F);                 \
+  v25 = vdup_n_f16(0.F);                 \
+  v26 = vdup_n_f16(0.F);                 \
+  v27 = vdup_n_f16(0.F);                 \
+  dv0 = vld1_f16(a);                     \
+  vb0 = vld1_f16(b);                     \
+  v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
+  v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
+  v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
+  v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
+  l += 1;                                \
+  __builtin_prefetch(b + 4, 0, 3);       \
+  __builtin_prefetch(a + 4, 0, 3);       \
+  b += 4 * 1;                            \
+  a += 4 * 1;
+
 /**
  * @brief hgemm 4x4 kernel sc = sa * sb
  *
@@ -126,54 +204,19 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
-      float16x4_t v24 = {0};
-      float16x4_t v25 = {0};
-      float16x4_t v26 = {0};
-      float16x4_t v27 = {0};
+      float16x4_t v24, v25, v26, v27;
+      float16x4_t dv0, dv1, dv2, dv3, dv4, dv5, dv6, dv7;
+      float16x4_t vb0, vb1, vb2, vb3, vb4, vb5, vb6, vb7;
 
-      for (l = 0; l < K; l += VL_FP16_HALF) {
-        float16x4_t v0 = vld1_f16(b);
-        float16x4_t v16 = vld1_f16(a);
+      for (l = 0; l < K;) {
+        KERNEL_4x4_ACC8();
 
-        v24 = vfma_lane_f16(v24, v0, v16, 0);
-        v25 = vfma_lane_f16(v25, v0, v16, 1);
-        v26 = vfma_lane_f16(v26, v0, v16, 2);
-        v27 = vfma_lane_f16(v27, v0, v16, 3);
-
-        float16x4_t v1 = vld1_f16(b + 4);
-        float16x4_t v17 = vld1_f16(a + 4);
-
-        v24 = vfma_lane_f16(v24, v1, v17, 0);
-        v25 = vfma_lane_f16(v25, v1, v17, 1);
-        v26 = vfma_lane_f16(v26, v1, v17, 2);
-        v27 = vfma_lane_f16(v27, v1, v17, 3);
-
-        float16x4_t v2 = vld1_f16(b + 8);
-        float16x4_t v18 = vld1_f16(a + 8);
-
-        v24 = vfma_lane_f16(v24, v2, v18, 0);
-        v25 = vfma_lane_f16(v25, v2, v18, 1);
-        v26 = vfma_lane_f16(v26, v2, v18, 2);
-        v27 = vfma_lane_f16(v27, v2, v18, 3);
-
-        float16x4_t v3 = vld1_f16(b + 12);
-        float16x4_t v19 = vld1_f16(a + 12);
-
-        v24 = vfma_lane_f16(v24, v3, v19, 0);
-        v25 = vfma_lane_f16(v25, v3, v19, 1);
-        v26 = vfma_lane_f16(v26, v3, v19, 2);
-        v27 = vfma_lane_f16(v27, v3, v19, 3);
-
-        __builtin_prefetch(b + 16, 0, 3);
-        __builtin_prefetch(a + 16, 0, 3);
-
-        b += 16;
-        a += 16;
-
-        vst1_f32(c, vadd_f32(vld1_f32(c), vcvt_f32_f16(v24)));
-        vst1_f32(c + ldc, vadd_f32(vld1_f32(c + ldc), vcvt_f32_f16(v25)));
-        vst1_f32(c + 2 * ldc, vadd_f32(vld1_f32(c + 2 * ldc), vcvt_f32_f16(v26)));
-        vst1_f32(c + 3 * ldc,  vadd_f32(vld1_f32(c + 3 * ldc), vcvt_f32_f16(v27)));
+        vst1q_f32(c, vaddq_f32(vld1q_f32(c), vcvt_f32_f16(v24)));
+        vst1q_f32(c + ldc, vaddq_f32(vld1q_f32(c + ldc), vcvt_f32_f16(v25)));
+        vst1q_f32(c + 2 * ldc,
+                  vaddq_f32(vld1q_f32(c + 2 * ldc), vcvt_f32_f16(v26)));
+        vst1q_f32(c + 3 * ldc,
+                  vaddq_f32(vld1q_f32(c + 3 * ldc), vcvt_f32_f16(v27)));
       }
 
       c += 4;
@@ -185,4 +228,3 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
     b = sb;
   }
 }
-
