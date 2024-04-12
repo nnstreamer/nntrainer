@@ -478,7 +478,6 @@ void hgemm_noTrans_4x4(unsigned int M, unsigned int N, unsigned int K,
   free(sb);
 }
 
-
 void hgemm_noTrans_4x8(unsigned int M, unsigned int N, unsigned int K,
                        const __fp16 *A, unsigned int lda, const __fp16 *B,
                        unsigned int ldb, __fp16 *C, unsigned int ldc,
