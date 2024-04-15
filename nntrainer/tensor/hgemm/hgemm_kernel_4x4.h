@@ -20,7 +20,7 @@
   v26 = vdup_n_f16(0.F);  \
   v27 = vdup_n_f16(0.F);
 
-// 1. Partial sum 256 digits : Medium accuracy, medium latency
+// 1. Partial sum 256 digits
 #define KERNEL_4x4_ACC16()               \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
@@ -124,7 +124,7 @@
   b += 4 * 16;                           \
   a += 4 * 16;
 
-// 2. Partial sum 128 digits : Medium accuracy, medium latency
+// 2. Partial sum 128 digits
 #define KERNEL_4x4_ACC8()                \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
@@ -180,7 +180,7 @@
   b += 4 * 8;                            \
   a += 4 * 8;
 
-// 2. Partial sum 16 digits : Best accuracy, worst latency
+// 2. Partial sum 16 digits
 #define KERNEL_4x4_ACC1()                \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
