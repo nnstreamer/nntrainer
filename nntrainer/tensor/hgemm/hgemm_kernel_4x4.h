@@ -14,12 +14,14 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
+#define INIT_KERNEL_4x4() \
+  v24 = vdup_n_f16(0.F);  \
+  v25 = vdup_n_f16(0.F);  \
+  v26 = vdup_n_f16(0.F);  \
+  v27 = vdup_n_f16(0.F);
+
 // 1. Partial sum 256 digits : Medium accuracy, medium latency
 #define KERNEL_4x4_ACC16()               \
-  v24 = vdup_n_f16(0.F);                 \
-  v25 = vdup_n_f16(0.F);                 \
-  v26 = vdup_n_f16(0.F);                 \
-  v27 = vdup_n_f16(0.F);                 \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
   v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
@@ -116,18 +118,14 @@
   v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
   v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
   v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  l += 16;                                \
+  l += 16;                               \
   __builtin_prefetch(b + 64, 0, 3);      \
   __builtin_prefetch(a + 64, 0, 3);      \
-  b += 4 * 16;                            \
+  b += 4 * 16;                           \
   a += 4 * 16;
 
 // 2. Partial sum 128 digits : Medium accuracy, medium latency
 #define KERNEL_4x4_ACC8()                \
-  v24 = vdup_n_f16(0.F);                 \
-  v25 = vdup_n_f16(0.F);                 \
-  v26 = vdup_n_f16(0.F);                 \
-  v27 = vdup_n_f16(0.F);                 \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
   v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
@@ -184,10 +182,6 @@
 
 // 2. Partial sum 16 digits : Best accuracy, worst latency
 #define KERNEL_4x4_ACC1()                \
-  v24 = vdup_n_f16(0.F);                 \
-  v25 = vdup_n_f16(0.F);                 \
-  v26 = vdup_n_f16(0.F);                 \
-  v27 = vdup_n_f16(0.F);                 \
   dv0 = vld1_f16(a);                     \
   vb0 = vld1_f16(b);                     \
   v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
@@ -230,10 +224,11 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
-      float16x4_t v24 = {0};
-      float16x4_t v25 = {0};
-      float16x4_t v26 = {0};
-      float16x4_t v27 = {0};
+      float16x4_t v24;
+      float16x4_t v25;
+      float16x4_t v26;
+      float16x4_t v27;
+      INIT_KERNEL_4x4();
 
       for (l = 0; l < K; l += VL_FP16_HALF) {
         float16x4_t v0 = vld1_f16(b);
@@ -326,14 +321,17 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
       float16x4_t vb0, vb1, vb2, vb3, vb4, vb5, vb6, vb7;
       l = 0;
       for (; l < K16;) {
+        INIT_KERNEL_4x4();
         KERNEL_4x4_ACC16();
         SAVE_KERNEL_4X4_F16_F32();
       }
       for (; l < K8;) {
+        INIT_KERNEL_4x4();
         KERNEL_4x4_ACC8();
         SAVE_KERNEL_4X4_F16_F32();
       }
       for (; l < K;) {
+        INIT_KERNEL_4x4();
         KERNEL_4x4_ACC1();
         SAVE_KERNEL_4X4_F16_F32();
       }
