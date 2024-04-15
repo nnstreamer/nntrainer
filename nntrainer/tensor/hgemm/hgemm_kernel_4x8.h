@@ -14,15 +14,14 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
-/// @note Following KERNELs are the combinations of accuracy-latency
-/// tradeoff. User can select which kernel to use by replacing them.
+#define INIT_KERNEL_4X8() \
+  v0 = vdupq_n_f16(0.F);  \
+  v3 = vdupq_n_f16(0.F);  \
+  v6 = vdupq_n_f16(0.F);  \
+  v9 = vdupq_n_f16(0.F);
 
 // 1. Partial sum 256 digits : worst accuracy, best latency
 #define KERNEL_4x8_ACC16()              \
-  v0 = vdupq_n_f16(0.F);                \
-  v3 = vdupq_n_f16(0.F);                \
-  v6 = vdupq_n_f16(0.F);                \
-  v9 = vdupq_n_f16(0.F);                \
   dv0 = vld1_f16(a);                    \
   v24 = vld1q_f16(b);                   \
   v0 = vfmaq_lane_f16(v0, v24, dv0, 0); \
@@ -127,10 +126,6 @@
 
 // 1. Partial sum 256 digits : worst accuracy, best latency
 #define KERNEL_4x8_ACC8()               \
-  v0 = vdupq_n_f16(0.F);                \
-  v3 = vdupq_n_f16(0.F);                \
-  v6 = vdupq_n_f16(0.F);                \
-  v9 = vdupq_n_f16(0.F);                \
   dv0 = vld1_f16(a);                    \
   v24 = vld1q_f16(b);                   \
   v0 = vfmaq_lane_f16(v0, v24, dv0, 0); \
@@ -187,10 +182,6 @@
 
 // 2. Partial sum 128 digits : medium accuracy, medium latency
 #define KERNEL_4x8_ACC4()               \
-  v0 = vdupq_n_f16(0.F);                \
-  v3 = vdupq_n_f16(0.F);                \
-  v6 = vdupq_n_f16(0.F);                \
-  v9 = vdupq_n_f16(0.F);                \
   dv0 = vld1_f16(a);                    \
   v24 = vld1q_f16(b);                   \
   v0 = vfmaq_lane_f16(v0, v24, dv0, 0); \
@@ -223,10 +214,6 @@
 
 // 3. Partial sum 32 digits : Best accuracy, worst latency
 #define KERNEL_4x8_ACC1()               \
-  v0 = vdupq_n_f16(0.F);                \
-  v3 = vdupq_n_f16(0.F);                \
-  v6 = vdupq_n_f16(0.F);                \
-  v9 = vdupq_n_f16(0.F);                \
   dv0 = vld1_f16(a);                    \
   v24 = vld1q_f16(b);                   \
   v0 = vfmaq_lane_f16(v0, v24, dv0, 0); \
@@ -274,7 +261,7 @@ void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
   assert(M % 4 == 0 && N % 8 == 0);
 
   __fp16 *a = sa, *b = sb, *c = sc;
-  unsigned int k8 = (K >> 3) << 3;
+  unsigned int K8 = (K >> 3) << 3;
   unsigned int i, j, l;
   for (i = 0; i < M; i += 4) {
     for (j = 0; j < N; j += 8) {
@@ -283,23 +270,18 @@ void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
       float16x8_t v0, v3, v6, v9;
       float16x8_t v24, v25, v26, v27, v28, v29, v30, v31;
       float16x4_t dv0, dv1, dv2, dv3, dv4, dv5, dv6, dv7;
+      INIT_KERNEL_4X8();
       l = 0;
-      for (; l < k8;) {
+      for (; l < K8;) {
         KERNEL_4x8_ACC8();
-
-        vst1q_f16(c, vaddq_f16(vld1q_f16(c), v0));
-        vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v3));
-        vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v6));
-        vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v9));
       }
       for (; l < K;) {
         KERNEL_4x8_ACC1();
-
-        vst1q_f16(c, vaddq_f16(vld1q_f16(c), v0));
-        vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v3));
-        vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v6));
-        vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v9));
       }
+      vst1q_f16(c, vaddq_f16(vld1q_f16(c), v0));
+      vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v3));
+      vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v6));
+      vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v9));
       c += 8;
       a -= 4 * K;
     }
@@ -341,18 +323,22 @@ void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
       float16x4_t dv0, dv1, dv2, dv3, dv4, dv5, dv6, dv7;
       l = 0;
       for (; l < K16;) {
+        INIT_KERNEL_4X8();
         KERNEL_4x8_ACC16();
         SAVE_KERNEL_4X8_F16_F32();
       }
       for (; l < K8;) {
+        INIT_KERNEL_4X8();
         KERNEL_4x8_ACC8();
         SAVE_KERNEL_4X8_F16_F32();
       }
       for (; l < K4;) {
+        INIT_KERNEL_4X8();
         KERNEL_4x8_ACC4();
         SAVE_KERNEL_4X8_F16_F32();
       }
       for (; l < K;) {
+        INIT_KERNEL_4X8();
         KERNEL_4x8_ACC1();
         SAVE_KERNEL_4X8_F16_F32();
       }

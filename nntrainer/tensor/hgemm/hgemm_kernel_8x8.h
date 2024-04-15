@@ -14,19 +14,18 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
-/// @note Following KERNELs are the combinations of accuracy-latency
-/// tradeoff. User can select which kernel to use by replacing them.
+#define INIT_KERNEL_8x8() \
+  v24 = vdupq_n_f16(0.F); \
+  v25 = vdupq_n_f16(0.F); \
+  v26 = vdupq_n_f16(0.F); \
+  v27 = vdupq_n_f16(0.F); \
+  v28 = vdupq_n_f16(0.F); \
+  v29 = vdupq_n_f16(0.F); \
+  v30 = vdupq_n_f16(0.F); \
+  v31 = vdupq_n_f16(0.F);
 
 // 1. Partial sum 1024 digits : Worst accuracy, best latency
 #define KERNEL_8x8_ACC16()                 \
-  v24 = vdupq_n_f16(0.F);                  \
-  v25 = vdupq_n_f16(0.F);                  \
-  v26 = vdupq_n_f16(0.F);                  \
-  v27 = vdupq_n_f16(0.F);                  \
-  v28 = vdupq_n_f16(0.F);                  \
-  v29 = vdupq_n_f16(0.F);                  \
-  v30 = vdupq_n_f16(0.F);                  \
-  v31 = vdupq_n_f16(0.F);                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
   v24 = vfmaq_laneq_f16(v24, v16, va0, 0); \
@@ -195,14 +194,6 @@
 
 // 2. Partial sum 512 digits : Medium accuracy, medium latency
 #define KERNEL_8x8_ACC8()                  \
-  v24 = vdupq_n_f16(0.F);                  \
-  v25 = vdupq_n_f16(0.F);                  \
-  v26 = vdupq_n_f16(0.F);                  \
-  v27 = vdupq_n_f16(0.F);                  \
-  v28 = vdupq_n_f16(0.F);                  \
-  v29 = vdupq_n_f16(0.F);                  \
-  v30 = vdupq_n_f16(0.F);                  \
-  v31 = vdupq_n_f16(0.F);                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
   v24 = vfmaq_laneq_f16(v24, v16, va0, 0); \
@@ -291,14 +282,6 @@
 
 // 3. Partial sum 256 digits : Medium accuracy, medium latency
 #define KERNEL_8x8_ACC4()                  \
-  v24 = vdupq_n_f16(0.F);                  \
-  v25 = vdupq_n_f16(0.F);                  \
-  v26 = vdupq_n_f16(0.F);                  \
-  v27 = vdupq_n_f16(0.F);                  \
-  v28 = vdupq_n_f16(0.F);                  \
-  v29 = vdupq_n_f16(0.F);                  \
-  v30 = vdupq_n_f16(0.F);                  \
-  v31 = vdupq_n_f16(0.F);                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
   v24 = vfmaq_laneq_f16(v24, v16, va0, 0); \
@@ -347,14 +330,6 @@
 
 // 4. Partial sum 64 digits : Best accuracy, worst latency
 #define KERNEL_8x8_ACC1()                  \
-  v24 = vdupq_n_f16(0.F);                  \
-  v25 = vdupq_n_f16(0.F);                  \
-  v26 = vdupq_n_f16(0.F);                  \
-  v27 = vdupq_n_f16(0.F);                  \
-  v28 = vdupq_n_f16(0.F);                  \
-  v29 = vdupq_n_f16(0.F);                  \
-  v30 = vdupq_n_f16(0.F);                  \
-  v31 = vdupq_n_f16(0.F);                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
   v24 = vfmaq_laneq_f16(v24, v16, va0, 0); \
@@ -437,19 +412,19 @@ void hgemm_kernel_8x8(unsigned int M, unsigned int N, unsigned int K,
       float16x8_t v16, v17, v18, v19, v20, v21, v22, v23;
       float16x8_t v24, v25, v26, v27, v28, v29, v30, v31;
       float16x8_t va0, va1, va2, va3, va4, va5, va6, va7;
+      INIT_KERNEL_8x8();
       l = 0;
       for (; l < K;) {
-        KERNEL_8x8_ACC8();
-
-        vst1q_f16(c, vaddq_f16(vld1q_f16(c), v24));
-        vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v25));
-        vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v26));
-        vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v27));
-        vst1q_f16(c + 4 * ldc, vaddq_f16(vld1q_f16(c + 4 * ldc), v28));
-        vst1q_f16(c + 5 * ldc, vaddq_f16(vld1q_f16(c + 5 * ldc), v29));
-        vst1q_f16(c + 6 * ldc, vaddq_f16(vld1q_f16(c + 6 * ldc), v30));
-        vst1q_f16(c + 7 * ldc, vaddq_f16(vld1q_f16(c + 7 * ldc), v31));
+        KERNEL_8x8_ACC1();
       }
+      vst1q_f16(c, vaddq_f16(vld1q_f16(c), v24));
+      vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v25));
+      vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v26));
+      vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v27));
+      vst1q_f16(c + 4 * ldc, vaddq_f16(vld1q_f16(c + 4 * ldc), v28));
+      vst1q_f16(c + 5 * ldc, vaddq_f16(vld1q_f16(c + 5 * ldc), v29));
+      vst1q_f16(c + 6 * ldc, vaddq_f16(vld1q_f16(c + 6 * ldc), v30));
+      vst1q_f16(c + 7 * ldc, vaddq_f16(vld1q_f16(c + 7 * ldc), v31));
       c += 8;
       a -= 8 * K;
     }
@@ -492,18 +467,22 @@ void hgemm_kernel_8x8(unsigned int M, unsigned int N, unsigned int K,
       float16x8_t va0, va1, va2, va3, va4, va5, va6, va7;
       l = 0;
       for (; l < K16;) {
+        INIT_KERNEL_8x8();
         KERNEL_8x8_ACC16();
         SAVE_KERNEL_8X8_F16_f32();
       }
       for (; l < K8;) {
+        INIT_KERNEL_8x8();
         KERNEL_8x8_ACC8();
         SAVE_KERNEL_8X8_F16_f32();
       }
       for (; l < K4;) {
+        INIT_KERNEL_8x8();
         KERNEL_8x8_ACC4();
         SAVE_KERNEL_8X8_F16_f32();
       }
       for (; l < K;) {
+        INIT_KERNEL_8x8();
         KERNEL_8x8_ACC1();
         SAVE_KERNEL_8X8_F16_f32();
       }
