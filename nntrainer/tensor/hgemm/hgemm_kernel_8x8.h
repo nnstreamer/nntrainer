@@ -24,7 +24,7 @@
   v30 = vdupq_n_f16(0.F); \
   v31 = vdupq_n_f16(0.F);
 
-// 1. Partial sum 1024 digits : Worst accuracy, best latency
+// 1. Partial sum 1024 digits
 #define KERNEL_8x8_ACC16()                 \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
@@ -192,7 +192,7 @@
   b += 8 * 16;                             \
   a += 8 * 16;
 
-// 2. Partial sum 512 digits : Medium accuracy, medium latency
+// 2. Partial sum 512 digits
 #define KERNEL_8x8_ACC8()                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
@@ -280,7 +280,7 @@
   b += 8 * 8;                              \
   a += 8 * 8;
 
-// 3. Partial sum 256 digits : Medium accuracy, medium latency
+// 3. Partial sum 256 digits
 #define KERNEL_8x8_ACC4()                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
@@ -328,7 +328,7 @@
   b += 8 * 4;                              \
   a += 8 * 4;
 
-// 4. Partial sum 64 digits : Best accuracy, worst latency
+// 4. Partial sum 64 digits
 #define KERNEL_8x8_ACC1()                  \
   va0 = vld1q_f16(a);                      \
   v16 = vld1q_f16(b);                      \
