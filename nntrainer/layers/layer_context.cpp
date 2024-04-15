@@ -586,7 +586,7 @@ bool RunLayerContext::clCreateKernel(std::string kernel_string,
 
   // checking bitmask for already initialized kernel. eg: 010 & 000 -> 0 but 010
   // & 110 -> 010
-  if (layerKernel == (kernelInitializedMask & layerKernel)) {
+  if (layerKernel & kernelInitializedMask) {
     ml_logi("Kernel already initialized: %s",
             getKernelName(layerKernel).c_str());
     return true;
@@ -604,7 +604,7 @@ bool RunLayerContext::clCreateKernel(std::string kernel_string,
                        getKernelName(layerKernel) + "_kernel.bin",
                      std::ios::binary | std::ios::in);
 
-    if (fs) {
+    if (fs.good()) {
       fs.seekg(0, std::ios::end);
       size_t binary_size = fs.tellg();
       fs.seekg(0, std::ios::beg);
