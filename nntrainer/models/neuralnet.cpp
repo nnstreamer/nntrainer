@@ -857,12 +857,14 @@ std::vector<float *> NeuralNetwork::incremental_inference(
               last_out_buf_data + batch * out_t.width(), 1);
 
 #else
+        throw std::invalid_argument("Error: enable-fp16 is not set");
+#endif
+      } else if (out->getDataType() == ml::train::TensorDim::DataType::FP32) {
         const float *out_t_batch_ptr = out_t.getData() +
                                        batch * out_t.getDim().getFeatureLen() +
                                        step * out_t.getDim().width();
-        scopy(out_t.getDim().width(), (float *)out_t_batch_ptr, 1,
+        scopy(out_t.getDim().width(), out_t_batch_ptr, 1,
               last_out_buf_data + batch * out_t.width(), 1);
-#endif
       }
     }
 
