@@ -13,9 +13,9 @@
 #include <arm_neon.h>
 #include <assert.h>
 
-#define A(i, j) a[(i)*lda + (j)]
-#define B(i, j) b[(i)*ldb + (j)]
-#define C(i, j) c[(i)*ldc + (j)]
+#define A(i, j) a[(i) * lda + (j)]
+#define B(i, j) b[(i) * ldb + (j)]
+#define C(i, j) c[(i) * ldc + (j)]
 
 #define N_BLOCKING (384)
 #define K_BLOCKING (256)
@@ -23,6 +23,7 @@
 #define GEMM_UNROLLING_16 (16)
 #define GEMM_UNROLLING_8 (8)
 #define GEMM_UNROLLING_4 (4)
+#define GEMM_UNROLLING_1 (1)
 #define VL_FP16 (8)
 #define VL_FP16_HALF (4)
 
