@@ -13,7 +13,7 @@
 /usr/include/nntrainer/tensor_base.h
 /usr/include/nntrainer/float_tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
-/usr/include/nntrainer/blas_interface.h
+# /usr/include/nntrainer/blas_interface.h
 /usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/weight.h
 # todo: update dataset headers

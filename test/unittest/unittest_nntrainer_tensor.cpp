@@ -4704,6 +4704,14 @@ TEST(nntrainer_Tensor, inv_sqrt_i_uncontiguous_p) {
   }
 }
 
+// void TransposeLayer::forwarding(nntrainer::RunLayerContext &context,
+//                                 bool training) {
+//   nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
+//   nntrainer::Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
+
+//   in.transpose("1:0:2", out);
+// }
+
 int main(int argc, char **argv) {
   int result = -1;
 
