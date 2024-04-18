@@ -6,12 +6,61 @@
  * @date   01 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is for half-precision packing for kernel-based GEMM
  */
 
 #include <assert.h>
 #include <hgemm_common.h>
+
+/**
+ * @brief packing function of input matrix A
+ *
+ * @param M length of the row of the matrix
+ * @param K length of the col of the matrix
+ * @param src input of original source of the matrix
+ * @param lda leading dimension of the matrix
+ * @param dst output of packed data of the matrix
+ */
+void packing_A1(unsigned int m, unsigned int k, const __fp16 *from,
+                unsigned int lda, const __fp16 *to) {
+
+  assert(k != 0 && m != 0 && k % 4 == 0 && m % 4 == 0);
+  unsigned int i, j;
+
+  __fp16 *a_offset, *a_offset1, *a_offset2, *a_offset3, *a_offset4;
+  __fp16 *b_offset;
+  __fp16 ctemp1, ctemp2, ctemp3, ctemp4;
+
+  a_offset = (__fp16 *)from;
+  b_offset = (__fp16 *)to;
+
+  j = m;
+  do {
+    a_offset1 = a_offset;
+    a_offset += lda;
+
+    i = (k >> 2);
+    do {
+      ctemp1 = *(a_offset1 + 0);
+      ctemp2 = *(a_offset1 + 1);
+      ctemp3 = *(a_offset1 + 2);
+      ctemp4 = *(a_offset1 + 3);
+
+      *(b_offset + 0) = ctemp1;
+      *(b_offset + 1) = ctemp2;
+      *(b_offset + 2) = ctemp3;
+      *(b_offset + 3) = ctemp4;
+
+      a_offset1 += 4;
+
+      b_offset += 4;
+      i--;
+    } while (i > 0);
+    j--;
+  } while (j > 0);
+}
 
 /**
  * @brief packing function of input matrix A
@@ -233,6 +282,32 @@ void packing_A8(unsigned int M, unsigned int K, const __fp16 *src,
       vst1q_f16(b_off + 48, _v11);
       vst1q_f16(b_off + 56, _v15);
       b_off += 64;
+    }
+  }
+}
+
+/**
+ * @brief packing function of input matrix B
+ *
+ * @param M length of the row of the matrix
+ * @param K length of the col of the matrix
+ * @param src input of original source of the matrix
+ * @param ldb leading dimension of the matrix
+ * @param dst output of packed data of the matrix
+ */
+void packing_B1(unsigned int K, unsigned int N, const __fp16 *src,
+                unsigned int ldb, const __fp16 *dst) {
+  assert(K != 0 && N != 0 && N % 8 == 0);
+
+  for (int i = 0; i < K; i++) {
+    const __fp16 *a_off = src + i * ldb;
+    __fp16 *b_off = (__fp16 *)dst + i;
+    for (int j = 0; j < N; j++) {
+      float16_t v = *(a_off);
+      a_off++;
+
+      *b_off = v;
+      b_off += K;
     }
   }
 }
