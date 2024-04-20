@@ -602,6 +602,14 @@ ELU(const std::vector<std::string> &properties = {}) {
   return Activation("Activation=elu", properties);
 }
 
+/**
+ * @brief Helper function to create mish activation layer
+ */
+inline std::unique_ptr<Layer>
+Mish(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=mish", properties);
+}
+
 } // namespace layer
 
 namespace loss {

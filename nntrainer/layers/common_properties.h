@@ -39,6 +39,7 @@ enum class ActivationType {
   ACT_SOFTPLUS,   /**< softplus */
   ACT_LEAKY_RELU, /**< Leaky ReLU */
   ACT_ELU,        /**< ELU */
+  ACT_MISH,       /**< Mish */
   ACT_NONE,       /**< no op */
   ACT_UNKNOWN     /**< unknown */
 };

@@ -78,14 +78,17 @@ public:
       in_place = false;
       this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
       break;
+    case ActivationType::ACT_ELU:
+      this->setActivation<T>(elu<T>, eluPrime<T>);
+      break;
     case ActivationType::ACT_SOFTPLUS:
       this->setActivation<T>(softplus<T>, softplusPrime<T>);
       break;
+    case ActivationType::ACT_MISH:
+      this->setActivation<T>(mish<T>, mishPrime<T>);
+      break;
     case ActivationType::ACT_NONE:
       this->setActivation<T>(no_op<T>, no_op_prime<T>);
-      break;
-    case ActivationType::ACT_ELU:
-      this->setActivation<T>(elu<T>, eluPrime<T>);
       break;
     case ActivationType::ACT_UNKNOWN:
     default:
@@ -478,6 +481,24 @@ public:
   template <typename T = float> static T eluPrime(T x) {
     return x >= static_cast<T>(0.0) ? static_cast<T>(1.0)
                                     : static_cast<T>(alpha) * exp(x);
+  }
+
+  /**
+   * @brief     mish activation function
+   * @param[in] x input
+   */
+  template <typename T = float> static T mish(T x) {
+    return static_cast<T>(x * tanhFloat<T>(softplus<T>(x)));
+  }
+
+  /**
+   * @brief     mish prime function
+   * @param[in] x input
+   */
+  template <typename T = float> static T mishPrime(T x) {
+    return static_cast<T>(tanhFloat<T>(softplus<T>(x)) +
+                          x * softplusPrime<T>(x) *
+                            tanhPrime<T>(tanhFloat<T>(softplus<T>(x))));
   }
 
   /**

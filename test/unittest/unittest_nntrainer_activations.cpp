@@ -517,6 +517,59 @@ TEST(nntrainer_activation, eluPrime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, mish_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    -0.18891649, -0.15113318, -0.10714479, -0.05678857, 0.00000000,
+    0.06317942,  0.13259898,  0.20800139,  0.28903052,  0.37524524,
+    -0.28396326, -0.24693604, -0.18891649, -0.10714479, 0.00000000,
+    0.13259898,  0.28903052,  0.46613652,  0.65969974,  0.86509836,
+    -0.30883580, -0.29565641, -0.24693604, -0.15113318, 0.00000000,
+    0.20800139,  0.46613652,  0.76120591,  1.07794595,  1.40337825};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor mish_result =
+    input.apply<float>(nntrainer::ActiFunc::mish<float>);
+  float *data = mish_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, mishPrime_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    0.34757277, 0.40851089, 0.47153026,  0.53570276, 0.60000002, 0.66333681,
+    0.72462445, 0.78282732, 0.83701748,  0.88642442, 0.13818233, 0.23496543,
+    0.34757277, 0.47153026, 0.60000002,  0.72462445, 0.83701748, 0.93047082,
+    1.00125492, 1.04903626, -0.00200878, 0.09643580, 0.23496543, 0.40851089,
+    0.60000002, 0.78282732, 0.93047082,  1.02791822, 1.07635069, 1.08848798};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor mish_prime_result =
+    input.apply<float>(nntrainer::ActiFunc::mishPrime<float>);
+  float *data = mish_prime_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 /**
  * @brief Main gtest
  */
