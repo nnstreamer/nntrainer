@@ -7,6 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: install dev packages
+        run: |
+          echo "Install mandatory dev packages to avoid false-positive reports from cpp-linter"
+          sudo apt-get update
+          sudo apt-get install libstdc++-*-dev
       - uses: cpp-linter/cpp-linter-action@v2.8.0
         id: linter
         env:
