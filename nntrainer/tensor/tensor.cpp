@@ -1726,7 +1726,7 @@ Tensor Tensor::sum_by_batch() const {
 
     Tensor ones(1, 1, 1, feat_len, this->getFormat());
     ones.setValue(1.0);
-    sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
+    sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data, feat_len,
           ones.getData<float>(), 1, 0.0, rdata, 1);
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -1735,7 +1735,7 @@ Tensor Tensor::sum_by_batch() const {
 
     Tensor ones(1, 1, 1, feat_len, this->getTensorType());
     ones.setValue((_FP16)1.0);
-    sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
+    sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data, feat_len,
           ones.getData<_FP16>(), 1, 0.0, rdata, 1);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -1779,7 +1779,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       size_t batch = dim.batch();
       Tensor ones(1, 1, 1, batch, this->getFormat());
       ones.setValue(alpha);
-      sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
+      sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data, feat_len,
             ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
     } break;
     case 1: {
@@ -1789,7 +1789,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int n = dim[1];
         Tensor ones(1, 1, 1, n, this->getTensorType());
         ones.setValue(alpha);
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+        sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
               ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
       } else {
         unsigned int feat_len = dim[2] * dim[3];
@@ -1798,7 +1798,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         ones.setValue(alpha);
         float *rdata = ret.getData<float>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
-          sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+          sgemv((unsigned int)dim.getStorageOrder(),true, t_axis, feat_len, 1,
                 &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
                 1, beta, &rdata[k * feat_len], 1);
         }
@@ -1814,7 +1814,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         ones.setValue(alpha);
         float *rdata = ret.getData<float>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
-          sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+          sgemv((unsigned int)dim.getStorageOrder(),true, t_axis, feat_len, 1,
                 &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
                 1, beta, &rdata[k * feat_len], 1);
         }
@@ -1831,12 +1831,12 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
               unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
               unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[3];
 
-              sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+              sgemv((unsigned int)dim.getStorageOrder(),true, t_axis, t_3, 1, &data[idx], t_3,
                     ones.getData<float>(), 1, beta, &rdata[ridx], 1);
             }
           }
         } else {
-          sgemv(CblasColMajor, CblasTrans, t_axis, ret.dim.getDataLen(), 1,
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, ret.dim.getDataLen(), 1,
                 data, t_axis, ones.getData<float>(), 1, beta,
                 ret.getData<float>(), 1);
         }
@@ -1855,7 +1855,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
           for (unsigned int c = 0; c < dim[2]; ++c) {
             unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
             unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[1];
-            sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+            sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1, &data[idx], t_3,
                   ones.getData<float>(), 1, beta, &rdata[ridx], 1);
           }
         }
@@ -1866,7 +1866,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         ones.setValue(alpha);
 
         if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
-          sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+          sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
                 ones.getData<float>(), 1, beta, ret.getData<float>(), 1);
         } else {
           float *rdata = ret.getData<float>();
@@ -1876,7 +1876,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
               unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
               unsigned int ridx = k * dim[1] * dim[2] + c * dim[2];
 
-              sgemv(CblasColMajor, CblasNoTrans, dim[2], n, 1, &data[idx],
+              sgemv((unsigned int)dim.getStorageOrder(), false, dim[2], n, 1, &data[idx],
                     dim[2], ones.getData<float>(), 1, beta, &rdata[ridx], 1);
             }
           }
@@ -1910,7 +1910,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
       size_t batch = dim.batch();
       Tensor ones(1, 1, 1, batch, this->getTensorType());
       ones.setValue(alpha);
-      sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
+      sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data, feat_len,
             ones.getData<_FP16>(), 1, beta, ret.getData<_FP16>(), 1);
     } break;
     case 1: {
@@ -1920,7 +1920,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int n = dim[1];
         Tensor ones(1, 1, 1, n, this->getTensorType());
         ones.setValue(alpha);
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+        sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
               ones.getData<_FP16>(), 1, beta, ret.getData<_FP16>(), 1);
       } else {
         unsigned int feat_len = dim[2] * dim[3];
@@ -1929,7 +1929,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         ones.setValue(alpha);
         _FP16 *rdata = ret.getData<_FP16>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
-          sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
                 &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
                 1, beta, &rdata[k * feat_len], 1);
         }
@@ -1945,7 +1945,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         ones.setValue(alpha);
         _FP16 *rdata = ret.getData<_FP16>();
         for (unsigned int k = 0; k < dim[0]; ++k) {
-          sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
                 &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
                 1, beta, &rdata[k * feat_len], 1);
         }
@@ -1959,7 +1959,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
           for (unsigned int c = 0; c < dim[1]; ++c) {
             unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
             unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[3];
-            sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+            sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1, &data[idx], t_3,
                   ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
           }
         }
@@ -1977,7 +1977,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
           for (unsigned int c = 0; c < dim[2]; ++c) {
             unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
             unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim[1];
-            sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
+            sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1, &data[idx], t_3,
                   ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
           }
         }
@@ -1986,7 +1986,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
         unsigned int n = dim[3];
         Tensor ones(1, 1, 1, n, getTensorType());
         ones.setValue(alpha);
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+        sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
               ones.getData<_FP16>(), 1, beta, ret.getData<_FP16>(), 1);
       }
     } break;
@@ -2242,8 +2242,8 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     const float *mdata = m.getData();
     float *rdata = result.getData();
     const float alpha = 1.0f;
-    enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-    enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
+    // enum CBLAS_TRANSPOSE transA = trans ? true : false;
+    // enum CBLAS_TRANSPOSE transB = trans_m ? true : false;
 
     /// shortcut handling in case of vector
     /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -2257,20 +2257,20 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      sgemv(CblasRowMajor, transA, dim1, dim2, alpha, data, lda, mdata, 1, beta,
+      sgemv((unsigned int)dim.getStorageOrder(), trans, dim1, dim2, alpha, data, lda, mdata, 1, beta,
             rdata, 1);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-      sgemv(CblasRowMajor, transB, mdim1, mdim2, alpha, mdata, ldb, data, 1,
+      trans_m = trans_m == true ? false : true;
+      sgemv((unsigned int)dim.getStorageOrder(), trans_m, mdim1, mdim2, alpha, mdata, ldb, data, 1,
             beta, rdata, 1);
     }
     /// case others: use gemm
     else {
-      sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
+      sgemm((unsigned int)dim.getStorageOrder(), trans, trans_m, M, N, K, alpha, data, lda, mdata,
             ldb, beta, rdata, ldc);
     }
   } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -2279,8 +2279,8 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     const _FP16 *mdata = m.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
     const float alpha = 1.0f;
-    enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-    enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
+    // enum CBLAS_TRANSPOSE transA = trans ? true : false;
+    // enum CBLAS_TRANSPOSE transB = trans_m ? true : false;
 
     /// shortcut handling in case of vector
     /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -2294,20 +2294,20 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      sgemv(CblasRowMajor, transA, dim1, dim2, alpha, data, lda, mdata, 1, beta,
+      sgemv((unsigned int)dim.getStorageOrder(), trans, dim1, dim2, alpha, data, lda, mdata, 1, beta,
             rdata, 1);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-      sgemv(CblasRowMajor, transB, mdim1, mdim2, alpha, mdata, ldb, data, 1,
+      trans_m = trans_m == true ? false : true;
+      sgemv((unsigned int)dim.getStorageOrder(), trans_m, mdim1, mdim2, alpha, mdata, ldb, data, 1,
             beta, rdata, 1);
     }
     /// case others: use sgemm
     else {
-      sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
+      sgemm((unsigned int)dim.getStorageOrder(), trans, trans_m, M, N, K, alpha, data, lda, mdata,
             ldb, beta, rdata, ldc);
     }
 #else

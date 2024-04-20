@@ -11,6 +11,8 @@
  *
  */
 
+#include <hgemm_common.h>
+
 /**
  * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * @param[in] A __fp16 * for Matrix A

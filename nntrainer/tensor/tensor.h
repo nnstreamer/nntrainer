@@ -33,7 +33,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <blas_interface.h>
+// #include <blas_interface.h>
+#include <cpu_backend.h>
 #include <iostream>
 #include <memory_data.h>
 #include <nntrainer_error.h>

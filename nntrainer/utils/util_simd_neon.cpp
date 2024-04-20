@@ -8,7 +8,7 @@
  * @bug		No known bugs except for NYI items
  */
 
-#include <blas_neon.h>
+#include <neon_single.h>
 #include <util_simd_neon.h>
 
 namespace nntrainer::neon {

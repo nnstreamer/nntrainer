@@ -11,7 +11,8 @@
  */
 
 #include <assert.h>
-#include <hgemm_common.h>
+#include <arm_neon.h>
+#include <assert.h>
 
 /**
  * @brief packing function of input matrix A

@@ -1,6 +1,7 @@
 hgemm_headers = [
   'hgemm.h',
   'hgemm_util.h',
+  'hgemm_common.h',
   'hgemm_kernel_pack.h',
   'hgemm_kernel_4x4.h',
   'hgemm_kernel_4x8.h',

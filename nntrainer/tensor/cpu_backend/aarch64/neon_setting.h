@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   blas_neon_setting.h
+ * @file   neon_setting.h
  * @date   18 Jan 2024
  * @see    https://github.com/nnstreamer/nntrainer
  *         https://arxiv.org/abs/1706.03762

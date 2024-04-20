@@ -10,12 +10,6 @@
  * @brief  This is common settings for hgemm
  *
  */
-#include <arm_neon.h>
-#include <assert.h>
-
-#define A(i, j) a[(i)*lda + (j)]
-#define B(i, j) b[(i)*ldb + (j)]
-#define C(i, j) c[(i)*ldc + (j)]
 
 #define N_BLOCKING (384)
 #define K_BLOCKING (256)
