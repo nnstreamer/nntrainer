@@ -393,6 +393,11 @@ export CFLAGS+=" -fprofile-arcs -ftest-coverage"
 export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
 %endif
 
+%if 0%{?enable_fp16}
+export CFLAGS+=" -march=armv8.2-a+fp16"
+export CXXFLAGS+=" -march=armv8.2-a+fp16"
+%endif
+
 # Add backward competibility for tizen < 6
 %if 0%{tizen_version_major} < 6
 ln -sf %{_includedir}/nnstreamer/nnstreamer.h %{_includedir}/nnstreamer/ml-api-common.h
