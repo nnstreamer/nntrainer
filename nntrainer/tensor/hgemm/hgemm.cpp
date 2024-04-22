@@ -480,7 +480,6 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
 
   unsigned int ms, ms2, ns, ks;
   unsigned int m_min, m2_min, n_min, k_min;
-  unsigned int stride_l1 = 1;
 
   for (ms = 0; ms < M; ms += M_BLOCKING) {
     m_min = M - ms;
@@ -502,9 +501,8 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
       } else if (N > N_BLOCKING) {
         n_min = ((n_min / 2 + GEMM_UNROLLING_16 - 1) / GEMM_UNROLLING_16) *
                 GEMM_UNROLLING_16;
-      } else {
-        stride_l1 = 0;
       }
+      
       packing_B16(k_min, n_min, B + ks * ldb, ldb, sB);
 
       for (ms2 = ms; ms2 < ms + m_min; ms2 += m2_min) {
