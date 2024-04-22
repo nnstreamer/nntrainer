@@ -20,7 +20,6 @@
 #include <hgemm_kernel_8x8.h>
 #include <hgemm_kernel_pack.h>
 #include <hgemm_util.h>
-#include <iostream>
 
 #define HGEMM_KERNEL_4x4 hgemm_kernel_4x4
 #define HGEMM_KERNEL_1x8 hgemm_kernel_1x8
