@@ -13,6 +13,7 @@
  */
 
 #include <hgemm.h>
+#include <hgemm_kernel_1x4.h>
 #include <hgemm_kernel_1x8.h>
 #include <hgemm_kernel_4x4.h>
 #include <hgemm_kernel_4x8.h>
@@ -21,6 +22,7 @@
 #include <hgemm_kernel_pack.h>
 #include <hgemm_util.h>
 
+#define HGEMM_KERNEL_1x4 hgemm_kernel_1x4
 #define HGEMM_KERNEL_4x4 hgemm_kernel_4x4
 #define HGEMM_KERNEL_1x8 hgemm_kernel_1x8
 #define HGEMM_KERNEL_4x8 hgemm_kernel_4x8
@@ -38,6 +40,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else if (N % 8 == 0) {
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
+    } else if (N % 4 == 0) {
+      hgemm_noTrans_1x4(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else {
       hgemm_noTrans_fallback(M, N, K, A, K, B, N, C32, N, alpha, beta);
     }
@@ -58,8 +62,142 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C, N, alpha, beta);
     } else if (M % 4 == 0 && N % 4 == 0 && K % 4 == 0) {
       hgemm_noTrans_4x4(M, N, K, A, K, B, N, C, N, alpha, beta);
+    } else if (N % 4 == 0) {
+      hgemm_noTrans_1x4(M, N, K, A, K, B, N, C, N, alpha, beta);
     }
   }
+}
+
+void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,
+                       const __fp16 *A, unsigned int lda, const __fp16 *B,
+                       unsigned int ldb, __fp16 *C, unsigned int ldc,
+                       float alpha, float beta) {
+  __fp16 *sa = alignedMalloc(M * K);
+  __fp16 *sb = alignedMalloc(K * N);
+
+  unsigned int ms, mms, ns, ks;
+  unsigned int m_min, m2_min, n_min, k_min;
+  for (ms = 0; ms < M; ms += M_BLOCKING) {
+    m_min = M - ms;
+    if (m_min > M_BLOCKING) {
+      m_min = M_BLOCKING;
+    }
+
+    for (ks = 0; ks < K; ks += k_min) {
+      k_min = K - ks;
+      if (k_min >= (K_BLOCKING << 1)) {
+        k_min = K_BLOCKING;
+      } else if (k_min > K_BLOCKING) {
+        k_min = (k_min / 2 + GEMM_UNROLLING_1 - 1) & ~(GEMM_UNROLLING_1 - 1);
+      }
+
+      n_min = N;
+      if (N >= N_BLOCKING * 2) {
+        n_min = N_BLOCKING;
+      } else if (N > N_BLOCKING) {
+        n_min = (n_min / 2 + GEMM_UNROLLING_4 - 1) & ~(GEMM_UNROLLING_4 - 1);
+      }
+      packing_B4(k_min, n_min, B + ks * ldb, ldb, sb);
+
+      for (mms = ms; mms < ms + m_min; mms += m2_min) {
+        m2_min = (ms + m_min) - mms;
+        if (m2_min >= 3 * GEMM_UNROLLING_1) {
+          m2_min = 3 * GEMM_UNROLLING_1;
+        } else if (m2_min >= 2 * GEMM_UNROLLING_1) {
+          m2_min = 2 * GEMM_UNROLLING_1;
+        } else if (m2_min > GEMM_UNROLLING_1) {
+          m2_min = GEMM_UNROLLING_1;
+        }
+
+        packing_A1(m2_min, k_min, A + mms * lda + ks, lda,
+                   sa + k_min * (mms - ms));
+
+        HGEMM_KERNEL_1x4(m2_min, n_min, k_min, sa + k_min * (mms - ms), sb,
+                         C + mms * ldc, ldc);
+      }
+
+      for (ns = n_min; ns < N; ns += n_min) {
+        n_min = N - ns;
+        if (n_min >= N_BLOCKING * 2) {
+          n_min = N_BLOCKING;
+        } else if (n_min > N_BLOCKING) {
+          n_min = (n_min / 2 + GEMM_UNROLLING_1 - 1) & ~(GEMM_UNROLLING_1 - 1);
+        }
+
+        packing_B4(k_min, n_min, B + ns + ldb * ks, ldb, sb);
+        HGEMM_KERNEL_1x4(m_min, n_min, k_min, sa, sb, C + ms * ldc + ns, ldc);
+      }
+    }
+  }
+
+  free(sa);
+  free(sb);
+}
+
+void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,
+                       const __fp16 *A, unsigned int lda, const __fp16 *B,
+                       unsigned int ldb, float *C, unsigned int ldc,
+                       float alpha, float beta) {
+  __fp16 *sa = alignedMalloc(M * K);
+  __fp16 *sb = alignedMalloc(K * N);
+
+  unsigned int ms, mms, ns, ks;
+  unsigned int m_min, m2_min, n_min, k_min;
+  for (ms = 0; ms < M; ms += M_BLOCKING) {
+    m_min = M - ms;
+    if (m_min > M_BLOCKING) {
+      m_min = M_BLOCKING;
+    }
+
+    for (ks = 0; ks < K; ks += k_min) {
+      k_min = K - ks;
+      if (k_min >= (K_BLOCKING << 1)) {
+        k_min = K_BLOCKING;
+      } else if (k_min > K_BLOCKING) {
+        k_min = (k_min / 2 + GEMM_UNROLLING_1 - 1) & ~(GEMM_UNROLLING_1 - 1);
+      }
+
+      n_min = N;
+      if (N >= N_BLOCKING * 2) {
+        n_min = N_BLOCKING;
+      } else if (N > N_BLOCKING) {
+        n_min = (n_min / 2 + GEMM_UNROLLING_4 - 1) & ~(GEMM_UNROLLING_4 - 1);
+      }
+      packing_B4(k_min, n_min, B + ks * ldb, ldb, sb);
+
+      for (mms = ms; mms < ms + m_min; mms += m2_min) {
+        m2_min = (ms + m_min) - mms;
+        if (m2_min >= 3 * GEMM_UNROLLING_1) {
+          m2_min = 3 * GEMM_UNROLLING_1;
+        } else if (m2_min >= 2 * GEMM_UNROLLING_1) {
+          m2_min = 2 * GEMM_UNROLLING_1;
+        } else if (m2_min > GEMM_UNROLLING_1) {
+          m2_min = GEMM_UNROLLING_1;
+        }
+
+        packing_A1(m2_min, k_min, A + mms * lda + ks, lda,
+                   sa + k_min * (mms - ms));
+
+        HGEMM_KERNEL_1x4(m2_min, n_min, k_min, sa + k_min * (mms - ms), sb,
+                         C + mms * ldc, ldc);
+      }
+
+      for (ns = n_min; ns < N; ns += n_min) {
+        n_min = N - ns;
+        if (n_min >= N_BLOCKING * 2) {
+          n_min = N_BLOCKING;
+        } else if (n_min > N_BLOCKING) {
+          n_min = (n_min / 2 + GEMM_UNROLLING_1 - 1) & ~(GEMM_UNROLLING_1 - 1);
+        }
+
+        packing_B4(k_min, n_min, B + ns + ldb * ks, ldb, sb);
+        HGEMM_KERNEL_1x4(m_min, n_min, k_min, sa, sb, C + ms * ldc + ns, ldc);
+      }
+    }
+  }
+
+  free(sa);
+  free(sb);
 }
 
 void hgemm_noTrans_4x4(unsigned int M, unsigned int N, unsigned int K,
