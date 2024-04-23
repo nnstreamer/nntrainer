@@ -127,8 +127,7 @@ float applyTKP(float *logits, int len, float temperature, unsigned int top_k,
   // Apply Top-K and Top-P
   std::fill_n(logits, sizeof(len), -INFINITY);
   for (unsigned int i = 0; i < top_index; ++i) {
-    logits[top_indices_and_logits[top_index].first] =
-      top_indices_and_logits[top_index].second;
+    logits[top_indices_and_logits[i].first] = top_indices_and_logits[i].second;
   }
 
   return top_indices_and_logits[0].second;
