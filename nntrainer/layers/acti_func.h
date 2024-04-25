@@ -361,7 +361,7 @@ public:
    */
   template <typename T = float> static T softplus(T x) {
     /** TODO: Change beta to be a property */
-    return static_cast<T>(log(1 + exp_util<T>(beta * x)) / beta);
+    return static_cast<T>(log(1 + exp(beta * x)) / beta);
   }
 
   /**
@@ -371,7 +371,7 @@ public:
    * @return T type output
    */
   template <typename T = float> static T softplusPrime(T x) {
-    return sigmoid<T>(beta * x);
+    return sigmoid<T>(static_cast<T>(beta * x));
   }
 
   /**
@@ -465,7 +465,7 @@ public:
    * @return T type output
    */
   template <typename T = float> static T elu(T x) {
-    return x >= static_cast<T>(0.0) ? x : static_cast<T>(alpha) * (exp(x) - 1);
+    return x >= static_cast<T>(0.0) ? x : static_cast<T>(alpha * (exp(x) - 1));
   }
 
   /**
@@ -480,7 +480,7 @@ public:
    */
   template <typename T = float> static T eluPrime(T x) {
     return x >= static_cast<T>(0.0) ? static_cast<T>(1.0)
-                                    : static_cast<T>(alpha) * exp(x);
+                                    : static_cast<T>(alpha * exp(x));
   }
 
   /**
