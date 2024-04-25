@@ -150,9 +150,52 @@ TEST(nntrainer_Tensor, l2norm) {
   result_fp32 = input_fp32.l2norm();
 
   // absolute error
-  const float epsilon = 1e-2;
+  const float epsilon = 1e-3 * width;
 
   EXPECT_NEAR(result_neon, result_fp32, epsilon);
+}
+
+TEST(nntrainer_Tensor, l2norm_big768) {
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  size_t batch = 1;
+  size_t channel = 1;
+  size_t height = 768;
+  size_t width = 768;
+
+  nntrainer::Tensor input(
+    nntrainer::TensorDim(1, 1, height, width, t_type_nchw_fp16));
+
+  nntrainer::Tensor input_fp32(
+    nntrainer::TensorDim(1, 1, height, width, t_type_nchw_fp32));
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  GEN_TEST_INPUT(input, ((i * j * (batch * height * channel) +
+                          j * (batch * height) + k * (width) + l + 1) %
+                         MOD) *
+                          alpha);
+  GEN_TEST_INPUT(input_fp32, ((i * j * (batch * height * channel) +
+                               j * (batch * height) + k * (width) + l + 1) %
+                              MOD) *
+                               alpha);
+
+  __fp16 result_neon;
+  float result_fp32;
+
+  result_neon = input.l2norm();
+  result_fp32 = input_fp32.l2norm();
+
+  float ErrorNeon = abs(result_neon - result_fp32);
+
+  const float epsilon = 1e-3 * width;
+  EXPECT_IN_RANGE(ErrorNeon, 0, epsilon);
 }
 
 TEST(nntrainer_Tensor, multiply_i) {
