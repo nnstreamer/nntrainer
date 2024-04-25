@@ -281,24 +281,28 @@ void sscal(const unsigned int N, const float alpha, _FP16 *X, const int incX) {
 
 static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   unsigned int incx = abs(incX);
-  _FP16 sum = 0;
+  _FP16 sum;
   _FP16 tmp;
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1) {
     sum = nntrainer::neon::hnrm2(N, X);
   } else {
+    float sum32 = 0;
     for (unsigned int i = 0; i < N; i++) {
       tmp = X[i * incx];
-      sum += tmp * tmp;
+      sum32 += tmp * tmp;
     }
+    sum = static_cast<_FP16>(sqrt(sum32));
   }
 #else
+  float sum32 = 0;
   for (unsigned int i = 0; i < N; i++) {
     tmp = X[i * incx];
-    sum += tmp * tmp;
+    sum32 += tmp * tmp;
   }
+  sum = static_cast<_FP16>(sqrt(sum32));
 #endif
-  return static_cast<_FP16>(sqrt(sum));
+  return sum;
 }
 
 static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,

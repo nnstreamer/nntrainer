@@ -1240,49 +1240,29 @@ __fp16 hdot(const unsigned int N, const __fp16 *X, const __fp16 *Y) {
 }
 
 __fp16 hnrm2(const unsigned int N, const __fp16 *X) {
-
-  float16x8_t accX8 = vmovq_n_f16(0);
-  float16x4_t accX4 = vmov_n_f16(0);
+  float32x4_t accX0_3 = vmovq_n_f32(0.F);
+  float32x4_t accX4_7 = vmovq_n_f32(0.F);
 
   unsigned int idx = 0;
-  __fp16 ret = 0;
+  unsigned int N8 = (N >> 3) << 3;
+  float ret = 0;
 
-  // processing batch of 8
-  for (; (N - idx) >= 8; idx += 8) {
-    float16x8_t x = vld1q_f16(&X[idx]);
+  // Adaptive loop for batch size of 8
+  for (; idx < N8; idx += 8) {
+    float16x8_t x0_7 = vld1q_f16(&X[idx]);
 
-    // x*x + accX8 -> accX8
-    accX8 = vfmaq_f16(accX8, x, x);
+    x0_7 = vmulq_f16(x0_7, x0_7);
+    accX0_3 = vaddq_f32(accX0_3, vcvt_f32_f16(vget_low_f16(x0_7)));
+    accX4_7 = vaddq_f32(accX4_7, vcvt_f32_f16(vget_high_f16(x0_7)));
   }
+  ret += vaddvq_f32(accX0_3) + vaddvq_f32(accX4_7);
 
-  // check at least one batch of 8 is processed
-  if (N - 8 >= 0) {
-    __fp16 result[8];
-    vst1q_f16(result, accX8);
-    for (unsigned int i = 0; i < 8; i++)
-      ret += result[i];
-  }
-
-  // processing remaining batch of 4
-  for (; (N - idx) >= 4; idx += 4) {
-    float16x4_t x = vld1_f16(&X[idx]);
-
-    // x*x + accX4 -> accX4
-    accX4 = vfma_f16(accX4, x, x);
-  }
-
-  // check at least one batch of 4 is processed
-  if (N % 8 >= 4) {
-    __fp16 result[4];
-    vst1_f16(result, accX4);
-    ret += result[0] + result[1] + result[2] + result[3];
-  }
-
-  // pocessing remaining values
-  for (; idx < N; idx++)
+  // Loop for remaining indices
+  for (; idx < N; idx++) {
     ret += X[idx] * X[idx];
+  }
 
-  return ret;
+  return static_cast<__fp16>(sqrt(ret));
 }
 
 void hscal(const unsigned int N, __fp16 *X, const float alpha) {
