@@ -62,6 +62,20 @@ public:
   /**
    * @brief Construct a new Var_Grad object
    *
+   * @param dim_v Variable tensor dimension
+   * @param dim_g Gradient tensor dimension
+   * @param ng If the variable is need_gradient
+   * @param alloc_now The memory for the var_grad tensors be allocated upon init
+   * @param name Name for this Var_Grad
+   */
+  explicit Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
+                    const Tensor::Initializer init = Tensor::Initializer::NONE,
+                    bool ng = true, bool alloc_now = false,
+                    const std::string &name = "");
+
+  /**
+   * @brief Construct a new Var_Grad object
+   *
    * @param spec Var_Grad specification
    */
   explicit Var_Grad(const Spec &spec, bool alloc_now = false) :

@@ -869,7 +869,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
-      shared_weight_names.emplace_back(std::get<7>(w_specs.at(i)));
+      shared_weight_names.emplace_back(std::get<8>(w_specs.at(i)));
     }
   }
 
@@ -1018,7 +1018,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
-      shared_weight_names.emplace_back(std::get<7>(w_specs.at(i)));
+      shared_weight_names.emplace_back(std::get<8>(w_specs.at(i)));
     }
   }
 
