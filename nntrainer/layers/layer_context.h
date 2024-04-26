@@ -172,8 +172,7 @@ public:
   /**
    * @brief Request a new weight for the layer
    *
-   * @param dim_v dimension of Variagble of the weight
-   * @param dim_g dimension of Gradient of the weight
+   * @param dim dimension of Variable of the weight
    * @param init initializer for the weight
    * @param reg regularizer for the weight
    * @param reg_const regularization constant for the weight
