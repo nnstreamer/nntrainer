@@ -624,14 +624,16 @@ s   * @retval shared_ptr<const Tensor>
                const std::string file_path) override;
 
 private:
-  using FlexiblePropTypes = std::tuple<
-    props::Epochs, props::TrainingBatchSize, props::SavePath,
-    props::ContinueTrain, props::SaveBestPath, props::MemoryOptimization,
-    props::MemorySwap, props::MemorySwapPath, props::MemorySwapLookahead,
-    props::TensorFormat, props::ModelTensorDataType, props::LossScale>;
+  using FlexiblePropTypes =
+    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
+               props::ContinueTrain, props::SaveBestPath,
+               props::MemoryOptimization, props::MemorySwap,
+               props::MemorySwapPath, props::MemorySwapLookahead,
+               props::TensorFormat, props::ModelTensorDataType>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
-               std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
+               std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm,
+               props::LossScale>;
 
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */
