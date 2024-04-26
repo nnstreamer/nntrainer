@@ -29,8 +29,25 @@ Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
   decay(decay_const),
   clip_by_global_norm(max_norm),
   output_axis(axis),
-  loss_scale(loss_scale_);
-{
+  loss_scale(loss_scale_) {
+  if (init == Tensor::Initializer::NONE)
+    throw std::invalid_argument("Weight initializer cannot be none");
+  if (regularizer == WeightRegularizer::UNKNOWN)
+    throw std::invalid_argument("Weight regularizer unknown");
+}
+
+Weight::Weight(const TensorDim &dim_v, const TensorDim &dim_g,
+               const Tensor::Initializer init, const WeightRegularizer reg,
+               const float reg_const, const float decay_const,
+               const float max_norm, bool train, bool alloc_now_,
+               std::string name, unsigned int axis, float loss_scale_) :
+  Var_Grad(dim_v, dim_g, init, train, alloc_now_, name),
+  regularizer(reg),
+  regularizer_constant(reg_const),
+  decay(decay_const),
+  clip_by_global_norm(max_norm),
+  output_axis(axis),
+  loss_scale(loss_scale_) {
   if (init == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)

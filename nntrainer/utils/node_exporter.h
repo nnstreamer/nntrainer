@@ -234,6 +234,7 @@ class DisableBias;
 class Activation;
 class BatchNormalization;
 class Packed;
+class LossScaleForMixed;
 } // namespace props
 
 class LayerNode;
@@ -243,11 +244,11 @@ class LayerNode;
  */
 template <>
 void Exporter::saveTflResult(
-
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputConnection>,
                    std::vector<props::InputShape>, props::SharedFrom,
-                   props::ClipGradByGlobalNorm, props::Packed> &props,
+                   props::ClipGradByGlobalNorm, props::Packed,
+                   props::LossScaleForMixed> &props,
   const LayerNode *self);
 
 class BatchNormalizationLayer;

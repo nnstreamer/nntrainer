@@ -38,6 +38,27 @@ Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
     grad = std::make_shared<Tensor>(grad_name);
 }
 
+Var_Grad::Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
+                   const Tensor::Initializer init, bool need_gradient,
+                   bool alloc_now, const std::string &name) :
+  is_dependent(false),
+  is_first_access_gradient(false),
+  is_last_access_gradient(false) {
+  var = std::make_shared<Tensor>(dim_v, alloc_now, init, name);
+
+  std::string grad_name = name + grad_suffix;
+  if (need_gradient)
+    /**
+     * @todo gradient initializer should be none, and then they should be set
+     * zero right before using by the user itself.
+     */
+
+    grad = std::make_shared<Tensor>(dim_g, alloc_now,
+                                    Tensor::Initializer::ZEROS, grad_name);
+  else
+    grad = std::make_shared<Tensor>(grad_name);
+}
+
 void Var_Grad::initializeVariable(const Tensor &preallocated) {
   /**
    * Making a new tensor is intentional here as this tensor is not shared
