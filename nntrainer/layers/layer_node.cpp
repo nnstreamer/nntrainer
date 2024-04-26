@@ -182,9 +182,10 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   needs_calc_gradient(false),
   output_connections(),
   run_context(nullptr),
-  layer_node_props(new PropsType(
-    props::Name(), props::Distribute(), props::Trainable(), {}, {},
-    props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed())),
+  layer_node_props(
+    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
+                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm(),
+                  props::Packed(), props::LossScaleForMixed())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -598,8 +599,12 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
+  float loss_scale = 0.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
+
+  if (!std::get<props::LossScaleForMixed>(*layer_node_props).empty())
+    loss_scale = std::get<props::LossScaleForMixed>(*layer_node_props).get();
 
   if (!std::get<props::Packed>(*layer_node_props).empty()) {
     bool isPacked = std::get<props::Packed>(*layer_node_props);
@@ -622,7 +627,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   auto context = InitLayerContext(actual_input_dims, out_info,
                                   executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm, tensor_type);
+                                  scope, max_norm, tensor_type, loss_scale);
 
   layer->finalize(context);
 

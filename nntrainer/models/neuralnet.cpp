@@ -190,6 +190,9 @@ int NeuralNetwork::compile() {
         !prop.empty()) {
       node->setProperty({"clip_grad_by_norm=" + to_string(prop)});
     }
+    if (auto &prop = std::get<props::LossScale>(model_props); !prop.empty()) {
+      node->setProperty({"loss_scale=" + to_string(prop)});
+    }
     model_graph.addLayer(node);
   }
 

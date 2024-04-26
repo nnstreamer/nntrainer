@@ -45,7 +45,8 @@ public:
     regularizer_constant(1.0f),
     decay(0.0f),
     clip_by_global_norm(0.0f),
-    output_axis(3) {}
+    output_axis(3),
+    loss_scale(0.0) {}
 
   /**
    * @brief Construct a new Weight object
@@ -64,7 +65,8 @@ public:
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3);
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 0.0);
 
   /**
    * @brief Construct a new Weight object
@@ -81,7 +83,8 @@ public:
            std::get<6>(spec), // need_gradient
            alloc_now,
            std::get<7>(spec), // Name
-           std::get<8>(spec)  // out axis
+           std::get<8>(spec), // out axis
+           std::get<9>(spec)  // loss scale
     ) {}
 
   /**
@@ -105,7 +108,8 @@ public:
     regularizer_constant(1.0f),
     decay(0.0f),
     clip_by_global_norm(0.0f),
-    output_axis(output_axis_) {}
+    output_axis(output_axis_),
+    loss_scale(0.0) {}
 
   /**
    * @brief Construct a new Weight object
@@ -142,6 +146,7 @@ public:
     swap(lhs.clip_by_global_norm, rhs.clip_by_global_norm);
     swap(lhs.output_axis, rhs.output_axis);
     swap(lhs.opt_vars, rhs.opt_vars);
+    swap(lhs.loss_scale, rhs.loss_scale);
   }
 
   /**
@@ -308,6 +313,7 @@ private:
   float decay;                   /**< constant factor for the weight decay */
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
+  float loss_scale;
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
 
   /**
