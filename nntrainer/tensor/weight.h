@@ -71,20 +71,42 @@ public:
   /**
    * @brief Construct a new Weight object
    *
+   * @param dim_v Variable and gradient tensor dimension
+   * @param dim_g Gradient tensor dimension
+   * @param init Initializer for the weight
+   * @param reg Regularizer for the weight
+   * @param reg_const Constant multiplier for regularizer
+   * @param ng If the variable needs gradient
+   * @param alloc_now The memory for the weight tensors be allocated upon init
+   * @param name Name for this weight
+   */
+  explicit Weight(
+    const TensorDim &dim_v, const TensorDim &dim_g,
+    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 0.0);
+
+  /**
+   * @brief Construct a new Weight object
+   *
    * @param spec Weight specification
    */
   explicit Weight(const Spec &spec, bool alloc_now = false) :
-    Weight(std::get<0>(spec), // TensorDim
-           std::get<1>(spec), // Tensor::Initializer
-           std::get<2>(spec), // WeightRegularizer
-           std::get<3>(spec), // WeightRegularizerConstant
-           std::get<4>(spec), // weight decay constant
-           std::get<5>(spec), // MaxNorm for clipping
-           std::get<6>(spec), // need_gradient
+    Weight(std::get<0>(spec), // TensorDim for Variable
+           std::get<1>(spec), // TensorDim for Gradient
+           std::get<2>(spec), // Tensor::Initializer
+           std::get<3>(spec), // WeightRegularizer
+           std::get<4>(spec), // WeightRegularizerConstant
+           std::get<5>(spec), // weight decay constant
+           std::get<6>(spec), // MaxNorm for clipping
+           std::get<7>(spec), // need_gradient
            alloc_now,
-           std::get<7>(spec), // Name
-           std::get<8>(spec), // out axis
-           std::get<9>(spec)  // loss scale
+           std::get<8>(spec), // Name
+           std::get<9>(spec), // out axis
+           std::get<10>(spec) // loss scale
     ) {}
 
   /**
@@ -122,13 +144,14 @@ public:
   explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
                   const float reg_const, const float decay,
                   bool is_dependent = false, const float max_norm = 0.0f,
-                  unsigned int output_axis_ = 3) :
+                  unsigned int output_axis_ = 3, float loss_scale_ = 0.0f) :
     Var_Grad(v, g, is_dependent),
     regularizer(reg),
     regularizer_constant(reg_const),
     decay(decay),
     clip_by_global_norm(max_norm),
-    output_axis(output_axis_) {}
+    output_axis(output_axis_),
+    loss_scale(loss_scale_) {}
 
   /**
    * @brief Swap for weight
@@ -315,6 +338,7 @@ private:
   unsigned int output_axis;
   float loss_scale;
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
+  std::shared_ptr<Tensor> var32;
 
   /**
    * @brief     Apply the weight decay to the weight

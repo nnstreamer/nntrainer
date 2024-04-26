@@ -172,7 +172,8 @@ public:
   /**
    * @brief Request a new weight for the layer
    *
-   * @param dim dimension of the weight
+   * @param dim_v dimension of Variagble of the weight
+   * @param dim_g dimension of Gradient of the weight
    * @param init initializer for the weight
    * @param reg regularizer for the weight
    * @param reg_const regularization constant for the weight
@@ -188,7 +189,14 @@ public:
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
                              bool trainable = true, unsigned int out_axis = 3) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, decay,
+
+    /** @note : We assumes the gradient type is same with Activation data
+     * type.*/
+    TensorDim dim_g(dim);
+
+    dim_g.setDataType(getActivationDataType());
+
+    weights_spec.emplace_back(dim, dim_g, init, reg, reg_const, decay,
                               clip_by_global_norm, trainable,
                               prefix + ":" + name, out_axis, loss_scale);
     return weights_spec.size() - 1;

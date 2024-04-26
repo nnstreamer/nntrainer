@@ -52,10 +52,7 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -386,8 +383,9 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
-           need_gradient, name, axis] = weights_spec.at(i);
+    auto &[dim_v, dim_g, t_initializer, w_reg, w_reg_const, decay,
+           clip_by_global_norm, need_gradient, name, axis, loss_scale] =
+      weights_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
@@ -422,7 +420,7 @@ std::vector<Weight *> Manager::requestWeights(
       /// shared_name is used and the orignal name is discarded
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
-      var = weight_pool.requestOrExtend(shared_name, dim, var_exec_order,
+      var = weight_pool.requestOrExtend(shared_name, dim_v, var_exec_order,
                                         var_ls, t_initializer);
 
       if (trainable && need_gradient) {
@@ -431,13 +429,13 @@ std::vector<Weight *> Manager::requestWeights(
          * for each layer anymore and it is hard to overwritten.
          */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
-                                           dim, grad_exec_order, grad_ls,
+                                           dim_g, grad_exec_order, grad_ls,
                                            Tensor::Initializer::ZEROS);
       }
     } else {
       /** case requesting fresh weights */
       var =
-        weight_pool.request(name, dim, var_exec_order, var_ls, t_initializer);
+        weight_pool.request(name, dim_v, var_exec_order, var_ls, t_initializer);
 
       if (trainable && need_gradient) {
         /** is_wgrad is the index which is true when it is the gradient tensor
@@ -447,7 +445,7 @@ std::vector<Weight *> Manager::requestWeights(
         bool is_wgrad = true;
         if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
           is_wgrad = false;
-        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim,
+        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
                                    grad_exec_order, grad_ls,
                                    Tensor::Initializer::ZEROS, is_wgrad);
       }
