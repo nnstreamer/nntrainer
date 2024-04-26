@@ -1369,6 +1369,16 @@ public:
 };
 
 /**
+ * @brief properties for getting the loss scale value to mixed precision
+ *
+ */
+class LossScaleForMixed : public Property<float> {
+public:
+  static constexpr const char *key = "loss_scale"; /**< unique key to access */
+  using prop_tag = float_prop_tag;                 /**< property type */
+};
+
+/**
  * @brief Learning Rate props
  *
  */
