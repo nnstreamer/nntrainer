@@ -74,7 +74,7 @@ Description: NNStreamer tensor filter for nntrainer
 Package: nnstreamer-nntrainer-dev
 Architecture: any
 Multi-Arch: same
-Depends: nnstreamer, nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Depends: nnstreamer-nntrainer, ${shlibs:Depends}, ${misc:Depends}
 Description: Development package for nntrainer tensor filter
  This is a developement package of nntrainer's tensor filter.
 
@@ -88,7 +88,7 @@ Description: NNStreamer tensor trainer for nntrainer
 Package: nnstreamer-nntrainer-trainer-dev
 Architecture: any
 Multi-Arch: same
-Depends: nnstreamer, nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Depends: nnstreamer-nntrainer-trainer, ${shlibs:Depends}, ${misc:Depends}
 Description: Development package for nntrainer tensor trainer
  This is a developement package of nntrainer's tensor trainer.
 

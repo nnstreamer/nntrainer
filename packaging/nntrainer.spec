@@ -91,9 +91,6 @@ BuildRequires:	python3
 BuildRequires:	python3-numpy
 BuildRequires:	flatbuffers-devel
 
-BuildRequires:	%{capi_machine_learning_common}-devel
-BuildRequires:	%{capi_machine_learning_inference}-devel
-
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
 %endif
@@ -138,6 +135,7 @@ BuildRequires: tensorflow2-lite-devel
 %define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=false
 
 %if  0%{?nnstreamer_filter}
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
 BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
 
@@ -151,24 +149,13 @@ BuildRequires:	python
 %endif # nnstreamer_filter
 
 %if  0%{?nnstreamer_trainer}
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
 BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=true
 %endif # nnstreamer_trainer
 %endif # tizen
 
 Requires:	nntrainer-core = %{version}-%{release}
-
-%if 0%{?nnstreamer_filter}
-Requires:	nnstreamer-nntrainer = %{version}-%{release}
-%endif #nnstreamer_filter
-
-%if 0%{?nnstreamer_trainer}
-Requires:	nnstreamer-nntrainer = %{version}-%{release}
-%endif #nnstreamer_trainer
-
-%if %{with tizen}
-Requires:	capi-machine-learning-training = %{version}-%{release}
-%endif #tizen
 
 %description
 NNtrainer Meta package for tizen
@@ -185,7 +172,6 @@ NNtrainer is Software Framework for Training Neural Network Models on Devices.
 Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
 Requires:	openblas-devel
-Requires:	%{capi_machine_learning_common}-devel
 
 %description devel
 Development package for custom nntrainer developers.
@@ -200,6 +186,9 @@ Static library package of nntrainer-devel
 %package applications
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
+%if %{with tizen}
+Requires:	capi-machine-learning-training = %{version}-%{release}
+%endif #tizen
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow2-lite
 %if 0%{tizen_version_major}%{tizen_version_minor} > 60
@@ -212,7 +201,7 @@ BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
 BuildRequires:	%{capi_machine_learning_inference}-devel
 BuildRequires:	glib2-devel
-BuildRequires:  gstreamer-devel
+BuildRequires:	gstreamer-devel
 
 %description applications
 NNTrainer Examples for test purpose.
@@ -240,6 +229,7 @@ HTML pages of lcov results of NNTrainer generated during rpmbuild
 Summary:         Tizen Native API for NNTrainer
 Group:           Machine Learning/ML Framework
 Requires:        %{name} = %{version}-%{release}
+Requires:        %{capi_machine_learning_common}
 %description -n capi-machine-learning-training
 Tizen Native API wrapper for NNTrainer.
 You can train neural networks efficiently.
@@ -626,7 +616,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnnstreamer_filter_nntrainer.a
-
 %endif #nnstreamer_filter
 
 %if 0%{?nnstreamer_trainer}
@@ -641,7 +630,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnnstreamer_trainer_nntrainer.a
-
 %endif #nnstreamer_trainer
 
 %endif #tizen
