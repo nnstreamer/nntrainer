@@ -517,6 +517,58 @@ TEST(nntrainer_activation, eluPrime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, selu_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+
+  float answer[30] = {
+    -0.57961011, -0.45566735, -0.31868932, -0.16730525, 0.00000000,
+    0.10507011,  0.21014021,  0.31521031,  0.42028043,  0.52535051,
+    -0.96813440, -0.79323399, -0.57961011, -0.31868932, 0.00000000,
+    0.21014021,  0.42028043,  0.63042063,  0.84056085,  1.05070102,
+    -1.22856998, -1.04330945, -0.79323399, -0.45566735, 0.00000000,
+    0.31521031,  0.63042063,  0.94563091,  1.26084125,  1.57605147};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor selu_result =
+    input.apply<float>(nntrainer::ActiFunc::selu<float>);
+  float *data = selu_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
+TEST(nntrainer_activation, seluPrime_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  float answer[30] = {
+    1.17848921, 1.30243194, 1.43940997, 1.59079409, 1.75809932, 1.05070102,
+    1.05070102, 1.05070102, 1.05070102, 1.05070102, 0.78996491, 0.96486533,
+    1.17848921, 1.43940997, 1.75809932, 1.05070102, 1.05070102, 1.05070102,
+    1.05070102, 1.05070102, 0.52952927, 0.71478987, 0.96486533, 1.30243194,
+    1.75809932, 1.05070102, 1.05070102, 1.05070102, 1.05070102, 1.05070102};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+
+  nntrainer::Tensor selu_prime_result =
+    input.apply<float>(nntrainer::ActiFunc::seluPrime<float>);
+  float *data = selu_prime_result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_NEAR(data[i], answer[i], tolerance);
+  }
+}
+
 TEST(nntrainer_activation, mish_01_p) {
   int batch = 3;
   int channel = 1;

@@ -603,6 +603,14 @@ ELU(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create selu activation layer
+ */
+inline std::unique_ptr<Layer>
+SELU(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=selu", properties);
+}
+
+/**
  * @brief Helper function to create mish activation layer
  */
 inline std::unique_ptr<Layer>

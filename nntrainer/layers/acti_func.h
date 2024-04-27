@@ -81,6 +81,9 @@ public:
     case ActivationType::ACT_ELU:
       this->setActivation<T>(elu<T>, eluPrime<T>);
       break;
+    case ActivationType::ACT_SELU:
+      this->setActivation<T>(selu<T>, seluPrime<T>);
+      break;
     case ActivationType::ACT_SOFTPLUS:
       this->setActivation<T>(softplus<T>, softplusPrime<T>);
       break;
@@ -484,6 +487,30 @@ public:
   }
 
   /**
+   * @brief selu function
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T selu(T x) {
+    return x > static_cast<T>(0.0)
+             ? static_cast<T>(selu_scale * x)
+             : static_cast<T>(selu_scale * selu_alpha * (exp(x) - 1));
+  }
+
+  /**
+   * @brief selu prime function
+   * @tparam T type of an input/output
+   * @param x input
+   * @return T type output
+   */
+  template <typename T = float> static T seluPrime(T x) {
+    return x > static_cast<T>(0.0)
+             ? static_cast<T>(selu_scale)
+             : static_cast<T>(selu_scale * selu_alpha * exp(x));
+  }
+
+  /**
    * @brief     mish activation function
    * @param[in] x input
    */
@@ -667,6 +694,8 @@ public:
 private:
   constexpr static inline float alpha = 1.0f; /**< alpha for elu */
   constexpr static inline float beta = 1.0f;  /**< beta for Softplus */
+  constexpr static inline float selu_alpha = 1.67326324f; /**< alpha for selu */
+  constexpr static inline float selu_scale = 1.05070098f; /**< scale for selu */
 
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
   std::function<Tensor &(Tensor const &, Tensor &, Tensor &, Tensor const &)>
