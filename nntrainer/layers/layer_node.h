@@ -489,6 +489,7 @@ public:
   const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
+   * currently, only unittest uses this func.
    *
    * @param idx Identifier of the weight
    * @return Weight& Reference to the weight
