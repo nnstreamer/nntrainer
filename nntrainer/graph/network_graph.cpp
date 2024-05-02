@@ -1561,7 +1561,18 @@ void NetworkGraph::requestOptimizerVariable(
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        w->isGradientClipByGlobalNorm(), Initializer::ZEROS));
+        w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+        Tensor::Initializer::ZEROS));
+
+      if (dim.getDataType() != ml::train::TensorDim::DataType::FP32) {
+        for (auto &dim : dims)
+          dim.setDataType(ml::train::TensorDim::DataType::FP32);
+        w->setOptimizerVariables32(
+          tensor_manager->requestWeightOptimizerVariables(
+            dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+            w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+            Tensor::Initializer::ZEROS));
+      }
     }
   }
 }
