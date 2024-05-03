@@ -45,7 +45,8 @@ public:
     regularizer_constant(1.0f),
     decay(0.0f),
     clip_by_global_norm(0.0f),
-    output_axis(3) {}
+    output_axis(3),
+    loss_scale(0.0) {}
 
   /**
    * @brief Construct a new Weight object
@@ -64,7 +65,29 @@ public:
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3);
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 0.0);
+
+  /**
+   * @brief Construct a new Weight object
+   *
+   * @param dim_v Variable and gradient tensor dimension
+   * @param dim_g Gradient tensor dimension
+   * @param init Initializer for the weight
+   * @param reg Regularizer for the weight
+   * @param reg_const Constant multiplier for regularizer
+   * @param ng If the variable needs gradient
+   * @param alloc_now The memory for the weight tensors be allocated upon init
+   * @param name Name for this weight
+   */
+  explicit Weight(
+    const TensorDim &dim_v, const TensorDim &dim_g,
+    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 0.0);
 
   /**
    * @brief Construct a new Weight object
@@ -72,16 +95,18 @@ public:
    * @param spec Weight specification
    */
   explicit Weight(const Spec &spec, bool alloc_now = false) :
-    Weight(std::get<0>(spec), // TensorDim
-           std::get<1>(spec), // Tensor::Initializer
-           std::get<2>(spec), // WeightRegularizer
-           std::get<3>(spec), // WeightRegularizerConstant
-           std::get<4>(spec), // weight decay constant
-           std::get<5>(spec), // MaxNorm for clipping
-           std::get<6>(spec), // need_gradient
+    Weight(std::get<0>(spec), // TensorDim for Variable
+           std::get<1>(spec), // TensorDim for Gradient
+           std::get<2>(spec), // Tensor::Initializer
+           std::get<3>(spec), // WeightRegularizer
+           std::get<4>(spec), // WeightRegularizerConstant
+           std::get<5>(spec), // weight decay constant
+           std::get<6>(spec), // MaxNorm for clipping
+           std::get<7>(spec), // need_gradient
            alloc_now,
-           std::get<7>(spec), // Name
-           std::get<8>(spec)  // out axis
+           std::get<8>(spec), // Name
+           std::get<9>(spec), // out axis
+           std::get<10>(spec) // loss scale
     ) {}
 
   /**
@@ -99,32 +124,22 @@ public:
    * if the owner of these tensors free the tensors.
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "",
-                  bool is_dependent = false, unsigned int output_axis_ = 3) :
-    Var_Grad(v, g, n, is_dependent),
-    regularizer(WeightRegularizer::NONE),
-    regularizer_constant(1.0f),
-    decay(0.0f),
-    clip_by_global_norm(0.0f),
-    output_axis(output_axis_) {}
+                  bool is_dependent = false, unsigned int output_axis_ = 3);
 
   /**
    * @brief Construct a new Weight object
    *
    * @param v ptr to already created variable tensor
    * @param g ptr to already created gradient tensor
+   * @param v32 ptr to already created variable32 tensor
    * @param reg Regularizer for the weight
    * @param reg_const Constant multiplier for regularizer
    */
-  explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
-                  const float reg_const, const float decay,
-                  bool is_dependent = false, const float max_norm = 0.0f,
-                  unsigned int output_axis_ = 3) :
-    Var_Grad(v, g, is_dependent),
-    regularizer(reg),
-    regularizer_constant(reg_const),
-    decay(decay),
-    clip_by_global_norm(max_norm),
-    output_axis(output_axis_) {}
+  explicit Weight(Tensor *v, Tensor *g, Tensor *v32,
+                  const WeightRegularizer reg, const float reg_const,
+                  const float decay, bool is_dependent = false,
+                  const float max_norm = 0.0f, unsigned int output_axis_ = 3,
+                  float loss_scale_ = 0.0f);
 
   /**
    * @brief Swap for weight
@@ -142,6 +157,8 @@ public:
     swap(lhs.clip_by_global_norm, rhs.clip_by_global_norm);
     swap(lhs.output_axis, rhs.output_axis);
     swap(lhs.opt_vars, rhs.opt_vars);
+    swap(lhs.loss_scale, rhs.loss_scale);
+    swap(lhs.var32, rhs.var32);
   }
 
   /**
@@ -185,6 +202,8 @@ public:
       w.var = std::make_shared<Tensor>(this->var->clone());
     if (!this->grad->empty())
       w.grad = std::make_shared<Tensor>(this->grad->clone());
+    if (!this->var32->empty())
+      w.var32 = std::make_shared<Tensor>(this->var32->clone());
 
     return w;
   }
@@ -200,6 +219,16 @@ public:
    */
   void setOptimizerVariables(std::vector<Tensor *> tensors) {
     opt_vars = tensors;
+  }
+
+  /**
+   * @brief Add optimizer variables32
+   * We assume if the datatype of weight is not FP32, then it needs to set
+   * OptmizerVarialbe32 to maintain acccuracy.
+   * @param tensors OptimizerVariable32 Tensor list
+   */
+  void setOptimizerVariables32(std::vector<Tensor *> tensors) {
+    opt_vars32 = tensors;
   }
 
   /**
@@ -289,6 +318,16 @@ public:
   }
 
   /**
+   * @brief Check if the variable type is not full precision
+   *
+   * @return true if it is not full precsion
+   * @return false otherwise
+   */
+  bool isMixedPrecision() const {
+    return var->getDataType() == ml::train::TensorDim::DataType::FP32;
+  }
+
+  /**
    * @brief clip the gradient value based on the given global norm
    *
    * @param global_norm the global norm for all the weights
@@ -308,7 +347,10 @@ private:
   float decay;                   /**< constant factor for the weight decay */
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
+  float loss_scale;
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
+  std::vector<Tensor *> opt_vars32;
+  std::shared_ptr<Tensor> var32;
 
   /**
    * @brief     Apply the weight decay to the weight

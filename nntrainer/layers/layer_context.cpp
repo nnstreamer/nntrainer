@@ -43,7 +43,8 @@ InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
                                    bool in_place_, const std::string &n,
                                    const std::string &prefix_,
                                    const float max_norm,
-                                   std::array<std::string, 3> tensor_type_) :
+                                   std::array<std::string, 3> tensor_type_,
+                                   const float loss_scale_) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
@@ -51,7 +52,8 @@ InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
   req_out_is_connected(req_out_connected),
   name(n),
   prefix(prefix_),
-  tensor_type(tensor_type_) {
+  tensor_type(tensor_type_),
+  loss_scale(loss_scale_) {
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();

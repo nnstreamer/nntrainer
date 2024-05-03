@@ -62,7 +62,8 @@ public:
                    const std::string &n = "", const std::string &prefix_ = "",
                    const float max_norm = 0.0,
                    std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32",
-                                                              "FP32"});
+                                                              "FP32"},
+                   const float loss_scale = 0.0);
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -171,7 +172,7 @@ public:
   /**
    * @brief Request a new weight for the layer
    *
-   * @param dim dimension of the weight
+   * @param dim dimension of Variable of the weight
    * @param init initializer for the weight
    * @param reg regularizer for the weight
    * @param reg_const regularization constant for the weight
@@ -187,9 +188,16 @@ public:
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
                              bool trainable = true, unsigned int out_axis = 3) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, decay,
+
+    /** @note : We assumes the gradient type is same with Activation data
+     * type.*/
+    TensorDim dim_g(dim);
+
+    dim_g.setDataType(getActivationDataType());
+
+    weights_spec.emplace_back(dim, dim_g, init, reg, reg_const, decay,
                               clip_by_global_norm, trainable,
-                              prefix + ":" + name, out_axis);
+                              prefix + ":" + name, out_axis, loss_scale);
     return weights_spec.size() - 1;
   }
 
@@ -356,6 +364,7 @@ private:
   std::string name;   /**< name of the layer */
   std::string prefix; /**< prefix of the layer */
   std::array<std::string, 3> tensor_type;
+  float loss_scale; /**< loss_scale value */
 };
 
 /**

@@ -221,10 +221,11 @@ public:
   /**
    * @brief     Forward Propagation of the neural network
    */
-  sharedConstTensors forwarding(bool training = true,
-                                std::function<bool(void *userdata)> stop_cb =
-                                  [](void *user_data) { return false; },
-                                void *user_data = nullptr);
+  sharedConstTensors forwarding(
+    bool training = true,
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -239,12 +240,11 @@ public:
   /**
    * @brief     Incremental forward Propagation of the neural network
    */
-  sharedConstTensors
-  incremental_forwarding(unsigned int from, unsigned int to,
-                         bool training = true,
-                         std::function<bool(void *userdata)> stop_cb =
-                           [](void *user_data) { return false; },
-                         void *user_data = nullptr);
+  sharedConstTensors incremental_forwarding(
+    unsigned int from, unsigned int to, bool training = true,
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
 
   /**
    * @brief     Incremental forward Propagation of the neural network
@@ -261,10 +261,11 @@ public:
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
-  void backwarding(int iteration,
-                   std::function<bool(void *userdata)> stop_cb =
-                     [](void *user_data) { return false; },
-                   void *user_data = nullptr);
+  void backwarding(
+    int iteration,
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
 
   /**
    * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
@@ -329,13 +330,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(const std::vector<std::string> &values = {},
-            std::function<bool(void *)> stop_cb =
-              [](void *stop_user_data) { return false; },
-            void *stop_user_data = nullptr,
-            std::function<void(void *)> epoch_complete_cb =
-              [](void *epoch_user_data) { return false; },
-            void *epoch_user_data = nullptr) override;
+  int train(
+    const std::vector<std::string> &values = {},
+    std::function<bool(void *)> stop_cb =
+      [](void *stop_user_data) { return false; },
+    void *stop_user_data = nullptr,
+    std::function<void(void *)> epoch_complete_cb =
+      [](void *epoch_user_data) { return false; },
+    void *epoch_user_data = nullptr) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -630,7 +632,8 @@ private:
                props::TensorFormat, props::ModelTensorDataType>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
-               std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm>;
+               std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm,
+               props::LossScale>;
 
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */
@@ -709,12 +712,12 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train_run(std::function<bool(void *)> stop_cb =
-                  [](void *) { return false; },
-                void *user_data = nullptr,
-                std::function<void(void *)> epoch_complete_cb =
-                  [](void *) { return false; },
-                void *data = nullptr);
+  int train_run(
+    std::function<bool(void *)> stop_cb = [](void *) { return false; },
+    void *user_data = nullptr,
+    std::function<void(void *)> epoch_complete_cb =
+      [](void *) { return false; },
+    void *data = nullptr);
 
   /**
    * @brief     Swap function for the class

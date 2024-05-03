@@ -65,7 +65,8 @@
 namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
-  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
+  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
+              props::LossScale()),
   model_flex_props(
     props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
     props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
@@ -83,7 +84,8 @@ NeuralNetwork::NeuralNetwork() :
 }
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
-  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm()),
+  model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
+              props::LossScale()),
   model_flex_props(
     props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
     props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
@@ -188,6 +190,9 @@ int NeuralNetwork::compile() {
     if (auto &prop = std::get<props::ClipGradByGlobalNorm>(model_props);
         !prop.empty()) {
       node->setProperty({"clip_grad_by_norm=" + to_string(prop)});
+    }
+    if (auto &prop = std::get<props::LossScale>(model_props); !prop.empty()) {
+      node->setProperty({"loss_scale=" + to_string(prop)});
     }
     model_graph.addLayer(node);
   }
@@ -1018,6 +1023,7 @@ int NeuralNetwork::train_run(
 
   auto train_for_iteration =
     [this, stop_cb, stop_user_data](RunStats &stat, DataBuffer &buffer) {
+      ml_loge("train for iteration");
       forwarding(true, stop_cb, stop_user_data);
       backwarding(iter++, stop_cb, stop_user_data);
 

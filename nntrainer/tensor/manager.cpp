@@ -52,10 +52,7 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -386,8 +383,9 @@ std::vector<Weight *> Manager::requestWeights(
   size_t current_size = weights_v2.size();
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
-    auto &[dim, t_initializer, w_reg, w_reg_const, decay, clip_by_global_norm,
-           need_gradient, name, axis] = weights_spec.at(i);
+    auto &[dim_v, dim_g, t_initializer, w_reg, w_reg_const, decay,
+           clip_by_global_norm, need_gradient, name, axis, loss_scale] =
+      weights_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
@@ -416,13 +414,13 @@ std::vector<Weight *> Manager::requestWeights(
       // var_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
     }
 
-    Tensor *var = nullptr, *grad = nullptr;
+    Tensor *var = nullptr, *grad = nullptr, *var32 = nullptr;
     bool is_dependent = !shared_names.empty();
     if (is_dependent) {
       /// shared_name is used and the orignal name is discarded
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
-      var = weight_pool.requestOrExtend(shared_name, dim, var_exec_order,
+      var = weight_pool.requestOrExtend(shared_name, dim_v, var_exec_order,
                                         var_ls, t_initializer);
 
       if (trainable && need_gradient) {
@@ -431,13 +429,24 @@ std::vector<Weight *> Manager::requestWeights(
          * for each layer anymore and it is hard to overwritten.
          */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
-                                           dim, grad_exec_order, grad_ls,
+                                           dim_g, grad_exec_order, grad_ls,
                                            Tensor::Initializer::ZEROS);
+
+        if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
+          TensorDim var32_dim(dim_v);
+          var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+          std::vector<unsigned int> var32_exec_order;
+          var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
+
+          var32 = weight_pool.requestOrExtend(shared_name + ":var32", var32_dim,
+                                              var32_exec_order, var_ls,
+                                              Tensor::Initializer::ZEROS);
+        }
       }
     } else {
       /** case requesting fresh weights */
       var =
-        weight_pool.request(name, dim, var_exec_order, var_ls, t_initializer);
+        weight_pool.request(name, dim_v, var_exec_order, var_ls, t_initializer);
 
       if (trainable && need_gradient) {
         /** is_wgrad is the index which is true when it is the gradient tensor
@@ -447,14 +456,24 @@ std::vector<Weight *> Manager::requestWeights(
         bool is_wgrad = true;
         if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
           is_wgrad = false;
-        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim,
+        grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
                                    grad_exec_order, grad_ls,
                                    Tensor::Initializer::ZEROS, is_wgrad);
+        if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
+          TensorDim var32_dim(dim_v);
+          var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+          std::vector<unsigned int> var32_exec_order;
+          var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
+          var32 =
+            weight_pool.request(name + ":var32", var32_dim, var32_exec_order,
+                                var_ls, Tensor::Initializer::ZEROS);
+        }
       }
     }
 
-    weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad, w_reg, w_reg_const, decay, is_dependent, clip_by_global_norm));
+    weights_v2.emplace_back(
+      std::make_unique<Weight>(var, grad, var32, w_reg, w_reg_const, decay,
+                               is_dependent, clip_by_global_norm));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
@@ -670,7 +689,7 @@ bool Manager::isSecondLastAccess(const std::string &name,
  */
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
-  const TensorLifespan &lifespan, bool is_grad_clip,
+  const TensorLifespan &lifespan, bool is_grad_clip, bool is_mixed_precision,
   Tensor::Initializer initializer) {
 
   std::vector<Tensor *> ret;
@@ -678,7 +697,7 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
 
   std::vector<unsigned int> exec;
   exec.reserve(1);
-  if (is_grad_clip) {
+  if (is_grad_clip || is_mixed_precision) {
     exec.emplace_back(TensorPool::PERSIST_END_ORDER);
   } else {
     exec.emplace_back(getMinMaxTensorExecutionOrder(name, true).second);

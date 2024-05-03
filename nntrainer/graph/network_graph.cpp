@@ -869,7 +869,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
-      shared_weight_names.emplace_back(std::get<7>(w_specs.at(i)));
+      shared_weight_names.emplace_back(std::get<8>(w_specs.at(i)));
     }
   }
 
@@ -1018,7 +1018,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
     const auto &w_specs = init_context.getWeightsSpec();
     for (auto i = 0u; i < w_specs.size(); ++i) {
-      shared_weight_names.emplace_back(std::get<7>(w_specs.at(i)));
+      shared_weight_names.emplace_back(std::get<8>(w_specs.at(i)));
     }
   }
 
@@ -1557,7 +1557,18 @@ void NetworkGraph::requestOptimizerVariable(
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS));
+        w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+        Tensor::Initializer::ZEROS));
+
+      if (dim.getDataType() != ml::train::TensorDim::DataType::FP32) {
+        for (auto &dim : dims)
+          dim.setDataType(ml::train::TensorDim::DataType::FP32);
+        w->setOptimizerVariables32(
+          tensor_manager->requestWeightOptimizerVariables(
+            dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+            w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+            Tensor::Initializer::ZEROS));
+      }
     }
   }
 }

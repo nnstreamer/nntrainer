@@ -52,6 +52,7 @@ class SharedFrom;
 class InputConnection;
 class ClipGradByGlobalNorm;
 class Packed;
+class LossScaleForMixed;
 } // namespace props
 
 /**
@@ -486,6 +487,7 @@ public:
   const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
+   * currently, only unittest uses this func.
    *
    * @param idx Identifier of the weight
    * @return Weight& Reference to the weight
@@ -939,11 +941,11 @@ will also contain the properties of the layer. The properties will be copied
 upon final creation. Editing properties of the layer after init will not the
 properties in the context/graph unless intended. */
 
-  using PropsType =
-    std::tuple<props::Name, props::Distribute, props::Trainable,
-               std::vector<props::InputConnection>,
-               std::vector<props::InputShape>, props::SharedFrom,
-               props::ClipGradByGlobalNorm, props::Packed>;
+  using PropsType = std::tuple<props::Name, props::Distribute, props::Trainable,
+                               std::vector<props::InputConnection>,
+                               std::vector<props::InputShape>,
+                               props::SharedFrom, props::ClipGradByGlobalNorm,
+                               props::Packed, props::LossScaleForMixed>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence
