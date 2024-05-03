@@ -6,6 +6,7 @@
  * @date   22 September 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jiho Chu <jiho.chu@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is Weight Class for Neural Network
  *
@@ -105,7 +106,8 @@ public:
     regularizer_constant(1.0f),
     decay(0.0f),
     clip_by_global_norm(0.0f),
-    output_axis(output_axis_) {}
+    output_axis(output_axis_),
+    var_master(nullptr) {}
 
   /**
    * @brief Construct a new Weight object
@@ -114,17 +116,19 @@ public:
    * @param g ptr to already created gradient tensor
    * @param reg Regularizer for the weight
    * @param reg_const Constant multiplier for regularizer
+   * @param v_m ptr to already created variable master tensor
    */
   explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
                   const float reg_const, const float decay,
                   bool is_dependent = false, const float max_norm = 0.0f,
-                  unsigned int output_axis_ = 3) :
+                  unsigned int output_axis_ = 3, Tensor *v_m = nullptr) :
     Var_Grad(v, g, is_dependent),
     regularizer(reg),
     regularizer_constant(reg_const),
     decay(decay),
     clip_by_global_norm(max_norm),
-    output_axis(output_axis_) {}
+    output_axis(output_axis_),
+    var_master(std::shared_ptr<Tensor>(v_m, [](void *) {})) {}
 
   /**
    * @brief Swap for weight
@@ -141,7 +145,9 @@ public:
     swap(lhs.decay, rhs.decay);
     swap(lhs.clip_by_global_norm, rhs.clip_by_global_norm);
     swap(lhs.output_axis, rhs.output_axis);
+    swap(lhs.var_master, rhs.var_master);
     swap(lhs.opt_vars, rhs.opt_vars);
+    swap(lhs.opt_master_vars, rhs.opt_master_vars);
   }
 
   /**
@@ -195,11 +201,24 @@ public:
   void clearOptimizerVariables() { opt_vars.clear(); }
 
   /**
+   * @brief Clear optimizer variables
+   */
+  void clearOptimizerMasterVariables() { opt_master_vars.clear(); }
+
+  /**
    * @brief Add optimizer variables
-   * @param dim Optimizer variable dimension
+   * @param tensors Optimizer variable
    */
   void setOptimizerVariables(std::vector<Tensor *> tensors) {
     opt_vars = tensors;
+  }
+
+  /**
+   * @brief Add optimizer master variables
+   * @param tensors Optimizer master variable
+   */
+  void setOptimizerMasterVariables(std::vector<Tensor *> tensors) {
+    opt_master_vars = tensors;
   }
 
   /**
@@ -210,10 +229,25 @@ public:
   Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
 
   /**
+   * @brief Get optimizer variable reference
+   * @param idx Index of the optimizer variable to get
+   * @retval Reference of the optimizer variable
+   */
+  Tensor &getOptimizerMasterVariableRef(unsigned int idx) {
+    return *opt_master_vars[idx];
+  }
+
+  /**
    * @brief Get number of optimizer variable
    * @retval number of optimizer variable
    */
   int getNumOptVariable() { return opt_vars.size(); }
+
+  /**
+   * @brief Get number of optimizer variable
+   * @retval number of optimizer variable
+   */
+  int getNumOptMasterVariable() { return opt_master_vars.size(); }
 
   /**
    * @brief Get axis of Weight
@@ -246,6 +280,11 @@ public:
   }
 
   /**
+   * @brief     Apply scaler for gradient of the weight
+   */
+  void applyScaler(float scale = 1.0f) { grad->divide_i(scale); }
+
+  /**
    * @brief     Calculate gradient from the regularization of the weight
    */
   void calcRegularizationGradient() {
@@ -264,7 +303,19 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
+  void applyGradient(double lr);
+
+  /**
+   * @brief     Apply the master weight to the weight
+   */
+  void applyMaster();
+
+  /**
+   * @brief Get the variable tensor
+   *
+   * @return Tensor Variable tensor
+   */
+  Tensor *getVariableMasterRef() const { return var_master.get(); }
 
   /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
@@ -308,7 +359,10 @@ private:
   float decay;                   /**< constant factor for the weight decay */
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
+  std::shared_ptr<Tensor>
+    var_master; /**< variable master tensor for mixed tensor types */
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
+  std::vector<Tensor *> opt_master_vars; /**< optimizer master variables */
 
   /**
    * @brief     Apply the weight decay to the weight
