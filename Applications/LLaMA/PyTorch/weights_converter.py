@@ -4,13 +4,14 @@ Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
 
 @file weights_converter.py
 @date 13 October 2023
+@this script is tested on transformers 4.30.2
 
 @author Seungbaek Hong <sb92.hong@samsung.com>
 """
 
 import torch
 import numpy as np
-from transformers import LlamaForCausalLM
+from transformers import LlamaForCausalLM, AutoConfig
 
 
 def save_llama_for_nntrainer(params, n_layers, file, dtype):
@@ -53,11 +54,14 @@ def save_llama_for_nntrainer(params, n_layers, file, dtype):
 
 
 if __name__ == "__main__":
-    MODEL_PATH = "/USR_DIR/MODEL_DIR/"
+    model_name_or_path = "./"
+    data_dtype = "float16"
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    config = AutoConfig.from_pretrained(model_name_or_path)
     model = LlamaForCausalLM.from_pretrained(
-        MODEL_PATH, torch_dtype=torch.float32, device_map="cpu"
+        model_name_or_path, torch_dtype='auto', device_map=device
     )
 
-    with open("./llama_v2_mha.bin", "wb") as file_mha:
-        save_llama_for_nntrainer(model.state_dict(), 28, file_mha, "float16")
+    with open("./llama_fp16.bin", "wb") as f:
+        save_llama_for_nntrainer(model.state_dict(), config.num_hidden_layers, f, data_dtype)
