@@ -90,34 +90,24 @@ Weight::Weight(const TensorDim &dim_v, const TensorDim &dim_g,
   }
 }
 
-Weight::Weight(const Tensor &v, const Tensor &g, const std::string &n,
-               bool is_dependent, unsigned int output_axis_) :
+Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
+               const std::string &n, bool is_dependent,
+               unsigned int output_axis_) :
   Var_Grad(v, g, n, is_dependent),
   regularizer(WeightRegularizer::NONE),
   regularizer_constant(1.0f),
   decay(0.0f),
   clip_by_global_norm(0.0f),
   output_axis(output_axis_),
-  loss_scale(0.0) {
+  loss_scale(0.0),
+  var32(std::make_shared<Tensor>(n + ":fp32")) {
 
-  std::string var32_suffix = ":fp32";
-  std::string var32_name = n + var32_suffix;
-
-  /**
-   * @note We assume here that Weight is created with variable and gradient
-   * tensor. It is not copy or clone and, therefore, we do need create var32 if
-   * it is trainable. For now, We haven't seen the case create wieght with var,
-   * grad and var32. But we will add weight constructor if there is the cases.
-   */
-
-  if (!g.empty() && v.getDataType() != ml::train::TensorDim::DataType::FP32) {
+  if (!g.empty() && isMixedPrecision()) {
     TensorDim var32_dim(v.getDim());
     var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
-
-    var32 = std::make_shared<Tensor>(var32_dim, true, Tensor::Initializer::NONE,
-                                     var32_name);
-  } else {
-    var32 = std::make_shared<Tensor>(var32_name);
+    if (!v32.empty())
+      var32 = std::make_shared<Tensor>(
+        v32.getSharedDataTensor(var32_dim, 0, false, n + ":fp32"));
   }
 }
 
