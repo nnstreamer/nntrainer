@@ -55,7 +55,7 @@ int const NUM_VOCAB = 96000;
 int MAX_SEQ_LEN = 1024;
 int NUM_TO_GENERATE = 100;
 
-constexpr unsigned int INIT_SEQ_LEN = 30;
+constexpr unsigned int INIT_SEQ_LEN = 28;
 unsigned int batch_size = 1;
 unsigned int epoch = 1;
 
@@ -562,7 +562,7 @@ void run(std::string text, bool apply_temperature) {
   float init_input[INIT_SEQ_LEN] = {
     0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
     50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
-  ((uint *)(input_sample))[0] = init_input[0];
+  memcpy(input_sample, init_input, sizeof(float) * INIT_SEQ_LEN);
   input.push_back(input_sample);
   init_len = 18;
 #endif
