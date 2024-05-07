@@ -147,7 +147,10 @@ void FloatTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
 
 void FloatTensor::setZero() {
   if (contiguous) {
-    sscal(size(), 0, (float *)getData(), 1);
+    //  sscal(size(), 0, getData<float>(), 1);
+    /// @note we cannot use sscal, when we set zero. if the data is inf or
+    /// NaN, then the inf or NaN still remain.
+    memset(getData<float>(), 0, sizeof(float) * size());
   } else {
     /// @todo implement apply_i
     // apply_i<float>([](float val) -> float { return 0; });
@@ -1205,6 +1208,10 @@ void FloatTensor::apply_broadcast(
   }
 
   return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
+bool Tensor::isValid() const {
+  return is_valid(dim.getDataLen(), Tdatatype::FP32, getData<float>());
 }
 
 } // namespace nntrainer

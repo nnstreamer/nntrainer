@@ -146,7 +146,10 @@ void HalfTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
 
 void HalfTensor::setZero() {
   if (contiguous) {
-    sscal(size(), 0, (_FP16 *)getData(), 1);
+    //  sscal(size(), 0, (_FP16 *)getData(), 1);
+    /// @note we cannot use sscal, when we set zero. if the data is inf or
+    /// NaN, then the inf or NaN still remain.
+    memset(getData<_FP16>(), 0, sizeof(_FP16) * size());
   } else {
     /// @todo implement apply_i
     // apply_i<_FP16>([](_FP16 val) -> _FP16 { return 0; });
@@ -1171,6 +1174,10 @@ void HalfTensor::apply_broadcast_util(
     apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
                          next_m_offset);
   }
+}
+
+bool Tensor::isValid() const {
+  return is_valid(dim.getDataLen(), Tdatatype::FP16, getData<_FP16>());
 }
 
 } // namespace nntrainer

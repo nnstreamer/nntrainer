@@ -227,7 +227,8 @@ public:
    */
   std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
-    const TensorLifespan &lifespan, bool is_grad_clip, bool is_mixed_type,
+    const std::string &suffix, const TensorLifespan &lifespan,
+    bool is_grad_clip, bool is_mixed_type,
     Tensor::Initializer initializer = Tensor::Initializer::NONE);
 
   /**
