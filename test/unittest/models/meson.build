@@ -11,6 +11,10 @@ models_targets = [
   # disable temperally
 ]
 
+if get_option('enable-fp16')
+   models_targets += 'unittest_models_mixed_precision.cpp'
+endif
+
 test_target += models_targets
 exe = executable(
   test_name,
