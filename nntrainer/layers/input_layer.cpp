@@ -33,8 +33,7 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 InputLayer::InputLayer() :
-  Layer(),
-  input_props(props::Normalization(), props::Standardization()) {}
+  Layer(), input_props(props::Normalization(), props::Standardization()) {}
 
 void InputLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, input_props);
@@ -47,7 +46,7 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   if (!context.executeInPlace()) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-    hidden_.copy(input_);
+    hidden_.copyData(input_);
   }
 
   if (std::get<props::Normalization>(input_props))
@@ -70,7 +69,21 @@ void InputLayer::finalize(InitLayerContext &context) {
 
   std::vector<TensorDim> output_dims = context.getInputDimensions();
 
+  for (auto &d : output_dims) {
+    d.setDataType(context.getActivationDataType());
+  }
+
   context.setOutputDimensions(output_dims);
+
+  is_inplace = true;
+
+  /**
+   * @note Input Layer assuems that the FP32 IN Tensor always. Therefore, if the
+   * activation data type is not fp32, then it does not support in-place
+   * operation.
+   */
+  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32)
+    is_inplace = false;
 }
 
 } /* namespace nntrainer */
