@@ -11,7 +11,6 @@
  *
  */
 
-#include "tensor.h"
 #include <layer_context.h>
 #include <mse_loss_layer.h>
 
@@ -33,39 +32,21 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
           .clone(ml::train::TensorDim::DataType::FP32);
 
   // hidden_ <- y2 - y;
-  auto out_type = hidden_.getDataType();
-  if (out_type != y_.getDataType()) {
-    Tensor y = y_.clone(out_type);
-    if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-      Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
-      y2.subtract(y, hidden_);
+  if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+    Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
+    y2.subtract(y, hidden_);
 
-      /** calculate sum of squares normalized by size */
-      float l2norm = hidden_.l2norm();
-      l2norm *= l2norm / hidden_.size();
+    /** calculate sum of squares normalized by size */
+    float l2norm = hidden_.l2norm();
+    l2norm *= l2norm / hidden_.size();
 
-      /** wrap in tensor for update loss */
-      Tensor l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
-      LossLayer::updateLoss(context, l);
-    }
-    // fill the output
-    hidden_.fill(y);
-  } else {
-    if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-      Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
-      y2.subtract(y_, hidden_);
-
-      /** calculate sum of squares normalized by size */
-      float l2norm = hidden_.l2norm();
-      l2norm *= l2norm / hidden_.size();
-
-      /** wrap in tensor for update loss */
-      Tensor l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
-      LossLayer::updateLoss(context, l);
-    }
-    // fill the output
-    hidden_.fill(y_);
+    /** wrap in tensor for update loss */
+    Tensor l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
+    LossLayer::updateLoss(context, l);
   }
+
+  // fill the output
+  hidden_.fill(y);
 }
 
 void MSELossLayer::calcDerivative(RunLayerContext &context) {
@@ -92,33 +73,9 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
 
   const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
-  const auto &in_type = y.getDataType();
-  if (in_type != y2.getDataType()) {
-    Tensor y2_ = y2.clone(in_type);
-    y.subtract(y2_, ret_derivative);
-  } else {
-    y.subtract(y2, ret_derivative);
-  }
-
-  applyLossScale(ret_derivative);
-
+  y.subtract(y2, ret_derivative);
   float divider = ((float)y.size()) / 2;
-
-  /**
-   * ret_derivative may be eliminated by big divider with fp16 calculation.
-   * So, it calcuated with larger precision.
-   */
-  int ret;
-  if (ret_derivative.getDataType() != ml::train::TensorDim::DataType::FP32) {
-    Tensor ret_derivative_ =
-      ret_derivative.clone(ml::train::TensorDim::DataType::FP32);
-    ret = ret_derivative_.divide_i(divider);
-    ret_derivative.copyData(ret_derivative_);
-  } else {
-    ret = ret_derivative.divide_i(divider);
-  }
-
-  if (ret != ML_ERROR_NONE) {
+  if (ret_derivative.divide_i(divider) != ML_ERROR_NONE) {
     throw std::runtime_error(
       "[MSELossLayer::calcDerivative] Error when calculating loss");
   }
