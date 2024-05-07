@@ -507,6 +507,11 @@ private:
    * @return std::string of tensor data type (FP32)
    */
   std::string getStringDataType() const override { return "FP32"; }
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool Tensor::isValid() const;
 };
 
 } // namespace nntrainer

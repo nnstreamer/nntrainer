@@ -768,6 +768,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
+
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
   if (lnode->executeInPlace() != InPlace::NONE) {
@@ -1560,16 +1561,16 @@ void NetworkGraph::requestOptimizerVariable(
       const TensorDim &dim = w->getDim();
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
-        dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+        dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
         w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
         Tensor::Initializer::ZEROS));
 
-      if (dim.getDataType() != ml::train::TensorDim::DataType::FP32) {
+      if (w->isMixedPrecision()) {
         for (auto &dim : dims)
           dim.setDataType(ml::train::TensorDim::DataType::FP32);
         w->setOptimizerVariables32(
           tensor_manager->requestWeightOptimizerVariables(
-            dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+            dims, w->getName(), ":opt32:", TensorLifespan::MAX_LIFESPAN,
             w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
             Tensor::Initializer::ZEROS));
       }
