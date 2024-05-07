@@ -47,6 +47,7 @@ nntrainer_elements = [
 
 if get_option('enable-opencl')
   nntrainer_elements += 'opencl'
+  nntrainer_elements += 'layers/cl_layers'
 endif
 
 foreach elem : nntrainer_elements

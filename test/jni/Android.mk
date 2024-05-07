@@ -16,6 +16,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/dataset \
 	$(NNTRAINER_ROOT)/nntrainer/models \
 	$(NNTRAINER_ROOT)/nntrainer/layers \
+	$(NNTRAINER_ROOT)/nntrainer/layers/cl_layers \
 	$(NNTRAINER_ROOT)/nntrainer/compiler \
 	$(NNTRAINER_ROOT)/nntrainer/graph \
 	$(NNTRAINER_ROOT)/nntrainer/opencl \
@@ -442,6 +443,7 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers_impl.cpp \
 	 ../unittest/layers/unittest_layers_input.cpp \
 	 ../unittest/layers/unittest_layers_loss.cpp \
+	 ../unittest/layers/unittest_layers_fully_connected_cl.cpp \
 	 ../unittest/layers/unittest_layers_fully_connected.cpp \
 	 ../unittest/layers/unittest_layers_batch_normalization.cpp \
 	 ../unittest/layers/unittest_layers_layer_normalization.cpp \
