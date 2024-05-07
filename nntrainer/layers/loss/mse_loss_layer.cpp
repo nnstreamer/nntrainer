@@ -20,7 +20,16 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  Tensor &y = context.getInput(SINGLE_INOUT_IDX);
+
+  Tensor empty_tensor;
+  Tensor &y = context.getInput(SINGLE_INOUT_IDX).getDataType() ==
+                  ml::train::TensorDim::DataType::FP32
+                ? context.getInput(SINGLE_INOUT_IDX)
+                : empty_tensor;
+
+  if (y.empty())
+    y = context.getInput(SINGLE_INOUT_IDX)
+          .clone(ml::train::TensorDim::DataType::FP32);
 
   // hidden_ <- y2 - y;
   if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
