@@ -112,6 +112,7 @@ public:
    *
    * @param v Already created variable object
    * @param g Already created gradient object
+   * @param v32 Already created gradient object
    * @param n Name for this Weight
    *
    * @note This is primarily used to created wrapper of variable extracted from
@@ -121,8 +122,9 @@ public:
    * uses only, as Weight does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "",
-                  bool is_dependent = false, unsigned int output_axis_ = 3);
+  explicit Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
+                  const std::string &n = "", bool is_dependent = false,
+                  unsigned int output_axis_ = 3);
 
   /**
    * @brief Construct a new Weight object
@@ -322,7 +324,7 @@ public:
    * @return false otherwise
    */
   bool isMixedPrecision() const {
-    return var->getDataType() == ml::train::TensorDim::DataType::FP32;
+    return var->getDataType() != ml::train::TensorDim::DataType::FP32;
   }
 
   /**
@@ -334,6 +336,13 @@ public:
     if ((global_norm + epsilon) > clip_by_global_norm)
       grad->multiply_i(clip_by_global_norm / (global_norm + epsilon));
   }
+
+  /**
+   * @brief Get the variable FP32 tensor (by reference)
+   *
+   * @return Tensor Variable FP32 tensor
+   */
+  Tensor &getVariableFP32Ref() { return *var32.get(); }
 
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
