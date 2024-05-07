@@ -498,6 +498,11 @@ private:
    * @return std::string of tensor data type (FP16)
    */
   std::string getStringDataType() const override { return "FP16"; }
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool Tensor::isValid() const;
 };
 
 } // namespace nntrainer

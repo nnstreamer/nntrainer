@@ -453,6 +453,15 @@ public:
   Tensor &getWeightGrad(unsigned int idx) const;
 
   /**
+   * @brief Get the Weight Gradient tensor object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight grad tensor
+   */
+  Tensor &getWeightFP32(unsigned int idx) const;
+
+  /**
+
    * @brief Get the Weight Optimizer Variable tensor object
    *
    * @param idx Identifier of the weight
