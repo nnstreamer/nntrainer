@@ -648,10 +648,12 @@ bool RunLayerContext::clCreateKernel(std::string kernel_string,
  */
 std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
   switch (layerKernel) {
-  case LayerKernel::KERNEL_NAME1:
-    return "kernel_name1";
-  case LayerKernel::KERNEL_NAME2:
-    return "kernel_name2";
+  case LayerKernel::FCSGEMV:
+    return "fc_sgemv_cl";
+  case LayerKernel::FCDOT:
+    return "fc_dot_cl";
+  case LayerKernel::FCSGEMM:
+    return "fc_sgemm_cl";
   default:
     return "";
   }
