@@ -82,7 +82,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const override { return true; }
+  bool supportInPlace() const override { return is_inplace; }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
@@ -105,6 +105,7 @@ public:
 
 private:
   std::tuple<props::Normalization, props::Standardization> input_props;
+  bool is_inplace;
 };
 } // namespace nntrainer
 
