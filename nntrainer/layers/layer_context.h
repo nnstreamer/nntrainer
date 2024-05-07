@@ -475,14 +475,6 @@ public:
   Tensor &getWeight(unsigned int idx) const;
 
   /**
-   * @brief Get the Weight master tensor object
-   *
-   * @param idx Identifier of the weight
-   * @return Tensor& Reference to the weight tensor
-   */
-  Tensor *getWeightMaster(unsigned int idx) const;
-
-  /**
    * @brief Get the Weight Gradient tensor object
    *
    * @note this method returns the fresh gradient to be filled
@@ -508,15 +500,6 @@ public:
    * @return Tensor& Reference to the weight grad tensor
    */
   Tensor &getWeightOptVar(unsigned int idx, unsigned int jdx) const;
-
-  /**
-   * @brief Get the Weight Optimizer Master Variable tensor object
-   *
-   * @param idx Identifier of the weight
-   * @param jdx Identifier of the weight optimizer master variable
-   * @return Tensor& Reference to the weight optimizer tensor
-   */
-  Tensor &getWeightOptMasterVar(unsigned int idx, unsigned int jdx) const;
 
   /**
    * @brief Get the Weight name
@@ -627,11 +610,6 @@ public:
    * @return Tensor& Reference to the input derivative tensor
    */
   Tensor &getOutgoingDerivative(unsigned int idx);
-
-  /**
-   * @brief validate input/output derivatives of the layer
-   */
-  bool validateDerivatives();
 
   /**
    * @brief Get the Tensor object
@@ -763,27 +741,11 @@ public:
   unsigned int getNumWeightOptVar(unsigned int idx) const;
 
   /**
-   * @brief Get the Number of Weight Optimizer Variable tensor object
-   *
-   * @param idx Identifier of the weight
-   * @return unsigned int Number of the weight optimizer variable
-   */
-  unsigned int getNumWeightOptMasterVar(unsigned int idx) const;
-
-  /**
    * @brief Get the number of requested tensors objects
    *
    * @return unsigned int number of requested tensors
    */
   unsigned int getNumTensors() const { return tensors.size(); }
-
-  /**
-   * @brief Set the Weight Optimizer Variable tensor object
-   *
-   * @param idx Identifier of the weight
-   * @param jdx Identifier of the weight optimizer variable
-   */
-  void setWeightOptVars(unsigned int idx, std::vector<Tensor *> opts);
 
   /**
    * @brief Set the batch for the run context

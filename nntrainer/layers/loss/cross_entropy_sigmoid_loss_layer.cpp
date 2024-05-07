@@ -61,9 +61,6 @@ void CrossEntropySigmoidLossLayer::calcDerivative(RunLayerContext &context) {
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   y.apply<float>(ActiFunc::sigmoid<float>, ret_derivative);
-
-  applyLossScale(ret_derivative);
-
   ret_derivative.subtract_i(y2);
   if (ret_derivative.divide_i(ret_derivative.size()) != ML_ERROR_NONE) {
     throw std::runtime_error("[CrossEntropySigmoidLossLayer::calcDerivative] "

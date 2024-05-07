@@ -158,16 +158,6 @@ Tensor &RunLayerContext::getWeight(unsigned int idx) const {
 }
 
 /**
- * @brief Get the Weight tensor object
- *
- * @param idx Identifier of the weight
- * @return Tensor& Reference to the weight tensor
- */
-Tensor *RunLayerContext::getWeightMaster(unsigned int idx) const {
-  return weights[idx]->getVariableMasterRef();
-}
-
-/**
  * @brief Get the Weight Gradient tensor object
  *
  * @param idx Identifier of the weight
@@ -206,18 +196,6 @@ Tensor &RunLayerContext::getWeightOptVar(unsigned int idx,
 }
 
 /**
- * @brief Get the Weight Optimizer Variable tensor object
- *
- * @param idx Identifier of the weight
- * @param jdx Identifier of the optimizer variables
- * @return Tensor& Reference to the weight optimizer variable tensor
- */
-Tensor &RunLayerContext::getWeightOptMasterVar(unsigned int idx,
-                                               unsigned int jdx) const {
-  return weights[idx]->getOptimizerMasterVariableRef(jdx);
-}
-
-/**
  * @brief Get the Number of Weight Optimizer Variable tensor object
  *
  * @param idx Identifier of the weight
@@ -225,16 +203,6 @@ Tensor &RunLayerContext::getWeightOptMasterVar(unsigned int idx,
  */
 unsigned int RunLayerContext::getNumWeightOptVar(unsigned int idx) const {
   return weights[idx]->getNumOptVariable();
-}
-
-/**
- * @brief Get the Number of Weight Optimizer Variable tensor object
- *
- * @param idx Identifier of the weight
- * @return int Number of the weight optimizer variable
- */
-unsigned int RunLayerContext::getNumWeightOptMasterVar(unsigned int idx) const {
-  return weights[idx]->getNumOptMasterVariable();
 }
 
 /**
@@ -374,25 +342,6 @@ bool RunLayerContext::inputHasGradient(unsigned int idx) const {
  */
 Tensor &RunLayerContext::getOutgoingDerivative(unsigned int idx) {
   return getInputGrad(idx);
-}
-
-bool RunLayerContext::validateDerivatives() {
-  auto num_in = getNumInputs();
-  auto num_out = getNumOutputs();
-
-  for (unsigned int i = 0; i < num_in; ++i) {
-    auto deriv = getIncomingDerivative(i);
-    if (deriv.checkDataValidation(false) == false)
-      return false;
-  }
-
-  for (unsigned int i = 0; i < num_out; ++i) {
-    auto deriv = getOutgoingDerivative(i);
-    if (deriv.checkDataValidation(false) == false)
-      return false;
-  }
-
-  return true;
 }
 
 /**

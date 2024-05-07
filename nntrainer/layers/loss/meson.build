@@ -7,9 +7,7 @@ loss_layer_sources = [
   'constant_derivative_loss_layer.cpp'
 ]
 
-loss_layer_headers = [
-  'loss_layer.h'
-]
+loss_layer_headers = []
 
 loss_layer_deps = []
 
