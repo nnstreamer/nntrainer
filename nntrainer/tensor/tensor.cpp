@@ -3071,6 +3071,18 @@ Tensor Tensor::clone() const {
   return t;
 }
 
+Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
+  if (getDataType() == type)
+    return clone();
+
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor t(dim, true);
+  t.copyData(*this);
+  t.name = name;
+  return t;
+}
+
 void Tensor::reshape(const TensorDim &d) {
 
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
