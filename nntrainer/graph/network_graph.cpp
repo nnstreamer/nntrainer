@@ -771,7 +771,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace() != InPlace::NONE) {
+  if (lnode->executeInPlace() != InPlace::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);
