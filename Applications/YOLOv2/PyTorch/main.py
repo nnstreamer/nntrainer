@@ -19,6 +19,8 @@ from yolo import YoloV2
 from yolo_loss import YoloV2_LOSS
 from dataset import YOLODataset, collate_db
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 # get pyutils path using relative path
 def get_util_path():
@@ -39,10 +41,10 @@ num_anchors = 5
 epochs = 3
 batch_size = 4
 
-train_img_dir = "/home/user/TRAIN_DIR/images/*"
-train_ann_dir = "/home/user/TRAIN_DIR/annotations/*"
-valid_img_dir = "/home/user/VALID_DIR/images/*"
-valid_ann_dir = "/home/user/VALID_DIR/annotations/*"
+train_img_dir = "/home/user/TRAIN_DIR/images/"
+train_ann_dir = "/home/user/TRAIN_DIR/annotations/"
+valid_img_dir = "/home/user/VALID_DIR/images/"
+valid_ann_dir = "/home/user/VALID_DIR/annotations/"
 
 # load data
 train_dataset = YOLODataset(train_img_dir, train_ann_dir)
@@ -63,10 +65,12 @@ valid_loader = DataLoader(
 )
 
 # set model, loss and optimizer
-model = YoloV2(num_classes=num_classes)
-criterion = YoloV2_LOSS(num_classes=num_classes)
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
+model = YoloV2(num_classes=num_classes).to(device)
+criterion = YoloV2_LOSS(
+    num_classes=num_classes, img_shape=(416, 416), device=device
+).to(device)
+optimizer = optim.Adam(model.parameters(), lr=1e-5)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0)
 
 # save init model
 save_bin(model, "init_model")
@@ -77,11 +81,11 @@ best_loss = 1e10
 for epoch in range(epochs):
     epoch_train_loss = 0
     epoch_valid_loss = 0
+    model.train()
     for idx, (img, bbox, cls) in enumerate(train_loader):
-        model.train()
         optimizer.zero_grad()
         # model prediction
-        hypothesis = model(img).permute((0, 2, 3, 1))
+        hypothesis = model(img.to(device)).permute((0, 2, 3, 1))
         hypothesis = hypothesis.reshape(
             (batch_size, out_size**2, num_anchors, 5 + num_classes)
         )
@@ -95,24 +99,18 @@ for epoch in range(epochs):
             score_pred.shape
         )
         # calc loss
-        loss = criterion(
-            torch.FloatTensor(bbox_pred),
-            torch.FloatTensor(iou_pred),
-            torch.FloatTensor(prob_pred),
-            bbox,
-            cls,
-        )
+        loss = criterion(bbox_pred, iou_pred, prob_pred, bbox, cls)
         # back prop
         loss.backward()
         optimizer.step()
-        # scheduler.step()
+        scheduler.step()
         epoch_train_loss += loss.item()
 
+    model.eval()
     for idx, (img, bbox, cls) in enumerate(valid_loader):
-        model.eval()
         with torch.no_grad():
             # model prediction
-            hypothesis = model(img).permute((0, 2, 3, 1))
+            hypothesis = model(img.to(device)).permute((0, 2, 3, 1))
             hypothesis = hypothesis.reshape(
                 (hypothesis.shape[0], out_size**2, num_anchors, 5 + num_classes)
             )
@@ -126,13 +124,7 @@ for epoch in range(epochs):
                 score_pred.shape
             )
             # calc loss
-            loss = criterion(
-                torch.FloatTensor(bbox_pred),
-                torch.FloatTensor(iou_pred),
-                torch.FloatTensor(prob_pred),
-                bbox,
-                cls,
-            )
+            loss = criterion(bbox_pred, iou_pred, prob_pred, bbox, cls)
             epoch_valid_loss += loss.item()
 
     if epoch_valid_loss < best_loss:
@@ -175,8 +167,8 @@ def post_process_for_bbox(bbox_p):
     bbox_p[:, :, :, :2] /= 13
 
     # apply anchors to w, h
-    anchor_w = anchors[:, 0].contiguous().view(-1, 1)
-    anchor_h = anchors[:, 1].contiguous().view(-1, 1)
+    anchor_w = anchors[:, 0].contiguous().view(-1, 1).to(device)
+    anchor_h = anchors[:, 1].contiguous().view(-1, 1).to(device)
     bbox_p[:, :, :, 2:3] *= anchor_w
     bbox_p[:, :, :, 3:4] *= anchor_h
 
