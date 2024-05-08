@@ -9,7 +9,7 @@ if enable_ccapi
 endif
 subdir('VGG/jni')
 subdir('Resnet/jni')
-subdir('YOLO/jni')
+subdir('YOLOv2/jni')
 subdir('YOLOv3/jni')
 subdir('LLaMA/jni')
 subdir('Multi_input/jni')
