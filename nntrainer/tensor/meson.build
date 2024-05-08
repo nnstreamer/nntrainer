@@ -44,6 +44,12 @@ cl_headers = [
 
 
 arch = host_machine.cpu_family()
+
+if get_option('enable-avx')
+    tensor_sources += 'blas_avx.cpp'
+    tensor_headers += 'blas_avx.h'
+endif
+
 if get_option('enable-fp16') 
   if arch == 'arm'
     error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
@@ -55,9 +61,6 @@ if get_option('enable-fp16')
       nntrainer_inc += include_directories('hgemm')
       nntrainer_inc_abs += meson.current_source_dir() / 'hgemm'
     endif
-  elif get_option('enable-avx')
-    tensor_sources += 'blas_avx.cpp'
-    tensor_headers += 'blas_avx.h'
   endif
 endif
 
