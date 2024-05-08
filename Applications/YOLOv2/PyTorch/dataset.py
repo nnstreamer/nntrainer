@@ -8,6 +8,7 @@
 # @author Seungbaek Hong <sb92.hong@samsung.com>
 
 import glob
+import re
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -21,30 +22,36 @@ from PIL import Image
 class YOLODataset(Dataset):
     def __init__(self, img_dir, ann_dir):
         super().__init__()
-        img_list = glob.glob(img_dir)
-        ann_list = glob.glob(ann_dir)
-        img_list.sort()
-        ann_list.sort()
+        pattern = re.compile("\/(\d+)\.")
+        img_list = glob.glob(img_dir + "*")
+        ann_list = glob.glob(ann_dir + "*")
 
-        self.length = len(img_list)
+        img_ids = list(map(lambda x: pattern.search(x).group(1), img_list))
+        ann_ids = list(map(lambda x: pattern.search(x).group(1), ann_list))
+        ids_list = list(set(img_ids) & set(ann_ids))
+
         self.input_images = []
         self.bbox_gt = []
         self.cls_gt = []
 
-        for i in range(len(img_list)):
-            img = np.array(Image.open(img_list[i]).resize((416, 416))) / 255
+        for ids in ids_list:
+            img = np.array(Image.open(img_dir + ids + ".jpg").resize((416, 416))) / 255
             label_bbox = []
             label_cls = []
-            with open(ann_list[i], "rt", encoding="utf-8") as f:
+            with open(ann_dir + ids + ".txt", "rt", encoding="utf-8") as f:
                 for line in f.readlines():
                     line = [float(i) for i in line.split()]
                     label_bbox.append(np.array(line[1:], dtype=np.float32) / 416)
                     label_cls.append(int(line[0]))
 
+            if len(label_cls) == 0:
+                continue
+
             self.input_images.append(img)
             self.bbox_gt.append(label_bbox)
             self.cls_gt.append(label_cls)
 
+        self.length = len(self.input_images)
         self.input_images = np.array(self.input_images)
         self.input_images = torch.FloatTensor(self.input_images).permute((0, 3, 1, 2))
 
