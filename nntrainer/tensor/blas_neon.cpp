@@ -557,6 +557,25 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
   }
 }
 
+bool hasNaN(const size_t N, const float *X) {
+  bool temp = false;
+  size_t i = 0;
+  for (; N - i >= 4; i += 4) {
+    float32x4_t vec = vld1q_f32(&X[i]);
+    uint32x4_t vcmp = vceqq_f32(vec, vec);
+    if (vaddvq_u32(vcmp))
+      return true;
+  }
+
+  while (i < N) {
+    if (X[i] != X[i])
+      return true;
+    ++i;
+  }
+
+  return temp;
+}
+
 #ifdef ENABLE_FP16
 
 void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
@@ -1728,6 +1747,26 @@ void inv_sqrt_inplace(const unsigned int N, __fp16 *X) {
     X[i] = (1 / std::sqrt(static_cast<float>(X[i])));
     ++i;
   }
+}
+
+bool hasNaN(const size_t N, const __fp16 *input) {
+  bool temp = 0;
+  size_t i = 0;
+  for (; N - i >= 8; i += 8) {
+    float16x8_t vec = vld1q_f16(&input[i]);
+    uint16x8_t vcmp = vceqq_f16(vec, vec);
+
+    if (vaddvq_u16(vcmp))
+      return true;
+  }
+
+  while (i < N) {
+    if (input[i] != input[i])
+      return true;
+    ++i;
+  }
+
+  return temp;
 }
 
 #endif

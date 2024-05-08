@@ -65,6 +65,13 @@
 %define neon_support -Denable-neon=false
 %endif # arch aarch64
 
+%ifarch x86_64
+%define enable_avx 1
+%define avx_support -Denable-avx=true
+%else
+%define avx_support -Denable-avx=false
+%endif # arch aarch64
+
 
 Name:		nntrainer
 Summary:	Software framework for training neural networks
@@ -413,9 +420,9 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_profile} %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
-      -Dml-api-support=enabled \
-      -Denable-capi=enabled \
-      %{fp16_support} %{neon_support} build
+      -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
+      -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
+      %{fp16_support} %{neon_support} %{avx_support} build
 
 ninja -C build %{?_smp_mflags}
 
@@ -602,6 +609,10 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/swap_device.h
 %{_includedir}/nntrainer/optimizer_wrapped.h
 
+
+%if 0%{?enable_avx}
+%{_includedir}/nntrainer/blas_avx.h
+%endif
 
 %files devel-static
 %{_libdir}/libnntrainer*.a

@@ -68,9 +68,19 @@ warning_c_flags = [
   '-Wno-error=varargs'
 ]
 
+arch = host_machine.cpu_family()
+
+if get_option('enable-avx')
+   extra_defines += '-DUSE_AVX=1'
+   if get_option('platform') == 'tizen'
+      add_project_arguments(['-mavx2'], language: ['c','cpp'])
+   else
+      add_project_arguments(['-march=native'], language: ['c','cpp'])
+   endif
+   message('-march=native added for AVX hardware acceleration.')
+endif
 
 if get_option('enable-fp16')
-   arch = host_machine.cpu_family()
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
@@ -110,11 +120,6 @@ if get_option('enable-fp16')
      if cc.version().version_compare('>=12.1.0')
        message ('Float16 for x86_64 enabled. Modern gcc-x64 generally supports float16 with _Float16.')
        extra_defines += '-DENABLE_FP16=1'
-       if get_option('enable-avx')
-        extra_defines += '-DUSE_AVX=1'
-        add_project_arguments(['-march=native'], language: ['c','cpp'])
-        message('-march=native added for AVX hardware acceleration.')
-       endif
      else
        warning ('Float16 for x86_64 enabled. However, software emulation is applied for fp16, making it slower and inconsistent. Use GCC 12+ for FP16 support. This build will probably fail unless you bring a compiler that supports fp16 for x64.')
      endif

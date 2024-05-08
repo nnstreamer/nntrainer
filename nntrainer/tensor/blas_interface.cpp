@@ -1075,6 +1075,16 @@ static void ele_div_fallback(const unsigned int N, const float *X,
   }
 }
 
+static bool has_nan_fallback(const size_t N, const float *X) {
+  for (size_t i = 0; i < N; ++i) {
+    if (*X != *X)
+      return true;
+    ++X;
+  }
+
+  return false;
+}
+
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
@@ -1125,6 +1135,32 @@ void ele_div(const unsigned int N, const float *X, const float *Y, float *Z,
 #endif
   } else
     ele_div_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+}
+
+bool has_nan(const size_t N, ml::train::TensorDim::DataType d_type,
+             const void *X) {
+  if (d_type == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    const _FP16 *vec = (const _FP16 *)X;
+#ifdef USE_NEON
+    return nntrainer::neon::hasNaN(N, vec);
+#elif defined(USE_AVX)
+    return nntrainer::avx::hasNaN(N, vec);
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+#endif
+  } else if (d_type == ml::train::TensorDim::DataType::FP32) {
+    const float *vec = (const float *)X;
+#ifdef USE_NEON
+    return nntrainer::neon::hasNaN(N, vec);
+#elif defined(USE_AVX)
+    return nntrainer::avx::hasNaN(N, vec);
+#endif
+
+    return has_nan_fallback(N, vec);
+  }
+  return false;
 }
 
 } // namespace nntrainer

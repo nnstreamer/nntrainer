@@ -1,4 +1,5 @@
 test_name = 'unittest_models'
+mixed_test_name = 'unittest_mixed_models'
 
 test_target = []
 
@@ -11,8 +12,28 @@ models_targets = [
   # disable temperally
 ]
 
+mixed_test_targets = [
+  'models_test_utils.cpp',
+  'models_golden_test.cpp',
+  'unittest_models_mixed_precision.cpp',
+]
+
 if get_option('enable-fp16')
-   models_targets += 'unittest_models_mixed_precision.cpp'
+  mixed_exe = executable(
+    mixed_test_name,
+    mixed_test_targets,
+    include_directories: include_directories('.'),
+    dependencies: [
+      nntrainer_test_main_deps, nntrainer_ccapi_dep
+    ],
+    install: get_option('enable-test'),
+    install_dir: application_install_dir
+  )
+
+  test(mixed_test_name, mixed_exe,
+    args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), mixed_test_name),
+    timeout: test_timeout
+  )
 endif
 
 test_target += models_targets
