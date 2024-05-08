@@ -14,15 +14,17 @@ from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
 from PIL import Image
 
+
 ##
 # @brief dataset class for yolo
-# @note Need annotation text files corresponding to the name of the images.    
+# @note Need annotation text files corresponding to the name of the images.
 class YOLODataset(Dataset):
     def __init__(self, img_dir, ann_dir):
         super().__init__()
         img_list = glob.glob(img_dir)
         ann_list = glob.glob(ann_dir)
-        img_list.sort(), ann_list.sort()
+        img_list.sort()
+        ann_list.sort()
 
         self.length = len(img_list)
         self.input_images = []
@@ -33,7 +35,7 @@ class YOLODataset(Dataset):
             img = np.array(Image.open(img_list[i]).resize((416, 416))) / 255
             label_bbox = []
             label_cls = []
-            with open(ann_list[i], 'rt') as f:
+            with open(ann_list[i], "rt", encoding="utf-8") as f:
                 for line in f.readlines():
                     line = [float(i) for i in line.split()]
                     label_bbox.append(np.array(line[1:], dtype=np.float32) / 416)
@@ -48,10 +50,11 @@ class YOLODataset(Dataset):
 
     def __len__(self):
         return self.length
-    
+
     def __getitem__(self, idx):
         return self.input_images[idx], self.bbox_gt[idx], self.cls_gt[idx]
-    
+
+
 ##
 # @brief collate db function for yolo
 def collate_db(batch):
