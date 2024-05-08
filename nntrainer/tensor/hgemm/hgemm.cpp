@@ -38,9 +38,9 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (N % 8 == 0) {
+    } else if (K % 8 == 0 && N % 8 == 0) {
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (N % 4 == 0) {
+    } else if (K % 8 == 0 && N % 4 == 0) {
       hgemm_noTrans_1x4(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else {
       hgemm_noTrans_fallback(M, N, K, A, K, B, N, C32, N, alpha, beta);
@@ -60,9 +60,9 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C, N, alpha, beta);
     } else if (M % 4 == 0 && N % 4 == 0 && K % 4 == 0) {
       hgemm_noTrans_4x4(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (N % 8 == 0) {
+    } else if (K % 8 == 0 && N % 8 == 0) {
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (N % 4 == 0) {
+    } else if (K % 8 == 0 && N % 4 == 0) {
       hgemm_noTrans_1x4(M, N, K, A, K, B, N, C, N, alpha, beta);
     }
   }
