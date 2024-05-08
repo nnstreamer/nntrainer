@@ -148,6 +148,15 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare !(x==x)
+ * @param[in] N  length of the vector
+ * @param[in] input float * for Vector X
+ * @param[out] true if it has NaN
+ */
+bool hasNaN(const size_t N, const float *input);
+
 #ifdef ENABLE_FP16
 /**
  * @brief     hgemv computation with neon : Y = alpha*A*X + beta*Y
@@ -338,6 +347,15 @@ void custom_hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
  * @param X __fp16 * for Vector X
  */
 void inv_sqrt_inplace(const unsigned int N, __fp16 *X);
+
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare !(x==x)
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[out] true if it has NaN
+ */
+bool hasNaN(const size_t N, const __fp16 *X);
 #endif
 
 } // namespace nntrainer::neon

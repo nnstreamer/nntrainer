@@ -477,6 +477,16 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
              unsigned int o_stride = 1);
+
+/**
+ * @brief     check if X array has NaN
+ * @param[in] N  length of the vector
+ * @param[in] X float/fp16 * for Vector X
+ * @param[out] bool true if NaN else false
+ */
+bool has_nan(const size_t N, ml::train::TensorDim::DataType d_type,
+             const void *X);
+
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */
