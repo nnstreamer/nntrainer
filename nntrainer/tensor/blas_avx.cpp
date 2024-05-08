@@ -20,6 +20,7 @@
 
 namespace nntrainer::avx {
 
+#ifdef ENABLE_FP16
 void vcvt_f16_f32(size_t N, const void *input, float *output) {
   assert(N != 0);
   assert(input != NULL);
@@ -112,6 +113,101 @@ void vcvt_f32_f16(size_t N, const float *input, void *output) {
     ++input;
     ++idx;
   }
+}
+
+bool hasNaN(const size_t N, const _Float16 *input) {
+  assert(N != 0);
+  assert(input != NULL);
+
+  int temp = 0;
+  size_t idx = 0;
+
+  // 16 single-precision check : ( X != X )
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 =
+      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
+    const __m256 vec1 =
+      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input + 8));
+
+    input += 16;
+
+    __m256 res = _mm256_cmp_ps(vec0, vec0, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res);
+
+    if (temp)
+      return true;
+
+    __m256 res1 = _mm256_cmp_ps(vec1, vec1, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res1);
+
+    if (temp)
+      return true;
+  }
+
+  // 8 single-precision check : ( X != X )
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
+    input += 8;
+    __m256 res = _mm256_cmp_ps(vec, vec, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res);
+
+    if (temp)
+      return true;
+  }
+
+  // remain check : ( X != X )
+  while (idx < N) {
+    if (*input != *input) {
+      return true;
+    }
+    ++input;
+  }
+
+  return false;
+}
+#endif
+
+bool hasNaN(const size_t N, const float *input) {
+  assert(N != 0);
+  assert(input != NULL);
+
+  int temp = 0;
+  size_t idx = 0;
+
+  // 16 single-precision check : ( X != X )
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 = _mm256_loadu_ps(input);
+    const __m256 vec1 = _mm256_loadu_ps(input + 8);
+    input += 16;
+    __m256 res = _mm256_cmp_ps(vec0, vec0, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res);
+    __m256 res1 = _mm256_cmp_ps(vec1, vec1, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res1);
+
+    if (temp)
+      return true;
+  }
+
+  // 8 single-precision check : ( X != X )
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec = _mm256_loadu_ps(input);
+    input += 8;
+    __m256 res = _mm256_cmp_ps(vec, vec, _CMP_NEQ_UQ);
+    temp = temp | _mm256_movemask_ps(res);
+
+    if (temp)
+      return true;
+  }
+
+  // remain check : ( X != X )
+  while (idx < N) {
+    if (*input != *input) {
+      return true;
+    }
+    ++input;
+  }
+
+  return false;
 }
 
 } // namespace nntrainer::avx
