@@ -46,7 +46,7 @@ public:
     decay(0.0f),
     clip_by_global_norm(0.0f),
     output_axis(3),
-    loss_scale(0.0) {}
+    loss_scale(1.0) {}
 
   /**
    * @brief Construct a new Weight object
@@ -59,13 +59,14 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(const TensorDim &dim,
-                  const Initializer init = Initializer::XAVIER_UNIFORM,
-                  const WeightRegularizer reg = WeightRegularizer::NONE,
-                  const float reg_const = 1.0f, const float decay = 0.0f,
-                  const float clip_by_global_norm = 0.0f, bool ng = true,
-                  bool alloc_now = false, std::string name = "",
-                  unsigned int axis = 3, float loss_scale_ = 0.0);
+  explicit Weight(
+    const TensorDim &dim,
+    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 1.0);
 
   /**
    * @brief Construct a new Weight object
@@ -79,13 +80,14 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(const TensorDim &dim_v, const TensorDim &dim_g,
-                  const Initializer init = Initializer::XAVIER_UNIFORM,
-                  const WeightRegularizer reg = WeightRegularizer::NONE,
-                  const float reg_const = 1.0f, const float decay = 0.0f,
-                  const float clip_by_global_norm = 0.0f, bool ng = true,
-                  bool alloc_now = false, std::string name = "",
-                  unsigned int axis = 3, float loss_scale_ = 0.0);
+  explicit Weight(
+    const TensorDim &dim_v, const TensorDim &dim_g,
+    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 1.0);
 
   /**
    * @brief Construct a new Weight object
@@ -139,7 +141,7 @@ public:
                   const WeightRegularizer reg, const float reg_const,
                   const float decay, bool is_dependent = false,
                   const float max_norm = 0.0f, unsigned int output_axis_ = 3,
-                  float loss_scale_ = 0.0f);
+                  float loss_scale_ = 1.0f);
 
   /**
    * @brief Swap for weight
@@ -222,16 +224,6 @@ public:
   }
 
   /**
-   * @brief Add optimizer variables32
-   * We assume if the datatype of weight is not FP32, then it needs to set
-   * OptmizerVarialbe32 to maintain acccuracy.
-   * @param tensors OptimizerVariable32 Tensor list
-   */
-  void setOptimizerVariables32(std::vector<Tensor *> tensors) {
-    opt_vars32 = tensors;
-  }
-
-  /**
    * @brief Get optimizer variable reference
    * @param idx Index of the optimizer variable to get
    * @retval Reference of the optimizer variable
@@ -296,6 +288,13 @@ public:
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
+   * @brief     Apply the gradient to the weight with updated gradient
+   * @param[in] updated_grad gradient tensor which is updated in optimizer
+   * it might be different data type with gradient in weight. .eg : FP32
+   */
+  void applyGradient(double lr, Tensor &updated_grad);
+
+  /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
    * the given max_norm value
    *
@@ -344,6 +343,12 @@ public:
    */
   Tensor &getVariableFP32Ref() { return *var32.get(); }
 
+  /**
+   * @brief Quantize var32 to var
+   *
+   */
+  void quantizeWeight();
+
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
   static constexpr float epsilon_decay =
@@ -355,8 +360,8 @@ private:
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
   float loss_scale;
-  std::vector<Tensor *> opt_vars; /**< optimizer variables */
-  std::vector<Tensor *> opt_vars32;
+  std::vector<Tensor *>
+    opt_vars; /**< optimizer variables : We assume it is always full-precsion*/
   std::shared_ptr<Tensor> var32;
 
   /**

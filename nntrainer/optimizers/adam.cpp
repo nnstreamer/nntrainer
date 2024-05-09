@@ -36,7 +36,15 @@ Adam::~Adam() {}
 enum AdamParams { wm, wv };
 
 std::vector<TensorDim> Adam::getOptimizerVariableDim(const TensorDim &dim) {
-  return {dim, dim};
+  /**
+   * @note We assume the optimizer parameters should be full precsion to
+   * maintain the accuracy even in mixed precision training.
+   */
+  TensorDim wm_dim(dim);
+  TensorDim wv_dim(dim);
+  wm_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+  wv_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+  return {wm_dim, wv_dim};
 }
 
 void Adam::exportTo(Exporter &exporter,
@@ -64,7 +72,15 @@ double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
 }
 
 void Adam::applyGradient(RunOptimizerContext &context) {
-  Tensor &x_grad = context.getGradient();
+  Tensor empty_tensor;
+
+  Tensor &x_grad =
+    context.getGradient().getDataType() == ml::train::TensorDim::DataType::FP32
+      ? context.getGradient()
+      : empty_tensor;
+
+  if (x_grad.empty())
+    x_grad = context.getGradient().clone(ml::train::TensorDim::DataType::FP32);
 
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
@@ -91,7 +107,7 @@ void Adam::applyGradient(RunOptimizerContext &context) {
     denom.add_i(epsilon);
     wm.divide(denom, x_grad);
 
-    context.applyGradient(context.getLearningRate() / biasCorrection1);
+    context.applyGradient(context.getLearningRate() / biasCorrection1, x_grad);
 
   } else {
     std::function<double(double)> sqrtEps = [epsilon](double f) {
@@ -100,8 +116,9 @@ void Adam::applyGradient(RunOptimizerContext &context) {
 
     x_grad = wv.apply<float>(sqrtEps, x_grad);
     x_grad.multiply_i(wm);
-    context.applyGradient(getUpdatedLearningRate(context.getIteration(),
-                                                 context.getLearningRate()));
+    context.applyGradient(
+      getUpdatedLearningRate(context.getIteration(), context.getLearningRate()),
+      x_grad);
   }
 }
 
