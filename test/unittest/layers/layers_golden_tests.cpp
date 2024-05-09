@@ -364,6 +364,11 @@ bool LayerGoldenTest::shouldSkipCalcGrad() {
          LayerGoldenTestParamOptions::SKIP_CALC_GRAD;
 }
 
+bool LayerGoldenTest::shouldUseIncForward() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::USE_INC_FORWARD;
+}
+
 bool LayerGoldenTest::shouldSkipCosineSimilarity() {
   return std::get<int>(GetParam()) &
          LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY;
@@ -387,15 +392,31 @@ TEST_P(LayerGoldenTest, run) {
 
   bool skip_calc_grad = shouldSkipCalcGrad();
   bool skip_calc_deriv = shouldSkipCalcDeriv();
+  bool use_inc_forward = shouldUseIncForward();
   bool dropout_compare_60_percent = shouldMatchDropout60Percent();
   bool skip_cos_sim = shouldSkipCosineSimilarity();
 
+  Tensor &input = rc.getInput(0);
+  TensorDim input_dim = input.getDim();
+  size_t inputHeight = input_dim.height();
+
   for (int i = 0; i < 4; ++i) {
     /// warm layer multiple times
+    if (use_inc_forward) {
+      layer->incremental_forwarding(rc, 0, inputHeight,
+                                    !shouldForwardWithInferenceMode());
+    } else {
+      layer->forwarding(rc, !shouldForwardWithInferenceMode());
+    }
+  }
+
+  if (use_inc_forward) {
+    layer->incremental_forwarding(rc, 0, inputHeight,
+                                  !shouldForwardWithInferenceMode());
+  } else {
     layer->forwarding(rc, !shouldForwardWithInferenceMode());
   }
 
-  layer->forwarding(rc, !shouldForwardWithInferenceMode());
   if (!skip_calc_grad) {
     layer->calcGradient(rc);
   }

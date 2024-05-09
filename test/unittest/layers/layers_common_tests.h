@@ -93,6 +93,7 @@ class LayerPropertySemantics : public LayerSemantics {};
 typedef enum {
   SKIP_CALC_GRAD = 1 << 0,  /**< skip calculating gradient and compare */
   SKIP_CALC_DERIV = 1 << 1, /**< skip calculating derivative and compare */
+  USE_INC_FORWARD = 1 << 2, /**< use incremental forwarding and compare */
 
   FORWARD_MODE_INFERENCE =
     1 << 2, /**< set if layer should be forwarded with inference mode */
@@ -171,6 +172,14 @@ public:
    * @return bool true if should skip calculating Gradient
    */
   bool shouldSkipCalcGrad();
+
+  /**
+   * @brief check if given test suite should use incremental forwarding instead
+   * of normal forwarding
+   *
+   * @return bool true if should use incremental forwarding
+   */
+  bool shouldUseIncForward();
 
   /**
    * @brief check if given test suite should skip cosine similarity check
