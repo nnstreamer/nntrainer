@@ -229,6 +229,20 @@ unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX);
  * @param X __fp16 * for Vector X
  */
 void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
+
+/**
+ * @brief Matrix transpose / 2D Tensor transpose
+ *
+ * @param M row length of input matrix
+ * @param N col length of input matrix
+ * @param src src data of input matrix
+ * @param ld_src data offset of input matrix
+ * @param dst destination of output matrix
+ * @param ld_dst data offset of output matrix
+ */
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const _FP16 *src, unsigned int ld_src, _FP16 *dst,
+                      unsigned int ld_dst);
 #endif
 /**
  * @brief     sscal computation : X = alpha * X
