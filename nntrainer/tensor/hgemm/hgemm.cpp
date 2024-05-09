@@ -32,15 +32,17 @@
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
   if (alpha == 1.F && beta == 0.F) {
-    if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
+    // used bitwise operator instead of modulo for performance
+    // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
+    if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {
       hgemm_noTrans_8x16(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
+    } else if ((M & 0x7) == 0 && (N & 0x7) == 0 && (K & 0x7) == 0) {
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
+    } else if ((M & 0x3) == 0 && (N & 0x7) == 0 && (K & 0x3) == 0) {
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (K % 8 == 0 && N % 8 == 0) {
+    } else if ((K & 0x7) == 0 && (N & 0x7) == 0) {
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C32, N, alpha, beta);
-    } else if (K % 8 == 0 && N % 4 == 0) {
+    } else if ((K & 0x7) == 0 && (N & 0x3) == 0) {
       hgemm_noTrans_1x4(M, N, K, A, K, B, N, C32, N, alpha, beta);
     } else {
       hgemm_noTrans_fallback(M, N, K, A, K, B, N, C32, N, alpha, beta);
@@ -52,17 +54,19 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
   if (alpha == 1.F && beta == 0.F) {
-    if (M % 8 == 0 && N % 16 == 0 && K % 8 == 0) {
+    // used bitwise operator instead of modulo for performance
+    // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
+    if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {
       hgemm_noTrans_8x16(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (M % 8 == 0 && N % 8 == 0 && K % 8 == 0) {
+    } else if ((M & 0x7) == 0 && (N & 0x7) == 0 && (K & 0x7) == 0) {
       hgemm_noTrans_8x8(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (M % 4 == 0 && N % 8 == 0 && K % 4 == 0) {
+    } else if ((M & 0x3) == 0 && (N & 0x7) == 0 && (K & 0x3) == 0) {
       hgemm_noTrans_4x8(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (M % 4 == 0 && N % 4 == 0 && K % 4 == 0) {
+    } else if ((M & 0x3) == 0 && (N & 0x3) == 0 && (K & 0x3) == 0) {
       hgemm_noTrans_4x4(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (K % 8 == 0 && N % 8 == 0) {
+    } else if ((K & 0x7) == 0 && (N & 0x7) == 0) {
       hgemm_noTrans_1x8(M, N, K, A, K, B, N, C, N, alpha, beta);
-    } else if (K % 8 == 0 && N % 4 == 0) {
+    } else if ((K & 0x7) == 0 && (N & 0x3) == 0) {
       hgemm_noTrans_1x4(M, N, K, A, K, B, N, C, N, alpha, beta);
     }
   }
