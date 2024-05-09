@@ -35,9 +35,7 @@ public:
    *
    */
   RunOptimizerContext(Weight *w = nullptr, size_t iter = 0, double lr = 0.0) :
-    weight(w),
-    iteration(iter),
-    learning_rate(lr) {}
+    weight(w), iteration(iter), learning_rate(lr) {}
 
   /**
    * @brief Get the Weight tensor object
@@ -74,6 +72,16 @@ public:
    * @param lr learning rate
    */
   void applyGradient(double lr) const;
+
+  /**
+   * @brief   Apply the gradient with the given learning rate and updated
+   * gradient
+   *
+   * @param lr learning rate
+   * @param updated_grad gradient tensor which is updated. (usually it could be
+   * fp32)
+   */
+  void applyGradient(double lr, Tensor &updated_grad) const;
 
   /**
    * @brief   Get the current iteration value

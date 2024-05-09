@@ -1564,16 +1564,6 @@ void NetworkGraph::requestOptimizerVariable(
         dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
         w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
         Tensor::Initializer::ZEROS));
-
-      if (w->isMixedPrecision()) {
-        for (auto &dim : dims)
-          dim.setDataType(ml::train::TensorDim::DataType::FP32);
-        w->setOptimizerVariables32(
-          tensor_manager->requestWeightOptimizerVariables(
-            dims, w->getName(), ":opt32:", TensorLifespan::MAX_LIFESPAN,
-            w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
-            Tensor::Initializer::ZEROS));
-      }
     }
   }
 }

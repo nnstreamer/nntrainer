@@ -42,4 +42,11 @@ Tensor &RunOptimizerContext::getOptimizerVariable(unsigned int idx) const {
 void RunOptimizerContext::applyGradient(double lr) const {
   weight->applyGradient(lr);
 }
+
+/**
+ * @brief   Apply the gradient with the given learning rate and gradient
+ */
+void RunOptimizerContext::applyGradient(double lr, Tensor &updated_grad) const {
+  weight->applyGradient(lr, updated_grad);
+}
 } // namespace nntrainer
