@@ -127,4 +127,41 @@ Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
     var32 = std::make_shared<Tensor>();
 }
 
+void Weight::applyGradient(double lr, Tensor &updated_grad) {
+  if (isMixedPrecision() &&
+      updated_grad.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    updated_grad.divide(loss_scale);
+    var32->add_i(updated_grad, -lr);
+    quantizeWeight();
+    return;
+  }
+
+  return applyGradient(lr);
+}
+
+void Weight::quantizeWeight() {
+  if (!isMixedPrecision())
+    return;
+
+  Tensor &var = getVariableRef();
+  ml::train::TensorDim::DataType type = var.getDataType();
+  switch (type) {
+  case ml::train::TensorDim::DataType::QINT4:
+    // NYI
+    break;
+  case ml::train::TensorDim::DataType::QINT8:
+    // NYI
+    break;
+  case ml::train::TensorDim::DataType::FP16:
+    getVariableRef().copy(getVariableFP32Ref());
+    break;
+  case ml::train::TensorDim::DataType::FP32:
+    break;
+  default:
+    break;
+  }
+
+  return;
+}
+
 } // namespace nntrainer
