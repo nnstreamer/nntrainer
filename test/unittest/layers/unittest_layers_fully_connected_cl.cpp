@@ -42,7 +42,8 @@ auto fc_basic_plain_nhwc = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayerCl>, {"unit=5"},
   "3:10:1:1", "fc_plain.nnlayergolden",
   LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
-    LayerGoldenTestParamOptions::SKIP_CALC_GRAD,
+    LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
+    LayerGoldenTestParamOptions::USE_INC_FORWARD,
   "nhwc", "fp32", "fp32");
 
 auto fc_basic_single_batch_nhwc = LayerGoldenTestParamType(
