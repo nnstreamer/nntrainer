@@ -17,6 +17,7 @@
 
 #if (defined USE__FP16 && defined USE_NEON)
 #include <blas_neon.h>
+#include <matrix_transpose_neon.h>
 #endif
 
 #if USE_AVX
@@ -526,6 +527,27 @@ void inv_sqrt_inplace(const unsigned int N, _FP16 *X) {
 #else
   for (unsigned int i = 0; i < N; ++i) {
     X[i] = static_cast<_FP16>(1 / std::sqrt(static_cast<float>(X[i])));
+  }
+#endif
+}
+
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const _FP16 *src, unsigned int ld_src, _FP16 *dst,
+                      unsigned int ld_dst) {
+#ifdef USE_NEON
+  if ((M & 0x3) == 0) {
+    transpose_neon<_FP16>(M, N, src, ld_src, dst, ld_dst);
+  } else {
+    transpose_fallback<_FP16>(M, N, src, ld_src, dst, ld_dst);
+  }
+#else
+  /// @note This code should be replaced with:
+  /// transpose_fallback<_FP16>(M, N, src, ld_src, dst, ld_dst);
+  /// during arch-dep freeing refactorization.
+  for (unsigned int j = 0; j < N; j++) {
+    for (unsigned int i = 0; i < M; i++) {
+      dst[i + j * ld_dst] = src[i * ld_src + j];
+    }
   }
 #endif
 }
