@@ -2330,7 +2330,6 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
   unsigned int SL, SI, SJ, SK;
 
   out.reshape(dim.transpose(direction));
-
   int indexI = direction[0] - '0';
   int indexJ = direction[2] - '0';
 
@@ -2402,7 +2401,14 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
         }
       } else {
         if (is_format_nchw) {
-          transposeloop(l, i, k, j, SL, SI, SK, SJ);
+          for (unsigned int b = 0; b < batch(); ++b) {
+            for (unsigned int c = 0; c < channel(); ++c) {
+              transpose_matrix(
+                height(), width(), getData<_FP16>() + getIndex(b, c, 0, 0),
+                width(), out.getData<_FP16>() + out.getIndex(b, c, 0, 0),
+                out.width());
+            }
+          }
         } else {
           transposeloop_nhwc(l, k, j, i, SL, SK, SJ, SI);
         }

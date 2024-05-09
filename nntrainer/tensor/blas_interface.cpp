@@ -535,6 +535,7 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                       unsigned int ld_dst) {
 #ifdef USE_NEON
+/// @note Final form of transpose_neon is NOT having fallback. Debugging WIP.
   if ((M & 0x3) == 0) {
     transpose_neon<_FP16>(M, N, src, ld_src, dst, ld_dst);
   } else {
