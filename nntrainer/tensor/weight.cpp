@@ -99,7 +99,7 @@ Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
   decay(0.0f),
   clip_by_global_norm(0.0f),
   output_axis(output_axis_),
-  loss_scale(0.0),
+  loss_scale(1.0),
   var32(std::make_shared<Tensor>(n + ":fp32")) {
 
   if (!g.empty() && isMixedPrecision()) {
