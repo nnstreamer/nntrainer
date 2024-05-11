@@ -609,7 +609,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
-  float loss_scale = 0.0;
+  float loss_scale = 1.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
 
@@ -874,10 +874,11 @@ float LayerNode::getLoss() const { return *loss; }
 void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
-                                    const std::vector<Var_Grad *> &tensors) {
+                                    const std::vector<Var_Grad *> &tensors,
+                                    float loss_scale) {
   run_context = std::make_unique<RunLayerContext>(
-    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
-    inputs, outputs, tensors);
+    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE,
+    loss_scale, weights, inputs, outputs, tensors);
 }
 
 /**
