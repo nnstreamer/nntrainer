@@ -256,8 +256,8 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
                                  context.getLoss(), context.executeInPlace(),
-                                 getWeightsForContext(), {&in_var}, {&out_var},
-                                 getTensorsForContext());
+                                 context.getLossScale(), getWeightsForContext(),
+                                 {&in_var}, {&out_var}, getTensorsForContext());
 
     dist_layer->forwarding(dist_context, training);
   }
@@ -303,8 +303,8 @@ void TimeDistLayer::calcDerivative(RunLayerContext &context) {
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
                                  context.getLoss(), context.executeInPlace(),
-                                 getWeightsForContext(), {&in_var}, {&out_var},
-                                 getTensorsForContext());
+                                 context.getLossScale(), getWeightsForContext(),
+                                 {&in_var}, {&out_var}, getTensorsForContext());
 
     dist_layer->calcDerivative(dist_context);
   }
@@ -354,8 +354,8 @@ void TimeDistLayer::calcGradient(RunLayerContext &context) {
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
                                  context.getLoss(), context.executeInPlace(),
-                                 getWeightsForContext(), {&in_var}, {&out_var},
-                                 getTensorsForContext());
+                                 context.getLossScale(), getWeightsForContext(),
+                                 {&in_var}, {&out_var}, getTensorsForContext());
 
     dist_layer->calcGradient(dist_context);
   }
@@ -396,8 +396,8 @@ void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
                                  context.getLoss(), context.executeInPlace(),
-                                 getWeightsForContext(), {&in_var}, {&out_var},
-                                 getTensorsForContext());
+                                 context.getLossScale(), getWeightsForContext(),
+                                 {&in_var}, {&out_var}, getTensorsForContext());
 
     dist_layer->setBatch(dist_context, batch);
 
