@@ -884,7 +884,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                                    lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }
@@ -1032,7 +1033,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // TODO: update weights spec for trainable based on layer trainable prop
     weights, inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }

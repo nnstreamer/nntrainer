@@ -131,7 +131,7 @@ TEST(nntrainer_LayerNode, finalize_05_n) {
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
   EXPECT_NO_THROW(lnode->setProperty({"input_shape=1:1:1", "name=abc"}));
   EXPECT_NO_THROW(lnode->finalize());
-  EXPECT_NO_THROW(lnode->configureRunContext({}, {&input}, {}, {}));
+  EXPECT_NO_THROW(lnode->configureRunContext({}, {&input}, {}, {}, 1.0));
   EXPECT_THROW(lnode->finalize(), std::runtime_error);
 }
 
@@ -297,7 +297,7 @@ TEST(nntrainer_LayerNode, setWeights_02_n) {
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
   EXPECT_NO_THROW(lnode->setProperty({"input_shape=1:1:1", "name=abc"}));
-  EXPECT_NO_THROW(lnode->configureRunContext({&weight}, {&input}, {}, {}));
+  EXPECT_NO_THROW(lnode->configureRunContext({&weight}, {&input}, {}, {}, 1.0));
 
   EXPECT_THROW(lnode->setWeights(new_weights), std::runtime_error);
 }

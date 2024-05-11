@@ -57,7 +57,7 @@ public:
                    const float max_norm = 0.0,
                    std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32",
                                                               "FP32"},
-                   const float loss_scale = 0.0);
+                   const float loss_scale = 1.0);
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -341,6 +341,14 @@ public:
    */
   bool executeInPlace() const { return in_place; }
 
+  /**
+   * @brief   get Initial value of Loss_Scale. This is set to RunLayerContext
+   * and updated
+   *
+   * @return loss_scale
+   */
+  float getLossScale() const { return loss_scale; }
+
 private:
   std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
   bool in_place;             /**< if the layer is expected to run in-place */
@@ -378,7 +386,7 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() : loss(0.0), in_place(false) {}
+  RunLayerContext() : loss(0.0), in_place(false), loss_scale(1.0) {}
 
   /**
    * @brief Construct a new Run Layer Context object
@@ -392,17 +400,30 @@ public:
   /**
    * @brief Construct a new Run Layer Context object
    *
+   */
+  RunLayerContext(const std::string &name, bool in_place_, float loss_scale_) :
+    RunLayerContext() {
+    in_place = in_place_;
+    std::get<props::Name>(props).set(name);
+    loss_scale = loss_scale_;
+  }
+
+  /**
+   * @brief Construct a new Run Layer Context object
+   *
    * @param name name of the layer
    * @param trainable if the layer is trainable
    * @param l loss of the layer
    * @param in_place_ execution in-place of the layer
+   * @param loss_scale loss_scale of the layer
    * @param w weights of the layer
    * @param in inputs of the layer
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool in_place_, const std::vector<Weight *> &w,
+                  bool in_place_, float loss_scale_,
+                  const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t);
@@ -830,10 +851,17 @@ public:
    */
   ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
 
+  /**
+   * @brief get loss scale
+   * @return loss scale
+   */
+  float getLossScale() { return loss_scale; }
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
-  bool in_place; /**< if the layer is expected to run in-place */
+  bool in_place;    /**< if the layer is expected to run in-place */
+  float loss_scale; /**< loss_scale of the layer */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

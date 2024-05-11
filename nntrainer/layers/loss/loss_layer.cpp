@@ -22,7 +22,7 @@ void LossLayer::finalize(InitLayerContext &context) {
     d.setDataType(
       str_converter<enum_class_prop_tag,
                     nntrainer::TensorDataTypeInfo>::from_string("FP32"));
-  
+
   context.setOutputDimensions(output_dim);
 }
 
@@ -34,6 +34,13 @@ void LossLayer::updateLoss(RunLayerContext &context, const Tensor &l) {
     loss_sum += data[i];
   }
   context.setLoss(loss_sum / (float)l.batch());
+}
+
+void LossLayer::applyLossScale(RunLayerContext &context, Tensor &ret_deriv) {
+
+  float loss_scale = context.getLossScale();
+  if (loss_scale != 1.0)
+    ret_deriv.multiply_i(loss_scale);
 }
 
 /**

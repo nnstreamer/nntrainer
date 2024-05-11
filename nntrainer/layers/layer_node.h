@@ -822,7 +822,8 @@ public:
   void configureRunContext(const std::vector<Weight *> &weights,
                            const std::vector<Var_Grad *> &inputs,
                            const std::vector<Var_Grad *> &outputs,
-                           const std::vector<Var_Grad *> &tensors);
+                           const std::vector<Var_Grad *> &tensors,
+                           float loss_scale);
 
   /**
    * @brief Preset modes for printing summary for the layer
