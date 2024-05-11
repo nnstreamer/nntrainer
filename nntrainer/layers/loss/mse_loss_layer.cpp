@@ -50,8 +50,17 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void MSELossLayer::calcDerivative(RunLayerContext &context) {
+  Tensor empty_tensor;
   Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  const Tensor &y2 = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const Tensor &y2_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &y2 = empty_tensor;
+
+  if (ret_derivative.getDataType() == ml::train::TensorDim::DataType::FP32)
+    y2 = y2_;
+
+  if (y2.empty())
+    y2 = y2_.clone(ret_derivative.getDataType());
+
   Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   y.subtract(y2, ret_derivative);
@@ -60,6 +69,8 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
     throw std::runtime_error(
       "[MSELossLayer::calcDerivative] Error when calculating loss");
   }
+
+  LossLayer::applyLossScale(context, ret_derivative);
 }
 
 } // namespace nntrainer
