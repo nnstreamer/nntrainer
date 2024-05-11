@@ -235,7 +235,7 @@ public:
  */
 class LossScale : public Property<float> {
 public:
-  LossScale(float value = 0.0f);
+  LossScale(float value = 1.0f);
   static constexpr const char *key = "loss_scale"; /**< unique key to access */
   using prop_tag = float_prop_tag;                 /**< property type */
 };
