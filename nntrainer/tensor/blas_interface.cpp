@@ -78,6 +78,21 @@
 
 namespace nntrainer {
 
+template <typename T>
+static inline void transpose_fallback(
+    unsigned int M,
+    unsigned int N,
+    const T* src,
+    unsigned int ld_src,
+    T* dst,
+    unsigned int ld_dst) {
+  for (unsigned int j = 0; j < N; j++) {
+    for (unsigned int i = 0; i < M; i++) {
+      dst[i + j * ld_dst] = src[i * ld_src + j];
+    }
+  }
+}
+
 #ifdef ENABLE_FP16
 static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
                        const int incX, _FP16 *Y, const int incY) {
@@ -535,21 +550,9 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                       unsigned int ld_dst) {
 #ifdef USE_NEON
-/// @note Final form of transpose_neon is NOT having fallback. Debugging WIP.
-  if ((M & 0x3) == 0) {
-    transpose_neon<_FP16>(M, N, src, ld_src, dst, ld_dst);
-  } else {
-    transpose_fallback<_FP16>(M, N, src, ld_src, dst, ld_dst);
-  }
+  transpose_neon<_FP16>(M, N, src, ld_src, dst, ld_dst);
 #else
-  /// @note This code should be replaced with:
-  /// transpose_fallback<_FP16>(M, N, src, ld_src, dst, ld_dst);
-  /// during arch-dep freeing refactorization.
-  for (unsigned int j = 0; j < N; j++) {
-    for (unsigned int i = 0; i < M; i++) {
-      dst[i + j * ld_dst] = src[i * ld_src + j];
-    }
-  }
+  transpose_fallback<_FP16>(M, N, src, ld_src, dst, ld_dst);
 #endif
 }
 #endif
