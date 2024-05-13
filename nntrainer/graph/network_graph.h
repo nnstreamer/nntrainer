@@ -51,7 +51,9 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {}
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
+    nan_count = 0;
+  }
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
@@ -73,7 +75,9 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {}
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {
+    nan_count = 0;
+  }
 
   /**
    * @brief   Destructor of the NeuralNetwork Graph class
@@ -206,13 +210,14 @@ public:
    * @param[in] backwarding_op operation for the backwarding
    * @param[in] apply_grad_clip_op operation for applying the clip gradients
    */
-  void backwarding(
+  bool backwarding(
     int iteration,
-    std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-    std::function<void(Weight &, int)> &apply_grad_clip_op,
+    std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
+    std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
+    std::function<void(Weight &, int)> &lazy_apply_grad_op,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr) const;
+    void *user_data = nullptr);
 
   /**
    * @brief     get begin iterator for the graph
@@ -444,6 +449,12 @@ public:
   getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode);
 #endif // ENABLE_TEST
 
+  /**
+   * @brief     reset the loss scale
+   * @param[in] scale
+   */
+  void resetLossScale(float scale);
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
@@ -480,7 +491,10 @@ private:
   std::unordered_map<std::string, int>
     profile_keys; /**< profile keys based on the layer type */
   std::vector<Weight *>
-    clip_weights; /**< weights with global norm based clipping enabled */
+    lazy_weights; /**< weights with global norm based clipping enabled */
+  bool is_clip_grad;
+
+  unsigned int nan_count;
 
   /**
    * @brief     topological sort

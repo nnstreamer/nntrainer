@@ -92,6 +92,13 @@ public:
   const std::shared_ptr<GraphNode> &getSortedNode(unsigned int ith) const;
 
   /**
+   * @brief getter of Sorted GraphNode index with name
+   * @param[in] layer name
+   * @ret index
+   */
+  const unsigned int getSortedNodeIdx(const std::string &name) const;
+
+  /**
    * @brief getter of GraphNode with node name
    * @param[in] node name
    * @retval GraphNode
@@ -252,6 +259,7 @@ private:
   std::vector<std::shared_ptr<GraphNode>>
     node_list;                                    /**< Unordered Node List  */
   std::unordered_map<std::string, int> node_map;  /**< Unordered Node map  */
+  std::unordered_map<std::string, int> sorted_node_map;  /**< Unordered Node map  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
   bool sorted; /** if the node_list is sorted */
 
