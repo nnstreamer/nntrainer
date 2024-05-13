@@ -3,7 +3,9 @@ matrix_transpose_neon_sources = [
 ]
 
 matrix_transpose_neon_headers = [
-
+    'mask_neon.h',
+    'matrix_transpose_kernels_neon.h',
+    'matrix_transpose_neon.h',
 ]
 
 foreach s : matrix_transpose_neon_sources
