@@ -153,7 +153,7 @@ void Weight::quantizeWeight() {
     // NYI
     break;
   case ml::train::TensorDim::DataType::FP16:
-    getVariableRef().copy(getVariableFP32Ref());
+    getVariableRef().copyData(getVariableFP32Ref());
     break;
   case ml::train::TensorDim::DataType::FP32:
     break;

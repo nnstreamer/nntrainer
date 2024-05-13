@@ -35,6 +35,10 @@ GraphCore::getSortedNode(unsigned int ith) const {
   return Sorted.at(ith);
 }
 
+const unsigned int GraphCore::getSortedNodeIdx(const std::string &name) const {
+  return sorted_node_map.at(name);
+}
+
 void GraphCore::makeAdjacencyList(
   std::vector<std::list<std::shared_ptr<GraphNode>>> &adj) {
   /** initialize the adj list */
@@ -93,6 +97,11 @@ void GraphCore::topologicalSort() {
 
   if (Sorted.size() != node_list.size())
     throw std::runtime_error("Internal error in topologicalSort");
+  unsigned int idx = 0;
+  for (auto n : Sorted) {
+    sorted_node_map[n->getName()] = idx;
+    idx++;
+  }
 }
 
 const std::shared_ptr<GraphNode> &
