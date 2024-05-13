@@ -127,7 +127,7 @@ bool hasNaN(const size_t N, const _Float16 *input) {
     const __m256 vec0 =
       _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
     const __m256 vec1 =
-      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input + 8));
+      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)(input + 8)));
 
     input += 16;
 
@@ -161,6 +161,7 @@ bool hasNaN(const size_t N, const _Float16 *input) {
       return true;
     }
     ++input;
+    ++idx;
   }
 
   return false;
@@ -205,6 +206,7 @@ bool hasNaN(const size_t N, const float *input) {
       return true;
     }
     ++input;
+    ++idx;
   }
 
   return false;

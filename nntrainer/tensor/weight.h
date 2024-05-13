@@ -349,6 +349,13 @@ public:
    */
   void quantizeWeight();
 
+  /**
+   * @brief set loss scale
+   * param[in] scale
+   *
+   */
+  void setLossScale(float scale) { loss_scale = scale; };
+
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
   static constexpr float epsilon_decay =
