@@ -680,6 +680,20 @@ public:
   bool isGradientClipByGlobalNorm(unsigned int idx) const;
 
   /**
+   * @brief check if the weight is mixed precsion
+   *
+   * @param idx index
+   * @return bool true if it is mixed precision
+   */
+  bool isMixedPrecision(unsigned int idx) const;
+
+  /**
+   * @brief check if the weight is mixed precsion
+   * @return bool true if it is mixed precision
+   */
+  bool isMixedPrecision() const;
+
+  /**
    * @brief Get the tensor name
    *
    * @param idx Identifier of the tensor
@@ -856,6 +870,18 @@ public:
    * @return loss scale
    */
   float getLossScale() { return loss_scale; }
+
+  /**
+   * @brief   set Loss_Scale.
+   *
+   * @return loss_scale
+   */
+  void setLossScale(float scale) {
+    loss_scale = scale;
+    for (auto w : weights) {
+      w->setLossScale(scale);
+    }
+  }
 
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */

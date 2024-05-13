@@ -416,9 +416,21 @@ void NeuralNetwork::backwarding(int iteration,
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  std::function<void(std::shared_ptr<LayerNode>, int)> backwarding_op =
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              int iteration) -> void {
+                              bool training) -> void {
+    (void)this;
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+
+    auto f = std::get<0>(node->getExecutionOrder());
+    model_graph.flushCacheExcept(f);
+
+    node->forwarding(training);
+  };
+
+  std::function<bool(std::shared_ptr<LayerNode>, int)> backwarding_op =
+    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
+                              int iteration) -> bool {
     /**
      * Do not change this order:
      * 1. calcGradient
@@ -452,19 +464,29 @@ void NeuralNetwork::backwarding(int iteration,
       /** If gradient must be applied and its not gradient mode, calculate
        * gradient
        */
-      if (!dynamic_training_opt.isGradientMode() && apply_gradient)
+      if (!dynamic_training_opt.isGradientMode() && apply_gradient) {
         node->calcGradient();
+
+        RunLayerContext &rc = node->getRunContext();
+        if (rc.isMixedPrecision()) {
+          for (auto w : rc.getWeights()) {
+            if (w->getGradientRef().hasNaN())
+              return true;
+          }
+        }
+      }
     }
 
     model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
     PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
 
     if (stop_cb(userdata)) {
-      return;
+      return false;
     }
 
-    if (node->needsCalcDerivative())
+    if (node->needsCalcDerivative()) {
       node->calcDerivative();
+    }
 
     model_graph.flushCacheExcept(std::get<3>(node->getExecutionOrder()));
     PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
@@ -480,9 +502,10 @@ void NeuralNetwork::backwarding(int iteration,
           opt_->applyGradient(opt_context);
         });
     }
+    return false;
   };
 
-  std::function<void(Weight &, int)> apply_grad_clip_op =
+  std::function<void(Weight &, int)> lazy_apply_grad_op =
     [opt_ = opt.get()](Weight &w, int iteration) -> void {
     w.calcRegularizationGradient();
     w.calcWeightDecayGradient();
@@ -491,8 +514,12 @@ void NeuralNetwork::backwarding(int iteration,
     opt_->applyGradient(opt_context);
   };
 
-  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op,
-                          stop_cb, userdata);
+  bool ret = false;
+
+  while (!ret) {
+    ret = model_graph.backwarding(iteration, forwarding_op, backwarding_op,
+                                  lazy_apply_grad_op, stop_cb, userdata);
+  }
 }
 
 void NeuralNetwork::save(const std::string &file_path,
