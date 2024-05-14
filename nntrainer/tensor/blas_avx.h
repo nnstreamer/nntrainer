@@ -43,22 +43,22 @@ void vcvt_f32_f16(size_t N, const float *input, void *output);
 
 /**
  * @brief     check if the X has NaN value
- * @note it compare !(x==x)
+ * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector
  * @param[in] X half-precision * for Vector X
- * @param[out] true if it has NaN
+ * @param[out] false if it has NaN or inf
  */
-bool hasNaN(const size_t N, const _Float16 *X);
+bool isValid(const size_t N, const _Float16 *X);
 #endif
 
 /**
  * @brief     check if the X has NaN value
- * @note it compare !(x==x)
+ * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
- * @param[out] true if it has NaN
+ * @param[out] false if it has NaN or inf
  */
-bool hasNaN(const size_t N, const float *X);
+bool isValid(const size_t N, const float *X);
 
 } // namespace nntrainer::avx
 
