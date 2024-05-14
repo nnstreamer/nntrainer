@@ -18,8 +18,6 @@
 
 #include <common_properties.h>
 #include <layer_impl.h>
-#include <opencl_buffer.h>
-#include <opencl_kernel.h>
 
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
@@ -99,13 +97,6 @@ public:
   };
 
   /**
-   * @brief declaring static kernel objects
-   */
-  static opencl::Kernel kernel_sgemv;
-  static opencl::Kernel kernel_sgemm;
-  static opencl::Kernel kernel_dot;
-
-  /**
    * @brief Process data and dimensions for dot operation used in fc_layer
    * @param[in] input Tensor
    * @param[in] weight Tensor
@@ -114,46 +105,6 @@ public:
    */
   void fcDotProcess(Tensor const &input, Tensor const &weight, Tensor &result,
                     RunLayerContext &context);
-
-  /**
-   * @brief     sgemv computation : Y = A*X + Y
-   * @param[in] matAdata float * for Matrix A
-   * @param[in] vecXdata float * for Vector X
-   * @param[in] vecYdata float * for Vector Y
-   * @param[in] dim1 number of A's row
-   * @param[in] dim2 number of X's columns
-   * @param[in] lda number of X's columns
-   * @param[in] context RunLayerContext reference
-   */
-  void fc_sgemv_cl(const float *matAdata, const float *vecXdata,
-                   float *vecYdata, unsigned int dim1, unsigned int dim2,
-                   unsigned int lda, RunLayerContext &context);
-
-  /**
-   * @brief     dot computation : sum of all X * Y
-   * @param[in] matAdata float * for Vector A
-   * @param[in] vecXdata float * for Vector X
-   * @param[in] dim1 number of elements in both input vectors
-   * @param[in] context RunLayerContext reference
-   */
-  float fc_dot_cl(const float *matAdata, const float *vecXdata,
-                  unsigned int dim1, RunLayerContext &context);
-
-  /**
-   * @brief     sgemm computation : Y = op(A)*op(B) + C,
-   * where op(X) is one of X or X**T
-   * @param[in] A float * for Matrix A
-   * @param[in] B float * for Matrix B
-   * @param[in] C float * for Matrix C
-   * @param[in] M number of op(A)'s and C's row
-   * @param[in] N number of op(B)'s and C's columns
-   * @param[in] K number of op(A)'s and columns and op(B)'s rows
-   * @param[in] context RunLayerContext reference
-   */
-  void fc_sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
-                   unsigned int N, unsigned int K, unsigned int lda,
-                   unsigned int ldb, unsigned int ldc,
-                   RunLayerContext &context);
 
   /**
    * @copydoc Layer::supportBackwarding()
