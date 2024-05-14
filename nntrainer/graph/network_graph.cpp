@@ -404,7 +404,7 @@ bool NetworkGraph::backwarding(
    */
   auto iter_begin = getBackwardingBeginIter();
   auto iter_end = getBackwardingEndIter();
-  bool has_nan = false;
+  bool is_valid = true;
 
   /// there is no layer to train, so backwarding is essentially noop
   if (iter_begin == iter_end) {
@@ -422,16 +422,16 @@ bool NetworkGraph::backwarding(
   for (iter_ = iter_begin; iter_ != iter_end && !stop_cb(userdata); iter_++) {
     auto &ln = *iter_;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    has_nan = backwarding_op(ln, iteration);
+    is_valid = backwarding_op(ln, iteration);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
 
-    if (has_nan) {
+    if (!is_valid) {
       std::cout << "Gradient has NaN" << std::endl;
       break;
     }
   }
 
-  if (has_nan) {
+  if (!is_valid) {
     /** if has NaN
      * 1. reset the loss scale.
      * 2. run forwarding from cur_iter to cend() && !stop_cb(userdata);

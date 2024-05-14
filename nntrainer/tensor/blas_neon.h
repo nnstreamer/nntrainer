@@ -149,13 +149,13 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     check if the X has NaN value
- * @note it compare !(x==x)
+ * @brief     check if the X has NaN value or Inf
+ * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector
  * @param[in] input float * for Vector X
- * @param[out] true if it has NaN
+ * @param[out] false if it has NaN or Inf
  */
-bool hasNaN(const size_t N, const float *input);
+bool isValid(const size_t N, const float *input);
 
 #ifdef ENABLE_FP16
 /**
@@ -349,13 +349,13 @@ void custom_hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
 void inv_sqrt_inplace(const unsigned int N, __fp16 *X);
 
 /**
- * @brief     check if the X has NaN value
- * @note it compare !(x==x)
+ * @brief     check if the X is valid: Check NaN or Inf
+ * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
- * @param[out] true if it has NaN
+ * @param[out] false if it has NaN or Inf
  */
-bool hasNaN(const size_t N, const __fp16 *X);
+bool isValid(const size_t N, const __fp16 *X);
 #endif
 
 } // namespace nntrainer::neon
