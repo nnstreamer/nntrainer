@@ -31,7 +31,7 @@
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
-  if (alpha == 1.F && beta == 0.F && N > 4) {
+  if (alpha == 1.F) {
     // used bitwise operator instead of modulo for performance
     // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
     if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {
@@ -53,7 +53,7 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
-  if (alpha == 1.F && beta == 0.F) {
+  if (alpha == 1.F) {
     // used bitwise operator instead of modulo for performance
     // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
     if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {
