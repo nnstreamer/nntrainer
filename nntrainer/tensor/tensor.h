@@ -2039,10 +2039,10 @@ public:
   static constexpr float epsilon = 1e-5;
 
   /**
-   * @brief      check if there is NaN element
-   * @param[out] bool true if there is NaN else false
+   * @brief      check if there is NaN or Inf element
+   * @param[out] bool false if there is NaN or Inf else false
    */
-  bool hasNaN() const;
+  bool isValid() const;
 
 private:
   /**< handle the data as a std::shared_ptr<float> type */

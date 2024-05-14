@@ -3820,15 +3820,15 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
   return;
 }
 
-bool Tensor::hasNaN() const {
+bool Tensor::isValid() const {
   if (getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    return has_nan(dim.getDataLen(), Tdatatype::FP16, getData<_FP16>());
+    return is_valid(dim.getDataLen(), Tdatatype::FP16, getData<_FP16>());
 #else
     throw std::invalid_argument("enble-fp16 is not set");
 #endif
   } else {
-    return has_nan(dim.getDataLen(), Tdatatype::FP32, getData<float>());
+    return is_valid(dim.getDataLen(), Tdatatype::FP32, getData<float>());
   }
 }
 
