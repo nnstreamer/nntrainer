@@ -830,9 +830,9 @@ public:
    * getKernelName function.
    */
   enum LayerKernel {
-    FCSGEMV = 1, /**< placeholder for kernel name */
-    FCDOT = 2,   /**< placeholder for kernel name */
-    FCSGEMM = 4  /**< placeholder for kernel name */
+    SGEMV = 1, /**< placeholder for kernel name */
+    DOT = 2,   /**< placeholder for kernel name */
+    SGEMM = 4  /**< placeholder for kernel name */
   };
 
   /**

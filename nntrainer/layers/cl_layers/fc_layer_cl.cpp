@@ -3,7 +3,7 @@
  * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
  * @file	fc_layer_cl.cpp
- * @date	7 May 2020
+ * @date	7 May 2024
  * @brief	This is Fully Connected Layer Class for Neural Network with OpenCl
  * implementation
  * @see		https://github.com/nnstreamer/nntrainer
@@ -12,6 +12,7 @@
  *
  */
 
+#include <blas_kernels.h>
 #include <common_properties.h>
 #include <fc_layer_cl.h>
 #include <layer_context.h>
@@ -20,44 +21,6 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <util_func.h>
-
-std::string fc_sgemv_cl_kernel_ =
-  R"(__kernel void fc_sgemv_cl(const __global float* A, const __global float* X,
-                      __global float* Y, unsigned int M, unsigned int N) {                                            
-        unsigned int i, j;
-        i = get_global_id(0);                         
-        float y0 = Y[i] * 0.0f;
-        for (unsigned int j = 0; j < M; j++)                         
-            y0 += A[i + j * N] * X[j]; 
-        Y[i] = y0;                            
-          
-    })";
-
-std::string fc_dot_cl_kernel_ =
-  R"(__kernel void fc_dot_cl(const __global float* A, const __global float* X, unsigned int K, float res) {
-        res = 0;
-        for (unsigned int i = 0; i < K; i++){
-            res += A[i] * X[i];
-        }
-    })";
-
-std::string fc_sgemm_cl_kernel_ =
-  R"(__kernel void fc_sgemm_cl(const __global float* A, const __global float* B,
-                      __global float* C, unsigned int M, unsigned int N, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
-        
-        unsigned int m = get_global_id(0);
-        for (unsigned int n = 0; n < N; ++n) {
-          float c = 0.0;
-          float c_old = C[m * ldc + n];
-          for (unsigned int k = 0; k < K; ++k) {
-            float a, b;
-            a = A[m * lda + k];
-            b = B[k * ldb + n];
-            c += a * b;
-          }
-          C[m * ldc + n] = c;
-        }
-    })";
 
 namespace nntrainer {
 
@@ -175,14 +138,6 @@ void FullyConnectedLayerCl::forwarding(RunLayerContext &context,
   }
 }
 
-/**
- * @brief declaring static kernel objects
- *
- */
-opencl::Kernel FullyConnectedLayerCl::kernel_sgemv;
-opencl::Kernel FullyConnectedLayerCl::kernel_sgemm;
-opencl::Kernel FullyConnectedLayerCl::kernel_dot;
-
 void FullyConnectedLayerCl::fcDotProcess(Tensor const &input,
                                          Tensor const &weight, Tensor &result,
                                          RunLayerContext &context) {
@@ -236,297 +191,24 @@ void FullyConnectedLayerCl::fcDotProcess(Tensor const &input,
     /// (1 * K) X (1 * M) can be a case
     /// case1: (1 * K) X (K * 1)
     if (M == 1 && N == 1) {
-      *rdata = fc_dot_cl(data, mdata, K, context) + (*rdata);
+      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      fc_sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+      sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      fc_sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+      sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
     }
     /// case others: use gemm
     else {
-      fc_sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
+      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
     }
   } else
     throw std::invalid_argument("Error: OpenCL fp16 is not supported yet.");
-}
-
-void FullyConnectedLayerCl::fc_sgemv_cl(const float *matAdata,
-                                        const float *vecXdata, float *vecYdata,
-                                        unsigned int dim1, unsigned int dim2,
-                                        unsigned int lda,
-                                        RunLayerContext &context) {
-
-  bool result = false;
-
-  do {
-    result =
-      context.clCreateKernel(fc_sgemv_cl_kernel_, context.LayerKernel::FCSGEMV,
-                             FullyConnectedLayerCl::kernel_sgemv);
-    if (!result) {
-      break;
-    }
-
-    size_t dim1_size = sizeof(float) * dim1;
-    size_t dim2_size = sizeof(float) * dim2;
-    opencl::Buffer inputA(context.context_inst_, dim1_size * dim2_size, true,
-                          nullptr);
-
-    opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
-
-    opencl::Buffer inOutY(context.context_inst_, dim2_size, true, nullptr);
-
-    result = inputA.WriteData(context.command_queue_inst_, matAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(context.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.WriteData(context.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemv.SetKernelArguments(
-      0, &inputA, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemv.SetKernelArguments(
-      1, &inputX, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemv.SetKernelArguments(
-      2, &inOutY, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemv.SetKernelArguments(
-      3, &dim1, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemv.SetKernelArguments(
-      4, &dim2, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)dim1, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
-
-    result = context.command_queue_inst_.DispatchCommand(
-      FullyConnectedLayerCl::kernel_sgemv, work_groups_count, work_group_size);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.ReadData(context.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
-}
-
-float FullyConnectedLayerCl::fc_dot_cl(const float *matAdata,
-                                       const float *vecXdata, unsigned int dim1,
-                                       RunLayerContext &context) {
-
-  bool result = false;
-
-  float cl_ret = 0;
-
-  do {
-    // FullyConnectedLayerCl::kernel_ is wrong for this ...its sgemv.
-    result =
-      context.clCreateKernel(fc_dot_cl_kernel_, context.LayerKernel::FCDOT,
-                             FullyConnectedLayerCl::kernel_dot);
-    if (!result) {
-      break;
-    }
-
-    size_t dim1_size = sizeof(float) * dim1;
-
-    opencl::Buffer inputA(context.context_inst_, dim1_size, true, nullptr);
-
-    opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
-
-    result = inputA.WriteData(context.command_queue_inst_, matAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(context.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_dot.SetKernelArguments(
-      0, &inputA, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_dot.SetKernelArguments(
-      1, &inputX, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_dot.SetKernelArguments(2, &dim1,
-                                                                  sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_dot.SetKernelArguments(
-      3, &cl_ret, sizeof(float));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)dim1, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
-
-    result = context.command_queue_inst_.DispatchCommand(
-      FullyConnectedLayerCl::kernel_dot, work_groups_count, work_group_size);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
-
-  return cl_ret;
-}
-
-void FullyConnectedLayerCl::fc_sgemm_cl(const float *A, const float *B,
-                                        float *C, unsigned int M,
-                                        unsigned int N, unsigned int K,
-                                        unsigned int lda, unsigned int ldb,
-                                        unsigned int ldc,
-                                        RunLayerContext &context) {
-
-  bool result = false;
-
-  do {
-    result =
-      context.clCreateKernel(fc_sgemm_cl_kernel_, context.LayerKernel::FCSGEMM,
-                             FullyConnectedLayerCl::kernel_sgemm);
-    if (!result) {
-      break;
-    }
-
-    size_t m_size = sizeof(float) * M;
-    size_t n_size = sizeof(float) * N;
-    size_t k_size = sizeof(float) * K;
-    opencl::Buffer inputA(context.context_inst_, m_size * k_size, true,
-                          nullptr);
-
-    opencl::Buffer inputB(context.context_inst_, k_size * n_size, true,
-                          nullptr);
-
-    opencl::Buffer inOutC(context.context_inst_, m_size * n_size, true,
-                          nullptr);
-
-    result = inputA.WriteData(context.command_queue_inst_, A);
-    if (!result) {
-      break;
-    }
-
-    result = inputB.WriteData(context.command_queue_inst_, B);
-    if (!result) {
-      break;
-    }
-
-    result = inOutC.WriteData(context.command_queue_inst_, C);
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      0, &inputA, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      1, &inputB, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      2, &inOutC, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      3, &M, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      4, &N, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      5, &K, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      6, &lda, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      7, &ldb, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = FullyConnectedLayerCl::kernel_sgemm.SetKernelArguments(
-      8, &ldc, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)M, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
-
-    result = context.command_queue_inst_.DispatchCommand(
-      FullyConnectedLayerCl::kernel_sgemm, work_groups_count, work_group_size);
-    if (!result) {
-      break;
-    }
-
-    result = inOutC.ReadData(context.command_queue_inst_, C);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
 }
 
 void FullyConnectedLayerCl::incremental_forwarding(RunLayerContext &context,
