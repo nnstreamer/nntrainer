@@ -6251,6 +6251,34 @@ TEST(nntrainer_Tensor, TensorWrap_02_n) {
 //   EXPECT_EQ(output, answer3);
 // }
 
+/**
+ * @brief fp16 tensor has NaN
+ */
+TEST(nntrainer_Tensor, is_valid_01) {
+  size_t batch = 1;
+  size_t channel = 3;
+  size_t height = 4;
+  size_t width = 5;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}},
+    true, nntrainer::Tensor::Initializer::ZEROS);
+
+  EXPECT_EQ(input.isValid(), true);
+
+  input.setValue(0, 0, 0, 0, std::nan("1"));
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 

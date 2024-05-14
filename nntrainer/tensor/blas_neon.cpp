@@ -557,23 +557,34 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
   }
 }
 
-bool hasNaN(const size_t N, const float *X) {
-  bool temp = false;
+bool isValid(const size_t N, const float *X) {
   size_t i = 0;
+  float inf_s = std::numeric_limits<float>::infinity();
+  float32x4_t inf = vdupq_n_f32(inf_s);
+  uint16x8_t zero = vdupq_n_f32(0);
+
   for (; N - i >= 4; i += 4) {
     float32x4_t vec = vld1q_f32(&X[i]);
     uint32x4_t vcmp = vceqq_f32(vec, vec);
+
+    vcmp = vceqq_f32(vcmp, zero);
+
     if (vaddvq_u32(vcmp))
-      return true;
+      return false;
+
+    vcmp = vceqq_f32(vec, inf);
+
+    if (vaddvq_u16(vcmp))
+      return false;
   }
 
   while (i < N) {
-    if (X[i] != X[i])
-      return true;
+    if (X[i] != X[i] || X[i] == std::numeric_limits<float>::infinity())
+      return false;
     ++i;
   }
 
-  return temp;
+  return true;
 }
 
 #ifdef ENABLE_FP16
@@ -1749,24 +1760,39 @@ void inv_sqrt_inplace(const unsigned int N, __fp16 *X) {
   }
 }
 
-bool hasNaN(const size_t N, const __fp16 *input) {
+bool isValid(const size_t N, const __fp16 *input) {
   bool temp = 0;
   size_t i = 0;
+  __fp16 inf_s = std::numeric_limits<float>::infinity();
+  float16x8_t inf = vdupq_n_f16(inf_s);
+  uint16x8_t zero = vdupq_n_f16(0);
+
   for (; N - i >= 8; i += 8) {
     float16x8_t vec = vld1q_f16(&input[i]);
+
     uint16x8_t vcmp = vceqq_f16(vec, vec);
 
-    if (vaddvq_u16(vcmp))
-      return true;
+    vcmp = vceqq_f16(vcmp, zero);
+
+    if (vaddvq_u16(vcmp)) {
+      return false;
+    }
+
+    vcmp = vceqq_f16(vec, inf);
+
+    if (vaddvq_u16(vcmp)) {
+      return false;
+    }
   }
 
   while (i < N) {
-    if (input[i] != input[i])
-      return true;
+    if (input[i] != input[i] ||
+        input[i] == std::numeric_limits<float>::infinity()) {
+      return false;
+    }
     ++i;
   }
-
-  return temp;
+  return true;
 }
 
 #endif

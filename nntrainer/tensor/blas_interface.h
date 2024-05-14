@@ -479,13 +479,13 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              unsigned int o_stride = 1);
 
 /**
- * @brief     check if X array has NaN
+ * @brief     check if X array has NaN or inf
  * @param[in] N  length of the vector
  * @param[in] X float/fp16 * for Vector X
- * @param[out] bool true if NaN else false
+ * @param[out] bool false if not valide else true
  */
-bool has_nan(const size_t N, ml::train::TensorDim::DataType d_type,
-             const void *X);
+bool is_valid(const size_t N, ml::train::TensorDim::DataType d_type,
+              const void *X);
 
 } /* namespace nntrainer */
 #endif /* __cplusplus */
