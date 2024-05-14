@@ -470,8 +470,8 @@ void NeuralNetwork::backwarding(int iteration,
         RunLayerContext &rc = node->getRunContext();
         if (rc.isMixedPrecision()) {
           for (auto w : rc.getWeights()) {
-            if (w->getGradientRef().hasNaN())
-              return true;
+            if (!w->getGradientRef().isValid())
+              return false;
           }
         }
       }
@@ -481,7 +481,7 @@ void NeuralNetwork::backwarding(int iteration,
     PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
 
     if (stop_cb(userdata)) {
-      return false;
+      return true;
     }
 
     if (node->needsCalcDerivative()) {
@@ -502,7 +502,7 @@ void NeuralNetwork::backwarding(int iteration,
           opt_->applyGradient(opt_context);
         });
     }
-    return false;
+    return true;
   };
 
   std::function<void(Weight &, int)> lazy_apply_grad_op =
@@ -514,6 +514,7 @@ void NeuralNetwork::backwarding(int iteration,
     opt_->applyGradient(opt_context);
   };
 
+  // return false if the gradient is not valid
   bool ret = false;
 
   while (!ret) {

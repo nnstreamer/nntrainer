@@ -115,101 +115,163 @@ void vcvt_f32_f16(size_t N, const float *input, void *output) {
   }
 }
 
-bool hasNaN(const size_t N, const _Float16 *input) {
+bool isValid(const size_t N, const _Float16 *input) {
   assert(N != 0);
   assert(input != NULL);
 
   int temp = 0;
   size_t idx = 0;
 
+  const __m256 SIGN_MASK = _mm256_set1_ps(-0.0);
+  const __m256 INF = _mm256_set1_ps(std::numeric_limits<float>::infinity());
+
   // 16 single-precision check : ( X != X )
   for (; N - idx >= 16; idx += 16) {
-    const __m256 vec0 =
-      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
-    const __m256 vec1 =
+    __m256 vec0 = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
+    __m256 vec1 =
       _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)(input + 8)));
 
     input += 16;
 
+    // check NaN in vec0
     __m256 res = _mm256_cmp_ps(vec0, vec0, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res);
-
     if (temp)
-      return true;
+      return false;
 
+    // check infinity in vec0
+    vec0 = _mm256_andnot_ps(SIGN_MASK, vec0);
+    vec0 = _mm256_cmp_ps(vec0, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec0);
+    if (temp)
+      return false;
+
+    // check NaN in vec1
     __m256 res1 = _mm256_cmp_ps(vec1, vec1, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res1);
 
     if (temp)
-      return true;
+      return false;
+
+    // check infinity in vec1
+    vec1 = _mm256_andnot_ps(SIGN_MASK, vec1);
+    vec1 = _mm256_cmp_ps(vec1, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec1);
+
+    if (temp)
+      return false;
   }
 
   // 8 single-precision check : ( X != X )
   for (; N - idx >= 8; idx += 8) {
-    const __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
+    __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)input));
     input += 8;
     __m256 res = _mm256_cmp_ps(vec, vec, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res);
 
     if (temp)
-      return true;
+      return false;
+
+    // check infinity in vec1
+    vec = _mm256_andnot_ps(SIGN_MASK, vec);
+    vec = _mm256_cmp_ps(vec, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec);
+
+    if (temp)
+      return false;
   }
 
-  // remain check : ( X != X )
+  // remain check : ( X != X || X == Inf )
   while (idx < N) {
-    if (*input != *input) {
-      return true;
+    if (*input != *input || *input == std::numeric_limits<float>::infinity()) {
+      return false;
     }
     ++input;
     ++idx;
   }
 
-  return false;
+  return true;
 }
 #endif
 
-bool hasNaN(const size_t N, const float *input) {
+bool isValid(const size_t N, const float *input) {
   assert(N != 0);
   assert(input != NULL);
 
   int temp = 0;
   size_t idx = 0;
 
+  const __m256 SIGN_MASK = _mm256_set1_ps(-0.0);
+  const __m256 INF = _mm256_set1_ps(std::numeric_limits<float>::infinity());
+
   // 16 single-precision check : ( X != X )
   for (; N - idx >= 16; idx += 16) {
-    const __m256 vec0 = _mm256_loadu_ps(input);
-    const __m256 vec1 = _mm256_loadu_ps(input + 8);
+    __m256 vec0 = _mm256_loadu_ps(input);
+    __m256 vec1 = _mm256_loadu_ps(input + 8);
     input += 16;
     __m256 res = _mm256_cmp_ps(vec0, vec0, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res);
+
+    if (temp)
+      return false;
+
+    // check infinity in vec0
+    vec0 = _mm256_andnot_ps(SIGN_MASK, vec0);
+    vec0 = _mm256_cmp_ps(vec0, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec0);
+    if (temp)
+      return false;
+
     __m256 res1 = _mm256_cmp_ps(vec1, vec1, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res1);
 
     if (temp)
-      return true;
+      return false;
+
+    // check infinity in vec1
+    vec1 = _mm256_andnot_ps(SIGN_MASK, vec1);
+    vec1 = _mm256_cmp_ps(vec1, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec1);
+
+    if (temp)
+      return false;
   }
 
   // 8 single-precision check : ( X != X )
   for (; N - idx >= 8; idx += 8) {
-    const __m256 vec = _mm256_loadu_ps(input);
+    __m256 vec = _mm256_loadu_ps(input);
     input += 8;
     __m256 res = _mm256_cmp_ps(vec, vec, _CMP_NEQ_UQ);
     temp = temp | _mm256_movemask_ps(res);
 
     if (temp)
-      return true;
+      return false;
+
+    // check infinity in vec
+    vec = _mm256_andnot_ps(SIGN_MASK, vec);
+    vec = _mm256_cmp_ps(vec, INF, _CMP_EQ_OQ);
+
+    temp = temp | _mm256_movemask_ps(vec);
+
+    if (temp)
+      return false;
   }
 
   // remain check : ( X != X )
   while (idx < N) {
-    if (*input != *input) {
-      return true;
+    if (*input != *input || *input == std::numeric_limits<float>::infinity()) {
+      return false;
     }
     ++input;
     ++idx;
   }
 
-  return false;
+  return true;
 }
 
 } // namespace nntrainer::avx
