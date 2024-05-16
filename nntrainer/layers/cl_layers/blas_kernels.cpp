@@ -18,9 +18,9 @@ namespace nntrainer {
 std::string sgemv_cl_kernel_ =
   R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
                       __global float* Y, unsigned int M, unsigned int N) {                                            
-        unsigned int i, j;
+        unsigned int i;
         i = get_global_id(0);                         
-        float y0 = Y[i] * 0.0f;
+        float y0 = 0.0f;
         for (unsigned int j = 0; j < M; j++)                         
             y0 += A[i + j * N] * X[j]; 
         Y[i] = y0;                            
@@ -28,10 +28,10 @@ std::string sgemv_cl_kernel_ =
     })";
 
 std::string dot_cl_kernel_ =
-  R"(__kernel void dot_cl(const __global float* A, const __global float* X, unsigned int K, float res) {
-        res = 0;
+  R"(__kernel void dot_cl(const __global float* A, const __global float* X, unsigned int K, __global float* res) {
+        *res = 0;
         for (unsigned int i = 0; i < K; i++){
-            res += A[i] * X[i];
+            *res += A[i] * X[i];
         }
     })";
 
@@ -41,8 +41,7 @@ std::string sgemm_cl_kernel_ =
         
         unsigned int m = get_global_id(0);
         for (unsigned int n = 0; n < N; ++n) {
-          float c = 0.0;
-          float c_old = C[m * ldc + n];
+          float c = 0.0f;
           for (unsigned int k = 0; k < K; ++k) {
             float a, b;
             a = A[m * lda + k];
@@ -159,6 +158,9 @@ float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
 
     opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
 
+    opencl::Buffer dotResult(context.context_inst_, sizeof(float), true,
+                             &cl_ret);
+
     result = inputA.WriteData(context.command_queue_inst_, matAdata);
     if (!result) {
       break;
@@ -184,7 +186,7 @@ float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
       break;
     }
 
-    result = kernel_dot.SetKernelArguments(3, &cl_ret, sizeof(float));
+    result = kernel_dot.SetKernelArguments(3, &dotResult, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -194,6 +196,11 @@ float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
 
     result = context.command_queue_inst_.DispatchCommand(
       kernel_dot, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = dotResult.ReadData(context.command_queue_inst_, &cl_ret);
     if (!result) {
       break;
     }
