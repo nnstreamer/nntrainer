@@ -61,6 +61,9 @@ float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
  * @param[in] M number of op(A)'s and C's row
  * @param[in] N number of op(B)'s and C's columns
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
+ * @param[in] lda number of A's columns
+ * @param[in] ldb number of B's columns
+ * @param[in] ldc number of C's columns
  * @param[in] context RunLayerContext reference
  */
 void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
