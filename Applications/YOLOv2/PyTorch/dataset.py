@@ -22,6 +22,7 @@ from PIL import Image
 class YOLODataset(Dataset):
     def __init__(self, img_dir, ann_dir):
         super().__init__()
+        self.img_dir = img_dir
         pattern = re.compile("\/(\d+)\.")
         img_list = glob.glob(img_dir + "*")
         ann_list = glob.glob(ann_dir + "*")
@@ -30,12 +31,11 @@ class YOLODataset(Dataset):
         ann_ids = list(map(lambda x: pattern.search(x).group(1), ann_list))
         ids_list = list(set(img_ids) & set(ann_ids))
 
-        self.input_images = []
+        self.ids_list = []
         self.bbox_gt = []
         self.cls_gt = []
 
         for ids in ids_list:
-            img = np.array(Image.open(img_dir + ids + ".jpg").resize((416, 416))) / 255
             label_bbox = []
             label_cls = []
             with open(ann_dir + ids + ".txt", "rt", encoding="utf-8") as f:
@@ -47,19 +47,27 @@ class YOLODataset(Dataset):
             if len(label_cls) == 0:
                 continue
 
-            self.input_images.append(img)
+            self.ids_list.append(ids)
             self.bbox_gt.append(label_bbox)
             self.cls_gt.append(label_cls)
 
-        self.length = len(self.input_images)
-        self.input_images = np.array(self.input_images)
-        self.input_images = torch.FloatTensor(self.input_images).permute((0, 3, 1, 2))
+        self.length = len(self.ids_list)
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, idx):
-        return self.input_images[idx], self.bbox_gt[idx], self.cls_gt[idx]
+        img = (
+            torch.FloatTensor(
+                np.array(
+                    Image.open(self.img_dir + self.ids_list[idx] + ".jpg").resize(
+                        (416, 416)
+                    )
+                )
+            ).permute((2, 0, 1))
+            / 255
+        )
+        return img, self.bbox_gt[idx], self.cls_gt[idx]
 
 
 ##
