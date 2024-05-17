@@ -37,19 +37,18 @@ std::string dot_cl_kernel_ =
 
 std::string sgemm_cl_kernel_ =
   R"(__kernel void sgemm_cl(const __global float* A, const __global float* B,
-                      __global float* C, unsigned int M, unsigned int N, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+                      __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
         
         unsigned int m = get_global_id(0);
-        for (unsigned int n = 0; n < N; ++n) {
-          float c = 0.0f;
-          for (unsigned int k = 0; k < K; ++k) {
-            float a, b;
-            a = A[m * lda + k];
-            b = B[k * ldb + n];
-            c += a * b;
-          }
-          C[m * ldc + n] = c;
+        unsigned int n = get_global_id(1);
+        float c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          float a, b;
+          a = A[m * lda + k];
+          b = B[k * ldb + n];
+          c += a * b;
         }
+        C[m * ldc + n] = c;
     })";
 
 /**
@@ -74,8 +73,8 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 
     size_t dim1_size = sizeof(float) * dim1;
     size_t dim2_size = sizeof(float) * dim2;
-    opencl::Buffer inputA(context.context_inst_, dim1_size * dim2_size, true,
-                          nullptr);
+    opencl::Buffer inputA(context.context_inst_, dim1 * dim2 * sizeof(float),
+                          true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
 
@@ -121,7 +120,7 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim1, 1, 1};
+    const int work_groups_count[3] = {(int)dim2, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
@@ -138,7 +137,7 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
   } while (false);
 }
 
-float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
+float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
              RunLayerContext &context) {
 
   bool result = false;
@@ -161,7 +160,7 @@ float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
     opencl::Buffer dotResult(context.context_inst_, sizeof(float), true,
                              &cl_ret);
 
-    result = inputA.WriteData(context.command_queue_inst_, matAdata);
+    result = inputA.WriteData(context.command_queue_inst_, vecAdata);
     if (!result) {
       break;
     }
@@ -223,17 +222,15 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
       break;
     }
 
-    size_t m_size = sizeof(float) * M;
-    size_t n_size = sizeof(float) * N;
-    size_t k_size = sizeof(float) * K;
-    opencl::Buffer inputA(context.context_inst_, m_size * k_size, true,
-                          nullptr);
+    size_t m_k_size = M * K * sizeof(float);
+    size_t k_n_size = K * N * sizeof(float);
+    size_t m_n_size = M * N * sizeof(float);
 
-    opencl::Buffer inputB(context.context_inst_, k_size * n_size, true,
-                          nullptr);
+    opencl::Buffer inputA(context.context_inst_, m_k_size, true, nullptr);
 
-    opencl::Buffer inOutC(context.context_inst_, m_size * n_size, true,
-                          nullptr);
+    opencl::Buffer inputB(context.context_inst_, k_n_size, true, nullptr);
+
+    opencl::Buffer inOutC(context.context_inst_, m_n_size, true, nullptr);
 
     result = inputA.WriteData(context.command_queue_inst_, A);
     if (!result) {
@@ -265,37 +262,27 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(3, &M, sizeof(int));
+    result = kernel_sgemm.SetKernelArguments(3, &K, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(4, &N, sizeof(int));
+    result = kernel_sgemm.SetKernelArguments(4, &lda, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(5, &K, sizeof(int));
+    result = kernel_sgemm.SetKernelArguments(5, &ldb, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(6, &lda, sizeof(int));
+    result = kernel_sgemm.SetKernelArguments(6, &ldc, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(7, &ldb, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_sgemm.SetKernelArguments(8, &ldc, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)M, 1, 1};
+    const int work_groups_count[3] = {(int)M, (int)N, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(

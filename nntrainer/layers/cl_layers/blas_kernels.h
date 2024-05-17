@@ -33,8 +33,8 @@ extern opencl::Kernel kernel_dot;
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
  * @param[in] vecYdata float * for Vector Y
- * @param[in] dim1 number of A's row
- * @param[in] dim2 number of X's columns
+ * @param[in] dim1 number of A's columns
+ * @param[in] dim2 number of A's rows
  * @param[in] lda number of X's columns
  * @param[in] context RunLayerContext reference
  */
@@ -44,12 +44,12 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 
 /**
  * @brief     dot computation : sum of all X * Y
- * @param[in] matAdata float * for Vector A
+ * @param[in] vecAdata float * for Vector A
  * @param[in] vecXdata float * for Vector X
  * @param[in] dim1 number of elements in both input vectors
  * @param[in] context RunLayerContext reference
  */
-float dot_cl(const float *matAdata, const float *vecXdata, unsigned int dim1,
+float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
              RunLayerContext &context);
 
 /**
