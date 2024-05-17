@@ -12,6 +12,8 @@ import os
 import random
 import torch  # torch used here is torch==1.9.1
 import numpy as np
+import torch.cuda.amp as amp
+from torch import autocast
 
 from transLayer_v2 import params_translated
 
@@ -29,13 +31,17 @@ __all__ = ["record_v2", "inspect_file"]
 
 
 def _get_writer(file):
-    def write_fn(items):
+    def write_fn(items, type = "int32"):
         if not isinstance(items, (list, tuple)):
             items = [items]
 
         for item in items:
+            print(item.numel(), " -0-----")
+            print(item)
             np.array([item.numel()], dtype="int32").tofile(file)
-            item.detach().cpu().numpy().tofile(file)
+            a=np.array(item.detach().cpu(),dtype=type)
+            a.tofile(file)
+            print(a.dtype)
 
         return items
 
@@ -96,13 +102,50 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
             norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 0.0001)
         optimizer.step()
 
+    def record_iteration_with_amp(write_fn):
+        model_=model.cuda()
+        scaler = amp.GradScaler()
+        if input_label_reader != None:
+            inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
+        else:
+            inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
+            labels = _rand_like(label_dims, dtype=float)
+        write_fn(inputs[0])
+        write_fn(labels[0])
+        write_fn(list(t for _, t in params_translated(model_)),'float16')
+        
+        output = model_(inputs[0], labels[0])
+
+        print("model output type: ",output.dtype)
+
+        with autocast(device_type='cuda', dtype=torch.float16):
+            l=model_.loss(output, labels[0].to('cuda'))
+
+            print("loss output type : ", l.dtype)
+            print (l)
+
+        optimizer.zero_grad()
+
+        scaler.scale(l).backward()
+        print("---------------")
+        for param in model_.parameters():
+            print (param.grad)
+        
+#
+        scaler.step(optimizer)
+#
+        
+        scaler.update()
+        write_fn(output)
+
     with open(file_name, "wb") as f:
         # write number of iterations
+        print("iteration : ", iteration)
         np.array([iteration], dtype="int32").tofile(f)
 
         write_fn = _get_writer(f)
         for _ in range(iteration):
-            record_iteration(write_fn)
+            record_iteration_with_amp(write_fn)
 
 
 ##
