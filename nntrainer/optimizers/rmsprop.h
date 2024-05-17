@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
+ * Copyright (C) 2024 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file   adam.h
- * @date   6 October 2020
+ * @file   rmsprop.h
+ * @date   17 May 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
- * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is the Adam optimizer.
+ * @brief  This is the RMSProp optimizer.
  */
-#ifndef __ADAM_H__
-#define __ADAM_H__
+#ifndef __RMSPROP_H__
+#define __RMSPROP_H__
 #ifdef __cplusplus
 
 #include <tuple>
@@ -22,22 +21,22 @@
 namespace nntrainer {
 
 /**
- * @class   Adam optimizer class
- * @brief   Adam optimizer
+ * @class   RMSProp optimizer class
+ * @brief   RMSProp optimizer
  */
-class Adam : public Optimizer {
+class RMSProp : public Optimizer {
 public:
   /**
    * @brief Construct a new Adam object
    *
    */
-  Adam();
+  RMSProp();
 
   /**
    * @brief Destroy the Adam object
    *
    */
-  ~Adam();
+  ~RMSProp();
 
   /**
    * @copydoc Optimizer::getDefaultLearningRate()
@@ -53,7 +52,7 @@ public:
   /**
    * @copydoc Optimizer::getType()
    */
-  const std::string getType() const override { return Adam::type; }
+  const std::string getType() const override { return RMSProp::type; }
 
   /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)
@@ -67,7 +66,7 @@ public:
   void exportTo(Exporter &exporter,
                 const ml::train::ExportMethods &method) const override;
 
-  inline static const std::string type = "adam";
+  inline static const std::string type = "rmsprop";
 
   /**
    * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)
@@ -75,9 +74,7 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
 private:
-  std::tuple<props::PropsB1, props::PropsB2, props::PropsEpsilon,
-             props::TorchRef>
-    adam_props;
+  std::tuple<props::Rho, props::PropsEpsilon, props::TorchRef> rmsprop_props;
 
   /**
    * @brief Get updated learning rate
@@ -91,4 +88,4 @@ private:
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
-#endif /* __ADAM_H__ */
+#endif /* __RMSPROP_H__ */

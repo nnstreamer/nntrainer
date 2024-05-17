@@ -22,7 +22,9 @@
 
 namespace nntrainer {
 
-Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon(), TorchRef()) {
+Adam::Adam() :
+  adam_props(props::PropsB1(), props::PropsB2(), props::PropsEpsilon(),
+             props::TorchRef()) {
   /** default properties */
   auto &[b1, b2, eps, torch_ref] = adam_props;
   b1.set(0.9f);
@@ -51,8 +53,8 @@ void Adam::setProperty(const std::vector<std::string> &values) {
 }
 
 double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
-  auto &beta1 = std::get<PropsB1>(adam_props).get();
-  auto &beta2 = std::get<PropsB2>(adam_props).get();
+  auto &beta1 = std::get<props::PropsB1>(adam_props).get();
+  auto &beta2 = std::get<props::PropsB2>(adam_props).get();
 
   std::function<float(double)> biasCorrection = [&](float f) {
     return 1.0f - pow(f, iteration + 1);
@@ -66,10 +68,10 @@ double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
 void Adam::applyGradient(RunOptimizerContext &context) {
   Tensor &x_grad = context.getGradient();
 
-  auto &beta1 = std::get<PropsB1>(adam_props).get();
-  auto &beta2 = std::get<PropsB2>(adam_props).get();
-  auto &epsilon = std::get<PropsEpsilon>(adam_props).get();
-  auto &torch_ref = std::get<TorchRef>(adam_props).get();
+  auto &beta1 = std::get<props::PropsB1>(adam_props).get();
+  auto &beta2 = std::get<props::PropsB2>(adam_props).get();
+  auto &epsilon = std::get<props::PropsEpsilon>(adam_props).get();
+  auto &torch_ref = std::get<props::TorchRef>(adam_props).get();
 
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.

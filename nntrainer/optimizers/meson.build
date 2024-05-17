@@ -6,13 +6,16 @@ optimizer_sources = [
   'lr_scheduler_constant.cpp',
   'lr_scheduler_exponential.cpp',
   'lr_scheduler_step.cpp',
-  'optimizer_wrapped.cpp'
+  'optimizer_wrapped.cpp',
+  'rmsprop.cpp',
+  'optimizer_common_properties.cpp'
 ]
 
 optimizer_headers = [
   'optimizer_devel.h',
   'optimizer_context.h',
-  'lr_scheduler.h'
+  'lr_scheduler.h',
+  'optimizer_common_properties.h'
 ]
 
 foreach s : optimizer_sources

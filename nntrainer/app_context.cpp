@@ -28,6 +28,7 @@
 #include <util_func.h>
 
 #include <adam.h>
+#include <rmsprop.h>
 #include <sgd.h>
 
 #include <activation_layer.h>

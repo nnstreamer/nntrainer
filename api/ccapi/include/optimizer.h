@@ -33,9 +33,10 @@ class LearningRateScheduler;
  * @brief     Enumeration of optimizer type
  */
 enum OptimizerType {
-  ADAM = ML_TRAIN_OPTIMIZER_TYPE_ADAM,      /** adam */
-  SGD = ML_TRAIN_OPTIMIZER_TYPE_SGD,        /** sgd */
-  UNKNOWN = ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN /** unknown */
+  ADAM = ML_TRAIN_OPTIMIZER_TYPE_ADAM,       /** adam */
+  SGD = ML_TRAIN_OPTIMIZER_TYPE_SGD,         /** sgd */
+  RMSPROP = ML_TRAIN_OPTIMIZER_TYPE_RMSPROP, /** rmsprop */
+  UNKNOWN = ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN  /** unknown */
 };
 
 /**
@@ -67,6 +68,10 @@ public:
    * Available for Adam optimizer
    * - beta1 : float,
    * - beta2 : float,
+   * - epsilon : float,
+   *
+   * Available for RMSprop optimizer
+   * - rho : float,
    * - epsilon : float,
    */
 
@@ -133,6 +138,14 @@ Adam(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Optimizer>
 SGD(const std::vector<std::string> &properties = {}) {
   return createOptimizer(OptimizerType::SGD, properties);
+}
+
+/**
+ * @brief Helper function to create rmsprop optimizer
+ */
+inline std::unique_ptr<Optimizer>
+RMSprop(const std::vector<std::string> &properties = {}) {
+  return createOptimizer(OptimizerType::RMSPROP, properties);
 }
 
 } // namespace optimizer
