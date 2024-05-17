@@ -10,14 +10,17 @@
 import sys
 import os
 
-from torchconverter import save_bin
-import torch
+from PIL import Image, ImageDraw
+from matplotlib import pyplot as plt
 from torch import optim
 from torch.utils.data import DataLoader
+import torch
+import numpy as np
 
 from yolo import YoloV2
 from yolo_loss import YoloV2_LOSS
 from dataset import YOLODataset, collate_db
+from torchconverter import save_bin
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -137,10 +140,9 @@ for epoch in range(epochs):
           valid loss: {epoch_valid_loss / len(valid_loader):.4f}"
     )
 
+
 ##
 # @brief bbox post process function for inference
-
-
 def post_process_for_bbox(bbox_p):
     """
     @param bbox_p shape(batch_size, cell_h x cell_w, num_anchors, 4)
@@ -175,8 +177,32 @@ def post_process_for_bbox(bbox_p):
     return bbox_p
 
 
+def visualize_bbox(img_pred, bbox_preds):
+    img_array = (img_pred.to("cpu") * 255).permute((1, 2, 0)).numpy().astype(np.uint8)
+    img = Image.fromarray(img_array)
+
+    for bbox_pred in bbox_preds:
+        bbox_pred = [int(x * 416) for x in bbox_pred]
+
+        if sum(bbox_pred) == 0:
+            continue
+
+        x_lefttop = bbox_pred[0]
+        y_lefttop = bbox_pred[1]
+        width = bbox_pred[2]
+        height = bbox_pred[3]
+
+        draw = ImageDraw.Draw(img)
+        draw.rectangle(
+            [(x_lefttop, y_lefttop), (x_lefttop + width, y_lefttop + height)]
+        )
+
+    plt.imshow(img)
+    plt.show()
+
+
 # inference example using trained model
-hypothesis = model(img).permute((0, 2, 3, 1))
+hypothesis = model(img.to(device)).permute((0, 2, 3, 1))
 hypothesis = hypothesis[0].reshape((1, out_size**2, num_anchors, 5 + num_classes))
 
 # transform output
@@ -192,4 +218,5 @@ prob_pred = torch.softmax(score_pred.view(-1, num_classes), dim=1).view(
 
 # result of inference (data range 0~1)
 iou_mask = iou_pred > 0.5
-print(bbox_pred * iou_mask, iou_pred * iou_mask, prob_pred * iou_mask)
+bbox_pred = bbox_pred * iou_mask
+visualize_bbox(img, bbox_pred.reshape(-1, 4))
