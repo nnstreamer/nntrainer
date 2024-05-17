@@ -555,7 +555,8 @@ void NNTrainer::NNTrainerImpl::trainModel() {
   ml_logd("pid[%d], tid[%d]", pid, tid);
 
   try {
-    model->setProperty({"epochs=" + std::to_string(num_epochs)});
+    model->setProperty(
+      {"epochs=" + std::to_string(num_epochs), "save_path=" + model_save_path});
   } catch (const std::exception &e) {
     ml_loge("Error %s, %s", typeid(e).name(), e.what());
     return;
@@ -574,14 +575,6 @@ void NNTrainer::NNTrainerImpl::trainModel() {
     return;
   }
 
-  try {
-    ml_logd("Save_model: %s", model_save_path.c_str());
-    model->save(model_save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-
-  } catch (const std::exception &e) {
-    ml_loge("Error %s, %s", typeid(e).name(), e.what());
-    return;
-  }
   /* send event */
   nnstreamer_trainer_notify_event(this->notifier,
                                   TRAINER_EVENT_TRAINING_COMPLETION, NULL);
