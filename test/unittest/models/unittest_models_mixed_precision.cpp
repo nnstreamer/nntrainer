@@ -25,7 +25,7 @@ using namespace nntrainer;
 static std::unique_ptr<NeuralNetwork> fc_mixed_training() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty(
-    {"batch_size=2", "model_tensor_type=FP16-FP16", "loss_scale=128"});
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=128"});
 
   auto graph = makeGraph({
     {"input", {"name=in", "input_shape=1:1:3"}},
@@ -36,7 +36,8 @@ static std::unique_ptr<NeuralNetwork> fc_mixed_training() {
     nn->addLayer(node);
   }
 
-  nn->setOptimizer(ml::train::createOptimizer("adam", {"learning_rate = 0.1"}));
+  nn->setOptimizer(ml::train::createOptimizer(
+    "adam", {"learning_rate = 0.1", "torch_ref=true"}));
 
   return nn;
 }
@@ -45,10 +46,7 @@ GTEST_PARAMETER_TEST(
   MixedPrecision, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelTc_V2(fc_mixed_training, "fc_mixed_training",
-                 ModelTestOption::NO_THROW_RUN_V2),
-    /** ModelTestOption::ALL_V2),
-     * Disabled for now to check
-     */
+                 ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });
