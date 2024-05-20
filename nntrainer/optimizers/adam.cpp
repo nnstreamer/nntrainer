@@ -79,8 +79,10 @@ void Adam::applyGradient(RunOptimizerContext &context) {
       ? context.getGradient()
       : empty_tensor;
 
-  if (x_grad.empty())
+  if (x_grad.empty()) {
     x_grad = context.getGradient().clone(ml::train::TensorDim::DataType::FP32);
+    context.applyLossScale(x_grad);
+  }
 
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();

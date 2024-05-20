@@ -49,4 +49,17 @@ void RunOptimizerContext::applyGradient(double lr) const {
 void RunOptimizerContext::applyGradient(double lr, Tensor &updated_grad) const {
   weight->applyGradient(lr, updated_grad);
 }
+
+/**
+ * @brief   Apply loss scale to gradient (full precision)
+ */
+void RunOptimizerContext::applyLossScale(Tensor &fp32_grad) {
+  if (!weight->isMixedPrecision())
+    return;
+  if (fp32_grad.getDataType() != ml::train::TensorDim::DataType::FP32)
+    throw std::invalid_argument(
+      "gradient should be fullprecsion to maintain accuracy");
+  float loss_scale = weight->getLossScale();
+  fp32_grad.divide_i(loss_scale);
+}
 } // namespace nntrainer

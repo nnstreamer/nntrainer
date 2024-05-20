@@ -485,6 +485,9 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
         run_context->getWeight(i).read(file);
+        if (run_context->isMixedPrecision(i) && getTrainable()) {
+          run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
+        }
       }
     }
   }

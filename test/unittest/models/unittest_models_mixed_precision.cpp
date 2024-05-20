@@ -25,7 +25,7 @@ using namespace nntrainer;
 static std::unique_ptr<NeuralNetwork> fc_mixed_training() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
   nn->setProperty(
-    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=128"});
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"});
 
   auto graph = makeGraph({
     {"input", {"name=in", "input_shape=1:1:3"}},

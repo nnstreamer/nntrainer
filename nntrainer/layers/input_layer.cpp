@@ -33,7 +33,9 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 InputLayer::InputLayer() :
-  Layer(), input_props(props::Normalization(), props::Standardization()) {}
+  Layer(),
+  input_props(props::Normalization(), props::Standardization()),
+  is_inplace(true) {}
 
 void InputLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, input_props);
@@ -82,8 +84,9 @@ void InputLayer::finalize(InitLayerContext &context) {
    * activation data type is not fp32, then it does not support in-place
    * operation.
    */
-  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32)
+  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32) {
     is_inplace = false;
+  }
 }
 
 } /* namespace nntrainer */
