@@ -114,7 +114,7 @@ private:
                                                 lora_scaling - scaling factor of LoRA apply, i.e.,
                                              lora_scaling = alpha / lora_rank */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
-  std::array<unsigned int, 2> lora_idx;   /**< indices of the lora weights */
+  std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
 };
 } // namespace nntrainer
 
