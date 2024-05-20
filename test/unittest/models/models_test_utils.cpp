@@ -50,8 +50,41 @@ static sharedConstTensors toSharedTensors(const std::vector<Tensor> &ts) {
 static void verify(const nntrainer::Tensor &actual,
                    const nntrainer::Tensor &expected,
                    const std::string &error_msg) {
+  bool equal = false;
 
-  if (actual != expected) {
+  if (actual.getDataType() == ml::train::TensorDim::DataType::FP32 &&
+      expected.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    equal = (actual == expected);
+    if (!equal) {
+      float mseError = mse<float>(actual.getData<float>(),
+                                  expected.getData<float>(), actual.size());
+      if (mseError > 10 - 4) {
+        equal = false;
+      } else {
+        equal = true;
+      }
+    }
+  }
+
+#ifdef ENABLE_FP16
+  if (!equal) {
+    if (actual.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        expected.getDataType() == ml::train::TensorDim::DataType::FP16) {
+      float mseError = mse<_FP16>(actual.getData<_FP16>(),
+                                  expected.getData<_FP16>(), actual.size());
+      if (mseError > 10 - 2) {
+        equal = false;
+      } else {
+        equal = true;
+      }
+    }
+  }
+#endif
+
+  if (!equal) {
+    nntrainer::Tensor diff = actual.subtract(expected);
+    const float *diff_data = diff.getData();
+
     std::cout
       << "============================================================\n";
     std::cout << "\033[1;33m" << error_msg << "\033[0m\n";
@@ -60,8 +93,6 @@ static void verify(const nntrainer::Tensor &actual,
               << " - " << expected;
 
     if (actual.getDim() == expected.getDim()) {
-      nntrainer::Tensor diff = actual.subtract(expected);
-      const float *diff_data = diff.getData();
       std::cout << "\033[1;33mdifference\033[0m " << diff;
       std::cout << "number of data: " << diff.size() << std::endl;
       std::cout << "\033[4;33mMAX DIFF: "
@@ -119,6 +150,12 @@ public:
         }
 
         Tensor &t = rc.getWeight(i);
+
+        if (t.getDataType() != ml::train::TensorDim::DataType::FP32) {
+          Tensor &t32 = rc.getWeightFP32(i);
+          weights32.push_back(t32);
+        }
+
         weights.push_back(t);
         expected_weights.push_back(t.clone());
       }
@@ -158,6 +195,10 @@ public:
     } else {
       for (unsigned int i = 0; i < weights.size(); ++i) {
         weights.at(i).fill(expected_weights.at(i));
+        if (iteration == 0 &&
+            weights.at(i).getDataType() != ml::train::TensorDim::DataType::FP32)
+          weights32.at(i).fill(
+            weights.at(i).clone(ml::train::TensorDim::DataType::FP32));
       }
     }
 
@@ -174,6 +215,7 @@ private:
   std::vector<Tensor> inputs;
   std::vector<Tensor> labels;
   std::vector<Tensor> weights;
+  std::vector<Tensor> weights32;
   std::vector<Tensor> expected_weights;
   std::vector<Tensor> expected_outputs;
 };

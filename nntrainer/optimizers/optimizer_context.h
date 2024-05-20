@@ -97,6 +97,11 @@ public:
    */
   double getLearningRate() const { return learning_rate; }
 
+  /**
+   * @brief   Apply loss scale to gradient (full precision)
+   */
+  void applyLossScale(Tensor &fp32_grad);
+
 private:
   Weight *weight;       /**< weights for the optimizer */
   size_t iteration;     /**< iteration number */
