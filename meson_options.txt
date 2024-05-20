@@ -41,7 +41,7 @@ option('enable-fp16', type: 'boolean', value: false)
 option('enable-cublas', type: 'boolean', value: false)
 option('enable-openmp', type: 'boolean', value: true)
 option('enable-neon', type: 'boolean', value: false)
-option('enable-avx', type: 'boolean', value: false)
+option('enable-avx', type: 'boolean', value: true)
 option('enable-opencl', type: 'boolean', value: false)
 
 # ml-api dependency (to enable, install capi-inference from github.com/nnstreamer/api )

@@ -323,7 +323,7 @@ public:
    * @return false otherwise
    */
   bool isMixedPrecision() const {
-    return var->getDataType() != ml::train::TensorDim::DataType::FP32;
+    return ((var->getDataType() != ml::train::TensorDim::DataType::FP32));
   }
 
   /**
@@ -355,6 +355,13 @@ public:
    *
    */
   void setLossScale(float scale) { loss_scale = scale; };
+
+
+  /**
+   * @brief get loss scale
+   *
+   */
+  const float getLossScale() { return loss_scale; };
 
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
