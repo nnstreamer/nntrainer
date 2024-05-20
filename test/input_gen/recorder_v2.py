@@ -31,15 +31,32 @@ __all__ = ["record_v2", "inspect_file"]
 
 
 def _get_writer(file):
-    def write_fn(items, type = "int32"):
+    def write_fn(items, type = 'float32'):
         if not isinstance(items, (list, tuple)):
             items = [items]
 
         for item in items:
             print(item.numel(), " -0-----")
             print(item)
-            np.array([item.numel()], dtype="int32").tofile(file)
-            a=np.array(item.detach().cpu(),dtype=type)
+            np.array([item.numel()], dtype='int32').tofile(file)
+            a=np.array(item.detach().cpu(), dtype=type)
+            a.tofile(file)
+            print(a.dtype)
+
+        return items
+
+    return write_fn
+
+def _get_writer_mixed(file):
+    def write_fn(items, num_type = 'int32', type = 'float32'):
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+
+        for item in items:
+            print(item.numel(), " -0-----")
+            print(item)
+            np.array([item.numel()], dtype=num_type).tofile(file)
+            a=np.array(item.detach().cpu(), dtype=type)
             a.tofile(file)
             print(a.dtype)
 
@@ -110,9 +127,9 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
         else:
             inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
             labels = _rand_like(label_dims, dtype=float)
-        write_fn(inputs[0])
-        write_fn(labels[0])
-        write_fn(list(t for _, t in params_translated(model_)),'float16')
+        write_fn(inputs,'int32', 'float32')
+        write_fn(labels, 'int32', 'float32')
+        write_fn(list(t for _, t in params_translated(model_)),'int16','float16')
         
         output = model_(inputs[0], labels[0])
 
@@ -136,14 +153,14 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
 #
         
         scaler.update()
-        write_fn(output)
+        write_fn(output,'int32','float32')
 
     with open(file_name, "wb") as f:
         # write number of iterations
         print("iteration : ", iteration)
         np.array([iteration], dtype="int32").tofile(f)
 
-        write_fn = _get_writer(f)
+        write_fn = _get_writer_mixed(f)
         for _ in range(iteration):
             record_iteration_with_amp(write_fn)
 

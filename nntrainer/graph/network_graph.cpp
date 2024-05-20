@@ -624,8 +624,15 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 InPlace
 NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
-  if (!lnode->supportInPlace())
+
+  if (!lnode->supportInPlace()) {
     return InPlace::NONE;
+  }
+
+  if (lnode->getType() == InputLayer::type &&
+      !istrequal(getTensorType()[2], "FP32")) {
+    return InPlace::NONE;
+  }
 
   /** layers which behave as a no-op - flatten */
   auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {

@@ -874,7 +874,10 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  cblas_scopy(N, X, incX, Y, incY);
+  // cblas_scopy(N, (float*)(X), incX, (float*)(Y), incY);
+  // replace cblas scopy with raw temporary.
+  for (unsigned int i = 0; i < N; ++i)
+    Y[i * incY] = X[i * incX];
 #else
   scopy_raw(N, X, incX, Y, incY);
 #endif
