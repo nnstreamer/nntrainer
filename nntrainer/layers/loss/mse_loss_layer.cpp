@@ -61,11 +61,11 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
   if (ret_derivative.empty())
     ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX)
                        .clone(ml::train::TensorDim::DataType::FP32);
-
+  Tensor empty_tensor1;
   Tensor &y = context.getInput(SINGLE_INOUT_IDX).getDataType() ==
                   ml::train::TensorDim::DataType::FP32
                 ? context.getInput(SINGLE_INOUT_IDX)
-                : empty_tensor;
+                : empty_tensor1;
 
   if (y.empty())
     y = context.getInput(SINGLE_INOUT_IDX)
