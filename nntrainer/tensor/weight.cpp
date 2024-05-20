@@ -130,7 +130,6 @@ Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
 void Weight::applyGradient(double lr, Tensor &updated_grad) {
   if (isMixedPrecision() &&
       updated_grad.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    updated_grad.divide(loss_scale);
     var32->add_i(updated_grad, -lr);
     quantizeWeight();
     return;
