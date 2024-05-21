@@ -40,8 +40,11 @@ enum FCParams { weight, bias };
 enum LORAParams { loraA, loraB, loraTmp, loraOut };
 
 FullyConnectedLayer::FullyConnectedLayer() :
-  LayerImpl(), fc_props(props::Unit(), props::LoraRank(), props::LoraAlpha()) {
+  LayerImpl(),
+  lora_scaling(1.0f),
+  fc_props(props::Unit(), props::LoraRank(), props::LoraAlpha()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
+  lora_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
 void FullyConnectedLayer::finalize(InitLayerContext &context) {
