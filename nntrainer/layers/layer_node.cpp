@@ -152,7 +152,15 @@ createLayerNode(const ml::train::LayerType &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
-                const std::vector<std::string> &properties) {
+                const std::vector<std::string> &properties,
+                const ml::train::LayerComputeEngine &compute_engine) {
+#ifdef ENABLE_OPENCL
+  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
+    auto &cc = nntrainer::ClContext::Global();
+    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
+                           compute_engine);
+  }
+#endif
   auto &ac = nntrainer::AppContext::Global();
   return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
 }
@@ -269,7 +277,9 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
 
 void LayerNode::setComputeEngine(
   const ml::train::LayerComputeEngine &compute_engine) {
-  run_context->setComputeEngine(compute_engine);
+  // setting compute_engine of LayerNode
+  // can be reused later to propagate this info
+  this->compute_engine = compute_engine;
 }
 
 const std::string LayerNode::getName() const noexcept {

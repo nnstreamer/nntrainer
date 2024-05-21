@@ -8,6 +8,7 @@
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -32,18 +33,6 @@ TEST_P(LayerSemantics, createFromAppContext_pn) {
   EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
             expected_type);
 }
-
-#ifdef ENABLE_OPENCL
-TEST_P(LayerSemantics, createFromClContext_pn) {
-  auto &ac = nntrainer::ClContext::Global();
-  if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
-    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
-  }
-
-  EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
-            expected_type);
-}
-#endif
 
 TEST_P(LayerPropertySemantics, setPropertiesInvalid_n) {
   auto lnode = nntrainer::createLayerNode(expected_type);
@@ -124,3 +113,101 @@ TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
     EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
   }
 }
+
+#ifdef ENABLE_OPENCL
+TEST_P(LayerSemanticsGpu, createFromClContext_pn) {
+  auto &ac = nntrainer::ClContext::Global();
+  if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
+    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
+  }
+
+  EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
+            expected_type);
+}
+
+TEST_P(LayerPropertySemantics, setPropertiesInvalid_n_gpu) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  EXPECT_THROW(layer->setProperty({valid_properties}), std::invalid_argument);
+}
+
+TEST_P(LayerSemanticsGpu, setPropertiesInvalid_n) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  /** must not crash */
+  EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
+}
+
+TEST_P(LayerSemanticsGpu, finalizeValidateLayerNode_p) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  std::vector<std::string> props = {"name=test"};
+  std::string input_shape = "input_shape=1:1:1";
+  std::string input_layers = "input_layers=a";
+  for (auto idx = 1u; idx < num_inputs; idx++) {
+    input_shape += ",1:1:1";
+    input_layers += ",a";
+  }
+  props.push_back(input_shape);
+  props.push_back(input_layers);
+  lnode->setProperty(props);
+  lnode->setOutputLayers({"dummy"});
+
+  EXPECT_NO_THROW(lnode->setProperty(valid_properties));
+
+  if (!must_fail) {
+    nntrainer::InitLayerContext init_context = lnode->finalize();
+
+    for (auto const &spec : init_context.getOutSpecs())
+      EXPECT_GT(spec.variable_spec.dim.getDataLen(), size_t(0));
+    for (auto const &ws : init_context.getWeightsSpec())
+      EXPECT_GT(std::get<0>(ws).getDataLen(), size_t(0));
+    for (auto const &ts : init_context.getTensorsSpec())
+      EXPECT_GT(std::get<0>(ts).getDataLen(), size_t(0));
+  } else {
+    EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
+  }
+}
+
+TEST_P(LayerSemanticsGpu, getTypeValidateLayerNode_p) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  std::string type;
+
+  EXPECT_NO_THROW(type = lnode->getType());
+  EXPECT_GT(type.size(), size_t(0));
+}
+
+TEST_P(LayerSemanticsGpu, gettersValidateLayerNode_p) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+
+  EXPECT_NO_THROW(lnode->supportInPlace());
+  EXPECT_NO_THROW(lnode->requireLabel());
+  EXPECT_NO_THROW(lnode->supportBackwarding());
+}
+
+TEST_P(LayerSemanticsGpu, setBatchValidateLayerNode_p) {
+  auto lnode =
+    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  std::vector<std::string> props = {"name=test"};
+  std::string input_shape = "input_shape=1:1:1";
+  std::string input_layers = "input_layers=a";
+  for (auto idx = 1u; idx < num_inputs; idx++) {
+    input_shape += ",1:1:1";
+    input_layers += ",a";
+  }
+  props.push_back(input_shape);
+  props.push_back(input_layers);
+  lnode->setProperty(props);
+  lnode->setOutputLayers({"dummy"});
+
+  EXPECT_NO_THROW(lnode->setProperty(valid_properties));
+
+  if (!must_fail) {
+    EXPECT_NO_THROW(lnode->finalize());
+  } else {
+    EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
+  }
+}
+#endif

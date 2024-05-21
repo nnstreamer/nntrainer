@@ -7,6 +7,7 @@
  * @brief Common test for nntrainer layers (Param Tests)
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Debadri Samaddar <s.debadri@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #ifndef __LAYERS_COMMON_TESTS_H__
@@ -30,6 +31,8 @@ typedef enum {
 
 using LayerFactoryType = std::function<std::unique_ptr<nntrainer::Layer>(
   const std::vector<std::string> &)>;
+
+using ComputeEngine = ml::train::LayerComputeEngine;
 
 using LayerSemanticsParamType =
   std::tuple<LayerFactoryType /** layer factory */,
@@ -83,6 +86,12 @@ protected:
   bool must_fail;
   unsigned int num_inputs;
 };
+
+/**
+ * @brief LayerSemanticsGpu
+ * @details Inherit LayerSemantics to test layers on GPU
+ */
+class LayerSemanticsGpu : public LayerSemantics {};
 
 /**
  * @brief LayerPropertySemantics

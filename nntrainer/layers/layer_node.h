@@ -925,6 +925,13 @@ private:
   std::vector<std::unique_ptr<Connection>>
     output_connections; /**< output layer names */
 
+  /**
+   * @brief compute_engine Information about the compute backend being used
+   *
+   */
+  ml::train::LayerComputeEngine compute_engine =
+    ml::train::LayerComputeEngine::CPU;
+
 #ifdef ENABLE_TEST
   /**
    * @brief   Init context which is stored for debugging issue
@@ -1023,7 +1030,9 @@ createLayerNode(const ml::train::LayerType &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
-                const std::vector<std::string> &properties = {});
+                const std::vector<std::string> &properties = {},
+                const ml::train::LayerComputeEngine &compute_engine =
+                  ml::train::LayerComputeEngine::CPU);
 
 /**
  * @brief LayerNode creator with constructor
