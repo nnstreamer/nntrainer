@@ -1508,7 +1508,8 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
   unsigned int idx = 8;
 
   // processing batch of 8
-  for (; (N - idx) >= 8; idx += 8) {
+  // stop before idx reaches UNIT16_MAX
+  for (; ((N - idx) >= 8) && ((idx + 8) <= UINT16_MAX); idx += 8) {
     float16x8_t values = vld1q_f16(&X[idx]);
     curr_index = vaddq_u16(curr_index, stride);
 
@@ -1527,11 +1528,50 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
 
   // getting the index of the maxima
   maxNum = maxVal[0];
-  retIdx = max_index[0];
+  retIdx = indices[0];
   for (unsigned int i = 1; i < 8; i++) {
     if (maxVal[i] > maxNum) {
       maxNum = maxVal[i];
-      retIdx = max_index[i];
+      retIdx = indices[i];
+    }
+  }
+
+  // if idx is more than UNIT16_MAX
+  if ((N > UINT16_MAX) && (N - idx) >= 4) {
+    uint32_t indices_u32[] = {idx, idx + 1, idx + 2, idx + 3};
+    uint32x4_t stride_u32 = vmovq_n_u32(4);
+    float16x4_t batch_4 = vld1_f16(&X[0]);
+    uint32x4_t curr_index_u32 = vld1q_u32(indices_u32);
+    uint32x4_t max_index_u32 = curr_index_u32;
+
+    idx += 4;
+    // processing batch of 4
+    for (; (N - idx) >= 4; idx += 4) {
+      float16x4_t values_4 = vld1_f16(&X[idx]);
+      curr_index_u32 = vaddq_u32(curr_index_u32, stride_u32);
+
+      // comparison
+      uint16x4_t mask_4 = vcgt_f16(batch_4, values_4);
+
+      // converting to u32 mask as required by vbslq_u32
+      uint32x4_t mask_4_u32 = vmovl_u16(mask_4);
+
+      // blend values and indices based on the mask
+      batch_4 = vbsl_f16(mask_4, batch_4, values_4);
+      max_index_u32 = vbslq_u32(mask_4_u32, max_index_u32, curr_index_u32);
+    }
+
+    // storing indices and max values
+    __fp16 maxVal_4[4];
+    vst1_f16(maxVal_4, batch_4);
+    vst1q_u32(indices_u32, max_index_u32);
+
+    // getting the index of the maxima
+    for (unsigned int i = 0; i < 4; i++) {
+      if (maxVal_4[i] > maxNum) {
+        maxNum = maxVal_4[i];
+        retIdx = indices_u32[i];
+      }
     }
   }
 
