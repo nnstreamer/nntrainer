@@ -384,6 +384,47 @@ TEST(nntrainer_Tensor, max_abs) {
   EXPECT_NEAR(result_neon, result_fp32, epsilon);
 }
 
+TEST(nntrainer_Tensor, max_abs_768) {
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  size_t batch = 1;
+  size_t channel = 1;
+  size_t height = 768;
+  size_t width = 768;
+
+  nntrainer::Tensor input(
+    nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp16));
+
+  nntrainer::Tensor input_fp32(
+    nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp32));
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  GEN_TEST_INPUT(input, ((k * l * (batch * height * channel) +
+                          l * (batch * height) + k * (width) + l + 1) %
+                         MOD) *
+                          alpha);
+  GEN_TEST_INPUT(input_fp32, ((k * l * (batch * height * channel) +
+                               l * (batch * height) + k * (width) + l + 1) %
+                              MOD) *
+                               alpha);
+
+  __fp16 result_neon = input.max_abs();
+  float result_fp32 = input_fp32.max_abs();
+
+  float absErrorNeon = std::abs(result_neon - result_fp32);
+
+  const float epsilon = 1e-3;
+
+  EXPECT_IN_RANGE(absErrorNeon, 0, epsilon);
+}
+
 TEST(nntrainer_Tensor, sum_gemv_transpose_2_10) {
   int batch = 3;
   int channel = 2;
