@@ -14,7 +14,7 @@ Please file an issue if you have a problem running the example.
 
 ```bash
 $ meson ${build_dir} -Denable-test=true -Denable-long-test=true
-$ meson test app_resnet18 -v -c ${build_dir}
+$ meson test app_resnet18 -v -C ${build_dir}
 ```
 
 ### To run with a real data.
