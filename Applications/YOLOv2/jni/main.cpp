@@ -139,6 +139,7 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
       withKey("filters", filters),
       withKey("kernel_size", {kernel_size, kernel_size}),
       withKey("padding", padding),
+      withKey("disable_bias", "true"),
       withKey("input_layers", input_layer)};
 
     return createLayer("conv2d", props);
@@ -150,6 +151,7 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
   if (downsample) {
     LayerHandle a2 = createLayer("batch_normalization",
                                  {with_name("a2"), withKey("momentum", "0.9"),
+                                  withKey("epsilon", 0.00001),
                                   withKey("activation", "leaky_relu")});
 
     LayerHandle a3 = createLayer(
@@ -158,10 +160,10 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
 
     return {a1, a2, a3};
   } else {
-    LayerHandle a2 =
-      createLayer("batch_normalization",
-                  {withKey("name", block_name), withKey("momentum", "0.9"),
-                   withKey("activation", "leaky_relu")});
+    LayerHandle a2 = createLayer(
+      "batch_normalization",
+      {withKey("name", block_name), withKey("momentum", "0.9"),
+       withKey("epsilon", 0.00001), withKey("activation", "leaky_relu")});
 
     return {a1, a2};
   }
