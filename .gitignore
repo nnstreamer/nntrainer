@@ -5,6 +5,7 @@
 /build
 /builddir
 .cache/
+.idea/
 
 # jni build files
 iniparser/
