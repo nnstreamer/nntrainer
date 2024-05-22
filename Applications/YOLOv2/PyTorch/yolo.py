@@ -20,98 +20,122 @@ class YoloV2(nn.Module):
         self.num_classes = num_classes
         self.num_anchors = num_anchors
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, 3, 1, 1),
-            nn.BatchNorm2d(32, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(3, 32, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.1),
             nn.MaxPool2d(2, 2),
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(32, 64, 3, 1, 1),
-            nn.BatchNorm2d(64, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(32, 64, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.1),
             nn.MaxPool2d(2, 2),
         )
         self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 128, 3, 1, 1), nn.BatchNorm2d(128, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(64, 128, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.1),
         )
         self.conv4 = nn.Sequential(
-            nn.Conv2d(128, 64, 1, 1, 0), nn.BatchNorm2d(64, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(128, 64, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.1),
         )
         self.conv5 = nn.Sequential(
-            nn.Conv2d(64, 128, 3, 1, 1),
-            nn.BatchNorm2d(128, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(64, 128, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.1),
             nn.MaxPool2d(2, 2),
         )
         self.conv6 = nn.Sequential(
-            nn.Conv2d(128, 256, 3, 1, 1), nn.BatchNorm2d(256, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(128, 256, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1),
         )
         self.conv7 = nn.Sequential(
-            nn.Conv2d(256, 128, 1, 1, 0), nn.BatchNorm2d(128, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(256, 128, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.1),
         )
         self.conv8 = nn.Sequential(
-            nn.Conv2d(128, 256, 3, 1, 1),
-            nn.BatchNorm2d(256, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(128, 256, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1),
             nn.MaxPool2d(2, 2),
         )
         self.conv9 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, 1), nn.BatchNorm2d(512, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(256, 512, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
         )
         self.conv10 = nn.Sequential(
-            nn.Conv2d(512, 256, 1, 1, 0), nn.BatchNorm2d(256, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(512, 256, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1),
         )
         self.conv11 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, 1), nn.BatchNorm2d(512, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(256, 512, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
         )
         self.conv12 = nn.Sequential(
-            nn.Conv2d(512, 256, 1, 1, 0), nn.BatchNorm2d(256, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(512, 256, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1),
         )
         self.conv13 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, 1), nn.BatchNorm2d(512, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(256, 512, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
         )
 
         self.conv_b = nn.Sequential(
-            nn.Conv2d(512, 64, 1, 1, 0), nn.BatchNorm2d(64, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(512, 64, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.1),
         )
 
         self.maxpool_a = nn.MaxPool2d(2, 2)
         self.conv_a1 = nn.Sequential(
-            nn.Conv2d(512, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(512, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a2 = nn.Sequential(
-            nn.Conv2d(1024, 512, 1, 1, 0), nn.BatchNorm2d(512, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(1024, 512, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a3 = nn.Sequential(
-            nn.Conv2d(512, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(512, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a4 = nn.Sequential(
-            nn.Conv2d(1024, 512, 1, 1, 0), nn.BatchNorm2d(512, eps=1e-3), nn.LeakyReLU()
+            nn.Conv2d(1024, 512, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a5 = nn.Sequential(
-            nn.Conv2d(512, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(512, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a6 = nn.Sequential(
-            nn.Conv2d(1024, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(1024, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
         self.conv_a7 = nn.Sequential(
-            nn.Conv2d(1024, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(1024, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
 
         self.conv_out1 = nn.Sequential(
-            nn.Conv2d(1280, 1024, 3, 1, 1),
-            nn.BatchNorm2d(1024, eps=1e-3),
-            nn.LeakyReLU(),
+            nn.Conv2d(1280, 1024, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1),
         )
 
         self.conv_out2 = nn.Conv2d(1024, self.num_anchors * (5 + num_classes), 1, 1, 0)
