@@ -1,5 +1,7 @@
 cl_layer_sources = [
   'fc_layer_cl.cpp',
+  'blas_kernels.cpp',
+  'addition_layer_cl.cpp'
 ]
 
 foreach s : cl_layer_sources

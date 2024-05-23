@@ -865,9 +865,6 @@ if __name__ == "__main__":
         positional_encoding, [(3, 1, 10, 6)], "positional_encoding_w16a16"
     )
 
-    added = K.layers.Add()
-    record_single_fp16(added, [(2, 3, 3, 3), (2, 3, 3, 3)], "added_w16a16")
-
     def swiglu(inputs):
         [x, y] = inputs
         # swish(x) = x * sigmoid(x)
@@ -883,3 +880,15 @@ if __name__ == "__main__":
         "swiglu",
         input_type="float",
     )
+    
+    added = K.layers.Add()
+    record_single_fp16(added, [(2, 3, 3, 3), (2, 3, 3, 3)], "added_w16a16")
+    
+    added = K.layers.Add()
+    record_single(added, [(2, 3, 3, 3), (2, 3, 3, 3)], "added_w32a32")
+    
+    added = K.layers.Add()
+    record_single(added, [(3, 4, 3, 4), (3, 4, 3, 4)], "added_w32a32_2")
+    
+    added = K.layers.Add()
+    record_single(added, [(20, 55, 50, 55), (20, 55, 50, 55)], "added_w32a32_3")

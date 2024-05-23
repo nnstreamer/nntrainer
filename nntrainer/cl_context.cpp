@@ -12,6 +12,7 @@
  * creates the OpenCL command queue and context.
  */
 
+#include <addition_layer_cl.h>
 #include <cl_context.h>
 #include <fc_layer_cl.h>
 
@@ -26,6 +27,10 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
                      FullyConnectedLayerCl::type,
                      ml::train::LayerType::LAYER_FC);
+
+  cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
+                     AdditionLayerCL::type,
+                     ml::train::LayerType::LAYER_ADDITION);
 }
 
 static void registerer(ClContext &cc) noexcept {
