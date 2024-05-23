@@ -79,15 +79,11 @@
 namespace nntrainer {
 
 template <typename T>
-static inline void transpose_fallback(
-    unsigned int M,
-    unsigned int N,
-    const T* src,
-    unsigned int ld_src,
-    T* dst,
-    unsigned int ld_dst) {
-  for (unsigned int j = 0; j < N; j++) {
-    for (unsigned int i = 0; i < M; i++) {
+static inline void transpose_fallback(unsigned int M, unsigned int N,
+                                      const T *src, unsigned int ld_src, T *dst,
+                                      unsigned int ld_dst) {
+  for (unsigned int i = 0; i < M; i++) {
+    for (unsigned int j = 0; j < N; j++) {
       dst[i + j * ld_dst] = src[i * ld_src + j];
     }
   }
