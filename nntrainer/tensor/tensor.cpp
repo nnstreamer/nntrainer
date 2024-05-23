@@ -2403,10 +2403,10 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
         if (is_format_nchw) {
           for (unsigned int b = 0; b < batch(); ++b) {
             for (unsigned int c = 0; c < channel(); ++c) {
-              transpose_matrix(
-                height(), width(), getData<_FP16>() + getIndex(b, c, 0, 0),
-                width(), out.getData<_FP16>() + out.getIndex(b, c, 0, 0),
-                out.width());
+              transpose_matrix(height(), width(),
+                               getData<_FP16>() + getIndex(b, c, 0, 0), width(),
+                               out.getData<_FP16>() + out.getIndex(b, c, 0, 0),
+                               out.width());
             }
           }
         } else {
