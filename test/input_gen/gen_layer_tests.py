@@ -17,6 +17,7 @@ Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 
 @author Jihoon Lee <jhoon.it.lee@samsung.com>
 @author Sungsik Kong <ss.kong@samsung.com>
+@author	Debadri Samaddar <s.debadri@samsung.com>
 """
 
 import warnings
@@ -866,3 +867,19 @@ if __name__ == "__main__":
 
     added = K.layers.Add()
     record_single_fp16(added, [(2, 3, 3, 3), (2, 3, 3, 3)], "added_w16a16")
+
+    def swiglu(inputs):
+        [x, y] = inputs
+        # swish(x) = x * sigmoid(x)
+        swishTensor = x * K.activations.sigmoid(x)
+
+        return K.layers.Multiply()([swishTensor, y])
+
+    swiglu_layer = K.layers.Lambda(swiglu)
+
+    record_single(
+        swiglu_layer,
+        [(2, 3, 3, 3), (2, 3, 3, 3)],
+        "swiglu",
+        input_type="float",
+    )
