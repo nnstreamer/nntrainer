@@ -48,9 +48,9 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -68,9 +68,9 @@ void hgemm_noTrans_fallback(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -88,9 +88,9 @@ void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -108,9 +108,9 @@ void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -128,9 +128,9 @@ void hgemm_noTrans_4x4(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -148,9 +148,9 @@ void hgemm_noTrans_1x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -168,9 +168,9 @@ void hgemm_noTrans_1x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -188,9 +188,9 @@ void hgemm_noTrans_8x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -208,9 +208,9 @@ void hgemm_noTrans_4x4(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -228,9 +228,9 @@ void hgemm_noTrans_8x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -248,9 +248,9 @@ void hgemm_noTrans_4x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -268,9 +268,9 @@ void hgemm_noTrans_4x8(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
@@ -288,9 +288,9 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
  * @param N length of the col of matrix B
  * @param K length of the col of matrix A
  * @param A input matrix A
- * @param lda length of the col of matrix C
+ * @param lda length of the col of matrix A
  * @param B input matrix B
- * @param ldb length of the col of matrix C
+ * @param ldb length of the col of matrix B
  * @param C output matrix C
  * @param ldc length of the col of matrix C
  * @param[in] alpha float number
