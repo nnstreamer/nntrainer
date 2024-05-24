@@ -882,6 +882,13 @@ public:
   }
 
   /**
+   * @brief Set if the layer output needs reinitialization @mixed precsion
+   *
+   * @param nb true if the layer needs to do reinitialization, eles false
+   */
+  void needsOutputSetZero(bool nb) { needs_output_set_zero = nb; }
+
+  /**
    * @brief Set if the layer needs to do calculation of gradients
    *
    * @param nb true if the layer needs to do backwarding, else false
@@ -901,6 +908,13 @@ public:
    * @param nb true if the layer needs to do backwarding, else false
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
+
+  /**
+   * @brief Set if the layer needs to reinitialization @mixed precsion
+   *
+   * @param nb true if the layer needs reinitialization, eles false
+   */
+  bool needsOutputSetZero() { return needs_output_set_zero; }
 
 private:
   /**
@@ -974,6 +988,9 @@ properties in the context/graph unless intended. */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
+
+  bool needs_output_set_zero; /**< cache if this layer needs reinitialization
+                                 output  */
 
   /**
    * @brief   Get the effective layer managed by this layer node

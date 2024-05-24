@@ -356,7 +356,6 @@ public:
    */
   void setLossScale(float scale) { loss_scale = scale; };
 
-
   /**
    * @brief get loss scale
    *
