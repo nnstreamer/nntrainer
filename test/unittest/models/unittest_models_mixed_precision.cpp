@@ -42,10 +42,32 @@ static std::unique_ptr<NeuralNetwork> fc_mixed_training() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> fc_mixed_training_nan_sgd() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty(
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"});
+
+  auto graph = makeGraph({
+    {"input", {"name=in", "input_shape=1:1:1"}},
+    {"Fully_connected", {"name=fc0", "input_layers=in", "unit=1"}},
+    {"Fully_connected", {"name=fc1", "input_layers=fc0", "unit=1"}},
+    {"mse", {"name=loss", "input_layers=fc1"}},
+  });
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   MixedPrecision, nntrainerModelTest,
   ::testing::ValuesIn({
     mkModelTc_V2(fc_mixed_training, "fc_mixed_training",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(fc_mixed_training_nan_sgd, "fc_mixed_training_nan_sgd",
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)

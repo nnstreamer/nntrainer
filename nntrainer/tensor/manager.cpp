@@ -409,7 +409,8 @@ std::vector<Weight *> Manager::requestWeights(
      * order with the max exec order where it will be used for clipping and then
      * applied to the weight.
      */
-    if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm)) {
+    if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm) ||
+        isMixedPrecision()) {
       grad_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
       // TODO: We need double check if it is OK not to add PERSIST_END_ORDER
       // here or add other conditions

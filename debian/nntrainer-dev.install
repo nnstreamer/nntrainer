@@ -17,6 +17,7 @@
 /usr/include/nntrainer/blas_interface.h
 /usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/weight.h
+/usr/include/nntrainer/blas_avx.h
 # todo: update dataset headers
 /usr/include/nntrainer/databuffer.h
 /usr/include/nntrainer/databuffer_factory.h
