@@ -457,49 +457,56 @@ class AddOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class LinearMixedPrecisionNaNSGD(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc0 = torch.nn.Linear(1, 1)
+        self.fc1 = torch.nn.Linear(1, 1)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        with autocast(device_type='cuda', dtype=torch.float16):
+            input=inputs[0].to('cuda')
+            label=labels[0].to('cuda')
+            out = self.fc0(input)
+            out = self.fc1(out)
+        return out
+
+    def getOptimizer(self):
+        return torch.optim.SGD(self.parameters(), lr=0.1)
 
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
         iteration=2,
-        input_dims=[
-            (
-                3,
-                2,
-            )
-        ],
-        label_dims=[
-            (
-                3,
-                1,
-            )
-        ],
+        input_dims=[(3, 2,)],
+        label_dims=[(3, 1,)],
         name="reduce_mean_last",
     )
 
     record_v2(
         MolAttention(query_size=6),
         iteration=2,
-        input_dims=[(3, 6), (3, 4, 6), (3, 1, 5), (3)],
+        input_dims=[(3,6), (3,4,6), (3,1,5), (3)],
         input_dtype=[float, float, float, int],
-        label_dims=[(3, 1, 6), (3, 1, 5)],
+        label_dims=[(3,1,6), (3,1,5)],
         name="mol_attention_masked",
     )
 
     record_v2(
         MolAttention(query_size=6),
         iteration=2,
-        input_dims=[(3, 6), (3, 4, 6), (3, 1, 5)],
+        input_dims=[(3,6), (3,4,6), (3,1,5)],
         input_dtype=[float, float, float],
-        label_dims=[(3, 1, 6), (3, 1, 5)],
+        label_dims=[(3,1,6), (3,1,5)],
         name="mol_attention",
     )
 
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2, bias=False, need_weights=False),
         iteration=2,
-        input_dims=[(3, 3, 6), (3, 2, 6), (3, 2, 6)],
-        label_dims=[(3, 3, 6)],
+        input_dims=[(3,3,6), (3,2,6), (3,2,6)],
+        label_dims=[(3,3,6)],
         input_dtype=[float, float, float],
         name="multi_head_attention_disable_need_weights",
     )
@@ -507,8 +514,8 @@ if __name__ == "__main__":
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2),
         iteration=2,
-        input_dims=[(3, 3, 6), (3, 2, 6), (3, 2, 6)],
-        label_dims=[(3, 3, 6), (3, 3, 2)],
+        input_dims=[(3,3,6), (3,2,6), (3,2,6)],
+        label_dims=[(3,3,6), (3,3,2)],
         input_dtype=[float, float, float],
         name="multi_head_attention",
     )
@@ -516,8 +523,8 @@ if __name__ == "__main__":
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2, kdim=4, vdim=5),
         iteration=2,
-        input_dims=[(3, 3, 6), (3, 2, 4), (3, 2, 5)],
-        label_dims=[(3, 3, 6), (3, 3, 2)],
+        input_dims=[(3,3,6), (3,2,4), (3,2,5)],
+        label_dims=[(3,3,6), (3,3,2)],
         input_dtype=[float, float, float],
         name="multi_head_attention_kdim_vdim",
     )
@@ -525,8 +532,8 @@ if __name__ == "__main__":
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 3, 6), (3, 2, 6), (3, 2, 6), (6, 3, 2)],
-        label_dims=[(3, 3, 6), (3, 3, 2)],
+        input_dims=[(3,3,6), (3,2,6), (3,2,6), (6,3,2)],
+        label_dims=[(3,3,6), (3,3,2)],
         input_dtype=[float, float, float, float],
         input_label_reader=MultiHeadAttention.input_label_reader,
         name="multi_head_attention_float_attn_mask",
@@ -536,8 +543,8 @@ if __name__ == "__main__":
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 3, 6), (3, 2, 6), (3, 2, 6), (6, 3, 2)],
-        label_dims=[(3, 3, 6), (3, 3, 2)],
+        input_dims=[(3,3,6), (3,2,6), (3,2,6), (6,3,2)],
+        label_dims=[(3,3,6), (3,3,2)],
         input_dtype=[float, float, float, bool],
         input_label_reader=MultiHeadAttention.input_label_reader,
         name="multi_head_attention_pseudo_bool_attn_mask",
@@ -546,8 +553,8 @@ if __name__ == "__main__":
     record_v2(
         MultiHeadAttention(embed_dim=6, num_heads=2),
         iteration=2,
-        input_dims=[(3, 3, 6)],
-        label_dims=[(3, 3, 6), (3, 3, 3)],
+        input_dims=[(3,3,6)],
+        label_dims=[(3,3,6), (3,3,3)],
         input_dtype=[float],
         name="multi_head_attention_self_attention",
     )
@@ -555,40 +562,36 @@ if __name__ == "__main__":
     record_v2(
         PositionalEncoding(d_model=6, max_len=7),
         iteration=1,
-        input_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6)],
         input_dtype=[float],
-        label_dims=[(3, 5, 6)],
+        label_dims=[(3,5,6)],
         name="positional_encoding",
     )
 
     record_v2(
         TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7),
         iteration=2,
-        input_dims=[(3, 5, 6)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6)],
+        label_dims=[(3,5,6)],
         input_dtype=[float],
         name="transformer_encoder_layer",
     )
 
     record_v2(
-        TransformerEncoderLayer(
-            d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True
-        ),
+        TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (6, 5, 5)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6), (6,5,5)],
+        label_dims=[(3,5,6)],
         input_dtype=[float, float],
         input_label_reader=TransformerEncoderLayer.input_label_reader,
         name="transformer_encoder_layer_float_attn_mask",
     )
 
     record_v2(
-        TransformerEncoderLayer(
-            d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True
-        ),
+        TransformerEncoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (6, 5, 5)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6), (6,5,5)],
+        label_dims=[(3,5,6)],
         input_dtype=[float, bool],
         input_label_reader=TransformerEncoderLayer.input_label_reader,
         name="transformer_encoder_layer_pseudo_bool_attn_mask",
@@ -597,95 +600,65 @@ if __name__ == "__main__":
     record_v2(
         TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,5,6)],
         input_dtype=[float, float],
         name="transformer_decoder_layer",
     )
 
     record_v2(
-        TransformerDecoderLayer(
-            d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True
-        ),
+        TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6), (6, 5, 5), (6, 5, 4)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,5,4)],
+        label_dims=[(3,5,6)],
         input_dtype=[float, float, float, float],
         input_label_reader=TransformerDecoderLayer.input_label_reader,
         name="transformer_decoder_layer_float_attn_mask",
     )
 
     record_v2(
-        TransformerDecoderLayer(
-            d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True
-        ),
+        TransformerDecoderLayer(d_model=6, nhead=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6), (6, 5, 5), (6, 5, 4)],
-        label_dims=[(3, 5, 6)],
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,5,4)],
+        label_dims=[(3,5,6)],
         input_dtype=[float, float, bool, bool],
         input_label_reader=TransformerDecoderLayer.input_label_reader,
         name="transformer_decoder_layer_pseudo_bool_attn_mask",
     )
 
     record_v2(
-        Transformer(
-            d_model=6,
-            nhead=2,
-            num_encoder_layers=1,
-            num_decoder_layers=1,
-            dim_feedforward=7,
-        ),
+        Transformer(d_model=6, nhead=2, num_encoder_layers=1, num_decoder_layers=1, dim_feedforward=7),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6)],
-        label_dims=[(3, 4, 6)],
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,4,6)],
         input_dtype=[float, float],
         name="transformer_single",
     )
 
     record_v2(
-        Transformer(
-            d_model=6,
-            nhead=2,
-            num_encoder_layers=2,
-            num_decoder_layers=2,
-            dim_feedforward=7,
-        ),
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6)],
-        label_dims=[(3, 4, 6)],
+        input_dims=[(3,5,6), (3,4,6)],
+        label_dims=[(3,4,6)],
         input_dtype=[float, float],
         name="transformer_stack",
     )
 
     record_v2(
-        Transformer(
-            d_model=6,
-            nhead=2,
-            num_encoder_layers=2,
-            num_decoder_layers=2,
-            dim_feedforward=7,
-            provide_attention_mask=True,
-        ),
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6), (6, 5, 5), (6, 4, 4), (6, 4, 5)],
-        label_dims=[(3, 4, 6)],
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,4,4), (6,4,5)],
+        label_dims=[(3,4,6)],
         input_dtype=[float, float, float, float, float],
         input_label_reader=Transformer.input_label_reader,
         name="transformer_float_attn_mask",
     )
 
     record_v2(
-        Transformer(
-            d_model=6,
-            nhead=2,
-            num_encoder_layers=2,
-            num_decoder_layers=2,
-            dim_feedforward=7,
-            provide_attention_mask=True,
-        ),
+        Transformer(d_model=6, nhead=2, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=7, provide_attention_mask=True),
         iteration=2,
-        input_dims=[(3, 5, 6), (3, 4, 6), (6, 5, 5), (6, 4, 4), (6, 4, 5)],
-        label_dims=[(3, 4, 6)],
+        input_dims=[(3,5,6), (3,4,6), (6,5,5), (6,4,4), (6,4,5)],
+        label_dims=[(3,4,6)],
         input_dtype=[float, float, bool, bool, bool],
         input_label_reader=Transformer.input_label_reader,
         name="transformer_pseudo_bool_attn_mask",
@@ -695,44 +668,43 @@ if __name__ == "__main__":
     record_v2(
         fc_relu_decay,
         iteration=2,
-        input_dims=[(3, 3)],
+        input_dims=[(3,3)],
         input_dtype=[float],
-        label_dims=[(3, 2)],
+        label_dims=[(3,2)],
         name="fc_relu_decay",
-        optimizer=fc_relu_decay.getOptimizer(),
+        optimizer=fc_relu_decay.getOptimizer()
     )
 
     non_trainable_fc_idx1 = NonTrainableFC(idx=1)
     record_v2(
         non_trainable_fc_idx1,
         iteration=2,
-        input_dims=[(3, 3)],
+        input_dims=[(3,3)],
         input_dtype=[float],
-        label_dims=[(3, 2)],
-        name="non_trainable_fc_idx1",
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx1"
     )
 
     non_trainable_fc_idx2 = NonTrainableFC(idx=2)
     record_v2(
         non_trainable_fc_idx2,
         iteration=2,
-        input_dims=[(3, 3)],
+        input_dims=[(3,3)],
         input_dtype=[float],
-        label_dims=[(3, 2)],
-        name="non_trainable_fc_idx2",
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx2"
     )
-
 
     non_trainable_fc_idx3 = NonTrainableFC(idx=3)
     record_v2(
         non_trainable_fc_idx3,
         iteration=2,
-        input_dims=[(3, 3)],
+        input_dims=[(3,3)],
         input_dtype=[float],
-        label_dims=[(3, 2)],
-        name="non_trainable_fc_idx3",
+        label_dims=[(3,2)],
+        name="non_trainable_fc_idx3"
     )
-
+    
     fc_mixed_training = LinearMixedPrecision()
     record_v2(
         fc_mixed_training,
@@ -758,3 +730,17 @@ if __name__ == "__main__":
 
     # Function to check the created golden test file
     inspect_file("add_operation.nnmodelgolden")
+    fc_mixed_training_nan_sgd = LinearMixedPrecisionNaNSGD()
+    record_v2(
+        fc_mixed_training_nan_sgd,
+        iteration=5,
+        input_dims=[(1,1)],
+        input_dtype=[float],
+        label_dims=[(1,1)],
+        name="fc_mixed_training_nan_sgd",
+        optimizer=fc_mixed_training_nan_sgd.getOptimizer()
+    )    
+
+#    Function to check the created golden test file    
+    inspect_file("non_trainable_fc_idx3.nnmodelgolden")
+    

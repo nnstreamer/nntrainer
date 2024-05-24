@@ -426,23 +426,33 @@ bool NetworkGraph::backwarding(
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
 
     if (!is_valid) {
-      std::cout << "Gradient has NaN" << std::endl;
+      std::cout << ln->getName() << " : Gradient has NaN --> "
+                << ln->getRunContext().getLossScale() << std::endl;
       break;
     }
   }
 
   if (!is_valid) {
     /** if has NaN
-     * 1. reset the loss scale.
+     * 1. reset the loss scale. : @todo Backoff_factor : default --> 0.5
      * 2. run forwarding from cur_iter to cend() && !stop_cb(userdata);
      * 3. return false --> run backwarding again;
      */
     float scale = (*iter_)->getRunContext().getLossScale();
-    float s = scale > 1.5f ? scale - 0.5f : 1.0f;
+
+    NNTR_THROW_IF(scale == 1.0f, std::invalid_argument)
+      << "Loss Scale Factor is 1.0f";
+
+    float s = scale > 1.5f ? scale * 0.5f : 1.0f;
 
     resetLossScale(s);
 
     auto f_iter = cbegin() + graph.getSortedNodeIdx((*iter_)->getName());
+
+    for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
+      auto &ln = *iter;
+      ln->needsOutputSetZero(true);
+    }
 
     for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
       auto &ln = *iter;
@@ -479,9 +489,12 @@ bool NetworkGraph::backwarding(
   }
   nan_count++;
 
-  if (nan_count > 10) {
+  /** @todo : handle as property : growth_interval : default --> 2000 */
+
+  if (nan_count > 2000) {
     float scale = (*iter_)->getRunContext().getLossScale();
-    float s = scale + 2.0f;
+    /** @todo growth_factor : default --> 2.0 */
+    float s = scale * 2.0f;
     resetLossScale(s);
     nan_count = 0;
   }
@@ -1255,7 +1268,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
          */
         if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
                                          last_grad_access) ||
-            (rc.isGradientClipByGlobalNorm(i) &&
+            ((rc.isGradientClipByGlobalNorm(i) || rc.isMixedPrecision(i)) &&
              tensor_manager->isSecondLastAccess(rc.getWeightGrad(i).getName(),
                                                 last_grad_access))) {
           rc.getWeightObject(i).setAsGradientLastAccess();
