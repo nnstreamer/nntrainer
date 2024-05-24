@@ -498,6 +498,11 @@ public:
     exec_mode = mode;
   };
 
+  /**
+   * @brief     return if it is mixed precsion
+   */
+  bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
