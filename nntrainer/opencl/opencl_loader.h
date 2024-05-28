@@ -38,6 +38,11 @@ typedef cl_int(CL_API_CALL *PFN_clGetDeviceIDs)(
   cl_uint /**< num_entries */, cl_device_id * /**< devices */,
   cl_uint * /**< num_devices */);
 
+typedef cl_int(CL_API_CALL *PFN_clGetDeviceInfo)(
+  cl_device_id /**< device */, cl_device_info /**< param_name */,
+  size_t /**< param_value_size */, void * /**< param_value */,
+  size_t * /**< param_value_size_ret */);
+
 typedef cl_context(CL_API_CALL *PFN_clCreateContext)(
   const cl_context_properties * /**< properties */, cl_uint /**< num_devices */,
   const cl_device_id * /**< devices */,
@@ -133,6 +138,7 @@ typedef cl_int(CL_API_CALL *PFN_clReleaseMemObject)(cl_mem /**< memobj */);
 
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
+extern PFN_clGetDeviceInfo clGetDeviceInfo;
 extern PFN_clCreateContext clCreateContext;
 extern PFN_clCreateCommandQueue clCreateCommandQueue;
 extern PFN_clCreateBuffer clCreateBuffer;
