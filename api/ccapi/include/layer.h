@@ -354,21 +354,11 @@ Reshape(const std::vector<std::string> &properties = {}) {
 /**
  * @brief Helper function to create addition layer
  */
-inline std::unique_ptr<Layer>
-Addition(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_ADDITION, properties);
-}
-
-#ifdef ENABLE_OPENCL
-/**
- * @brief Helper function to create Addition layer for GPU
- */
-inline std::unique_ptr<Layer>
-AdditionCL(const std::vector<std::string> &properties = {},
-           const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+inline std::unique_ptr<Layer> Addition(
+          const std::vector<std::string> &properties = {},
+          const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
   return createLayer(LayerType::LAYER_ADDITION, properties, compute_engine);
 }
-#endif
 
 /**
  * @brief Helper function to create concat layer
