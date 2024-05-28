@@ -155,6 +155,31 @@ bool ContextManager::CreateDefaultGPUDevice() {
   device_id_ = devices[0];
   platform_id_ = platform_id_;
 
+#ifdef ENABLE_FP16
+  // check for fp16 (half) support available on device
+  // getting extensions
+  size_t extension_size;
+  status =
+    clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, 0, NULL, &extension_size);
+  if (status != CL_SUCCESS) {
+    ml_loge("clGetDeviceInfo returned %d", status);
+    return false;
+  }
+
+  char extensions[extension_size];
+  status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
+                           extensions, NULL);
+  if (status != CL_SUCCESS) {
+    ml_loge("clGetDeviceInfo returned %d", status);
+    return false;
+  }
+
+  if (std::string(extensions).find("cl_khr_fp16") == std::string::npos) {
+    ml_loge("fp16 (half) is not supported by device");
+    return false;
+  }
+#endif
+
   return true;
 }
 

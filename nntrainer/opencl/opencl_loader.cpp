@@ -67,6 +67,7 @@ bool LoadOpenCL() {
 void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clGetPlatformIDs);
   LoadFunction(clGetDeviceIDs);
+  LoadFunction(clGetDeviceInfo);
   LoadFunction(clCreateContext);
   LoadFunction(clCreateCommandQueue);
   LoadFunction(clCreateBuffer);
@@ -91,6 +92,7 @@ void LoadOpenCLFunctions(void *libopencl) {
 
 PFN_clGetPlatformIDs clGetPlatformIDs;
 PFN_clGetDeviceIDs clGetDeviceIDs;
+PFN_clGetDeviceInfo clGetDeviceInfo;
 PFN_clCreateContext clCreateContext;
 PFN_clCreateCommandQueue clCreateCommandQueue;
 PFN_clCreateBuffer clCreateBuffer;
