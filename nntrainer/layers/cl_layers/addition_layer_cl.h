@@ -3,7 +3,7 @@
  * Copyright (C) 2024 Yash Singh <yash.singh@samsung.com>
  *
  * @file   addition_layer_cl.h
- * @date   17 May 2024
+ * @date   28 May 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Yash Singh yash.singh@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -17,8 +17,6 @@
 
 #include <common_properties.h>
 #include <layer_devel.h>
-#include <opencl_buffer.h>
-#include <opencl_kernel.h>
 
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
@@ -79,11 +77,6 @@ public:
   void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief declaring static kernel objects
-   */
-  static opencl::Kernel kernel_addition;
-
-  /**
    * @brief Process data and dimensions for add operation used in addition layer
    * @param[in] input Tensor
    * @param[in] result Tensor
@@ -91,16 +84,6 @@ public:
    */
   void AddProcess(Tensor const &input, Tensor &result,
                   RunLayerContext &context);
-
-  /**
-   * @brief     addition : sum of all input vectors
-   * @param[in] input float * for input
-   * @param[in] res float * for result/output
-   * @param[in] size number of elements in input vector
-   * @param[in] context RunLayerContext reference
-   */
-  void addition_cl(const float *input, float *res, unsigned int size,
-                   RunLayerContext &context);
 
   /**
    * @copydoc bool supportBackwarding() const

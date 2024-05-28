@@ -51,12 +51,22 @@ std::string sgemm_cl_kernel_ =
         C[m * ldc + n] = c;
     })";
 
+std::string addition_cl_kernel_ =
+  R"(__kernel void addition_cl(__global const float* input, __global float* output, const unsigned int size) {
+    #pragma printf_support
+    size_t idx = get_global_id(0);
+    if (idx < size) {
+        output[idx] = output[idx] + input[idx];
+    }
+  })";
+
 /**
  * @brief defining global kernel objects
  */
 opencl::Kernel kernel_sgemv;
 opencl::Kernel kernel_sgemm;
 opencl::Kernel kernel_dot;
+opencl::Kernel kernel_addition;
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
@@ -299,4 +309,62 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
   } while (false);
 }
 
+void addition_cl(const float *input, float *res,
+                                  unsigned int size, RunLayerContext &context) {
+
+  bool result = false;
+  
+  do {
+    result = result =
+      context.clCreateKernel(addition_cl_kernel_, context.LayerKernel::ADD,
+                             kernel_addition);
+    if (!result) {
+      break;
+    }
+
+    size_t dim1_size = sizeof(float) * size;
+    opencl::Buffer inputA(context.context_inst_, dim1_size, true, nullptr);
+
+    opencl::Buffer inOutRes(context.context_inst_, dim1_size, true, nullptr);
+
+    result = inputA.WriteData(context.command_queue_inst_, input);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.WriteData(context.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_addition.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_addition.SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_addition.SetKernelArguments(2, &size, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+    result = context.command_queue_inst_.DispatchCommand(
+      kernel_addition, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.ReadData(context.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
 } // namespace nntrainer
