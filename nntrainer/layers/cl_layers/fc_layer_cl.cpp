@@ -207,8 +207,41 @@ void FullyConnectedLayerCl::fcDotProcess(Tensor const &input,
     else {
       sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
     }
-  } else
-    throw std::invalid_argument("Error: OpenCL fp16 is not supported yet.");
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    const _FP16 *data = input.getData<_FP16>();
+    const _FP16 *mdata = weight.getData<_FP16>();
+    _FP16 *rdata = result.getData<_FP16>();
+    const float alpha = 1.0f;
+
+    /// shortcut handling in case of vector
+    /// for vector, (1 * K) == (K * 1) in current memory layout...
+    /// and plaese note that N, K, M is a fixed place holder after considering
+    /// transpose.
+    /// For example, there is no case like (1 * K) X (1 * K) while
+    /// (1 * K) X (1 * M) can be a case
+    /// case1: (1 * K) X (K * 1)
+    if (M == 1 && N == 1) {
+      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
+    }
+    /// case2: (M * K) X (K * 1)
+    else if (N == 1) {
+      sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+    }
+    /// case3: (1 * K) X (K * N) = 1 * N = R
+    /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
+    /// Effectively a translation of sgemv
+    else if (M == 1) {
+      sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+    }
+    /// case others: use sgemm
+    else {
+      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
+    }
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void FullyConnectedLayerCl::incremental_forwarding(RunLayerContext &context,
@@ -238,8 +271,8 @@ void FullyConnectedLayerCl::incremental_forwarding(RunLayerContext &context,
   input_step_dim.height(to - from);
   hidden_step_dim.height(to - from);
 
-  // @todo: set reset stride as false. This implementation only works when batch
-  // size is 1
+  // @todo: set reset stride as false. This implementation only works when
+  // batch size is 1
   Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
   Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
 
