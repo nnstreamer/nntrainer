@@ -2,9 +2,9 @@
 /**
  * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file	blas_kernels.cpp
- * @date	14 May 2024
- * @brief	Common blas OpenCL kernels
+ * @file	blas_kernels_fp16.cpp
+ * @date	29 May 2024
+ * @brief	Common blas OpenCL fp16 kernels
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Debadri Samaddar <s.debadri@samsung.com>
  * @bug		No known bugs except for NYI items
@@ -15,35 +15,44 @@
 
 namespace nntrainer {
 
-std::string sgemv_cl_kernel_ =
-  R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
-                      __global float* Y, unsigned int M, unsigned int lda) {                                            
+std::string sgemv_cl_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    
+    __kernel void sgemv_cl_fp16(const __global half* A, const __global half* X,
+                      __global half* Y, unsigned int M, unsigned int lda) {                                            
         unsigned int i;
         i = get_global_id(0);                         
-        float y0 = 0.0f;
+        half y0 = 0.0f;
         for (unsigned int j = 0; j < M; j++)                         
             y0 += A[i + j * lda] * X[j]; 
         Y[i] = y0;                            
           
     })";
 
-std::string dot_cl_kernel_ =
-  R"(__kernel void dot_cl(const __global float* A, const __global float* X, unsigned int K, __global float* res) {
+std::string dot_cl_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void dot_cl_fp16(const __global half* A, const __global half* X, unsigned int K, __global half* res) {
         *res = 0;
         for (unsigned int i = 0; i < K; i++){
             *res += A[i] * X[i];
         }
     })";
 
-std::string sgemm_cl_kernel_ =
-  R"(__kernel void sgemm_cl(const __global float* A, const __global float* B,
-                      __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+std::string sgemm_cl_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sgemm_cl_fp16(const __global half* A, const __global half* B,
+                      __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
         
         unsigned int m = get_global_id(0);
         unsigned int n = get_global_id(1);
-        float c = 0.0f;
+        half c = 0.0f;
         for (unsigned int k = 0; k < K; ++k) {
-          float a, b;
+          half a, b;
           a = A[m * lda + k];
           b = B[k * ldb + n];
           c += a * b;
@@ -54,26 +63,27 @@ std::string sgemm_cl_kernel_ =
 /**
  * @brief defining global kernel objects
  */
-opencl::Kernel kernel_sgemv;
-opencl::Kernel kernel_sgemm;
-opencl::Kernel kernel_dot;
+opencl::Kernel kernel_sgemv_fp16;
+opencl::Kernel kernel_sgemm_fp16;
+opencl::Kernel kernel_dot_fp16;
 
-void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
+void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
               RunLayerContext &context) {
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(sgemv_cl_kernel_,
-                                    context.LayerKernel::SGEMV, kernel_sgemv);
+    result = context.clCreateKernel(sgemv_cl_kernel_fp16_,
+                                    context.LayerKernel::SGEMV_FP16,
+                                    kernel_sgemv_fp16);
     if (!result) {
       break;
     }
 
-    size_t dim1_size = sizeof(float) * dim1;
-    size_t dim2_size = sizeof(float) * dim2;
-    opencl::Buffer inputA(context.context_inst_, dim1 * dim2 * sizeof(float),
+    size_t dim1_size = sizeof(cl_half) * dim1;
+    size_t dim2_size = sizeof(cl_half) * dim2;
+    opencl::Buffer inputA(context.context_inst_, dim1 * dim2 * sizeof(cl_half),
                           true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
@@ -95,27 +105,27 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
       break;
     }
 
-    result = kernel_sgemv.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_sgemv_fp16.SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv.SetKernelArguments(1, &inputX, sizeof(cl_mem));
+    result = kernel_sgemv_fp16.SetKernelArguments(1, &inputX, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv.SetKernelArguments(2, &inOutY, sizeof(cl_mem));
+    result = kernel_sgemv_fp16.SetKernelArguments(2, &inOutY, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv.SetKernelArguments(3, &dim1, sizeof(int));
+    result = kernel_sgemv_fp16.SetKernelArguments(3, &dim1, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv.SetKernelArguments(4, &lda, sizeof(int));
+    result = kernel_sgemv_fp16.SetKernelArguments(4, &lda, sizeof(int));
     if (!result) {
       break;
     }
@@ -124,7 +134,7 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_sgemv, work_groups_count, work_group_size);
+      kernel_sgemv_fp16, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
@@ -137,27 +147,27 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
   } while (false);
 }
 
-float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
-             RunLayerContext &context) {
+__fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
+              RunLayerContext &context) {
 
   bool result = false;
 
-  float cl_ret = 0;
+  __fp16 cl_ret = 0;
 
   do {
-    result = context.clCreateKernel(dot_cl_kernel_, context.LayerKernel::DOT,
-                                    kernel_dot);
+    result = context.clCreateKernel(
+      dot_cl_kernel_fp16_, context.LayerKernel::DOT_FP16, kernel_dot_fp16);
     if (!result) {
       break;
     }
 
-    size_t dim1_size = sizeof(float) * dim1;
+    size_t dim1_size = sizeof(cl_half) * dim1;
 
     opencl::Buffer inputA(context.context_inst_, dim1_size, true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
 
-    opencl::Buffer dotResult(context.context_inst_, sizeof(float), true,
+    opencl::Buffer dotResult(context.context_inst_, sizeof(__fp16), true,
                              &cl_ret);
 
     result = inputA.WriteData(context.command_queue_inst_, vecAdata);
@@ -170,22 +180,22 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
       break;
     }
 
-    result = kernel_dot.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_dot_fp16.SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_dot.SetKernelArguments(1, &inputX, sizeof(cl_mem));
+    result = kernel_dot_fp16.SetKernelArguments(1, &inputX, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_dot.SetKernelArguments(2, &dim1, sizeof(int));
+    result = kernel_dot_fp16.SetKernelArguments(2, &dim1, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_dot.SetKernelArguments(3, &dotResult, sizeof(cl_mem));
+    result = kernel_dot_fp16.SetKernelArguments(3, &dotResult, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -194,7 +204,7 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_dot, work_groups_count, work_group_size);
+      kernel_dot_fp16, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
@@ -209,22 +219,23 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
   return cl_ret;
 }
 
-void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
+void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
               unsigned int N, unsigned int K, unsigned int lda,
               unsigned int ldb, unsigned int ldc, RunLayerContext &context) {
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(sgemm_cl_kernel_,
-                                    context.LayerKernel::SGEMM, kernel_sgemm);
+    result = context.clCreateKernel(sgemm_cl_kernel_fp16_,
+                                    context.LayerKernel::SGEMM_FP16,
+                                    kernel_sgemm_fp16);
     if (!result) {
       break;
     }
 
-    size_t m_k_size = M * K * sizeof(float);
-    size_t k_n_size = K * N * sizeof(float);
-    size_t m_n_size = M * N * sizeof(float);
+    size_t m_k_size = M * K * sizeof(cl_half);
+    size_t k_n_size = K * N * sizeof(cl_half);
+    size_t m_n_size = M * N * sizeof(cl_half);
 
     opencl::Buffer inputA(context.context_inst_, m_k_size, true, nullptr);
 
@@ -247,37 +258,37 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_sgemm_fp16.SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(1, &inputB, sizeof(cl_mem));
+    result = kernel_sgemm_fp16.SetKernelArguments(1, &inputB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(2, &inOutC, sizeof(cl_mem));
+    result = kernel_sgemm_fp16.SetKernelArguments(2, &inOutC, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(3, &K, sizeof(int));
+    result = kernel_sgemm_fp16.SetKernelArguments(3, &K, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(4, &lda, sizeof(int));
+    result = kernel_sgemm_fp16.SetKernelArguments(4, &lda, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(5, &ldb, sizeof(int));
+    result = kernel_sgemm_fp16.SetKernelArguments(5, &ldb, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(6, &ldc, sizeof(int));
+    result = kernel_sgemm_fp16.SetKernelArguments(6, &ldc, sizeof(int));
     if (!result) {
       break;
     }
@@ -286,7 +297,7 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_sgemm, work_groups_count, work_group_size);
+      kernel_sgemm_fp16, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
@@ -298,5 +309,4 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
 
   } while (false);
 }
-
 } // namespace nntrainer

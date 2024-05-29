@@ -656,6 +656,12 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "dot_cl";
   case LayerKernel::SGEMM:
     return "sgemm_cl";
+  case LayerKernel::SGEMV_FP16:
+    return "sgemv_cl_fp16";
+  case LayerKernel::DOT_FP16:
+    return "dot_cl_fp16";
+  case LayerKernel::SGEMM_FP16:
+    return "sgemm_cl_fp16";
   default:
     return "";
   }

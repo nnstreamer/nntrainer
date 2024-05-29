@@ -66,3 +66,29 @@ GTEST_PARAMETER_TEST(FullyConnectedGPU, LayerGoldenTest,
                                        fc_gpu_no_decay, fc_gpu_plain_nhwc,
                                        fc_gpu_single_batch_nhwc,
                                        fc_gpu_no_decay_nhwc));
+
+#ifdef ENABLE_FP16
+auto fc_gpu_basic_plain_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayerCl>, {"unit=5"},
+  "3:1:1:10", "fc_plain_w16a16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+auto fc_gpu_basic_single_batch_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayerCl>, {"unit=4"},
+  "1:1:1:10", "fc_single_batch_w16a16.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp16", "fp16");
+
+auto fc_gpu_basic_no_decay_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayerCl>,
+  {"unit=5", "weight_decay=0.0", "bias_decay=0.0"}, "3:1:1:10",
+  "fc_plain_w16a16.nnlayergolden",
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+    LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
+    LayerGoldenTestParamOptions::USE_INC_FORWARD,
+  "nchw", "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(FullyConnected16, LayerGoldenTest,
+                     ::testing::Values(fc_gpu_basic_plain_w16a16,
+                                       fc_gpu_basic_single_batch_w16a16,
+                                       fc_gpu_basic_no_decay_w16a16));
+#endif
