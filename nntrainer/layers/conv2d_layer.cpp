@@ -38,7 +38,8 @@ namespace {
 static TensorDim calcCol2ImOutputDim(const TensorDim &out,
                                      const TensorDim &kdim) {
 
-  return TensorDim({kdim.getFeatureLen(), out.width() * out.height()});
+  return TensorDim({kdim.getFeatureLen(), out.width() * out.height()},
+                   out.getTensorType());
 }
 
 /**
@@ -84,32 +85,52 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   int h_stride_end = im_eff_height - eff_k_height - pt;
   int w_stride_end = im_eff_width - eff_k_width - pl;
 
-  unsigned col_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
-    for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
-      unsigned col_h = 0;
-      int patch_height_end = hs + eff_k_height;
-      int patch_width_end = ws + eff_k_width;
-      for (unsigned c = 0; c < im_channel; c++) {
-        for (int h = hs; h < patch_height_end; h += hdilation) {
-          if (h < 0 || im_height <= h) {
-            col_h += k_width;
-            continue;
-          }
-          for (int w = ws; w < patch_width_end; w += wdilation) {
-            if (w < 0 || im_width <= w) {
-              col_h++;
+  /** @todo We need to implement way to use this kind of function to work inside
+   * of Tensor. Then we could remove to access the getData or getValue which has
+   * dependecy of data type.
+   */
+  auto apply_data = [&]<typename T>(T *val) {
+    unsigned col_w = 0;
+    for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
+      for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
+        unsigned col_h = 0;
+        int patch_height_end = hs + eff_k_height;
+        int patch_width_end = ws + eff_k_width;
+        for (unsigned c = 0; c < im_channel; c++) {
+          for (int h = hs; h < patch_height_end; h += hdilation) {
+            if (h < 0 || im_height <= h) {
+              col_h += k_width;
               continue;
             }
+            for (int w = ws; w < patch_width_end; w += wdilation) {
+              if (w < 0 || im_width <= w) {
+                col_h++;
+                continue;
+              }
 
-            float *val = image.getAddress<float>(0, c, h, w);
-            *val += col_matrix.getValue<float>(0, 0, col_h, col_w);
-            col_h++;
+              val = image.getAddress<T>(0, c, h, w);
+              *val += col_matrix.getValue<T>(0, 0, col_h, col_w);
+              col_h++;
+            }
           }
         }
+        col_w++;
       }
-      col_w++;
     }
+  };
+
+  if (image.getDataType() == nntrainer::Tdatatype::FP32) {
+    float val;
+    apply_data(&val);
+  }
+#ifdef ENABLE_FP16
+  else if (image.getDataType() == nntrainer::Tdatatype::FP16) {
+    _FP16 val;
+    apply_data(&val);
+  }
+#endif
+  else {
+    throw std::runtime_error("Not supported datatype");
   }
 }
 
@@ -198,49 +219,65 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
   out.reshape(
-    TensorDim({out_height * out_width, in.channel() * k_height * k_width}));
-  float *out_data = out.getData();
+    TensorDim({out_height * out_width, in.channel() * k_height * k_width},
+              in.getTensorType()));
+  // float *out_data = out.getData();
 
-  int h_stride_end = height - eff_k_height - pt;
-  int w_stride_end = width - eff_k_width - pl;
+  auto apply_data = [&]<typename T>(T *out_data) {
+    int h_stride_end = height - eff_k_height - pt;
+    int w_stride_end = width - eff_k_width - pl;
 
-  /// get a patch, size of kernel
-  /// hs is height_strided, ws is width_strided
-  unsigned int owidth = out.width();
-  unsigned int base_im_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
-    unsigned int base_im_h = 0;
-    int patch_height_end = eff_k_height + hs;
-    /// map the patch to a single line looping through channel
-    for (unsigned int c = 0; c < channel; ++c) {
-      for (int h = hs; h < patch_height_end; h += dilation[0]) {
-        if (h < 0 || in_height <= h) {
-          base_im_h += k_width;
-          continue;
-        }
-
-        unsigned int im_w = base_im_w;
-        for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
-          unsigned int im_h = base_im_h;
-          int patch_width_end = eff_k_width + ws;
-
-          for (int w = ws; w < patch_width_end; w += dilation[1]) {
-            if (w < 0 || in_width <= w) {
-              im_h++;
-              continue;
-            }
-            out_data[im_w * owidth + im_h] = in.getValue<float>(0, c, h, w);
-            im_h++;
+    /// get a patch, size of kernel
+    /// hs is height_strided, ws is width_strided
+    unsigned int owidth = out.width();
+    unsigned int base_im_w = 0;
+    for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
+      unsigned int base_im_h = 0;
+      int patch_height_end = eff_k_height + hs;
+      /// map the patch to a single line looping through channel
+      for (unsigned int c = 0; c < channel; ++c) {
+        for (int h = hs; h < patch_height_end; h += dilation[0]) {
+          if (h < 0 || in_height <= h) {
+            base_im_h += k_width;
+            continue;
           }
-          im_w++;
+
+          unsigned int im_w = base_im_w;
+          for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
+            unsigned int im_h = base_im_h;
+            int patch_width_end = eff_k_width + ws;
+
+            for (int w = ws; w < patch_width_end; w += dilation[1]) {
+              if (w < 0 || in_width <= w) {
+                im_h++;
+                continue;
+              }
+              out_data[im_w * owidth + im_h] = in.getValue<T>(0, c, h, w);
+              im_h++;
+            }
+            im_w++;
+          }
+          base_im_h += k_width;
         }
-        base_im_h += k_width;
       }
+      base_im_w += out_width;
     }
-    base_im_w += out_width;
+  };
+
+  if (out.getDataType() == nntrainer::Tdatatype::FP32) {
+    float *out_data = out.getData<float>();
+    apply_data(out_data);
+  }
+#ifdef ENABLE_FP16
+  else if (out.getDataType() == nntrainer::Tdatatype::FP16) {
+    _FP16 *out_data = out.getData<_FP16>();
+    apply_data(out_data);
+  }
+#endif
+  else {
+    throw std::runtime_error("Not supported datatype");
   }
 }
-
 } // namespace
 
 enum ConvParams { weight, bias };
@@ -279,9 +316,13 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
-  TensorDim kernel_dim =
-    TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
-  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
+  auto in_t_type = in_dim.getTensorType();
+  in_t_type.data_type = context.getWeightDataType();
+
+  TensorDim kernel_dim = TensorDim(filter_size, in_dim.channel(),
+                                   kernel_size[0], kernel_size[1], in_t_type);
+
+  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, in_t_type);
 
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, kernel_dim, {stride[0], stride[1]},
@@ -309,6 +350,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   out_dim.channel(filter_size);
   out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
   out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
+
+  out_dim.setTensorType(in_dim.getTensorType());
+
   context.setOutputDimensions({out_dim});
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
@@ -378,6 +422,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   const TensorDim &filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
+
+  filter_dim_squeezed.setTensorType(filter_kernel.getTensorType());
 
   filter_kernel.reshape(filter_dim_squeezed);
 
