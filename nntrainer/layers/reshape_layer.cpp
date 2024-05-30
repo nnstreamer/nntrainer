@@ -42,7 +42,7 @@ void ReshapeLayer::finalize(InitLayerContext &context) {
   }
 
   out_dim.batch(in_dim.batch());
-
+  out_dim.setDataType(context.getActivationDataType());
   context.setOutputDimensions({out_dim});
 }
 
