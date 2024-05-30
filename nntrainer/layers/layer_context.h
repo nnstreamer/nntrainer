@@ -672,21 +672,21 @@ public:
    *
    * @return unsigned int number of output tensors
    */
-  unsigned int getNumOutputs() const { return outputs.size(); }
+  unsigned int getNumOutputs() const;
 
   /**
    * @brief Get the number of inputs tensor objects
    *
    * @return unsigned int number of input tensors
    */
-  unsigned int getNumInputs() const { return inputs.size(); }
+  unsigned int getNumInputs() const;
 
   /**
    * @brief Get the number of weights tensor objects
    *
    * @return unsigned int number of weight tensors
    */
-  unsigned int getNumWeights() const { return weights.size(); }
+  unsigned int getNumWeights() const;
 
   /**
    * @brief Get the Number of Weight Optimizer Variable tensor object
@@ -701,8 +701,7 @@ public:
    *
    * @return unsigned int number of requested tensors
    */
-  unsigned int getNumTensors() const { return tensors.size(); }
-
+  unsigned int getNumTensors() const;
   /**
    * @brief Set the batch for the run context
    *
