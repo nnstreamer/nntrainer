@@ -6,6 +6,7 @@
  * @date   16 June 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author hyeonseok Lee <hs89.lee@samsung.com>
  * @bug	   No known bugs except for NYI items
  * @brief  This is Flatten Layer Class for Neural Network
  *
@@ -25,8 +26,29 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 void FlattenLayer::finalize(InitLayerContext &context) {
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
-  std::string target_shape =
-    "target_shape=1:1:" + std::to_string(in_dim.getFeatureLen());
+  std::string target_shape;
+
+  const unsigned int start_dimension =
+    std::get<props::StartDimension>(flatten_props).get();
+  const unsigned int end_dimension =
+    std::get<props::EndDimension>(flatten_props).get();
+
+  NNTR_THROW_IF(start_dimension > end_dimension, std::invalid_argument)
+    << "start_dimension is bigger than end_dimension";
+
+  TensorDim target_dim = in_dim;
+
+  unsigned int flattened_size = 1;
+  for (unsigned int i = start_dimension; i <= end_dimension; ++i) {
+    flattened_size *= in_dim[i];
+    target_dim[i] = 1;
+  }
+  target_dim[end_dimension] = flattened_size;
+
+  target_shape = "target_shape=" + std::to_string(target_dim[1]) + ":" +
+                 std::to_string(target_dim[2]) + ":" +
+                 std::to_string(target_dim[3]);
+
   ReshapeLayer::setProperty({target_shape});
 
   /** @note the output dimension is in invalid state till finalize of
@@ -39,7 +61,8 @@ void FlattenLayer::finalize(InitLayerContext &context) {
 }
 
 void FlattenLayer::setProperty(const std::vector<std::string> &values) {
-  auto remain_props = loadProperties(values, reshape_props);
+  auto remain_props = loadProperties(values, flatten_props);
+  remain_props = loadProperties(remain_props, reshape_props);
   if (!remain_props.empty()) {
     std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
                       std::to_string(values.size());
