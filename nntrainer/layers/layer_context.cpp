@@ -413,6 +413,34 @@ const std::string &RunLayerContext::getTensorName(unsigned int idx) const {
 }
 
 /**
+ * @brief Get the number of Outputs tensor objects
+ *
+ * @return unsigned int number of output tensors
+ */
+unsigned int RunLayerContext::getNumOutputs() const { return outputs.size(); }
+
+/**
+ * @brief Get the number of inputs tensor objects
+ *
+ * @return unsigned int number of input tensors
+ */
+unsigned int RunLayerContext::getNumInputs() const { return inputs.size(); }
+
+/**
+ * @brief Get the number of weights tensor objects
+ *
+ * @return unsigned int number of weight tensors
+ */
+unsigned int RunLayerContext::getNumWeights() const { return weights.size(); }
+
+/**
+ * @brief Get the number of requested tensors objects
+ *
+ * @return unsigned int number of requested tensors
+ */
+unsigned int RunLayerContext::getNumTensors() const { return tensors.size(); }
+
+/**
  * @brief Set the batch for the run context
  *
  * @param batch Update batch size
