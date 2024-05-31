@@ -39,13 +39,11 @@ static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
   }
 }
 
-InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
-                                   const std::vector<bool> &req_out_connected,
-                                   bool in_place_, const std::string &n,
-                                   const std::string &prefix_,
-                                   const float max_norm,
-                                   std::array<std::string, 3> tensor_type_,
-                                   const float loss_scale_) :
+InitLayerContext::InitLayerContext(
+  const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
+  bool in_place_, const std::string &n, const std::string &prefix_,
+  const float max_norm, std::array<std::string, 3> tensor_type_,
+  const float loss_scale_, ml::train::ExecutionMode mode_) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
@@ -54,7 +52,8 @@ InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
   name(n),
   prefix(prefix_),
   tensor_type(tensor_type_),
-  loss_scale(loss_scale_) {
+  loss_scale(loss_scale_),
+  mode(mode_){
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();

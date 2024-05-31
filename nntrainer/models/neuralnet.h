@@ -162,7 +162,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int compile() override;
+  int compile(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     set Property of Network

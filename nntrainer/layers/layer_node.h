@@ -253,9 +253,10 @@ public:
    * will be made available during execution of the layer with the context.
    * @note configureRunContext() is expected to called right after this.
    */
-  InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {},
-                            std::array<std::string, 3> tensor_type = {
-                              "NCHW", "FP32", "FP32"});
+  InitLayerContext
+  finalize(const std::vector<TensorDim> &input_dims = {},
+           std::array<std::string, 3> tensor_type = {"NCHW", "FP32", "FP32"},
+           ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief     Refinalize creating the layer node

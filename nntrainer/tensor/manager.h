@@ -141,19 +141,18 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap, const std::string &swap_mode = "train",
-          const std::string &swap_path = "", unsigned int lookahead = 0,
-          const std::string tensor_format_ = "NCHW",
-          const std::string tensor_dtype_ = "FP32-FP32") :
+  Manager(bool enable_swap, const std::string &swap_path = "",
+          unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
+          const std::string tensor_dtype_ = "FP32-FP32",
+          ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
     weight_pool(enable_swap, swap_path, "weight_pool"),
-    tensor_pool(enable_swap && (swap_mode.compare("train") == 0), swap_path,
+    tensor_pool(enable_swap && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
                 "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
-    swap_mode(swap_mode),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    exec_mode(ExecutionMode::TRAIN) {}
+    exec_mode(exec_mode_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -531,8 +530,6 @@ private:
   bool enable_optimizations; /**< to enable memory optimizations */
 
   unsigned int swap_lookahead; /** lookahead for memory swap */
-
-  std::string swap_mode; /** swap mode */
 
   std::string tensor_format;
 

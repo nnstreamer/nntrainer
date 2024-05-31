@@ -147,7 +147,7 @@ void NeuralNetwork::setTrainConfig(const std::vector<std::string> &values) {
     << " of first element: " << left_props.front();
 }
 
-int NeuralNetwork::compile() {
+int NeuralNetwork::compile(ExecutionMode mode) {
   std::string loss_type = std::get<props::LossType>(model_props).empty()
                             ? std::string()
                             : std::get<props::LossType>(model_props);
@@ -174,8 +174,6 @@ int NeuralNetwork::compile() {
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
   const std::string memory_swap_path =
     std::get<props::MemorySwapPath>(model_flex_props);
-  const std::string memory_swap_mode =
-    std::get<props::MemorySwapMode>(model_flex_props);
   unsigned int lookahead =
     std::get<props::MemorySwapLookahead>(model_flex_props);
 
@@ -185,8 +183,8 @@ int NeuralNetwork::compile() {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, memory_swap_mode, memory_swap_path,
-                             lookahead, tensor_format, tensor_type);
+  model_graph = NetworkGraph(memory_swap, mode, memory_swap_path, lookahead,
+                             tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));

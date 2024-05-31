@@ -60,12 +60,12 @@ public:
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
-  NetworkGraph(bool enable_swap, const std::string &swap_mode = "train", const std::string &swap_path = "",
-               unsigned int lookahead = 0,
+  NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
+               const std::string &swap_path = "", unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
-    tensor_manager(std::make_shared<Manager>(enable_swap, swap_mode, swap_path, lookahead,
-                                             tensor_format_, tensor_dtype_)),
+    tensor_manager(std::make_shared<Manager>(
+      enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
     graph(),
     compiled(false),
     batch_size(0),
@@ -73,7 +73,7 @@ public:
     backward_iter_end(nullptr),
     forward_iter_end(nullptr),
     optimize_memory(true),
-    exec_mode(ExecutionMode::TRAIN),
+    exec_mode(mode),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {
     nan_count = 0;
@@ -327,9 +327,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
-  finalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                  const std::vector<Var_Grad *> &prev_inputs);
+  std::vector<Var_Grad *> finalizeContext(
+    const std::shared_ptr<LayerNode> &lnode,
+    const std::vector<Var_Grad *> &prev_inputs);
 
   /**
    * @brief Recreate run layer context from the given init layer context
@@ -337,9 +337,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
-  refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                    const std::vector<Var_Grad *> &prev_inputs);
+  std::vector<Var_Grad *> refinalizeContext(
+    const std::shared_ptr<LayerNode> &lnode,
+    const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
