@@ -285,6 +285,17 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   try {
+    auto &app_context = nntrainer::AppContext::Global();
+    app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
+    app_context.registerFactory(
+      nntrainer::createLayer<custom::YoloV2LossLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
+  try {
     // create YOLO v2 model
     ModelHandle model = YOLO();
     model->setProperty({withKey("batch_size", BATCH_SIZE),
