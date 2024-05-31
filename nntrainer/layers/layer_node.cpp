@@ -538,7 +538,8 @@ void LayerNode::clearOptVar() {
  * @brief     Finalize creating the layer node
  */
 InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
-                                     std::array<std::string, 3> tensor_type) {
+                                     std::array<std::string, 3> tensor_type,
+                                     ml::train::ExecutionMode mode) {
   // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType
   // { 			       return from_string(ty);
   // };
@@ -642,7 +643,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   auto context = InitLayerContext(actual_input_dims, out_info,
                                   executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm, tensor_type, loss_scale);
+                                  scope, max_norm, tensor_type, loss_scale, mode);
 
   layer->finalize(context);
 
