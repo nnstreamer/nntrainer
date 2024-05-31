@@ -376,9 +376,11 @@ std::vector<Weight *> Manager::requestWeights(
    *  and therefore, if we remove the calcDerivative order, then tests fails.
    */
 
-  TensorLifespan var_ls = swap_mode == "inference"
-                            ? TensorLifespan::FORWARD_INFER_LIFESPAN
-                            : TensorLifespan::MAX_LIFESPAN;
+  TensorLifespan var_ls =
+    (enable_swap && (exec_mode == ExecutionMode::INFERENCE))
+      ? TensorLifespan::FORWARD_INFER_LIFESPAN
+      : TensorLifespan::MAX_LIFESPAN;
+
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
 
   std::vector<Weight *> ret;
