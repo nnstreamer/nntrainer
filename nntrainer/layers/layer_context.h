@@ -51,13 +51,14 @@ public:
    * @param prefix_ prefix
    * @param max_norm max norm
    */
-  InitLayerContext(const std::vector<TensorDim> &dim,
-                   const std::vector<bool> &req_out_connected, bool in_place_,
-                   const std::string &n = "", const std::string &prefix_ = "",
-                   const float max_norm = 0.0,
-                   std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32",
-                                                              "FP32"},
-                   const float loss_scale = 1.0);
+  InitLayerContext(
+    const std::vector<TensorDim> &dim,
+    const std::vector<bool> &req_out_connected, bool in_place_,
+    const std::string &n = "", const std::string &prefix_ = "",
+    const float max_norm = 0.0,
+    std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32", "FP32"},
+    const float loss_scale = 1.0,
+    ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -94,6 +95,14 @@ public:
    * @return name of the layer
    */
   const std::string &getName() const { return name; }
+
+  /**
+   * @brief   get Execution Mode
+   *
+   * @return Mode Execution Mode : ml::train::ExecutionMode::INFERNECE |
+   * ml::train::ExecutionMode::TRAIN
+   */
+  const ml::train::ExecutionMode &getExecutionMode() const { return mode; }
 
   /**
    * @brief Get the number of inputs for the layer
@@ -366,6 +375,7 @@ private:
   std::string prefix; /**< prefix of the layer */
   std::array<std::string, 3> tensor_type;
   float loss_scale; /**< loss_scale value */
+  ml::train::ExecutionMode mode;
 };
 
 /**

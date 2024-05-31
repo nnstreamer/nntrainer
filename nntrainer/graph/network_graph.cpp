@@ -810,7 +810,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                  [](const Var_Grad *vg) { return vg->getDim(); });
 
   /** finalize the layer and get the final context */
-  auto init_context = lnode->finalize(input_dims, getTensorType());
+  auto init_context = lnode->finalize(input_dims, getTensorType(), exec_mode);
 
   /**
    * Request manager for either a pre-allocated output as input or a newly

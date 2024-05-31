@@ -16,6 +16,3 @@ memory_swap_path = @MEMORY_SWAP_PATH@
 
 # look ahead window size
 memory_swap_lookahead = @MEMORY_SWAP_LOOKAHEAD@
-
-# swap mode ("inference" or "train")
-memory_swap_lookahead = "train"
