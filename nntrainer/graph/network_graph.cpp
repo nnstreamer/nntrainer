@@ -810,7 +810,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                  [](const Var_Grad *vg) { return vg->getDim(); });
 
   /** finalize the layer and get the final context */
-  auto init_context = lnode->finalize(input_dims, getTensorType());
+  auto init_context = lnode->finalize(input_dims, getTensorType(), exec_mode);
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
@@ -1198,7 +1198,8 @@ int NetworkGraph::initialize(ExecutionMode mode,
      * Initialize all the layers, allocate output tensors for each layer
      * init2and add optimizer related weights for the layer
      */
-    const std::vector<Var_Grad *> &outputs = finalizeContext(lnode, inputs);
+    const std::vector<Var_Grad *> &outputs =
+      finalizeContext(lnode, inputs);
 
     /** no need to update input_map for the last layer */
     if (idx == graph.size() - 1)
