@@ -12,6 +12,7 @@
  *
  */
 
+#include <cmath>
 #include <hgemm.h>
 #include <hgemm_kernel_1x4.h>
 #include <hgemm_kernel_1x8.h>
@@ -21,6 +22,7 @@
 #include <hgemm_kernel_8x8.h>
 #include <hgemm_kernel_pack.h>
 #include <hgemm_util.h>
+#include <limits>
 
 #define HGEMM_KERNEL_1x4 hgemm_kernel_1x4
 #define HGEMM_KERNEL_4x4 hgemm_kernel_4x4
@@ -31,7 +33,8 @@
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
-  if (alpha == 1.F) {
+  const float eps = std::numeric_limits<float>::epsilon();
+  if (std::abs(alpha - 1.F) < eps) {
     // used bitwise operator instead of modulo for performance
     // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
     if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {
