@@ -25,6 +25,7 @@
 #include <optimizer.h>
 
 #include <app_context.h>
+#include <custom_multi_head_attention_layer.h>
 #include <rms_norm.h>
 #include <rotary_embedding.h>
 #include <swiglu.h>

@@ -59,12 +59,27 @@ rotary_emb_dep = declare_dependency(
   include_directories: include_directories('./')
 )
 
+mha_src = files('custom_multi_head_attention_layer.cpp')
+mha_layer = shared_library('custom_multi_head_attention_layer',
+  mha_src,
+  dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+  include_directories: include_directories('./'),
+  install: true,
+  install_dir: application_install_dir,
+  cpp_args: '-DPLUGGABLE'
+)
+mha_dep = declare_dependency(
+  link_with: mha_layer,
+  include_directories: include_directories('./')
+)
+
 llama_sources = [
   'main.cpp',
   cifar_path / 'cifar_dataloader.cpp',
   rms_norm_src,
   swiglu_src,
-  rotary_emb_src
+  rotary_emb_src,
+  mha_src
 ]
 
 llama_dependencies = [app_utils_dep,
@@ -73,7 +88,8 @@ llama_dependencies = [app_utils_dep,
   transpose_dep,
   rms_norm_dep,
   swiglu_dep,
-  rotary_emb_dep
+  rotary_emb_dep,
+  mha_dep
 ]
 
 e = executable('nntrainer_llama',
