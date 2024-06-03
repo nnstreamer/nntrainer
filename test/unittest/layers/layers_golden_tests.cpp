@@ -48,7 +48,8 @@ static const std::string getGoldenPath(const std::string &file_name) {
 
 static InitLayerContext
 createInitContext(Layer *layer, const std::string &input_shape_str,
-                  std::array<std::string, 3> tensor_type) {
+                  std::array<std::string, 3> tensor_type,
+                  ml::train::ExecutionMode mode) {
   struct shape_parser_ : Property<TensorDim> {
     using prop_tag = dimension_prop_tag;
   };
@@ -68,7 +69,7 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
   }
 
   InitLayerContext context({parsed.begin(), parsed.end()}, {true}, false,
-                           "golden_test", "", 0.0, tensor_type);
+                           "golden_test", "", 0.0, tensor_type, 1.0, mode);
   layer->finalize(context);
 
   for (auto &dim : context.getMutableInputDimensions()) {
@@ -84,7 +85,9 @@ createInitContext(Layer *layer, const std::string &input_shape_str,
 }
 
 static TensorPacks prepareTensors(const InitLayerContext &context,
-                                  std::ifstream &file) {
+                                  std::ifstream &file,
+                                  std::array<std::string, 3> tensor_type,
+                                  std::string l_type = "") {
   auto allocate_inouts = [&file](const auto &dims) {
     std::vector<Var_Grad> vg;
     vg.reserve(dims.size());
@@ -119,14 +122,29 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
     return vg;
   };
 
-  auto allocate_weights = [&file](const auto &specs) {
+  auto allocate_weights = [&file, tensor_type, l_type](const auto &specs) {
     std::vector<Weight> weights;
+    std::vector<Weight> weights_;
     weights.reserve(specs.size());
-
+    weights_.reserve(specs.size());
     for (auto &spec : specs) {
-      weights.emplace_back(spec, true);
-      sizeCheckedReadTensor(weights.back().getVariableRef(), file,
-                            weights.back().getName());
+      if (istrequal(l_type, "batch_normalization")) {
+        WeightSpec spec_ = spec;
+        std::get<0>(spec_).setDataType(
+          str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+            from_string(tensor_type[1]));
+        weights_.emplace_back(spec_, true);
+        sizeCheckedReadTensor(weights_.back().getVariableRef(), file,
+                              weights_.back().getName());
+
+        weights.emplace_back(spec, true);
+        weights.back().getVariableRef().copyData(
+          weights_.back().getVariableRef());
+      } else {
+        weights.emplace_back(spec, true);
+        sizeCheckedReadTensor(weights.back().getVariableRef(), file,
+                              weights.back().getName());
+      }
       weights.back().getGradientRef().setZero();
     }
     return weights;
@@ -172,7 +190,9 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
 
 static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                               bool skip_grad, bool skip_deriv,
-                              bool dropout_match, bool skip_cos_sim) {
+                              bool dropout_match, bool skip_cos_sim,
+                              std::array<std::string, 3> tensor_type,
+                              std::string layer_type) {
   file.seekg(0, std::ios::beg);
 
   auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
@@ -280,21 +300,22 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
   auto compare_tensors = [&file, compare_percentage_tensors](
                            unsigned length, auto tensor_getter, auto pred,
                            bool skip_compare, bool skip_cos_sim,
-                           const std::string &name,
+                           const std::string &name, TensorDim::DataType d_type,
                            unsigned int match_percentage = 100) {
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
         continue;
       }
       const auto &tensor = tensor_getter(i);
-      auto answer = tensor.clone();
+      auto answer = tensor.clone(d_type);
       sizeCheckedReadTensor(answer, file, name + " at " + std::to_string(i));
 
       if (skip_compare) {
         continue;
       }
-      EXPECT_TRUE(compare_percentage_tensors(tensor, answer, match_percentage,
-                                             skip_cos_sim))
+      EXPECT_TRUE(compare_percentage_tensors(
+        tensor.getDataType() != d_type ? tensor.clone(d_type) : tensor, answer,
+        match_percentage, skip_cos_sim))
         << name << " at " << std::to_string(i);
     }
   };
@@ -313,29 +334,47 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
   compare_tensors(
     rc.getNumWeights(),
     [&rc](unsigned idx) -> const auto & { return rc.getWeight(idx); },
-    always_read, skip_compare, skip_cos_sim, "initial_weights");
+    always_read, skip_compare, skip_cos_sim, "initial_weights",
+    str_converter<enum_class_prop_tag,
+                  nntrainer::TensorDataTypeInfo>::from_string(tensor_type[1]));
+
+  TensorDim::DataType d_type =
+    str_converter<enum_class_prop_tag,
+                  nntrainer::TensorDataTypeInfo>::from_string(tensor_type[2]);
+  if (layer_type == "embedding") {
+    d_type = TensorDim::DataType::FP32;
+  }
+
   compare_tensors(
     rc.getNumInputs(),
     [&rc](unsigned idx) -> const auto & { return rc.getInput(idx); },
-    always_read, !skip_compare, skip_cos_sim, "inputs");
+    always_read, !skip_compare, skip_cos_sim, "inputs", d_type);
   compare_tensors(
     rc.getNumOutputs(),
     [&rc](unsigned idx) -> const auto & { return rc.getOutput(idx); },
-    always_read, !skip_compare, skip_cos_sim, "outputs", match_percentage);
+    always_read, !skip_compare, skip_cos_sim, "outputs",
+    str_converter<enum_class_prop_tag,
+                  nntrainer::TensorDataTypeInfo>::from_string(tensor_type[2]),
+    match_percentage);
   compare_tensors(
     rc.getNumWeights(),
     [&rc](unsigned idx) -> const auto & { return rc.getWeightGrad(idx); },
-    only_read_trainable, skip_grad, skip_cos_sim, "gradients");
+    only_read_trainable, skip_grad, skip_cos_sim, "gradients",
+    str_converter<enum_class_prop_tag,
+                  nntrainer::TensorDataTypeInfo>::from_string(tensor_type[2]));
   compare_tensors(
     rc.getNumWeights(),
     [&rc](unsigned idx) -> const auto & { return rc.getWeight(idx); },
-    always_read, !skip_compare, skip_cos_sim, "weights");
+    always_read, !skip_compare, skip_cos_sim, "weights",
+    str_converter<enum_class_prop_tag,
+                  nntrainer::TensorDataTypeInfo>::from_string(tensor_type[2]));
   compare_tensors(
     rc.getNumInputs(),
     [&rc](unsigned idx) -> const auto & {
       return rc.getOutgoingDerivative(idx);
     },
-    always_read, skip_deriv, skip_cos_sim, "derivatives", match_percentage);
+    always_read, skip_deriv, skip_cos_sim, "derivatives", d_type,
+    match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
@@ -385,9 +424,14 @@ TEST_P(LayerGoldenTest, run) {
     getGoldenPath(std::get<3>(GetParam())), std::ios::in | std::ios::binary);
   auto &input_dims = std::get<2>(GetParam());
 
+  ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN;
+  if (shouldForwardWithInferenceMode())
+    mode = ml::train::ExecutionMode::INFERENCE;
+
   auto ic =
-    createInitContext(layer.get(), input_dims, {format, type_w, type_a});
-  auto tensors = prepareTensors(ic, golden_file);
+    createInitContext(layer.get(), input_dims, {format, type_w, type_a}, mode);
+  auto tensors =
+    prepareTensors(ic, golden_file, {format, type_w, type_a}, layer->getType());
   auto rc = prepareRunContext(tensors);
 
   bool skip_calc_grad = shouldSkipCalcGrad();
@@ -425,5 +469,8 @@ TEST_P(LayerGoldenTest, run) {
   }
 
   compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv,
-                    dropout_compare_60_percent, skip_cos_sim);
+                    dropout_compare_60_percent, skip_cos_sim,
+                    {format, type_w, type_a}, layer->getType());
+
+  EXPECT_TRUE(true); // stub test for tcm
 }

@@ -206,6 +206,35 @@ public:
   /**
    * @brief Request a new weight for the layer
    *
+   * @param dim dimension of Variable of the weight
+   * @param dim_g dimension of Gradient of the weight
+   * @param init initializer for the weight
+   * @param reg regularizer for the weight
+   * @param reg_const regularization constant for the weight
+   * @param name name of the weight
+   * @param trainable if the weight is trainable (require gradient or not)
+   * @return unsigned int index of the weight for its getter
+   *
+   * @todo Consider providing a guarantee that the returned indices will always
+   * start from 0 and will always be incremental.
+   */
+  unsigned int requestWeight(const TensorDim &dim, const TensorDim &dim_g,
+                             const Tensor::Initializer init,
+                             const WeightRegularizer reg, const float reg_const,
+                             const float decay, const std::string &name,
+                             bool trainable = true, unsigned int out_axis = 3) {
+
+    /** @note : We assumes the gradient type is same with Activation data
+     * type.*/
+    weights_spec.emplace_back(dim, dim_g, init, reg, reg_const, decay,
+                              clip_by_global_norm, trainable,
+                              prefix + ":" + name, out_axis, loss_scale);
+    return weights_spec.size() - 1;
+  }
+
+  /**
+   * @brief Request a new weight for the layer
+   *
    * @param spec tensor spec
    * @return unsigned int index of the weight for its getter
    *

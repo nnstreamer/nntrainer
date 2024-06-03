@@ -132,6 +132,32 @@ public:
   }
 
   /**
+   * @brief     set weight and activation data type of layer
+   *
+   * @param[in] weight data type, activation data type
+   */
+  void setDataType(const TensorDim::DataType w_type,
+                   const TensorDim::DataType a_type) {
+    data_type = {w_type, a_type};
+  }
+
+  /**
+   * @brief Get the Weight Data Type
+   *
+   * @return TensorDim::DataType weight data type
+   */
+  const TensorDim::DataType getWeightDataType() const { return data_type[0]; }
+
+  /**
+   * @brief Get the Activation Data Type
+   *
+   * @return TensorDim::DataType activation data type
+   */
+  const TensorDim::DataType getActivationDataType() const {
+    return data_type[1];
+  }
+
+  /**
    * @brief Get the Input Connection Index object
    *
    * @param nth nth input
@@ -722,14 +748,17 @@ public:
    * @param file input file stream
    * @param bool read optimizer variables
    */
-  void read(std::ifstream &file, bool opt_var = false);
+  void read(std::ifstream &file, bool opt_var = false,
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
    * @param bool save optimizer variables
    */
-  void save(std::ofstream &file, bool opt_var = false) const;
+  void
+  save(std::ofstream &file, bool opt_var = false,
+       ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
 
   /**
    * @brief clear optimizer variable to initial state
@@ -992,6 +1021,8 @@ properties in the context/graph unless intended. */
 
   bool needs_output_set_zero; /**< cache if this layer needs reinitialization
                                  output  */
+
+  std::array<TensorDim::DataType, 2> data_type;
 
   /**
    * @brief   Get the effective layer managed by this layer node

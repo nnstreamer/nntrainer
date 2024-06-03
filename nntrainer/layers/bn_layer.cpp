@@ -73,6 +73,10 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
 
   TensorDim dim(context.getFormat(), context.getWeightDataType());
 
+  if (context.getExecutionMode() == ml::train::ExecutionMode::TRAIN) {
+    dim.setDataType(TensorDim::DataType::FP32);
+  }
+
   /// @note this logic cannot tell channel is actually 1 or it is just not used.
   auto &axis_prop = std::get<props::Axis>(bn_props);
   unsigned int axis;
@@ -99,26 +103,32 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   }
 
   wt_idx[BNParams::mu] =
-    context.requestWeight(dim, bnparams_mu, WeightRegularizer::NONE, 1.0f, 0.0f,
-                          "moving_mean", false);
+    context.requestWeight(dim, dim, bnparams_mu, WeightRegularizer::NONE, 1.0f,
+                          0.0f, "moving_mean", false);
   wt_idx[BNParams::var] =
-    context.requestWeight(dim, bnparams_var, WeightRegularizer::NONE, 1.0f,
+    context.requestWeight(dim, dim, bnparams_var, WeightRegularizer::NONE, 1.0f,
                           0.0f, "moving_variance", false);
   wt_idx[BNParams::gamma] =
-    context.requestWeight(dim, bnparams_gamma, WeightRegularizer::NONE, 1.0f,
-                          weight_decay, "gamma", true);
+    context.requestWeight(dim, dim, bnparams_gamma, WeightRegularizer::NONE,
+                          1.0f, weight_decay, "gamma", true);
   wt_idx[BNParams::beta] =
-    context.requestWeight(dim, bnparams_beta, WeightRegularizer::NONE, 1.0f,
-                          bias_decay, "beta", true);
+    context.requestWeight(dim, dim, bnparams_beta, WeightRegularizer::NONE,
+                          1.0f, bias_decay, "beta", true);
 
   /**
    * caches the deviation -> input - avg(input)
    * @todo check if avoiding this storage and adding dependency on input (no
    * more in-place calculation) can save memory during memory optimization.
    */
+  TensorDim in_dim_ = in_dim;
+
+  if (context.getExecutionMode() == ml::train::ExecutionMode::TRAIN) {
+    in_dim_.setDataType(TensorDim::DataType::FP32);
+  }
+
   wt_idx[BNParams::deviation] =
-    context.requestTensor(in_dim, "deviation", Initializer::NONE, false,
-                          TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(in_dim_, "deviation", Tensor::Initializer::NONE,
+                          false, TensorLifespan::ITERATION_LIFESPAN);
   /** caches the inverse standard deviation */
   wt_idx[BNParams::invstd] =
     context.requestTensor(dim, "invstd", Initializer::NONE, false,
@@ -130,8 +140,8 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    * as the output of this layer need not be stored all the time.
    */
   wt_idx[BNParams::t_full] =
-    context.requestTensor(in_dim, "tensor_full", Initializer::NONE, false,
-                          TensorLifespan::CALC_DERIV_LIFESPAN);
+    context.requestTensor(in_dim_, "tensor_full", Tensor::Initializer::NONE,
+                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */
@@ -163,8 +173,32 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor &gamma = context.getWeight(wt_idx[BNParams::gamma]);
   Tensor &beta = context.getWeight(wt_idx[BNParams::beta]);
 
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor em_input, em_hidden;
+
+  Tensor &input_ = em_input;
+  Tensor &hidden_ = em_hidden;
+
+  if (training) {
+    if (context.getInput(SINGLE_INOUT_IDX).getDataType() !=
+        TensorDim::DataType::FP32) {
+      input_ =
+        context.getInput(SINGLE_INOUT_IDX).clone(TensorDim::DataType::FP32);
+    } else {
+      input_ = context.getInput(SINGLE_INOUT_IDX);
+    }
+
+    if (context.getOutput(SINGLE_INOUT_IDX).getDataType() !=
+        TensorDim::DataType::FP32) {
+      hidden_ =
+        context.getOutput(SINGLE_INOUT_IDX).clone(TensorDim::DataType::FP32);
+    } else {
+      hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+    }
+  } else {
+    input_ = context.getInput(SINGLE_INOUT_IDX);
+    hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  }
+
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
   Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
 
@@ -199,13 +233,38 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   deviation.multiply(invstd, hidden_);
   hidden_.multiply_i(gamma);
   hidden_.add_i(beta);
+
+  if (training && hidden_.getDataType() !=
+                    context.getOutput(SINGLE_INOUT_IDX).getDataType())
+    context.getOutput(SINGLE_INOUT_IDX).copyData(hidden_);
 }
 
 void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &gamma = context.getWeight(wt_idx[BNParams::gamma]);
-  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
+  Tensor em_dx, deriv32;
+  bool deriv_copyed = false;
+
+  const Tensor deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+
+  if (deriv.getDataType() != TensorDim::DataType::FP32) {
+    deriv_copyed = true;
+    TensorDim dim = deriv.getDim();
+    dim.setDataType(TensorDim::DataType::FP32);
+    deriv32 = Tensor(dim, true);
+    deriv32.copyData(deriv);
+  }
+
+  Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX).getDataType() ==
+                   TensorDim::DataType::FP32
+                 ? context.getOutgoingDerivative(SINGLE_INOUT_IDX)
+                 : em_dx;
+
+  if (dx.empty())
+    dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX)
+           .clone(TensorDim::DataType::FP32);
+
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
   Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
@@ -213,7 +272,7 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
   Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full]);
 
-  deviation.multiply(deriv, t_full);
+  deviation.multiply((deriv_copyed ? deriv32 : deriv), t_full);
   t_full.average(axes_to_reduce, t_reduced);
   t_reduced.divide_i(cvar);
   deviation.multiply_i(t_reduced);
@@ -232,22 +291,37 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
     Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
     dbeta.divide(divider, t_reduced);
   } else {
-    deriv.average(axes_to_reduce, t_reduced);
+    (deriv_copyed ? deriv32 : deriv).average(axes_to_reduce, t_reduced);
   }
 
-  deriv.subtract(t_reduced, dx);
+  (deriv_copyed ? deriv32 : deriv).subtract(t_reduced, dx);
   dx.subtract_i(deviation);
 
   invstd.multiply_i(gamma);
   dx.multiply_i(invstd);
+
+  if (dx.getDataType() !=
+      context.getOutgoingDerivative(SINGLE_INOUT_IDX).getDataType())
+    context.getOutgoingDerivative(SINGLE_INOUT_IDX).copyData(dx);
 }
 
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   /** dgamma is calculated in calcDerivative. dbeta is calculated here */
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
-  const Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
-  deriv.sum(axes_to_reduce, dbeta);
+  Tensor deriv32;
+  bool deriv_copyed = false;
+
+  const Tensor deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  if (deriv.getDataType() != TensorDim::DataType::FP32) {
+    deriv_copyed = true;
+    TensorDim dim = deriv.getDim();
+    dim.setDataType(TensorDim::DataType::FP32);
+    deriv32 = Tensor(dim, true);
+    deriv32.copyData(deriv);
+  }
+
+  (deriv_copyed ? deriv32 : deriv).sum(axes_to_reduce, dbeta);
 }
 
 void BatchNormalizationLayer::exportTo(
