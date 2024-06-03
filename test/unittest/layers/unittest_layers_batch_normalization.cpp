@@ -68,8 +68,7 @@ auto bn_basic_channels_inference_w16a16 = LayerGoldenTestParamType(
 
 auto bn_basic_width_training_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
-  "bn_width_training_w16a16.nnlayergolden", bn_option, "nchw", "fp16",
-  "fp16");
+  "bn_width_training_w16a16.nnlayergolden", bn_option, "nchw", "fp16", "fp16");
 
 auto bn_basic_width_inference_w16a16 = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
@@ -77,8 +76,8 @@ auto bn_basic_width_inference_w16a16 = LayerGoldenTestParamType(
   "fp16", "fp16");
 
 GTEST_PARAMETER_TEST(BatchNormalization16, LayerGoldenTest,
-                     ::testing::Values(bn_basic_channels_training_w16a16,
-                                       bn_basic_channels_inference_w16a16,
+                     ::testing::Values(bn_basic_channels_inference_w16a16,
+                                       bn_basic_channels_training_w16a16,
                                        bn_basic_width_training_w16a16,
                                        bn_basic_width_inference_w16a16));
 #endif
