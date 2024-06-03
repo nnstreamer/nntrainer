@@ -1597,7 +1597,7 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
   unsigned int size = M * N;
   unsigned int size8 = (size >> 3) << 3;
   unsigned int size4 = (size >> 2) << 2;
-  if (beta != 0.F) {
+  if (std::fpclassify(beta) != FP_ZERO) {
     for (; idx < size8; idx += 8) {
       float16x8_t c =
         vmulq_n_f16(vld1q_f16(&C[idx]), static_cast<__fp16>(beta));
