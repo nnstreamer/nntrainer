@@ -938,6 +938,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     }
   }
 
+  lnode->setDataType(init_context.getWeightDataType(),
+                     init_context.getActivationDataType());
+
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
@@ -1198,8 +1201,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
      * Initialize all the layers, allocate output tensors for each layer
      * init2and add optimizer related weights for the layer
      */
-    const std::vector<Var_Grad *> &outputs =
-      finalizeContext(lnode, inputs);
+    const std::vector<Var_Grad *> &outputs = finalizeContext(lnode, inputs);
 
     /** no need to update input_map for the last layer */
     if (idx == graph.size() - 1)
