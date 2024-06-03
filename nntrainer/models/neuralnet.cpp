@@ -1033,7 +1033,7 @@ int NeuralNetwork::train_run(
         break;
       }
       auto &iteration = iter_view.get();
-      if (iteration.batch() != batch_size) {
+      if (iteration.batch() != static_cast<unsigned int>(batch_size)) {
         /// @todo support partial batch
         continue;
       }
