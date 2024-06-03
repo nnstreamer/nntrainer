@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <activation_layer.h>
+#include <bn_layer.h>
 #include <app_context.h>
 #include <base_properties.h>
 #include <common_properties.h>
@@ -470,9 +471,11 @@ void LayerNode::exportTo(Exporter &exporter,
   layer->exportTo(exporter, method);
 }
 
-void LayerNode::read(std::ifstream &file, bool opt_var) {
+void LayerNode::read(std::ifstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
+
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
@@ -483,10 +486,29 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       }
     }
   } else {
+
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).read(file);
+        if (layer->getType() == BatchNormalizationLayer::type) {
+          if ((mode == ml::train::ExecutionMode::TRAIN) &&
+              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+
+            /** @note for batch normalization layer, we do need full precision
+             * for training. but weight can be saved with other type. for
+             * training, bn weight type is fixed with full precsion */
+
+            TensorDim dim = run_context->getWeight(i).getDim();
+            dim.setDataType(this->getWeightDataType());
+            Tensor T_read(dim, true);
+            T_read.read(file);
+            run_context->getWeight(i).copyData(T_read);
+          } else {
+            run_context->getWeight(i).read(file);
+          }
+        } else {
+          run_context->getWeight(i).read(file);
+        }
         if (run_context->isMixedPrecision(i) && getTrainable()) {
           run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
         }
@@ -495,7 +517,8 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
   }
 }
 
-void LayerNode::save(std::ofstream &file, bool opt_var) const {
+void LayerNode::save(std::ofstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
 
@@ -515,7 +538,29 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
     // @note shared weights are only be saved at the first access
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).save(file);
+
+        /** @note For batch normalization layer, we do need full precision for
+         * training and the data type of weight is full precision. But for
+         * inference, We do have to save them as activation data type. */
+
+        if (layer->getType() == BatchNormalizationLayer::type) {
+          if ((mode == ml::train::ExecutionMode::TRAIN) &&
+              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+            TensorDim dim = run_context->getWeight(i).getDim();
+
+            dim.setDataType(this->getWeightDataType());
+
+            Tensor T_save(dim, true);
+
+            T_save.copyData(run_context->getWeight(i));
+
+            T_save.save(file);
+          } else {
+            run_context->getWeight(i).save(file);
+          }
+        } else {
+          run_context->getWeight(i).save(file);
+        }
       }
     }
   }

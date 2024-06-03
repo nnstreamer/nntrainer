@@ -79,7 +79,8 @@ NeuralNetwork::NeuralNetwork() :
   data_buffers({nullptr, nullptr, nullptr}),
   initialized(false),
   compiled(false),
-  loadedFromConfig(false) {
+  loadedFromConfig(false),
+  exec_mode(ExecutionMode::TRAIN) {
   app_context = AppContext(AppContext::Global());
 }
 
@@ -146,6 +147,9 @@ void NeuralNetwork::setTrainConfig(const std::vector<std::string> &values) {
 }
 
 int NeuralNetwork::compile(ExecutionMode mode) {
+
+  exec_mode = mode;
+
   std::string loss_type = std::get<props::LossType>(model_props).empty()
                             ? std::string()
                             : std::get<props::LossType>(model_props);
@@ -583,7 +587,7 @@ void NeuralNetwork::load(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->read(model_file);
+      (*iter)->read(model_file, false, exec_mode);
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
@@ -595,7 +599,7 @@ void NeuralNetwork::load(const std::string &file_path,
         if (istrequal(opt_type, "adam")) {
           for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
                iter++) {
-            (*iter)->read(model_file, true);
+            (*iter)->read(model_file, true, exec_mode);
           }
         }
       }
