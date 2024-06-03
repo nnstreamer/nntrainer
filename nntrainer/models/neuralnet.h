@@ -681,6 +681,8 @@ private:
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
 
+  ExecutionMode exec_mode;
+
   /**
    * @brief save model in ini
    *

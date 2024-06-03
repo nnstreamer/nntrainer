@@ -942,6 +942,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     }
   }
 
+  lnode->setDataType(init_context.getWeightDataType(),
+                     init_context.getActivationDataType());
+
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),

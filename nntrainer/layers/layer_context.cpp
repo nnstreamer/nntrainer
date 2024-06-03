@@ -295,6 +295,7 @@ const Tensor RunLayerContext::getIncomingDerivative(unsigned int idx) const {
   return getOutputGrad(idx);
 }
 
+
 /**
  * @brief Get the Input tensor object
  *
