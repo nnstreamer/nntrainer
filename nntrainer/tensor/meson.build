@@ -34,15 +34,6 @@ tensor_headers = [
   'blas_interface.h'
 ]
 
-cl_sources = [
-  'cl_operations/cl_sgemv.cpp'
-]
-
-cl_headers = [
-  'cl_operations/cl_interface.h'
-]
-
-
 arch = host_machine.cpu_family()
 if get_option('enable-fp16') 
   if arch == 'arm'
@@ -71,8 +62,9 @@ if get_option('enable-fp16')
 endif
 
 if get_option('enable-opencl')
-  tensor_sources += cl_sources
-  tensor_headers += cl_headers
+  subdir('cl_operations')
+  nntrainer_inc += include_directories('cl_operations')
+  nntrainer_inc_abs += meson.current_source_dir() / 'cl_operations'
 endif
 
 foreach s : tensor_sources

@@ -25,11 +25,8 @@ namespace nntrainer {
  * @brief declaring global kernel objects
  */
 extern opencl::Kernel kernel_sgemv;
-extern opencl::Kernel kernel_sgemv_fp16;
 extern opencl::Kernel kernel_sgemm;
-extern opencl::Kernel kernel_sgemm_fp16;
 extern opencl::Kernel kernel_dot;
-extern opencl::Kernel kernel_dot_fp16;
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
@@ -46,20 +43,6 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               RunLayerContext &context);
 
 /**
- * @brief     fp16 sgemv computation : Y = A*X + Y
- * @param[in] matAdata fp16 * for Matrix A
- * @param[in] vecXdata fp16 * for Vector X
- * @param[in] vecYdata fp16 * for Vector Y
- * @param[in] dim1 number of A's columns
- * @param[in] dim2 number of A's rows
- * @param[in] lda number of X's columns
- * @param[in] context RunLayerContext reference
- */
-void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-              unsigned int dim1, unsigned int dim2, unsigned int lda,
-              RunLayerContext &context);
-
-/**
  * @brief     dot computation : sum of all X * Y
  * @param[in] vecAdata float * for Vector A
  * @param[in] vecXdata float * for Vector X
@@ -69,17 +52,6 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
  */
 float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
              RunLayerContext &context);
-
-/**
- * @brief     fp16 dot computation : sum of all X * Y
- * @param[in] vecAdata fp16 * for Vector A
- * @param[in] vecXdata fp16 * for Vector X
- * @param[in] dim1 number of elements in both input vectors
- * @param[in] context RunLayerContext reference
- * @return    fp16 dot product result
- */
-__fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
-              RunLayerContext &context);
 
 /**
  * @brief     sgemm computation : Y = op(A)*op(B) + C,
@@ -99,6 +71,39 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
               unsigned int N, unsigned int K, unsigned int lda,
               unsigned int ldb, unsigned int ldc, RunLayerContext &context);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief declaring global fp16 kernel objects
+ */
+extern opencl::Kernel kernel_sgemv_fp16;
+extern opencl::Kernel kernel_sgemm_fp16;
+extern opencl::Kernel kernel_dot_fp16;
+
+/**
+ * @brief     fp16 sgemv computation : Y = A*X + Y
+ * @param[in] matAdata fp16 * for Matrix A
+ * @param[in] vecXdata fp16 * for Vector X
+ * @param[in] vecYdata fp16 * for Vector Y
+ * @param[in] dim1 number of A's columns
+ * @param[in] dim2 number of A's rows
+ * @param[in] lda number of X's columns
+ * @param[in] context RunLayerContext reference
+ */
+void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+              unsigned int dim1, unsigned int dim2, unsigned int lda,
+              RunLayerContext &context);
+
+/**
+ * @brief     fp16 dot computation : sum of all X * Y
+ * @param[in] vecAdata fp16 * for Vector A
+ * @param[in] vecXdata fp16 * for Vector X
+ * @param[in] dim1 number of elements in both input vectors
+ * @param[in] context RunLayerContext reference
+ * @return    fp16 dot product result
+ */
+__fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
+              RunLayerContext &context);
+
 /**
  * @brief     fp16 sgemm computation : Y = op(A)*op(B) + C,
  * where op(X) is one of X or X**T
@@ -116,6 +121,7 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
 void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
               unsigned int N, unsigned int K, unsigned int lda,
               unsigned int ldb, unsigned int ldc, RunLayerContext &context);
+#endif
 
 } // namespace nntrainer
 #endif /* __BLAS_KERNELS_H__ */
