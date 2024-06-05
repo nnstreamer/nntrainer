@@ -21,7 +21,7 @@ auto semantic_fc_gpu = LayerSemanticsParamType(
   nntrainer::FullyConnectedLayerCl::type, {"unit=1"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-GTEST_PARAMETER_TEST(FullyConnectedGPU, LayerSemantics,
+GTEST_PARAMETER_TEST(FullyConnectedGPU, LayerSemanticsGpu,
                      ::testing::Values(semantic_fc_gpu));
 
 auto fc_gpu_plain = LayerGoldenTestParamType(
@@ -87,7 +87,7 @@ auto fc_gpu_basic_no_decay_w16a16 = LayerGoldenTestParamType(
     LayerGoldenTestParamOptions::USE_INC_FORWARD,
   "nchw", "fp16", "fp16");
 
-GTEST_PARAMETER_TEST(FullyConnected16, LayerGoldenTest,
+GTEST_PARAMETER_TEST(FullyConnectedGPU16, LayerGoldenTest,
                      ::testing::Values(fc_gpu_basic_plain_w16a16,
                                        fc_gpu_basic_single_batch_w16a16,
                                        fc_gpu_basic_no_decay_w16a16));
