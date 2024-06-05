@@ -19,12 +19,6 @@
 #include <common_properties.h>
 #include <layer_impl.h>
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty())                   \
-      tensor = Tensor(__VA_ARGS__);       \
-  } while (0);
-
 namespace nntrainer {
 
 /**
@@ -95,16 +89,6 @@ public:
   const std::string getType() const override {
     return FullyConnectedLayerCl::type;
   };
-
-  /**
-   * @brief Process data and dimensions for dot operation used in fc_layer
-   * @param[in] input Tensor
-   * @param[in] weight Tensor
-   * @param[in] result Tensor
-   * @param[in] RunLayerContext reference
-   */
-  void fcDotProcess(Tensor const &input, Tensor const &weight, Tensor &result,
-                    RunLayerContext &context);
 
   /**
    * @copydoc Layer::supportBackwarding()

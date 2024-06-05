@@ -12,7 +12,7 @@
  *
  */
 
-#include <blas_kernels.h>
+#include <blas_kernel_interface.h>
 #include <common_properties.h>
 #include <fc_layer_cl.h>
 #include <layer_context.h>
@@ -126,121 +126,15 @@ void FullyConnectedLayerCl::forwarding(RunLayerContext &context,
 
     weight.dequantize(weight_, axis);
 
-    fcDotProcess(input_, weight_, hidden_, context);
+    dotCl(input_, weight_, hidden_, context);
   } else {
-    fcDotProcess(input_, weight, hidden_, context);
+    dotCl(input_, weight, hidden_, context);
   }
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
     hidden_.add_i(bias);
-  }
-}
-
-void FullyConnectedLayerCl::fcDotProcess(Tensor const &input,
-                                         Tensor const &weight, Tensor &result,
-                                         RunLayerContext &context) {
-  // to do:
-  // NNTR_THROW_IF(!contiguous, std::invalid_argument)
-  //   << getName() << " is not contiguous. Cannot dot product.";
-
-  unsigned int dim1, dim2, mdim1, mdim2;
-  if (input.getFormat() == Tformat::NHWC) {
-    dim1 = input.batch() * input.height() * input.width();
-    dim2 = input.channel();
-    mdim1 = weight.batch() * weight.height() * weight.width();
-    mdim2 = weight.channel();
-  } else {
-    dim1 = input.batch() * input.channel() * input.height();
-    dim2 = input.width();
-    mdim1 = weight.batch() * weight.channel() * weight.height();
-    mdim2 = weight.width();
-  }
-
-  unsigned int M, N, K, lda, ldb, ldc;
-  if (dim2 != mdim1)
-    throw std::runtime_error("Error: incompatible dimensions for dot product");
-  K = mdim1; /** == dim2 */
-  N = mdim2;
-  M = dim1;
-  if (input.getFormat() == Tformat::NHWC) {
-    CREATE_IF_EMPTY_DIMS(result, input.batch(), N, input.height(),
-                         input.width(),
-                         input.getTensorType()); //  NHWC Result Tensor
-  } else {
-    CREATE_IF_EMPTY_DIMS(result, input.batch(), input.channel(), input.height(),
-                         N, input.getTensorType());
-  }
-
-  lda = dim2;
-  ldb = mdim2;
-  ldc =
-    (input.getFormat() == Tformat::NHWC) ? result.channel() : result.width();
-
-  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    const float *data = input.getData();
-    const float *mdata = weight.getData();
-    float *rdata = result.getData();
-
-    /// shortcut handling in case of vector
-    /// for vector, (1 * K) == (K * 1) in current memory layout...
-    /// and plaese note that N, K, M is a fixed place holder after considering
-    /// transpose.
-    /// For example, there is no case like (1 * K) X (1 * K) while
-    /// (1 * K) X (1 * M) can be a case
-    /// case1: (1 * K) X (K * 1)
-    if (M == 1 && N == 1) {
-      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
-    }
-    /// case2: (M * K) X (K * 1)
-    else if (N == 1) {
-      sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
-    }
-    /// case3: (1 * K) X (K * N) = 1 * N = R
-    /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
-    /// Effectively a translation of sgemv
-    else if (M == 1) {
-      sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
-    }
-    /// case others: use gemm
-    else {
-      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
-    }
-  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-    const _FP16 *data = input.getData<_FP16>();
-    const _FP16 *mdata = weight.getData<_FP16>();
-    _FP16 *rdata = result.getData<_FP16>();
-    const float alpha = 1.0f;
-
-    /// shortcut handling in case of vector
-    /// for vector, (1 * K) == (K * 1) in current memory layout...
-    /// and plaese note that N, K, M is a fixed place holder after considering
-    /// transpose.
-    /// For example, there is no case like (1 * K) X (1 * K) while
-    /// (1 * K) X (1 * M) can be a case
-    /// case1: (1 * K) X (K * 1)
-    if (M == 1 && N == 1) {
-      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
-    }
-    /// case2: (M * K) X (K * 1)
-    else if (N == 1) {
-      sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
-    }
-    /// case3: (1 * K) X (K * N) = 1 * N = R
-    /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
-    /// Effectively a translation of sgemv
-    else if (M == 1) {
-      sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
-    }
-    /// case others: use sgemm
-    else {
-      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
-    }
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -276,7 +170,7 @@ void FullyConnectedLayerCl::incremental_forwarding(RunLayerContext &context,
   Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
   Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
 
-  fcDotProcess(input_step, weight, hidden_step, context);
+  dotCl(input_step, weight, hidden_step, context);
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {

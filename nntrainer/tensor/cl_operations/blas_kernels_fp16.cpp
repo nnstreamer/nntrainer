@@ -20,11 +20,11 @@ std::string sgemv_cl_kernel_fp16_ =
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
     
     __kernel void sgemv_cl_fp16(const __global half* A, const __global half* X,
-                      __global half* Y, unsigned int M, unsigned int lda) {                                            
+                      __global half* Y, unsigned int N, unsigned int lda) {                                            
         unsigned int i;
         i = get_global_id(0);                         
         half y0 = 0.0f;
-        for (unsigned int j = 0; j < M; j++)                         
+        for (unsigned int j = 0; j < N; j++)                         
             y0 += A[i + j * lda] * X[j]; 
         Y[i] = y0;                            
           
@@ -86,9 +86,9 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
     opencl::Buffer inputA(context.context_inst_, dim1 * dim2 * sizeof(cl_half),
                           true, nullptr);
 
-    opencl::Buffer inputX(context.context_inst_, dim1_size, true, nullptr);
+    opencl::Buffer inputX(context.context_inst_, dim2_size, true, nullptr);
 
-    opencl::Buffer inOutY(context.context_inst_, dim2_size, true, nullptr);
+    opencl::Buffer inOutY(context.context_inst_, dim1_size, true, nullptr);
 
     result = inputA.WriteData(context.command_queue_inst_, matAdata);
     if (!result) {
@@ -120,7 +120,7 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
       break;
     }
 
-    result = kernel_sgemv_fp16.SetKernelArguments(3, &dim1, sizeof(int));
+    result = kernel_sgemv_fp16.SetKernelArguments(3, &dim2, sizeof(int));
     if (!result) {
       break;
     }
@@ -130,7 +130,7 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim2, 1, 1};
+    const int work_groups_count[3] = {(int)dim1, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
