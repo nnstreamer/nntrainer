@@ -30,18 +30,21 @@
 #include <swiglu.h>
 #include <transpose_layer.h>
 
-#if defined(ENABLE_ENCODER2)
 #include "json.hpp"
 #include <codecvt>
 #include <encoder.hpp>
 #include <locale>
 using json = nlohmann::json;
-#endif
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 ModelHandle g_model;
+
+// Path configurations
+std::string VOCAB_JSON_FILE = "../DIR/vocab.json";
+std::string MERGE_TXT_FILE = "../DIR/merges.txt";
+std::string MODEL_PATH = "../DIR/model.bin";
 
 // Hyper params for LLaMA
 int const DIM = 2304;
@@ -573,10 +576,11 @@ void run(std::string text, bool apply_temperature) {
   unsigned int init_len;
 
 #if defined(ENABLE_ENCODER2)
-  std::string vocab_file_name = "../Applications/LLaMA/jni/vocab.json";
-  std::string merge_file_name = "../Applications/LLaMA/jni/merges.txt";
+  VOCAB_JSON_FILE = "../Applications/LLaMA/jni/vocab.json";
+  MERGE_TXT_FILE = "../Applications/LLaMA/jni/merges.txt";
+#endif
 
-  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
+  auto tokenizer = unwrap(GPT2Encoder::load(VOCAB_JSON_FILE, MERGE_TXT_FILE),
                           "Error initializising GPT2 tokenizer\n");
 
   std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
@@ -591,15 +595,6 @@ void run(std::string text, bool apply_temperature) {
   }
 
   input.push_back(input_sample);
-
-#else
-  float init_input[INIT_SEQ_LEN] = {
-    0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
-    50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
-  memcpy(input_sample, init_input, sizeof(float) * INIT_SEQ_LEN);
-  input.push_back(input_sample);
-  init_len = 18;
-#endif
 
   std::vector<int64_t> token_ids;
 
@@ -619,11 +614,9 @@ void run(std::string text, bool apply_temperature) {
   std::cout << " Progress Reading: 100 % " << std::endl;
   std::cout << std::endl << "### Output : " << std::endl;
   if (init_len < INIT_SEQ_LEN) {
-#if defined(ENABLE_ENCODER2)
     auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
     std::cout << decoded_str << " ";
     std::cout.flush();
-#endif
   }
 
   for (unsigned int i = input_len + 1; i < input_len + NUM_TO_GENERATE; ++i) {
@@ -635,11 +628,9 @@ void run(std::string text, bool apply_temperature) {
       input_sample[0] = static_cast<float>(init_input[i]);
     } else {
       input_sample[0] = static_cast<float>(ids);
-#if defined(ENABLE_ENCODER2)
       auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
       std::cout << decoded_str << " ";
       std::cout.flush();
-#endif
     }
 
 #ifdef ENABLE_FP16
@@ -659,12 +650,13 @@ void run(std::string text, bool apply_temperature) {
 void createAndRun(unsigned int epochs, unsigned int batch_size) {
   // setup model
   g_model = createLLaMA();
-  g_model->setProperty({withKey("batch_size", batch_size),
-                        withKey("epochs", epochs),
-                        // #ifdef ENABLE_FP16
-                        withKey("model_tensor_type", "FP16-FP16"),
-                        // #endif
-                        withKey("save_path", "test_model.bin")});
+  g_model->setProperty({
+    withKey("batch_size", batch_size),
+    withKey("epochs", epochs),
+#ifdef ENABLE_FP16
+    withKey("model_tensor_type", "FP16-FP16"),
+#endif
+  });
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   g_model->setOptimizer(std::move(optimizer));
@@ -679,12 +671,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
     throw std::invalid_argument("model initialization failed!");
   }
 
-  std::string weight_path = "./llama_fp16.bin";
-
-  g_model->load(weight_path);
+  g_model->load(MODEL_PATH);
 }
 
-#if defined(ENABLE_ENCODER2)
 std::wstring decodeUnicodeEscape(const std::wstring &input) {
   std::wstringstream result;
 
@@ -707,21 +696,17 @@ std::wstring decodeUnicodeEscape(const std::wstring &input) {
 
   return result.str();
 }
-#endif
+
 int main(int argc, char *argv[]) {
   // Setting locale
   std::locale::global(std::locale("ko_KR.UTF-8"));
 
-#if defined(ENABLE_ENCODER2)
   // Getting arguments From terminal
   std::wstring input;
   std::getline(std::wcin, input);
   std::wstring test = decodeUnicodeEscape(input);
   std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
   std::string text = converter.to_bytes(test);
-#else
-  std::string text = "This is smaple input for LLaMA.";
-#endif
 
   auto &app_context = nntrainer::AppContext::Global();
   try {
