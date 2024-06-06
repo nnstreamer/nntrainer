@@ -7,6 +7,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @author Debadri Samaddar <s.debadri@samsung.com>
+ * @author Niket Agarwal <niket.a@samsung.com>
  * @bug	   No known bugs except for NYI items
  * @brief  This is layers interface for c++ API
  *
@@ -34,9 +35,10 @@ namespace train {
  * @brief     Enumeration of layer type
  */
 enum LayerType {
-  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /**< Input Layer type */
-  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /**< Fully Connected Layer type */
-  LAYER_BN = ML_TRAIN_LAYER_TYPE_BN,    /**< Batch Normalization Layer type */
+  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,      /**< Input Layer type */
+  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
+  LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
+  LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
   LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /**< Convolution 2D Layer type */
   LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /**< Pooling 2D Layer type */
   LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /**< Flatten Layer type */
@@ -293,6 +295,15 @@ inline std::unique_ptr<Layer> FullyConnected(
   const std::vector<std::string> &properties = {},
   const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
   return createLayer(LayerType::LAYER_FC, properties, compute_engine);
+}
+
+/**
+ * @brief Helper function to create Swiglu layer
+ */
+inline std::unique_ptr<Layer>
+Swiglu(const std::vector<std::string> &properties = {},
+       const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_SWIGLU, properties, compute_engine);
 }
 
 /**

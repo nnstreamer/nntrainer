@@ -7,6 +7,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @author Debadri Samaddar <s.debadri@samsung.com>
+ * @author Niket Agarwal <niket.a@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer context for each layer
  */
@@ -694,6 +695,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "addition_cl";
   case LayerKernel::ADD_FP16:
     return "addition_cl_fp16";
+  case LayerKernel::SWIGLU:
+    return "swiglu_cl";
+  case LayerKernel::SWIGLU_FP16:
+    return "swiglu_cl_fp16";
   default:
     return "";
   }
