@@ -6,6 +6,7 @@
  * @date    23 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
+ * @author Niket Agarwal <niket.a@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This file contains app context related functions and classes that
  * manages the global configuration of the current OpenCL environment. It also
@@ -15,6 +16,7 @@
 #include <addition_layer_cl.h>
 #include <cl_context.h>
 #include <fc_layer_cl.h>
+#include <swiglu_cl.h>
 
 namespace nntrainer {
 
@@ -31,6 +33,9 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
                      AdditionLayerCL::type,
                      ml::train::LayerType::LAYER_ADDITION);
+
+  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
+                     ml::train::LayerType::LAYER_SWIGLU);
 }
 
 static void registerer(ClContext &cc) noexcept {

@@ -441,9 +441,10 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layer_node.cpp \
 	 ../unittest/layers/unittest_layers.cpp \
 	 ../unittest/layers/unittest_layers_impl.cpp \
+	 ../unittest/layers/unittest_layers_swiglu_cl.cpp \
+	 ../unittest/layers/unittest_layers_fully_connected_cl.cpp \
 	 ../unittest/layers/unittest_layers_input.cpp \
 	 ../unittest/layers/unittest_layers_loss.cpp \
-	 ../unittest/layers/unittest_layers_fully_connected_cl.cpp \
 	 ../unittest/layers/unittest_layers_fully_connected.cpp \
 	 ../unittest/layers/unittest_layers_batch_normalization.cpp \
 	 ../unittest/layers/unittest_layers_layer_normalization.cpp \
