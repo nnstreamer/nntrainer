@@ -692,6 +692,8 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "sgemm_cl_fp16";
   case LayerKernel::ADD:
     return "addition_cl";
+  case LayerKernel::ADD_FP16:
+    return "addition_cl_fp16";
   default:
     return "";
   }

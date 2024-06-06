@@ -309,15 +309,14 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
   } while (false);
 }
 
-void addition_cl(const float *input, float *res,
-                                  unsigned int size, RunLayerContext &context) {
+void addition_cl(const float *input, float *res, unsigned int size,
+                 RunLayerContext &context) {
 
   bool result = false;
-  
+
   do {
-    result = result =
-      context.clCreateKernel(addition_cl_kernel_, context.LayerKernel::ADD,
-                             kernel_addition);
+    result = context.clCreateKernel(addition_cl_kernel_,
+                                    context.LayerKernel::ADD, kernel_addition);
     if (!result) {
       break;
     }

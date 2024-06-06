@@ -26,7 +26,7 @@ auto semantic_addition_multi_gpu = LayerSemanticsParamType(
   nntrainer::AdditionLayerCL::type, {},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
-GTEST_PARAMETER_TEST(AdditionGPU, LayerSemantics,
+GTEST_PARAMETER_TEST(AdditionGPU, LayerSemanticsGpu,
                      ::testing::Values(semantic_addition_gpu,
                                        semantic_addition_multi_gpu));
 
@@ -40,11 +40,15 @@ auto addition_w32a32_2 = LayerGoldenTestParamType(
   "added_w32a32_2.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
   "fp32", "fp32");
 
-auto addition_w32a32_3 = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::AdditionLayerCL>, {},
-  "20:55:50:55,20:55:50:55", "added_w32a32_3.nnlayergolden",
-  LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32", "fp32");
-
 GTEST_PARAMETER_TEST(AdditionGPU, LayerGoldenTest,
-                     ::testing::Values(addition_w32a32, addition_w32a32_2,
-                                       addition_w32a32_3));
+                     ::testing::Values(addition_w32a32, addition_w32a32_2));
+
+#ifdef ENABLE_FP16
+auto addition_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AdditionLayerCL>, {}, "2:3:3:3,2:3:3:3",
+  "added_w16a16.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
+  "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(Addition16, LayerGoldenTest,
+                     ::testing::Values(addition_w16a16));
+#endif
