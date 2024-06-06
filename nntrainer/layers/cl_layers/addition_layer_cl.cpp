@@ -11,8 +11,8 @@
  * implementation
  */
 
-#include <blas_kernels.h>
 #include <addition_layer_cl.h>
+#include <blas_kernels.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -64,8 +64,18 @@ void AdditionLayerCL::AddProcess(Tensor const &input, Tensor &result,
 
     addition_cl(data, rdata, size, context);
 
-  } else
-    throw std::invalid_argument("Error: OpenCL fp16 is not supported yet.");
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    unsigned int size = input.size();
+    const _FP16 *data = input.getData<_FP16>();
+    _FP16 *rdata = result.getData<_FP16>();
+
+    addition_cl(data, rdata, size, context);
+
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
 }
 
 void AdditionLayerCL::incremental_forwarding(RunLayerContext &context,

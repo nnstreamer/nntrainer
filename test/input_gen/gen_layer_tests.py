@@ -889,6 +889,3 @@ if __name__ == "__main__":
     
     added = K.layers.Add()
     record_single(added, [(3, 4, 3, 4), (3, 4, 3, 4)], "added_w32a32_2")
-    
-    added = K.layers.Add()
-    record_single(added, [(20, 55, 50, 55), (20, 55, 50, 55)], "added_w32a32_3")

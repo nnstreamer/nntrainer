@@ -60,12 +60,24 @@ std::string sgemm_cl_kernel_fp16_ =
         C[m * ldc + n] = c;
     })";
 
+std::string addition_cl_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void addition_cl_fp16(__global const half* input, __global half* output, const unsigned int size) {
+    size_t idx = get_global_id(0);
+    if (idx < size) {
+        output[idx] = output[idx] + input[idx];
+    }
+  })";
+
 /**
  * @brief defining global kernel objects
  */
 opencl::Kernel kernel_sgemv_fp16;
 opencl::Kernel kernel_sgemm_fp16;
 opencl::Kernel kernel_dot_fp16;
+opencl::Kernel kernel_addition_fp16;
 
 void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
@@ -303,6 +315,67 @@ void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
     }
 
     result = inOutC.ReadData(context.command_queue_inst_, C);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size,
+                 RunLayerContext &context) {
+
+  bool result = false;
+
+  do {
+    result = context.clCreateKernel(addition_cl_kernel_fp16_,
+                                    context.LayerKernel::ADD_FP16,
+                                    kernel_addition_fp16);
+    if (!result) {
+      break;
+    }
+
+    size_t dim1_size = sizeof(cl_half) * size;
+    opencl::Buffer inputA(context.context_inst_, dim1_size, true, nullptr);
+
+    opencl::Buffer inOutRes(context.context_inst_, dim1_size, true, nullptr);
+
+    result = inputA.WriteData(context.command_queue_inst_, input);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.WriteData(context.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_addition_fp16.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_addition_fp16.SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_addition_fp16.SetKernelArguments(2, &size, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+    result = context.command_queue_inst_.DispatchCommand(
+      kernel_addition_fp16, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.ReadData(context.command_queue_inst_, res);
     if (!result) {
       break;
     }
