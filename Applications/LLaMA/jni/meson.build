@@ -13,7 +13,6 @@ transpose_dep = declare_dependency(
 )
 
 if get_option('platform') != 'tizen'
-   extra_defines += '-DENABLE_ENCODER2=1'
    run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2' ,check: true)
 endif
 
