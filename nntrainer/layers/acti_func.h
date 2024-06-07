@@ -78,6 +78,10 @@ public:
       in_place = false;
       this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
       break;
+    case ActivationType::ACT_QUICK_GELU:
+      in_place = false;
+      this->setActivation<Tensor>(quickGelu<T>, quickGeluPrime<T>);
+      break;
     case ActivationType::ACT_ELU:
       this->setActivation<T>(elu<T>, eluPrime<T>);
       break;
@@ -454,6 +458,34 @@ public:
 
     outgoing_derivative.multiply_i_strided(incoming_derivative);
 
+    return outgoing_derivative;
+  }
+
+  /**
+   * @brief     quick gelu activation function (gelu approximation)
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   */
+  template <typename T = float>
+  static Tensor &quickGelu(Tensor const &t_in, Tensor &t_out) {
+    t_in.apply<T>(
+      [&](T x) { return static_cast<T>(x * (sigmoid<T>(static_cast<T>(1.702 * x)))); }, t_out);
+    return t_out;
+  }
+
+  /**
+   * @brief     derivative quick gelu function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   * @param[in] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
+   */
+  template <typename T = float>
+  static Tensor &quickGeluPrime(Tensor const &t_in, Tensor const &t_out,
+                           Tensor &outgoing_derivative,
+                           Tensor const &incoming_derivative = Tensor()) {
+    // NYI
+    ml_logw("quickGeluPrime which is calculate derivate of quickGelu function is not yet implemented");
     return outgoing_derivative;
   }
 
