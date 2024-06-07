@@ -30,7 +30,7 @@
 #include <swiglu.h>
 #include <transpose_layer.h>
 
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
 #include "json.hpp"
 #include <codecvt>
 #include <encoder.hpp>
@@ -572,7 +572,7 @@ void run(std::string text, bool apply_temperature) {
 
   unsigned int init_len;
 
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
   std::string vocab_file_name = "../Applications/LLaMA/jni/vocab.json";
   std::string merge_file_name = "../Applications/LLaMA/jni/merges.txt";
 
@@ -619,7 +619,7 @@ void run(std::string text, bool apply_temperature) {
   std::cout << " Progress Reading: 100 % " << std::endl;
   std::cout << std::endl << "### Output : " << std::endl;
   if (init_len < INIT_SEQ_LEN) {
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
     auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
     std::cout << decoded_str << " ";
     std::cout.flush();
@@ -635,7 +635,7 @@ void run(std::string text, bool apply_temperature) {
       input_sample[0] = static_cast<float>(init_input[i]);
     } else {
       input_sample[0] = static_cast<float>(ids);
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
       auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
       std::cout << decoded_str << " ";
       std::cout.flush();
@@ -684,7 +684,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   g_model->load(weight_path);
 }
 
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
 std::wstring decodeUnicodeEscape(const std::wstring &input) {
   std::wstringstream result;
 
@@ -712,7 +712,7 @@ int main(int argc, char *argv[]) {
   // Setting locale
   std::locale::global(std::locale("ko_KR.UTF-8"));
 
-#if defined(ENABLE_ENCODER2)
+#if defined(DENABLE_ENCODER)
   // Getting arguments From terminal
   std::wstring input;
   std::getline(std::wcin, input);
