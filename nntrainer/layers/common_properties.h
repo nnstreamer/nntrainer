@@ -35,6 +35,7 @@ enum class ActivationType {
   ACT_RELU,       /**< ReLU */
   ACT_SWISH,      /**< Swish */
   ACT_GELU,       /**< GELU */
+  ACT_QUICK_GELU, /**< Quick GELU */
   ACT_SOFTMAX,    /**< softmax */
   ACT_SOFTPLUS,   /**< softplus */
   ACT_LEAKY_RELU, /**< Leaky ReLU */
@@ -865,11 +866,13 @@ struct ActivationTypeInfo {
   static constexpr std::initializer_list<Enum> EnumList = {
     Enum::ACT_TANH,    Enum::ACT_SIGMOID,    Enum::ACT_RELU,
     Enum::ACT_SOFTMAX, Enum::ACT_LEAKY_RELU, Enum::ACT_SWISH,
-    Enum::ACT_GELU,    Enum::ACT_NONE,       Enum::ACT_UNKNOWN};
+    Enum::ACT_GELU,    Enum::ACT_QUICK_GELU, Enum::ACT_NONE,
+    Enum::ACT_UNKNOWN};
 
   static constexpr const char *EnumStr[] = {"tanh",    "sigmoid",    "relu",
                                             "softmax", "leaky_relu", "swish",
-                                            "gelu",    "none",       "unknown"};
+                                            "gelu",    "quick_gelu", "none",
+                                            "unknown"};
 };
 
 /**
