@@ -451,7 +451,7 @@ bool NetworkGraph::backwarding(
 
     for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
       auto &ln = *iter;
-      ln->needsOutputSetZero(true);
+      ln->reStoreData(true);
     }
 
     for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
