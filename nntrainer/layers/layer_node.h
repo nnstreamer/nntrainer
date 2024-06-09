@@ -916,7 +916,10 @@ public:
    *
    * @param nb true if the layer needs to do reinitialization, eles false
    */
-  void needsOutputSetZero(bool nb) { needs_output_set_zero = nb; }
+  void reStoreData(bool nb) {
+    needs_restore_data = nb;
+    run_context->reStoreData(nb);
+  }
 
   /**
    * @brief Set if the layer needs to do calculation of gradients
@@ -944,7 +947,7 @@ public:
    *
    * @param nb true if the layer needs reinitialization, eles false
    */
-  bool needsOutputSetZero() { return needs_output_set_zero; }
+  bool reStoreData() { return needs_restore_data; }
 
 private:
   /**
@@ -1019,7 +1022,7 @@ properties in the context/graph unless intended. */
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
 
-  bool needs_output_set_zero; /**< cache if this layer needs reinitialization
+  bool needs_restore_data; /**< cache if this layer needs reinitialization
                                  output  */
 
   std::array<TensorDim::DataType, 2> data_type;

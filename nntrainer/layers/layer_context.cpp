@@ -134,6 +134,7 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
   loss(l),
   in_place(in_place_),
   loss_scale(loss_scale_),
+  restoreData(false),
   weights(w),
   inputs(in),
   outputs(out),
@@ -177,9 +178,6 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
  * @return Tensor& Reference to the weight grad tensor
  */
 Tensor &RunLayerContext::getWeightFP32(unsigned int idx) const {
-  if (!weights[idx]->hasGradient())
-    throw std::invalid_argument(
-      "Requesting gradient for a non-trainable weight.");
   return weights[idx]->getVariableFP32Ref();
 }
 
