@@ -19,9 +19,9 @@
 #include <utility>
 
 #include <activation_layer.h>
-#include <bn_layer.h>
 #include <app_context.h>
 #include <base_properties.h>
+#include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
 #include <layer_node.h>
@@ -201,7 +201,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0, 0}),
-  needs_output_set_zero(false) {
+  needs_restore_data(false) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   }
@@ -509,7 +509,9 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
         } else {
           run_context->getWeight(i).read(file);
         }
-        if (run_context->isMixedPrecision(i) && getTrainable()) {
+
+        if (run_context->isMixedPrecision(i) && getTrainable() &&
+            !run_context->getWeightFP32(i).empty()) {
           run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
         }
       }
@@ -686,9 +688,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     out_info.push_back(true);
   }
 
-  auto context = InitLayerContext(actual_input_dims, out_info,
-                                  executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm, tensor_type, loss_scale, mode);
+  auto context = InitLayerContext(
+    actual_input_dims, out_info, executeInPlace() != InPlace::NONE, getName(),
+    scope, max_norm, tensor_type, loss_scale, mode);
 
   layer->finalize(context);
 
@@ -811,19 +813,21 @@ void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
 
   PROFILE_TIME_START(forward_event_key);
-  if (needsOutputSetZero()) {
-    for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
-      run_context->getOutput(i).setValue(0);
-      run_context->getOutgoingDerivative(i).setValue(0);
-    }
-
-    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      run_context->getWeightGrad(i).setValue(0);
+  if (reStoreData()) {
+    if (executeInPlace() == InPlace::NONE) {
+      for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
+        run_context->getOutput(i).setValue(0);
+      }
+      for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+        if (run_context->weightHasGradient(i)) {
+          run_context->getWeightGrad(i).setValue(0);
+        }
+      }
     }
   }
 
   layer->forwarding(*run_context, training);
-  needsOutputSetZero(false);
+  reStoreData(false);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
   TRACE_TIME() << getName() + ": F";

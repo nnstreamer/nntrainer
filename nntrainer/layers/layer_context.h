@@ -425,7 +425,8 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() : loss(0.0), in_place(false), loss_scale(1.0) {}
+  RunLayerContext() :
+    loss(0.0), in_place(false), loss_scale(1.0), restoreData(false) {}
 
   /**
    * @brief Construct a new Run Layer Context object
@@ -922,11 +923,24 @@ public:
     }
   }
 
+  /**
+   * @brief   set Output Zero Flag.
+   *
+   */
+  void reStoreData(bool nb) { restoreData = nb; }
+
+  /**
+   * @brief   get Output Zero Flag.
+   *
+   */
+  bool reStoreData() { return restoreData; }
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
   bool in_place;    /**< if the layer is expected to run in-place */
   float loss_scale; /**< loss_scale of the layer */
+  bool restoreData; /**< reset output for mixed precsion */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
