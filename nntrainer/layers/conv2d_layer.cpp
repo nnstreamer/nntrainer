@@ -57,7 +57,11 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<props::Stride, CONV2D_DIM> &mstride,
                    const std::array<props::Dilation, CONV2D_DIM> &dilation,
                    Tensor &image) {
-  auto [pt, pb, pl, pr] = padding;
+
+  auto pt = padding[0];
+  auto pb = padding[1];
+  auto pl = padding[2];
+  auto pr = padding[3];
 
   unsigned k_height = kdim.height();
   unsigned k_width = kdim.width();
@@ -200,7 +204,10 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   //   }
   */
 
-  auto [pt, pb, pl, pr] = padding;
+  auto pt = padding[0];
+  auto pb = padding[1];
+  auto pl = padding[2];
+  auto pr = padding[3];
 
   unsigned int channel = in.channel();
   int in_height = in.height();
