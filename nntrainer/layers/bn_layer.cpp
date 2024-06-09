@@ -38,6 +38,8 @@ enum BNParams {
   var,
   gamma,
   beta,
+  mu_b,
+  var_b,
   deviation,
   invstd,
   cvar,
@@ -114,6 +116,14 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   wt_idx[BNParams::beta] =
     context.requestWeight(dim, dim, bnparams_beta, WeightRegularizer::NONE,
                           1.0f, bias_decay, "beta", true);
+
+  wt_idx[BNParams::mu_b] =
+    context.requestTensor(dim, "moviing_mean_backup", Tensor::Initializer::NONE,
+                          false, TensorLifespan::ITERATION_LIFESPAN);
+
+  wt_idx[BNParams::var_b] = context.requestTensor(
+    dim, "moviing_variance_backup", Tensor::Initializer::NONE, false,
+    TensorLifespan::ITERATION_LIFESPAN);
 
   /**
    * caches the deviation -> input - avg(input)
@@ -209,6 +219,22 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
   if (training) {
+
+    Tensor &mu_b = context.getTensor(wt_idx[BNParams::mu_b]);
+    Tensor &var_b = context.getTensor(wt_idx[BNParams::var_b]);
+
+    if (context.reStoreData()) {
+      mu.copyData(mu_b);
+      var.copyData(var_b);
+      deviation.setZero();
+      invstd.setZero();
+      t_reduced.setZero();
+      cvar.setZero();
+    } else {
+      mu_b.copyData(mu);
+      var_b.copyData(var);
+    }
+
     input_.average(axes_to_reduce, t_reduced);
     input_.subtract(t_reduced, deviation);
 
@@ -271,6 +297,8 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
   Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full]);
+
+  t_full.setZero();
 
   deviation.multiply((deriv_copyed ? deriv32 : deriv), t_full);
   t_full.average(axes_to_reduce, t_reduced);
