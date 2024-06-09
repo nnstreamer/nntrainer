@@ -64,6 +64,7 @@ test_target = [
   # 'unittest_layers_mol_attention.cpp',
   'unittest_layers_multi_head_attention.cpp',
   'unittest_layers_positional_encoding.cpp',
+  'unittest_layers_upsample2d.cpp'
 ]
 
 if get_option('enable-tflite-backbone')

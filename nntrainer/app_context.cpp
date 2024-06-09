@@ -73,6 +73,7 @@
 #include <rnncell.h>
 #include <split_layer.h>
 #include <time_dist.h>
+#include <upsample2d_layer.h>
 #include <zoneout_lstmcell.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -306,6 +307,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_POSITIONAL_ENCODING);
   ac.registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,
                      LayerType::LAYER_IDENTITY);
+  ac.registerFactory(nntrainer::createLayer<Upsample2dLayer>,
+                     Upsample2dLayer::type, LayerType::LAYER_UPSAMPLE2D);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
