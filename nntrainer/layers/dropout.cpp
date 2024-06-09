@@ -47,7 +47,10 @@ void DropOutLayer::forwarding(RunLayerContext &context, bool training) {
     /** @todo make this in-place */
     if (training && rate_ > epsilon) {
       Tensor &mask_ = context.getTensor(mask_idx[i]);
-      mask_.dropout_mask(rate_);
+      if (!context.reStoreData()) {
+        mask_.dropout_mask(rate_);
+      }
+
       input_.multiply(mask_, output_);
     } else {
       output_.fill(input_);
