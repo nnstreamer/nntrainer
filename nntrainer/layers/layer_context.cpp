@@ -53,7 +53,7 @@ InitLayerContext::InitLayerContext(
   prefix(prefix_),
   tensor_type(tensor_type_),
   loss_scale(loss_scale_),
-  mode(mode_){
+  mode(mode_) {
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();
@@ -292,7 +292,6 @@ Tensor &RunLayerContext::getOutputGradUnsafe(unsigned int idx) {
 const Tensor RunLayerContext::getIncomingDerivative(unsigned int idx) const {
   return getOutputGrad(idx);
 }
-
 
 /**
  * @brief Get the Input tensor object

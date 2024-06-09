@@ -459,8 +459,8 @@ std::vector<Weight *> Manager::requestWeights(
          * reduce the memory.
          */
         bool is_wgrad = true;
-        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
-          is_wgrad = false;
+        //        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
+        //          is_wgrad = false;
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
                                    grad_exec_order, grad_ls,
                                    Tensor::Initializer::ZEROS, is_wgrad);
