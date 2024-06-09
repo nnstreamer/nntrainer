@@ -98,6 +98,7 @@ enum LayerType {
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
+  LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
@@ -533,6 +534,14 @@ ReduceMean(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Identity(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_IDENTITY, properties);
+}
+
+/**
+ * @brief Helper function to create Upsample2d layer
+ */
+inline std::unique_ptr<Layer>
+Upsample2D(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_UPSAMPLE2D, properties);
 }
 
 /**
