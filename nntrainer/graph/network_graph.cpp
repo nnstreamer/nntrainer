@@ -475,7 +475,12 @@ bool NetworkGraph::backwarding(
     float *global_norm_data = global_norm_t.getData();
     for (unsigned int idx = 0; idx < lazy_weights.size(); idx++) {
       auto const &w = lazy_weights[idx];
-      global_norm_data[idx] = w->getGradientNorm();
+      if (w->getGradientRef().getDataType() != TensorDim::DataType::FP32) {
+        Tensor grad_32 = w->getGradientRef().clone(TensorDim::DataType::FP32);
+        global_norm_data[idx] = grad_32.l2norm();
+      } else {
+        global_norm_data[idx] = w->getGradientNorm();
+      }
     }
     float global_norm = global_norm_t.l2norm();
     /** apply the gradient with the above global norm */
