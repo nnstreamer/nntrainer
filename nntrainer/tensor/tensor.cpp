@@ -3325,13 +3325,17 @@ void Tensor::setValue(float val) {
 void Tensor::setZero() {
   if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
     if (contiguous)
-      sscal(size(), 0, getData<float>(), 1);
+      //      sscal(size(), 0, getData<float>(), 1);
+      /// @note we cannot use sscal, when we set zero. if the data is inf or
+      /// NaN, then the inf or NaN still remain.
+      memset(getData<float>(), 0, sizeof(float) * size());
     else
       apply_i<float>([](float val) -> float { return 0; });
   } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     if (contiguous)
-      sscal(size(), 0, getData<_FP16>(), 1);
+      // sscal(size(), 0, getData<_FP16>(), 1);
+      memset(getData<_FP16>(), 0, sizeof(_FP16) * size());
     else
       apply_i<_FP16>([](_FP16 val) -> _FP16 { return 0; });
 #else
