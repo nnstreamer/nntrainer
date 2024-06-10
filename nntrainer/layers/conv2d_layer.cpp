@@ -611,6 +611,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
+    delBias.setZero();
     derivative.sum({0, 2, 3}, delBias);
   }
 }
