@@ -66,7 +66,7 @@ warning_c_flags = [
 
 arch = host_machine.cpu_family()
 
-if get_option('enable-avx')
+if get_option('enable-avx') and arch == 'x86_64'
    extra_defines += '-DUSE_AVX=1'
    if get_option('platform') == 'tizen'
       add_project_arguments(['-mavx2'], language: ['c','cpp'])
@@ -74,6 +74,8 @@ if get_option('enable-avx')
       add_project_arguments(['-march=native'], language: ['c','cpp'])
    endif
    message('-march=native added for AVX hardware acceleration.')
+elif get_option('enable-avx')
+   warning('AVX enabled for non x86_64 build target. The enable-avx option is ignored.')
 endif
 
 if get_option('enable-fp16')
