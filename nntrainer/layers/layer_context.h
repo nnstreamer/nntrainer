@@ -462,7 +462,7 @@ public:
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool in_place_, float loss_scale_,
+                  bool in_place_, float loss_scale_, bool restoreData_,
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
