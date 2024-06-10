@@ -12,6 +12,7 @@
 
 #include "cifar_dataloader.h"
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <nntrainer_error.h>

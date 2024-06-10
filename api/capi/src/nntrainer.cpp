@@ -22,6 +22,7 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <algorithm>
 #include <array>
 #include <cstdarg>
 #include <cstring>
