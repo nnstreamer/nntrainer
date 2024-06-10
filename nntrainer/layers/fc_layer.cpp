@@ -307,6 +307,7 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   /** (default) calcGradient - compute gradient of weight and bias */
   if (std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
+    djdw.setZero();
 
     const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -314,6 +315,7 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
         disable_bias.empty() || disable_bias.get() == false) {
       Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
+      djdb.setZero();
 
       if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
         derivative_.sum({0, 1, 2}, djdb);

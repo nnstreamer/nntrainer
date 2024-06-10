@@ -817,6 +817,8 @@ void LayerNode::forwarding(bool training) {
     if (executeInPlace() == InPlace::NONE) {
       for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
         run_context->getOutput(i).setValue(0);
+	if(!run_context->getOutputGradUnsafe(i).isValid())
+	  run_context->getOutputGradUnsafe(i).setValue(0);
       }
       for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
         if (run_context->weightHasGradient(i)) {
@@ -946,7 +948,7 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     float loss_scale) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE,
-    loss_scale, weights, inputs, outputs, tensors);
+    loss_scale, false, weights, inputs, outputs, tensors);
 }
 
 /**

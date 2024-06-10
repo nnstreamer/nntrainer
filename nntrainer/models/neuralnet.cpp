@@ -1159,6 +1159,7 @@ int NeuralNetwork::train_run(
   auto epochs = getEpochs();
   ml_logd("[NNTrainer] Starts training. Current epoch: %d. Total epochs: %d.",
           epoch_idx + 1, getEpochs());
+  epoch_idx = 0;
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     if (stop_cb(stop_user_data)) {
       --epoch_idx;
