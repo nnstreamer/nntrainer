@@ -13,6 +13,7 @@
 
 #include "task_executor.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <exception>
