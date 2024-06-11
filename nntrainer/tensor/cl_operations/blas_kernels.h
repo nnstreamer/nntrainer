@@ -27,6 +27,7 @@ namespace nntrainer {
 extern opencl::Kernel kernel_sgemv;
 extern opencl::Kernel kernel_sgemm;
 extern opencl::Kernel kernel_dot;
+extern opencl::Kernel kernel_sscal;
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
@@ -71,6 +72,16 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
               unsigned int N, unsigned int K, unsigned int lda,
               unsigned int ldb, unsigned int ldc, RunLayerContext &context);
 
+/**
+ * @brief     sscal value element by element immediately
+ * @param[in] X float * input
+ * @param[in] N unsigned int number of elements
+ * @param[in] alpha float multiplier
+ * @param[in] context RunLayerContext reference
+ */
+void sscal_cl(float *X, const unsigned int N, const float alpha,
+              RunLayerContext &context);
+
 #ifdef ENABLE_FP16
 /**
  * @brief declaring global fp16 kernel objects
@@ -78,6 +89,7 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
 extern opencl::Kernel kernel_sgemv_fp16;
 extern opencl::Kernel kernel_sgemm_fp16;
 extern opencl::Kernel kernel_dot_fp16;
+extern opencl::Kernel kernel_sscal_fp16;
 
 /**
  * @brief     fp16 sgemv computation : Y = A*X + Y
@@ -121,6 +133,16 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
 void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
               unsigned int N, unsigned int K, unsigned int lda,
               unsigned int ldb, unsigned int ldc, RunLayerContext &context);
+
+/**
+ * @brief     fp16 sscal value element by element immediately
+ * @param[in] X float * input
+ * @param[in] N unsigned int number of elements
+ * @param[in] alpha float multiplier
+ * @param[in] context RunLayerContext reference
+ */
+void sscal_cl(__fp16 *X, const unsigned int N, const float alpha,
+              RunLayerContext &context);
 #endif
 
 } // namespace nntrainer

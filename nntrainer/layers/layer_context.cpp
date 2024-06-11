@@ -662,6 +662,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "dot_cl_fp16";
   case LayerKernel::SGEMM_FP16:
     return "sgemm_cl_fp16";
+  case LayerKernel::SSCAL:
+    return "sscal_cl";
+  case LayerKernel::SSCAL_FP16:
+    return "sscal_cl_fp16";
   default:
     return "";
   }

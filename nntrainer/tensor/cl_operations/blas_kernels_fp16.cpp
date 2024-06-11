@@ -60,12 +60,23 @@ std::string sgemm_cl_kernel_fp16_ =
         C[m * ldc + n] = c;
     })";
 
+std::string sscal_cl_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sscal_cl_fp16(__global half* X, const float alpha) {
+        
+        unsigned int i = get_global_id(0);
+        X[i] *= alpha;
+    })";
+
 /**
  * @brief defining global kernel objects
  */
 opencl::Kernel kernel_sgemv_fp16;
 opencl::Kernel kernel_sgemm_fp16;
 opencl::Kernel kernel_dot_fp16;
+opencl::Kernel kernel_sscal_fp16;
 
 void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
@@ -309,4 +320,53 @@ void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
 
   } while (false);
 }
+
+void sscal_cl(__fp16 *X, const unsigned int N, const float alpha,
+              RunLayerContext &context) {
+  bool result = false;
+
+  do {
+    result = context.clCreateKernel(sscal_cl_kernel_fp16_,
+                                    context.LayerKernel::SSCAL_FP16,
+                                    kernel_sscal_fp16);
+    if (!result) {
+      break;
+    }
+
+    size_t x_size = N * sizeof(cl_half);
+
+    opencl::Buffer inputX(context.context_inst_, x_size, false, nullptr);
+
+    result = inputX.WriteData(context.command_queue_inst_, X);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal_fp16.SetKernelArguments(0, &inputX, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal_fp16.SetKernelArguments(1, &alpha, sizeof(float));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)N, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = context.command_queue_inst_.DispatchCommand(
+      kernel_sscal_fp16, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inputX.ReadData(context.command_queue_inst_, X);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
 } // namespace nntrainer
