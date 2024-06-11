@@ -100,6 +100,7 @@ enum LayerType {
   LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
+  LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM, /**<RMS NORM Layer */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
@@ -304,6 +305,15 @@ inline std::unique_ptr<Layer>
 Swiglu(const std::vector<std::string> &properties = {},
        const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
   return createLayer(LayerType::LAYER_SWIGLU, properties, compute_engine);
+}
+
+/**
+ * @brief Helper function to create RMS normalization layer for GPU
+ */
+inline std::unique_ptr<Layer> RMSNormCl(
+  const std::vector<std::string> &properties = {},
+  const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
+  return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
 }
 
 /**

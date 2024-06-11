@@ -839,7 +839,9 @@ public:
     ADD = 1 << 6,        /**< placeholder for kernel name */
     ADD_FP16 = 1 << 7,   /**< placeholder for kernel name */
     SWIGLU = 1 << 8,     /**< placeholder for kernel name */
-    SWIGLU_FP16 = 1 << 9 /**< placeholder for kernel name */
+    SWIGLU_FP16 = 1 << 9, /**< placeholder for kernel name */
+    RMSNORM = 1 << 10,
+    RMSNORM_FP16 = 1 << 11
   };
 
   /**
