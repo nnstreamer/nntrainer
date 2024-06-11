@@ -719,6 +719,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "copy_cl";
   case LayerKernel::COPY_FP16:
     return "copy_cl_fp16";
+  case LayerKernel::RMSNORM:
+    return "rmsnorm_cl";
+  case LayerKernel::RMSNORM_FP16:
+    return "rmsnorm_cl_fp16";
   default:
     return "";
   }

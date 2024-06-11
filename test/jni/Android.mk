@@ -448,6 +448,7 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers_loss.cpp \
 	 ../unittest/layers/unittest_layers_reshape_cl.cpp \
 	 ../unittest/layers/unittest_layers_fully_connected.cpp \
+     ../unittest/layers/unittest_layers_rmsnorm_cl.cpp \
 	 ../unittest/layers/unittest_layers_batch_normalization.cpp \
 	 ../unittest/layers/unittest_layers_layer_normalization.cpp \
 	 ../unittest/layers/unittest_layers_convolution2d.cpp \

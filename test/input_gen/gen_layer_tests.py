@@ -19,6 +19,7 @@ Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 @author Sungsik Kong <ss.kong@samsung.com>
 @author	Debadri Samaddar <s.debadri@samsung.com>
 @author	Niket Agarwal <niket.a@samsung.com>
+@author	Thummala Pallavi <t.pallavi@samsung.com>
 """
 
 import warnings
@@ -922,3 +923,34 @@ if __name__ == "__main__":
 
     reshape_layer = tf.keras.layers.Lambda(lambda x: reshape_tensor(x, 2, 3, 3, 3))
     record_single(reshape_layer, (2, 3, 3, 3), "reshape", input_type="float")
+
+    class RMSNorm(tf.keras.layers.Layer):
+        def __init__(self, epsilon=1e-3, **kwargs):
+            super(RMSNorm, self).__init__(**kwargs)
+            self.epsilon = epsilon
+
+        def build(self, input_shape):
+            # Initialize gamma as trainable parameters
+            self.gamma = self.add_weight(
+                shape=input_shape[-1:],
+                initializer=tf.keras.initializers.Ones(),
+                trainable=False,
+                name='gamma'
+            )
+            super(RMSNorm, self).build(input_shape)
+
+        def call(self, inputs):
+            # Compute the mean of the squares of the inputs along the last dimension
+            mean_square = tf.reduce_mean(tf.square(inputs), axis=[-1], keepdims=True)
+            print(mean_square)
+            # Compute the RMS value with epsilon for numerical stability
+            rms_value = tf.sqrt(mean_square + self.epsilon)
+            print(rms_value)
+            # Normalize inputs and scale by gamma
+            normalized_inputs = inputs / rms_value * self.gamma
+            return normalized_inputs
+
+    rms_normtest = RMSNorm()
+    rms_normtest_fp16 = RMSNorm()
+    record_single(rms_normtest,(2,3,3,3),"rms_normtest")
+    record_single_fp16(rms_normtest_fp16,(2,3,3,3),"rms_normtest_fp16_new")

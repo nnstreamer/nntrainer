@@ -3,6 +3,7 @@ cl_layer_sources = [
   'addition_layer_cl.cpp',
   'swiglu_cl.cpp',
   'reshape_cl.cpp',
+  'rmsnorm_layer_cl.cpp'
 ]
 
 foreach s : cl_layer_sources

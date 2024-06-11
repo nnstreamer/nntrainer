@@ -850,6 +850,8 @@ public:
     SSCAL_FP16 = 1 << 17,         /**< placeholder for kernel name */
     COPY = 1 << 18,               /**< placeholder for kernel name */
     COPY_FP16 = 1 << 19,          /**< placeholder for kernel name */
+    RMSNORM = 1 << 20,
+    RMSNORM_FP16 = 1 << 21
   };
 
   /**

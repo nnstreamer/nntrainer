@@ -7,6 +7,7 @@
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
  * @author  Niket Agarwal <niket.a@samsung.com>
+ * @author  Thummala Pallavi <t.pallavi@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This file contains app context related functions and classes that
  * manages the global configuration of the current OpenCL environment. It also
@@ -18,6 +19,7 @@
 #include <fc_layer_cl.h>
 #include <reshape_cl.h>
 #include <swiglu_cl.h>
+#include <rmsnorm_layer_cl.h>
 
 namespace nntrainer {
 
@@ -40,6 +42,9 @@ static void add_default_object(ClContext &cc) {
 
   cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
                      ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
+
+  cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+                     RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
 }
 
 static void registerer(ClContext &cc) noexcept {
