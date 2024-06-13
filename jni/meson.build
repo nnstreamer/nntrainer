@@ -44,6 +44,9 @@ else
   and_conf.set('MESON_HAS_TFLITE', 0)
 endif
 
+# -DML_API_COMMON=[01]
+and_conf.set('ML_API_COMMON', ml_api_common_flag)
+
 if blas_dep.found()
   and_conf.set('MESON_BLAS_ROOT', blas_root)
 else

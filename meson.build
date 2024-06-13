@@ -200,6 +200,7 @@ nntrainer_conf.set('MEMORY_SWAP_PATH', nntrainer_swapdir)
 
 dummy_dep = dependency('', required: false)
 found_dummy_dep = declare_dependency() # dummy dep to use if found
+ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.
 ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required : get_option('ml-api-support').enabled())
@@ -209,6 +210,7 @@ if (ml_api_common_dep.found())
   if (nnstreamer_capi_dep.found())
     nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
     extra_defines += '-DML_API_COMMON=1'
+    ml_api_common_flag = '-DML_API_COMMON=1'
     extra_defines += '-DNNSTREAMER_AVAILABLE=1'
     # accessing this variable when dep_.not_found() remains hard error on purpose
     supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
