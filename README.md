@@ -137,8 +137,16 @@ NNTrainer provides
  |:-------:|:---:|:---|
  | tanh | tanh function | set as layer property |
  | sigmoid | sigmoid function | set as layer property |
- | relu | relu function | set as layer property |
  | softmax | softmax function | set as layer property |
+ | relu | relu function | set as layer property |
+ | leaky_relu | leaky_relu function | set as layer property |
+ | swish | swish function | set as layer property |
+ | gelu | gelu function | set as layer property |
+ | quick_gelu | quick gelu function | set as layer property |
+ | elu | elu function | set as layer property |
+ | selu | selu function | set as layer property |
+ | softplus | softplus function | set as layer property |
+ | mish | mish function | set as layer property |
 
 ### Tensor
 
