@@ -23,6 +23,7 @@
 #include <hgemm_kernel_pack.h>
 #include <hgemm_util.h>
 #include <limits>
+#include <matrix_transpose_neon.h>
 
 #define HGEMM_KERNEL_1x4 hgemm_kernel_1x4
 #define HGEMM_KERNEL_4x4 hgemm_kernel_4x4
@@ -1184,4 +1185,40 @@ void hgemm_noTrans_fallback(unsigned int M, unsigned int N, unsigned int K,
       }
     }
   }
+}
+
+void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
+                  unsigned int N, unsigned int K, float alpha, float beta) {
+  __fp16 *B_T = new __fp16[K * N];
+
+  transpose_neon<__fp16>(N, K, B, K, B_T, N);
+
+  hgemm_noTrans(A, B_T, C, M, N, K, alpha, beta);
+
+  free(B_T);
+}
+
+void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
+                  unsigned int N, unsigned int K, float alpha, float beta) {
+  __fp16 *A_T = new __fp16[M * K];
+
+  transpose_neon<__fp16>(K, M, A, M, A_T, K);
+
+  hgemm_noTrans(A_T, B, C, M, N, K, alpha, beta);
+
+  free(A_T);
+}
+
+void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
+                   unsigned int N, unsigned int K, float alpha, float beta) {
+  __fp16 *A_T = new __fp16[M * K];
+  __fp16 *B_T = new __fp16[K * N];
+
+  transpose_neon<__fp16>(K, M, A, M, A_T, K);
+  transpose_neon<__fp16>(N, K, B, K, B_T, N);
+
+  hgemm_noTrans(A_T, B_T, C, M, N, K, alpha, beta);
+
+  free(A_T);
+  free(B_T);
 }
