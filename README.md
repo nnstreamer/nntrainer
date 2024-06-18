@@ -111,7 +111,7 @@ NNTrainer Provides
  | sgd | Stochastic Gradient Decent | - |
  | adam | Adaptive Moment Estimation | - |
 
- | Keyword | Leanring Rate | Description |
+ | Keyword | Learning Rate | Description |
  |:-------:|:---:|:---:|
  | exponential | exponential learning rate decay | - |
  | constant | constant learning rate | - |
