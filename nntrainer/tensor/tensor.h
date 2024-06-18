@@ -865,7 +865,19 @@ public:
    * @retval #ML_ERROR_NONE  Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i(Tensor const &m, float const alpha = 1);
+  int add_i(Tensor const &m, float const alpha = 1.F);
+
+  /**
+   * @brief Do add_i for specific section
+   *
+   * @param len Length of the specific section
+   * @param addr_idx Starting index of the psecific section
+   * @param m Input Tensor to be added
+   * @param alpha Scale factor
+   */
+  int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                    unsigned int incX, unsigned int incY,
+                    const Tensor alphas, unsigned int alpha_idx);
 
   /**
    * @brief     Add Tensor Element by Element
