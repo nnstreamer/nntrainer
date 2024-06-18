@@ -15,10 +15,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
-#ifdef USE_BLAS
-#include <cblas.h>
-#endif
-
 namespace nntrainer {
 
 LSTMCore::LSTMCore() :
@@ -147,75 +143,21 @@ void LSTMCore::calcGradientLSTM(
   if (input.batch() != 1) {
     input.dot(d_ifgo, d_weight_ih, true, false, 1.0f);
   } else {
-    if (input.getDataType() == TensorDim::DataType::FP32) {
-      for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
-        unsigned int out_width = d_weight_ih.width();
-        float in_ih = input.getValue<float>(i);
-        float *d_weight_ih_address =
-          d_weight_ih.getAddress<float>(i * out_width);
-        float *d_ifgo_address = d_ifgo.getData<float>();
-#ifdef USE_BLAS
-        cblas_saxpy(out_width, in_ih, d_ifgo_address, 1, d_weight_ih_address,
-                    1);
-#else
-        for (unsigned int j = 0; j < out_width; ++j) {
-          d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
-        }
-#endif
-      }
-    } else if (input.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
-        unsigned int out_width = d_weight_ih.width();
-        _FP16 in_ih = input.getValue<_FP16>(i);
-        _FP16 *d_weight_ih_address =
-          d_weight_ih.getAddress<_FP16>(i * out_width);
-        _FP16 *d_ifgo_address = d_ifgo.getData<_FP16>();
-        for (unsigned int j = 0; j < out_width; ++j) {
-          d_weight_ih_address[j] += d_ifgo_address[j] * in_ih;
-        }
-      }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
+
+    for (unsigned int i = 0; i < d_weight_ih.height(); ++i) {
+      unsigned int out_width = d_weight_ih.width();
+      d_weight_ih.add_i_partial(out_width, i * out_width, d_ifgo, 1, 1, input,
+                                i);
     }
   }
 
   if (prev_hidden_state.batch() != 1) {
     prev_hidden_state.dot(d_ifgo, d_weight_hh, true, false, 1.0f);
   } else {
-    if (prev_hidden_state.getDataType() == TensorDim::DataType::FP32) {
-      for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
-        unsigned int out_width = d_weight_hh.width();
-        float in_hh = prev_hidden_state.getValue<float>(i);
-        float *d_weight_hh_address =
-          d_weight_hh.getAddress<float>(i * out_width);
-        float *d_ifgo_address = d_ifgo.getData<float>();
-
-#ifdef USE_CBLAS
-        cblas_saxpy(out_width, in_hh, d_ifgo_address, 1, d_weight_hh_address,
-                    1);
-#else
-        for (unsigned int j = 0; j < out_width; ++j) {
-          d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
-        }
-#endif
-      }
-    } else if (prev_hidden_state.getDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
-        unsigned int out_width = d_weight_hh.width();
-        _FP16 in_hh = prev_hidden_state.getValue<_FP16>(i);
-        _FP16 *d_weight_hh_address =
-          d_weight_hh.getAddress<_FP16>(i * out_width);
-        _FP16 *d_ifgo_address = d_ifgo.getData<_FP16>();
-        for (unsigned int j = 0; j < out_width; ++j) {
-          d_weight_hh_address[j] += d_ifgo_address[j] * in_hh;
-        }
-      }
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
+    for (unsigned int i = 0; i < d_weight_hh.height(); ++i) {
+      unsigned int out_width = d_weight_hh.width();
+      d_weight_hh.add_i_partial(out_width, i * out_width, d_ifgo, 1, 1,
+                                prev_hidden_state, i);
     }
   }
   d_ifgo.dot(weight_hh, d_prev_hidden_state, false, true);
