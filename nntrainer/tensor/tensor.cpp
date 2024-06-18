@@ -1005,6 +1005,24 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
   return ML_ERROR_NONE;
 }
 
+int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                          unsigned int incX, unsigned int incY,
+                          const Tensor alphas, unsigned int alpha_idx) {
+  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    saxpy(len, alphas.getValue<float>(alpha_idx), m.getData<float>(), incX, getAddress<float>(addr_idx),
+          incY);
+  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    saxpy(len, alphas.getValue<_FP16>(alpha_idx), m.getData<_FP16>(), incX, getAddress<_FP16>(addr_idx),
+          incY);
+#else
+    ml_loge("%s", "Error: enable-fp16 is not enabled");
+    return ML_ERROR_INVALID_PARAMETER;
+#endif
+  }
+  return ML_ERROR_NONE;
+}
+
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
   Tensor t;
   return this->add(m, t, alpha);
