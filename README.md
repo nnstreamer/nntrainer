@@ -18,6 +18,7 @@ NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a So
 
 Even if NNtrainer runs on device, it provides full functionalities to train models and also utilizes limited device resources efficiently. NNTrainer is able to train various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression, Reinforcement Learning algorithms, Recurrent network and more. We also provide examples for various tasks such as Few-shot learning, ResNet, VGG, Product Rating and more will be added. All of these were tested on Samsung Galaxy smart phone with Android and PC (Ubuntu 18.04/20.04).
 
+[ A New Frontier of AI: On-Device AI Training and Personalization ](https://dl.acm.org/doi/abs/10.1145/3639477.3639716), ICSE-SEIP, 2024 <br />
 [ NNTrainer: Light-Weight On-Device Training Framework ](https://arxiv.org/pdf/2206.04688.pdf), arXiv, 2022 <br />
 [ NNTrainer: Towards the on-device learning for personalization ](https://www.youtube.com/watch?v=HWiV7WbIM3E), Samsung Software Developer Conference 2021 (Korean) <br />
 [ NNTrainer: Personalize neural networks on devices! ](https://www.youtube.com/watch?v=HKKowY78P1A), Samsung Developer Conference 2021 <br />
@@ -210,3 +211,25 @@ The NNtrainer is an open source project released under the terms of the Apache L
 Contributions are welcome! Please see our [Contributing](https://github.com/nnstreamer/nntrainer/blob/main/docs/contributing.md) Guide for more details.
 
 [![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/0)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/0)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/1)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/1)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/2)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/2)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/3)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/3)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/4)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/4)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/5)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/5)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/6)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/6)[![](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/images/7)](https://sourcerer.io/fame/dongju-chae/nnstreamer/nntrainer/links/7)
+
+## Citation
+
+If you find this NNTrainer project useful or relevant to your research, please consider citing our paper:
+
+
+```
+@inproceedings{10.1145/3639477.3639716,
+author = {Moon, Jijoong and Lee, Hyeonseok and Chu, Jiho and Park, Donghak and Hong, Seungbaek and Seo, Hyungjun and Jeong, Donghyeon and Kong, Sungsik and Ham, Myungjoo},
+title = {A New Frontier of AI: On-Device AI Training and Personalization},
+year = {2024},
+isbn = {9798400705014},
+publisher = {Association for Computing Machinery},
+url = {https://doi.org/10.1145/3639477.3639716},
+doi = {10.1145/3639477.3639716},
+booktitle = {Proceedings of the 46th International Conference on Software Engineering: Software Engineering in Practice},
+pages = {323–333},
+numpages = {11},
+keywords = {on-device AI, neural network, personalization, training, software framework},
+series = {ICSE-SEIP '24}
+}
+```
