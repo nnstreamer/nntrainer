@@ -22,15 +22,16 @@ Weight::Weight(const TensorDim &dim, const Initializer init,
                const WeightRegularizer reg, const float reg_const,
                const float decay_const, const float max_norm, bool train,
                bool alloc_now_, std::string name, unsigned int axis,
-               float loss_scale_) :
+               float loss_scale_, bool is_mixed_) :
   Var_Grad(dim, init, train, alloc_now_, name),
   regularizer(reg),
   regularizer_constant(reg_const),
   decay(decay_const),
   clip_by_global_norm(max_norm),
   output_axis(axis),
-  loss_scale(loss_scale_) {
-  if (init == Initializer::NONE)
+  loss_scale(loss_scale_),
+  is_mixed(is_mixed_) {
+  if (init == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
@@ -62,15 +63,17 @@ Weight::Weight(const TensorDim &dim_v, const TensorDim &dim_g,
                const Initializer init, const WeightRegularizer reg,
                const float reg_const, const float decay_const,
                const float max_norm, bool train, bool alloc_now_,
-               std::string name, unsigned int axis, float loss_scale_) :
+               std::string name, unsigned int axis, float loss_scale_,
+               bool is_mixed_) :
   Var_Grad(dim_v, dim_g, init, train, alloc_now_, name),
   regularizer(reg),
   regularizer_constant(reg_const),
   decay(decay_const),
   clip_by_global_norm(max_norm),
   output_axis(axis),
-  loss_scale(loss_scale_) {
-  if (init == Initializer::NONE)
+  loss_scale(loss_scale_),
+  is_mixed(is_mixed_) {
+  if (init == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
@@ -100,6 +103,7 @@ Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
   clip_by_global_norm(0.0f),
   output_axis(output_axis_),
   loss_scale(1.0),
+  is_mixed(false),
   var32(std::make_shared<Tensor>(n + ":fp32")) {
 
   if (!g.empty() && isMixedPrecision()) {
@@ -114,7 +118,7 @@ Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
 Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
                const float reg_const, const float decay, bool is_dependent,
                const float max_norm, unsigned int output_axis_,
-               float loss_scale_) :
+               float loss_scale_, bool is_mixed_) :
   Var_Grad(v, g, is_dependent),
   regularizer(reg),
   regularizer_constant(reg_const),
@@ -122,6 +126,7 @@ Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
   clip_by_global_norm(max_norm),
   output_axis(output_axis_),
   loss_scale(loss_scale_),
+  is_mixed(is_mixed_),
   var32(std::shared_ptr<Tensor>(v32, [](void *) {})) {
   if (!v32)
     var32 = std::make_shared<Tensor>();
