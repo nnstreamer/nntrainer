@@ -46,7 +46,8 @@ public:
     decay(0.0f),
     clip_by_global_norm(0.0f),
     output_axis(3),
-    loss_scale(1.0) {}
+    loss_scale(1.0),
+    is_mixed(false) {}
 
   /**
    * @brief Construct a new Weight object
@@ -66,7 +67,7 @@ public:
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
     bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 1.0);
+    float loss_scale_ = 1.0, bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
@@ -87,7 +88,7 @@ public:
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
     bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 1.0);
+    float loss_scale_ = 1.0, bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
@@ -104,9 +105,10 @@ public:
            std::get<6>(spec), // MaxNorm for clipping
            std::get<7>(spec), // need_gradient
            alloc_now,
-           std::get<8>(spec), // Name
-           std::get<9>(spec), // out axis
-           std::get<10>(spec) // loss scale
+           std::get<8>(spec),  // Name
+           std::get<9>(spec),  // out axis
+           std::get<10>(spec), // loss scale
+           std::get<11>(spec)  // is Mixed precision training
     ) {}
 
   /**
@@ -141,7 +143,7 @@ public:
                   const WeightRegularizer reg, const float reg_const,
                   const float decay, bool is_dependent = false,
                   const float max_norm = 0.0f, unsigned int output_axis_ = 3,
-                  float loss_scale_ = 1.0f);
+                  float loss_scale_ = 1.0f, bool is_mixed = false);
 
   /**
    * @brief Swap for weight
@@ -161,6 +163,7 @@ public:
     swap(lhs.opt_vars, rhs.opt_vars);
     swap(lhs.loss_scale, rhs.loss_scale);
     swap(lhs.var32, rhs.var32);
+    swap(lhs.is_mixed, rhs.is_mixed);
   }
 
   /**
@@ -322,9 +325,7 @@ public:
    * @return true if it is not full precsion
    * @return false otherwise
    */
-  bool isMixedPrecision() const {
-    return ((var->getDataType() != ml::train::TensorDim::DataType::FP32));
-  }
+  bool isMixedPrecision() const { return is_mixed; }
 
   /**
    * @brief clip the gradient value based on the given global norm
@@ -373,6 +374,7 @@ private:
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
   float loss_scale;
+  bool is_mixed;
   std::vector<Tensor *>
     opt_vars; /**< optimizer variables : We assume it is always full-precsion*/
   std::shared_ptr<Tensor> var32;
