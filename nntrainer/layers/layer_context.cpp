@@ -418,13 +418,6 @@ bool RunLayerContext::isMixedPrecision(unsigned int idx) const {
   return weights[idx]->isMixedPrecision();
 }
 
-bool RunLayerContext::isMixedPrecision() const {
-  for (auto w : weights)
-    if (w->isMixedPrecision())
-      return true;
-  return false;
-}
-
 /**
  * @brief Get the tensor name
  *

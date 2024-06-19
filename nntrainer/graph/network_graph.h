@@ -455,6 +455,11 @@ public:
    */
   void resetLossScale(float scale);
 
+  /**
+   * @brief     check if it is mixed precision training
+   */
+  bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
