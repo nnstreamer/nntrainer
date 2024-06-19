@@ -470,10 +470,11 @@ void NeuralNetwork::backwarding(int iteration,
         node->calcGradient();
 
         RunLayerContext &rc = node->getRunContext();
-        if (rc.isMixedPrecision()) {
+        if (model_graph.isMixedPrecision()) {
           for (auto w : rc.getWeights()) {
-            if (!w->getGradientRef().isValid())
-              return false;
+            if (w->hasGradient())
+              if (!w->getGradientRef().isValid())
+                return false;
           }
         }
       }

@@ -388,8 +388,8 @@ std::vector<Weight *> Manager::requestWeights(
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
     auto &[dim_v, dim_g, t_initializer, w_reg, w_reg_const, decay,
-           clip_by_global_norm, need_gradient, name, axis, loss_scale] =
-      weights_spec.at(i);
+           clip_by_global_norm, need_gradient, name, axis, loss_scale,
+           is_mixed] = weights_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
@@ -427,7 +427,6 @@ std::vector<Weight *> Manager::requestWeights(
       /** case when shared names are given */
       var = weight_pool.requestOrExtend(shared_name, dim_v, var_exec_order,
                                         var_ls, t_initializer);
-
       if (trainable && need_gradient) {
         /** We cannot use the tensor schedulding for weight gradient if the
          * weight is shared. Weight Sharing means, the gradient is not temporal
@@ -478,13 +477,12 @@ std::vector<Weight *> Manager::requestWeights(
 
     weights_v2.emplace_back(std::make_unique<Weight>(
       var, grad, var32, w_reg, w_reg_const, decay, is_dependent,
-      clip_by_global_norm, axis, loss_scale));
+      clip_by_global_norm, axis, loss_scale, is_mixed));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
-
   return ret;
 }
 
@@ -533,7 +531,6 @@ std::vector<Var_Grad *> Manager::requestTensors(
 
     bool is_dependent = !shared_names.empty();
     Tensor *var = nullptr, *grad = nullptr;
-
     if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
       var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
@@ -560,7 +557,6 @@ std::vector<Var_Grad *> Manager::requestTensors(
   std::transform(tensors_v2.begin() + current_size, tensors_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
-
   return ret;
 }
 
