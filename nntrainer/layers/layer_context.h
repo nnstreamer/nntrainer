@@ -197,9 +197,10 @@ public:
 
     dim_g.setDataType(getActivationDataType());
 
-    weights_spec.emplace_back(dim, dim_g, init, reg, reg_const, decay,
-                              clip_by_global_norm, trainable,
-                              prefix + ":" + name, out_axis, loss_scale);
+    weights_spec.emplace_back(
+      dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
+      prefix + ":" + name, out_axis, loss_scale,
+      (getWeightDataType() != ml::train::TensorDim::DataType::FP32));
     return weights_spec.size() - 1;
   }
 
@@ -226,9 +227,10 @@ public:
 
     /** @note : We assumes the gradient type is same with Activation data
      * type.*/
-    weights_spec.emplace_back(dim, dim_g, init, reg, reg_const, decay,
-                              clip_by_global_norm, trainable,
-                              prefix + ":" + name, out_axis, loss_scale);
+    weights_spec.emplace_back(
+      dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
+      prefix + ":" + name, out_axis, loss_scale,
+      (getWeightDataType() != ml::train::TensorDim::DataType::FP32));
     return weights_spec.size() - 1;
   }
 
@@ -386,6 +388,14 @@ public:
    * @return loss_scale
    */
   float getLossScale() const { return loss_scale; }
+
+  /**
+   * @brief   get Mixed Precision Training. If the weight is not the FP32, then
+   * it is mixed training.
+   *
+   * @return true if it is mixed training
+   */
+  bool isMixedTraining() { return istrequal(tensor_type[1], "FP32"); }
 
 private:
   std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
@@ -726,12 +736,6 @@ public:
    * @return bool true if it is mixed precision
    */
   bool isMixedPrecision(unsigned int idx) const;
-
-  /**
-   * @brief check if the weight is mixed precsion
-   * @return bool true if it is mixed precision
-   */
-  bool isMixedPrecision() const;
 
   /**
    * @brief Get the tensor name
