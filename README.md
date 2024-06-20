@@ -20,7 +20,7 @@ Even if NNtrainer runs on device, it provides full functionalities to train mode
 
 [ A New Frontier of AI: On-Device AI Training and Personalization ](https://dl.acm.org/doi/abs/10.1145/3639477.3639716), ICSE-SEIP, 2024 <br />
 [ NNTrainer: Light-Weight On-Device Training Framework ](https://arxiv.org/pdf/2206.04688.pdf), arXiv, 2022 <br />
-[ NNTrainer: Towards the on-device learning for personalization ](https://www.youtube.com/watch?v=HWiV7WbIM3E), Samsung Software Developer Conference 2021 (Korean) <br />
+[  Open Source On-Device AI SW Platform ](https://youtu.be/im3uNrPLYx4?si=gMbw7LKKSnpXi59U), Samsung Developer Conference 2023 (Korean) <br />
 [ NNTrainer: Personalize neural networks on devices! ](https://www.youtube.com/watch?v=HKKowY78P1A), Samsung Developer Conference 2021 <br />
 [ NNTrainer: "On-device learning" ](https://www.youtube.com/embed/Jy_auavraKg?start=4035&end=4080), Samsung AI Forum 2021
 
