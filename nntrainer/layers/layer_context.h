@@ -830,14 +830,20 @@ public:
    * getKernelName function.
    */
   enum LayerKernel {
-    SGEMV = 1 << 0,      /**< placeholder for kernel name */
-    DOT = 1 << 1,        /**< placeholder for kernel name */
-    SGEMM = 1 << 2,      /**< placeholder for kernel name */
-    SGEMV_FP16 = 1 << 3, /**< placeholder for kernel name */
-    DOT_FP16 = 1 << 4,   /**< placeholder for kernel name */
-    SGEMM_FP16 = 1 << 5, /**< placeholder for kernel name */
-    SSCAL = 1 << 6,      /**< placeholder for kernel name */
-    SSCAL_FP16 = 1 << 7, /**< placeholder for kernel name */
+    SGEMV = 1 << 0,               /**< placeholder for kernel name */
+    SGEMV_FP16 = 1 << 1,          /**< placeholder for kernel name */
+    DOT = 1 << 2,                 /**< placeholder for kernel name */
+    DOT_FP16 = 1 << 3,            /**< placeholder for kernel name */
+    SGEMM_NOTRANS = 1 << 4,       /**< placeholder for kernel name */
+    SGEMM_NOTRANS_FP16 = 1 << 5,  /**< placeholder for kernel name */
+    SGEMM_TRANSA = 1 << 6,        /**< placeholder for kernel name */
+    SGEMM_TRANSA_FP16 = 1 << 7,   /**< placeholder for kernel name */
+    SGEMM_TRANSB = 1 << 8,        /**< placeholder for kernel name */
+    SGEMM_TRANSB_FP16 = 1 << 9,   /**< placeholder for kernel name */
+    SGEMM_TRANSAB = 1 << 10,      /**< placeholder for kernel name */
+    SGEMM_TRANSAB_FP16 = 1 << 11, /**< placeholder for kernel name */
+    SSCAL = 1 << 12,              /**< placeholder for kernel name */
+    SSCAL_FP16 = 1 << 13,         /**< placeholder for kernel name */
   };
 
   /**

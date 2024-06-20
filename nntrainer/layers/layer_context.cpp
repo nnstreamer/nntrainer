@@ -652,16 +652,28 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
   switch (layerKernel) {
   case LayerKernel::SGEMV:
     return "sgemv_cl";
-  case LayerKernel::DOT:
-    return "dot_cl";
-  case LayerKernel::SGEMM:
-    return "sgemm_cl";
   case LayerKernel::SGEMV_FP16:
     return "sgemv_cl_fp16";
+  case LayerKernel::DOT:
+    return "dot_cl";
   case LayerKernel::DOT_FP16:
     return "dot_cl_fp16";
-  case LayerKernel::SGEMM_FP16:
-    return "sgemm_cl_fp16";
+  case LayerKernel::SGEMM_NOTRANS:
+    return "sgemm_cl_noTrans";
+  case LayerKernel::SGEMM_NOTRANS_FP16:
+    return "sgemm_cl_noTrans_fp16";
+  case LayerKernel::SGEMM_TRANSA:
+    return "sgemm_cl_transA";
+  case LayerKernel::SGEMM_TRANSA_FP16:
+    return "sgemm_cl_transA_fp16";
+  case LayerKernel::SGEMM_TRANSB:
+    return "sgemm_cl_transB";
+  case LayerKernel::SGEMM_TRANSB_FP16:
+    return "sgemm_cl_transB_fp16";
+  case LayerKernel::SGEMM_TRANSAB:
+    return "sgemm_cl_transAB";
+  case LayerKernel::SGEMM_TRANSAB_FP16:
+    return "sgemm_cl_transAB_fp16";
   case LayerKernel::SSCAL:
     return "sscal_cl";
   case LayerKernel::SSCAL_FP16:

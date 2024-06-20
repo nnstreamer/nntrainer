@@ -147,9 +147,8 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     }
     /// case others: use gemm
     else {
-      // transA == false, transB == false
-      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
-      // todo: other condition implementations
+      sgemm_cl(transA, transB, data, mdata, rdata, M, N, K, lda, ldb, ldc,
+               context);
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -184,9 +183,8 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     }
     /// case others: use sgemm
     else {
-      // transA == false, transB == false
-      sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
-      // todo: other condition implementations
+      sgemm_cl(transA, transB, data, mdata, rdata, M, N, K, lda, ldb, ldc,
+               context);
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");

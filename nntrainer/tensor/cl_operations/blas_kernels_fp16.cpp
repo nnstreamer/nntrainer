@@ -41,11 +41,11 @@ std::string dot_cl_kernel_fp16_ =
         }
     })";
 
-std::string sgemm_cl_kernel_fp16_ =
+std::string sgemm_cl_noTrans_kernel_fp16_ =
   R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    __kernel void sgemm_cl_fp16(const __global half* A, const __global half* B,
+    __kernel void sgemm_cl_noTrans_fp16(const __global half* A, const __global half* B,
                       __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
         
         unsigned int m = get_global_id(0);
@@ -55,6 +55,63 @@ std::string sgemm_cl_kernel_fp16_ =
           half a, b;
           a = A[m * lda + k];
           b = B[k * ldb + n];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sgemm_cl_transA_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sgemm_cl_transA_fp16(const __global half* A, const __global half* B,
+                      __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+        
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        half c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          half a, b;
+          a = A[k * lda + m];
+          b = B[k * ldb + n];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sgemm_cl_transB_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sgemm_cl_transB_fp16(const __global half* A, const __global half* B,
+                      __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+        
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        half c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          half a, b;
+          a = A[m * lda + k];
+          b = B[n * ldb + k];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sgemm_cl_transAB_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sgemm_cl_transAB_fp16(const __global half* A, const __global half* B,
+                      __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+        
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        half c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          half a, b;
+          a = A[k * lda + m];
+          b = B[n * ldb + k];
           c += a * b;
         }
         C[m * ldc + n] = c;
@@ -74,7 +131,10 @@ std::string sscal_cl_kernel_fp16_ =
  * @brief defining global kernel objects
  */
 opencl::Kernel kernel_sgemv_fp16;
-opencl::Kernel kernel_sgemm_fp16;
+opencl::Kernel kernel_sgemm_transAB_fp16;
+opencl::Kernel kernel_sgemm_transA_fp16;
+opencl::Kernel kernel_sgemm_transB_fp16;
+opencl::Kernel kernel_sgemm_noTrans_fp16;
 opencl::Kernel kernel_dot_fp16;
 opencl::Kernel kernel_sscal_fp16;
 
@@ -230,20 +290,43 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
   return cl_ret;
 }
 
-void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
-              unsigned int N, unsigned int K, unsigned int lda,
-              unsigned int ldb, unsigned int ldc, RunLayerContext &context) {
+void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const __fp16 *A,
+              const __fp16 *B, __fp16 *C, unsigned int M, unsigned int N,
+              unsigned int K, unsigned int lda, unsigned int ldb,
+              unsigned int ldc, RunLayerContext &context) {
+
+  opencl::Kernel *kernel_sgemm_fp16 = nullptr;
+  RunLayerContext::LayerKernel layerKernel;
+  std::string sgemm_cl_kernel_fp16_;
+
+  if (TransA != CblasTrans && TransB != CblasTrans) {
+    kernel_sgemm_fp16 = &kernel_sgemm_noTrans_fp16;
+    layerKernel = context.LayerKernel::SGEMM_NOTRANS_FP16;
+    sgemm_cl_kernel_fp16_ = sgemm_cl_noTrans_kernel_fp16_;
+  } else if (TransA == CblasTrans && TransB != CblasTrans) {
+    kernel_sgemm_fp16 = &kernel_sgemm_transA_fp16;
+    layerKernel = context.LayerKernel::SGEMM_TRANSA_FP16;
+    sgemm_cl_kernel_fp16_ = sgemm_cl_transA_kernel_fp16_;
+  } else if (TransA != CblasTrans && TransB == CblasTrans) {
+    kernel_sgemm_fp16 = &kernel_sgemm_transB_fp16;
+    layerKernel = context.LayerKernel::SGEMM_TRANSB_FP16;
+    sgemm_cl_kernel_fp16_ = sgemm_cl_transB_kernel_fp16_;
+  } else {
+    kernel_sgemm_fp16 = &kernel_sgemm_transAB_fp16;
+    layerKernel = context.LayerKernel::SGEMM_TRANSAB_FP16;
+    sgemm_cl_kernel_fp16_ = sgemm_cl_transAB_kernel_fp16_;
+  }
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(sgemm_cl_kernel_fp16_,
-                                    context.LayerKernel::SGEMM_FP16,
-                                    kernel_sgemm_fp16);
+    result = context.clCreateKernel(sgemm_cl_kernel_fp16_, layerKernel,
+                                    *kernel_sgemm_fp16);
     if (!result) {
       break;
     }
 
+    // sizes will be same for transpose
     size_t m_k_size = M * K * sizeof(cl_half);
     size_t k_n_size = K * N * sizeof(cl_half);
     size_t m_n_size = M * N * sizeof(cl_half);
@@ -269,37 +352,37 @@ void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_sgemm_fp16->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(1, &inputB, sizeof(cl_mem));
+    result = kernel_sgemm_fp16->SetKernelArguments(1, &inputB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(2, &inOutC, sizeof(cl_mem));
+    result = kernel_sgemm_fp16->SetKernelArguments(2, &inOutC, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(3, &K, sizeof(int));
+    result = kernel_sgemm_fp16->SetKernelArguments(3, &K, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(4, &lda, sizeof(int));
+    result = kernel_sgemm_fp16->SetKernelArguments(4, &lda, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(5, &ldb, sizeof(int));
+    result = kernel_sgemm_fp16->SetKernelArguments(5, &ldb, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16.SetKernelArguments(6, &ldc, sizeof(int));
+    result = kernel_sgemm_fp16->SetKernelArguments(6, &ldc, sizeof(int));
     if (!result) {
       break;
     }
@@ -308,7 +391,7 @@ void sgemm_cl(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_sgemm_fp16, work_groups_count, work_group_size);
+      *kernel_sgemm_fp16, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
