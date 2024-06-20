@@ -256,10 +256,10 @@ public:
 private:
   std::vector<std::shared_ptr<GraphNode>> input_list;
   std::vector<std::shared_ptr<GraphNode>> output_list;
-  std::vector<std::shared_ptr<GraphNode>>
-    node_list;                                    /**< Unordered Node List  */
-  std::unordered_map<std::string, int> node_map;  /**< Unordered Node map  */
-  std::unordered_map<std::string, int> sorted_node_map;  /**< Unordered Node map  */
+  std::vector<std::shared_ptr<GraphNode>> node_list; /**< Unordered Node List */
+  std::unordered_map<std::string, int> node_map;     /**< Unordered Node map  */
+  std::unordered_map<std::string, int>
+    sorted_node_map;                              /**< Unordered Node map  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
   bool sorted; /** if the node_list is sorted */
 

@@ -134,13 +134,16 @@ Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
 
 void Weight::applyGradient(double lr, Tensor &updated_grad) {
   if (isMixedPrecision() &&
-      updated_grad.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      updated_grad.getDataType() == ml::train::TensorDim::DataType::FP32 &&
+      var->getDataType() != ml::train::TensorDim::DataType::FP32) {
     var32->add_i(updated_grad, -lr);
+    std::cout << var32->getName() << " --------------------------" << std::endl;
+    var32->print(std::cout);
     quantizeWeight();
     return;
+  } else {
+    return applyGradient(lr);
   }
-
-  return applyGradient(lr);
 }
 
 void Weight::quantizeWeight() {
