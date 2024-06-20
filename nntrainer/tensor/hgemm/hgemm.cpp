@@ -66,8 +66,9 @@ void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, float *C32,
   }
 }
 
-void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
-                   unsigned int N, unsigned int K, float alpha, float beta) {
+void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, __fp16 *C,
+                          unsigned int M, unsigned int N, unsigned int K,
+                          float alpha, float beta) {
   if (alpha == 1.F) {
     // used bitwise operator instead of modulo for performance
     // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
@@ -96,8 +97,8 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
   const unsigned int lda = K;
   const unsigned int ldb = N;
 
-  __fp16 *A8 = new __fp16[M * K8_high];
-  __fp16 *B8 = new __fp16[K8_high * N];
+  __fp16 *A8 = alignedMalloc(M * K8_high);
+  __fp16 *B8 = alignedMalloc(K8_high * N);
 
   float16x8_t ZEROS = vmovq_n_f16(0.F);
 
@@ -829,7 +830,7 @@ void hgemm_noTrans_8x16(unsigned int M, unsigned int N, unsigned int K,
                         const __fp16 *A, unsigned int lda, const __fp16 *B,
                         unsigned int ldb, __fp16 *C, unsigned int ldc,
                         float alpha, float beta) {
-// M, N, K is full M, N, K here
+  // M, N, K is full M, N, K here
 
   __fp16 *sA = alignedMalloc(M * K);
   __fp16 *sB = alignedMalloc(K * N);
@@ -1257,7 +1258,7 @@ void hgemm_noTrans_fallback(unsigned int M, unsigned int N, unsigned int K,
 
 void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
                   unsigned int N, unsigned int K, float alpha, float beta) {
-  __fp16 *B_T = new __fp16[K * N];
+  __fp16 *B_T = alignedMalloc(K * N);
 
   transpose_neon<__fp16>(N, K, B, K, B_T, N);
 
@@ -1268,7 +1269,7 @@ void hgemm_transB(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
 
 void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
                   unsigned int N, unsigned int K, float alpha, float beta) {
-  __fp16 *A_T = new __fp16[M * K];
+  __fp16 *A_T = alignedMalloc(M * K);
 
   transpose_neon<__fp16>(K, M, A, M, A_T, K);
 
@@ -1279,8 +1280,8 @@ void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
 
 void hgemm_transAB(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
-  __fp16 *A_T = new __fp16[M * K];
-  __fp16 *B_T = new __fp16[K * N];
+  __fp16 *A_T = alignedMalloc(M * K);
+  __fp16 *B_T = alignedMalloc(K * N);
 
   transpose_neon<__fp16>(K, M, A, M, A_T, K);
   transpose_neon<__fp16>(N, K, B, K, B_T, N);
