@@ -54,12 +54,11 @@ void LSTMLayer::forwardingBatchFirstLSTM(
   const Tensor &mask_) {
   hidden_state_.setZero();
   cell_state_.setZero();
-
   TensorDim::TensorType tensor_type = weight_ih.getTensorType();
   TensorDim input_tensor_dim({feature_size}, tensor_type);
   TensorDim unit_tensor_dim({unit}, tensor_type);
   TensorDim num_gate_unit_tensor_dim({NUM_GATE * unit}, tensor_type);
-
+  
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
     const Tensor input_sample = input_.getBatchSlice(batch, 1);
     Tensor hidden_state_sample = hidden_state_.getBatchSlice(batch, 1);
@@ -681,13 +680,11 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &mask = enable_dropout
                    ? context.getTensor(wt_idx[LSTMParams::dropout_mask])
                    : empty;
-
   forwardingBatchFirstLSTM(NUM_GATE, batch_size, feature_size, disable_bias,
                            unit, integrate_bias, acti_func, recurrent_acti_func,
                            enable_dropout, dropout_rate, max_timestep, false,
                            input, weight_ih, weight_hh, bias_h, bias_ih,
                            bias_hh, hidden_state, cell_state, ifgo, mask);
-
   if (bidirectional) {
     const Tensor &reverse_weight_ih =
       context.getWeight(wt_idx[LSTMParams::reverse_weight_ih]);
