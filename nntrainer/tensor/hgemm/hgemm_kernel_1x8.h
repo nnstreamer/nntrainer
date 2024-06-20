@@ -6,6 +6,7 @@
  * @date   05 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Debadri Samaddar <s.debadri@samsung.com>
+ * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is half-precision GEMM 1x8 kernel
  *
@@ -15,64 +16,70 @@
 #include <stdlib.h>
 
 // 1. Partial sum 64 digits : worst accuracy, best latency
-#define KERNEL_1x8_ACC8()         \
-  v0 = vdupq_n_f16(0.F);          \
-  dv0 = *a;                       \
-  v24 = vld1q_f16(b);             \
-  v0 = vfmaq_n_f16(v0, v24, dv0); \
-  dv1 = *(a + 1);                 \
-  v25 = vld1q_f16(b + 8);         \
-  v0 = vfmaq_n_f16(v0, v25, dv1); \
-  dv2 = *(a + 2);                 \
-  v26 = vld1q_f16(b + 16);        \
-  v0 = vfmaq_n_f16(v0, v26, dv2); \
-  dv3 = *(a + 3);                 \
-  v27 = vld1q_f16(b + 24);        \
-  v0 = vfmaq_n_f16(v0, v27, dv3); \
-  dv4 = *(a + 4);                 \
-  v28 = vld1q_f16(b + 32);        \
-  v0 = vfmaq_n_f16(v0, v28, dv4); \
-  dv5 = *(a + 5);                 \
-  v29 = vld1q_f16(b + 40);        \
-  v0 = vfmaq_n_f16(v0, v29, dv5); \
-  dv6 = *(a + 6);                 \
-  v30 = vld1q_f16(b + 48);        \
-  v0 = vfmaq_n_f16(v0, v30, dv6); \
-  dv7 = *(a + 7);                 \
-  v31 = vld1q_f16(b + 56);        \
-  v0 = vfmaq_n_f16(v0, v31, dv7); \
-  l += 8;                         \
-  b += 8 * 8;                     \
-  a += 8;
+#define KERNEL_1x8_ACC8()           \
+  do {                              \
+    v0 = vdupq_n_f16(0.F);          \
+    dv0 = *a;                       \
+    v24 = vld1q_f16(b);             \
+    v0 = vfmaq_n_f16(v0, v24, dv0); \
+    dv1 = *(a + 1);                 \
+    v25 = vld1q_f16(b + 8);         \
+    v0 = vfmaq_n_f16(v0, v25, dv1); \
+    dv2 = *(a + 2);                 \
+    v26 = vld1q_f16(b + 16);        \
+    v0 = vfmaq_n_f16(v0, v26, dv2); \
+    dv3 = *(a + 3);                 \
+    v27 = vld1q_f16(b + 24);        \
+    v0 = vfmaq_n_f16(v0, v27, dv3); \
+    dv4 = *(a + 4);                 \
+    v28 = vld1q_f16(b + 32);        \
+    v0 = vfmaq_n_f16(v0, v28, dv4); \
+    dv5 = *(a + 5);                 \
+    v29 = vld1q_f16(b + 40);        \
+    v0 = vfmaq_n_f16(v0, v29, dv5); \
+    dv6 = *(a + 6);                 \
+    v30 = vld1q_f16(b + 48);        \
+    v0 = vfmaq_n_f16(v0, v30, dv6); \
+    dv7 = *(a + 7);                 \
+    v31 = vld1q_f16(b + 56);        \
+    v0 = vfmaq_n_f16(v0, v31, dv7); \
+    l += 8;                         \
+    b += 8 * 8;                     \
+    a += 8;                         \
+  } while (0)
 
 // 2. Partial sum 32 digits : medium accuracy, medium latency
-#define KERNEL_1x8_ACC4()         \
-  v0 = vdupq_n_f16(0.F);          \
-  dv0 = *a;                       \
-  v24 = vld1q_f16(b);             \
-  v0 = vfmaq_n_f16(v0, v24, dv0); \
-  dv1 = *(a + 1);                 \
-  v25 = vld1q_f16(b + 8);         \
-  v0 = vfmaq_n_f16(v0, v25, dv1); \
-  dv2 = *(a + 2);                 \
-  v26 = vld1q_f16(b + 16);        \
-  v0 = vfmaq_n_f16(v0, v26, dv2); \
-  dv3 = *(a + 3);                 \
-  v27 = vld1q_f16(b + 24);        \
-  v0 = vfmaq_n_f16(v0, v27, dv3); \
-  l += 4;                         \
-  b += 8 * 4;                     \
-  a += 4;
+#define KERNEL_1x8_ACC4()           \
+  do {                              \
+    v0 = vdupq_n_f16(0.F);          \
+    dv0 = *a;                       \
+    v24 = vld1q_f16(b);             \
+    v0 = vfmaq_n_f16(v0, v24, dv0); \
+    dv1 = *(a + 1);                 \
+    v25 = vld1q_f16(b + 8);         \
+    v0 = vfmaq_n_f16(v0, v25, dv1); \
+    dv2 = *(a + 2);                 \
+    v26 = vld1q_f16(b + 16);        \
+    v0 = vfmaq_n_f16(v0, v26, dv2); \
+    dv3 = *(a + 3);                 \
+    v27 = vld1q_f16(b + 24);        \
+    v0 = vfmaq_n_f16(v0, v27, dv3); \
+    l += 4;                         \
+    b += 8 * 4;                     \
+    a += 4;                         \
+  } while (0)
 
 // 3. Partial sum 8 digits : Best accuracy, worst latency
-#define KERNEL_1x8_ACC1()         \
-  v0 = vdupq_n_f16(0.F);          \
-  dv0 = *(a);                     \
-  v24 = vld1q_f16(b);             \
-  v0 = vfmaq_n_f16(v0, v24, dv0); \
-  l += 1;                         \
-  b += 8 * 1;                     \
-  a++;
+#define KERNEL_1x8_ACC1()           \
+  do {                              \
+    v0 = vdupq_n_f16(0.F);          \
+    dv0 = *(a);                     \
+    v24 = vld1q_f16(b);             \
+    v0 = vfmaq_n_f16(v0, v24, dv0); \
+    l += 1;                         \
+    b += 8 * 1;                     \
+    a++;                            \
+  } while (0)
 
 /**
  * @brief hgemm 1x8 kernel sc = sa * sb
