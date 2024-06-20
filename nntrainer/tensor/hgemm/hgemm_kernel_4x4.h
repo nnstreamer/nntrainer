@@ -14,192 +14,203 @@
 #include <hgemm_common.h>
 #include <stdlib.h>
 
-#define INIT_KERNEL_4x4() \
-  v24 = vdup_n_f16(0.F);  \
-  v25 = vdup_n_f16(0.F);  \
-  v26 = vdup_n_f16(0.F);  \
-  v27 = vdup_n_f16(0.F);
+#define INIT_KERNEL_4x4()  \
+  do {                     \
+    v24 = vdup_n_f16(0.F); \
+    v25 = vdup_n_f16(0.F); \
+    v26 = vdup_n_f16(0.F); \
+    v27 = vdup_n_f16(0.F); \
+  } while (0)
 
 // 1. Partial sum 256 digits
-#define KERNEL_4x4_ACC16()               \
-  dv0 = vld1_f16(a);                     \
-  vb0 = vld1_f16(b);                     \
-  v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
-  v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
-  v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
-  v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
-  dv1 = vld1_f16(a + 4);                 \
-  vb1 = vld1_f16(b + 4);                 \
-  v24 = vfma_lane_f16(v24, vb1, dv1, 0); \
-  v25 = vfma_lane_f16(v25, vb1, dv1, 1); \
-  v26 = vfma_lane_f16(v26, vb1, dv1, 2); \
-  v27 = vfma_lane_f16(v27, vb1, dv1, 3); \
-  dv2 = vld1_f16(a + 4 * 2);             \
-  vb2 = vld1_f16(b + 4 * 2);             \
-  v24 = vfma_lane_f16(v24, vb2, dv2, 0); \
-  v25 = vfma_lane_f16(v25, vb2, dv2, 1); \
-  v26 = vfma_lane_f16(v26, vb2, dv2, 2); \
-  v27 = vfma_lane_f16(v27, vb2, dv2, 3); \
-  dv3 = vld1_f16(a + 4 * 3);             \
-  vb3 = vld1_f16(b + 4 * 3);             \
-  v24 = vfma_lane_f16(v24, vb3, dv3, 0); \
-  v25 = vfma_lane_f16(v25, vb3, dv3, 1); \
-  v26 = vfma_lane_f16(v26, vb3, dv3, 2); \
-  v27 = vfma_lane_f16(v27, vb3, dv3, 3); \
-  dv4 = vld1_f16(a + 4 * 4);             \
-  vb4 = vld1_f16(b + 4 * 4);             \
-  v24 = vfma_lane_f16(v24, vb4, dv4, 0); \
-  v25 = vfma_lane_f16(v25, vb4, dv4, 1); \
-  v26 = vfma_lane_f16(v26, vb4, dv4, 2); \
-  v27 = vfma_lane_f16(v27, vb4, dv4, 3); \
-  dv5 = vld1_f16(a + 4 * 5);             \
-  vb5 = vld1_f16(b + 4 * 5);             \
-  v24 = vfma_lane_f16(v24, vb5, dv5, 0); \
-  v25 = vfma_lane_f16(v25, vb5, dv5, 1); \
-  v26 = vfma_lane_f16(v26, vb5, dv5, 2); \
-  v27 = vfma_lane_f16(v27, vb5, dv5, 3); \
-  dv6 = vld1_f16(a + 4 * 6);             \
-  vb6 = vld1_f16(b + 4 * 6);             \
-  v24 = vfma_lane_f16(v24, vb6, dv6, 0); \
-  v25 = vfma_lane_f16(v25, vb6, dv6, 1); \
-  v26 = vfma_lane_f16(v26, vb6, dv6, 2); \
-  v27 = vfma_lane_f16(v27, vb6, dv6, 3); \
-  dv7 = vld1_f16(a + 4 * 7);             \
-  vb7 = vld1_f16(b + 4 * 7);             \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 8);             \
-  vb7 = vld1_f16(b + 4 * 8);             \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 9);             \
-  vb7 = vld1_f16(b + 4 * 9);             \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 10);            \
-  vb7 = vld1_f16(b + 4 * 10);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 11);            \
-  vb7 = vld1_f16(b + 4 * 11);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 12);            \
-  vb7 = vld1_f16(b + 4 * 12);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 13);            \
-  vb7 = vld1_f16(b + 4 * 13);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 14);            \
-  vb7 = vld1_f16(b + 4 * 14);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  dv7 = vld1_f16(a + 4 * 15);            \
-  vb7 = vld1_f16(b + 4 * 15);            \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  l += 16;                               \
-  __builtin_prefetch(b + 64, 0, 3);      \
-  __builtin_prefetch(a + 64, 0, 3);      \
-  b += 4 * 16;                           \
-  a += 4 * 16;
+#define KERNEL_4x4_ACC16()                 \
+  do {                                     \
+    dv0 = vld1_f16(a);                     \
+    vb0 = vld1_f16(b);                     \
+    v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
+    v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
+    v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
+    v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
+    dv1 = vld1_f16(a + 4);                 \
+    vb1 = vld1_f16(b + 4);                 \
+    v24 = vfma_lane_f16(v24, vb1, dv1, 0); \
+    v25 = vfma_lane_f16(v25, vb1, dv1, 1); \
+    v26 = vfma_lane_f16(v26, vb1, dv1, 2); \
+    v27 = vfma_lane_f16(v27, vb1, dv1, 3); \
+    dv2 = vld1_f16(a + 4 * 2);             \
+    vb2 = vld1_f16(b + 4 * 2);             \
+    v24 = vfma_lane_f16(v24, vb2, dv2, 0); \
+    v25 = vfma_lane_f16(v25, vb2, dv2, 1); \
+    v26 = vfma_lane_f16(v26, vb2, dv2, 2); \
+    v27 = vfma_lane_f16(v27, vb2, dv2, 3); \
+    dv3 = vld1_f16(a + 4 * 3);             \
+    vb3 = vld1_f16(b + 4 * 3);             \
+    v24 = vfma_lane_f16(v24, vb3, dv3, 0); \
+    v25 = vfma_lane_f16(v25, vb3, dv3, 1); \
+    v26 = vfma_lane_f16(v26, vb3, dv3, 2); \
+    v27 = vfma_lane_f16(v27, vb3, dv3, 3); \
+    dv4 = vld1_f16(a + 4 * 4);             \
+    vb4 = vld1_f16(b + 4 * 4);             \
+    v24 = vfma_lane_f16(v24, vb4, dv4, 0); \
+    v25 = vfma_lane_f16(v25, vb4, dv4, 1); \
+    v26 = vfma_lane_f16(v26, vb4, dv4, 2); \
+    v27 = vfma_lane_f16(v27, vb4, dv4, 3); \
+    dv5 = vld1_f16(a + 4 * 5);             \
+    vb5 = vld1_f16(b + 4 * 5);             \
+    v24 = vfma_lane_f16(v24, vb5, dv5, 0); \
+    v25 = vfma_lane_f16(v25, vb5, dv5, 1); \
+    v26 = vfma_lane_f16(v26, vb5, dv5, 2); \
+    v27 = vfma_lane_f16(v27, vb5, dv5, 3); \
+    dv6 = vld1_f16(a + 4 * 6);             \
+    vb6 = vld1_f16(b + 4 * 6);             \
+    v24 = vfma_lane_f16(v24, vb6, dv6, 0); \
+    v25 = vfma_lane_f16(v25, vb6, dv6, 1); \
+    v26 = vfma_lane_f16(v26, vb6, dv6, 2); \
+    v27 = vfma_lane_f16(v27, vb6, dv6, 3); \
+    dv7 = vld1_f16(a + 4 * 7);             \
+    vb7 = vld1_f16(b + 4 * 7);             \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 8);             \
+    vb7 = vld1_f16(b + 4 * 8);             \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 9);             \
+    vb7 = vld1_f16(b + 4 * 9);             \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 10);            \
+    vb7 = vld1_f16(b + 4 * 10);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 11);            \
+    vb7 = vld1_f16(b + 4 * 11);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 12);            \
+    vb7 = vld1_f16(b + 4 * 12);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 13);            \
+    vb7 = vld1_f16(b + 4 * 13);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 14);            \
+    vb7 = vld1_f16(b + 4 * 14);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    dv7 = vld1_f16(a + 4 * 15);            \
+    vb7 = vld1_f16(b + 4 * 15);            \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    l += 16;                               \
+    __builtin_prefetch(b + 64, 0, 3);      \
+    __builtin_prefetch(a + 64, 0, 3);      \
+    b += 4 * 16;                           \
+    a += 4 * 16;                           \
+  } while (0)
 
 // 2. Partial sum 128 digits
-#define KERNEL_4x4_ACC8()                \
-  dv0 = vld1_f16(a);                     \
-  vb0 = vld1_f16(b);                     \
-  v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
-  v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
-  v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
-  v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
-  dv1 = vld1_f16(a + 4);                 \
-  vb1 = vld1_f16(b + 4);                 \
-  v24 = vfma_lane_f16(v24, vb1, dv1, 0); \
-  v25 = vfma_lane_f16(v25, vb1, dv1, 1); \
-  v26 = vfma_lane_f16(v26, vb1, dv1, 2); \
-  v27 = vfma_lane_f16(v27, vb1, dv1, 3); \
-  dv2 = vld1_f16(a + 8);                 \
-  vb2 = vld1_f16(b + 8);                 \
-  v24 = vfma_lane_f16(v24, vb2, dv2, 0); \
-  v25 = vfma_lane_f16(v25, vb2, dv2, 1); \
-  v26 = vfma_lane_f16(v26, vb2, dv2, 2); \
-  v27 = vfma_lane_f16(v27, vb2, dv2, 3); \
-  dv3 = vld1_f16(a + 12);                \
-  vb3 = vld1_f16(b + 12);                \
-  v24 = vfma_lane_f16(v24, vb3, dv3, 0); \
-  v25 = vfma_lane_f16(v25, vb3, dv3, 1); \
-  v26 = vfma_lane_f16(v26, vb3, dv3, 2); \
-  v27 = vfma_lane_f16(v27, vb3, dv3, 3); \
-  dv4 = vld1_f16(a + 16);                \
-  vb4 = vld1_f16(b + 16);                \
-  v24 = vfma_lane_f16(v24, vb4, dv4, 0); \
-  v25 = vfma_lane_f16(v25, vb4, dv4, 1); \
-  v26 = vfma_lane_f16(v26, vb4, dv4, 2); \
-  v27 = vfma_lane_f16(v27, vb4, dv4, 3); \
-  dv5 = vld1_f16(a + 20);                \
-  vb5 = vld1_f16(b + 20);                \
-  v24 = vfma_lane_f16(v24, vb5, dv5, 0); \
-  v25 = vfma_lane_f16(v25, vb5, dv5, 1); \
-  v26 = vfma_lane_f16(v26, vb5, dv5, 2); \
-  v27 = vfma_lane_f16(v27, vb5, dv5, 3); \
-  dv6 = vld1_f16(a + 24);                \
-  vb6 = vld1_f16(b + 24);                \
-  v24 = vfma_lane_f16(v24, vb6, dv6, 0); \
-  v25 = vfma_lane_f16(v25, vb6, dv6, 1); \
-  v26 = vfma_lane_f16(v26, vb6, dv6, 2); \
-  v27 = vfma_lane_f16(v27, vb6, dv6, 3); \
-  dv7 = vld1_f16(a + 28);                \
-  vb7 = vld1_f16(b + 28);                \
-  v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
-  v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
-  v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
-  v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
-  l += 8;                                \
-  __builtin_prefetch(b + 32, 0, 3);      \
-  __builtin_prefetch(a + 32, 0, 3);      \
-  b += 4 * 8;                            \
-  a += 4 * 8;
+#define KERNEL_4x4_ACC8()                  \
+  do {                                     \
+    dv0 = vld1_f16(a);                     \
+    vb0 = vld1_f16(b);                     \
+    v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
+    v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
+    v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
+    v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
+    dv1 = vld1_f16(a + 4);                 \
+    vb1 = vld1_f16(b + 4);                 \
+    v24 = vfma_lane_f16(v24, vb1, dv1, 0); \
+    v25 = vfma_lane_f16(v25, vb1, dv1, 1); \
+    v26 = vfma_lane_f16(v26, vb1, dv1, 2); \
+    v27 = vfma_lane_f16(v27, vb1, dv1, 3); \
+    dv2 = vld1_f16(a + 8);                 \
+    vb2 = vld1_f16(b + 8);                 \
+    v24 = vfma_lane_f16(v24, vb2, dv2, 0); \
+    v25 = vfma_lane_f16(v25, vb2, dv2, 1); \
+    v26 = vfma_lane_f16(v26, vb2, dv2, 2); \
+    v27 = vfma_lane_f16(v27, vb2, dv2, 3); \
+    dv3 = vld1_f16(a + 12);                \
+    vb3 = vld1_f16(b + 12);                \
+    v24 = vfma_lane_f16(v24, vb3, dv3, 0); \
+    v25 = vfma_lane_f16(v25, vb3, dv3, 1); \
+    v26 = vfma_lane_f16(v26, vb3, dv3, 2); \
+    v27 = vfma_lane_f16(v27, vb3, dv3, 3); \
+    dv4 = vld1_f16(a + 16);                \
+    vb4 = vld1_f16(b + 16);                \
+    v24 = vfma_lane_f16(v24, vb4, dv4, 0); \
+    v25 = vfma_lane_f16(v25, vb4, dv4, 1); \
+    v26 = vfma_lane_f16(v26, vb4, dv4, 2); \
+    v27 = vfma_lane_f16(v27, vb4, dv4, 3); \
+    dv5 = vld1_f16(a + 20);                \
+    vb5 = vld1_f16(b + 20);                \
+    v24 = vfma_lane_f16(v24, vb5, dv5, 0); \
+    v25 = vfma_lane_f16(v25, vb5, dv5, 1); \
+    v26 = vfma_lane_f16(v26, vb5, dv5, 2); \
+    v27 = vfma_lane_f16(v27, vb5, dv5, 3); \
+    dv6 = vld1_f16(a + 24);                \
+    vb6 = vld1_f16(b + 24);                \
+    v24 = vfma_lane_f16(v24, vb6, dv6, 0); \
+    v25 = vfma_lane_f16(v25, vb6, dv6, 1); \
+    v26 = vfma_lane_f16(v26, vb6, dv6, 2); \
+    v27 = vfma_lane_f16(v27, vb6, dv6, 3); \
+    dv7 = vld1_f16(a + 28);                \
+    vb7 = vld1_f16(b + 28);                \
+    v24 = vfma_lane_f16(v24, vb7, dv7, 0); \
+    v25 = vfma_lane_f16(v25, vb7, dv7, 1); \
+    v26 = vfma_lane_f16(v26, vb7, dv7, 2); \
+    v27 = vfma_lane_f16(v27, vb7, dv7, 3); \
+    l += 8;                                \
+    __builtin_prefetch(b + 32, 0, 3);      \
+    __builtin_prefetch(a + 32, 0, 3);      \
+    b += 4 * 8;                            \
+    a += 4 * 8;                            \
+  } while (0)
 
-// 2. Partial sum 16 digits
-#define KERNEL_4x4_ACC1()                \
-  dv0 = vld1_f16(a);                     \
-  vb0 = vld1_f16(b);                     \
-  v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
-  v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
-  v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
-  v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
-  l += 1;                                \
-  __builtin_prefetch(b + 4, 0, 3);       \
-  __builtin_prefetch(a + 4, 0, 3);       \
-  b += 4 * 1;                            \
-  a += 4 * 1;
+// 3. Partial sum 16 digits
+#define KERNEL_4x4_ACC1()                  \
+  do {                                     \
+    dv0 = vld1_f16(a);                     \
+    vb0 = vld1_f16(b);                     \
+    v24 = vfma_lane_f16(v24, vb0, dv0, 0); \
+    v25 = vfma_lane_f16(v25, vb0, dv0, 1); \
+    v26 = vfma_lane_f16(v26, vb0, dv0, 2); \
+    v27 = vfma_lane_f16(v27, vb0, dv0, 3); \
+    l += 1;                                \
+    __builtin_prefetch(b + 4, 0, 3);       \
+    __builtin_prefetch(a + 4, 0, 3);       \
+    b += 4 * 1;                            \
+    a += 4 * 1;                            \
+  } while (0)
 
-#define SAVE_KERNEL_4X4_F16_F32()                                       \
-  vst1q_f32(c, vaddq_f32(vld1q_f32(c), vcvt_f32_f16(v24)));             \
-  vst1q_f32(c + ldc, vaddq_f32(vld1q_f32(c + ldc), vcvt_f32_f16(v25))); \
-  vst1q_f32(c + 2 * ldc,                                                \
-            vaddq_f32(vld1q_f32(c + 2 * ldc), vcvt_f32_f16(v26)));      \
-  vst1q_f32(c + 3 * ldc, vaddq_f32(vld1q_f32(c + 3 * ldc), vcvt_f32_f16(v27)));
+#define SAVE_KERNEL_4X4_F16_F32()                                         \
+  do {                                                                    \
+    vst1q_f32(c, vaddq_f32(vld1q_f32(c), vcvt_f32_f16(v24)));             \
+    vst1q_f32(c + ldc, vaddq_f32(vld1q_f32(c + ldc), vcvt_f32_f16(v25))); \
+    vst1q_f32(c + 2 * ldc,                                                \
+              vaddq_f32(vld1q_f32(c + 2 * ldc), vcvt_f32_f16(v26)));      \
+    vst1q_f32(c + 3 * ldc,                                                \
+              vaddq_f32(vld1q_f32(c + 3 * ldc), vcvt_f32_f16(v27)));      \
+  } while (0)
 
 /**
  * @brief hgemm 4x4 kernel sc = sa * sb
