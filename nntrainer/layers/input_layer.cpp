@@ -70,7 +70,6 @@ void InputLayer::exportTo(Exporter &exporter,
 void InputLayer::finalize(InitLayerContext &context) {
 
   std::vector<TensorDim> output_dims = context.getInputDimensions();
-
   for (auto &d : output_dims) {
     d.setDataType(context.getActivationDataType());
   }

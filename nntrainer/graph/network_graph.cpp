@@ -426,8 +426,6 @@ bool NetworkGraph::backwarding(
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
 
     if (!is_valid) {
-      std::cout << ln->getName() << " : Gradient has NaN --> "
-                << ln->getRunContext().getLossScale() << std::endl;
       break;
     }
   }
@@ -489,11 +487,16 @@ bool NetworkGraph::backwarding(
     }
   }
   /** apply the gradient with the above global norm */
+  std::cout << "======================================= update gradient "
+            << std::endl;
   for (auto w : lazy_weights) {
+    std::cout << w->getName() << " : ";
     lazy_apply_grad_op(*w, iteration);
   }
   nan_count++;
 
+  std::cout << "====================================== update gradient finished"
+            << std::endl;
   /** @todo : handle as property : growth_interval : default --> 2000 */
 
   if (nan_count > 2000) {
@@ -695,6 +698,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       if (getLayerNode(input_name)->executeInPlace() == InPlace::RESTRICTING)
         return InPlace::RESTRICTING;
     }
+
     return InPlace::NON_RESTRICTING;
   }
 
@@ -840,6 +844,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
+
   if (lnode->executeInPlace() != InPlace::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
@@ -946,7 +951,6 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       shared_weight_names.emplace_back(std::get<8>(w_specs.at(i)));
     }
   }
-
   lnode->setDataType(init_context.getWeightDataType(),
                      init_context.getActivationDataType());
 
@@ -1189,7 +1193,6 @@ int NetworkGraph::initialize(ExecutionMode mode,
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     std::vector<Var_Grad *> inputs = {};
     auto const &lnode = getSortedLayerNode(idx);
-
     if (profile_keys.find(lnode->getType()) == profile_keys.end()) {
       int event_key = 0;
       PROFILE_TIME_REGISTER_EVENT(event_key, lnode->getType());
@@ -1378,7 +1381,6 @@ int NetworkGraph::initialize(ExecutionMode mode,
       break;
     }
   }
-
   return ML_ERROR_NONE;
 }
 

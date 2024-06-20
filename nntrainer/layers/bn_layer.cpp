@@ -336,6 +336,7 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
   /** dgamma is calculated in calcDerivative. dbeta is calculated here */
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+  dbeta.setZero();
 
   Tensor deriv32;
   bool deriv_copyed = false;
