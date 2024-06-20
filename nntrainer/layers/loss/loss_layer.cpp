@@ -18,6 +18,7 @@ namespace nntrainer {
 void LossLayer::finalize(InitLayerContext &context) {
   std::vector<TensorDim> input_dim = context.getInputDimensions();
   std::vector<TensorDim> output_dim = input_dim;
+
   for (auto &d : output_dim)
     d.setDataType(
       str_converter<enum_class_prop_tag,
