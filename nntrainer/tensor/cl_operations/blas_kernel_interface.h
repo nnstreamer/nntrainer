@@ -23,7 +23,6 @@ namespace nntrainer {
  * @brief Process data and dimensions for OpenCL dot operation
  * @param[in] input Tensor
  * @param[in] m Tensor
- * @param[in] result Tensor
  * @param[in] RunLayerContext reference
  * @param[in] trans bool
  * @param[in] trans_m bool
