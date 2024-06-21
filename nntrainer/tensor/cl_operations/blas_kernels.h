@@ -158,7 +158,7 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size,
 
 /**
  * @brief     fp16 sscal value element by element immediately
- * @param[in] X float * input
+ * @param[in] X __fp16 * input
  * @param[in] N unsigned int number of elements
  * @param[in] alpha float multiplier
  * @param[in] context RunLayerContext reference
