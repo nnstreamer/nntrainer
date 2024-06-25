@@ -42,7 +42,8 @@ layer_sources = [
   'reshape_layer.cpp',
   'reduce_mean_layer.cpp',
   'positional_encoding_layer.cpp',
-  'identity_layer.cpp'
+  'identity_layer.cpp',
+  'custom_multi_head_attention_layer.cpp',
 ]
 
 layer_headers = [

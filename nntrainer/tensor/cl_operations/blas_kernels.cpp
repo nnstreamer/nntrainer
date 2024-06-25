@@ -35,8 +35,8 @@ std::string dot_cl_kernel_ =
         }
     })";
 
-std::string sgemm_cl_kernel_ =
-  R"(__kernel void sgemm_cl(const __global float* A, const __global float* B,
+std::string sgemm_cl_noTrans_kernel_ =
+  R"(__kernel void sgemm_cl_noTrans(const __global float* A, const __global float* B,
                       __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
         
         unsigned int m = get_global_id(0);
@@ -51,12 +51,75 @@ std::string sgemm_cl_kernel_ =
         C[m * ldc + n] = c;
     })";
 
+std::string sgemm_cl_transA_kernel_ =
+  R"(__kernel void sgemm_cl_transA(const __global float* A, const __global float* B,
+                      __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
+        
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        float c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          float a, b;
+          a = A[k * lda + m];
+          b = B[k * ldb + n];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sgemm_cl_transB_kernel_ =
+  R"(__kernel void sgemm_cl_transB(const __global float *A, const __global float *B,
+                              __global float *C, unsigned int K,
+                              unsigned int lda, unsigned int ldb,
+                              unsigned int ldc) {
+
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        float c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          float a, b;
+          a = A[m * lda + k];
+          b = B[n * ldb + k];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sgemm_cl_transAB_kernel_ =
+  R"(__kernel void sgemm_cl_transAB(const __global float *A, const __global float *B,
+                               __global float *C, unsigned int K,
+                               unsigned int lda, unsigned int ldb,
+                               unsigned int ldc) {
+
+        unsigned int m = get_global_id(0);
+        unsigned int n = get_global_id(1);
+        float c = 0.0f;
+        for (unsigned int k = 0; k < K; ++k) {
+          float a, b;
+          a = A[k * lda + m];
+          b = B[n * ldb + k];
+          c += a * b;
+        }
+        C[m * ldc + n] = c;
+    })";
+
+std::string sscal_cl_kernel_ =
+  R"(__kernel void sscal_cl(__global float* X, const float alpha) {
+        
+        unsigned int i = get_global_id(0);
+        X[i] *= alpha;
+    })";
+
 /**
  * @brief defining global kernel objects
  */
 opencl::Kernel kernel_sgemv;
-opencl::Kernel kernel_sgemm;
+opencl::Kernel kernel_sgemm_transAB;
+opencl::Kernel kernel_sgemm_transA;
+opencl::Kernel kernel_sgemm_transB;
+opencl::Kernel kernel_sgemm_noTrans;
 opencl::Kernel kernel_dot;
+opencl::Kernel kernel_sscal;
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
@@ -209,19 +272,43 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
   return cl_ret;
 }
 
-void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
-              unsigned int N, unsigned int K, unsigned int lda,
-              unsigned int ldb, unsigned int ldc, RunLayerContext &context) {
+void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const float *A,
+              const float *B, float *C, unsigned int M, unsigned int N,
+              unsigned int K, unsigned int lda, unsigned int ldb,
+              unsigned int ldc, RunLayerContext &context) {
+
+  opencl::Kernel *kernel_sgemm = nullptr;
+  RunLayerContext::LayerKernel layerKernel;
+  std::string sgemm_cl_kernel_;
+
+  if (TransA != CblasTrans && TransB != CblasTrans) {
+    kernel_sgemm = &kernel_sgemm_noTrans;
+    layerKernel = context.LayerKernel::SGEMM_NOTRANS;
+    sgemm_cl_kernel_ = sgemm_cl_noTrans_kernel_;
+  } else if (TransA == CblasTrans && TransB != CblasTrans) {
+    kernel_sgemm = &kernel_sgemm_transA;
+    layerKernel = context.LayerKernel::SGEMM_TRANSA;
+    sgemm_cl_kernel_ = sgemm_cl_transA_kernel_;
+  } else if (TransA != CblasTrans && TransB == CblasTrans) {
+    kernel_sgemm = &kernel_sgemm_transB;
+    layerKernel = context.LayerKernel::SGEMM_TRANSB;
+    sgemm_cl_kernel_ = sgemm_cl_transB_kernel_;
+  } else {
+    kernel_sgemm = &kernel_sgemm_transAB;
+    layerKernel = context.LayerKernel::SGEMM_TRANSAB;
+    sgemm_cl_kernel_ = sgemm_cl_transAB_kernel_;
+  }
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(sgemm_cl_kernel_,
-                                    context.LayerKernel::SGEMM, kernel_sgemm);
+    result =
+      context.clCreateKernel(sgemm_cl_kernel_, layerKernel, *kernel_sgemm);
     if (!result) {
       break;
     }
 
+    // sizes will be same for transpose
     size_t m_k_size = M * K * sizeof(float);
     size_t k_n_size = K * N * sizeof(float);
     size_t m_n_size = M * N * sizeof(float);
@@ -247,37 +334,37 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_sgemm->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(1, &inputB, sizeof(cl_mem));
+    result = kernel_sgemm->SetKernelArguments(1, &inputB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(2, &inOutC, sizeof(cl_mem));
+    result = kernel_sgemm->SetKernelArguments(2, &inOutC, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(3, &K, sizeof(int));
+    result = kernel_sgemm->SetKernelArguments(3, &K, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(4, &lda, sizeof(int));
+    result = kernel_sgemm->SetKernelArguments(4, &lda, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(5, &ldb, sizeof(int));
+    result = kernel_sgemm->SetKernelArguments(5, &ldb, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm.SetKernelArguments(6, &ldc, sizeof(int));
+    result = kernel_sgemm->SetKernelArguments(6, &ldc, sizeof(int));
     if (!result) {
       break;
     }
@@ -286,12 +373,59 @@ void sgemm_cl(const float *A, const float *B, float *C, unsigned int M,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_sgemm, work_groups_count, work_group_size);
+      *kernel_sgemm, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = inOutC.ReadData(context.command_queue_inst_, C);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void sscal_cl(float *X, const unsigned int N, const float alpha,
+              RunLayerContext &context) {
+  bool result = false;
+
+  do {
+    result = context.clCreateKernel(sscal_cl_kernel_,
+                                    context.LayerKernel::SSCAL, kernel_sscal);
+    if (!result) {
+      break;
+    }
+
+    size_t x_size = N * sizeof(float);
+
+    opencl::Buffer inputX(context.context_inst_, x_size, false, nullptr);
+
+    result = inputX.WriteData(context.command_queue_inst_, X);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal.SetKernelArguments(0, &inputX, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal.SetKernelArguments(1, &alpha, sizeof(float));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)N, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = context.command_queue_inst_.DispatchCommand(
+      kernel_sscal, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inputX.ReadData(context.command_queue_inst_, X);
     if (!result) {
       break;
     }

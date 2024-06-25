@@ -75,6 +75,9 @@ enum LayerType {
     ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING, /**< Positional Encoding Layer type
                                               */
   LAYER_IDENTITY = ML_TRAIN_LAYER_TYPE_IDENTITY, /**< Identity Layer type */
+  LAYER_CUSTOM_MULTI_HEAD_ATTENTION =
+    ML_TRAIN_LAYER_TYPE_CUSTOM_MULTI_HEAD_ATTENTION, /**< Multi Head Attention
+                                                 Layer type */
   LAYER_PREPROCESS_FLIP =
     ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
   LAYER_PREPROCESS_TRANSLATE =
@@ -501,6 +504,16 @@ MoLAttention(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 MultiHeadAttention(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_MULTI_HEAD_ATTENTION, properties);
+}
+
+/**
+ * @brief Helper function to create Custom Multi Head Attention Layer
+ */
+inline std::unique_ptr<Layer> CustomMultiHeadAttention(
+  const std::vector<std::string> &properties = {},
+  const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_CUSTOM_MULTI_HEAD_ATTENTION, properties,
+                     compute_engine);
 }
 
 /**

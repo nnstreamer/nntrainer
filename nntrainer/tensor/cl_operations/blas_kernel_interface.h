@@ -28,6 +28,18 @@ namespace nntrainer {
  * @param[in] trans bool
  * @param[in] trans_m bool
  */
+Tensor dotCl(Tensor const &input, Tensor const &m, RunLayerContext &context,
+             bool trans = false, bool trans_m = false);
+
+/**
+ * @brief Process data and dimensions for OpenCL dot operation
+ * @param[in] input Tensor
+ * @param[in] m Tensor
+ * @param[in] result Tensor
+ * @param[in] RunLayerContext reference
+ * @param[in] trans bool
+ * @param[in] trans_m bool
+ */
 void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
            RunLayerContext &context, bool trans = false, bool trans_m = false);
 
@@ -43,6 +55,14 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
 void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
                   RunLayerContext &context, bool trans = false,
                   bool trans_m = false);
+
+/**
+ * @brief Multiply value element by element immediately
+ * @param[in] input Tensor
+ * @param[in] value multiplier
+ * @param[in] RunLayerContext reference
+ */
+void multiplyCl(Tensor &input, float const &value, RunLayerContext &context);
 
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */
