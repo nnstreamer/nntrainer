@@ -41,6 +41,7 @@
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <custom_multi_head_attention_layer.h>
 #include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
@@ -299,6 +300,9 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<MultiHeadAttentionLayer>,
                      MultiHeadAttentionLayer::type,
                      LayerType::LAYER_MULTI_HEAD_ATTENTION);
+  ac.registerFactory(nntrainer::createLayer<CustomMultiHeadAttentionLayer>,
+                     CustomMultiHeadAttentionLayer::type,
+                     LayerType::LAYER_CUSTOM_MULTI_HEAD_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
                      ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
   ac.registerFactory(nntrainer::createLayer<PositionalEncodingLayer>,
