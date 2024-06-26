@@ -912,3 +912,13 @@ if __name__ == "__main__":
         "swiglu",
         input_type="float",
     )
+
+    def reshape_tensor(tensor, batch_size, input_channel, input_height, input_width):
+        output_height = 1
+        output_width = input_channel * input_height * input_width
+        output_channel = 1
+        output_shape = (batch_size, output_channel, output_height, output_width)
+        return tf.reshape(tensor, output_shape)
+
+    reshape_layer = tf.keras.layers.Lambda(lambda x: reshape_tensor(x, 2, 3, 3, 3))
+    record_single(reshape_layer, (2, 3, 3, 3), "reshape", input_type="float")
