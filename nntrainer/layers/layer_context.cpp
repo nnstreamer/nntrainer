@@ -699,6 +699,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "swiglu_cl";
   case LayerKernel::SWIGLU_FP16:
     return "swiglu_cl_fp16";
+  case LayerKernel::RESHAPE:
+    return "reshape_cl";
+  case LayerKernel::RESHAPE_FP16:
+    return "reshape_cl_fp16";
   default:
     return "";
   }
