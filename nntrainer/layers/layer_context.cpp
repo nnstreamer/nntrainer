@@ -703,6 +703,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "sscal_cl";
   case LayerKernel::SSCAL_FP16:
     return "sscal_cl_fp16";
+  case LayerKernel::COPY:
+    return "copy_cl";
+  case LayerKernel::COPY_FP16:
+    return "copy_cl_fp16";
   default:
     return "";
   }

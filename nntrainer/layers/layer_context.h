@@ -842,6 +842,8 @@ public:
     SWIGLU_FP16 = 1 << 9, /**< placeholder for kernel name */
     SSCAL = 1 << 10,      /**< placeholder for kernel name */
     SSCAL_FP16 = 1 << 11, /**< placeholder for kernel name */
+    COPY = 1 << 12,       /**< placeholder for kernel name */
+    COPY_FP16 = 1 << 13   /**< placeholder for kernel name */
   };
 
   /**
