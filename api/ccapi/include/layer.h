@@ -358,8 +358,9 @@ Flatten(const std::vector<std::string> &properties = {}) {
  * @brief Helper function to create reshape layer
  */
 inline std::unique_ptr<Layer>
-Reshape(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_RESHAPE, properties);
+Reshape(const std::vector<std::string> &properties = {},
+        const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_RESHAPE, properties, compute_engine);
 }
 
 /**
