@@ -1588,7 +1588,11 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
 
 void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
            uint32_t K, float alpha, float beta, bool TransA, bool TransB) {
-
+  if (K == 1) {
+    unsigned int lda = (TransA) ? M : K;
+    unsigned int ldb = (TransB) ? K : N;
+    return hgemm_K1(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  }
   // dynamic creation to avoid reaching stack limit(causes segmentation fault)
   float *C32 = (float *)malloc(M * N * sizeof(float));
 

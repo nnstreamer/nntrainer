@@ -144,6 +144,22 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
   free(B8);
 }
 
+void hgemm_K1(unsigned int M, unsigned int N, unsigned int K, const __fp16 *A,
+              unsigned int lda, const __fp16 *B, unsigned int ldb, __fp16 *C,
+              unsigned int ldc, float alpha, float beta) {
+  float16x8_t a_vec;
+  unsigned int N8 = (N >> 3) << 3;
+  for (unsigned int m = 0; m < M; ++m) {
+    a_vec = vmovq_n_f16(A[m]);
+    for (unsigned int n = 0; n < N8; n += 8) {
+      vst1q_f16(&C[m * ldc + n], vmulq_f16(a_vec, vld1q_f16(&B[n])));
+    }
+    for (unsigned int n = N8; n < N; ++n) {
+      C[m * ldc + n] = A[m] * B[n];
+    }
+  }
+}
+
 void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,
                        const __fp16 *A, unsigned int lda, const __fp16 *B,
                        unsigned int ldb, __fp16 *C, unsigned int ldc,
