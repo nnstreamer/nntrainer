@@ -144,20 +144,72 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
   free(B8);
 }
 
-void hgemm_K1(unsigned int M, unsigned int N, unsigned int K, const __fp16 *A,
-              unsigned int lda, const __fp16 *B, unsigned int ldb, __fp16 *C,
-              unsigned int ldc, float alpha, float beta) {
+void hgemm_K1_noTrans(unsigned int M, unsigned int N, unsigned int K,
+                      const __fp16 *A, unsigned int lda, const __fp16 *B,
+                      unsigned int ldb, __fp16 *C, unsigned int ldc,
+                      float alpha, float beta) {
+  const float eps = std::numeric_limits<float>::epsilon();
   float16x8_t a_vec;
   unsigned int N8 = (N >> 3) << 3;
   for (unsigned int m = 0; m < M; ++m) {
-    a_vec = vmovq_n_f16(A[m]);
-    for (unsigned int n = 0; n < N8; n += 8) {
-      vst1q_f16(&C[m * ldc + n], vmulq_f16(a_vec, vld1q_f16(&B[n])));
+    a_vec = vmovq_n_f16(alpha * A[m]);
+    if (std::fpclassify(beta) != FP_ZERO) {
+      for (unsigned int n = 0; n < N8; n += 8) {
+        vst1q_f16(&C[m * ldc + n],
+                  vaddq_f16(vmulq_f16(a_vec, vld1q_f16(&B[n])),
+                            vmulq_n_f16(vld1q_f16(&C[m * ldc + n]), beta)));
+      }
+    } else {
+      for (unsigned int n = 0; n < N8; n += 8) {
+        vst1q_f16(&C[m * ldc + n], vmulq_f16(a_vec, vld1q_f16(&B[n])));
+      }
     }
     for (unsigned int n = N8; n < N; ++n) {
-      C[m * ldc + n] = A[m] * B[n];
+      C[m * ldc + n] = alpha * A[m] * B[n] + beta * C[m * ldc + n];
     }
   }
+}
+
+void hgemm_K1_transA(unsigned int M, unsigned int N, unsigned int K,
+                     const __fp16 *A, unsigned int lda, const __fp16 *B,
+                     unsigned int ldb, __fp16 *C, unsigned int ldc, float alpha,
+                     float beta) {
+  __fp16 *A_T = new __fp16[M * K];
+
+  transpose_neon<__fp16>(K, M, A, M, A_T, K);
+
+  hgemm_K1_noTrans(M, N, K, A_T, lda, B, ldb, C, ldc, alpha, beta);
+
+  free(A_T);
+}
+
+void hgemm_K1_transB(unsigned int M, unsigned int N, unsigned int K,
+                     const __fp16 *A, unsigned int lda, const __fp16 *B,
+                     unsigned int ldb, __fp16 *C, unsigned int ldc, float alpha,
+                     float beta) {
+  __fp16 *B_T = new __fp16[K * N];
+
+  transpose_neon<__fp16>(N, K, B, K, B_T, N);
+
+  hgemm_K1_noTrans(M, N, K, A, lda, B_T, ldb, C, ldc, alpha, beta);
+
+  free(B_T);
+}
+
+void hgemm_K1_transAB(unsigned int M, unsigned int N, unsigned int K,
+                      const __fp16 *A, unsigned int lda, const __fp16 *B,
+                      unsigned int ldb, __fp16 *C, unsigned int ldc,
+                      float alpha, float beta) {
+  __fp16 *A_T = new __fp16[M * K];
+  __fp16 *B_T = new __fp16[K * N];
+
+  transpose_neon<__fp16>(K, M, A, M, A_T, K);
+  transpose_neon<__fp16>(N, K, B, K, B_T, N);
+
+  hgemm_K1_noTrans(M, N, K, A_T, lda, B_T, ldb, C, ldc, alpha, beta);
+
+  free(A_T);
+  free(B_T);
 }
 
 void hgemm_noTrans_1x4(unsigned int M, unsigned int N, unsigned int K,

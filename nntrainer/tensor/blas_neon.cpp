@@ -1589,9 +1589,7 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
 void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
            uint32_t K, float alpha, float beta, bool TransA, bool TransB) {
   if (K == 1) {
-    unsigned int lda = (TransA) ? M : K;
-    unsigned int ldb = (TransB) ? K : N;
-    return hgemm_K1(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+    return hgemm_K1(A, B, C, M, N, K, alpha, beta, TransA, TransB);
   }
   // dynamic creation to avoid reaching stack limit(causes segmentation fault)
   float *C32 = (float *)malloc(M * N * sizeof(float));
@@ -1642,6 +1640,22 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
 
   copy_fp32_to_fp16(M * N, C32, C);
   free(C32);
+}
+
+void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
+              uint32_t N, uint32_t K, float alpha, float beta, bool TransA,
+              bool TransB) {
+  unsigned int lda = (TransA) ? M : K;
+  unsigned int ldb = (TransB) ? K : N;
+  if (!TransA && TransB) {
+    hgemm_K1_transB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  } else if (TransA && !TransB) {
+    hgemm_K1_transA(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  } else if (!TransA && !TransB) {
+    hgemm_K1_noTrans(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  } else { // TransA && TransB
+    hgemm_K1_transAB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  }
 }
 
 void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
