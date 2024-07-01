@@ -44,7 +44,7 @@ void SplitLayer::finalize(InitLayerContext &context) {
 
   /**
    * The split is only done along the split_dimension dimension.
-   * (Assumes input data is continous)
+   * (Assumes input data is continuous)
    * For example, consider input dimension [b,c,h,w], split_number = n
    * 1. axis = 1, output_dim = [b,c//n,h,w], num_outputs = n
    * 2. axis = 2, output_dim = [b,c,h//n,w], num_outputs = n
@@ -75,7 +75,7 @@ void SplitLayer::finalize(InitLayerContext &context) {
    * to facilitate easier processing.
    *
    * The helper shape consolidates all the dimensions before the split_dimension
-   * together and all the dimensions after the split_dimension to faciliate
+   * together and all the dimensions after the split_dimension to facilitate
    * easier splitting of the data.
    */
   leading_helper_dim = 1;

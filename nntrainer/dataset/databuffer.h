@@ -139,7 +139,7 @@ public:
    * @brief this function helps exporting the dataset in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
-   * @param     exporter exporter that conatins exporting logic
+   * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
   void exportTo(Exporter &exporter,

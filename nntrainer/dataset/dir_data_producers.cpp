@@ -72,9 +72,7 @@ static void readImage(const std::string path, float *input, uint width,
 namespace nntrainer {
 
 DirDataProducer::DirDataProducer() :
-  dir_data_props(new Props()),
-  num_class(0),
-  num_data_total(0) {}
+  dir_data_props(new Props()), num_class(0), num_data_total(0) {}
 
 DirDataProducer::DirDataProducer(const std::string &dir_path) :
   dir_data_props(new Props(props::DirPath(dir_path))),
@@ -140,7 +138,7 @@ DirDataProducer::finalize(const std::vector<TensorDim> &input_dims,
   auto sz = size(input_dims, label_dims);
 
   NNTR_THROW_IF(sz == 0, std::invalid_argument)
-    << "size is zero, dataproducer does not provide anything";
+    << "size is zero, data producer does not provide anything";
 
   return [sz, input_dims, this](unsigned int idx, std::vector<Tensor> &inputs,
                                 std::vector<Tensor> &labels) {
