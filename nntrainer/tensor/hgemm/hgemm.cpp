@@ -38,6 +38,8 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
   if (std::abs(alpha - 1.F) < eps) {
     if ((K & 0x7) != 0) {
       hgemm_noTrans_padding_wrt_K(A, B, C32, M, N, K, alpha, beta);
+    } else if ((M & 0x7) != 0 && (K & 0x7) == 0) {
+      hgemm_noTrans_padding_wrt_M(A, B, C32, M, N, K, alpha, beta);
     } else {
       hgemm_noTrans_strict(A, B, C32, M, N, K, alpha, beta);
     }
@@ -142,6 +144,30 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
 
   free(A8);
   free(B8);
+}
+
+void hgemm_noTrans_padding_wrt_M(const __fp16 *A, const __fp16 *B, float *C,
+                                 unsigned int M, unsigned int N, unsigned int K,
+                                 float alpha, float beta) {
+  const unsigned int M8_high = ((M - 1) / 8 + 1) * 8;
+  const unsigned int M8_low = (M >> 3) << 3;
+
+  const unsigned int lda = K;
+  const unsigned int ldb = N;
+
+  __fp16 *A8 = alignedMalloc(M8_high * K);
+  float16x8_t ZEROS = vmovq_n_f16(0.F);
+
+  for (unsigned int idx = 0; idx < M * K; idx += 8) {
+    vst1q_f16(&A8[idx], vld1q_f16(&A[idx]));
+  }
+  for (unsigned int idx = M * K; idx < M8_high; idx += 8) {
+    vst1q_f16(&A8[idx], ZEROS);
+  }
+  // will C invoke segfault?
+  hgemm_noTrans_strict(A8, B, C, M8_high, N, K, alpha, beta);
+
+  free(A8);
 }
 
 void hgemm_K1_noTrans(unsigned int M, unsigned int N, unsigned int K,
