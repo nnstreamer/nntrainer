@@ -78,9 +78,13 @@ public:
       in_place = false;
       this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
       break;
-    case ActivationType::ACT_QUICK_GELU:
+    case ActivationType::ACT_TANH_GELU:
       in_place = false;
-      this->setActivation<Tensor>(quickGelu<T>, quickGeluPrime<T>);
+      this->setActivation<Tensor>(tanhGelu<T>, tanhGeluPrime<T>);
+      break;
+    case ActivationType::ACT_SIGMOID_GELU:
+      in_place = false;
+      this->setActivation<Tensor>(sigmoidGelu<T>, sigmoidGeluPrime<T>);
       break;
     case ActivationType::ACT_ELU:
       this->setActivation<T>(elu<T>, eluPrime<T>);
@@ -462,30 +466,70 @@ public:
   }
 
   /**
-   * @brief     quick gelu activation function (gelu approximation)
+   * @brief     tanh-based gelu approximate function
    * @param[in] t_in input tensor
    * @param[in] t_out output tensor
    */
   template <typename T = float>
-  static Tensor &quickGelu(Tensor const &t_in, Tensor &t_out) {
+  static Tensor &tanhGelu(Tensor const &t_in, Tensor &t_out) {
     t_in.apply<T>(
-      [&](T x) { return static_cast<T>(x * (sigmoid<T>(static_cast<T>(1.702 * x)))); }, t_out);
+      [&](T x) {
+        return static_cast<T>(
+          0.5 * x *
+          (1 + tanhFloat<T>(
+                 static_cast<T>(sqrt(2 / M_PI) * (x + 0.044715 * pow(x, 3))))));
+      },
+      t_out);
     return t_out;
   }
 
   /**
-   * @brief     derivative quick gelu function
+   * @brief     derivative of tanh-based gelu approximate function
    * @param[in] t_in input tensor
    * @param[in] t_out output tensor
    * @param[in] outgoing_derivative outgoing derivative
    * @param[in] incoming_derivative incoming derivative
    */
   template <typename T = float>
-  static Tensor &quickGeluPrime(Tensor const &t_in, Tensor const &t_out,
-                           Tensor &outgoing_derivative,
-                           Tensor const &incoming_derivative = Tensor()) {
+  static Tensor &tanhGeluPrime(Tensor const &t_in, Tensor const &t_out,
+                               Tensor &outgoing_derivative,
+                               Tensor const &incoming_derivative = Tensor()) {
     // NYI
-    ml_logw("quickGeluPrime which is calculate derivate of quickGelu function is not yet implemented");
+    ml_logw("tanhGeluPrime which is calculate derivate of tanhGelu function is "
+            "not yet implemented");
+    return outgoing_derivative;
+  }
+
+  /**
+   * @brief     sigmoid-based gelu approximate function (quick gelu)
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   */
+  template <typename T = float>
+  static Tensor &sigmoidGelu(Tensor const &t_in, Tensor &t_out) {
+    t_in.apply<T>(
+      [&](T x) {
+        return static_cast<T>(x * (sigmoid<T>(static_cast<T>(1.702 * x))));
+      },
+      t_out);
+    return t_out;
+  }
+
+  /**
+   * @brief     derivative of sigmoid-based gelu approximate function
+   * @param[in] t_in input tensor
+   * @param[in] t_out output tensor
+   * @param[in] outgoing_derivative outgoing derivative
+   * @param[in] incoming_derivative incoming derivative
+   */
+  template <typename T = float>
+  static Tensor &
+  sigmoidGeluPrime(Tensor const &t_in, Tensor const &t_out,
+                   Tensor &outgoing_derivative,
+                   Tensor const &incoming_derivative = Tensor()) {
+    // NYI
+    ml_logw("sigmoidGeluPrime which is calculate derivate of sigmoidGelu "
+            "function is not yet implemented");
     return outgoing_derivative;
   }
 
