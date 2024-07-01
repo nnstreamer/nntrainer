@@ -30,20 +30,21 @@ namespace nntrainer {
  * accordingly
  */
 enum class ActivationType {
-  ACT_TANH,       /**< tanh */
-  ACT_SIGMOID,    /**< sigmoid */
-  ACT_RELU,       /**< ReLU */
-  ACT_SWISH,      /**< Swish */
-  ACT_GELU,       /**< GELU */
-  ACT_QUICK_GELU, /**< Quick GELU */
-  ACT_SOFTMAX,    /**< softmax */
-  ACT_SOFTPLUS,   /**< softplus */
-  ACT_LEAKY_RELU, /**< Leaky ReLU */
-  ACT_ELU,        /**< ELU */
-  ACT_SELU,       /**< SELU */
-  ACT_MISH,       /**< Mish */
-  ACT_NONE,       /**< no op */
-  ACT_UNKNOWN     /**< unknown */
+  ACT_TANH,         /**< tanh */
+  ACT_SIGMOID,      /**< sigmoid */
+  ACT_RELU,         /**< ReLU */
+  ACT_SWISH,        /**< Swish */
+  ACT_GELU,         /**< GELU */
+  ACT_TANH_GELU,    /**< tanh GELU */
+  ACT_SIGMOID_GELU, /**< sigmoid GELU */
+  ACT_SOFTMAX,      /**< softmax */
+  ACT_SOFTPLUS,     /**< softplus */
+  ACT_LEAKY_RELU,   /**< Leaky ReLU */
+  ACT_ELU,          /**< ELU */
+  ACT_SELU,         /**< SELU */
+  ACT_MISH,         /**< Mish */
+  ACT_NONE,         /**< no op */
+  ACT_UNKNOWN       /**< unknown */
 };
 
 namespace props {
@@ -910,12 +911,12 @@ struct ActivationTypeInfo {
   static constexpr std::initializer_list<Enum> EnumList = {
     Enum::ACT_TANH,    Enum::ACT_SIGMOID,    Enum::ACT_RELU,
     Enum::ACT_SOFTMAX, Enum::ACT_LEAKY_RELU, Enum::ACT_SWISH,
-    Enum::ACT_GELU,    Enum::ACT_QUICK_GELU, Enum::ACT_NONE,
-    Enum::ACT_UNKNOWN};
+    Enum::ACT_GELU,    Enum::ACT_TANH_GELU,  Enum::ACT_SIGMOID_GELU,
+    Enum::ACT_NONE,    Enum::ACT_UNKNOWN};
 
   static constexpr const char *EnumStr[] = {
-    "tanh",  "sigmoid", "relu",       "softmax", "leaky_relu",
-    "swish", "gelu",    "quick_gelu", "none",    "unknown"};
+    "tanh", "sigmoid",   "relu",         "softmax", "leaky_relu", "swish",
+    "gelu", "tanh_gelu", "sigmoid_gelu", "none",    "unknown"};
 };
 
 /**
@@ -1122,7 +1123,7 @@ struct UpsampleModeInfo {
   enum class Interpolation { nearest, bilinear };
 
   using Enum = Interpolation;
-  
+
   static constexpr std::initializer_list<Interpolation> EnumList = {
     Interpolation::nearest, Interpolation::bilinear};
 
