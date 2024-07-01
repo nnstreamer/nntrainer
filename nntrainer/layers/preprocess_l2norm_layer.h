@@ -29,7 +29,7 @@ class PreprocessL2NormLayer : public Layer {
 public:
   /**
    * @brief Construct a new L2norm Layer object
-   * that normlizes given feature with l2norm
+   * that normalizes given feature with l2norm
    */
   PreprocessL2NormLayer() : Layer() {}
 

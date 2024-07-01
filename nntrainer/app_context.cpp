@@ -154,7 +154,7 @@ std::vector<std::string> getPluginPaths() {
    * where you would like to look for the layers, while NNTRAINER_CONF_PATH is a
    * (buildtime hardcoded @a file path) to locate configuration file *.ini file
    */
-  /*** @note for now, NNTRAINER_PATH is a SINGLE PATH rather than serise of path
+  /*** @note for now, NNTRAINER_PATH is a SINGLE PATH rather than series of path
    * like PATH environment variable. this could be improved but for now, it is
    * enough
    */
@@ -211,7 +211,7 @@ const std::string getFullPath(const std::string &path,
 std::mutex factory_mutex;
 
 /**
- * @brief finialize global context
+ * @brief finalize global context
  *
  */
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
@@ -221,7 +221,7 @@ static void fini_global_context_nntrainer(void) {}
 std::once_flag global_app_context_init_flag;
 
 static void add_default_object(AppContext &ac) {
-  /// @note all layers should be added to the app_context to gaurantee that
+  /// @note all layers should be added to the app_context to guarantee that
   /// createLayer/createOptimizer class is created
   using OptType = ml::train::OptimizerType;
   ac.registerFactory(nntrainer::createOptimizer<SGD>, SGD::type, OptType::SGD);
@@ -319,7 +319,7 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<CentroidKNN>, CentroidKNN::type,
                      LayerType::LAYER_CENTROID_KNN);
 
-  /** proprocess layers */
+  /** preprocess layers */
   ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
                      PreprocessFlipLayer::type,
                      LayerType::LAYER_PREPROCESS_FLIP);
