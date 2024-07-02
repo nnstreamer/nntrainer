@@ -224,7 +224,8 @@ public:
    */
   std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
-    const TensorLifespan &lifespan, bool is_grad_clip,
+    const std::string &suffix, const TensorLifespan &lifespan,
+    bool is_grad_clip, bool is_mixed_type,
     Tensor::Initializer initializer = Tensor::Initializer::NONE);
 
   /**
@@ -493,6 +494,11 @@ public:
   void setExecutionMode(ExecutionMode mode = ExecutionMode::TRAIN) {
     exec_mode = mode;
   };
+
+  /**
+   * @brief     return if it is mixed precsion
+   */
+  bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
 
 private:
   /** @todo: merge this list to one */

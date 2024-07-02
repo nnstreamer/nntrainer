@@ -136,7 +136,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int compile() = 0;
+  virtual int compile(ExecutionMode exec_mode_ = ExecutionMode::TRAIN) = 0;
 
   /**
    * @brief     Initialize Network. This should be called after setting the

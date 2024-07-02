@@ -16,7 +16,20 @@
 namespace nntrainer {
 
 void SGD::applyGradient(RunOptimizerContext &context) {
-  context.applyGradient(context.getLearningRate());
+  // @todo This could go inside the context.
+  Tensor empty_tensor;
+
+  Tensor &x_grad =
+    context.getGradient().getDataType() == ml::train::TensorDim::DataType::FP32
+      ? context.getGradient()
+      : empty_tensor;
+
+  if (x_grad.empty()) {
+    x_grad = context.getGradient().clone(ml::train::TensorDim::DataType::FP32);
+    context.applyLossScale(x_grad);
+  }
+
+  context.applyGradient(context.getLearningRate(), x_grad);
 }
 
 } // namespace nntrainer
