@@ -288,9 +288,11 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) { var->add_i(*grad.get(), -lr);
-    std::cout << var->getName() << " --------------------------" <<std::endl;
-    var->print(std::cout);}
+  void applyGradient(double lr) {
+    var->add_i(*grad.get(), -lr);
+    std::cout << var->getName() << " --------------------------" << std::endl;
+    var->print(std::cout);
+  }
 
   /**
    * @brief     Apply the gradient to the weight with updated gradient
