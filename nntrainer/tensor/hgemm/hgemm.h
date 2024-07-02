@@ -38,9 +38,9 @@ void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
-                   unsigned int N, unsigned int K, float alpha = 1.F,
-                   float beta = 0.F);
+void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, __fp16 *C,
+                          unsigned int M, unsigned int N, unsigned int K,
+                          float alpha = 1.F, float beta = 0.F);
 
 /**
  * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
@@ -72,7 +72,7 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
                                  unsigned int M, unsigned int N, unsigned int K,
                                  float alpha = 1.F, float beta = 0.F);
 
-                                 /**
+/**
  * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * @param[in] A __fp16 * for Matrix A
  * @param[in] B __fp16 * for Matrix B
@@ -83,7 +83,7 @@ void hgemm_noTrans_padding_wrt_K(const __fp16 *A, const __fp16 *B, float *C,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemm_noTrans_padding_wrt_K4(const __fp16 *A, const __fp16 *B, float *C,
+void hgemm_noTrans_padding_wrt_M(const __fp16 *A, const __fp16 *B, float *C,
                                  unsigned int M, unsigned int N, unsigned int K,
                                  float alpha = 1.F, float beta = 0.F);
 
