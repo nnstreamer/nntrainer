@@ -487,6 +487,7 @@ public:
   const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
+   * currently, only unittest uses this func.
    *
    * @param idx Identifier of the weight
    * @return Weight& Reference to the weight
@@ -495,11 +496,11 @@ public:
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     if (run_context->weightHasGradient(idx)) {
-      return Weight(run_context->getWeight(idx),
-                    run_context->getWeightGrad(idx),
-                    run_context->getWeightName(idx));
+      return Weight(
+        run_context->getWeight(idx), run_context->getWeightGrad(idx),
+        run_context->getWeightFP32(idx), run_context->getWeightName(idx));
     } else {
-      return Weight(run_context->getWeight(idx), Tensor(),
+      return Weight(run_context->getWeight(idx), Tensor(), Tensor(),
                     run_context->getWeightName(idx));
     }
   }
@@ -819,7 +820,8 @@ public:
   void configureRunContext(const std::vector<Weight *> &weights,
                            const std::vector<Var_Grad *> &inputs,
                            const std::vector<Var_Grad *> &outputs,
-                           const std::vector<Var_Grad *> &tensors);
+                           const std::vector<Var_Grad *> &tensors,
+                           float loss_scale);
 
   /**
    * @brief Preset modes for printing summary for the layer

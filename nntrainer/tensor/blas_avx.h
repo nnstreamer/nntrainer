@@ -20,6 +20,7 @@
 
 namespace nntrainer::avx {
 
+#ifdef ENABLE_FP16
 /**
  * @brief Converts half-precision floating point values to single-precision
  * floating point values.
@@ -39,6 +40,25 @@ void vcvt_f16_f32(size_t N, const void *input, float *output);
  * @param[out] output vector containing 16-bit floating point values
  */
 void vcvt_f32_f16(size_t N, const float *input, void *output);
+
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare (x!=x || x == inf)
+ * @param[in] N  length of the vector
+ * @param[in] X half-precision * for Vector X
+ * @param[out] false if it has NaN or inf
+ */
+bool isValid(const size_t N, const _Float16 *X);
+#endif
+
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare (x!=x || x == inf)
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[out] false if it has NaN or inf
+ */
+bool isValid(const size_t N, const float *X);
 
 } // namespace nntrainer::avx
 

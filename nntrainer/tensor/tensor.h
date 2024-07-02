@@ -1698,6 +1698,13 @@ public:
   Tensor clone() const;
 
   /**
+   * @brief     Convient wrapper for inplace copy of @a this.
+   * @param[in] type output tensor data type
+   * @retval    Copied version of this
+   */
+  Tensor clone(ml::train::TensorDim::DataType type) const;
+
+  /**
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */
@@ -2047,6 +2054,12 @@ public:
   void dequantize(Tensor &output, unsigned int axis) const;
 
   static constexpr float epsilon = 1e-5;
+
+  /**
+   * @brief      check if there is NaN or Inf element
+   * @param[out] bool false if there is NaN or Inf else false
+   */
+  bool isValid() const;
 
 private:
   /**< handle the data as a std::shared_ptr<float> type */
