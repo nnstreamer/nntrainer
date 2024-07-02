@@ -100,6 +100,18 @@ bool Axis::isValid(const unsigned int &value) const {
   return value < ml::train::TensorDim::MAXDIM;
 }
 
+StartDimension::StartDimension(unsigned int value) { set(value); }
+
+bool StartDimension::isValid(const unsigned int &value) const {
+  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+}
+
+EndDimension::EndDimension(unsigned int value) { set(value); }
+
+bool EndDimension::isValid(const unsigned int &value) const {
+  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+}
+
 bool SplitDimension::isValid(const unsigned int &value) const {
   return value > 0 && value < ml::train::TensorDim::MAXDIM;
 }

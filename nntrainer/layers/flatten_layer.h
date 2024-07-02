@@ -28,7 +28,8 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() : ReshapeLayer() {}
+  FlattenLayer() : ReshapeLayer(), flatten_props(
+    props::StartDimension(), props::EndDimension()) {}
 
   /**
    * @brief     Destructor of Flatten Layer
@@ -70,6 +71,8 @@ public:
   const std::string getType() const override { return FlattenLayer::type; };
 
   inline static const std::string type = "flatten";
+
+  std::tuple<props::StartDimension, props::EndDimension> flatten_props;
 };
 
 } // namespace nntrainer

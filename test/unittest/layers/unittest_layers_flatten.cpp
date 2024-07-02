@@ -21,5 +21,17 @@ auto semantic_flatten = LayerSemanticsParamType(
   nntrainer::FlattenLayer::type, {},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-GTEST_PARAMETER_TEST(Flatten, LayerSemantics,
-                     ::testing::Values(semantic_flatten));
+auto semantic_flatten_with_start_dim = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::FlattenLayer>,
+  nntrainer::FlattenLayer::type, {"start_dimension = 2"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
+auto semantic_flatten_with_start_dim_end_dim = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::FlattenLayer>,
+  nntrainer::FlattenLayer::type, {"start_dimension = 2", "end_dimension = 3"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
+GTEST_PARAMETER_TEST(
+  Flatten, LayerSemantics,
+  ::testing::Values(semantic_flatten, semantic_flatten_with_start_dim,
+                    semantic_flatten_with_start_dim_end_dim));
