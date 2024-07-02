@@ -51,7 +51,6 @@ public:
   const std::string getType() const override { return MSELossLayer::type; };
 
   inline static const std::string type = "mse";
-
 };
 } // namespace nntrainer
 

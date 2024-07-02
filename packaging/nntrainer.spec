@@ -574,9 +574,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
-# In the current version, Neon SIMD is enabled only when FP16 is enabled with AArch64. 
-# This may be subject to change in future versions.
-%ifarch aarch64
+%{_includedir}/nntrainer/loss_layer.h
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
 %{_includedir}/nntrainer/blas_neon.h

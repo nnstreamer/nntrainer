@@ -720,7 +720,8 @@ public:
 };
 
 // /**
-//  * @brief trainable property, use this to set and check how if certain layer is
+//  * @brief trainable property, use this to set and check how if certain layer
+//  is
 //  * trainable
 //  *
 //  */
@@ -734,7 +735,7 @@ public:
 //   static constexpr const char *key = "trainable";
 //   using prop_tag = bool_prop_tag;
 // };
-  
+
 } // namespace props
 
 } // namespace nntrainer
