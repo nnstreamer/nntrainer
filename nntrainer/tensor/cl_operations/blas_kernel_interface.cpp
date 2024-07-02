@@ -30,6 +30,14 @@ void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
   }
 }
 
+Tensor dotCl(Tensor const &input, Tensor const &m, RunLayerContext &context,
+             bool trans, bool trans_m) {
+  Tensor output("", input.getFormat(), input.getDataType());
+  dotCl(input, m, output, context, trans, trans_m);
+
+  return output;
+}
+
 void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
            RunLayerContext &context, bool trans, bool trans_m) {
   unsigned int dim1, dim2, mdim1, mdim2;
@@ -180,6 +188,23 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
       sgemm_cl(data, mdata, rdata, M, N, K, lda, ldb, ldc, context);
       // todo: other condition implementations
     }
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+}
+
+void multiplyCl(Tensor &input, float const &value, RunLayerContext &context) {
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *data = input.getData<float>();
+    unsigned int len = input.size();
+
+    sscal_cl(data, len, value, context);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    _FP16 *data = input.getData<_FP16>();
+    unsigned int len = input.size();
+    sscal_cl(data, len, value, context);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif

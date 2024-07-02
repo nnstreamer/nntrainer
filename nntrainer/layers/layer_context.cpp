@@ -703,6 +703,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "rmsnorm_cl";
   case LayerKernel::RMSNORM_FP16:
     return "rmsnorm_cl_fp16";
+  case LayerKernel::SSCAL:
+    return "sscal_cl";
+  case LayerKernel::SSCAL_FP16:
+    return "sscal_cl_fp16";
   default:
     return "";
   }

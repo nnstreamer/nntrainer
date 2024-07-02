@@ -141,7 +141,7 @@ public:
    * @brief Construct a new Sample object
    * @note the batch dimension will be ignored to make a single sample
    *
-   * @param iter iteration obejcts
+   * @param iter iteration objects
    * @param batch nth batch to create the sample
    */
   Sample(const Iteration &iter, unsigned int batch);

@@ -109,10 +109,10 @@ public:
   }
 
   /**
-   * @brief this function helps exporting the dataproducer in a predefined
+   * @brief this function helps exporting the data producer in a predefined
    * format, while workarounding issue caused by templated function type eraser
    *
-   * @param     exporter exporter that conatins exporting logic
+   * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
   virtual void exportTo(Exporter &exporter,
@@ -120,7 +120,7 @@ public:
 
   /**
    * @brief denote if given producer is thread safe and can be parallelized.
-   * @note if size() == SIZE_UNDEFIEND, thread safe shall be false
+   * @note if size() == SIZE_UNDEFINED, thread safe shall be false
    *
    * @return bool true if thread safe.
    */

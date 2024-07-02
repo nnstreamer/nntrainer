@@ -60,6 +60,13 @@ std::string addition_cl_kernel_ =
     }
   })";
 
+std::string sscal_cl_kernel_ =
+  R"(__kernel void sscal_cl(__global float* X, const float alpha) {
+        
+        unsigned int i = get_global_id(0);
+        X[i] *= alpha;
+    })";
+
 /**
  * @brief defining global kernel objects
  */
@@ -67,6 +74,7 @@ opencl::Kernel kernel_sgemv;
 opencl::Kernel kernel_sgemm;
 opencl::Kernel kernel_dot;
 opencl::Kernel kernel_addition;
+opencl::Kernel kernel_sscal;
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda,
@@ -360,6 +368,53 @@ void addition_cl(const float *input, float *res, unsigned int size,
     }
 
     result = inOutRes.ReadData(context.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void sscal_cl(float *X, const unsigned int N, const float alpha,
+              RunLayerContext &context) {
+  bool result = false;
+
+  do {
+    result = context.clCreateKernel(sscal_cl_kernel_,
+                                    context.LayerKernel::SSCAL, kernel_sscal);
+    if (!result) {
+      break;
+    }
+
+    size_t x_size = N * sizeof(float);
+
+    opencl::Buffer inputX(context.context_inst_, x_size, false, nullptr);
+
+    result = inputX.WriteData(context.command_queue_inst_, X);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal.SetKernelArguments(0, &inputX, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sscal.SetKernelArguments(1, &alpha, sizeof(float));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)N, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = context.command_queue_inst_.DispatchCommand(
+      kernel_sscal, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inputX.ReadData(context.command_queue_inst_, X);
     if (!result) {
       break;
     }

@@ -42,7 +42,8 @@ layer_sources = [
   'reshape_layer.cpp',
   'reduce_mean_layer.cpp',
   'positional_encoding_layer.cpp',
-  'identity_layer.cpp'
+  'identity_layer.cpp',
+  'upsample2d_layer.cpp'
 ]
 
 layer_headers = [

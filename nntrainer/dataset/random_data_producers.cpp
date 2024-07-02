@@ -113,7 +113,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   /// @todo move this to higher order component
   NNTR_THROW_IF(size(input_dims, label_dims) == 0, std::invalid_argument)
-    << "size is zero, dataproducer does not provide anything";
+    << "size is zero, data producer does not provide anything";
 
   /** prepare states for the generator */
   std::vector<std::uniform_int_distribution<unsigned int>> label_chooser_;
