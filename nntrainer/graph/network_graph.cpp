@@ -337,7 +337,7 @@ void NetworkGraph::applyGradients(
       continue;
     }
 
-    if (rc.isGradientClipByGlobalNorm(i)) {
+    if (rc.isGradientClipByGlobalNorm(i) || rc.isMixedPrecision(i)) {
       /**
        * @note the weights whose gradient are to be clipped by global norm will
        * be clipped at once at the end of iteration and applied then.
@@ -393,56 +393,100 @@ sharedConstTensors NetworkGraph::incremental_forwarding(
   return out;
 }
 
-void NetworkGraph::backwarding(
+bool NetworkGraph::backwarding(
   int iteration,
-  std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-  std::function<void(Weight &, int)> &apply_grad_clip_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) const {
+  std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
+  std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
+  std::function<void(Weight &, int)> &lazy_apply_grad_op,
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
   /**
    * last layer backwarding is run out of this loop
    */
   auto iter_begin = getBackwardingBeginIter();
   auto iter_end = getBackwardingEndIter();
+  bool is_valid = true;
 
   /// there is no layer to train, so backwarding is essentially noop
   if (iter_begin == iter_end) {
-    return;
+    return true;
   }
 
   auto const &lptr_begin = (*iter_begin);
+  // graph_const_reverse_iterator
+  auto iter_ = iter_begin;
 
   if (lptr_begin->requireLabel() == false)
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  for (auto iter = iter_begin; iter != iter_end && !stop_cb(userdata); iter++) {
-    auto &ln = *iter;
+  for (iter_ = iter_begin; iter_ != iter_end && !stop_cb(userdata); iter_++) {
+    auto &ln = *iter_;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    backwarding_op(ln, iteration);
+    is_valid = backwarding_op(ln, iteration);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
+
+    if (!is_valid) {
+      std::cout << "Gradient has NaN" << std::endl;
+      break;
+    }
+  }
+
+  if (!is_valid) {
+    /** if has NaN
+     * 1. reset the loss scale.
+     * 2. run forwarding from cur_iter to cend() && !stop_cb(userdata);
+     * 3. return false --> run backwarding again;
+     */
+    float scale = (*iter_)->getRunContext().getLossScale();
+    float s = scale > 1.5f ? scale - 0.5f : 1.0f;
+
+    resetLossScale(s);
+
+    auto f_iter = cbegin() + graph.getSortedNodeIdx((*iter_)->getName());
+
+    for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
+      auto &ln = *iter;
+      PROFILE_TIME_START(profile_keys.at(ln->getType()));
+      forwarding_op(*iter, true);
+      PROFILE_TIME_END(profile_keys.at(ln->getType()));
+    }
+
+    return false;
   }
 
   /** perform clipping of the gradients by global norm if any */
-  if (clip_weights.empty())
-    return;
+  if (lazy_weights.empty())
+    return true;
 
-  /** calculate the global norm */
-  Tensor global_norm_t(
-    TensorDim({1u, 1u, 1u, (unsigned int)clip_weights.size()}));
-  float *global_norm_data = global_norm_t.getData();
-  for (unsigned int idx = 0; idx < clip_weights.size(); idx++) {
-    auto const &w = clip_weights[idx];
-    global_norm_data[idx] = w->getGradientNorm();
+  if (is_clip_grad) {
+    /** calculate the global norm */
+    Tensor global_norm_t(
+      TensorDim({1u, 1u, 1u, (unsigned int)lazy_weights.size()}));
+    float *global_norm_data = global_norm_t.getData();
+    for (unsigned int idx = 0; idx < lazy_weights.size(); idx++) {
+      auto const &w = lazy_weights[idx];
+      global_norm_data[idx] = w->getGradientNorm();
+    }
+    float global_norm = global_norm_t.l2norm();
+    /** apply the gradient with the above global norm */
+    for (auto w : lazy_weights) {
+      w->clipGradientByGlobalNorm(global_norm);
+    }
   }
-  float global_norm = global_norm_t.l2norm();
   /** apply the gradient with the above global norm */
-  for (auto w : clip_weights) {
-    w->clipGradientByGlobalNorm(global_norm);
+  for (auto w : lazy_weights) {
+    lazy_apply_grad_op(*w, iteration);
   }
-  /** apply the gradient with the above global norm */
-  for (auto w : clip_weights) {
-    apply_grad_clip_op(*w, iteration);
+  nan_count++;
+
+  if (nan_count > 10) {
+    float scale = (*iter_)->getRunContext().getLossScale();
+    float s = scale + 2.0f;
+    resetLossScale(s);
+    nan_count = 0;
   }
+
+  return true;
 }
 
 LayerNode *NetworkGraph::computeBackwardEnd() {
@@ -580,8 +624,15 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 InPlace
 NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
-  if (!lnode->supportInPlace())
+
+  if (!lnode->supportInPlace()) {
     return InPlace::NONE;
+  }
+
+  if (lnode->getType() == InputLayer::type &&
+      !istrequal(getTensorType()[2], "FP32")) {
+    return InPlace::NONE;
+  }
 
   /** layers which behave as a no-op - flatten */
   auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {
@@ -768,9 +819,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
+
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace() != InPlace::NONE) {
+  if (lnode->executeInPlace() != InPlace::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);
@@ -879,7 +931,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                                    lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }
@@ -1027,7 +1080,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // TODO: update weights spec for trainable based on layer trainable prop
     weights, inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }
@@ -1287,10 +1341,18 @@ int NetworkGraph::initialize(ExecutionMode mode,
 
   /** select weights which would require clipping of the gradients by global
    * norm if any */
-  clip_weights = tensor_manager->getWeights([](const Weight *w) {
+  lazy_weights = tensor_manager->getWeights([](const Weight *w) {
     return w->hasGradient() && w->isGradientLastAccess() &&
-           w->isGradientClipByGlobalNorm();
+           (w->isGradientClipByGlobalNorm() || w->isMixedPrecision());
   });
+
+  is_clip_grad = false;
+  for (auto w : lazy_weights) {
+    if (w->isGradientClipByGlobalNorm()) {
+      is_clip_grad = true;
+      break;
+    }
+  }
 
   return ML_ERROR_NONE;
 }
@@ -1556,9 +1618,17 @@ void NetworkGraph::requestOptimizerVariable(
       const TensorDim &dim = w->getDim();
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
-        dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS));
+        dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
+        w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+        Tensor::Initializer::ZEROS));
     }
+  }
+}
+
+void NetworkGraph::resetLossScale(float scale) {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &ln = *iter;
+    ln->getRunContext().setLossScale(scale);
   }
 }
 
