@@ -47,6 +47,8 @@ public:
    */
   virtual bool supportBackwarding() const override { return true; }
 
+  bool supportInPlace() const override {return is_inplace;}
+
   /**
    * @copydoc Layer::requireLabel()
    */
@@ -60,8 +62,17 @@ protected:
    */
   void updateLoss(RunLayerContext &context, const Tensor &l);
 
+  /**
+   * @brief     update return derivative with loss scale
+   * @param     context Run context to update
+   * @param     return_dev Tensor data to calculate
+   */
+  void applyLossScale(RunLayerContext &context, Tensor &l);
+
   Tensor
     l; /**< loss tensor to store intermediate value to calculate loss value */
+
+    bool is_inplace;
 };
 
 } // namespace nntrainer
