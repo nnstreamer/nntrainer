@@ -171,6 +171,19 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
 }
 
 /**
+ * @brief Get the Weight Gradient tensor object
+ *
+ * @param idx Identifier of the weight
+ * @return Tensor& Reference to the weight grad tensor
+ */
+Tensor &RunLayerContext::getWeightFP32(unsigned int idx) const {
+  if (!weights[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable weight.");
+  return weights[idx]->getVariableFP32Ref();
+}
+
+/**
  * @brief Get the Weight Optimizer Variable tensor object
  *
  * @param idx Identifier of the weight
