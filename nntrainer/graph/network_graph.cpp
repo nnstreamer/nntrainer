@@ -768,9 +768,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
+
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace() != InPlace::NONE) {
+  if (lnode->executeInPlace() != InPlace::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);
@@ -879,7 +880,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                                    lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }
@@ -1027,7 +1029,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // TODO: update weights spec for trainable based on layer trainable prop
     weights, inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names));
+                                   lnode->getTrainable(), shared_tensor_names),
+    init_context.getLossScale());
 
   return outputs;
 }
@@ -1556,8 +1559,9 @@ void NetworkGraph::requestOptimizerVariable(
       const TensorDim &dim = w->getDim();
       std::vector<TensorDim> dims = cb(dim);
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
-        dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        w->isGradientClipByGlobalNorm(), Tensor::Initializer::ZEROS));
+        dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
+        w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
+        Tensor::Initializer::ZEROS));
     }
   }
 }
