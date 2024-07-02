@@ -47,7 +47,7 @@ public:
    */
   virtual bool supportBackwarding() const override { return true; }
 
-  bool supportInPlace() const override {return is_inplace;}
+  bool supportInPlace() const override { return is_inplace; }
 
   /**
    * @copydoc Layer::requireLabel()
@@ -72,7 +72,7 @@ protected:
   Tensor
     l; /**< loss tensor to store intermediate value to calculate loss value */
 
-    bool is_inplace;
+  bool is_inplace;
 };
 
 } // namespace nntrainer
