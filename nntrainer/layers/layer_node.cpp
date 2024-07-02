@@ -817,8 +817,8 @@ void LayerNode::forwarding(bool training) {
     if (executeInPlace() == InPlace::NONE) {
       for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
         run_context->getOutput(i).setValue(0);
-	if(!run_context->getOutputGradUnsafe(i).isValid())
-	  run_context->getOutputGradUnsafe(i).setValue(0);
+        if (!run_context->getOutputGradUnsafe(i).isValid())
+          run_context->getOutputGradUnsafe(i).setValue(0);
       }
       for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
         if (run_context->weightHasGradient(i)) {

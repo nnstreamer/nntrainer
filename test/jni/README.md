@@ -13,3 +13,11 @@ please do
 #cp ${ANDROIND_SDK_HOME}/Sdk/ndk/${NDK_VERSION}/sources/third_party/googletest .
 ```
 
+and to use android builddir/android_build_result, do 
+``` bash
+#ln -s ../../builddir/android_build_result ../nntrainer
+
+```
+
+
+

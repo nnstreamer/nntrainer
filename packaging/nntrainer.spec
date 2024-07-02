@@ -565,6 +565,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
+%{_includedir}/nntrainer/loss_layer.h
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
 %endif

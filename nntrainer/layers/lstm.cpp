@@ -58,7 +58,7 @@ void LSTMLayer::forwardingBatchFirstLSTM(
   TensorDim input_tensor_dim({feature_size}, tensor_type);
   TensorDim unit_tensor_dim({unit}, tensor_type);
   TensorDim num_gate_unit_tensor_dim({NUM_GATE * unit}, tensor_type);
-  
+
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
     const Tensor input_sample = input_.getBatchSlice(batch, 1);
     Tensor hidden_state_sample = hidden_state_.getBatchSlice(batch, 1);

@@ -327,9 +327,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *> finalizeContext(
-    const std::shared_ptr<LayerNode> &lnode,
-    const std::vector<Var_Grad *> &prev_inputs);
+  std::vector<Var_Grad *>
+  finalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                  const std::vector<Var_Grad *> &prev_inputs);
 
   /**
    * @brief Recreate run layer context from the given init layer context
@@ -337,9 +337,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *> refinalizeContext(
-    const std::shared_ptr<LayerNode> &lnode,
-    const std::vector<Var_Grad *> &prev_inputs);
+  std::vector<Var_Grad *>
+  refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                    const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
