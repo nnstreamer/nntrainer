@@ -6,6 +6,9 @@ subdir('KNN/jni')
 subdir('LogisticRegression/jni')
 if enable_ccapi
   subdir('MNIST/jni')
+  if get_option('enable-fp16')
+    subdir('MixedPrecision/jni')
+  endif
 endif
 subdir('VGG/jni')
 subdir('Resnet/jni')
