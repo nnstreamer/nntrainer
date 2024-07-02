@@ -188,6 +188,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
+
   output_connections(),
   run_context(nullptr),
   layer_node_props(
@@ -198,7 +199,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
   regularization_loss(0.0f),
-  exec_order({0, 0, 0, 0}) {
+  exec_order({0, 0, 0, 0}),
+  needs_output_set_zero(false) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   }
@@ -485,6 +487,9 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
         run_context->getWeight(i).read(file);
+        if (run_context->isMixedPrecision(i) && getTrainable()) {
+          run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
+        }
       }
     }
   }
@@ -609,7 +614,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
-  float loss_scale = 0.0;
+  float loss_scale = 1.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
 
@@ -758,8 +763,21 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
  */
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
+
   PROFILE_TIME_START(forward_event_key);
+  if (needsOutputSetZero()) {
+    for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
+      run_context->getOutput(i).setValue(0);
+      run_context->getOutgoingDerivative(i).setValue(0);
+    }
+
+    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+      run_context->getWeightGrad(i).setValue(0);
+    }
+  }
+
   layer->forwarding(*run_context, training);
+  needsOutputSetZero(false);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
   TRACE_TIME() << getName() + ": F";
@@ -874,10 +892,11 @@ float LayerNode::getLoss() const { return *loss; }
 void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
-                                    const std::vector<Var_Grad *> &tensors) {
+                                    const std::vector<Var_Grad *> &tensors,
+                                    float loss_scale) {
   run_context = std::make_unique<RunLayerContext>(
-    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
-    inputs, outputs, tensors);
+    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE,
+    loss_scale, weights, inputs, outputs, tensors);
 }
 
 /**
