@@ -909,7 +909,7 @@ if __name__ == "__main__":
     record_single_fp16(
         swiglu_layer,
         [(2, 3, 3, 3), (2, 3, 3, 3)],
-        "swiglu",
+        "swiglufp16",
         input_type="float",
     )
 
