@@ -39,13 +39,11 @@ static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
   }
 }
 
-InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
-                                   const std::vector<bool> &req_out_connected,
-                                   bool in_place_, const std::string &n,
-                                   const std::string &prefix_,
-                                   const float max_norm,
-                                   std::array<std::string, 3> tensor_type_,
-                                   const float loss_scale_) :
+InitLayerContext::InitLayerContext(
+  const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
+  bool in_place_, const std::string &n, const std::string &prefix_,
+  const float max_norm, std::array<std::string, 3> tensor_type_,
+  const float loss_scale_, ml::train::ExecutionMode mode_) :
   input_dim(dim),
   in_place(in_place_),
   clip_by_global_norm(max_norm),
@@ -54,7 +52,8 @@ InitLayerContext::InitLayerContext(const std::vector<TensorDim> &dim,
   name(n),
   prefix(prefix_),
   tensor_type(tensor_type_),
-  loss_scale(loss_scale_) {
+  loss_scale(loss_scale_),
+  mode(mode_){
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();
@@ -127,13 +126,14 @@ const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
 }
 
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
-                                 float l, bool in_place_,
+                                 float l, bool in_place_, float loss_scale_,
                                  const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
   loss(l),
   in_place(in_place_),
+  loss_scale(loss_scale_),
   weights(w),
   inputs(in),
   outputs(out),
@@ -168,6 +168,19 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
     throw std::invalid_argument(
       "Requesting gradient for a non-trainable weight.");
   return weights[idx]->getGradientRef();
+}
+
+/**
+ * @brief Get the Weight Gradient tensor object
+ *
+ * @param idx Identifier of the weight
+ * @return Tensor& Reference to the weight grad tensor
+ */
+Tensor &RunLayerContext::getWeightFP32(unsigned int idx) const {
+  if (!weights[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable weight.");
+  return weights[idx]->getVariableFP32Ref();
 }
 
 /**
@@ -281,6 +294,7 @@ Tensor &RunLayerContext::getOutputGradUnsafe(unsigned int idx) {
 const Tensor RunLayerContext::getIncomingDerivative(unsigned int idx) const {
   return getOutputGrad(idx);
 }
+
 
 /**
  * @brief Get the Input tensor object
@@ -401,6 +415,17 @@ bool RunLayerContext::isGradientLastAccess(unsigned int idx) const {
 
 bool RunLayerContext::isGradientClipByGlobalNorm(unsigned int idx) const {
   return weights[idx]->isGradientClipByGlobalNorm();
+}
+
+bool RunLayerContext::isMixedPrecision(unsigned int idx) const {
+  return weights[idx]->isMixedPrecision();
+}
+
+bool RunLayerContext::isMixedPrecision() const {
+  for (auto w : weights)
+    if (w->isMixedPrecision())
+      return true;
+  return false;
 }
 
 /**

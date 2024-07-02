@@ -11,6 +11,7 @@
 import math
 from recorder_v2 import record_v2, inspect_file, _rand_like
 import torch
+from torch import autocast
 
 class ReduceMeanLast(torch.nn.Module):
     def __init__(self):
@@ -307,6 +308,40 @@ class NonTrainableFC(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class LinearMixedPrecision(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(3, 10)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        with autocast(device_type='cuda', dtype=torch.float16):
+            input=inputs[0].to('cuda')
+            label=labels[0].to('cuda')
+            out = self.fc(input)
+        return out
+
+    def getOptimizer(self):
+        return torch.optim.Adam(self.parameters(), lr=0.1)
+
+class LinearMixedPrecisionNaNSGD(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc0 = torch.nn.Linear(1, 1)
+        self.fc1 = torch.nn.Linear(1, 1)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        with autocast(device_type='cuda', dtype=torch.float16):
+            input=inputs[0].to('cuda')
+            label=labels[0].to('cuda')
+            out = self.fc0(input)
+            out = self.fc1(out)
+        return out
+
+    def getOptimizer(self):
+        return torch.optim.SGD(self.parameters(), lr=0.1)
+
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
@@ -537,5 +572,28 @@ if __name__ == "__main__":
         name="non_trainable_fc_idx3"
     )
     
-    # Function to check the created golden test file
+    fc_mixed_training = LinearMixedPrecision()
+    record_v2(
+        fc_mixed_training,
+        iteration=3,
+        input_dims=[(1,3)],
+        input_dtype=[float],
+        label_dims=[(1,10)],
+        name="fc_mixed_training",
+        optimizer=fc_mixed_training.getOptimizer()
+    )
+
+    fc_mixed_training_nan_sgd = LinearMixedPrecisionNaNSGD()
+    record_v2(
+        fc_mixed_training_nan_sgd,
+        iteration=5,
+        input_dims=[(1,1)],
+        input_dtype=[float],
+        label_dims=[(1,1)],
+        name="fc_mixed_training_nan_sgd",
+        optimizer=fc_mixed_training_nan_sgd.getOptimizer()
+    )    
+
+#    Function to check the created golden test file    
     inspect_file("non_trainable_fc_idx3.nnmodelgolden")
+    
