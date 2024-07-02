@@ -515,6 +515,15 @@ void NeuralNetwork::save(const std::string &file_path,
       }
     }
 
+    if (opt && istrequal(opt->getType(), "rmsprop")) {
+      std::string rmsprop = "rmsprop";
+      model_file.write(rmsprop.c_str(), 7);
+      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+           iter++) {
+        (*iter)->save(model_file, true);
+      }
+    }
+
     model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
     model_file.write((char *)&iter, sizeof(iter));
 
