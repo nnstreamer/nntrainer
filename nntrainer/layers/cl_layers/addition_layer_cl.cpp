@@ -12,7 +12,7 @@
  */
 
 #include <addition_layer_cl.h>
-#include <blas_kernels.h>
+#include <blas_kernel_interface.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -37,44 +37,8 @@ void AdditionLayerCL::forwarding(RunLayerContext &context, bool training) {
     if (!idx) {
       hidden_.copy(input_);
     } else {
-      AddProcess(input_, hidden_, context);
+      add_i_cl(input_, hidden_, context);
     }
-  }
-}
-
-void AdditionLayerCL::AddProcess(Tensor const &input, Tensor &result,
-                                 RunLayerContext &context) {
-
-  CREATE_IF_EMPTY_DIMS(result, result.getDim());
-
-  NNTR_THROW_IF(result.getData() == nullptr, std::invalid_argument)
-    << result.getName() << " is not allocated";
-  NNTR_THROW_IF(input.getData() == nullptr, std::invalid_argument)
-    << input.getName() << " is not allocated";
-
-  if (input.getDim() != result.getDim()) {
-    throw std::invalid_argument(
-      "Error: Dimensions does not match for addition");
-  }
-
-  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    unsigned int size = input.size();
-    const float *data = input.getData();
-    float *rdata = result.getData();
-
-    addition_cl(data, rdata, size, context);
-
-  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-    unsigned int size = input.size();
-    const _FP16 *data = input.getData<_FP16>();
-    _FP16 *rdata = result.getData<_FP16>();
-
-    addition_cl(data, rdata, size, context);
-
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
   }
 }
 
@@ -113,7 +77,7 @@ void AdditionLayerCL::incremental_forwarding(RunLayerContext &context,
       if (!idx) {
         hidden_step.copy(input_step);
       } else {
-        AddProcess(input_step, hidden_step, context);
+        add_i_cl(input_step, hidden_step, context);
       }
     }
   }

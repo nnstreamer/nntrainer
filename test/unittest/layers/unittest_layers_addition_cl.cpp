@@ -51,6 +51,6 @@ auto addition_w16a16_gpu = LayerGoldenTestParamType(
   "added_w16a16.nnlayergolden", LayerGoldenTestParamOptions::DEFAULT, "nchw",
   "fp16", "fp16");
 
-GTEST_PARAMETER_TEST(Addition16, LayerGoldenTest,
+GTEST_PARAMETER_TEST(AdditionGPU16, LayerGoldenTest,
                      ::testing::Values(addition_w16a16_gpu));
 #endif

@@ -63,5 +63,13 @@ void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
  */
 void multiplyCl(Tensor &input, float const &value, RunLayerContext &context);
 
+/**
+ * @brief Process data and dimensions for add operation
+ * @param[in] input Tensor
+ * @param[in] result Tensor
+ * @param[in] RunLayerContext reference
+ */
+void add_i_cl(Tensor const &input, Tensor &result, RunLayerContext &context);
+
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */

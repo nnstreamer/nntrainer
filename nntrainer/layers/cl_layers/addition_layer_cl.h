@@ -77,15 +77,6 @@ public:
   void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief Process data and dimensions for add operation used in addition layer
-   * @param[in] input Tensor
-   * @param[in] result Tensor
-   * @param[in] RunLayerContext reference
-   */
-  void AddProcess(Tensor const &input, Tensor &result,
-                  RunLayerContext &context);
-
-  /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return true; };
