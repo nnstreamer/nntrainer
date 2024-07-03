@@ -63,6 +63,8 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING =
     28, /**< Positional Encoding Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_IDENTITY = 29, /**< Identity Layer type (Since 8.0) */
+  ML_TRAIN_LAYER_TYPE_CUSTOM_MULTI_HEAD_ATTENTION =
+    34, /**< Custom Multi Head Attention Layer type (Since 8.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
