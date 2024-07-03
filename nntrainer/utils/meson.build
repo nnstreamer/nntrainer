@@ -17,6 +17,7 @@ util_headers = [
   'nntr_threads.h',
   'fp16.h',
   'util_simd.h',
+  'custom_properties.h',
 ]
 
 if get_option('enable-trace')
