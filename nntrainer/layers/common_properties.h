@@ -909,14 +909,16 @@ public:
 struct ActivationTypeInfo {
   using Enum = nntrainer::ActivationType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::ACT_TANH,    Enum::ACT_SIGMOID,    Enum::ACT_RELU,
-    Enum::ACT_SOFTMAX, Enum::ACT_LEAKY_RELU, Enum::ACT_SWISH,
-    Enum::ACT_GELU,    Enum::ACT_TANH_GELU,  Enum::ACT_SIGMOID_GELU,
-    Enum::ACT_NONE,    Enum::ACT_UNKNOWN};
+    Enum::ACT_TANH,         Enum::ACT_SIGMOID, Enum::ACT_RELU,
+    Enum::ACT_SWISH,        Enum::ACT_GELU,    Enum::ACT_TANH_GELU,
+    Enum::ACT_SIGMOID_GELU, Enum::ACT_SOFTMAX, Enum::ACT_SOFTPLUS,
+    Enum::ACT_LEAKY_RELU,   Enum::ACT_ELU,     Enum::ACT_SELU,
+    Enum::ACT_MISH,         Enum::ACT_NONE,    Enum::ACT_UNKNOWN};
 
   static constexpr const char *EnumStr[] = {
-    "tanh", "sigmoid",   "relu",         "softmax", "leaky_relu", "swish",
-    "gelu", "tanh_gelu", "sigmoid_gelu", "none",    "unknown"};
+    "tanh",      "sigmoid",      "relu",    "swish",    "gelu",
+    "tanh_gelu", "sigmoid_gelu", "softmax", "softplus", "leaky_relu",
+    "elu",       "selu",         "mish",    "none",     "unknown"};
 };
 
 /**
