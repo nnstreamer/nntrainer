@@ -723,6 +723,18 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "rmsnorm_cl";
   case LayerKernel::RMSNORM_FP16:
     return "rmsnorm_cl_fp16";
+  case LayerKernel::CONCAT_AXIS3:
+    return "concat_cl_axis3";
+  case LayerKernel::CONCAT_AXIS3_FP16:
+    return "concat_cl_axis3_fp16";
+  case LayerKernel::CONCAT_AXIS2:
+    return "concat_cl_axis2";
+  case LayerKernel::CONCAT_AXIS2_FP16:
+    return "concat_cl_axis2_fp16";
+  case LayerKernel::CONCAT_AXIS1:
+    return "concat_cl_axis1";
+  case LayerKernel::CONCAT_AXIS1_FP16:
+    return "concat_cl_axis1_fp16";
   default:
     return "";
   }

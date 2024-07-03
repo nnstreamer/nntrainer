@@ -387,8 +387,9 @@ Addition(const std::vector<std::string> &properties = {},
  * @brief Helper function to create concat layer
  */
 inline std::unique_ptr<Layer>
-Concat(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_CONCAT, properties);
+Concat(const std::vector<std::string> &properties = {},
+       const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_CONCAT, properties, compute_engine);
 }
 
 /**

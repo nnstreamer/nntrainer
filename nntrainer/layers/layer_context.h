@@ -849,8 +849,14 @@ public:
     SSCAL_FP16 = 1 << 17,         /**< placeholder for kernel name */
     COPY = 1 << 18,               /**< placeholder for kernel name */
     COPY_FP16 = 1 << 19,          /**< placeholder for kernel name */
-    RMSNORM = 1 << 20,
-    RMSNORM_FP16 = 1 << 21
+    RMSNORM = 1 << 20,            /**< placeholder for kernel name */
+    RMSNORM_FP16 = 1 << 21,       /**< placeholder for kernel name */
+    CONCAT_AXIS3 = 1 << 22,       /**< placeholder for kernel name */
+    CONCAT_AXIS3_FP16 = 1 << 23,  /**< placeholder for kernel name */
+    CONCAT_AXIS2 = 1 << 24,       /**< placeholder for kernel name */
+    CONCAT_AXIS2_FP16 = 1 << 25,  /**< placeholder for kernel name */
+    CONCAT_AXIS1 = 1 << 26,       /**< placeholder for kernel name */
+    CONCAT_AXIS1_FP16 = 1 << 27,  /**< placeholder for kernel name */
   };
 
   /**

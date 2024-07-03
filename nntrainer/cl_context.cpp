@@ -16,10 +16,11 @@
 
 #include <addition_layer_cl.h>
 #include <cl_context.h>
+#include <concat_cl.h>
 #include <fc_layer_cl.h>
 #include <reshape_cl.h>
-#include <swiglu_cl.h>
 #include <rmsnorm_layer_cl.h>
+#include <swiglu_cl.h>
 
 namespace nntrainer {
 
@@ -45,6 +46,9 @@ static void add_default_object(ClContext &cc) {
 
   cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
                      RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+
+  cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
+                     ml::train::LayerType::LAYER_CONCAT);
 }
 
 static void registerer(ClContext &cc) noexcept {
