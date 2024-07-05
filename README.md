@@ -9,6 +9,7 @@
        src="https://scan.coverity.com/projects/22512/badge.svg"/>
 </a>
 [![DailyBuild](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/daily_build_test_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9179/badge)](https://www.bestpractices.dev/projects/9179)
 
 NNtrainer is a Software Framework for training Neural Network models on devices.
 
