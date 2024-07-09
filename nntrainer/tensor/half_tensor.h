@@ -268,6 +268,13 @@ public:
   int add_i(Tensor const &m, Tensor &output, float const alpha) override;
 
   /**
+   * @copydoc Tensor::add_i_partial()
+   */
+  int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                    unsigned int incX, unsigned int incY, const Tensor alphas,
+                    unsigned int alpha_idx) override;
+
+  /**
    * @copydoc Tensor::add(float const &value, Tensor &output)
    */
   Tensor &add(float const &value, Tensor &output) const override;

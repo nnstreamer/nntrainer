@@ -251,6 +251,20 @@ Tensor Tensor::multiply(Tensor const &m, const float beta) const {
 
 Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
                          const float beta) const {
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
+
+  NNTR_THROW_IF(!getContiguous() || !m.getContiguous() ||
+                  !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
+
+  NNTR_THROW_IF(!getContiguous() || !m.getContiguous() ||
+                  !output.getContiguous(),
+                std::invalid_argument)
+    << getName() << " is not contiguous, cannot multiply";
   itensor->multiply(m, output, beta);
   return output;
 }
@@ -355,19 +369,8 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
 int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
                           unsigned int incX, unsigned int incY,
                           const Tensor alphas, unsigned int alpha_idx) {
-  if (dim.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    saxpy(len, alphas.getValue<float>(alpha_idx), m.getData<float>(), incX,
-          getAddress<float>(addr_idx), incY);
-  } else if (dim.getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-    saxpy(len, alphas.getValue<_FP16>(alpha_idx), m.getData<_FP16>(), incX,
-          getAddress<_FP16>(addr_idx), incY);
-#else
-    ml_loge("%s", "Error: enable-fp16 is not enabled");
-    return ML_ERROR_INVALID_PARAMETER;
-#endif
-  }
-  return ML_ERROR_NONE;
+  return itensor->add_i_partial(len, addr_idx, m, incX, incY, alphas,
+                                alpha_idx);
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
