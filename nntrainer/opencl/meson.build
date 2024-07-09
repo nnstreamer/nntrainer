@@ -24,3 +24,5 @@ endforeach
 foreach h : opencl_headers
   nntrainer_headers += meson.current_source_dir() / h
 endforeach
+
+install_subdir('third_party', install_dir : nntrainer_prefix / 'include' / 'nntrainer')
