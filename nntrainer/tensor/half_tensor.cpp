@@ -395,17 +395,8 @@ Tensor &HalfTensor::multiply(Tensor const &m, Tensor &output,
                              const float beta) const {
   auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1 &&
-        std::fpclassify(beta) == FP_ZERO) {
-      ele_mul(e.buffer_size, buf, m_buf, out_buf);
-    } else {
-      for (unsigned int i = 0; i < e.buffer_size; ++i) {
-        *out_buf = *buf * *m_buf + static_cast<_FP16>(beta) * *out_buf;
-        buf += strides[3];
-        m_buf += e.strides[3];
-        out_buf += output.getStrides()[3];
-      }
-    }
+    ele_mul(e.buffer_size, buf, m_buf, out_buf, 1, beta, e.strides[3],
+            strides[3]);
   };
 
   NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
@@ -495,6 +486,15 @@ int HalfTensor::add_i(Tensor const &m, Tensor &output, float const alpha) {
   return ML_ERROR_NONE;
 }
 
+int HalfTensor::add_i_partial(unsigned int len, unsigned int addr_idx,
+                              Tensor &m, unsigned int incX, unsigned int incY,
+                              const Tensor alphas, unsigned int alpha_idx) {
+  saxpy(len, alphas.getValue<_FP16>(alpha_idx), m.getData<_FP16>(), incX,
+        (_FP16 *)getAddress(addr_idx), incY);
+
+  return ML_ERROR_NONE;
+}
+
 Tensor &HalfTensor::add(float const &value, Tensor &output) const {
   auto f = std::bind(std::plus<_FP16>(), std::placeholders::_1,
                      static_cast<_FP16>(value));
@@ -506,16 +506,8 @@ Tensor &HalfTensor::add(Tensor const &m, Tensor &output,
                         float const alpha) const {
   auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 1) {
-      ele_add(e.buffer_size, buf, m_buf, out_buf);
-    } else {
-      for (unsigned int i = 0; i < e.buffer_size; ++i) {
-        *out_buf = *buf + *m_buf * static_cast<_FP16>(alpha);
-        buf += strides[3];
-        m_buf += e.strides[3];
-        out_buf += strides[3];
-      }
-    }
+    ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
+            strides[3]);
   };
   apply_broadcast(m, f, output);
   return output;
@@ -1035,17 +1027,7 @@ Tensor &HalfTensor::divide(float const &value, Tensor &output) const {
 Tensor &HalfTensor::divide(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    if (e.strides[3] == 1 && output.getStrides()[3] == 1 && strides[3] == 1) {
-      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
-                     std::divides<_FP16>());
-    } else {
-      for (unsigned int i = 0; i < e.buffer_size; ++i) {
-        *out_buf = *buf / *m_buf;
-        buf += strides[3];
-        m_buf += e.strides[3];
-        out_buf += output.getStrides()[3];
-      }
-    }
+    ele_div(e.buffer_size, buf, m_buf, out_buf, 1, 0, e.strides[3], strides[3]);
   };
 
   apply_broadcast(m, f, output);
@@ -1136,7 +1118,14 @@ Tensor &HalfTensor::transpose(const std::string &direction,
       }
     } else {
       if (is_format_nchw) {
-        transposeloop(l, i, k, j, SL, SI, SK, SJ);
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            transpose_matrix(
+              height(), width(), (_FP16 *)getData() + getIndex(b, c, 0, 0),
+              width(), (_FP16 *)output.getData() + output.getIndex(b, c, 0, 0),
+              output.width());
+          }
+        }
       } else {
         transposeloop_nhwc(l, k, j, i, SL, SK, SJ, SI);
       }

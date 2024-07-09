@@ -284,6 +284,13 @@ public:
   virtual int add_i(Tensor const &m, Tensor &output, float const alpha) = 0;
 
   /**
+   * @copydoc Tensor::add_i_partial()
+   */
+  virtual int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                            unsigned int incX, unsigned int incY,
+                            const Tensor alphas, unsigned int alpha_idx) = 0;
+
+  /**
    * @copydoc Tensor::add(float const &value, Tensor &output)
    */
   virtual Tensor &add(float const &value, Tensor &output) const = 0;
