@@ -11,7 +11,8 @@
  *
  */
 
-#include <hgemm_common.h>
+#include <arm_neon.h>
+#include <assert.h>
 #include <stdlib.h>
 
 #define INIT_KERNEL_4x4()  \
@@ -230,8 +231,8 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
 
   __fp16 *a = sa, *b = sb, *c = sc;
   unsigned int i, j, l;
-  for (i = 0; i < M; i += VL_FP16_HALF) {
-    for (j = 0; j < N; j += VL_FP16_HALF) {
+  for (i = 0; i < M; i += 4) {
+    for (j = 0; j < N; j += 4) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
@@ -241,7 +242,7 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
       float16x4_t v27;
       INIT_KERNEL_4x4();
 
-      for (l = 0; l < K; l += VL_FP16_HALF) {
+      for (l = 0; l < K; l += 4) {
         float16x4_t v0 = vld1_f16(b);
         float16x4_t v16 = vld1_f16(a);
 
@@ -322,8 +323,8 @@ void hgemm_kernel_4x4(unsigned int M, unsigned int N, unsigned int K,
   unsigned int i, j, l;
   unsigned int K16 = (K >> 4) << 4;
   unsigned int K8 = (K >> 3) << 3;
-  for (i = 0; i < M; i += VL_FP16_HALF) {
-    for (j = 0; j < N; j += VL_FP16_HALF) {
+  for (i = 0; i < M; i += 4) {
+    for (j = 0; j < N; j += 4) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 

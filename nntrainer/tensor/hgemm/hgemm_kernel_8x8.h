@@ -11,7 +11,8 @@
  *
  */
 
-#include <hgemm_common.h>
+#include <arm_neon.h>
+#include <assert.h>
 #include <stdlib.h>
 
 #define INIT_KERNEL_8x8()   \
@@ -416,8 +417,8 @@ void hgemm_kernel_8x8(unsigned int M, unsigned int N, unsigned int K,
 
   __fp16 *a = sa, *b = sb, *c = sc;
   unsigned int i, j, l;
-  for (i = 0; i < M; i += VL_FP16) {
-    for (j = 0; j < N; j += VL_FP16) {
+  for (i = 0; i < M; i += 8) {
+    for (j = 0; j < N; j += 8) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
@@ -469,8 +470,8 @@ void hgemm_kernel_8x8(unsigned int M, unsigned int N, unsigned int K,
   unsigned int K4 = (K >> 2) << 2;
   unsigned int K8 = (K >> 3) << 3;
   unsigned int K16 = (K >> 4) << 4;
-  for (i = 0; i < M; i += VL_FP16) {
-    for (j = 0; j < N; j += VL_FP16) {
+  for (i = 0; i < M; i += 8) {
+    for (j = 0; j < N; j += 8) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
