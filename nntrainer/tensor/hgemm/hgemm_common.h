@@ -13,6 +13,7 @@
 #include <arm_neon.h>
 #include <assert.h>
 
+
 #define A(i, j) a[(i) * lda + (j)]
 #define B(i, j) b[(i) * ldb + (j)]
 #define C(i, j) c[(i) * ldc + (j)]
@@ -26,6 +27,8 @@
 #define GEMM_UNROLLING_1 (1)
 #define VL_FP16 (8)
 #define VL_FP16_HALF (4)
+
+
 
 /**
  * @todo Add macro for instructions in other CPU architectures

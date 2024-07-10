@@ -11,7 +11,8 @@
  *
  */
 
-#include <hgemm_common.h>
+#include <arm_neon.h>
+#include <assert.h>
 #include <iostream>
 #include <stdlib.h>
 
@@ -808,8 +809,6 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
                        __fp16 *sa, __fp16 *sb, float *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
   assert(M % 8 == 0 && N % 16 == 0 && K % 4 == 0);
-
-  // std::cout << " m : " << M << " , n : " << N << " , k : " << K << std::endl;
 
   __fp16 *a = sa, *b = sb;
   float *c = sc;

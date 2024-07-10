@@ -11,7 +11,8 @@
  *
  */
 
-#include <hgemm_common.h>
+#include <arm_neon.h>
+#include <assert.h>
 #include <stdlib.h>
 
 #define INIT_KERNEL_4X8()  \

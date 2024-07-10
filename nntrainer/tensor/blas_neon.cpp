@@ -1586,54 +1586,11 @@ unsigned int isamax(const unsigned int N, const __fp16 *X) {
   return retIdx;
 }
 
-void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
-           uint32_t K, float alpha, float beta, bool TransA, bool TransB) {
-  if (K == 1) {
-    return hgemm_K1(A, B, C, M, N, K, alpha, beta, TransA, TransB);
-  }
-  // dynamic creation to avoid reaching stack limit(causes segmentation fault)
-  float *C32 = (float *)malloc(M * N * sizeof(float));
-
-  // performing beta*C
-  unsigned int idx = 0;
-  unsigned int size = M * N;
-  unsigned int size8 = (size >> 3) << 3;
-  unsigned int size4 = (size >> 2) << 2;
-  if (std::fpclassify(beta) != FP_ZERO) {
-    for (; idx < size8; idx += 8) {
-      float16x8_t c =
-        vmulq_n_f16(vld1q_f16(&C[idx]), static_cast<__fp16>(beta));
-
-      vst1q_f32(&C32[idx], vcvt_f32_f16(vget_low_f16(c)));
-      vst1q_f32(&C32[idx + 4], vcvt_f32_f16(vget_high_f16(c)));
-    }
-    // remaining 4
-    for (; idx < size4; idx += 4) {
-      float16x4_t c = vmul_n_f16(vld1_f16(&C[idx]), static_cast<__fp16>(beta));
-
-      vst1q_f32(&C32[idx], vcvt_f32_f16(c));
-    }
-
-    // remaining values if dimensions not a multiple of 8
-    for (; idx < size; idx++) {
-      C32[idx] = C[idx] * beta;
-    }
-  } else {
-    float32x4_t zeros = vmovq_n_f32(0.F);
-    for (; idx < size4; idx += 4) {
-      vst1q_f32(&C32[idx], zeros);
-    }
-    for (; idx < size; idx++) {
-      C32[idx] = 0.F;
-    }
-  }
-
-  hgemm_ensure_divisibility(A, B, C32, M, N, K, alpha, beta, TransA, TransB);
-  
-  copy_fp32_to_fp16(M * N, C32, C);
-  free(C32);
+void custom_hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta, bool TransA,
+                  bool TransB) {
+  hgemm(A, B, C, M, N, K, alpha, beta, TransA, TransB);
 }
-
 
 void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha, float beta) {

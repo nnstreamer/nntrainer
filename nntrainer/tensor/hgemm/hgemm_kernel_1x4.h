@@ -11,8 +11,9 @@
  *
  */
 
-#include <hgemm_common.h>
 #include <stdlib.h>
+#include <arm_neon.h>
+#include <assert.h>
 
 /**
  * @brief hgemm 1x4 kernel sc = sa * sb
@@ -33,11 +34,11 @@ void hgemm_kernel_1x4(unsigned int M, unsigned int N, unsigned int K,
   __fp16 *a = sa, *b = sb, *c = sc;
   unsigned int i, j, l;
   for (i = 0; i < M; i++) {
-    for (j = 0; j < N; j += VL_FP16_HALF) {
+    for (j = 0; j < N; j += 4) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
-      for (l = 0; l < K; l += VL_FP16_HALF) {
+      for (l = 0; l < K; l += 4) {
         float16x4_t v24 = {0.F};
         float16x4_t v0 = vld1_f16(b);
         float16_t v16 = *a;
@@ -99,11 +100,11 @@ void hgemm_kernel_1x4(unsigned int M, unsigned int N, unsigned int K,
   float *c = sc;
   unsigned int i, j, l;
   for (i = 0; i < M; i++) {
-    for (j = 0; j < N; j += VL_FP16_HALF) {
+    for (j = 0; j < N; j += 4) {
       __builtin_prefetch(b, 0, 3);
       __builtin_prefetch(a, 0, 3);
 
-      for (l = 0; l < K; l += VL_FP16_HALF) {
+      for (l = 0; l < K; l += 4) {
         float16x4_t v24 = {0.F};
         float16x4_t v0 = vld1_f16(b);
         float16_t v16 = *a;
