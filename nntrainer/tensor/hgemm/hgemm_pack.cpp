@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <hgemm_common.h>
 #include <hgemm_pack.h>
+#include <hgemm_util.h>
 #include <matrix_transpose_neon.h>
 
 void packing_A1(unsigned int m, unsigned int k, const __fp16 *from,
@@ -404,8 +405,7 @@ void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
   __fp16 *dst_off = (__fp16 *)dst;
 
   const unsigned int ld_tile_T = 16;
-  __fp16 *tile_T = new __fp16[8 * ld_tile_T];
-  // __fp16 *tile_T = alignedMalloc(8 * ld_tile_T);
+  __fp16 *tile_T = alignedMalloc(8 * ld_tile_T);
 
   // 1. Do something like 8x16 transpose kernel
   // 2. Save linearized transposed output tile to dst

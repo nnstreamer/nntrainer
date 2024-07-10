@@ -10,6 +10,10 @@ subdir('hgemm_kernel')
 nntrainer_inc += include_directories('hgemm_kernel')
 nntrainer_inc_abs += meson.current_source_dir() / 'hgemm_kernel'
 
+subdir('hgemm_padding')
+nntrainer_inc += include_directories('hgemm_padding')
+nntrainer_inc_abs += meson.current_source_dir() / 'hgemm_padding'
+
 hgemm_sources = [
     'hgemm.cpp',
     'hgemm_padding_a.cpp',
