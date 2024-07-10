@@ -327,9 +327,9 @@ unsigned int isamax(const unsigned int N, const __fp16 *X);
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void custom_hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
-           uint32_t K, float alpha, float beta, bool TransA, bool TransB);
-
+void custom_hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
+                  uint32_t N, uint32_t K, float alpha, float beta, bool TransA,
+                  bool TransB);
 
 /**
  * @brief squared root transformation with neon : X = sqrt(X)

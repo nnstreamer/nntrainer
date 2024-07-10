@@ -82,7 +82,6 @@ void hgemm_padding_B_noTrans_wrt_KN(const __fp16 *B, __fp16 *Bp, unsigned int K,
   std::cerr << "Error : hgemm_padding_B_noTrans_wrt_KN NYI!\n";
 }
 
-
 void hgemm_padding_B_Trans_wrt_N(const __fp16 *B, __fp16 *Bp, unsigned int K,
                                  unsigned int N, unsigned int K8,
                                  unsigned int N16) {

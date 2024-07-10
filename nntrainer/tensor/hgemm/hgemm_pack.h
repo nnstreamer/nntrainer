@@ -11,7 +11,6 @@
  * @brief  This is for half-precision packing for kernel-based GEMM
  */
 
-
 /**
  * @brief packing function of input matrix A
  *
@@ -90,13 +89,13 @@ void packing_B8(unsigned int K, unsigned int N, const __fp16 *src,
 void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
                  unsigned int ldb, const __fp16 *dst);
 /**
- * @brief 
- * 
- * @param K 
- * @param N 
- * @param src 
- * @param ldb 
- * @param dst 
+ * @brief
+ *
+ * @param K
+ * @param N
+ * @param src
+ * @param ldb
+ * @param dst
  */
 void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
                       unsigned int ldb, const __fp16 *dst);

@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   hgemm_kernel_8x16.h
+ * @file   hgemm_kernel_8x16.cpp
  * @date   04 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
@@ -14,6 +14,7 @@
 #include <arm_neon.h>
 #include <assert.h>
 #include <iostream>
+#include <hgemm_kernel.h>
 #include <stdlib.h>
 
 #define INIT_KERNEL_8X16()       \

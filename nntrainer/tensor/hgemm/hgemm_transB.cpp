@@ -12,19 +12,14 @@
  */
 
 #include <cmath>
-#include <hgemm_kernel_8x16.h>
 #include <hgemm_common.h>
-// #include <hgemm_kernel.h>
-#include <hgemm_kernel_pack.h>
+#include <hgemm_kernel.h>
 #include <hgemm_noTrans.h>
+#include <hgemm_pack.h>
 #include <hgemm_transB.h>
 #include <hgemm_util.h>
 #include <limits>
 #include <matrix_transpose_neon.h>
-
-// #define HGEMM_KERNEL_8x16 hgemm_kernel_8x16 /// @todo change to macro kernel
-// #if !defined(HGEMM_KERNEL_8x16) hgemm_kernel_8x16
-// #endif
 
 void hgemm_transB_8x16(unsigned int M, unsigned int N, unsigned int K,
                        const __fp16 *A, unsigned int lda, const __fp16 *B,
@@ -87,8 +82,7 @@ void hgemm_transB_8x16(unsigned int M, unsigned int N, unsigned int K,
           n_min = (n_min / 2 + GEMM_UNROLLING_8 - 1) & ~(GEMM_UNROLLING_8 - 1);
         }
         packing_transB16(k_min, n_min, B + ks + ldb * ns, ldb, sB);
-        hgemm_kernel_8x16(m_min, n_min, k_min, sA, sB, C + ms * ldc + ns,
-        ldc);
+        hgemm_kernel_8x16(m_min, n_min, k_min, sA, sB, C + ms * ldc + ns, ldc);
       }
     }
   }

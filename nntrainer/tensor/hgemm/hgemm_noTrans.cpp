@@ -11,25 +11,15 @@
  *
  */
 
+#include <arm_neon.h>
 #include <cmath>
-
-#include <hgemm_kernel_pack.h>
+#include <hgemm_common.h>
+#include <hgemm_kernel.h>
 #include <hgemm_noTrans.h>
+#include <hgemm_pack.h>
 #include <hgemm_util.h>
 #include <limits>
-// #include <hgemm_kernel.h>
-
 #include <matrix_transpose_neon.h>
-#include <hgemm_common.h>
-
-#include <hgemm_kernel_1x4.h>
-#include <hgemm_kernel_1x8.h>
-#include <hgemm_kernel_4x4.h>
-#include <hgemm_kernel_4x8.h>
-#include <hgemm_kernel_8x16.h>
-#include <hgemm_kernel_8x8.h>
-
-
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
