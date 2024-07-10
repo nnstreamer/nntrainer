@@ -24,8 +24,9 @@
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M, unsigned int N,
-           unsigned int K, float alpha, float beta, bool TransA, bool TransB);
+void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
+           unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
+           bool TransB);
 
 /**
  * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
@@ -54,9 +55,10 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
-                    unsigned int N, unsigned int K, float alpha = 1.F, float beta = 0.F,
-                    bool TransA = false, bool TransB = false);
+void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32,
+                    unsigned int M, unsigned int N, unsigned int K,
+                    float alpha = 1.F, float beta = 0.F, bool TransA = false,
+                    bool TransB = false);
 /**
  * @brief     hgemm computation with neon : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
@@ -70,5 +72,5 @@ void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M
  * @param[in] beta float number
  */
 void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
-              unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
-              bool TransB);
+              unsigned int N, unsigned int K, float alpha, float beta,
+              bool TransA, bool TransB);

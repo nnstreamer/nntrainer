@@ -1,18 +1,20 @@
 hgemm_headers = [
   'hgemm.h',
   'hgemm_util.h',
-  'hgemm_kernel_pack.h',
-  'hgemm_kernel_4x4.h',
-  'hgemm_kernel_4x8.h',
-  'hgemm_kernel_8x8.h',
-  'hgemm_kernel_8x16.h',
+  'hgemm_pack.h',
+  'hgemm_common.h',
+  'hgemm_padding.h',
 ]
+
+subdir('hgemm_kernel')
+nntrainer_inc += include_directories('hgemm_kernel')
+nntrainer_inc_abs += meson.current_source_dir() / 'hgemm_kernel'
 
 hgemm_sources = [
     'hgemm.cpp',
     'hgemm_padding_a.cpp',
     'hgemm_padding_b.cpp',
-    'hgemm_kernel_pack.cpp',
+    'hgemm_pack.cpp',
     'hgemm_noTrans.cpp',
     'hgemm_transA.cpp',
     'hgemm_transB.cpp',

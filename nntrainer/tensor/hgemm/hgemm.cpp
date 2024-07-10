@@ -12,19 +12,20 @@
  *
  */
 
+#include <arm_neon.h>
+#include <cmath>
 #include <hgemm.h>
+#include <hgemm_common.h>
 #include <hgemm_noTrans.h>
 #include <hgemm_padding.h>
 #include <hgemm_transA.h>
 #include <hgemm_transAB.h>
 #include <hgemm_transB.h>
 #include <hgemm_util.h>
-#include <hgemm_common.h>
-#include <cmath>
 
-
-void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M, unsigned int N,
-           unsigned int K, float alpha, float beta, bool TransA, bool TransB) {
+void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
+           unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
+           bool TransB) {
   if (K == 1) {
     return hgemm_K1(A, B, C, M, N, K, alpha, beta, TransA, TransB);
   }
@@ -67,9 +68,9 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M, unsigned
   }
 
   hgemm_ensure_divisibility(A, B, C32, M, N, K, alpha, beta, TransA, TransB);
-  
-  unsigned int L = M*N;
-  unsigned int L8 = (L >> 3) <<3;
+
+  unsigned int L = M * N;
+  unsigned int L8 = (L >> 3) << 3;
 
   for (unsigned int idx = 0; idx < L8; idx += 8) {
     float32x4_t x1 = vld1q_f32(&C32[idx]);
@@ -151,11 +152,11 @@ void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32,
 }
 
 void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
-              unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
-              bool TransB) {
+              unsigned int N, unsigned int K, float alpha, float beta,
+              bool TransA, bool TransB) {
   unsigned int lda = (TransA) ? M : K;
   unsigned int ldb = (TransB) ? K : N;
-  
+
   return hgemm_K1_noTrans(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
 
   if (!TransA && TransB) {

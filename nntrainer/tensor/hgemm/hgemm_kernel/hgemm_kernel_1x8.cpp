@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file   hgemm_kernel_1x8.h
+ * @file   hgemm_kernel_1x8.cpp
  * @date   05 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Debadri Samaddar <s.debadri@samsung.com>
@@ -14,6 +14,7 @@
 
 #include <arm_neon.h>
 #include <assert.h>
+#include <hgemm_kernel.h>
 #include <stdlib.h>
 
 // 1. Partial sum 64 digits : worst accuracy, best latency

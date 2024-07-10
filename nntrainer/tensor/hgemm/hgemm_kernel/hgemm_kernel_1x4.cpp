@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Debadri Samaddar <s.debadri@samsung.com>
  *
- * @file   hgemm_kernel_1x4.h
+ * @file   hgemm_kernel_1x4.cpp
  * @date   23 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Debadri Samaddar <s.debadri@samsung.com>
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <arm_neon.h>
 #include <assert.h>
+#include <hgemm_kernel.h>
 
 /**
  * @brief hgemm 1x4 kernel sc = sa * sb
