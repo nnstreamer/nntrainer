@@ -11,28 +11,126 @@
  *
  */
 
+/**
+ * @brief Padding function for matrix A in HGEMM
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ * @param transA Whether the matrix A is transposed or not
+ */
 void hgemm_padding_A(const __fp16 *A, __fp16 *Ap, unsigned int M,
                      unsigned int K, unsigned int M8, unsigned int K8,
                      bool transA);
+
+/**
+ * @brief Padding function for non-transposed matrix A in HGEMM
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
 void hgemm_padding_A_noTrans(const __fp16 *A, __fp16 *Ap, unsigned int M,
                              unsigned int K, unsigned int M8, unsigned int K8);
-void hgemm_padding_A_noTrans_wrt_M(const __fp16 *A, __fp16 *Ap,
-                                   unsigned int M, unsigned int K,
-                                   unsigned int M8, unsigned int K8);
-void hgemm_padding_A_noTrans_wrt_K(const __fp16 *A, __fp16 *Ap,
-                                   unsigned int M, unsigned int K,
-                                   unsigned int M8, unsigned int K8);
-void hgemm_padding_A_noTrans_wrt_MK(const __fp16 *A, __fp16 *Ap,
-                                    unsigned int M, unsigned int K,
-                                    unsigned int M8, unsigned int K8);
+
+/**
+ * @brief Padding function for non-transposed matrix A in HGEMM w.r.t. M
+ * direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_noTrans_wrt_M(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                   unsigned int K, unsigned int M8,
+                                   unsigned int K8);
+/**
+ * @brief Padding function for non-transposed matrix A in HGEMM w.r.t. K
+ * direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_noTrans_wrt_K(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                   unsigned int K, unsigned int M8,
+                                   unsigned int K8);
+
+/**
+ * @brief Padding function for non-transposed matrix A in HGEMM w.r.t. M and K
+ * direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_noTrans_wrt_MK(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                    unsigned int K, unsigned int M8,
+                                    unsigned int K8);
+/**
+ * @brief Padding function for transposed matrix A in HGEMM
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
 void hgemm_padding_A_Trans(const __fp16 *A, __fp16 *Ap, unsigned int M,
                            unsigned int K, unsigned int M8, unsigned int K8);
-void hgemm_padding_A_Trans_wrt_M(const __fp16 *A, __fp16 *Ap,
-                                 unsigned int M, unsigned int K,
-                                 unsigned int M8, unsigned int K8);
-void hgemm_padding_A_Trans_wrt_K(const __fp16 *A, __fp16 *Ap,
-                                 unsigned int M, unsigned int K,
-                                 unsigned int M8, unsigned int K8);
-void hgemm_padding_A_Trans_wrt_MK(const __fp16 *A, __fp16 *Ap,
-                                  unsigned int M, unsigned int K,
-                                  unsigned int M8, unsigned int K8);
+/**
+ * @brief Padding function for transposed matrix A in HGEMM w.r.t. M direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_Trans_wrt_M(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                 unsigned int K, unsigned int M8,
+                                 unsigned int K8);
+/**
+ * @brief Padding function for transposed matrix A in HGEMM w.r.t. K direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_Trans_wrt_K(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                 unsigned int K, unsigned int M8,
+                                 unsigned int K8);
+/**
+ * @brief Padding function for transposed matrix A in HGEMM w.r.t. M and K
+ * direction
+ *
+ * @param A src matrix to pad
+ * @param Ap dst matrix after padding
+ * @param M row length of matrix A
+ * @param K col length of matrix A
+ * @param M8 Least multiple of 8 that is bigger than or equal to M
+ * @param K8 Least multiple of 8 that is bigger than or equal to K
+ */
+void hgemm_padding_A_Trans_wrt_MK(const __fp16 *A, __fp16 *Ap, unsigned int M,
+                                  unsigned int K, unsigned int M8,
+                                  unsigned int K8);
