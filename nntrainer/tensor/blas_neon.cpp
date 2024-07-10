@@ -1634,21 +1634,6 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M, uint32_t N,
   free(C32);
 }
 
-void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, uint32_t M,
-              uint32_t N, uint32_t K, float alpha, float beta, bool TransA,
-              bool TransB) {
-  unsigned int lda = (TransA) ? M : K;
-  unsigned int ldb = (TransB) ? K : N;
-  if (!TransA && TransB) {
-    hgemm_K1_transB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else if (TransA && !TransB) {
-    hgemm_K1_transA(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else if (!TransA && !TransB) {
-    hgemm_K1_noTrans(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else { // TransA && TransB
-    hgemm_K1_transAB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  }
-}
 
 void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha, float beta) {
