@@ -56,7 +56,7 @@ void hgemm_padding_B_Trans(const __fp16 *B, __fp16 *Bp, unsigned int K,
 void hgemm_padding_B_noTrans_wrt_N(const __fp16 *B, __fp16 *Bp, unsigned int K,
                                    unsigned int N, unsigned int K8,
                                    unsigned int N16) {
-  std::cerr << "NYI : hgemm_padding_B_noTrans_wrt_N\n";
+  std::cerr << "Error : hgemm_padding_B_noTrans_wrt_N NYI!\n";
 }
 
 void hgemm_padding_B_noTrans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
@@ -79,13 +79,14 @@ void hgemm_padding_B_noTrans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
 void hgemm_padding_B_noTrans_wrt_KN(const __fp16 *B, __fp16 *Bp, unsigned int K,
                                     unsigned int N, unsigned int K8,
                                     unsigned int N16) {
-  std::cerr << "NYI : hgemm_padding_B_noTrans_wrt_KN\n";
+  std::cerr << "Error : hgemm_padding_B_noTrans_wrt_KN NYI!\n";
 }
+
 
 void hgemm_padding_B_Trans_wrt_N(const __fp16 *B, __fp16 *Bp, unsigned int K,
                                  unsigned int N, unsigned int K8,
                                  unsigned int N16) {
-  std::cerr << "NYI : hgemm_padding_B_Trans_wrt_N\n";
+  std::cerr << "Error : hgemm_padding_B_Trans_wrt_N NYI!\n";
 }
 
 void hgemm_padding_B_Trans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
@@ -110,5 +111,5 @@ void hgemm_padding_B_Trans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
 void hgemm_padding_B_Trans_wrt_KN(const __fp16 *B, __fp16 *Bp, unsigned int K,
                                   unsigned int N, unsigned int K8,
                                   unsigned int N16) {
-  std::cerr << "NYI : hgemm_padding_B_Trans_wrt_KN\n";
+  std::cerr << "Error : hgemm_padding_B_Trans_wrt_KN NYI!\n";
 }
