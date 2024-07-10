@@ -89,13 +89,13 @@ void packing_B8(unsigned int K, unsigned int N, const __fp16 *src,
 void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
                  unsigned int ldb, const __fp16 *dst);
 /**
- * @brief
+ * @brief packing function of input matrix B_T
  *
- * @param K
- * @param N
- * @param src
- * @param ldb
- * @param dst
+ * @param M length of the row of the matrix
+ * @param K length of the col of the matrix
+ * @param src input of original source of the matrix
+ * @param ldb leading dimension of the matrix
+ * @param dst output of packed data of the matrix
  */
 void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
                       unsigned int ldb, const __fp16 *dst);
