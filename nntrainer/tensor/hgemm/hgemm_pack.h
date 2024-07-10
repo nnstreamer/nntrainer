@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   hgemm_kernel_pack.h
+ * @file   hgemm_pack.h
  * @date   01 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>

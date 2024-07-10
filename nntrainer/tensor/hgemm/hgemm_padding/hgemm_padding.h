@@ -8,6 +8,8 @@
  * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is a header file for including both padding matrix A and B
+ * @note   Padding function for matrix A and B will be fused into single
+ * function in this file in the future
  *
  */
 

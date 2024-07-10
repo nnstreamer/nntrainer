@@ -3,7 +3,6 @@ hgemm_headers = [
   'hgemm_util.h',
   'hgemm_pack.h',
   'hgemm_common.h',
-  'hgemm_padding.h',
 ]
 
 subdir('hgemm_kernel')
@@ -16,8 +15,6 @@ nntrainer_inc_abs += meson.current_source_dir() / 'hgemm_padding'
 
 hgemm_sources = [
     'hgemm.cpp',
-    'hgemm_padding_a.cpp',
-    'hgemm_padding_b.cpp',
     'hgemm_pack.cpp',
     'hgemm_noTrans.cpp',
     'hgemm_transA.cpp',

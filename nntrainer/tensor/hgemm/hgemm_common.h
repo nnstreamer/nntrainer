@@ -11,10 +11,6 @@
  *
  */
 
-#define A(i, j) a[(i)*lda + (j)]
-#define B(i, j) b[(i)*ldb + (j)]
-#define C(i, j) c[(i)*ldc + (j)]
-
 #define N_BLOCKING (768)
 #define K_BLOCKING (256)
 #define M_BLOCKING (4096)

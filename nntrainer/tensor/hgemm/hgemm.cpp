@@ -20,9 +20,9 @@
 #include <hgemm_padding.h>
 #include <hgemm_transA.h>
 #include <hgemm_transAB.h>
-#include <limits>
 #include <hgemm_transB.h>
 #include <hgemm_util.h>
+#include <limits>
 
 void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
            unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
@@ -70,10 +70,7 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
 
   hgemm_ensure_divisibility(A, B, C32, M, N, K, alpha, beta, TransA, TransB);
 
-  unsigned int L = M * N;
-  unsigned int L8 = (L >> 3) << 3;
-
-  for (unsigned int idx = 0; idx < L8; idx += 8) {
+  for (unsigned int idx = 0; idx < size8; idx += 8) {
     float32x4_t x1 = vld1q_f32(&C32[idx]);
     float32x4_t x2 = vld1q_f32(&C32[idx + 4]);
 
@@ -81,7 +78,7 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
 
     vst1q_f16(&C[idx], y1);
   }
-  for (unsigned int idx = L8; idx < L; ++idx) {
+  for (unsigned int idx = size8; idx < size; ++idx) {
     C[idx] = static_cast<__fp16>(C32[idx]);
   }
 
@@ -95,14 +92,15 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
   /// @note Padding standard : 8x16 is the only KERNEL that outperforms single
   /// precision GEMM 'so far'. Padding will forcibly make every GEMM cases to
   /// use it. Note that padding is not the optimal way here, but just an option
-  /// that is easier to implement. Fine-grained packing should be supported on
-  /// the future for optimal performance.
+  /// that is easier to implement. Fine-grained packing, blocking, and
+  /// corresponding kernels should be supported on the future for optimal
+  /// performance.
 
   __fp16 *A_ = (__fp16 *)A, *B_ = (__fp16 *)B;
   unsigned int M_ = M, N_ = N, K_ = K;
   bool pad_A = false, pad_B = false;
 
-  // Case 2 : smaller than 8, 16 | padding would be redundant?
+  // Case 2 : smaller than 8, 16 | padding would be redundant
   if (M < 8 && K < 16 && N < 16)
     return hgemm_classify(A_, B_, C32, M_, N_, K_, alpha, beta, TransA, TransB);
 
