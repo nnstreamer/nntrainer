@@ -113,16 +113,3 @@ void hgemm_transB_fallback(const __fp16 *A, const __fp16 *B, float *C,
 
   free(B_T);
 }
-
-void hgemm_K1_transB(unsigned int M, unsigned int N, unsigned int K,
-                     const __fp16 *A, unsigned int lda, const __fp16 *B,
-                     unsigned int ldb, __fp16 *C, unsigned int ldc, float alpha,
-                     float beta) {
-  __fp16 *B_T = alignedMalloc(K * N);
-
-  transpose_neon<__fp16>(N, K, B, K, B_T, N);
-
-  hgemm_K1_noTrans(M, N, K, A, lda, B_T, ldb, C, ldc, alpha, beta);
-
-  free(B_T);
-}

@@ -46,21 +46,3 @@ void hgemm_transB_8x16(unsigned int M, unsigned int N, unsigned int K,
                        const __fp16 *A, unsigned int lda, const __fp16 *B,
                        unsigned int ldb, float *C, unsigned int ldc,
                        float alpha = 1.F, float beta = 0.F);
-/**
- * @brief     hgemm fallback with neon : Y = alpha*op(A)*op(B) + beta*C,
- * @param M length of the row of matrix A
- * @param N length of the col of matrix B
- * @param K length of the col of matrix A
- * @param A input matrix A
- * @param lda length of the col of matrix A
- * @param B input matrix B
- * @param ldb length of the col of matrix B
- * @param C output matrix C
- * @param ldc length of the col of matrix C
- * @param[in] alpha float number
- * @param[in] beta float number
- */
-void hgemm_K1_transB(unsigned int M, unsigned int N, unsigned int K,
-                     const __fp16 *A, unsigned int lda, const __fp16 *B,
-                     unsigned int ldb, __fp16 *C, unsigned int ldc,
-                     float alpha = 1.F, float beta = 0.F);
