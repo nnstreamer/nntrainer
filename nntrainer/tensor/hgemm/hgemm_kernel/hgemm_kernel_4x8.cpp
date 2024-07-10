@@ -258,17 +258,6 @@
                                          vcvt_f32_f16(vget_high_f16(v9))));   \
   } while (0)
 
-/**
- * @brief hgemm 4x8 kernel sc = sa * sb
- *
- * @param m length of the row of matrix A
- * @param n length of the col of matrix B
- * @param k length of the col of matrix A
- * @param sa sub-matrix of input matrix A
- * @param sb sub-matrix of input matrix B
- * @param sc sub-matrix of output matrix C
- * @param ldc leading-dimension of matrix C
- */
 void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
                       __fp16 *sa, __fp16 *sb, __fp16 *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
@@ -306,17 +295,6 @@ void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
   }
 }
 
-/**
- * @brief hgemm 4x8 kernel sc = sa * sb
- *
- * @param m length of the row of matrix A
- * @param n length of the col of matrix B
- * @param k length of the col of matrix A
- * @param sa sub-matrix of input matrix A
- * @param sb sub-matrix of input matrix B
- * @param sc sub-matrix of output matrix C
- * @param ldc leading-dimension of matrix C
- */
 void hgemm_kernel_4x8(unsigned int M, unsigned int N, unsigned int K,
                       __fp16 *sa, __fp16 *sb, float *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);

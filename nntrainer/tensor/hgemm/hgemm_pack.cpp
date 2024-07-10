@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   hgemm_kernel_pack.cpp
+ * @file   hgemm_pack.cpp
  * @date   02 July 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
@@ -17,6 +17,10 @@
 #include <hgemm_pack.h>
 #include <hgemm_util.h>
 #include <matrix_transpose_neon.h>
+
+/// @note Matrix packing strategy is quite similar in terms of normal-tangential
+/// coordinate's point of view. This hint might lead us to re-implement all
+/// packing functions in to single generic function!
 
 void packing_A1(unsigned int m, unsigned int k, const __fp16 *from,
                 unsigned int lda, const __fp16 *to) {
@@ -397,8 +401,9 @@ void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
 
 void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
                       unsigned int ldb, const __fp16 *dst) {
-  /// @note ldb = K for here
-  assert(K != 0 && N != 0 && N % 16 == 0);
+  /// @note K8 will be intentionally computed for generic K
+  /// implementation in the future
+  assert(K != 0 && K % 8 == 0 && N != 0 && N % 16 == 0);
   unsigned int K8 = (K >> 3) << 3;
 
   const __fp16 *src_off = (__fp16 *)src;
@@ -408,12 +413,12 @@ void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
   __fp16 *tile_T = alignedMalloc(8 * ld_tile_T);
 
   // 1. Do something like 8x16 transpose kernel
-  // 2. Save linearized transposed output tile to dst
+  // 2. Linearize transposed output tile to dst
   for (unsigned int n = 0; n < N; n += 16) {
     const __fp16 *src_off1 = src_off;
     __fp16 *dst_off1 = dst_off;
     src_off += 16 * ldb;
-    dst_off += (K8 * 16 + (K - K8)); // ?
+    dst_off += (K8 * 16 + (K - K8));
     for (unsigned int k = 0; k < K8; k += 8) {
       // 16x8 tile -> 8x16
       transpose_neon<__fp16>(16, 8, src_off1, ldb, tile_T, ld_tile_T);
@@ -439,12 +444,7 @@ void packing_transB16(unsigned int K, unsigned int N, const __fp16 *src,
       dst_off1 += 16 * 8;
       src_off1 += 8;
     }
-
-    // Do the equivalent of one by one for the rest
-    for (unsigned int k = K8; k < K; ++k) {
-      for (unsigned int _n = 0; _n < 16; ++_n) {
-        dst_off1[_n] = src_off1[k];
-      }
-    }
   }
+
+  free(tile_T);
 }
