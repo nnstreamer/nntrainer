@@ -26,16 +26,3 @@ void hgemm_transA(const __fp16 *A, const __fp16 *B, float *C, unsigned int M,
 
   free(A_T);
 }
-
-void hgemm_K1_transA(unsigned int M, unsigned int N, unsigned int K,
-                     const __fp16 *A, unsigned int lda, const __fp16 *B,
-                     unsigned int ldb, __fp16 *C, unsigned int ldc, float alpha,
-                     float beta) {
-  __fp16 *A_T = alignedMalloc(M * K);
-
-  transpose_neon<__fp16>(K, M, A, M, A_T, K);
-
-  hgemm_K1_noTrans(M, N, K, A_T, lda, B, ldb, C, ldc, alpha, beta);
-
-  free(A_T);
-}

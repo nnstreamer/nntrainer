@@ -20,6 +20,7 @@
 #include <hgemm_padding.h>
 #include <hgemm_transA.h>
 #include <hgemm_transAB.h>
+#include <limits>
 #include <hgemm_transB.h>
 #include <hgemm_util.h>
 
@@ -156,16 +157,26 @@ void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
               bool TransA, bool TransB) {
   unsigned int lda = (TransA) ? M : K;
   unsigned int ldb = (TransB) ? K : N;
+  unsigned int ldc = N;
 
-  return hgemm_K1_noTrans(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-
-  if (!TransA && TransB) {
-    hgemm_K1_transB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else if (TransA && !TransB) {
-    hgemm_K1_transA(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else if (!TransA && !TransB) {
-    hgemm_K1_noTrans(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
-  } else { // TransA && TransB
-    hgemm_K1_transAB(M, N, K, A, lda, B, ldb, C, N, alpha, beta);
+  const float eps = std::numeric_limits<float>::epsilon();
+  float16x8_t a_vec;
+  unsigned int N8 = (N >> 3) << 3;
+  for (unsigned int m = 0; m < M; ++m) {
+    a_vec = vmovq_n_f16(alpha * A[m]);
+    if (std::fpclassify(beta) != FP_ZERO) {
+      for (unsigned int n = 0; n < N8; n += 8) {
+        vst1q_f16(&C[m * ldc + n],
+                  vaddq_f16(vmulq_f16(a_vec, vld1q_f16(&B[n])),
+                            vmulq_n_f16(vld1q_f16(&C[m * ldc + n]), beta)));
+      }
+    } else {
+      for (unsigned int n = 0; n < N8; n += 8) {
+        vst1q_f16(&C[m * ldc + n], vmulq_f16(a_vec, vld1q_f16(&B[n])));
+      }
+    }
+    for (unsigned int n = N8; n < N; ++n) {
+      C[m * ldc + n] = alpha * A[m] * B[n] + beta * C[m * ldc + n];
+    }
   }
 }
