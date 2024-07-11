@@ -201,7 +201,6 @@ nntrainer_conf.set('MEMORY_SWAP', nntrainer_enable_swap)
 nntrainer_conf.set('MEMORY_SWAP_PATH', nntrainer_swapdir)
 
 dummy_dep = dependency('', required: false)
-found_dummy_dep = declare_dependency() # dummy dep to use if found
 ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.
@@ -242,8 +241,8 @@ if get_option('enable-blas')
   if get_option('platform') == 'android'
     message('preparing blas')
     run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
-    blas_dep = found_dummy_dep
     blas_root = meson.build_root() / 'openblas'
+    blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
     blas_dep = dependency('openblas')
   endif
@@ -314,7 +313,7 @@ if get_option('platform') == 'android'
   message('preparing iniparser')
   run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
   iniparser_root = meson.build_root() / 'iniparser'
-  iniparser_dep = found_dummy_dep
+  iniparser_dep = declare_dependency(include_directories: [ 'iniparser/src' ])
 endif
 
 if not iniparser_dep.found()
@@ -354,7 +353,7 @@ if get_option('platform') == 'android'
   meson.add_install_script(
     'sh', '-c', 'cp @0@ ${DESTDIR}@1@'.format(ml_api_inc / 'tizen_error.h', nntrainer_includedir)
   )
-  ml_api_common_dep = found_dummy_dep
+  ml_api_common_dep = declare_dependency(include_directories: ['ml-api-inference/include'])
 endif
 
 if get_option('enable-nnstreamer-backbone') and get_option('platform') != 'android'
@@ -370,7 +369,7 @@ else
     message('preparing tflite, because either tflite backbone or interpreter is enabled')
     run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
     tflite_root = meson.build_root() / 'tensorflow-2.3.0' / 'tensorflow-lite'
-    tflite_dep = found_dummy_dep
+    tflite_dep = declare_dependency(include_directories: [ 'tensorflow-2.3.0/tensorflow-lite/include' ])
   endif
 endif
 
