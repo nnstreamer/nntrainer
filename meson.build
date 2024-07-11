@@ -499,12 +499,13 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android'
-  nnstreamer_dep = dependency('nnstreamer')
-  message('building nnstreamer')
-  subdir('nnstreamer')
-else
-  warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
+if get_option('enable-nnstreamer-tensor-filter').enabled() or get_option('enable-nnstreamer-tensor-trainer').enabled()
+  if get_option('platform') != 'android'
+    nnstreamer_dep = dependency('nnstreamer')
+    subdir('nnstreamer')
+  else
+    warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
+  endif
 endif
 
 if get_option('platform') == 'android'

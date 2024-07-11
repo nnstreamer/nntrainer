@@ -4,19 +4,23 @@ test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
   'unittest_interpreter.cpp',
-  'unittest_tflite_export.cpp',
   'unittest_realizer.cpp',
 ]
+test_deps = [
+    nntrainer_test_main_deps,
+    nntrainer_dep,
+    nntrainer_ccapi_dep,
+]
+
+if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter').enabled()
+  test_target += 'unittest_tflite_export.cpp'
+  test_deps += tflite_dep
+endif
 
 exe = executable(
   test_name,
   test_target,
-  dependencies: [
-    nntrainer_test_main_deps,
-    nntrainer_dep,
-    nntrainer_ccapi_dep,
-    tflite_dep
-  ],
+  dependencies: test_deps,
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
