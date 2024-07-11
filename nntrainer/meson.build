@@ -72,7 +72,7 @@ foreach s : nntrainer_common_sources
 endforeach
 
 if get_option('platform') == 'android'
-  nntrainer_dep = found_dummy_dep
+  nntrainer_dep = declare_dependency(include_directories: nntrainer_inc)
 else
   # Build libraries
   nntrainer_shared = shared_library('nntrainer',

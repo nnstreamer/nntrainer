@@ -43,7 +43,7 @@ if get_option('platform') == 'tizen'
 endif
 
 if get_option('platform') == 'android'
-  nntrainer_capi_dep = found_dummy_dep
+  nntrainer_capi_dep = declare_dependency(include_directories: capi_inc)
 else
   shared_library('capi-nntrainer',
     capi_src,

@@ -24,7 +24,7 @@ ccapi_deps = [
 ]
 
 if get_option('platform') == 'android'
-  nntrainer_ccapi_dep = found_dummy_dep
+  nntrainer_ccapi_dep = declare_dependency(include_directories: ccapi_inc)
 else
   shared_library('ccapi-nntrainer',
     ccapi_src,
