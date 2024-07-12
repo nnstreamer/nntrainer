@@ -90,7 +90,25 @@ void hgemm_padding_A_noTrans_wrt_K(const __fp16 *A, __fp16 *Ap, unsigned int M,
 void hgemm_padding_A_noTrans_wrt_MK(const __fp16 *A, __fp16 *Ap, unsigned int M,
                                     unsigned int K, unsigned int M8,
                                     unsigned int K8) {
-  std::cerr << "Error : hgemm_padding_A_noTrans_wrt_MK NYI!\n";
+  const unsigned int K8_low = (K >> 3) << 3;
+  float16x8_t ZEROS = vmovq_n_f16(0.F);
+
+  for (unsigned int m = 0; m < M; ++m) {
+    for (unsigned int k = 0; k < K8_low; ++k) {
+      vst1q_f16(&Ap[m * K8 + k], vld1q_f16(&A[m * K + k]));
+    }
+    for (unsigned int k = K8_low; k < K; ++k) {
+      Ap[m * K8 + k] = A[m * K + k];
+    }
+    for (unsigned int k = K; k < K8; ++k) {
+      Ap[m * K8 + k] = 0.F;
+    }
+  }
+  for (unsigned int m = M; m < M8; ++m) {
+    for (unsigned int k = K; k < K8; ++k) {
+      Ap[m * K8 + k] = ZEROS;
+    }
+  }
 }
 
 void hgemm_padding_A_Trans_wrt_M(const __fp16 *A, __fp16 *Ap, unsigned int M,
