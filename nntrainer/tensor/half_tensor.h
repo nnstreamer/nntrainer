@@ -353,7 +353,7 @@ public:
   /**
    * @copydoc Tensor::cat(const std::vector<Tensor> &tensors, int axis)
    */
-  static Tensor cat(const std::vector<Tensor> &tensors, int axis);
+  Tensor concat(const std::vector<Tensor> &tensors, int axis) override;
 
   /**
    * @copydoc Tensor::copy(const Tensor &from)
@@ -364,6 +364,13 @@ public:
    * @copydoc Tensor::copyData(const Tensor &from)
    */
   void copyData(const Tensor &from);
+
+  /**
+   * @brief      Copy the Tensor
+   * @param[in]  input Tensor to be copied
+   * @param[out] output output Tensor
+   */
+  void copy_with_stride(const Tensor &input, Tensor &output) override;
 
   /**
    * @copydoc Tensor::argmax()

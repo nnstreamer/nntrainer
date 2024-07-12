@@ -397,6 +397,11 @@ public:
   virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis) = 0;
 
   /**
+   * @copydoc Tensor::concat(const std::vector<Tensor> &tensors, int axis)
+   */
+  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis) = 0;
+
+  /**
    * @copydoc Tensor::print(std::ostream &out)
    */
   virtual void print(std::ostream &out) const = 0;
@@ -430,6 +435,13 @@ public:
    * @param[in] from Tensor to be copied
    */
   virtual void copyData(const Tensor &from) = 0;
+
+  /**
+   * @brief      Copy the Tensor
+   * @param[in]  input Tensor to be copied
+   * @param[out] output output Tensor
+   */
+  virtual void copy_with_stride(const Tensor &input, Tensor &output) = 0;
 
   /**
    * @copydoc Tensor::argmax()

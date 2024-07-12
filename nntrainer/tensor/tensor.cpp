@@ -818,27 +818,19 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
   return itensor->split(sizes, axis);
 }
 
-Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
+Tensor Tensor::concat(const std::vector<Tensor> &tensors, int axis) {
   NNTR_THROW_IF(!(-1 <= axis && axis < 4), std::invalid_argument)
     << "cannot split axis of axis: " << axis;
 
   NNTR_THROW_IF(tensors.empty(), std::invalid_argument)
     << "given tensor vector is empty";
 
-  Tensor output;
-  Tdatatype dtype = tensors.front().getDim().getDataType();
+  return itensor->concat(tensors, axis);
+}
 
-  if (dtype == Tdatatype::FP32) {
-    output = FloatTensor::cat(tensors, axis);
-  } else if (dtype == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-    output = HalfTensor::cat(tensors, axis);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-  }
-
-  return output;
+Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
+  Tensor input = tensors[0];
+  return input.concat(tensors, axis);
 }
 
 void Tensor::print(std::ostream &out) const {
@@ -874,18 +866,8 @@ void Tensor::copy(const Tensor &from) {
     // if tensor size and data type match, copy data
     itensor->copy(from);
   } else {
-    // replace with a new tensor that are the same with the given tensor
-    if (from.getDataType() == ml::train::TensorDim::DataType::FP32) {
-      Tensor t = Tensor(from.getDim(), from.getData<float>());
-      swap(t, *this);
-    } else if (from.getDataType() == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      Tensor t = Tensor(from.getDim(), from.getData<_FP16>());
-      swap(t, *this);
-#else
-      throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-    }
+    Tensor t = Tensor(from.getDim(), from.getData<char>());
+    swap(t, *this);
   }
 }
 
@@ -893,37 +875,13 @@ void Tensor::copyData(const Tensor &from) { itensor->copyData(from); }
 
 void Tensor::copy_with_stride(const Tensor &from) {
   if (itensor->getDim() == from.getDim()) {
-    // if the tensor dim matches, copy the data
-    for (unsigned int b = 0; b < batch(); ++b) {
-      for (unsigned int c = 0; c < channel(); ++c) {
-        for (unsigned int h = 0; h < height(); ++h) {
-          for (unsigned int w = 0; w < width(); ++w) {
-            setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
-          }
-        }
-      }
-    }
+    // If the tensor dim matches, copy the data. This also applies to
+    // uncontigous tensor.
+    itensor->copy_with_stride(from, *this);
   } else {
     // replace with a new tensor that has the same data as the given tensor
     Tensor t = Tensor(from.getDim(), true);
-    for (unsigned int b = 0; b < t.batch(); ++b) {
-      for (unsigned int c = 0; c < t.channel(); ++c) {
-        for (unsigned int h = 0; h < t.height(); ++h) {
-          for (unsigned int w = 0; w < t.width(); ++w) {
-            if (getDataType() == ml::train::TensorDim::DataType::FP32) {
-              t.setValue(b, c, h, w, from.getValue<float>(b, c, h, w));
-            } else if (getDataType() == ml::train::TensorDim::DataType::FP16) {
-              /// @todo remove #ifdef ENABLE_FP16
-#ifdef ENABLE_FP16
-              t.setValue(b, c, h, w, from.getValue<_FP16>(b, c, h, w));
-#else
-              throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-            }
-          }
-        }
-      }
-    }
+    itensor->copy_with_stride(from, t);
     swap(t, *this);
   }
 }
