@@ -814,6 +814,18 @@ void FloatTensor::copyData(const Tensor &from) {
   }
 }
 
+void FloatTensor::copy_with_stride(const Tensor &input, Tensor &output) {
+  for (unsigned int b = 0; b < output.batch(); ++b) {
+    for (unsigned int c = 0; c < output.channel(); ++c) {
+      for (unsigned int h = 0; h < output.height(); ++h) {
+        for (unsigned int w = 0; w < output.width(); ++w) {
+          output.setValue(b, c, h, w, input.getValue<float>(b, c, h, w));
+        }
+      }
+    }
+  }
+}
+
 std::vector<unsigned int> FloatTensor::argmax() const {
   std::vector<unsigned int> result;
   const float *data = (float *)getData();
@@ -1061,12 +1073,11 @@ std::vector<Tensor> FloatTensor::split(std::vector<size_t> sizes, int axis) {
   return ret;
 }
 
-Tensor FloatTensor::cat(const std::vector<Tensor> &tensors, int axis) {
+Tensor FloatTensor::concat(const std::vector<Tensor> &tensors, int axis) {
   if (axis == -1) {
     axis = 3;
   }
 
-  Tensor ret;
   auto ref_dim = tensors.front().getDim();
   bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW);
   ref_dim.setTensorDim(axis, 1);
@@ -1106,7 +1117,7 @@ Tensor FloatTensor::cat(const std::vector<Tensor> &tensors, int axis) {
   auto ret_dim = ref_dim;
   ret_dim.setTensorDim(axis, axis_dim);
 
-  ret = Tensor(ret_dim);
+  Tensor ret = Tensor(ret_dim);
 
   std::array<unsigned, 4> loc = {0, 0, 0, 0};
   for (auto &t : tensors) {

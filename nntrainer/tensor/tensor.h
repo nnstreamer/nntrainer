@@ -1152,6 +1152,15 @@ public:
    * @param axis axis
    * @return Tensor concatenated tensor
    */
+  Tensor concat(const std::vector<Tensor> &tensors, int axis = 0);
+
+  /**
+   * @brief concatenate tensors along axis
+   *
+   * @param tensors tensors to be concatenated to the first tensor
+   * @param axis axis
+   * @return Tensor concatenated tensor
+   */
   static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
 
   /**

@@ -887,11 +887,10 @@ std::vector<Tensor> HalfTensor::split(std::vector<size_t> sizes, int axis) {
   return ret;
 }
 
-Tensor HalfTensor::cat(const std::vector<Tensor> &tensors, int axis) {
+Tensor HalfTensor::concat(const std::vector<Tensor> &tensors, int axis) {
   if (axis == -1) {
     axis = 3;
   }
-  Tensor ret;
   auto ref_dim = tensors.front().getDim();
   bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW);
   ref_dim.setTensorDim(axis, 1);
@@ -931,7 +930,7 @@ Tensor HalfTensor::cat(const std::vector<Tensor> &tensors, int axis) {
   auto ret_dim = ref_dim;
   ret_dim.setTensorDim(axis, axis_dim);
 
-  ret = Tensor(ret_dim);
+  Tensor output = Tensor(ret_dim);
 
   std::array<unsigned, 4> loc = {0, 0, 0, 0};
   for (auto &t : tensors) {
@@ -950,7 +949,7 @@ Tensor HalfTensor::cat(const std::vector<Tensor> &tensors, int axis) {
     }
 
     for (size_t i = 0u, sz = t.size(); i < sz; ++i) {
-      iter_value(loc, start_loc, ret, tensor_dim_arr) = t.getValue<_FP16>(i);
+      iter_value(loc, start_loc, output, tensor_dim_arr) = t.getValue<_FP16>(i);
     }
 
     if (is_format_nchw) {
@@ -965,7 +964,7 @@ Tensor HalfTensor::cat(const std::vector<Tensor> &tensors, int axis) {
       }
     }
   }
-  return ret;
+  return output;
 }
 
 void HalfTensor::print(std::ostream &out) const {
@@ -1057,6 +1056,18 @@ void HalfTensor::copyData(const Tensor &from) {
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;
+  }
+}
+
+void HalfTensor::copy_with_stride(const Tensor &input, Tensor &output) {
+  for (unsigned int b = 0; b < output.batch(); ++b) {
+    for (unsigned int c = 0; c < output.channel(); ++c) {
+      for (unsigned int h = 0; h < output.height(); ++h) {
+        for (unsigned int w = 0; w < output.width(); ++w) {
+          output.setValue(b, c, h, w, input.getValue<_FP16>(b, c, h, w));
+        }
+      }
+    }
   }
 }
 
