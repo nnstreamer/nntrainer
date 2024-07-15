@@ -17,6 +17,7 @@
  * @brief	This is util functions for test
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @author	Sungsik Kong <ss.kong@samsung.com>
  * @bug		No known bugs except for NYI items
  *
  */
@@ -349,7 +350,7 @@ double cosine_similarity(Ta *A, Tb *B, uint32_t size) {
     denom_b += ref * ref;
   }
 
-  if (sqrt(denom_a) == 0 && sqrt(denom_b) == 0)
+  if (std::fpclassify(sqrt(denom_a) * sqrt(denom_b)) == FP_ZERO)
     return 1;
 
   double cosine_sim = dot / (sqrt(denom_a) * sqrt(denom_b));
@@ -377,6 +378,44 @@ float mse(Ta *A, Tb *B, uint32_t size) {
   }
   float mse = mse_error / size;
   return mse;
+}
+
+/**
+ * @brief max_componentwise_relative_error is often used to compare computation
+ * outputs with different precisions
+ *
+ * @tparam Ta type of input matrix A
+ * @tparam Tb type of input matrix B
+ * @tparam Tc1 type of Ground Truth C_gt
+ * @tparam Tc2 type of output matrix C_hat
+ * @param A input matrix A
+ * @param B input matrix B
+ * @param C_gt Ground Truth C_gt
+ * @param C_hat output matrix C_hat
+ * @param a_size size of matrix A
+ * @param b_size size of matrix B
+ * @param c_size size of matrix C
+ * @return float
+ */
+template <typename Ta = float, typename Tb = float, typename Tc1 = float,
+          typename Tc2 = float>
+float max_componentwise_relative_error(Ta *A, Tb *B, Tc1 *C_gt, Tc2 *C_hat,
+                                       uint32_t a_size, uint32_t b_size,
+                                       uint32_t c_size) {
+  float ret = 0.F;
+  float a_sum = 0.F;
+  float b_sum = 0.F;
+  for (unsigned int i = 0; i < a_size; ++i) {
+    a_sum += A[i];
+  }
+  for (unsigned int i = 0; i < b_size; ++i) {
+    b_sum += B[i];
+  }
+  for (unsigned int i = 0; i < c_size; ++i) {
+    double tmp = std::abs(C_gt[i] - C_hat[i]) / std::abs(a_sum * b_sum);
+    ret = std::fmax(ret, static_cast<float>(tmp));
+  }
+  return ret;
 }
 
 /**

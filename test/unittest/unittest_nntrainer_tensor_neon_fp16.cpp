@@ -7,6 +7,7 @@
  * @brief       Unit test utility for tensor with NEON __fp16 support for ARM.
  * @see         https://github.com/nnstreamer/nntrainer
  * @author      Debadri Samaddar <s.debadri@samsung.com>
+ * @author      Sungsik Kong <ss.kong@samsung.com>
  * @bug         No known bugs
  */
 #include <gtest/gtest.h>
@@ -633,10 +634,15 @@ TEST(nntrainer_Tensor, dot_gemm_16_16_16) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_1024_1024_1024) {
@@ -679,10 +685,15 @@ TEST(nntrainer_Tensor, dot_gemm_1024_1024_1024) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_768) {
@@ -725,10 +736,15 @@ TEST(nntrainer_Tensor, dot_gemm_768) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_M_transB) {
@@ -771,10 +787,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_M_transB) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_K) {
@@ -817,10 +838,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_K) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_N) {
@@ -863,10 +889,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_N) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_MK) {
@@ -909,10 +940,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_MK) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_KN) {
@@ -955,10 +991,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_KN) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_padding_MKN) {
@@ -1001,10 +1042,15 @@ TEST(nntrainer_Tensor, dot_gemm_padding_MKN) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_48000) {
@@ -1047,10 +1093,15 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_48000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_20000) {
@@ -1094,10 +1145,15 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_20000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_512_520_1032) {
@@ -1141,10 +1197,15 @@ TEST(nntrainer_Tensor, dot_gemm_512_520_1032) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_1001_1024_20000) {
@@ -1188,10 +1249,15 @@ TEST(nntrainer_Tensor, dot_gemm_1001_1024_20000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_516) {
@@ -1235,10 +1301,15 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_516) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemm_K1) {
@@ -1282,10 +1353,15 @@ TEST(nntrainer_Tensor, dot_gemm_K1) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemv_768_96000) {
@@ -1328,10 +1404,15 @@ TEST(nntrainer_Tensor, dot_gemv_768_96000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemv_768_48000) {
@@ -1374,10 +1455,15 @@ TEST(nntrainer_Tensor, dot_gemv_768_48000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, dot_gemv_768_20000) {
@@ -1420,10 +1506,15 @@ TEST(nntrainer_Tensor, dot_gemv_768_20000) {
   double cosSimNeon = cosine_similarity<__fp16>(
     C.getData<__fp16>(), C_fp32.getData<float>(), C.size());
 
+  float mcre = max_componentwise_relative_error<float, float, float, __fp16>(
+    A_fp32.getData<float>(), B_fp32.getData<float>(), C_fp32.getData<float>(),
+    C.getData<__fp16>(), A.size(), B.size(), C.size());
+
   const float epsilon = 1e-3 * width;
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+  EXPECT_LE(mcre, 1e-5);
 }
 
 TEST(nntrainer_Tensor, inv_sqrt_i_p) {
