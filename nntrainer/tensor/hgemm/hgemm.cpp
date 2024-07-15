@@ -38,9 +38,6 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
   const unsigned int N8_low = (N >> 3) << 3;
   float32x4_t ZEROS = vmovq_n_f32(0.F);
 
-  // void* C_ptr = 0;
-  // int iRet = posix_memalign(&C_ptr, 64, M8_high * N16_high * sizeof(float));
-  // float* C32 = (float*) C_ptr;
   float *C32 = (float *)malloc(M8_high * N16_high * sizeof(float));
 
   unsigned int size = M8_high * N16_high;
@@ -116,7 +113,6 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
   __fp16 *Bp;
 
   const unsigned int M8_high = ((M - 1) / 8 + 1) * 8;
-  // const unsigned int K8_high = ((K - 1) / 8 + 1) * 8;
   const unsigned int K8_high = ((K - 1) / 16 + 1) * 16;
   const unsigned int N16_high = ((N - 1) / 16 + 1) * 16;
 
@@ -136,48 +132,6 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
     K_ = K8_high;
     N_ = N16_high;
   }
-
-  // std::cout << "A matrix\n";
-  // for (unsigned int m = 0; m < M; m += 1) {
-  //   for (unsigned int k = 0; k < K; ++k) {
-  //     std::cout << A[m * K + k] << "\t";
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << std::endl;
-  // if (pad_A) {
-  //   std::cout << "B padding\n";
-  //   for (unsigned int m = 0; m < M; m += 1) {
-  //     for (unsigned int k = 0; k < K8_high; ++k) {
-  //       std::cout << A_[m * K8_high + k] << "\t";
-  //     }
-  //     std::cout << std::endl;
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << "B matrix\n";
-  // for (unsigned int k = 0; k < K; ++k) {
-  //   for (unsigned int n = 0; n < N; n += 1) {
-  //     std::cout << B[k * N + n] << "\t";
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << std::endl;
-  // if (pad_B) {
-  //   std::cout << "B padding\n";
-  //   for (unsigned int k = 0; k < K; ++k) {
-  //     for (unsigned int n = 0; n < N16_high; n += 1) {
-  //       std::cout << B_[k * N16_high + n] << "\t";
-  //     }
-  //     std::cout << std::endl;
-  //   }
-  //   std::cout << std::endl;
-  // }
-
-  // std::cout << "A matrix\n";
-  // matrix_printer<__fp16>(A_, M_, K_);
-  // std::cout << "B matrix\n";
-  // matrix_printer<__fp16>(B_, K_, N_);
 
   hgemm_classify(A_, B_, C32, M_, N_, K_, alpha, beta, TransA, TransB);
 

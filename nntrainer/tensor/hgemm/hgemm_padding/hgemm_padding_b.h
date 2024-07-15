@@ -16,8 +16,8 @@
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  * @param transB Whether the matrix B is transposed or not
@@ -31,8 +31,8 @@ void hgemm_padding_B(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -44,8 +44,8 @@ void hgemm_padding_B_noTrans(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -58,8 +58,8 @@ void hgemm_padding_B_noTrans_wrt_N(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -72,8 +72,8 @@ void hgemm_padding_B_noTrans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -85,8 +85,8 @@ void hgemm_padding_B_noTrans_wrt_KN(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -97,8 +97,8 @@ void hgemm_padding_B_Trans(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -110,8 +110,8 @@ void hgemm_padding_B_Trans_wrt_N(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
@@ -125,8 +125,8 @@ void hgemm_padding_B_Trans_wrt_K(const __fp16 *B, __fp16 *Bp, unsigned int K,
  *
  * @param B src matrix to pad
  * @param Bp dst matrix after padding
- * @param K row length of matrix B
- * @param N col length of matrix B
+ * @param K the number of rows of matrix B
+ * @param N the number of cols of matrix B
  * @param K8 Least multiple of 8 that is bigger than or equal to K
  * @param N16 Least multiple of 16 that is bigger than or equal to N
  */
