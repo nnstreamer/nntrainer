@@ -618,22 +618,11 @@ TEST(nntrainer_Tensor, dot_gemm_16_16_16) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
+
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
@@ -675,25 +664,12 @@ TEST(nntrainer_Tensor, dot_gemm_1024_1024_1024) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -734,25 +710,12 @@ TEST(nntrainer_Tensor, dot_gemm_768) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -793,25 +756,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_M_transB) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -852,25 +802,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_K) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -911,25 +848,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_N) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -970,25 +894,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_MK) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1029,25 +940,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_KN) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1088,25 +986,12 @@ TEST(nntrainer_Tensor, dot_gemm_padding_MKN) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1147,25 +1032,12 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_48000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1206,25 +1078,11 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_20000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
 
@@ -1267,25 +1125,11 @@ TEST(nntrainer_Tensor, dot_gemm_512_520_1032) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
 
@@ -1328,25 +1172,11 @@ TEST(nntrainer_Tensor, dot_gemm_1001_1024_20000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
 
@@ -1389,25 +1219,11 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_516) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
 
@@ -1450,25 +1266,11 @@ TEST(nntrainer_Tensor, dot_gemm_K1) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
 
@@ -1511,25 +1313,12 @@ TEST(nntrainer_Tensor, dot_gemv_768_96000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1570,25 +1359,12 @@ TEST(nntrainer_Tensor, dot_gemv_768_48000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
+
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
@@ -1629,25 +1405,11 @@ TEST(nntrainer_Tensor, dot_gemv_768_20000) {
   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B_fp32, 0, 1);
 
-  GEN_TEST_INPUT(A, ((i * (batch * height * channel) + j * (batch * height) +
-                      k * (width) + l + 1) %
-                     MOD) *
-                      alpha);
-  GEN_TEST_INPUT_B(B, ((i * (batch * height_b * channel) +
-                        j * (batch * height_b) + k * (width_b) + l + 1) %
-                       MOD) *
-                        alpha);
-  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
-                             j * (batch * height_b) + k * (width_b) + l + 1) %
-                            MOD) *
-                             alpha);
+  A.copyData(A_fp32);
+  B.copyData(B_fp32);
 
   nntrainer::Tensor C = A.dot(B, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
