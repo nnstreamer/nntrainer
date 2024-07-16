@@ -26,6 +26,7 @@
 #include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <division_layer.h>
 #include <flatten_layer.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -35,6 +36,7 @@
 #include <layer_normalization_layer.h>
 #include <lstmcell.h>
 #include <multiout_layer.h>
+#include <multiplication_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -42,6 +44,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
+#include <subtraction_layer.h>
 #include <time_dist.h>
 #include <tracer.h>
 #include <util_func.h>

@@ -79,6 +79,15 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::Addition());
   EXPECT_EQ(layer->getType(), "addition");
 
+  EXPECT_NO_THROW(layer = ml::train::layer::Subtraction());
+  EXPECT_EQ(layer->getType(), "subtraction");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Multiplication());
+  EXPECT_EQ(layer->getType(), "multiplication");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Division());
+  EXPECT_EQ(layer->getType(), "division");
+
   EXPECT_NO_THROW(layer = ml::train::layer::Concat());
   EXPECT_EQ(layer->getType(), "concat");
 

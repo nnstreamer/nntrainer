@@ -45,6 +45,11 @@ enum LayerType {
   LAYER_ACTIVATION =
     ML_TRAIN_LAYER_TYPE_ACTIVATION,              /**< Activation Layer type */
   LAYER_ADDITION = ML_TRAIN_LAYER_TYPE_ADDITION, /**< Addition Layer type */
+  LAYER_SUBTRACTION =
+    ML_TRAIN_LAYER_TYPE_SUBTRACTION, /**< Subtraction Layer type */
+  LAYER_MULTIPLICATION =
+    ML_TRAIN_LAYER_TYPE_MULTIPLICATION, /**< Multiplication Layer type */
+  LAYER_DIVISION = ML_TRAIN_LAYER_TYPE_DIVISION, /**< Division Layer type */
   LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /**< Concat Layer type */
   LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /**< Multi Output Layer type */
   LAYER_EMBEDDING = ML_TRAIN_LAYER_TYPE_EMBEDDING, /**< Embedding Layer type */
@@ -102,7 +107,7 @@ enum LayerType {
                                      derivative */
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM, /**<RMS NORM Layer */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN  /**< Unknown */
 };
 
 /**
@@ -311,9 +316,9 @@ Swiglu(const std::vector<std::string> &properties = {},
 /**
  * @brief Helper function to create RMS normalization layer for GPU
  */
-inline std::unique_ptr<Layer> RMSNormCl(
-  const std::vector<std::string> &properties = {},
-  const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
+inline std::unique_ptr<Layer>
+RMSNormCl(const std::vector<std::string> &properties = {},
+          const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
   return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
 }
 
@@ -381,6 +386,34 @@ inline std::unique_ptr<Layer>
 Addition(const std::vector<std::string> &properties = {},
          const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
   return createLayer(LayerType::LAYER_ADDITION, properties, compute_engine);
+}
+
+/**
+ * @brief Helper function to create subtraction layer
+ */
+inline std::unique_ptr<Layer> Subtraction(
+  const std::vector<std::string> &properties = {},
+  const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_SUBTRACTION, properties, compute_engine);
+}
+
+/**
+ * @brief Helper function to create multiplication layer
+ */
+inline std::unique_ptr<Layer> Multiplication(
+  const std::vector<std::string> &properties = {},
+  const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_MULTIPLICATION, properties,
+                     compute_engine);
+}
+
+/**
+ * @brief Helper function to create multiplication layer
+ */
+inline std::unique_ptr<Layer>
+Division(const std::vector<std::string> &properties = {},
+         const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_DIVISION, properties, compute_engine);
 }
 
 /**

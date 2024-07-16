@@ -5,6 +5,9 @@ nntrainer_inc_abs += meson.current_source_dir() / 'loss'
 layer_sources = [
   'activation_layer.cpp',
   'addition_layer.cpp',
+  'subtraction_layer.cpp',
+  'multiplication_layer.cpp',
+  'division_layer.cpp',
   'attention_layer.cpp',
   'mol_attention_layer.cpp',
   'multi_head_attention_layer.cpp',

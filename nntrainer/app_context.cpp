@@ -41,6 +41,7 @@
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <division_layer.h>
 #include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
@@ -59,6 +60,7 @@
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
+#include <multiplication_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -72,6 +74,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
+#include <subtraction_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <zoneout_lstmcell.h>
@@ -266,6 +269,13 @@ static void add_default_object(AppContext &ac) {
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
   ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
                      LayerType::LAYER_ADDITION);
+  ac.registerFactory(nntrainer::createLayer<SubtractionLayer>,
+                     SubtractionLayer::type, LayerType::LAYER_SUBTRACTION);
+  ac.registerFactory(nntrainer::createLayer<MultiplicationLayer>,
+                     MultiplicationLayer::type,
+                     LayerType::LAYER_MULTIPLICATION);
+  ac.registerFactory(nntrainer::createLayer<DivisionLayer>, DivisionLayer::type,
+                     LayerType::LAYER_DIVISION);
   ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
   ac.registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
