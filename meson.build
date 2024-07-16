@@ -34,7 +34,9 @@ if get_option('platform') == 'tizen'
   if get_option('enable-tizen-feature-check')
     add_project_arguments('-D__FEATURE_CHECK_SUPPORT__', language: ['c', 'cpp'])
   endif
-elif get_option('platform') == 'android'
+endif
+
+if get_option('enable_encoder')
   add_project_arguments('-DENABLE_ENCODER=1', language: ['c', 'cpp'])
 endif
 
