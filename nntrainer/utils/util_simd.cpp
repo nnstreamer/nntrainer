@@ -28,9 +28,9 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
 #endif
 }
 
-void swish(const unsigned int N, float *X, float *Y, float *Z) {
+void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
 #ifdef USE_NEON
-  nntrainer::neon::swish(N, X, Y, Z);
+  nntrainer::neon::swiglu(N, X, Y, Z);
 #else
   unsigned int i = 0;
   while (i < N) {
@@ -83,9 +83,9 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
 #endif
 }
 
-void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
+void swiglu(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z) {
 #ifdef USE_NEON
-  nntrainer::neon::swish(N, X, Y, Z);
+  nntrainer::neon::swiglu(N, X, Y, Z);
 #else
   unsigned int i = 0;
   while (i < N) {

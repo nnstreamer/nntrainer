@@ -32,14 +32,14 @@ namespace nntrainer {
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int alpha = 1.0);
 /**
- * @brief swish function with neon : X = (Y / (1 + exp( -Y ))) * Z
+ * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
  * @param N number of elements in X
  * @param X float * for Vector X
  * @param Y float * for Vector Y
  * @param Z float * for Vector Z
  */
-void swish(const unsigned int N, float *X, float *Y, float *Z);
+void swiglu(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
  * @brief returns maximum value of the vector X
@@ -75,14 +75,14 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
                                     unsigned int w, _FP16 *in, _FP16 *out,
                                     float *cos_, float *sin_);
 /**
- * @brief swish function : X = (Y / (1 + exp( -Y ))) * Z
+ * @brief swiglu function : X = (Y / (1 + exp( -Y ))) * Z
  *
  * @param N number of elements in X
  * @param X _FP16 * for Vector X
  * @param Y _FP16 * for Vector Y
  * @param Z _FP16 * for Vector Z
  */
-void swish(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
+void swiglu(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
 
 /**
  * @brief returns maximum value of the vector X
