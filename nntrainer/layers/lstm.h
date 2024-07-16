@@ -41,13 +41,13 @@ public:
    *  @brief  Move constructor.
    *  @param[in] LSTMLayer &&
    */
-  LSTMLayer(LSTMLayer &&rhs) noexcept = default;
+  LSTMLayer(LSTMLayer &&rhs) noexcept;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LSTMLayer to be moved.
    */
-  LSTMLayer &operator=(LSTMLayer &&rhs) = default;
+  LSTMLayer &operator=(LSTMLayer &&rhs);
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)

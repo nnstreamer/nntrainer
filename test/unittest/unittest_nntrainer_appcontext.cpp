@@ -176,9 +176,12 @@ TEST_P(AppContextTest, RegisterCreateCustomOptimizer_p) {
   EXPECT_EQ(num_id, ((int_key == -1) ? (-1) * int_key : int_key));
   auto opt = ac.createObject<nntrainer::Optimizer>(
     ((key == "") ? "identity_optimizer" : key), {});
-  EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
+  auto &optimizer = *opt.get();
+  EXPECT_EQ(typeid(optimizer).hash_code(), typeid(CustomOptimizer).hash_code());
   opt = ac.createObject<nntrainer::Optimizer>(num_id, {});
-  EXPECT_EQ(typeid(*opt).hash_code(), typeid(CustomOptimizer).hash_code());
+  auto &new_optimizer = *opt.get();
+  EXPECT_EQ(typeid(new_optimizer).hash_code(),
+            typeid(CustomOptimizer).hash_code());
 }
 
 GTEST_PARAMETER_TEST(RegisterCreateCustomOptimizerTests, AppContextTest,

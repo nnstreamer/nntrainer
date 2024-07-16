@@ -168,14 +168,14 @@ public:
    * @brief Move Construct a new Manager object
    *
    */
-  Manager(Manager &&) noexcept = default;
+  Manager(Manager &&) noexcept;
 
   /**
    * @brief Move assign a new Manager object
    *
    * @return Manager& reference to newly assign
    */
-  Manager &operator=(Manager &&) noexcept = default;
+  Manager &operator=(Manager &&) noexcept;
 
   /**
    * @brief     Destructor of Manager
