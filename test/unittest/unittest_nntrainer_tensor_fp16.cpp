@@ -3686,7 +3686,7 @@ TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_n) {
 TEST(nntrainer_Tensor, multiple_sum_out_of_range_n) {
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::FP16);
-  EXPECT_THROW(t.sum({7}), std::out_of_range);
+  EXPECT_THROW(t.sum(7), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, multiple_sum_p) {

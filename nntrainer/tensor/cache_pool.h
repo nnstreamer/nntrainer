@@ -76,7 +76,7 @@ public:
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
-    bool is_wgrad = false);
+    bool is_wgrad = false) override;
   /**
    * @brief Get the allocated cache
    *
@@ -86,7 +86,7 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  virtual std::shared_ptr<MemoryData> getMemory(unsigned int id);
+  virtual std::shared_ptr<MemoryData> getMemory(unsigned int id) override;
 
   /**
    * @brief Is the cache pool allocated

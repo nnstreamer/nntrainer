@@ -384,7 +384,7 @@ public:
    *
    * @return boolean true if trainable, else false
    */
-  bool getTrainable() const;
+  bool getTrainable() const override;
 
   /**
    * @brief     get if the output of this layer must be flatten

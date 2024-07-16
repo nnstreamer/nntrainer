@@ -2527,7 +2527,7 @@ TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_hnwc_n) {
 
 TEST(nntrainer_Tensor, multiple_sum_out_of_range_nhwc_n) {
   nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1, NHWC_, FP32_);
-  EXPECT_THROW(t.sum({7}), std::out_of_range);
+  EXPECT_THROW(t.sum(7), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, multiple_sum_nhwc_p) {
