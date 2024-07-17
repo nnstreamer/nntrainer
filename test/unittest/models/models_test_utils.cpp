@@ -442,12 +442,10 @@ void GraphWatcher::compareFor_V2(const std::string &reference) {
 
   unsigned int num_iter;
   nntrainer::checkedRead(file, (char *)&num_iter, sizeof(unsigned));
-  std::cout << "num iter: " << num_iter << '\n';
 
   IterationForGolden ifg(nn.get());
 
   for (unsigned int i = 0; i < num_iter; ++i) {
-    std::cout << "iteration: " << i << std::endl;
     ifg.test(i, file, i != 0);
   }
 }
