@@ -33,21 +33,34 @@ void FlattenLayer::finalize(InitLayerContext &context) {
   const unsigned int end_dimension =
     std::get<props::EndDimension>(flatten_props).get();
 
-  NNTR_THROW_IF(start_dimension > end_dimension, std::invalid_argument)
-    << "start_dimension is bigger than end_dimension";
+  if (in_dim.getFormat() == ml::train::TensorDim::Format::NHWC) {
 
-  TensorDim target_dim = in_dim;
+    NNTR_THROW_IF((start_dimension != 1) &&
+                    (end_dimension != ml::train::TensorDim::MAXDIM - 1),
+                  std::invalid_argument)
+      << "NHWC format does not support start and end dimension property of "
+         "flatten layer";
 
-  unsigned int flattened_size = 1;
-  for (unsigned int i = start_dimension; i <= end_dimension; ++i) {
-    flattened_size *= in_dim[i];
-    target_dim[i] = 1;
+    target_shape =
+      "target_shape=" + std::to_string(in_dim.getFeatureLen()) + ":1:1";
+  } else {
+
+    NNTR_THROW_IF(start_dimension > end_dimension, std::invalid_argument)
+      << "start_dimension is bigger than end_dimension";
+
+    TensorDim target_dim = in_dim;
+
+    unsigned int flattened_size = 1;
+    for (unsigned int i = start_dimension; i <= end_dimension; ++i) {
+      flattened_size *= in_dim[i];
+      target_dim[i] = 1;
+    }
+    target_dim[end_dimension] = flattened_size;
+
+    target_shape = "target_shape=" + std::to_string(target_dim[1]) + ":" +
+                   std::to_string(target_dim[2]) + ":" +
+                   std::to_string(target_dim[3]);
   }
-  target_dim[end_dimension] = flattened_size;
-
-  target_shape = "target_shape=" + std::to_string(target_dim[1]) + ":" +
-                 std::to_string(target_dim[2]) + ":" +
-                 std::to_string(target_dim[3]);
 
   ReshapeLayer::setProperty({target_shape});
 

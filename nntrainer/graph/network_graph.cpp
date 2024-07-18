@@ -779,8 +779,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
         if (lnode->getType() == IdentityLayer::type) {
           s.variable_spec.reference_name = inputs[i]->getName();
+          s.variable_spec.dim.setFormat(inputs[i]->getDim().getFormat());
         } else {
           s.variable_spec.reference_name = inputs[0]->getName();
+          s.variable_spec.dim.setFormat(inputs[0]->getDim().getFormat());
         }
       }
       if (shared_grad && s.gradient_spec) {
@@ -788,8 +790,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
         if (lnode->getType() == IdentityLayer::type) {
           s.gradient_spec->reference_name = inputs[i]->getGradientName();
+          s.gradient_spec->dim.setFormat(inputs[i]->getDim().getFormat());
         } else {
           s.gradient_spec->reference_name = inputs[0]->getGradientName();
+          s.gradient_spec->dim.setFormat(inputs[0]->getDim().getFormat());
         }
       }
     }
