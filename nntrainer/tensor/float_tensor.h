@@ -240,17 +240,17 @@ public:
   /**
    * @copydoc Tensor::setRandNormal()
    */
-  void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
+  void setRandNormal(float mean = 0.0f, float stddev = 0.05f) override;
 
   /**
    * @copydoc Tensor::setRandUniform()
    */
-  void setRandUniform(float min = -0.05f, float max = 0.05f);
+  void setRandUniform(float min = -0.05f, float max = 0.05f) override;
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  void setRandBernoulli(float probability = 0.5f);
+  void setRandBernoulli(float probability = 0.5f) override;
 
   /**
    * @copydoc Tensor::initialize()
@@ -414,12 +414,12 @@ public:
   /**
    * @copydoc Tensor::copy(const Tensor &from)
    */
-  void copy(const Tensor &from);
+  void copy(const Tensor &from) override;
 
   /**
    * @copydoc Tensor::copyData(const Tensor &from)
    */
-  void copyData(const Tensor &from);
+  void copyData(const Tensor &from) override;
 
   /**
    * @brief      Copy the Tensor
