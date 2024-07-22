@@ -85,22 +85,6 @@ Tensor::Tensor(const TensorDim &d, const void *buf) {
   }
 }
 
-Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
-                                         std::default_delete<FloatTensor>());
-}
-
-#ifdef ENABLE_FP16
-Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, t_type.format),
-                                        std::default_delete<HalfTensor>());
-}
-#endif
-
 Tensor::Tensor(const Tensor &rhs) {
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),

@@ -24,8 +24,13 @@
 #include <cstddef>
 
 #include <blas_interface.h>
+#include <float_tensor.h>
 #include <nntrainer_log.h>
 #include <tensor_base.h>
+
+#ifdef ENABLE_FP16
+#include <half_tensor.h>
+#endif
 
 namespace nntrainer {
 
@@ -155,7 +160,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
-         ml::train::TensorDim::TensorType t_type);
+         ml::train::TensorDim::TensorType t_type) {
+    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
+                                           std::default_delete<FloatTensor>());
+  }
 
   /**
    * @brief     Constructor of Tensor
@@ -185,7 +193,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
-         ml::train::TensorDim::TensorType t_type);
+         ml::train::TensorDim::TensorType t_type) {
+    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, t_type.format),
+                                          std::default_delete<HalfTensor>());
+  }
 
   /**
    * @brief     Constructor of Tensor
@@ -206,7 +217,6 @@ public:
   Tensor(std::vector<std::vector<_FP16>> const &d,
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
-
 #endif
 
   /**
