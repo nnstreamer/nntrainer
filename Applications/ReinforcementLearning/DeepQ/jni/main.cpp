@@ -533,11 +533,10 @@ int main(int argc, char **argv) {
         }
 
         try {
-          targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
           mainNet.save(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+          targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
         } catch (std::exception &e) {
           std::cerr << "Error during saveBin: " << e.what() << "\n";
-          // return 1;
         }
       }
     }
