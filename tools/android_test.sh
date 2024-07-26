@@ -8,7 +8,11 @@
 # You can modify test/jni/Android.mk to choose module that you wish to build
 cd test/jni
 
-# Perequisite: Install and configure the NDK
+if [ ! -d $ANDROID_NDK ]; then
+  echo "Error: ANDROID_NDK not found."
+  exit 1
+fi
+
 ndk-build
 
 if [ $? != 0 ]; then
