@@ -1698,6 +1698,13 @@ public:
   Tensor clone() const;
 
   /**
+   * @brief     Convient wrapper for inplace copy of @a this.
+   * @param[in] type output tensor data type
+   * @retval    Copied version of this
+   */
+  Tensor clone(ml::train::TensorDim::DataType type) const;
+
+  /**
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */
