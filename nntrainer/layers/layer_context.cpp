@@ -127,13 +127,14 @@ const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
 }
 
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
-                                 float l, bool in_place_,
+                                 float l, bool in_place_, float loss_scale_,
                                  const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
   loss(l),
   in_place(in_place_),
+  loss_scale(loss_scale_),
   weights(w),
   inputs(in),
   outputs(out),
@@ -168,6 +169,19 @@ Tensor &RunLayerContext::getWeightGrad(unsigned int idx) const {
     throw std::invalid_argument(
       "Requesting gradient for a non-trainable weight.");
   return weights[idx]->getGradientRef();
+}
+
+/**
+ * @brief Get the Weight Gradient tensor object
+ *
+ * @param idx Identifier of the weight
+ * @return Tensor& Reference to the weight grad tensor
+ */
+Tensor &RunLayerContext::getWeightFP32(unsigned int idx) const {
+  if (!weights[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable weight.");
+  return weights[idx]->getVariableFP32Ref();
 }
 
 /**
