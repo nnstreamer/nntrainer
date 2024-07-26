@@ -54,6 +54,9 @@ public:
   template <typename T = float> void setActiFunc(ActivationType acti_type) {
     activation_type = acti_type;
 
+    if (typeid(T) == typeid(_FP16))
+      THROW_UNLESS_FP16_ENABLED;
+
     switch (acti_type) {
     case ActivationType::ACT_TANH:
       this->setActivation<T>(tanhFloat<T>, tanhPrime<T>);
