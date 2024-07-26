@@ -46,7 +46,7 @@ public:
     decay(0.0f),
     clip_by_global_norm(0.0f),
     output_axis(3),
-    loss_scale(0.0) {}
+    loss_scale(1.0) {}
 
   /**
    * @brief Construct a new Weight object
@@ -66,7 +66,7 @@ public:
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
     bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 0.0);
+    float loss_scale_ = 1.0);
 
   /**
    * @brief Construct a new Weight object
@@ -87,7 +87,7 @@ public:
     const float reg_const = 1.0f, const float decay = 0.0f,
     const float clip_by_global_norm = 0.0f, bool ng = true,
     bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 0.0);
+    float loss_scale_ = 1.0);
 
   /**
    * @brief Construct a new Weight object
@@ -114,6 +114,7 @@ public:
    *
    * @param v Already created variable object
    * @param g Already created gradient object
+   * @param v32 Already created gradient object
    * @param n Name for this Weight
    *
    * @note This is primarily used to created wrapper of variable extracted from
@@ -123,35 +124,24 @@ public:
    * uses only, as Weight does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "",
-                  bool is_dependent = false, unsigned int output_axis_ = 3) :
-    Var_Grad(v, g, n, is_dependent),
-    regularizer(WeightRegularizer::NONE),
-    regularizer_constant(1.0f),
-    decay(0.0f),
-    clip_by_global_norm(0.0f),
-    output_axis(output_axis_),
-    loss_scale(0.0) {}
+  explicit Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
+                  const std::string &n = "", bool is_dependent = false,
+                  unsigned int output_axis_ = 3);
 
   /**
    * @brief Construct a new Weight object
    *
    * @param v ptr to already created variable tensor
    * @param g ptr to already created gradient tensor
+   * @param v32 ptr to already created variable32 tensor
    * @param reg Regularizer for the weight
    * @param reg_const Constant multiplier for regularizer
    */
-  explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
-                  const float reg_const, const float decay,
-                  bool is_dependent = false, const float max_norm = 0.0f,
-                  unsigned int output_axis_ = 3, float loss_scale_ = 0.0f) :
-    Var_Grad(v, g, is_dependent),
-    regularizer(reg),
-    regularizer_constant(reg_const),
-    decay(decay),
-    clip_by_global_norm(max_norm),
-    output_axis(output_axis_),
-    loss_scale(loss_scale_) {}
+  explicit Weight(Tensor *v, Tensor *g, Tensor *v32,
+                  const WeightRegularizer reg, const float reg_const,
+                  const float decay, bool is_dependent = false,
+                  const float max_norm = 0.0f, unsigned int output_axis_ = 3,
+                  float loss_scale_ = 1.0f);
 
   /**
    * @brief Swap for weight
@@ -170,6 +160,7 @@ public:
     swap(lhs.output_axis, rhs.output_axis);
     swap(lhs.opt_vars, rhs.opt_vars);
     swap(lhs.loss_scale, rhs.loss_scale);
+    swap(lhs.var32, rhs.var32);
   }
 
   /**
@@ -213,6 +204,8 @@ public:
       w.var = std::make_shared<Tensor>(this->var->clone());
     if (!this->grad->empty())
       w.grad = std::make_shared<Tensor>(this->grad->clone());
+    if (!this->var32->empty())
+      w.var32 = std::make_shared<Tensor>(this->var32->clone());
 
     return w;
   }
@@ -295,6 +288,13 @@ public:
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
+   * @brief     Apply the gradient to the weight with updated gradient
+   * @param[in] updated_grad gradient tensor which is updated in optimizer
+   * it might be different data type with gradient in weight. .eg : FP32
+   */
+  void applyGradient(double lr, Tensor &updated_grad);
+
+  /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
    * the given max_norm value
    *
@@ -317,6 +317,16 @@ public:
   }
 
   /**
+   * @brief Check if the variable type is not full precision
+   *
+   * @return true if it is not full precsion
+   * @return false otherwise
+   */
+  bool isMixedPrecision() const {
+    return var->getDataType() != ml::train::TensorDim::DataType::FP32;
+  }
+
+  /**
    * @brief clip the gradient value based on the given global norm
    *
    * @param global_norm the global norm for all the weights
@@ -325,6 +335,26 @@ public:
     if ((global_norm + epsilon) > clip_by_global_norm)
       grad->multiply_i(clip_by_global_norm / (global_norm + epsilon));
   }
+
+  /**
+   * @brief Get the variable FP32 tensor (by reference)
+   *
+   * @return Tensor Variable FP32 tensor
+   */
+  Tensor &getVariableFP32Ref() { return *var32.get(); }
+
+  /**
+   * @brief Quantize var32 to var
+   *
+   */
+  void quantizeWeight();
+
+  /**
+   * @brief set loss scale
+   * param[in] scale
+   *
+   */
+  void setLossScale(float scale) { loss_scale = scale; };
 
 private:
   static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
@@ -337,7 +367,8 @@ private:
   float clip_by_global_norm; /**< constant factor to clip gradient by L2 norm */
   unsigned int output_axis;
   float loss_scale;
-  std::vector<Tensor *> opt_vars; /**< optimizer variables */
+  std::vector<Tensor *>
+    opt_vars; /**< optimizer variables : We assume it is always full-precsion*/
   std::shared_ptr<Tensor> var32;
 
   /**
