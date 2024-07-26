@@ -64,7 +64,7 @@ public:
                    const float max_norm = 0.0,
                    std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32",
                                                               "FP32"},
-                   const float loss_scale = 0.0);
+                   const float loss_scale = 1.0);
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -349,6 +349,14 @@ public:
    */
   bool executeInPlace() const { return in_place; }
 
+  /**
+   * @brief   get Initial value of Loss_Scale. This is set to RunLayerContext
+   * and updated
+   *
+   * @return loss_scale
+   */
+  float getLossScale() const { return loss_scale; }
+
 private:
   std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
   bool in_place;             /**< if the layer is expected to run in-place */
@@ -386,7 +394,7 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() : loss(0.0), in_place(false) {}
+  RunLayerContext() : loss(0.0), in_place(false), loss_scale(1.0) {}
 
   /**
    * @brief Construct a new Run Layer Context object
@@ -400,17 +408,30 @@ public:
   /**
    * @brief Construct a new Run Layer Context object
    *
+   */
+  RunLayerContext(const std::string &name, bool in_place_, float loss_scale_) :
+    RunLayerContext() {
+    in_place = in_place_;
+    std::get<props::Name>(props).set(name);
+    loss_scale = loss_scale_;
+  }
+
+  /**
+   * @brief Construct a new Run Layer Context object
+   *
    * @param name name of the layer
    * @param trainable if the layer is trainable
    * @param l loss of the layer
    * @param in_place_ execution in-place of the layer
+   * @param loss_scale loss_scale of the layer
    * @param w weights of the layer
    * @param in inputs of the layer
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool in_place_, const std::vector<Weight *> &w,
+                  bool in_place_, float loss_scale_,
+                  const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t);
@@ -464,6 +485,15 @@ public:
   Tensor &getWeightGrad(unsigned int idx) const;
 
   /**
+   * @brief Get the Weight Gradient tensor object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight grad tensor
+   */
+  Tensor &getWeightFP32(unsigned int idx) const;
+
+  /**
+
    * @brief Get the Weight Optimizer Variable tensor object
    *
    * @param idx Identifier of the weight
@@ -659,6 +689,20 @@ public:
    * @return bool true if it is to be clipped else false
    */
   bool isGradientClipByGlobalNorm(unsigned int idx) const;
+
+  /**
+   * @brief check if the weight is mixed precsion
+   *
+   * @param idx index
+   * @return bool true if it is mixed precision
+   */
+  bool isMixedPrecision(unsigned int idx) const;
+
+  /**
+   * @brief check if the weight is mixed precsion
+   * @return bool true if it is mixed precision
+   */
+  bool isMixedPrecision() const;
 
   /**
    * @brief Get the tensor name
@@ -894,10 +938,29 @@ public:
    */
   ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
 
+  /**
+   * @brief get loss scale
+   * @return loss scale
+   */
+  float getLossScale() { return loss_scale; }
+
+  /**
+   * @brief   set Loss_Scale.
+   *
+   * @return loss_scale
+   */
+  void setLossScale(float scale) {
+    loss_scale = scale;
+    for (auto w : weights) {
+      w->setLossScale(scale);
+    }
+  }
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
-  bool in_place; /**< if the layer is expected to run in-place */
+  bool in_place;    /**< if the layer is expected to run in-place */
+  float loss_scale; /**< loss_scale of the layer */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

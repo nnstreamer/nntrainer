@@ -3084,6 +3084,18 @@ Tensor Tensor::clone() const {
   return t;
 }
 
+Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
+  if (getDataType() == type)
+    return clone();
+
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor t(dim, true);
+  t.copyData(*this);
+  t.name = name;
+  return t;
+}
+
 void Tensor::reshape(const TensorDim &d) {
 
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
@@ -3820,6 +3832,18 @@ void Tensor::dequantize(Tensor &output, unsigned int axis) const {
   }
 
   return;
+}
+
+bool Tensor::hasNaN() const {
+  if (getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    return has_nan(dim.getDataLen(), Tdatatype::FP16, getData<_FP16>());
+#else
+    throw std::invalid_argument("enble-fp16 is not set");
+#endif
+  } else {
+    return has_nan(dim.getDataLen(), Tdatatype::FP32, getData<float>());
+  }
 }
 
 // namespace nntrainer
