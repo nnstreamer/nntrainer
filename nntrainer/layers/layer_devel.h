@@ -259,6 +259,11 @@ public:
    * @return true if supports backwarding, else false
    */
   virtual bool supportBackwarding() const = 0;
+
+  /**
+   * @brief Set loss scale factor
+   */
+  virtual void setLossScale(float scale) {}
 };
 
 /// @todo Decide where to put and how to implement(#986)
