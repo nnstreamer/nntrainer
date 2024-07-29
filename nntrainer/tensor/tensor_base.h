@@ -657,7 +657,7 @@ public:
   /**
    * @copydoc Tensor::isValid()
    */
-  bool isValid() const { return true; };
+  virtual bool isValid() const = 0;
 
   static constexpr float epsilon = 1e-5;
 

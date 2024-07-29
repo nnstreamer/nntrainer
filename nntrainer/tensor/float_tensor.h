@@ -503,7 +503,7 @@ private:
   /**
    * @copydoc Tensor::isValid()
    */
-  bool Tensor::isValid() const;
+  bool isValid() const;
 };
 
 } // namespace nntrainer

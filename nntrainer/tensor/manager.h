@@ -226,7 +226,7 @@ public:
     const std::vector<TensorDim> &dims, const std::string &name,
     const std::string &suffix, const TensorLifespan &lifespan,
     bool is_grad_clip, bool is_mixed_type,
-    Tensor::Initializer initializer = Tensor::Initializer::NONE);
+    Initializer initializer = Initializer::NONE);
 
   /**
    * @brief     Create tensors with the given spec
