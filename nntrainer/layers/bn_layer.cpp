@@ -118,12 +118,12 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
                           1.0f, bias_decay, "beta", true);
 
   wt_idx[BNParams::mu_b] =
-    context.requestTensor(dim, "moviing_mean_backup", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(dim, "moviing_mean_backup", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
-  wt_idx[BNParams::var_b] = context.requestTensor(
-    dim, "moviing_variance_backup", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[BNParams::var_b] =
+    context.requestTensor(dim, "moviing_variance_backup", Initializer::NONE,
+                          false, TensorLifespan::ITERATION_LIFESPAN);
 
   /**
    * caches the deviation -> input - avg(input)
@@ -137,8 +137,8 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   }
 
   wt_idx[BNParams::deviation] =
-    context.requestTensor(in_dim_, "deviation", Tensor::Initializer::NONE,
-                          false, TensorLifespan::ITERATION_LIFESPAN);
+    context.requestTensor(in_dim_, "deviation", Initializer::NONE, false,
+                          TensorLifespan::ITERATION_LIFESPAN);
   /** caches the inverse standard deviation */
   wt_idx[BNParams::invstd] =
     context.requestTensor(dim, "invstd", Initializer::NONE, false,
@@ -150,8 +150,8 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
    * as the output of this layer need not be stored all the time.
    */
   wt_idx[BNParams::t_full] =
-    context.requestTensor(in_dim_, "tensor_full", Tensor::Initializer::NONE,
-                          false, TensorLifespan::CALC_DERIV_LIFESPAN);
+    context.requestTensor(in_dim_, "tensor_full", Initializer::NONE, false,
+                          TensorLifespan::CALC_DERIV_LIFESPAN);
   /**
    * caches variance + epsilon as well.
    */

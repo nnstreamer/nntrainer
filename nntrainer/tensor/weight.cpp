@@ -31,7 +31,7 @@ Weight::Weight(const TensorDim &dim, const Initializer init,
   output_axis(axis),
   loss_scale(loss_scale_),
   is_mixed(is_mixed_) {
-  if (init == Tensor::Initializer::NONE)
+  if (init == Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
@@ -73,7 +73,7 @@ Weight::Weight(const TensorDim &dim_v, const TensorDim &dim_g,
   output_axis(axis),
   loss_scale(loss_scale_),
   is_mixed(is_mixed_) {
-  if (init == Tensor::Initializer::NONE)
+  if (init == Initializer::NONE)
     throw std::invalid_argument("Weight initializer cannot be none");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
@@ -137,8 +137,6 @@ void Weight::applyGradient(double lr, Tensor &updated_grad) {
       updated_grad.getDataType() == ml::train::TensorDim::DataType::FP32 &&
       var->getDataType() != ml::train::TensorDim::DataType::FP32) {
     var32->add_i(updated_grad, -lr);
-    std::cout << var32->getName() << " --------------------------" << std::endl;
-    var32->print(std::cout);
     quantizeWeight();
     return;
   } else {

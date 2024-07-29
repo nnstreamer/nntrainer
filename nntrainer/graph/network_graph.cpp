@@ -487,16 +487,17 @@ bool NetworkGraph::backwarding(
     }
   }
   /** apply the gradient with the above global norm */
-  std::cout << "======================================= update gradient "
-            << std::endl;
+  // std::cout << "======================================= update gradient "
+  //           << std::endl;
   for (auto w : lazy_weights) {
-    std::cout << w->getName() << " : ";
+    // std::cout << w->getName() << " : ";
     lazy_apply_grad_op(*w, iteration);
   }
   nan_count++;
 
-  std::cout << "====================================== update gradient finished"
-            << std::endl;
+  // std::cout << "====================================== update gradient
+  // finished"
+  //           << std::endl;
   /** @todo : handle as property : growth_interval : default --> 2000 */
 
   if (nan_count > 2000) {
@@ -1643,7 +1644,7 @@ void NetworkGraph::requestOptimizerVariable(
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
         w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
-        Tensor::Initializer::ZEROS));
+        Initializer::ZEROS));
     }
   }
 }
