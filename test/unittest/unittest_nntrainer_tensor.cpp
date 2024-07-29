@@ -5464,7 +5464,7 @@ TEST(nntrainer_Tensor, inv_sqrt_i_uncontiguous_p) {
 }
 
 /**
- * @brief fp16 tensor has NaN
+ * @brief float tensor has NaN
  */
 TEST(nntrainer_Tensor, is_valid_01) {
   size_t batch = 1;
@@ -5478,7 +5478,7 @@ TEST(nntrainer_Tensor, is_valid_01) {
      height,
      width,
      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32}},
-    true, nntrainer::Tensor::Initializer::ZEROS);
+    true, nntrainer::Initializer::ZEROS);
 
   EXPECT_EQ(input.isValid(), true);
 

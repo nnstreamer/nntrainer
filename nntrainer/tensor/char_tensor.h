@@ -231,6 +231,11 @@ private:
    * @return std::string of tensor data type (QINT8)
    */
   std::string getStringDataType() const override { return "QINT8"; }
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool isValid() const override { return true; }; // NYI
 };
 
 } // namespace nntrainer

@@ -50,6 +50,10 @@ public:
    * @param name name
    * @param prefix_ prefix
    * @param max_norm max norm
+   * @param tensor_type array including tensor format and weight, activation
+   * type.
+   * @param loss_scale loss scale value for mixed precision training
+   * @param mode execution mode.
    */
   InitLayerContext(
     const std::vector<TensorDim> &dim,
@@ -220,7 +224,7 @@ public:
    * start from 0 and will always be incremental.
    */
   unsigned int requestWeight(const TensorDim &dim, const TensorDim &dim_g,
-                             const Tensor::Initializer init,
+                             const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
                              bool trainable = true, unsigned int out_axis = 3) {

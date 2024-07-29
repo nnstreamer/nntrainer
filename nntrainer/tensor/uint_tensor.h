@@ -259,6 +259,11 @@ private:
     else
       throw std::runtime_error("unsupported type");
   }
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool isValid() const override { return true; }; // NYI
 };
 
 /******  Alias for UIntTensors ******/

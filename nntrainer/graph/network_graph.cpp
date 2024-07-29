@@ -341,6 +341,9 @@ void NetworkGraph::applyGradients(
       /**
        * @note the weights whose gradient are to be clipped by global norm will
        * be clipped at once at the end of iteration and applied then.
+       * For those weights where mixed precision is uesed, their gradient
+       * updates might be delayed until they confirm whether their loss scales
+       * are appropeiate.
        */
       continue;
     }
@@ -438,7 +441,7 @@ bool NetworkGraph::backwarding(
      */
     float scale = (*iter_)->getRunContext().getLossScale();
 
-    NNTR_THROW_IF(scale == 1.0f, std::invalid_argument)
+    NNTR_THROW_IF(scale - 1.0f < 10e-6, std::invalid_argument)
       << "Loss Scale Factor is 1.0f";
 
     float s = scale > 1.5f ? scale * 0.5f : 1.0f;
@@ -487,18 +490,12 @@ bool NetworkGraph::backwarding(
     }
   }
   /** apply the gradient with the above global norm */
-  std::cout << "======================================= update gradient "
-            << std::endl;
   for (auto w : lazy_weights) {
-    std::cout << w->getName() << " : ";
     lazy_apply_grad_op(*w, iteration);
   }
   nan_count++;
 
-  std::cout << "====================================== update gradient finished"
-            << std::endl;
   /** @todo : handle as property : growth_interval : default --> 2000 */
-
   if (nan_count > 2000) {
     float scale = (*iter_)->getRunContext().getLossScale();
     /** @todo growth_factor : default --> 2.0 */
@@ -1647,7 +1644,7 @@ void NetworkGraph::requestOptimizerVariable(
       w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
         dims, w->getName(), ":opt", TensorLifespan::MAX_LIFESPAN,
         w->isGradientClipByGlobalNorm(), w->isMixedPrecision(),
-        Tensor::Initializer::ZEROS));
+        Initializer::ZEROS));
     }
   }
 }

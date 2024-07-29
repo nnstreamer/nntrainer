@@ -58,7 +58,12 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    * @param[in] enable_swap enable memory swap for tensor
+   * @param[in] mode execution mode (default ExecutionMode::TRAIN)
    * @param[in] swap_path memory swap file path when the swap is enabled
+   * @param[in] tensor_format define tensor format. One of NCHW and NHWC
+   * (default NCHW)
+   * @param[in] tensor_type It says weight type and activation type (default
+   * FP32-FP32)
    */
   NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
                const std::string &swap_path = "", unsigned int lookahead = 0,
@@ -207,8 +212,12 @@ public:
   /**
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
+   * @param[in] forwarding_op operation for the forwarding
    * @param[in] backwarding_op operation for the backwarding
-   * @param[in] apply_grad_clip_op operation for applying the clip gradients
+   * @param[in] lazy_apply_grad_op operation for applying the lazy gradients
+   * @retval ret it is false then the gradient has NaN valude in mixed precision
+   * training. If it is, then we need to control the loss scale factor and
+   * compute again the derivatives.
    */
   bool backwarding(
     int iteration,
@@ -496,7 +505,8 @@ private:
   std::unordered_map<std::string, int>
     profile_keys; /**< profile keys based on the layer type */
   std::vector<Weight *>
-    lazy_weights; /**< weights with global norm based clipping enabled */
+    lazy_weights; /**< weights with delayed grad update, e.g., gradient
+                     clipping, loss scaling */
   bool is_clip_grad;
 
   unsigned int nan_count;
