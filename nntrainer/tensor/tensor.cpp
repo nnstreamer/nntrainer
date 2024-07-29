@@ -1024,10 +1024,11 @@ Tensor Tensor::clone() const {
 Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
   if (getDataType() == type)
     return clone();
-
-  Tensor output(getName(), getFormat(), type);
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor output(dim, true);
   output.copyData(*this);
-  output.name = name;
+  output.setName(getName());
   return output;
 }
 

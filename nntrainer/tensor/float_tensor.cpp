@@ -150,7 +150,7 @@ void FloatTensor::setZero() {
     //  sscal(size(), 0, getData<float>(), 1);
     /// @note we cannot use sscal, when we set zero. if the data is inf or
     /// NaN, then the inf or NaN still remain.
-    memset(getData<float>(), 0, sizeof(float) * size());
+    memset((float *)getData(), 0, sizeof(float) * size());
   } else {
     /// @todo implement apply_i
     // apply_i<float>([](float val) -> float { return 0; });
@@ -1210,8 +1210,8 @@ void FloatTensor::apply_broadcast(
   return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
 }
 
-bool Tensor::isValid() const {
-  return is_valid(dim.getDataLen(), Tdatatype::FP32, getData<float>());
+bool FloatTensor::isValid() const {
+  return is_valid(dim.getDataLen(), Tdatatype::FP32, (float *)getData());
 }
 
 } // namespace nntrainer

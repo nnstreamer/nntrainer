@@ -242,6 +242,8 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
       unsigned int base_im_h = 0;
       int patch_height_end = eff_k_height + hs;
       /// map the patch to a single line looping through channel
+      // We need to optimize this padding & copy. May be use multi threads, or
+      // SIMD
       for (unsigned int c = 0; c < channel; ++c) {
         for (int h = hs; h < patch_height_end; h += dilation[0]) {
           if (h < 0 || in_height <= h) {

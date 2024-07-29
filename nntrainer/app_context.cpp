@@ -559,6 +559,7 @@ AppContext::registerPluggableFromDirectory(const std::string &base_path) {
   struct dirent *entry;
 
   std::vector<int> keys;
+
   while ((entry = readdir(dir)) != NULL) {
     if (endswith(entry->d_name, solib_suffix)) {
       if (endswith(entry->d_name, layerlib_suffix)) {
@@ -581,7 +582,8 @@ AppContext::registerPluggableFromDirectory(const std::string &base_path) {
     }
   }
 
-  closedir(dir);
+  if (dir != NULL)
+    closedir(dir);
 
   return keys;
 }

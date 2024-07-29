@@ -60,14 +60,14 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(
-    const TensorDim &dim,
-    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
-    const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, const float decay = 0.0f,
-    const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 1.0, bool is_mixed = false);
+  explicit Weight(const TensorDim &dim,
+                  const Initializer init = Initializer::XAVIER_UNIFORM,
+                  const WeightRegularizer reg = WeightRegularizer::NONE,
+                  const float reg_const = 1.0f, const float decay = 0.0f,
+                  const float clip_by_global_norm = 0.0f, bool ng = true,
+                  bool alloc_now = false, std::string name = "",
+                  unsigned int axis = 3, float loss_scale_ = 1.0,
+                  bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
@@ -81,14 +81,14 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(
-    const TensorDim &dim_v, const TensorDim &dim_g,
-    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
-    const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, const float decay = 0.0f,
-    const float clip_by_global_norm = 0.0f, bool ng = true,
-    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
-    float loss_scale_ = 1.0, bool is_mixed = false);
+  explicit Weight(const TensorDim &dim_v, const TensorDim &dim_g,
+                  const Initializer init = Initializer::XAVIER_UNIFORM,
+                  const WeightRegularizer reg = WeightRegularizer::NONE,
+                  const float reg_const = 1.0f, const float decay = 0.0f,
+                  const float clip_by_global_norm = 0.0f, bool ng = true,
+                  bool alloc_now = false, std::string name = "",
+                  unsigned int axis = 3, float loss_scale_ = 1.0,
+                  bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
@@ -116,7 +116,7 @@ public:
    *
    * @param v Already created variable object
    * @param g Already created gradient object
-   * @param v32 Already created gradient object
+   * @param v32 Already created var32 object
    * @param n Name for this Weight
    *
    * @note This is primarily used to created wrapper of variable extracted from
@@ -288,11 +288,7 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) {
-    var->add_i(*grad.get(), -lr);
-    std::cout << var->getName() << " --------------------------" << std::endl;
-    var->print(std::cout);
-  }
+  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
    * @brief     Apply the gradient to the weight with updated gradient

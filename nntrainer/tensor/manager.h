@@ -141,18 +141,19 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap, const std::string &swap_path = "",
+  Manager(bool enable_swap_, const std::string &swap_path = "",
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
           const std::string tensor_dtype_ = "FP32-FP32",
           ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
-    weight_pool(enable_swap, swap_path, "weight_pool"),
-    tensor_pool(enable_swap && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
+    weight_pool(enable_swap_, swap_path, "weight_pool"),
+    tensor_pool(enable_swap_ && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
                 "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    exec_mode(exec_mode_) {}
+    exec_mode(exec_mode_),
+    enable_swap(enable_swap_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -228,7 +229,7 @@ public:
     const std::vector<TensorDim> &dims, const std::string &name,
     const std::string &suffix, const TensorLifespan &lifespan,
     bool is_grad_clip, bool is_mixed_type,
-    Tensor::Initializer initializer = Tensor::Initializer::NONE);
+    Initializer initializer = Initializer::NONE);
 
   /**
    * @brief     Create tensors with the given spec
@@ -536,6 +537,8 @@ private:
   std::vector<std::string> tensor_dtype;
 
   ExecutionMode exec_mode;
+
+  bool enable_swap;
 
   /**
    * @brief Finalize the given tensor pool

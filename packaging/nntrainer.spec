@@ -1,7 +1,7 @@
 # Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
 %define         use_cblas 1
 %define         nnstreamer_filter 1
-%define         nnstreamer_trainer 0
+%define         nnstreamer_trainer 1
 %define         nnstreamer_subplugin_path /usr/lib/nnstreamer
 %define         use_gym 0
 %define         support_ccapi 1
@@ -575,6 +575,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
 %{_includedir}/nntrainer/loss_layer.h
+%ifarch aarch64
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
 %{_includedir}/nntrainer/blas_neon.h
@@ -593,7 +594,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/model_common_properties.h
 %{_includedir}/nntrainer/network_graph.h
 %{_includedir}/nntrainer/graph_core.h
-%{_includedir}/nntrainer/graph_node.h
 %{_includedir}/nntrainer/manager.h
 %{_includedir}/nntrainer/basic_planner.h
 %{_includedir}/nntrainer/memory_planner.h

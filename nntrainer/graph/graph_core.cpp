@@ -98,7 +98,7 @@ void GraphCore::topologicalSort() {
   if (Sorted.size() != node_list.size())
     throw std::runtime_error("Internal error in topologicalSort");
   unsigned int idx = 0;
-  for (auto n : Sorted) {
+  for (auto &n : Sorted) {
     sorted_node_map[n->getName()] = idx;
     idx++;
   }
