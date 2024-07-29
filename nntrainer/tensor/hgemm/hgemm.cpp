@@ -195,4 +195,3 @@ void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
     }
   }
 }
-

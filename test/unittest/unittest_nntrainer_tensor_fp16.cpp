@@ -6272,7 +6272,7 @@ TEST(nntrainer_Tensor, is_valid_01) {
      height,
      width,
      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}},
-    true, nntrainer::Tensor::Initializer::ZEROS);
+    true, nntrainer::Initializer::ZEROS);
 
   EXPECT_EQ(input.isValid(), true);
 

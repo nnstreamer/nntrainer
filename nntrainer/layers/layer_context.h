@@ -227,7 +227,7 @@ public:
    * start from 0 and will always be incremental.
    */
   unsigned int requestWeight(const TensorDim &dim, const TensorDim &dim_g,
-                             const Tensor::Initializer init,
+                             const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
                              bool trainable = true, unsigned int out_axis = 3) {

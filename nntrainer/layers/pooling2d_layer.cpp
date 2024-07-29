@@ -126,15 +126,15 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
     auto helper_dim = in_dim;
     helper_dim.setDataType(ml::train::TensorDim::DataType::FP32);
     pool_helper_idx =
-      context.requestTensor(helper_dim, "helper_idx", Tensor::Initializer::NONE,
-                            false, TensorLifespan::ITERATION_LIFESPAN);
+      context.requestTensor(helper_dim, "helper_idx", Initializer::NONE, false,
+                            TensorLifespan::ITERATION_LIFESPAN);
     pool_helper_size.resize(helper_dim.batch() * helper_dim.channel());
   } else {
     auto helper_dim = out_dim;
     helper_dim.setDataType(ml::train::TensorDim::DataType::FP32);
     pool_helper_idx =
-      context.requestTensor(helper_dim, "helper_idx", Tensor::Initializer::NONE,
-                            false, TensorLifespan::ITERATION_LIFESPAN);
+      context.requestTensor(helper_dim, "helper_idx", Initializer::NONE, false,
+                            TensorLifespan::ITERATION_LIFESPAN);
   }
 }
 

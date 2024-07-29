@@ -231,6 +231,11 @@ private:
    * @return std::string of tensor data type (UINT16)
    */
   std::string getStringDataType() const override { return "UINT16"; }
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool isValid() const override { return true; }; // NYI
 };
 
 } // namespace nntrainer

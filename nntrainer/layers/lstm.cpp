@@ -512,16 +512,16 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   const TensorDim hidden_state_dim(batch_size, 1, max_timestep, unit,
                                    activation_tensor_type);
 
-  wt_idx[LSTMParams::hidden_state] = context.requestTensor(
-    hidden_state_dim, "hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::hidden_state] =
+    context.requestTensor(hidden_state_dim, "hidden_state", Initializer::NONE,
+                          true, TensorLifespan::ITERATION_LIFESPAN);
   // cell_state_dim : [ batch_size, 1, max_timestep, unit ]
   const TensorDim cell_state_dim(batch_size, 1, max_timestep, unit,
                                  activation_tensor_type);
 
-  wt_idx[LSTMParams::cell_state] = context.requestTensor(
-    cell_state_dim, "cell_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::cell_state] =
+    context.requestTensor(cell_state_dim, "cell_state", Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   // ifgo_dim : [ batch_size, 1, max_timestep, NUM_GATE * unit ]
   const TensorDim ifgo_dim(batch_size, 1, max_timestep, NUM_GATE * unit,
@@ -594,18 +594,18 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     // reverse_ifgo_dim : [ batch_size, 1, max_timestep, NUM_GATE * unit ]
     const TensorDim reverse_ifgo_dim(batch_size, 1, max_timestep,
                                      NUM_GATE * unit, activation_tensor_type);
-    wt_idx[LSTMParams::reverse_ifgo] = context.requestTensor(
-      reverse_ifgo_dim, "reverse_ifgo", Tensor::Initializer::NONE, true,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[LSTMParams::reverse_ifgo] =
+      context.requestTensor(reverse_ifgo_dim, "reverse_ifgo", Initializer::NONE,
+                            true, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   if (dropout_rate > epsilon) {
     // dropout_mask_dim = [ batch, 1, time_iteration, unit ]
     const TensorDim dropout_mask_dim(batch_size, 1, max_timestep, unit,
                                      activation_tensor_type);
-    wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
-      dropout_mask_dim, "dropout_mask", Tensor::Initializer::NONE, false,
-      TensorLifespan::ITERATION_LIFESPAN);
+    wt_idx[LSTMParams::dropout_mask] =
+      context.requestTensor(dropout_mask_dim, "dropout_mask", Initializer::NONE,
+                            false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   if (context.getActivationDataType() == TensorDim::DataType::FP32) {

@@ -434,7 +434,7 @@ std::vector<Weight *> Manager::requestWeights(
          */
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim_g, grad_exec_order, grad_ls,
-                                           Tensor::Initializer::ZEROS);
+                                           Initializer::ZEROS);
 
         if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
           TensorDim var32_dim(dim_v);
@@ -444,7 +444,7 @@ std::vector<Weight *> Manager::requestWeights(
 
           var32 = weight_pool.requestOrExtend(shared_name + ":var32", var32_dim,
                                               var32_exec_order, var_ls,
-                                              Tensor::Initializer::ZEROS);
+                                              Initializer::ZEROS);
         }
       }
     } else {
@@ -461,8 +461,8 @@ std::vector<Weight *> Manager::requestWeights(
         //        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
         //          is_wgrad = false;
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
-                                   grad_exec_order, grad_ls,
-                                   Tensor::Initializer::ZEROS, is_wgrad);
+                                   grad_exec_order, grad_ls, Initializer::ZEROS,
+                                   is_wgrad);
         if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
           TensorDim var32_dim(dim_v);
           var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
@@ -470,7 +470,7 @@ std::vector<Weight *> Manager::requestWeights(
           var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
           var32 =
             weight_pool.request(name + ":var32", var32_dim, var32_exec_order,
-                                var_ls, Tensor::Initializer::ZEROS);
+                                var_ls, Initializer::ZEROS);
         }
       }
     }
@@ -690,7 +690,7 @@ bool Manager::isSecondLastAccess(const std::string &name,
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
   const std::string &suffix, const TensorLifespan &lifespan, bool is_grad_clip,
-  bool is_mixed_precision, Tensor::Initializer initializer) {
+  bool is_mixed_precision, Initializer initializer) {
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());
