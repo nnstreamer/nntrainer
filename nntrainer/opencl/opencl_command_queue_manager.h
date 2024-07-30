@@ -86,6 +86,35 @@ public:
                           bool async = false);
 
   /**
+   * @brief Mapping a region of a buffer object into the host address space
+   *
+   * @param buffer cl_mem buffer object
+   * @param offset_in_bytes offset of the region in the buffer object that is
+   * being mapped
+   * @param size_in_bytes size of the buffer object that is being mapped
+   * @param read_only flag for read only mapping
+   * @param async flag for asynchronous operation
+   * @param event Object that identifies this command and can be used to query
+   * or wait for this command to complete
+   * @return void* pointer to the mapped region
+   */
+  void *EnqueueMapBuffer(cl_mem buffer, size_t offset_in_bytes,
+                         size_t size_in_bytes, bool read_only,
+                         bool async = false, cl_event *event = nullptr);
+
+  /**
+   * @brief Un-mapping a buffer object from the host address space
+   *
+   * @param buffer cl_mem buffer object
+   * @param mapped_ptr pointer to the mapped region
+   * @param event Object that identifies this command and can be used to query
+   * or wait for this command to complete
+   * @return true if unmap is successful
+   */
+  bool EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
+                             cl_event *event = nullptr);
+
+  /**
    * @brief Function to initiate execution of the command queue.
    *
    * @param kernel OpenCL kernel
