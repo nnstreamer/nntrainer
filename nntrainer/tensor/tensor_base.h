@@ -225,17 +225,17 @@ public:
   /**
    * @copydoc Tensor::setRandNormal()
    */
-  virtual void setRandNormal(float mean, float stddev) = 0;
+  virtual void setRandNormal(float mean, float stddev);
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  virtual void setRandUniform(float min, float max) = 0;
+  virtual void setRandUniform(float min, float max);
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  virtual void setRandBernoulli(float probability) = 0;
+  virtual void setRandBernoulli(float probability);
 
   /**
    * @copydoc Tensor::initialize()
@@ -252,125 +252,115 @@ public:
    * const float beta)
    */
   virtual Tensor multiply_strided(Tensor const &m, Tensor &output,
-                                  const float beta) const = 0;
+                                  const float beta) const;
 
   /**
    * @copydoc Tensor::multiply_i(float const &value)
    */
-  virtual int multiply_i(float const &value) = 0;
+  virtual int multiply_i(float const &value);
 
   /**
-   * @copydoc Tensor::multiply(float const &value, Tensor &out)
+   * @copydoc Tensor::multiply(float const &value, Tensor &output)
    */
-  virtual Tensor &multiply(float const &value, Tensor &out) const = 0;
+  virtual Tensor &multiply(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
    * float beta = 0.0)
    */
   virtual Tensor &multiply(Tensor const &m, Tensor &output,
-                           const float beta = 0.0) const = 0;
+                           const float beta = 0.0) const;
 
   /**
    * @copydoc Tensor::divide(float const &value, Tensor &output)
    */
-  virtual Tensor &divide(float const &value, Tensor &output) const = 0;
+  virtual Tensor &divide(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::divide(Tensor const &m, Tensor &output)
    */
-  virtual Tensor &divide(Tensor const &m, Tensor &output) const = 0;
+  virtual Tensor &divide(Tensor const &m, Tensor &output) const;
 
   /**
    * @copydoc Tensor::add_strided(Tensor const &input, Tensor &output,
    * const float beta)
    */
   virtual Tensor &add_strided(Tensor const &input, Tensor &output,
-                              const float beta) const = 0;
+                              const float beta) const;
 
   /**
    * @copydoc Tensor::add_i(Tensor const &m, float const alpha)
    */
-  virtual int add_i(Tensor const &m, Tensor &output, float const alpha) = 0;
+  virtual int add_i(Tensor const &m, Tensor &output, float const alpha);
 
   /**
    * @copydoc Tensor::add_i_partial()
    */
   virtual int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
                             unsigned int incX, unsigned int incY,
-                            const Tensor alphas, unsigned int alpha_idx) = 0;
+                            const Tensor alphas, unsigned int alpha_idx);
 
   /**
    * @copydoc Tensor::add(float const &value, Tensor &output)
    */
-  virtual Tensor &add(float const &value, Tensor &output) const = 0;
+  virtual Tensor &add(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  virtual Tensor &add(Tensor const &m, Tensor &output,
-                      float const alpha) const = 0;
+  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha) const;
 
   /**
    * @copydoc Tensor::subtract(float const &value, Tensor &output)
    */
-  virtual Tensor &subtract(float const &value, Tensor &output) const = 0;
+  virtual Tensor &subtract(float const &value, Tensor &output) const;
 
   /**
    * @brief      Sum all the Tensor elements according to the batch
    * @param[out] output Tensor(batch, 1, 1, 1)
    */
-  virtual void sum_by_batch(Tensor &output) const = 0;
+  virtual void sum_by_batch(Tensor &output) const;
 
   /**
    * @copydoc Tensor::sum(unsigned int axis, Tensor &output, float alpha,
    * float beta) const
    */
   virtual Tensor &sum(unsigned int axis, Tensor &output, float alpha,
-                      float beta) const = 0;
+                      float beta) const;
 
   /**
    * @copydoc Tensor::l2norm
    */
-  virtual float l2norm() const = 0;
+  virtual float l2norm() const;
 
   /**
    * @copydoc Tensor::pow(float exponent, Tensor &output)
    */
-  virtual Tensor &pow(float exponent, Tensor &output) const = 0;
+  virtual Tensor &pow(float exponent, Tensor &output) const;
 
   /**
    * @copydoc Tensor::erf(Tensor &output)
    */
-  virtual Tensor &erf(Tensor &output) const = 0;
+  virtual Tensor &erf(Tensor &output) const;
 
   /**
    * @brief    sin transform function
    * @param[out] out out to store the result
    */
-  virtual void sin(Tensor &out, float alpha = 1.0) {
-    throw std::invalid_argument(
-      "Tensor::sin not supported in current tensor data type.");
-  }
+  virtual void sin(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief    cos transform function
    * @param[out] out out to store the result
    */
-  virtual void cos(Tensor &out, float alpha = 1.0) {
-    throw std::invalid_argument(
-      "Tensor::cos not supported in current tensor data type.");
-  }
+  virtual void cos(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief      inverse squared root function
    * @param[out] out out to store the result
    */
-  virtual void inv_sqrt(Tensor &out) {
-    throw std::invalid_argument(
-      "Tensor::inv_sqrt not supported in current tensor data type.");
-  }
+  virtual void inv_sqrt(Tensor &out);
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -384,32 +374,32 @@ public:
    * @retval    Calculated Tensor
    */
   virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
-                      bool trans_in, float beta) const = 0;
+                      bool trans_in, float beta) const;
 
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
    */
-  virtual void dropout_mask(float dropout) = 0;
+  virtual void dropout_mask(float dropout);
 
   /**
    * @copydoc Tensor::filter_mask(const Tensor &mask_len, bool reverse)
    */
-  virtual void filter_mask(const Tensor &mask_len, bool reverse) = 0;
+  virtual void filter_mask(const Tensor &mask_len, bool reverse);
 
   /**
    * @copydoc Tensor::zoneout_mask(Tensor &opposite, float zoneout)
    */
-  virtual void zoneout_mask(Tensor &opposite, float zoneout) = 0;
+  virtual void zoneout_mask(Tensor &opposite, float zoneout);
 
   /**
    * @copydoc Tensor::split(std::vector<size_t> sizes, int axis)
    */
-  virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis) = 0;
+  virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis);
 
   /**
    * @copydoc Tensor::concat(const std::vector<Tensor> &tensors, int axis)
    */
-  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis) = 0;
+  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis);
 
   /**
    * @copydoc Tensor::print(std::ostream &out)
@@ -418,18 +408,16 @@ public:
 
   /**
    * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
+   * @note    This will be only used in FloatTensor.
    */
-  virtual Tensor &apply(std::function<float(float)> f, Tensor &output) const {
-    return output;
-  }
+  virtual Tensor &apply(std::function<float(float)> f, Tensor &output) const;
 
 #ifdef ENABLE_FP16
   /**
    * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
+   * @note    This will be only used in HalfTensor.
    */
-  virtual Tensor &apply(std::function<_FP16(_FP16)> f, Tensor &output) const {
-    return output;
-  }
+  virtual Tensor &apply(std::function<_FP16(_FP16)> f, Tensor &output) const;
 #endif
 
   /**
@@ -476,8 +464,7 @@ public:
   /**
    * @copydoc Tensor::transpose(const std::string &direction, Tensor &out)
    */
-  virtual Tensor &transpose(const std::string &direction,
-                            Tensor &out) const = 0;
+  virtual Tensor &transpose(const std::string &direction, Tensor &out) const;
 
   /**
    * @brief     put data of Tensor
@@ -744,6 +731,32 @@ protected:
                            unsigned int &input_last_axis, unsigned int &M,
                            unsigned int &N, unsigned int &K, unsigned int &lda,
                            unsigned int &ldb, unsigned int &ldc) const;
+
+  /**
+   * @brief  Get the Data Type String object
+   * @return std::string of tensor data type
+   */
+  std::string getStringDataType() const {
+    std::string res;
+    switch (getDataType()) {
+    case Tdatatype::FP32:
+      res = "FP32";
+      break;
+    case Tdatatype::FP16:
+      res = "FP16";
+      break;
+    case Tdatatype::QINT8:
+      res = "QINT8";
+      break;
+    case Tdatatype::QINT4:
+      res = "QINT4";
+      break;
+    default:
+      res = "Undefined type";
+      break;
+    }
+    return res;
+  }
 };
 
 /**
