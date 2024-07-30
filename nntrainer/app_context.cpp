@@ -74,6 +74,7 @@
 #include <split_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
+#include <weight_layer.h>
 #include <zoneout_lstmcell.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -245,6 +246,8 @@ static void add_default_object(AppContext &ac) {
   using LayerType = ml::train::LayerType;
   ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
                      LayerType::LAYER_IN);
+  ac.registerFactory(nntrainer::createLayer<WeightLayer>, WeightLayer::type,
+                     LayerType::LAYER_WEIGHT);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
