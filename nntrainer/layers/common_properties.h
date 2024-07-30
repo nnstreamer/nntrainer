@@ -115,6 +115,16 @@ public:
 };
 
 /**
+ * @brief Tensor Dimension property
+ *
+ */
+class TensorDimension : public TensorDimProperty {
+public:
+  static constexpr const char *key = "dim"; /**< unique key to access */
+  using prop_tag = dimension_prop_tag;      /**< property type */
+};
+
+/**
  * @brief trainable property, use this to set and check how if certain layer is
  * trainable
  *

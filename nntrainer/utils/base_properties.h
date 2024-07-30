@@ -278,6 +278,19 @@ public:
 };
 
 /**
+ * @brief abstract class for tensor dimension
+ *
+ */
+class TensorDimProperty : public Property<TensorDim> {
+public:
+  /**
+   * @brief Destroy the TensorDim Property object
+   *
+   */
+  virtual ~TensorDimProperty() = default;
+};
+
+/**
  * @brief abstract class for positive integer
  *
  */

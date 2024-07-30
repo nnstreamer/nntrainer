@@ -36,6 +36,7 @@ namespace train {
  */
 enum LayerType {
   LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,      /**< Input Layer type */
+  LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT, /**< Weight Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -102,7 +103,7 @@ enum LayerType {
                                      derivative */
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM, /**<RMS NORM Layer */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN  /**< Unknown */
 };
 
 /**
@@ -291,6 +292,14 @@ Input(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create weight layer
+ */
+inline std::unique_ptr<Layer>
+WeightLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_WEIGHT, properties);
+}
+
+/**
  * @brief Helper function to create fully connected layer
  */
 inline std::unique_ptr<Layer> FullyConnected(
@@ -311,9 +320,9 @@ Swiglu(const std::vector<std::string> &properties = {},
 /**
  * @brief Helper function to create RMS normalization layer for GPU
  */
-inline std::unique_ptr<Layer> RMSNormCl(
-  const std::vector<std::string> &properties = {},
-  const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
+inline std::unique_ptr<Layer>
+RMSNormCl(const std::vector<std::string> &properties = {},
+          const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
   return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
 }
 
