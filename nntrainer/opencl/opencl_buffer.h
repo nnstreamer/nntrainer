@@ -114,6 +114,30 @@ public:
    * @return true if successful read or false otherwise
    */
   bool ReadData(CommandQueueManager &command_queue_inst, void *data);
+
+  /**
+   * @brief Mapping buffer to host memory
+   *
+   * @param command_queue_inst reference of command queue instance
+   * @param offset_in_bytes offset of the region in the buffer object that is
+   * being mapped
+   * @param size_in_bytes size of the buffer object that is being mapped
+   * @param read_only flag for read only mapping
+   * @param async flag for asynchronous operation
+   * @return void* pointer to the mapped region
+   */
+  void *MapBuffer(CommandQueueManager &command_queue_inst,
+                  size_t offset_in_bytes, size_t size_in_bytes, bool read_only,
+                  bool async = false);
+
+  /**
+   * @brief Un-mapping buffer from host memeory
+   *
+   * @param command_queue_inst reference of command queue instance
+   * @param mapped_ptr pointer to the mapped region
+   * @return true if unmap is successful
+   */
+  bool UnMapBuffer(CommandQueueManager &command_queue_inst, void *mapped_ptr);
 };
 } // namespace nntrainer::opencl
 #endif // __OPENCL_BUFFER_H__

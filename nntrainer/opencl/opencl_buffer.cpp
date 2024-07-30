@@ -32,7 +32,7 @@ Buffer::Buffer(ContextManager &context_manager, int size_in_bytes,
   cl_context context = context_manager.GetContext();
   cl_mem_flags flags = read_only ? CL_MEM_READ_ONLY : CL_MEM_READ_WRITE;
   if (data) {
-    flags |= CL_MEM_COPY_HOST_PTR;
+    flags |= CL_MEM_USE_HOST_PTR;
   }
   cl_int error_code;
 
@@ -103,6 +103,18 @@ bool Buffer::WriteData(CommandQueueManager &command_queue_inst,
  */
 bool Buffer::ReadData(CommandQueueManager &command_queue_inst, void *data) {
   return command_queue_inst.EnqueueReadBuffer(mem_buf_, size_, data);
+}
+
+void *Buffer::MapBuffer(CommandQueueManager &command_queue_inst,
+                        size_t offset_in_bytes, size_t size_in_bytes,
+                        bool read_only, bool async) {
+  return command_queue_inst.EnqueueMapBuffer(mem_buf_, offset_in_bytes,
+                                             size_in_bytes, read_only, async);
+}
+
+bool Buffer::UnMapBuffer(CommandQueueManager &command_queue_inst,
+                         void *mapped_ptr) {
+  return command_queue_inst.EnqueueUnmapMemObject(mem_buf_, mapped_ptr);
 }
 
 /**
