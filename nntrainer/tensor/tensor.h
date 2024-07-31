@@ -37,8 +37,18 @@ namespace nntrainer {
 class LazyTensor;
 
 /**
- * @class   Tensor Class
- * @brief   Tensor Class
+ * @class Tensor Class
+ * @brief Tensor is a multidimensional matrix that contain elements of a single
+ * data type and can perform various operations like addition, division,
+ * multiplication, dot product, data averaging, and more.
+ * NNTrainer defines tensor types using different data types and memory formats.
+ * Supported data types and format are specified in the file 'tensor_dim.h'.
+ *
+ * @note The Tensor class utilizes the TensorBase class to support tensors with
+ * various data types. In other words, this tensor class serves as a container
+ * for tensors, and thus the functionality of the tensor should be defined in
+ * each tensor class (FloatTensor, HalfTensor, etc.).
+ *
  */
 class Tensor {
 public:
