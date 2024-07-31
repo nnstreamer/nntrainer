@@ -122,6 +122,102 @@ std::string sscal_cl_kernel_ =
         X[i] *= alpha;
     })";
 
+std::string transpose_cl_kernel_axis0 =
+  R"(__kernel void transpose_cl_axis0(__global const float* in, 
+                               __global float* output,
+                               const int batch_size, 
+                               const int channels, 
+                               const int height, 
+                               const int width) {
+
+    // Calculate h and w from the global IDs
+    int h = get_global_id(0);
+    int w = get_global_id(1);
+
+    if (h < height && w < width) {
+        for (int c = 0; c < channels; ++c) {
+            for (int n = 0; n < batch_size; ++n) {
+                // Calculate the input and output indices
+                int input_index = n * (channels * height * width) + c * (height * width) + h * width + w;
+                int output_index = n * (channels * height * width) + h * (channels * width) + c * width + w;
+
+                // Transpose channel and height, copying data from input to output
+                output[output_index] = in[input_index];
+            }
+        }
+    }
+
+})";
+
+std::string transpose_cl_kernel_axis1 =
+  R"(__kernel void transpose_cl_axis1(__global const float* in, 
+                               __global float* output,
+                               const int batch_size, 
+                               const int channels, 
+                               const int height, 
+                               const int width) {
+
+    // Calculate h and w from the global IDs
+    int h = get_global_id(0);
+    int w = get_global_id(1);
+
+    if (h < height && w < width) {
+        for (int c = 0; c < channels; ++c) {
+            for (int n = 0; n < batch_size; ++n) {
+                // Calculate the input and output indices
+                int input_index = n * (channels * height * width) + c * (height * width) + h * width + w;
+                int output_index = n * (channels * height * width) + c * (height * width) + w * height + h;
+
+                // Transpose height and width, copying data from input to output
+                output[output_index] = in[input_index];
+            }
+        }
+    }
+
+})";
+
+std::string transpose_cl_kernel_axis2 =
+  R"(__kernel void transpose_cl_axis2(__global const float* in, 
+                               __global float* output,
+                               const int batch_size, 
+                               const int channels, 
+                               const int height, 
+                               const int width) {
+
+    // Calculate c and w from the global IDs
+    int c = get_global_id(0);
+    int w = get_global_id(1);
+
+    if (c < channels && w < width) {
+        for (int h = 0; h < height; ++h) {
+            for (int n = 0; n < batch_size; ++n) {
+                // Calculate the input and output indices
+                int input_index = n * (channels * height * width) + c * (height * width) + h * width + w;
+                int output_index = n * (channels * height * width) + w * (height * channels) + h * channels + c;
+
+                // Transpose channel and width, copying data from input to output
+                output[output_index] = in[input_index];
+            }
+        }
+    }
+
+})";
+
+/**
+ * @brief defining global kernel objects
+ */
+opencl::Kernel kernel_sgemv;
+opencl::Kernel kernel_sgemm_transAB;
+opencl::Kernel kernel_sgemm_transA;
+opencl::Kernel kernel_sgemm_transB;
+opencl::Kernel kernel_sgemm_noTrans;
+opencl::Kernel kernel_dot;
+opencl::Kernel kernel_addition;
+opencl::Kernel kernel_sscal;
+opencl::Kernel kernel_transpose_axis0;
+opencl::Kernel kernel_transpose_axis1;
+opencl::Kernel kernel_transpose_axis2;
+
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               unsigned int dim1, unsigned int dim2, unsigned int lda) {
 
@@ -487,6 +583,270 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
     }
 
     result = inputX.ReadData(cl_context_ref.command_queue_inst_, X);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void transpose_cl_axis0(const float *in, float *res,
+                        unsigned int input_batch_size,
+                        unsigned int input_channels, unsigned int input_height,
+                        unsigned int input_width) {
+
+  bool result = false;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_transpose_ptr =
+      cl_context_ref.registerClKernel(transpose_cl_kernel_axis0,
+                                      "transpose_cl_axis0");
+
+    if (!kernel_transpose_ptr) {
+      break;
+    }
+
+    size_t dim_size = sizeof(float) * input_batch_size * input_height *
+                      input_width * input_channels;
+
+    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+                          nullptr);
+
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+                            nullptr);
+
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, in);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_transpose_ptr->SetKernelArguments(2, &input_batch_size,
+                                                      sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(4, &input_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(5, &input_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)input_height, (int)input_width, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_transpose_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void transpose_cl_axis1(const float *in, float *res,
+                        unsigned int input_batch_size,
+                        unsigned int input_channels, unsigned int input_height,
+                        unsigned int input_width) {
+
+  bool result = false;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_transpose_ptr =
+      cl_context_ref.registerClKernel(transpose_cl_kernel_axis1,
+                                      "transpose_cl_axis1");
+
+    if (!kernel_transpose_ptr) {
+      break;
+    }
+
+    size_t dim_size = sizeof(float) * input_batch_size * input_height *
+                      input_width * input_channels;
+
+    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+                          nullptr);
+
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+                            nullptr);
+
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, in);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_transpose_ptr->SetKernelArguments(2, &input_batch_size,
+                                                      sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(4, &input_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(5, &input_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)input_height, (int)input_width, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_transpose_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void transpose_cl_axis2(const float *in, float *res,
+                        unsigned int input_batch_size,
+                        unsigned int input_channels, unsigned int input_height,
+                        unsigned int input_width) {
+
+  bool result = false;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_transpose_ptr =
+      cl_context_ref.registerClKernel(transpose_cl_kernel_axis2,
+                                      "transpose_cl_axis2");
+
+    if (!kernel_transpose_ptr) {
+      break;
+    }
+
+    size_t dim_size = sizeof(float) * input_batch_size * input_height *
+                      input_width * input_channels;
+
+    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+                          nullptr);
+
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+                            nullptr);
+
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, in);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_transpose_ptr->SetKernelArguments(2, &input_batch_size,
+                                                      sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(4, &input_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_transpose_ptr->SetKernelArguments(5, &input_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)input_channels, (int)input_width, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_transpose_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }

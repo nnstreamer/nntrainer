@@ -58,7 +58,7 @@ public:
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
