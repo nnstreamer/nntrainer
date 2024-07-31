@@ -77,7 +77,17 @@ class SrcSharedTensorBase;
 
 /**
  * @class TensorBase class
- * @brief TensorBase is an abstract class
+ * @brief TensorBase is an abstract class that provides a base for various
+ * tensor classes with different data types such as FloatTensor to extend and
+ * implement abstract methods.
+ *
+ * @note Basic functions required for tensor memory allocation and data
+ * modification, such as allocate(), getData(), and setValue(), are necessary
+ * when creating subclasses (new tensor class).
+ *
+ * The remaining operations that are used for mathematical operations are not
+ * essential to create a new tensor class but later should be implemented in a
+ * child class in order to utilize its tensor operations fully.
  */
 class TensorBase {
 public:
