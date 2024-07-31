@@ -101,8 +101,9 @@ enum LayerType {
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
-  LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM, /**<RMS NORM Layer */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
+  LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN,     /**< Unknown */
+  LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
 };
 
 /**
@@ -311,10 +312,19 @@ Swiglu(const std::vector<std::string> &properties = {},
 /**
  * @brief Helper function to create RMS normalization layer for GPU
  */
-inline std::unique_ptr<Layer> RMSNormCl(
-  const std::vector<std::string> &properties = {},
-  const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
+inline std::unique_ptr<Layer>
+RMSNormCl(const std::vector<std::string> &properties = {},
+          const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
   return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
+}
+
+/**
+ * @brief Helper function to create Transpose layer
+ */
+inline std::unique_ptr<Layer>
+Transpose(const std::vector<std::string> &properties = {},
+          const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_TRANSPOSE, properties, compute_engine);
 }
 
 /**

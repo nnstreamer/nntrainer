@@ -954,3 +954,11 @@ if __name__ == "__main__":
     rms_normtest_fp16 = RMSNorm()
     record_single(rms_normtest,(2,3,3,3),"rms_normtest")
     record_single_fp16(rms_normtest_fp16,(2,3,3,3),"rms_normtest_fp16_new")
+
+    def transpose(tensor, batch_size, input_channel, input_height, input_width):
+        output_shape = (batch_size, input_channel, input_height, input_width)
+        return tf.transpose(tensor, perm=[1, 0, 2, 3])
+
+    transpose_layer = tf.keras.layers.Lambda(lambda x: transpose(x, 2, 3, 3, 3))
+    record_single(transpose_layer, (2, 3, 3, 3), "transpose", input_type="float")
+    record_single_fp16(transpose_layer, (2, 3, 3, 3), "transpose_fp16", input_type="float")

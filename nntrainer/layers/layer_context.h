@@ -857,6 +857,8 @@ public:
     CONCAT_AXIS2_FP16 = 1 << 25,  /**< placeholder for kernel name */
     CONCAT_AXIS1 = 1 << 26,       /**< placeholder for kernel name */
     CONCAT_AXIS1_FP16 = 1 << 27,  /**< placeholder for kernel name */
+    TRANSPOSE = 1 << 28,          /**< placeholder for kernel name */
+    TRANSPOSE_FP16 = 1 << 29      /**< placeholder for kernel name */
   };
 
   /**
