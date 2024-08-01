@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   hgemm_kernel_8x16.cpp
+ * @file   hgemm_kernel_8x16_experimental.cpp
  * @date   04 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is half-precision GEMM 8x16 kernel
+ * @brief  This is half-precision GEMM 8x16 experimental kernel
  *
  */
 
@@ -725,66 +725,13 @@
                         vcvt_f32_f16(vget_high_f16(v120_127))));               \
   } while (0)
 
-template <>
+template<>
 void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
                        __fp16 *sa, __fp16 *sb, __fp16 *sc, unsigned int ldc) {
-  assert(M > 0 && N > 0 && K > 0);
-  assert(M % 8 == 0 && N % 16 == 0 && K % 8 == 0);
-
-  __fp16 *a = sa, *b = sb, *c = sc;
-  unsigned int i, j, l;
-  for (i = 0; i < M; i += 8) {
-    for (j = 0; j < N; j += 16) {
-      __builtin_prefetch(b, 0, 3);
-      __builtin_prefetch(a, 0, 3);
-      // 8x16
-      float16x8_t v0_7, v8_15;
-      float16x8_t v16_23, v24_31;
-      float16x8_t v32_39, v40_47;
-      float16x8_t v48_55, v56_63;
-      float16x8_t v64_71, v72_79;
-      float16x8_t v80_87, v88_95;
-      float16x8_t v96_103, v104_111;
-      float16x8_t v112_119, v120_127;
-      float16x8_t vb1, vb2;
-      float16x8_t va0;
-
-      INIT_KERNEL_8X16();
-      l = 0;
-      for (; l < K;) {
-        KERNEL_8x16_ACC1();
-      }
-      vst1q_f16(c, vaddq_f16(vld1q_f16(c), v0_7));
-      vst1q_f16(c + 8, vaddq_f16(vld1q_f16(c + 8), v64_71));
-      vst1q_f16(c + ldc, vaddq_f16(vld1q_f16(c + ldc), v8_15));
-      vst1q_f16(c + ldc + 8, vaddq_f16(vld1q_f16(c + ldc + 8), v72_79));
-      vst1q_f16(c + 2 * ldc, vaddq_f16(vld1q_f16(c + 2 * ldc), v16_23));
-      vst1q_f16(c + 2 * ldc + 8, vaddq_f16(vld1q_f16(c + 2 * ldc + 8), v80_87));
-      vst1q_f16(c + 3 * ldc, vaddq_f16(vld1q_f16(c + 3 * ldc), v24_31));
-      vst1q_f16(c + 3 * ldc + 8, vaddq_f16(vld1q_f16(c + 3 * ldc + 8), v88_95));
-      vst1q_f16(c + 4 * ldc, vaddq_f16(vld1q_f16(c + 4 * ldc), v32_39));
-      vst1q_f16(c + 4 * ldc + 8,
-                vaddq_f16(vld1q_f16(c + 4 * ldc + 8), v96_103));
-      vst1q_f16(c + 5 * ldc, vaddq_f16(vld1q_f16(c + 5 * ldc), v40_47));
-      vst1q_f16(c + 5 * ldc + 8,
-                vaddq_f16(vld1q_f16(c + 5 * ldc + 8), v104_111));
-      vst1q_f16(c + 6 * ldc, vaddq_f16(vld1q_f16(c + 6 * ldc), v48_55));
-      vst1q_f16(c + 6 * ldc + 8,
-                vaddq_f16(vld1q_f16(c + 6 * ldc + 8), v112_119));
-      vst1q_f16(c + 7 * ldc, vaddq_f16(vld1q_f16(c + 7 * ldc), v56_63));
-      vst1q_f16(c + 7 * ldc + 8,
-                vaddq_f16(vld1q_f16(c + 7 * ldc + 8), v120_127));
-      c += 16;
-      a -= 8 * K;
-    }
-    sc += ldc * 8;
-    c = sc;
-    a += 8 * K;
-    b = sb;
-  }
+//  std::invalid_argument("Error : should not reach experimental kernel + full fp16 usage in hgemm");
 }
 
-template <>
+template<>
 void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
                        __fp16 *sa, __fp16 *sb, float *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
@@ -796,6 +743,8 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
   unsigned int K4 = (K >> 2) << 2;
   unsigned int K8 = (K >> 3) << 3;
   unsigned int K16 = (K >> 4) << 4;
+  unsigned int K32 = (K >> 5) << 5;
+  unsigned int K64 = (K >> 6) << 6;
   for (i = 0; i < M; i += 8) {
     for (j = 0; j < N; j += 16) {
       __builtin_prefetch(b, 0, 3);
@@ -811,6 +760,20 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
       float16x8_t va0;
       float16x8_t vb1, vb2;
       l = 0;
+      for (; l < K64;) {
+        INIT_KERNEL_8X16();
+        KERNEL_8x16_ACC16();
+        KERNEL_8x16_ACC16();
+        KERNEL_8x16_ACC16();
+        KERNEL_8x16_ACC16();
+        SAVE_KERNEL_8X16_F16_F32();
+      }
+      for (; l < K32;) {
+        INIT_KERNEL_8X16();
+        KERNEL_8x16_ACC16();
+        KERNEL_8x16_ACC16();
+        SAVE_KERNEL_8X16_F16_F32();
+      }
       for (; l < K16;) {
         INIT_KERNEL_8X16();
         KERNEL_8x16_ACC16();
@@ -840,3 +803,4 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
     b = sb;
   }
 }
+

@@ -83,6 +83,7 @@
     a++;                            \
   } while (0)
 
+template <>
 void hgemm_kernel_1x8(unsigned int M, unsigned int N, unsigned int K,
                       __fp16 *sa, __fp16 *sb, __fp16 *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
@@ -119,6 +120,7 @@ void hgemm_kernel_1x8(unsigned int M, unsigned int N, unsigned int K,
   }
 }
 
+template <>
 void hgemm_kernel_1x8(unsigned int M, unsigned int N, unsigned int K,
                       __fp16 *sa, __fp16 *sb, float *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
