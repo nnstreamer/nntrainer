@@ -22,7 +22,6 @@
 #include <hgemm_transAB.h>
 #include <hgemm_transB.h>
 #include <hgemm_util.h>
-#include <iostream>
 #include <limits>
 
 void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
@@ -30,19 +29,22 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
            bool TransB) {
   if (K == 1) {
     return hgemm_K1(A, B, C, M, N, K, alpha, beta, TransA, TransB);
+  } else if (M < 8 && K < 16 && N < 16) {
+    return hgemm_small(A, B, C, M, N, K, alpha, beta, TransA, TransB);
   }
-  // dynamic creation to avoid reaching stack limit(causes segmentation fault)
-  const unsigned int M8_high = ((M - 1) / 8 + 1) * 8;
-  const unsigned int K8_high = ((K - 1) / 8 + 1) * 8;
-  const unsigned int N16_high = ((N - 1) / 16 + 1) * 16;
-  const unsigned int N8_low = (N >> 3) << 3;
+
+  const unsigned int M8_high = get_next_mltpl_of_n(M, 8);
+  const unsigned int K8_high = get_next_mltpl_of_n(K, 8);
+  const unsigned int N16_high = get_next_mltpl_of_n(N, 16);
+  const unsigned int N8_low = get_prev_mltpl_of_2p_n(N, 3);
+
   float32x4_t ZEROS = vmovq_n_f32(0.F);
 
   float *C32 = (float *)malloc(M8_high * N16_high * sizeof(float));
 
   unsigned int size = M8_high * N16_high;
-  unsigned int size8 = (size >> 3) << 3;
-  unsigned int size4 = (size >> 2) << 2;
+  unsigned int size8 = get_prev_mltpl_of_2p_n(size, 3);
+  unsigned int size4 = get_prev_mltpl_of_2p_n(size, 2);
 
   if (std::fpclassify(beta) != FP_ZERO) {
     for (unsigned int m = 0; m < M; ++m) {
@@ -90,6 +92,20 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
   free(C32);
 }
 
+void hgemm_small(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
+                 unsigned int N, unsigned int K, float alpha, float beta,
+                 bool TransA, bool TransB) {
+  float *C32 = (float *)malloc(M * N * sizeof(float));
+
+  copy_C_to_C32(C, C32, M, N, beta);
+
+  hgemm_classify(A, B, C32, M, N, K, alpha, beta, TransA, TransB);
+
+  copy_C32_to_C(C32, C, M, N, beta);
+
+  free(C32);
+}
+
 void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
                                unsigned int M, unsigned int N, unsigned int K,
                                float alpha, float beta, bool TransA,
@@ -104,10 +120,6 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
   __fp16 *A_ = (__fp16 *)A, *B_ = (__fp16 *)B;
   unsigned int M_ = M, N_ = N, K_ = K;
   bool pad_A = false, pad_B = false;
-
-  // Smaller than 8, 16 -> padding would be redundant
-  if (M < 8 && K < 16 && N < 16)
-    return hgemm_classify(A_, B_, C32, M_, N_, K_, alpha, beta, TransA, TransB);
 
   __fp16 *Ap;
   __fp16 *Bp;

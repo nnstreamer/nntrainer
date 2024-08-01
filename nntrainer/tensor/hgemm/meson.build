@@ -15,6 +15,7 @@ nntrainer_inc_abs += meson.current_source_dir() / 'hgemm_padding'
 
 hgemm_sources = [
     'hgemm.cpp',
+    'hgemm_util.cpp',
     'hgemm_pack.cpp',
     'hgemm_noTrans.cpp',
     'hgemm_transA.cpp',
