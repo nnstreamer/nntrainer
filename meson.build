@@ -255,6 +255,7 @@ if get_option('enable-blas')
       message('set openblas num threads=@0@'.format(get_option('openblas-num-threads')))
     endif
   endif
+  extra_defines += '-DHGEMM_EXPERIMENTAL_KERNEL=@0@'.format(get_option('hgemm-experimental-kernel'))
 endif
 
 extra_defines += '-DNNTR_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
