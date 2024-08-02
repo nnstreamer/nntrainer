@@ -50,7 +50,7 @@ std::string rmsnorm_cl_kernel_fp16_ =
     half rms_norm = sqrt(sum_squares + epsilon);
     // Each work item processes all width elements for its specific n, h, c
     for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[c];
+        output[index+w] = (input[index+w] / rms_norm) * alpha[index+w];
     }
 }
 )";
@@ -80,7 +80,7 @@ std::string rmsnorm_cl_kernel_ =
     float rms_norm = sqrt(sum_squares + epsilon);
     // Each work item processes all width elements for its specific n, h, c
     for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[c];
+        output[index+w] = (input[index+w] / rms_norm) * alpha[index+w];
     }
 }
 )";
