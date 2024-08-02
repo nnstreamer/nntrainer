@@ -500,6 +500,12 @@ private:
                                           const float *, float *)>
                          v_func,
                        Tensor &output) const;
+
+  /**
+   * @brief  Get the Data Type String object
+   * @return std::string of tensor data type (FP32)
+   */
+  std::string getStringDataType() const override { return "FP32"; }
 };
 
 } // namespace nntrainer

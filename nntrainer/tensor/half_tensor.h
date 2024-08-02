@@ -491,6 +491,12 @@ private:
                                           const _FP16 *, _FP16 *)>
                          v_func,
                        Tensor &output) const;
+
+  /**
+   * @brief  Get the Data Type String object
+   * @return std::string of tensor data type (FP16)
+   */
+  std::string getStringDataType() const override { return "FP16"; }
 };
 
 } // namespace nntrainer
