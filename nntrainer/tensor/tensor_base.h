@@ -735,28 +735,10 @@ protected:
   /**
    * @brief  Get the Data Type String object
    * @return std::string of tensor data type
+   * @note   TensorBase::getStringDataType() should not be called. Please define
+   * this function in the derived class to the corresponding data type.
    */
-  std::string getStringDataType() const {
-    std::string res;
-    switch (getDataType()) {
-    case Tdatatype::FP32:
-      res = "FP32";
-      break;
-    case Tdatatype::FP16:
-      res = "FP16";
-      break;
-    case Tdatatype::QINT8:
-      res = "QINT8";
-      break;
-    case Tdatatype::QINT4:
-      res = "QINT4";
-      break;
-    default:
-      res = "Undefined type";
-      break;
-    }
-    return res;
-  }
+  virtual std::string getStringDataType() const { return "Undefined type"; }
 };
 
 /**
