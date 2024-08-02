@@ -136,7 +136,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int compile() = 0;
+  virtual int compile(ExecutionMode exec_mode_ = ExecutionMode::TRAIN) = 0;
 
   /**
    * @brief     Initialize Network. This should be called after setting the
@@ -188,13 +188,14 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  virtual int train(const std::vector<std::string> &values = {},
-                    std::function<bool(void *)> stop_cb =
-                      [](void *stop_user_data) { return false; },
-                    void *stop_user_data = nullptr,
-                    std::function<void(void *)> epoch_complete_cb =
-                      [](void *epoch_user_data) { return false; },
-                    void *epoch_user_data = nullptr) = 0;
+  virtual int train(
+    const std::vector<std::string> &values = {},
+    std::function<bool(void *)> stop_cb =
+      [](void *stop_user_data) { return false; },
+    void *stop_user_data = nullptr,
+    std::function<void(void *)> epoch_complete_cb =
+      [](void *epoch_user_data) { return false; },
+    void *epoch_user_data = nullptr) = 0;
 
   /**
    * @brief     Run Model train with callback function by user

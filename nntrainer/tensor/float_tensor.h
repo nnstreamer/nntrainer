@@ -500,6 +500,10 @@ private:
                                           const float *, float *)>
                          v_func,
                        Tensor &output) const;
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool isValid() const;
 };
 
 } // namespace nntrainer

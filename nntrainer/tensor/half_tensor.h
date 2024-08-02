@@ -491,6 +491,11 @@ private:
                                           const _FP16 *, _FP16 *)>
                          v_func,
                        Tensor &output) const;
+
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  bool isValid() const;
 };
 
 } // namespace nntrainer

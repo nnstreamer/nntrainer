@@ -384,8 +384,8 @@ std::vector<Weight *> Manager::requestWeights(
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
     auto &[dim_v, dim_g, t_initializer, w_reg, w_reg_const, decay,
-           clip_by_global_norm, need_gradient, name, axis, loss_scale] =
-      weights_spec.at(i);
+           clip_by_global_norm, need_gradient, name, axis, loss_scale,
+           is_mixed] = weights_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
@@ -407,14 +407,15 @@ std::vector<Weight *> Manager::requestWeights(
      * order with the max exec order where it will be used for clipping and then
      * applied to the weight.
      */
-    if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm)) {
+    if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm) ||
+        isMixedPrecision()) {
       grad_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
       // TODO: We need double check if it is OK not to add PERSIST_END_ORDER
       // here or add other conditions
       // var_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
     }
 
-    Tensor *var = nullptr, *grad = nullptr;
+    Tensor *var = nullptr, *grad = nullptr, *var32 = nullptr;
     bool is_dependent = !shared_names.empty();
     if (is_dependent) {
       /// shared_name is used and the orignal name is discarded
@@ -422,7 +423,6 @@ std::vector<Weight *> Manager::requestWeights(
       /** case when shared names are given */
       var = weight_pool.requestOrExtend(shared_name, dim_v, var_exec_order,
                                         var_ls, t_initializer);
-
       if (trainable && need_gradient) {
         /** We cannot use the tensor schedulding for weight gradient if the
          * weight is shared. Weight Sharing means, the gradient is not temporal
@@ -431,6 +431,17 @@ std::vector<Weight *> Manager::requestWeights(
         grad = tensor_pool.requestOrExtend(shared_name + Var_Grad::grad_suffix,
                                            dim_g, grad_exec_order, grad_ls,
                                            Initializer::ZEROS);
+
+        if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
+          TensorDim var32_dim(dim_v);
+          var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+          std::vector<unsigned int> var32_exec_order;
+          var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
+
+          var32 = weight_pool.requestOrExtend(shared_name + ":var32", var32_dim,
+                                              var32_exec_order, var_ls,
+                                              Initializer::ZEROS);
+        }
       }
     } else {
       /** case requesting fresh weights */
@@ -443,22 +454,31 @@ std::vector<Weight *> Manager::requestWeights(
          * reduce the memory.
          */
         bool is_wgrad = true;
-        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
-          is_wgrad = false;
+        //        if (Weight::isGradientClipByGlobalNorm(clip_by_global_norm))
+        //          is_wgrad = false;
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, dim_g,
                                    grad_exec_order, grad_ls, Initializer::ZEROS,
                                    is_wgrad);
+        if (var->getDataType() != ml::train::TensorDim::DataType::FP32) {
+          TensorDim var32_dim(dim_v);
+          var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+          std::vector<unsigned int> var32_exec_order;
+          var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
+          var32 =
+            weight_pool.request(name + ":var32", var32_dim, var32_exec_order,
+                                var_ls, Initializer::ZEROS);
+        }
       }
     }
 
     weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad, w_reg, w_reg_const, decay, is_dependent, clip_by_global_norm));
+      var, grad, var32, w_reg, w_reg_const, decay, is_dependent,
+      clip_by_global_norm, axis, loss_scale, is_mixed));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
-
   return ret;
 }
 
@@ -507,7 +527,6 @@ std::vector<Var_Grad *> Manager::requestTensors(
 
     bool is_dependent = !shared_names.empty();
     Tensor *var = nullptr, *grad = nullptr;
-
     if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
       var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
@@ -534,7 +553,6 @@ std::vector<Var_Grad *> Manager::requestTensors(
   std::transform(tensors_v2.begin() + current_size, tensors_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
-
   return ret;
 }
 
@@ -667,14 +685,15 @@ bool Manager::isSecondLastAccess(const std::string &name,
  */
 std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   const std::vector<TensorDim> &dims, const std::string &name,
-  const TensorLifespan &lifespan, bool is_grad_clip, Initializer initializer) {
+  const std::string &suffix, const TensorLifespan &lifespan, bool is_grad_clip,
+  bool is_mixed_precision, Initializer initializer) {
 
   std::vector<Tensor *> ret;
   ret.reserve(dims.size());
 
   std::vector<unsigned int> exec;
   exec.reserve(1);
-  if (is_grad_clip) {
+  if (is_grad_clip || is_mixed_precision) {
     exec.emplace_back(TensorPool::PERSIST_END_ORDER);
   } else {
     exec.emplace_back(getMinMaxTensorExecutionOrder(name, true).second);
@@ -683,7 +702,7 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   /// @note this is assuming weight optimizer variables is treated as weight, if
   /// not, there is room to optimize below behavior
   for (unsigned int idx = 0; idx < dims.size(); idx++)
-    ret.push_back(weight_pool.request(name + ":opt" + std::to_string(idx),
+    ret.push_back(weight_pool.request(name + suffix + std::to_string(idx),
                                       dims[idx], exec, lifespan, initializer));
 
   return ret;

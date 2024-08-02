@@ -21,6 +21,7 @@
 #include <activation_layer.h>
 #include <app_context.h>
 #include <base_properties.h>
+#include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
 #include <layer_node.h>
@@ -188,6 +189,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   inplace(InPlace::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
+
   output_connections(),
   run_context(nullptr),
   layer_node_props(
@@ -198,7 +200,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
   regularization_loss(0.0f),
-  exec_order({0, 0, 0, 0}) {
+  exec_order({0, 0, 0, 0}),
+  needs_restore_data(false) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   }
@@ -468,9 +471,11 @@ void LayerNode::exportTo(Exporter &exporter,
   layer->exportTo(exporter, method);
 }
 
-void LayerNode::read(std::ifstream &file, bool opt_var) {
+void LayerNode::read(std::ifstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
+
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i) && getTrainable()) {
@@ -481,16 +486,41 @@ void LayerNode::read(std::ifstream &file, bool opt_var) {
       }
     }
   } else {
+
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).read(file);
+        if (layer->getType() == BatchNormalizationLayer::type) {
+          if ((mode == ml::train::ExecutionMode::TRAIN) &&
+              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+
+            /** @note for batch normalization layer, we do need full precision
+             * for training. but weight can be saved with other type. for
+             * training, bn weight type is fixed with full precsion */
+
+            TensorDim dim = run_context->getWeight(i).getDim();
+            dim.setDataType(this->getWeightDataType());
+            Tensor T_read(dim, true);
+            T_read.read(file);
+            run_context->getWeight(i).copyData(T_read);
+          } else {
+            run_context->getWeight(i).read(file);
+          }
+        } else {
+          run_context->getWeight(i).read(file);
+        }
+
+        if (run_context->isMixedPrecision(i) && getTrainable() &&
+            !run_context->getWeightFP32(i).empty()) {
+          run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
+        }
       }
     }
   }
 }
 
-void LayerNode::save(std::ofstream &file, bool opt_var) const {
+void LayerNode::save(std::ofstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
 
@@ -510,7 +540,29 @@ void LayerNode::save(std::ofstream &file, bool opt_var) const {
     // @note shared weights are only be saved at the first access
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       if (run_context->isGradientLastAccess(i)) {
-        run_context->getWeight(i).save(file);
+
+        /** @note For batch normalization layer, we do need full precision for
+         * training and the data type of weight is full precision. But for
+         * inference, We do have to save them as activation data type. */
+
+        if (layer->getType() == BatchNormalizationLayer::type) {
+          if ((mode == ml::train::ExecutionMode::TRAIN) &&
+              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+            TensorDim dim = run_context->getWeight(i).getDim();
+
+            dim.setDataType(this->getWeightDataType());
+
+            Tensor T_save(dim, true);
+
+            T_save.copyData(run_context->getWeight(i));
+
+            T_save.save(file);
+          } else {
+            run_context->getWeight(i).save(file);
+          }
+        } else {
+          run_context->getWeight(i).save(file);
+        }
       }
     }
   }
@@ -533,7 +585,8 @@ void LayerNode::clearOptVar() {
  * @brief     Finalize creating the layer node
  */
 InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
-                                     std::array<std::string, 3> tensor_type) {
+                                     std::array<std::string, 3> tensor_type,
+                                     ml::train::ExecutionMode mode) {
   // auto get_tensor_datatype = [](const std::string ty) -> TensorDim::DataType
   // { 			       return from_string(ty);
   // };
@@ -609,7 +662,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
-  float loss_scale = 0.0;
+  float loss_scale = 1.0;
   if (!std::get<props::ClipGradByGlobalNorm>(*layer_node_props).empty())
     max_norm = std::get<props::ClipGradByGlobalNorm>(*layer_node_props).get();
 
@@ -635,9 +688,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     out_info.push_back(true);
   }
 
-  auto context = InitLayerContext(actual_input_dims, out_info,
-                                  executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm, tensor_type, loss_scale);
+  auto context = InitLayerContext(
+    actual_input_dims, out_info, executeInPlace() != InPlace::NONE, getName(),
+    scope, max_norm, tensor_type, loss_scale, mode);
 
   layer->finalize(context);
 
@@ -758,8 +811,25 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
  */
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
+
   PROFILE_TIME_START(forward_event_key);
+  if (reStoreData()) {
+    if (executeInPlace() == InPlace::NONE) {
+      for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
+        run_context->getOutput(i).setValue(0);
+        if (!run_context->getOutputGradUnsafe(i).isValid())
+          run_context->getOutputGradUnsafe(i).setValue(0);
+      }
+      for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+        if (run_context->weightHasGradient(i)) {
+          run_context->getWeightGrad(i).setValue(0);
+        }
+      }
+    }
+  }
+
   layer->forwarding(*run_context, training);
+  reStoreData(false);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
   TRACE_TIME() << getName() + ": F";
@@ -874,10 +944,11 @@ float LayerNode::getLoss() const { return *loss; }
 void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
-                                    const std::vector<Var_Grad *> &tensors) {
+                                    const std::vector<Var_Grad *> &tensors,
+                                    float loss_scale) {
   run_context = std::make_unique<RunLayerContext>(
-    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE, weights,
-    inputs, outputs, tensors);
+    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE,
+    loss_scale, false, weights, inputs, outputs, tensors);
 }
 
 /**

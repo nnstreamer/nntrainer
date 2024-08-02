@@ -162,7 +162,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int compile() override;
+  int compile(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     set Property of Network
@@ -681,6 +681,8 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
+
+  ExecutionMode exec_mode;
 
   /**
    * @brief save model in ini

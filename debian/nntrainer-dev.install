@@ -15,6 +15,7 @@
 /usr/include/nntrainer/blas_interface.h
 /usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/weight.h
+/usr/include/nntrainer/blas_avx.h
 # todo: update dataset headers
 /usr/include/nntrainer/databuffer.h
 /usr/include/nntrainer/databuffer_factory.h
@@ -22,6 +23,7 @@
 /usr/include/nntrainer/layer_context.h
 /usr/include/nntrainer/layer_devel.h
 /usr/include/nntrainer/layer_impl.h
+/usr/include/nntrainer/loss_layer.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
 # logger
