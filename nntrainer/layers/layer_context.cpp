@@ -735,6 +735,10 @@ std::string RunLayerContext::getKernelName(LayerKernel layerKernel) {
     return "concat_cl_axis1";
   case LayerKernel::CONCAT_AXIS1_FP16:
     return "concat_cl_axis1_fp16";
+  case LayerKernel::TRANSPOSE:
+    return "transpose_cl";
+  case LayerKernel::TRANSPOSE_FP16:
+    return "transpose_cl_fp16";
   default:
     return "";
   }
