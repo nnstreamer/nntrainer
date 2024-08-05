@@ -27,6 +27,7 @@
 #include <char_tensor.h>
 #include <float_tensor.h>
 #include <nntrainer_log.h>
+#include <short_tensor.h>
 #include <tensor_base.h>
 
 #ifdef ENABLE_FP16
@@ -229,6 +230,37 @@ public:
          ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 #endif
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
+   */
+  Tensor(std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
+         ml::train::TensorDim::TensorType t_type) {
+    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(d, t_type.format),
+                                           std::default_delete<ShortTensor>());
+  }
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] t_type Tensor Type
+   */
+  Tensor(std::vector<std::vector<std::vector<uint16_t>>> const &d,
+         ml::train::TensorDim::TensorType t_type) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   * @param[in] t_type Tensor Type
+   */
+  Tensor(std::vector<std::vector<uint16_t>> const &d,
+         ml::train::TensorDim::TensorType t_type) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
   /**
    * @brief     Constructor of Tensor
