@@ -14,6 +14,7 @@
 #include <arm_neon.h>
 #include <assert.h>
 #include <hgemm_kernel.h>
+#include <stdexcept>
 #include <stdlib.h>
 
 #define INIT_KERNEL_8X16()       \
@@ -725,13 +726,14 @@
                         vcvt_f32_f16(vget_high_f16(v120_127))));               \
   } while (0)
 
-template<>
+template <>
 void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
                        __fp16 *sa, __fp16 *sb, __fp16 *sc, unsigned int ldc) {
-//  std::invalid_argument("Error : should not reach experimental kernel + full fp16 usage in hgemm");
+  throw std::runtime_error(
+    "Error : should not reach for full-fp16 usage in experimental kernel");
 }
 
-template<>
+template <>
 void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
                        __fp16 *sa, __fp16 *sb, float *sc, unsigned int ldc) {
   assert(M > 0 && N > 0 && K > 0);
@@ -803,4 +805,3 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
     b = sb;
   }
 }
-
