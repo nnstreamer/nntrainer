@@ -10,6 +10,7 @@
  * @brief  This is for util functions for half-precision GEMM
  */
 
+#include <arm_neon.h>
 #include <cmath>
 #include <hgemm_util.h>
 
