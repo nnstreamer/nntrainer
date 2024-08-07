@@ -23,6 +23,8 @@
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
  * @param[in] alpha float number
  * @param[in] beta float number
+ * @param[in] TransA bool transpose info of lhs matrix
+ * @param[in] TransB bool transpose info of rhs matrix
  */
 void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
            unsigned int N, unsigned int K, float alpha, float beta, bool TransA,
@@ -39,6 +41,8 @@ void hgemm(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
  * @param[in] alpha float number
  * @param[in] beta float number
+ * @param[in] TransA bool transpose info of lhs matrix
+ * @param[in] TransB bool transpose info of rhs matrix
  */
 void hgemm_small(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
                  unsigned int N, unsigned int K, float alpha, float beta,
@@ -55,6 +59,8 @@ void hgemm_small(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
  * @param[in] alpha float number
  * @param[in] beta float number
+ * @param[in] TransA bool transpose info of lhs matrix
+ * @param[in] TransB bool transpose info of rhs matrix
  */
 void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
                                unsigned int M, unsigned int N, unsigned int K,
@@ -72,6 +78,8 @@ void hgemm_ensure_divisibility(const __fp16 *A, const __fp16 *B, float *C32,
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
  * @param[in] alpha float number
  * @param[in] beta float number
+ * @param[in] TransA bool transpose info of lhs matrix
+ * @param[in] TransB bool transpose info of rhs matrix
  */
 void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32,
                     unsigned int M, unsigned int N, unsigned int K,
@@ -88,6 +96,8 @@ void hgemm_classify(const __fp16 *A, const __fp16 *B, float *C32,
  * @param[in] K number of op(A)'s and columns and op(B)'s rows
  * @param[in] alpha float number
  * @param[in] beta float number
+ * @param[in] TransA bool transpose info of lhs matrix
+ * @param[in] TransB bool transpose info of rhs matrix
  */
 void hgemm_K1(const __fp16 *A, const __fp16 *B, __fp16 *C, unsigned int M,
               unsigned int N, unsigned int K, float alpha, float beta,
