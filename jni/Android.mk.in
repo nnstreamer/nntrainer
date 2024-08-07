@@ -36,6 +36,7 @@ LOCAL_MODULE := ml-api-inference
 
 LOCAL_SRC_FILES := @MESON_ML_API_COMMON_ROOT@/lib/arm64-v8a/libnnstreamer-native.so
 LOCAL_EXPORT_C_INCLUDES := @MESON_ML_API_COMMON_ROOT@/include
+LOCAL_LDFLAGS 	    += "-Wl,-z,max-page-size=16384"
 
 include $(PREBUILT_SHARED_LIBRARY)
 
@@ -65,6 +66,7 @@ LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXX
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+LOCAL_LDFLAGS 	    += "-Wl,-z,max-page-size=16384"
 
 LOCAL_STATIC_LIBRARIES += iniparser openblas
 
@@ -87,6 +89,7 @@ LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ -DVERSION_
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+LOCAL_LDFLAGS 	    += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SHARED_LIBRARIES += nntrainer
 
@@ -105,6 +108,7 @@ LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXX
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+LOCAL_LDFLAGS 	    += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SHARED_LIBRARIES += ccapi-nntrainer nntrainer ml-api-inference
 
