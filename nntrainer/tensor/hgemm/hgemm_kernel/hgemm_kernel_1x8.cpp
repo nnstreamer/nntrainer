@@ -15,6 +15,7 @@
 #include <arm_neon.h>
 #include <assert.h>
 #include <hgemm_kernel.h>
+#include <hgemm_util.h>
 #include <stdlib.h>
 
 // 1. Partial sum 64 digits : worst accuracy, best latency
@@ -128,7 +129,7 @@ void hgemm_kernel_1x8(unsigned int M, unsigned int N, unsigned int K,
 
   __fp16 *a = sa, *b = sb;
   float *c = sc;
-  unsigned int k8 = (K >> 3) << 3;
+  unsigned int K8 = get_prev_mltpl_of_2p_n(K, 3);
   unsigned int i, j, l;
   for (i = 0; i < M; i++) {
     for (j = 0; j < N; j += 8) {
@@ -138,7 +139,7 @@ void hgemm_kernel_1x8(unsigned int M, unsigned int N, unsigned int K,
       float16x8_t v24, v25, v26, v27, v28, v29, v30, v31;
       float16_t dv0, dv1, dv2, dv3, dv4, dv5, dv6, dv7;
       l = 0;
-      for (; l < k8;) {
+      for (; l < K8;) {
         KERNEL_1x8_ACC8();
 
         vst1q_f32(c, vaddq_f32(vld1q_f32(c), vcvt_f32_f16(vget_low_f16(v0))));

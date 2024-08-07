@@ -14,6 +14,7 @@
 #include <arm_neon.h>
 #include <assert.h>
 #include <hgemm_kernel.h>
+#include <hgemm_util.h>
 #include <stdexcept>
 #include <stdlib.h>
 
@@ -742,11 +743,12 @@ void hgemm_kernel_8x16(unsigned int M, unsigned int N, unsigned int K,
   __fp16 *a = sa, *b = sb;
   float *c = sc;
   unsigned int i, j, l;
-  unsigned int K4 = (K >> 2) << 2;
-  unsigned int K8 = (K >> 3) << 3;
-  unsigned int K16 = (K >> 4) << 4;
-  unsigned int K32 = (K >> 5) << 5;
-  unsigned int K64 = (K >> 6) << 6;
+  unsigned int K4 = get_prev_mltpl_of_2p_n(K, 2);
+  unsigned int K8 = get_prev_mltpl_of_2p_n(K, 3);
+  unsigned int K16 = get_prev_mltpl_of_2p_n(K, 4);
+  unsigned int K32 = get_prev_mltpl_of_2p_n(K, 5);
+  unsigned int K64 = get_prev_mltpl_of_2p_n(K, 6);
+
   for (i = 0; i < M; i += 8) {
     for (j = 0; j < N; j += 16) {
       __builtin_prefetch(b, 0, 3);
