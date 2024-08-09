@@ -161,6 +161,68 @@ bool CommandQueueManager::EnqueueWriteBuffer(cl_mem buffer,
 }
 
 /**
+ * @brief Mapping a region of a buffer object into the host address space
+ *
+ * @param buffer cl_mem buffer object
+ * @param offset_in_bytes offset of the region in the buffer object that is
+ * being mapped
+ * @param size_in_bytes size of the buffer object that is being mapped
+ * @param read_only flag for read only mapping
+ * @param async flag for asynchronous operation
+ * @param event Object that identifies this command and can be used to query
+ * or wait for this command to complete
+ * @return void* pointer to the mapped region
+ */
+void *CommandQueueManager::EnqueueMapBuffer(cl_mem buffer,
+                                            size_t offset_in_bytes,
+                                            size_t size_in_bytes,
+                                            bool read_only, bool async,
+                                            cl_event *event) {
+  // managing synchronization
+  const cl_bool blocking = async ? CL_FALSE : CL_TRUE;
+  // managing read/write flags
+  const cl_map_flags map_flag = read_only ? CL_MAP_READ : CL_MAP_WRITE;
+
+  cl_int error_code;
+
+  void *host_mem_buf = clEnqueueMapBuffer(
+    command_queue_, buffer, blocking, map_flag, offset_in_bytes, size_in_bytes,
+    0, nullptr, event, &error_code);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge(
+      "Failed to map buffer to host memory(clEnqueueMapBuffer). OpenCL error "
+      "code: %d",
+      error_code);
+    return nullptr;
+  }
+  return host_mem_buf;
+}
+
+/**
+ * @brief Mapping a region of a buffer object into the host address space
+ *
+ * @param buffer cl_mem buffer object
+ * @param mapped_ptr pointer to the mapped region
+ * @param event Object that identifies this command and can be used to query
+ * or wait for this command to complete
+ * @return true if unmap is successful
+ */
+bool CommandQueueManager::EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
+                                                cl_event *event) {
+  cl_int error_code = clEnqueueUnmapMemObject(command_queue_, buffer,
+                                              mapped_ptr, 0, nullptr, event);
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to unmap buffer from host memory(clEnqueueUnmapMemObject). "
+            "OpenCL error "
+            "code: %d",
+            error_code);
+    return false;
+  }
+  return true;
+}
+
+/**
  * @brief Function to initiate execution of the command queue.
  *
  * @param kernel OpenCL kernel
