@@ -435,71 +435,66 @@ TEST(TensorPool, validate_memory) {
   EXPECT_NO_THROW(pool.deallocate());
 }
 
-// /**
-//  * @brief qint8 tensors reuse fp32 tensor memory space
-//  */
-// TEST(TensorPool, validate_memory_reuse_01_p) {
-//   // |--------- t1 ---------|
-//   // |-t2-||-t3-||-t4-||-t5-|
-//   nntrainer::TensorPool pool;
-//   nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 =
-//   nullptr,
-//                     *t5 = nullptr;
+/**
+ * @brief qint8 tensors reuse fp32 tensor memory space
+ */
+TEST(TensorPool, validate_memory_reuse_01_p) {
+  // |--------- t1 ---------|
+  // |-t2-||-t3-||-t4-||-t5-|
+  nntrainer::TensorPool pool;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr, *t3 = nullptr, *t4 = nullptr,
+                    *t5 = nullptr;
 
-//   EXPECT_NO_THROW(
-//     t1 = pool.request("t1", nntrainer::TensorDim({4}), {0},
-//                       nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
-//   EXPECT_NE(t1, nullptr);
-//   EXPECT_FALSE(t1->isAllocated());
+  EXPECT_NO_THROW(
+    t1 = pool.request("t1", nntrainer::TensorDim({4}), {0},
+                      nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t1, nullptr);
+  EXPECT_FALSE(t1->isAllocated());
 
-//   EXPECT_NO_THROW(
-//     t2 = pool.request("t2",
-//                       nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
-//                                                  nntrainer::Tdatatype::QINT8}),
-//                       {1},
-//                       nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
-//   EXPECT_NE(t2, nullptr);
-//   EXPECT_FALSE(t2->isAllocated());
+  EXPECT_NO_THROW(
+    t2 = pool.request("t2",
+                      nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::QINT8}),
+                      {1}, nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t2, nullptr);
+  EXPECT_FALSE(t2->isAllocated());
 
-//   EXPECT_NO_THROW(
-//     t3 = pool.request("t3",
-//                       nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
-//                                                  nntrainer::Tdatatype::QINT8}),
-//                       {1},
-//                       nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
-//   EXPECT_NE(t3, nullptr);
-//   EXPECT_FALSE(t3->isAllocated());
+  EXPECT_NO_THROW(
+    t3 = pool.request("t3",
+                      nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::QINT8}),
+                      {1}, nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t3, nullptr);
+  EXPECT_FALSE(t3->isAllocated());
 
-//   EXPECT_NO_THROW(
-//     t4 = pool.request("t4",
-//                       nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
-//                                                  nntrainer::Tdatatype::QINT8}),
-//                       {1},
-//                       nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
-//   EXPECT_NE(t4, nullptr);
-//   EXPECT_FALSE(t4->isAllocated());
+  EXPECT_NO_THROW(
+    t4 = pool.request("t4",
+                      nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::QINT8}),
+                      {1}, nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t4, nullptr);
+  EXPECT_FALSE(t4->isAllocated());
 
-//   EXPECT_NO_THROW(
-//     t5 = pool.request("t5",
-//                       nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
-//                                                  nntrainer::Tdatatype::QINT8}),
-//                       {1},
-//                       nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
-//   EXPECT_NE(t5, nullptr);
-//   EXPECT_FALSE(t5->isAllocated());
+  EXPECT_NO_THROW(
+    t5 = pool.request("t5",
+                      nntrainer::TensorDim({4}, {nntrainer::Tformat::NCHW,
+                                                 nntrainer::Tdatatype::QINT8}),
+                      {1}, nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NE(t5, nullptr);
+  EXPECT_FALSE(t5->isAllocated());
 
-//   EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
-//   EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+  EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
+  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
 
-//   EXPECT_NO_THROW(pool.allocate());
+  EXPECT_NO_THROW(pool.allocate());
 
-//   EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<uint8_t>(0));
-//   EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<uint8_t>(0));
-//   EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<uint8_t>(0));
-//   EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<uint8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<int8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<int8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<int8_t>(0));
+  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<int8_t>(0));
 
-//   EXPECT_NO_THROW(pool.deallocate());
-// }
+  EXPECT_NO_THROW(pool.deallocate());
+}
 
 // /**
 //  * @brief qint4 tensors reuse fp32 tensor memory space
