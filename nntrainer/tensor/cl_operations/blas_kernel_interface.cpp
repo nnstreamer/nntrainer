@@ -119,8 +119,6 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     const float *data = input.getData();
     const float *mdata = m.getData();
     float *rdata = result.getData();
-    enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-    enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
 
     /// shortcut handling in case of vector
     /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -134,20 +132,19 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      transA ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
-             : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
+            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-      transB ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
-             : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
+              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
     }
     /// case others: use gemm
     else {
-      sgemm_cl(transA, transB, data, mdata, rdata, M, N, K, lda, ldb, ldc,
+      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc,
                context);
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -155,8 +152,6 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     const _FP16 *data = input.getData<_FP16>();
     const _FP16 *mdata = m.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
-    enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-    enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
 
     /// shortcut handling in case of vector
     /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -170,20 +165,19 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      transA ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
-             : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
+            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-      transB ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
-             : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
+              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
     }
     /// case others: use sgemm
     else {
-      sgemm_cl(transA, transB, data, mdata, rdata, M, N, K, lda, ldb, ldc,
+      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc,
                context);
     }
 #else

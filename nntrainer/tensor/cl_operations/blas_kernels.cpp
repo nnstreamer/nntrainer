@@ -282,24 +282,24 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
   return cl_ret;
 }
 
-void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const float *A,
-              const float *B, float *C, unsigned int M, unsigned int N,
-              unsigned int K, unsigned int lda, unsigned int ldb,
-              unsigned int ldc, RunLayerContext &context) {
+void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
+              float *C, unsigned int M, unsigned int N, unsigned int K,
+              unsigned int lda, unsigned int ldb, unsigned int ldc,
+              RunLayerContext &context) {
 
   opencl::Kernel *kernel_sgemm = nullptr;
   RunLayerContext::LayerKernel layerKernel;
   std::string sgemm_cl_kernel_;
 
-  if (TransA != CblasTrans && TransB != CblasTrans) {
+  if (!TransA && !TransB) {
     kernel_sgemm = &kernel_sgemm_noTrans;
     layerKernel = context.LayerKernel::SGEMM_NOTRANS;
     sgemm_cl_kernel_ = sgemm_cl_noTrans_kernel_;
-  } else if (TransA == CblasTrans && TransB != CblasTrans) {
+  } else if (TransA && !TransB) {
     kernel_sgemm = &kernel_sgemm_transA;
     layerKernel = context.LayerKernel::SGEMM_TRANSA;
     sgemm_cl_kernel_ = sgemm_cl_transA_kernel_;
-  } else if (TransA != CblasTrans && TransB == CblasTrans) {
+  } else if (!TransA && TransB) {
     kernel_sgemm = &kernel_sgemm_transB;
     layerKernel = context.LayerKernel::SGEMM_TRANSB;
     sgemm_cl_kernel_ = sgemm_cl_transB_kernel_;

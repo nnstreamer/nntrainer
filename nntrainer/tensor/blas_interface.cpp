@@ -24,6 +24,12 @@
 #include <blas_avx.h>
 #endif
 
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 #include <cmath>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
@@ -57,23 +63,23 @@
       Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX]; \
   } while (0);
 
-#define hgemm_loop()                                                      \
-  do {                                                                    \
-    for (unsigned int m = 0; m < M; ++m) {                                \
-      for (unsigned int n = 0; n < N; ++n) {                              \
-        float c = 0;                                                      \
-        _FP16 c_old = C[m * ldc + n];                                     \
-        for (unsigned int k = 0; k < K; ++k) {                            \
-          _FP16 a, b;                                                     \
-          a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]); \
-          b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]); \
-          c += static_cast<float>(a * b);                                 \
-        }                                                                 \
-        C[m * ldc + n] = static_cast<_FP16>(alpha * c);                   \
-        if (beta != 0.0)                                                  \
-          C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;             \
-      }                                                                   \
-    }                                                                     \
+#define hgemm_loop()                                          \
+  do {                                                        \
+    for (unsigned int m = 0; m < M; ++m) {                    \
+      for (unsigned int n = 0; n < N; ++n) {                  \
+        float c = 0;                                          \
+        _FP16 c_old = C[m * ldc + n];                         \
+        for (unsigned int k = 0; k < K; ++k) {                \
+          _FP16 a, b;                                         \
+          a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);   \
+          b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);   \
+          c += static_cast<float>(a * b);                     \
+        }                                                     \
+        C[m * ldc + n] = static_cast<_FP16>(alpha * c);       \
+        if (beta != 0.0)                                      \
+          C[m * ldc + n] += static_cast<_FP16>(beta) * c_old; \
+      }                                                       \
+    }                                                         \
   } while (0);
 
 namespace nntrainer {
@@ -93,8 +99,7 @@ static inline void transpose_fallback(unsigned int M, unsigned int N,
 static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
                        const int incX, _FP16 *Y, const int incY) {
   if (incX < 0 or incY < 0)
-    throw std::invalid_argument(
-      "Error: negative inc not supported without cblas");
+    throw std::invalid_argument("Error: negative inc not supported");
 
 #if (defined USE__FP16 && USE_NEON)
   // USE__FP16 is defined when platform is android
@@ -108,22 +113,22 @@ static void saxpy_FP16(const unsigned int N, const float alpha, const _FP16 *X,
 #endif
 }
 
-static void sgemv_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
+static void sgemv_FP16(const unsigned int TStorageOrder, bool TransA,
                        const unsigned int M, const unsigned int N,
                        const float alpha, const _FP16 *A,
                        const unsigned int lda, const _FP16 *X, const int incX,
                        const float beta, _FP16 *Y, const int incY) {
 #if (defined USE__FP16 && USE_NEON)
-  if (TransA == CblasTrans) {
+  if (TransA) {
     nntrainer::neon::hgemv_transpose(A, X, Y, M, N, alpha, beta);
   } else {
     nntrainer::neon::hgemv(A, X, Y, M, N, alpha, beta);
   }
 #else
   unsigned int lenX =
-    (TransA == CblasTrans) ? 1 + (M - 1) * abs(incX) : 1 + (N - 1) * abs(incX);
+    (TransA) ? 1 + (M - 1) * abs(incX) : 1 + (N - 1) * abs(incX);
   unsigned int lenY =
-    (TransA == CblasTrans) ? 1 + (N - 1) * abs(incY) : 1 + (M - 1) * abs(incY);
+    (TransA) ? 1 + (N - 1) * abs(incY) : 1 + (M - 1) * abs(incY);
 
   float *A_ = new float[M * N];
   float *X_ = new float[lenX];
@@ -317,18 +322,20 @@ static _FP16 snrm2_FP16(const unsigned int N, const _FP16 *X, const int incX) {
   return sum;
 }
 
-static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
-                       CBLAS_TRANSPOSE TransB, const unsigned int M,
-                       const unsigned int N, const unsigned int K,
-                       const float alpha, const _FP16 *A,
+static void sgemm_FP16(const unsigned int TStorageOrder, bool TransA,
+                       bool TransB, const unsigned int M, const unsigned int N,
+                       const unsigned int K, const float alpha, const _FP16 *A,
                        const unsigned int lda, const _FP16 *B,
                        const unsigned int ldb, const float beta, _FP16 *C,
                        const unsigned int ldc) {
 
 #if (defined USE__FP16 && USE_NEON)
-  nntrainer::neon::custom_hgemm(A, B, C, M, N, K, alpha, beta,
-                                TransA == CblasTrans, TransB == CblasTrans);
+  nntrainer::neon::custom_hgemm(A, B, C, M, N, K, alpha, beta, TransA, TransB);
 #else
+  CBLAS_TRANSPOSE transA = TransA ? CblasTrans : CblasNoTrans;
+  CBLAS_TRANSPOSE transB = TransB ? CblasTrans : CblasNoTrans;
+  CBLAS_ORDER order = TStorageOrder ? CblasColMajor : CblasRowMajor;
+
   float *A_ = new float[M * K];
   float *B_ = new float[N * K];
   float *C_ = new float[M * N];
@@ -336,7 +343,7 @@ static void sgemm_FP16(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   scopy(M * K, A, 1, A_, 1);
   scopy(N * K, B, 1, B_, 1);
   scopy(M * N, C, 1, C_, 1);
-  sgemm(order, TransA, TransB, M, N, K, alpha, A_, lda, B_, ldb, beta, C_, ldc);
+  sgemm(order, transA, transB, M, N, K, alpha, A_, lda, B_, ldb, beta, C_, ldc);
   scopy(M * N, C_, 1, C, 1);
 
   delete[] A_;
@@ -381,13 +388,13 @@ void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
   saxpy_FP16(N, alpha, X, incX, Y, incY);
 }
 
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const _FP16 *A, const unsigned int lda,
            const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
            const unsigned int ldc) {
-  sgemm_FP16(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
-             ldc);
+  sgemm_FP16(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B, ldb,
+             beta, C, ldc);
 }
 
 void scopy(const unsigned int N, const _FP16 *X, const int incX, _FP16 *Y,
@@ -520,11 +527,12 @@ _FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
   return sdot_FP16(N, X, incX, Y, incY);
 }
 
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const _FP16 *A,
            const unsigned int lda, const _FP16 *X, const int incX,
            const float beta, _FP16 *Y, const int incY) {
-  sgemv_FP16(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
+  sgemv_FP16(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+             incY);
 }
 
 unsigned int isamax(const unsigned int N, const _FP16 *X, const int incX) {
@@ -557,13 +565,12 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 static void saxpy_raw(const unsigned int N, const float alpha, const float *X,
                       const int incX, float *Y, const int incY) {
   if (incX < 0 or incY < 0)
-    throw std::invalid_argument(
-      "Error: negative inc not supported without cblas");
+    throw std::invalid_argument("Error: negative inc not supported");
   for (unsigned int i = 0; i < N; ++i)
     Y[i * incY] = Y[i * incY] + X[i * incX] * alpha;
 }
 
-static void sgemv_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
+static void sgemv_raw(const unsigned int TStorageOrder, bool TransA,
                       const unsigned int M, const unsigned int N,
                       const float alpha, const float *A, const unsigned int lda,
                       const float *X, const int incX, const float beta,
@@ -572,7 +579,7 @@ static void sgemv_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
-  if (TransA == CblasTrans) {
+  if (TransA) {
     sgemv_loop(i, j, N, M);
   } else {
     sgemv_loop(j, i, M, N);
@@ -618,12 +625,12 @@ static float snrm2_raw(const unsigned int N, const float *X, const int incX) {
   return sqrt(sum);
 }
 
-static void sgemm_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
-                      CBLAS_TRANSPOSE TransB, const unsigned int M,
-                      const unsigned int N, const unsigned int K,
-                      const float alpha, const float *A, const unsigned int lda,
-                      const float *B, const unsigned int ldb, const float beta,
-                      float *C, const unsigned int ldc) {
+static void sgemm_raw(const unsigned int TStorageOrder, bool TransA,
+                      bool TransB, const unsigned int M, const unsigned int N,
+                      const unsigned int K, const float alpha, const float *A,
+                      const unsigned int lda, const float *B,
+                      const unsigned int ldb, const float beta, float *C,
+                      const unsigned int ldc) {
 
   for (unsigned int m = 0; m < M; ++m) {
     for (unsigned int n = 0; n < N; ++n) {
@@ -631,8 +638,8 @@ static void sgemm_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
       float c_old = C[m * ldc + n];
       for (unsigned int k = 0; k < K; ++k) {
         float a, b;
-        a = ((TransA == CblasTrans) ? A[k * lda + m] : A[m * lda + k]);
-        b = ((TransB == CblasTrans) ? B[n * ldb + k] : B[k * ldb + n]);
+        a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);
+        b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);
         c += a * b;
       }
       C[m * ldc + n] = alpha * c;
@@ -729,12 +736,11 @@ void saxpy(const unsigned int N, const float alpha, const float *X,
 #endif
 }
 
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const void *A, const unsigned int lda,
            const void *B, const unsigned int ldb, const float beta, void *C,
            const unsigned int ldc, ml::train::TensorDim::DataType d_type) {
-
   if (d_type == ml::train::TensorDim::DataType::FP32) {
 #ifdef USE_CUBLAS
     int devID = 0;
@@ -755,10 +761,8 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
     cublasHandle_t handle;
     cublasCreate(&handle);
 
-    cublasOperation_t transA =
-      (TransA == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
-    cublasOperation_t transB =
-      (TransB == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+    cublasOperation_t transA = (TransA) ? CUBLAS_OP_T : CUBLAS_OP_N;
+    cublasOperation_t transB = (TransB) ? CUBLAS_OP_T : CUBLAS_OP_N;
     cublasSgemm(handle, transA, transB, N, M, K, &alpha, d_B, N, d_A, K, &beta,
                 d_C, N);
 
@@ -770,33 +774,35 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 #ifdef BLAS_NUM_THREADS
     openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-
+    CBLAS_TRANSPOSE transA = TransA ? CblasTrans : CblasNoTrans;
+    CBLAS_TRANSPOSE transB = TransB ? CblasTrans : CblasNoTrans;
+    CBLAS_ORDER order = TStorageOrder ? CblasColMajor : CblasRowMajor;
     cblas_sgemm(
-      order, TransA, TransB, M, N, K, alpha, static_cast<const float *>(A), lda,
+      order, transA, transB, M, N, K, alpha, static_cast<const float *>(A), lda,
       static_cast<const float *>(B), ldb, beta, static_cast<float *>(C), ldc);
 #else
-    sgemm_raw(order, TransA, TransB, M, N, K, alpha,
+    sgemm_raw(TStorageOrder, TransA, TransB, M, N, K, alpha,
               static_cast<const float *>(A), lda, static_cast<const float *>(B),
               ldb, beta, static_cast<float *>(C), ldc);
 #endif
 
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    sgemm_FP16(
-      order, TransA, TransB, M, N, K, alpha, static_cast<const _FP16 *>(A), lda,
-      static_cast<const _FP16 *>(B), ldb, beta, static_cast<_FP16 *>(C), ldc);
+    sgemm_FP16(TStorageOrder, TransA, TransB, M, N, K, alpha,
+               static_cast<const _FP16 *>(A), lda,
+               static_cast<const _FP16 *>(B), ldb, beta,
+               static_cast<_FP16 *>(C), ldc);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
 } // namespace nntrainer
 
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const float *A, const unsigned int lda,
            const float *B, const unsigned int ldb, const float beta, float *C,
            const unsigned int ldc) {
-
 #ifdef USE_CUBLAS
   int devID = 0;
   cudaDeviceProp deviceProp;
@@ -816,8 +822,8 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
   cublasHandle_t handle;
   cublasCreate(&handle);
 
-  cublasOperation_t transA = (TransA == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t transB = (TransB == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t transA = (TransA) ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t transB = (TransB) ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasSgemm(handle, transA, transB, N, M, K, &alpha, d_B, N, d_A, K, &beta,
               d_C, N);
 
@@ -827,11 +833,14 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  cblas_sgemm(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
+  CBLAS_TRANSPOSE transA = TransA ? CblasTrans : CblasNoTrans;
+  CBLAS_TRANSPOSE transB = TransB ? CblasTrans : CblasNoTrans;
+  CBLAS_ORDER order = TStorageOrder ? CblasColMajor : CblasRowMajor;
+  cblas_sgemm(order, transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C,
               ldc);
 #else
-  sgemm_raw(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
-            ldc);
+  sgemm_raw(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta,
+            C, ldc);
 #endif
 }
 
@@ -927,37 +936,39 @@ float sdot(const unsigned int N, const float *X, const unsigned int incX,
 #endif
 }
 
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const void *A,
            const unsigned int lda, const void *X, const int incX,
            const float beta, void *Y, const int incY,
            ml::train::TensorDim::DataType d_type) {
+
   if (d_type == ml::train::TensorDim::DataType::FP32) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
     openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
+    CBLAS_TRANSPOSE transA = TransA ? CblasTrans : CblasNoTrans;
+    CBLAS_ORDER order = TStorageOrder ? CblasColMajor : CblasRowMajor;
     return cblas_sgemv(
-      order, TransA, M, N, alpha, static_cast<const float *>(A), lda,
+      order, transA, M, N, alpha, static_cast<const float *>(A), lda,
       static_cast<const float *>(X), incX, beta, static_cast<float *>(Y), incY);
 #else
-
-    return sgemv_raw(order, TransA, M, N, alpha, static_cast<const float *>(A),
-                     lda, static_cast<const float *>(X), incX, beta,
-                     static_cast<float *>(Y), incY);
+    return sgemv_raw(
+      TStorageOrder, TransA, M, N, alpha, static_cast<const float *>(A), lda,
+      static_cast<const float *>(X), incX, beta, static_cast<float *>(Y), incY);
 #endif
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    return sgemv_FP16(order, TransA, M, N, alpha, static_cast<const _FP16 *>(A),
-                      lda, static_cast<const _FP16 *>(X), incX, beta,
-                      static_cast<_FP16 *>(Y), incY);
+    return sgemv_FP16(
+      TStorageOrder, TransA, M, N, alpha, static_cast<const _FP16 *>(A), lda,
+      static_cast<const _FP16 *>(X), incX, beta, static_cast<_FP16 *>(Y), incY);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
 }
 
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const float *A,
            const unsigned int lda, const float *X, const int incX,
            const float beta, float *Y, const int incY) {
@@ -965,10 +976,13 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
 #ifdef BLAS_NUM_THREADS
   openblas_set_num_threads(BLAS_NUM_THREADS);
 #endif
-  return cblas_sgemv(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+  CBLAS_TRANSPOSE transA = TransA ? CblasTrans : CblasNoTrans;
+  CBLAS_ORDER order = TStorageOrder ? CblasColMajor : CblasRowMajor;
+  return cblas_sgemv(order, transA, M, N, alpha, A, lda, X, incX, beta, Y,
                      incY);
 #else
-  return sgemv_raw(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
+  return sgemv_raw(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+                   incY);
 #endif
 }
 

@@ -16,21 +16,6 @@
 #define __BLAS_INTERFACE_H_
 #ifdef __cplusplus
 
-#ifdef USE_BLAS
-extern "C" {
-#include <cblas.h>
-}
-#else
-enum CBLAS_ORDER { CblasRowMajor = 101, CblasColMajor = 102 };
-
-enum CBLAS_TRANSPOSE {
-  CblasNoTrans = 111,
-  CblasTrans = 112,
-  CblasConjTrans = 113
-};
-
-#endif
-
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
 #include <helper_functions.h>
@@ -132,7 +117,7 @@ void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const _FP16 *A, const unsigned int lda,
            const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
@@ -147,7 +132,7 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const _FP16 *A,
            const unsigned int lda, const _FP16 *X, const int incX,
            const float beta, _FP16 *Y, const int incY);
@@ -346,7 +331,7 @@ void saxpy(const unsigned int N, const float alpha, const float *X,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const void *A, const unsigned int lda,
            const void *B, const unsigned int ldb, const float beta, void *C,
@@ -363,7 +348,7 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
+void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int M, const unsigned int N, const unsigned int K,
            const float alpha, const float *A, const unsigned int lda,
            const float *B, const unsigned int ldb, const float beta, float *C,
@@ -378,7 +363,7 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const void *A,
            const unsigned int lda, const void *X, const int incX,
            const float beta, void *Y, const int incY,
@@ -393,7 +378,7 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const float *A,
            const unsigned int lda, const float *X, const int incX,
            const float beta, float *Y, const int incY);
