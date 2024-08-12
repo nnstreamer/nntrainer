@@ -542,7 +542,8 @@ std::vector<Tensor> TensorBase::split(std::vector<size_t> sizes, int axis) {
   return ret;
 }
 
-Tensor TensorBase::concat(const std::vector<Tensor> &tensors, int axis) {
+Tensor TensorBase::concat(const std::vector<Tensor> &tensors, int axis,
+                          Tensor &output) {
   throw std::invalid_argument(
     "Tensor::concat() is currently not supported in tensor data type " +
     getStringDataType());

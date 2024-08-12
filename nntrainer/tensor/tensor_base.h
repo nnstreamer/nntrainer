@@ -397,9 +397,10 @@ public:
   virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis);
 
   /**
-   * @copydoc Tensor::concat(const std::vector<Tensor> &tensors, int axis)
+   * @copydoc Tensor::concat()
    */
-  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis);
+  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis,
+                        Tensor &output);
 
   /**
    * @copydoc Tensor::print(std::ostream &out)
