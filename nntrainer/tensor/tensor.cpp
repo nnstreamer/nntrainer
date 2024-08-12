@@ -17,7 +17,6 @@
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
 #endif
-
 namespace nntrainer {
 
 Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
@@ -822,19 +821,37 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
   return itensor->split(sizes, axis);
 }
 
-Tensor Tensor::concat(const std::vector<Tensor> &tensors, int axis) {
-  NNTR_THROW_IF(!(-1 <= axis && axis < 4), std::invalid_argument)
-    << "cannot split axis of axis: " << axis;
-
-  NNTR_THROW_IF(tensors.empty(), std::invalid_argument)
-    << "given tensor vector is empty";
-
-  return itensor->concat(tensors, axis);
+Tensor Tensor::concat(const std::vector<Tensor> &tensors, int axis,
+                      Tensor &output) {
+  return itensor->concat(tensors, axis, output);
 }
 
 Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
-  Tensor input = tensors[0];
-  return input.concat(tensors, axis);
+  if (axis == -1) {
+    axis = 3;
+  }
+
+  // Create an output tensor to store the concatenation result
+  TensorDim out_dim = Tensor::calculateConcatOutputDim(tensors, axis);
+  Tensor output = Tensor(out_dim);
+
+  return output.concat(tensors, axis, output);
+}
+
+Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis,
+                   Tensor &output) {
+  if (axis == -1) {
+    axis = 3;
+  }
+
+  // Check if the given output tensor dimension is valid
+  TensorDim out_dim = Tensor::calculateConcatOutputDim(tensors, axis);
+
+  NNTR_THROW_IF(out_dim != output.getDim(), std::invalid_argument)
+    << "invalid output dim for concatenation " << output.getDim()
+    << "expected output dim " << out_dim;
+
+  return output.concat(tensors, axis, output);
 }
 
 void Tensor::print(std::ostream &out) const {
@@ -1086,6 +1103,46 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {
   itensor->setTensorVar(d, buf, offset);
+}
+
+TensorDim Tensor::calculateConcatOutputDim(const std::vector<Tensor> &tensors,
+                                           int axis) {
+  // Check axis, in which the tensors are concatenated, is valid.
+  NNTR_THROW_IF(!(-1 <= axis && axis < 4), std::invalid_argument)
+    << "cannot concatenate tensors along an axis: " << axis;
+
+  // Check if the number of input tensors is valid.
+  NNTR_THROW_IF(tensors.size() <= 1, std::invalid_argument)
+    << "received an invalid tensor vector. size must be greater than 1.";
+
+  auto out_dim = tensors.front().getDim();
+
+  // Check if all tensor data types are the same.
+  for (auto &t : tensors) {
+    NNTR_THROW_IF(t.getDataType() != out_dim.getDataType(),
+                  std::invalid_argument)
+      << "cannot concatenate tensors with different data types.";
+  }
+
+  // Compute the dimensions of an output tensor.
+  out_dim.setTensorDim(axis, 1);
+  NNTR_THROW_IF(!std::all_of(tensors.begin(), tensors.end(),
+                             [&out_dim, axis](const Tensor &t) {
+                               auto cur_dim = t.getDim();
+                               cur_dim.setTensorDim(axis, 1);
+                               return out_dim == cur_dim;
+                             }),
+                std::invalid_argument)
+    << " all tensor must have the same dimension except for the axis, out_dim: "
+    << out_dim << " axis : " << axis;
+
+  auto axis_dim = std::accumulate(tensors.begin(), tensors.end(), 0u,
+                                  [axis](unsigned cur, const Tensor &t) {
+                                    return cur += t.getDim().getTensorDim(axis);
+                                  });
+
+  out_dim.setTensorDim(axis, axis_dim);
+  return out_dim;
 }
 
 std::ostream &operator<<(std::ostream &out, Tensor const &input) {

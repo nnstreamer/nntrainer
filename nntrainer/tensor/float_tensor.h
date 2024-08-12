@@ -407,9 +407,10 @@ public:
   std::vector<Tensor> split(std::vector<size_t> sizes, int axis) override;
 
   /**
-   * @copydoc Tensor::cat(const std::vector<Tensor> &tensors, int axis)
+   * @copydoc Tensor::concat()
    */
-  Tensor concat(const std::vector<Tensor> &tensors, int axis) override;
+  Tensor concat(const std::vector<Tensor> &tensors, int axis,
+                Tensor &output) override;
 
   /**
    * @copydoc Tensor::copy(const Tensor &from)

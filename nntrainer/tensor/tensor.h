@@ -1202,9 +1202,12 @@ public:
    *
    * @param tensors tensors to be concatenated to the first tensor
    * @param axis axis
+   * @param output output tensor to store the result
    * @return Tensor concatenated tensor
+   *
+   * @note  This function should not be used directly. Please use cat() instead.
    */
-  Tensor concat(const std::vector<Tensor> &tensors, int axis = 0);
+  Tensor concat(const std::vector<Tensor> &tensors, int axis, Tensor &output);
 
   /**
    * @brief concatenate tensors along axis
@@ -1214,6 +1217,17 @@ public:
    * @return Tensor concatenated tensor
    */
   static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
+
+  /**
+   * @brief concatenate tensors along axis
+   *
+   * @param tensors tensors to be concatenated to the first tensor
+   * @param axis axis
+   * @param output output tensor to store the result
+   * @return Tensor concatenated tensor
+   */
+  static Tensor cat(const std::vector<Tensor> &tensors, int axis,
+                    Tensor &output);
 
   /**
    * @brief     Print element
@@ -1546,6 +1560,16 @@ private:
    * @param[in] offset offset to be used
    */
   void setTensorVar(TensorDim d, void *buf, size_t offset);
+
+  /**
+   * @brief Calculate the output tensor dimension of the concatenating a list of
+   * tensors as an input.
+   *
+   * @param[in] tensors tensors to be concatenated to the first tensor
+   * @param[in] axis axis
+   */
+  static TensorDim calculateConcatOutputDim(const std::vector<Tensor> &tensors,
+                                            int axis);
 };
 
 /**

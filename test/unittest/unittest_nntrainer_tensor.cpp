@@ -3898,7 +3898,7 @@ TEST(nntrainer_Tensor, cat_01_p) {
       18, 54, 55, 56, 36, 37, 19, 57, 58, 59, 38, 39, 20, 60, 61, 62, 40, 41,
       21, 63, 64, 65, 42, 43, 22, 66, 67, 68, 44, 45, 23, 69, 70, 71, 46, 47};
     nntrainer::Tensor answer(ml::train::TensorDim{3, 2, 4, 6}, answer_data);
-    EXPECT_EQ(nntrainer::Tensor::cat(inputs, 3), answer);
+    EXPECT_EQ(nntrainer::Tensor::cat(inputs, -1), answer);
   }
 }
 
@@ -3910,6 +3910,51 @@ TEST(nntrainer_Tensor, cat_02_n) {
     inputs.emplace_back(nntrainer::Tensor(2, 2, 1, 2));
     EXPECT_THROW(nntrainer::Tensor::cat(inputs, 2), std::invalid_argument);
   }
+}
+
+// concatenate an empty list of tensors
+TEST(nntrainer_Tensor, cat_03_n) {
+  std::vector<nntrainer::Tensor> inputs;
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 0), std::invalid_argument);
+}
+
+// concatenate a single tensor
+TEST(nntrainer_Tensor, cat_04_n) {
+  std::vector<nntrainer::Tensor> inputs;
+  inputs.reserve(1);
+  inputs.emplace_back(nntrainer::Tensor(2, 1, 1, 2));
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 0), std::invalid_argument);
+}
+
+// concatenate tensors with different data types
+TEST(nntrainer_Tensor, cat_05_n) {
+  std::vector<nntrainer::Tensor> inputs;
+  inputs.reserve(2);
+  inputs.emplace_back(nntrainer::Tensor(2, 1, 1, 2));
+  inputs.emplace_back(nntrainer::Tensor(
+    2, 1, 1, 2, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}));
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 0), std::invalid_argument);
+}
+
+// incorrect output tensor dimension
+TEST(nntrainer_Tensor, cat_06_n) {
+  std::vector<nntrainer::Tensor> inputs;
+  inputs.reserve(2);
+  inputs.emplace_back(nntrainer::Tensor(3, 2, 4, 1));
+  inputs.emplace_back(nntrainer::Tensor(3, 2, 4, 3));
+  nntrainer::Tensor output(3, 2, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 3, output),
+               std::invalid_argument);
+}
+
+// tensors not having the same shape except for the axis
+TEST(nntrainer_Tensor, cat_07_n) {
+  std::vector<nntrainer::Tensor> inputs;
+  inputs.reserve(2);
+  inputs.emplace_back(nntrainer::Tensor(3, 2, 4, 1));
+  inputs.emplace_back(nntrainer::Tensor(3, 1, 4, 3));
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 1), std::invalid_argument);
+  EXPECT_THROW(nntrainer::Tensor::cat(inputs, 3), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, zoneout_mask_01_n) {

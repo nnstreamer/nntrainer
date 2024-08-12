@@ -1027,28 +1027,10 @@ std::vector<Tensor> FloatTensor::split(std::vector<size_t> sizes, int axis) {
   return ret;
 }
 
-Tensor FloatTensor::concat(const std::vector<Tensor> &tensors, int axis) {
-  if (axis == -1) {
-    axis = 3;
-  }
+Tensor FloatTensor::concat(const std::vector<Tensor> &tensors, int axis,
+                           Tensor &output) {
+  bool is_format_nchw = (tensors.front().getDim().getFormat() == Tformat::NCHW);
 
-  auto ref_dim = tensors.front().getDim();
-  bool is_format_nchw = (ref_dim.getFormat() == Tformat::NCHW);
-  ref_dim.setTensorDim(axis, 1);
-  NNTR_THROW_IF(!std::all_of(tensors.begin(), tensors.end(),
-                             [&ref_dim, axis](const Tensor &t) {
-                               auto cur_dim = t.getDim();
-                               cur_dim.setTensorDim(axis, 1);
-                               return ref_dim == cur_dim;
-                             }),
-                std::invalid_argument)
-    << " all tensor must have the same dimension except for the axis, ref_dim: "
-    << ref_dim << " axis : " << axis;
-
-  auto axis_dim = std::accumulate(tensors.begin(), tensors.end(), 0u,
-                                  [axis](unsigned cur, const Tensor &t) {
-                                    return cur += t.getDim().getTensorDim(axis);
-                                  });
   auto iter_value =
     [is_format_nchw](std::array<unsigned, 4> &loc,
                      const std::array<unsigned, 4> &start_loc, Tensor &t,
@@ -1068,45 +1050,38 @@ Tensor FloatTensor::concat(const std::vector<Tensor> &tensors, int axis) {
     return value;
   };
 
-  auto ret_dim = ref_dim;
-  ret_dim.setTensorDim(axis, axis_dim);
-
-  Tensor ret = Tensor(ret_dim);
-
   std::array<unsigned, 4> loc = {0, 0, 0, 0};
   for (auto &t : tensors) {
     std::array<unsigned, 4> start_loc = loc;
     std::array<unsigned, 4> tensor_dim_arr;
-    if (is_format_nchw) {
-      tensor_dim_arr[0] = t.getDim().getTensorDim(0);
-      tensor_dim_arr[1] = t.getDim().getTensorDim(1);
-      tensor_dim_arr[2] = t.getDim().getTensorDim(2);
-      tensor_dim_arr[3] = t.getDim().getTensorDim(3);
-    } else {
-      tensor_dim_arr[0] = t.getDim().getTensorDim(0);
-      tensor_dim_arr[1] = t.getDim().getTensorDim(2);
-      tensor_dim_arr[2] = t.getDim().getTensorDim(3);
-      tensor_dim_arr[3] = t.getDim().getTensorDim(1);
-    }
+    TensorDim curr_dim = t.getDim();
+
+    tensor_dim_arr[0] = curr_dim.getTensorDim(0);
+    tensor_dim_arr[1] =
+      is_format_nchw ? curr_dim.getTensorDim(1) : curr_dim.getTensorDim(2);
+    tensor_dim_arr[2] =
+      is_format_nchw ? curr_dim.getTensorDim(2) : curr_dim.getTensorDim(3);
+    tensor_dim_arr[3] =
+      is_format_nchw ? curr_dim.getTensorDim(3) : curr_dim.getTensorDim(1);
 
     for (size_t i = 0u, sz = t.size(); i < sz; ++i) {
-      iter_value(loc, start_loc, ret, tensor_dim_arr) = t.getValue<float>(i);
+      iter_value(loc, start_loc, output, tensor_dim_arr) = t.getValue<float>(i);
     }
 
     if (is_format_nchw) {
-      loc[axis] += t.getDim().getTensorDim(axis);
+      loc[axis] += curr_dim.getTensorDim(axis);
     } else {
       if (axis == 0) {
-        loc[0] += t.getDim().getTensorDim(axis);
+        loc[0] += curr_dim.getTensorDim(axis);
       } else if (axis == 1) {
-        loc[3] += t.getDim().getTensorDim(axis);
+        loc[3] += curr_dim.getTensorDim(axis);
       } else if (axis == 2 || axis == 3) {
-        loc[axis - 1] += t.getDim().getTensorDim(axis);
+        loc[axis - 1] += curr_dim.getTensorDim(axis);
       }
     }
   }
 
-  return ret;
+  return output;
 }
 
 void FloatTensor::print(std::ostream &out) const {
