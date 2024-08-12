@@ -478,8 +478,8 @@ void HalfTensor::sum_by_batch(Tensor &output) const {
 
   Tensor ones(1, 1, 1, feat_len, this->getTensorType());
   ones.setValue((_FP16)1.0);
-  sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
-        ones.getData<_FP16>(), 1, 0.0, out_data, 1);
+  sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data,
+        feat_len, ones.getData<_FP16>(), 1, 0.0, out_data, 1);
 }
 
 Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
@@ -507,8 +507,8 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, this->getTensorType());
     ones.setValue(alpha);
-    sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
-          ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
+    sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data,
+          feat_len, ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
   } break;
   case 1: {
     CREATE_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
@@ -517,8 +517,9 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       unsigned int t_axis = dim[1];
       Tensor ones(1, 1, 1, t_axis, this->getTensorType());
       ones.setValue(alpha);
-      sgemv(CblasRowMajor, CblasNoTrans, feat_len, t_axis, 1, data, t_axis,
-            ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
+      sgemv((unsigned int)dim.getStorageOrder(), false, feat_len, t_axis, 1,
+            data, t_axis, ones.getData<_FP16>(), 1, beta,
+            output.getData<_FP16>(), 1);
     } else {
       unsigned int feat_len = dim[2] * dim[3];
       unsigned int t_axis = dim[1];
@@ -526,7 +527,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       _FP16 *rdata = output.getData<_FP16>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
               &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
               1, beta, &rdata[k * feat_len], 1);
       }
@@ -542,7 +543,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       _FP16 *rdata = output.getData<_FP16>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
               &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
               1, beta, &rdata[k * feat_len], 1);
       }
@@ -556,8 +557,9 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
         for (unsigned int c = 0; c < dim[1]; ++c) {
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[3];
-          sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
-                ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
+                &data[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
+                1);
         }
       }
     }
@@ -574,8 +576,9 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
         for (unsigned int c = 0; c < dim[2]; ++c) {
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[1];
-          sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
-                ones.getData<_FP16>(), 1, beta, &rdata[ridx], 1);
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
+                &data[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
+                1);
         }
       }
     } else {
@@ -583,7 +586,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       unsigned int n = dim[3];
       Tensor ones(1, 1, 1, n, getTensorType());
       ones.setValue(alpha);
-      sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+      sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
             ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
     }
   } break;
@@ -651,8 +654,6 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
   const _FP16 *mdata = input.getData<_FP16>();
   _FP16 *rdata = output.getData<_FP16>();
   const float alpha = 1.0f;
-  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-  enum CBLAS_TRANSPOSE transB = trans_in ? CblasTrans : CblasNoTrans;
 
   /// shortcut handling in case of vector
   /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -666,21 +667,21 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
   }
   /// case2: (M * K) X (K * 1)
   else if (N == 1) {
-    sgemv(CblasRowMajor, transA, first_three_flat, last_axis, alpha, data, lda,
-          mdata, 1, beta, rdata, 1);
+    sgemv((unsigned int)dim.getStorageOrder(), trans, first_three_flat,
+          last_axis, alpha, data, lda, mdata, 1, beta, rdata, 1);
   }
   /// case3: (1 * K) X (K * N) = 1 * N = R
   /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
   /// Effectively a translation of sgemv
   else if (M == 1) {
-    transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-    sgemv(CblasRowMajor, transB, input_first_three_flat, input_last_axis, alpha,
-          mdata, ldb, data, 1, beta, rdata, 1);
+    sgemv((unsigned int)dim.getStorageOrder(), !trans_in,
+          input_first_three_flat, input_last_axis, alpha, mdata, ldb, data, 1,
+          beta, rdata, 1);
   }
   /// case others: use sgemm
   else {
-    sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
-          beta, rdata, ldc);
+    sgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K, alpha,
+          data, lda, mdata, ldb, beta, rdata, ldc);
   }
 
   return output;

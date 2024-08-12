@@ -493,8 +493,8 @@ void FloatTensor::sum_by_batch(Tensor &output) const {
 
   Tensor ones(1, 1, 1, feat_len, this->getFormat());
   ones.setValue(1.0);
-  sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
-        ones.getData<float>(), 1, 0.0, out_data, 1);
+  sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data,
+        feat_len, ones.getData<float>(), 1, 0.0, out_data, 1);
 }
 
 Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
@@ -521,8 +521,8 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, getTensorType());
     ones.setValue(alpha);
-    sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
-          ones.getData<float>(), 1, beta, output.getData<float>(), 1);
+    sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data,
+          feat_len, ones.getData<float>(), 1, beta, output.getData<float>(), 1);
   } break;
   case 1: {
     CREATE_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
@@ -531,8 +531,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       unsigned int t_axis = dim[1];
       Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
-      sgemv(CblasRowMajor, CblasNoTrans, feat_len, t_axis, 1, data, t_axis,
-            ones.getData<float>(), 1, beta, output.getData<float>(), 1);
+      sgemv((unsigned int)dim.getStorageOrder(), false, feat_len, t_axis, 1,
+            data, t_axis, ones.getData<float>(), 1, beta,
+            output.getData<float>(), 1);
     } else {
       unsigned int feat_len = dim[2] * dim[3];
       unsigned int t_axis = dim[1];
@@ -540,7 +541,7 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
               &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
               1, beta, &rdata[k * feat_len], 1);
       }
@@ -555,7 +556,7 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv(CblasRowMajor, CblasTrans, t_axis, feat_len, 1,
+        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
               &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
               1, beta, &rdata[k * feat_len], 1);
       }
@@ -573,14 +574,15 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
             unsigned int ridx =
               k * output.getDim().getFeatureLen() + c * dim[3];
 
-            sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
-                  ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+            sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
+                  &data[idx], t_3, ones.getData<float>(), 1, beta, &rdata[ridx],
+                  1);
           }
         }
       } else {
-        sgemv(CblasColMajor, CblasTrans, t_axis, output.getDim().getDataLen(),
-              1, data, t_axis, ones.getData<float>(), 1, beta,
-              output.getData<float>(), 1);
+        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis,
+              output.getDim().getDataLen(), 1, data, t_axis,
+              ones.getData<float>(), 1, beta, output.getData<float>(), 1);
       }
     }
   } break;
@@ -597,8 +599,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
         for (unsigned int c = 0; c < dim[2]; ++c) {
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[1];
-          sgemv(CblasRowMajor, CblasTrans, t_axis, t_3, 1, &data[idx], t_3,
-                ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
+                &data[idx], t_3, ones.getData<float>(), 1, beta, &rdata[ridx],
+                1);
         }
       }
     } else {
@@ -608,7 +611,7 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
 
       if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
-        sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n,
+        sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
               ones.getData<float>(), 1, beta, output.getData<float>(), 1);
       } else {
         float *rdata = output.getData<float>();
@@ -618,8 +621,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
             unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
             unsigned int ridx = k * dim[1] * dim[2] + c * dim[2];
 
-            sgemv(CblasColMajor, CblasNoTrans, dim[2], n, 1, &data[idx], dim[2],
-                  ones.getData<float>(), 1, beta, &rdata[ridx], 1);
+            sgemv((unsigned int)dim.getStorageOrder(), false, dim[2], n, 1,
+                  &data[idx], dim[2], ones.getData<float>(), 1, beta,
+                  &rdata[ridx], 1);
           }
         }
       }
@@ -699,8 +703,6 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   const float *mdata = input.getData<float>();
   float *rdata = output.getData<float>();
   const float alpha = 1.0f;
-  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-  enum CBLAS_TRANSPOSE transB = trans_in ? CblasTrans : CblasNoTrans;
 
   /// shortcut handling in case of vector
   /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -714,21 +716,21 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   }
   /// case2: (M * K) X (K * 1)
   else if (N == 1) {
-    sgemv(CblasRowMajor, transA, first_three_flat, last_axis, alpha, data, lda,
-          mdata, 1, beta, rdata, 1);
+    sgemv((unsigned int)dim.getStorageOrder(), trans, first_three_flat,
+          last_axis, alpha, data, lda, mdata, 1, beta, rdata, 1);
   }
   /// case3: (1 * K) X (K * N) = 1 * N = R
   /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
   /// Effectively a translation of sgemv
   else if (M == 1) {
-    transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
-    sgemv(CblasRowMajor, transB, input_first_three_flat, input_last_axis, alpha,
-          mdata, ldb, data, 1, beta, rdata, 1);
+    sgemv((unsigned int)dim.getStorageOrder(), !trans_in,
+          input_first_three_flat, input_last_axis, alpha, mdata, ldb, data, 1,
+          beta, rdata, 1);
   }
   /// case others: use gemm
   else {
-    sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
-          beta, rdata, ldc);
+    sgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K, alpha,
+          data, lda, mdata, ldb, beta, rdata, ldc);
   }
 
   return output;

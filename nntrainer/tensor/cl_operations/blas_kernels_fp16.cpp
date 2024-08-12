@@ -302,24 +302,24 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
   return cl_ret;
 }
 
-void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const __fp16 *A,
-              const __fp16 *B, __fp16 *C, unsigned int M, unsigned int N,
-              unsigned int K, unsigned int lda, unsigned int ldb,
-              unsigned int ldc, RunLayerContext &context) {
+void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
+              __fp16 *C, unsigned int M, unsigned int N, unsigned int K,
+              unsigned int lda, unsigned int ldb, unsigned int ldc,
+              RunLayerContext &context) {
 
   opencl::Kernel *kernel_sgemm_fp16 = nullptr;
   RunLayerContext::LayerKernel layerKernel;
   std::string sgemm_cl_kernel_fp16_;
 
-  if (TransA != CblasTrans && TransB != CblasTrans) {
+  if (!TransA && !TransB) {
     kernel_sgemm_fp16 = &kernel_sgemm_noTrans_fp16;
     layerKernel = context.LayerKernel::SGEMM_NOTRANS_FP16;
     sgemm_cl_kernel_fp16_ = sgemm_cl_noTrans_kernel_fp16_;
-  } else if (TransA == CblasTrans && TransB != CblasTrans) {
+  } else if (TransA && !TransB) {
     kernel_sgemm_fp16 = &kernel_sgemm_transA_fp16;
     layerKernel = context.LayerKernel::SGEMM_TRANSA_FP16;
     sgemm_cl_kernel_fp16_ = sgemm_cl_transA_kernel_fp16_;
-  } else if (TransA != CblasTrans && TransB == CblasTrans) {
+  } else if (!TransA && TransB) {
     kernel_sgemm_fp16 = &kernel_sgemm_transB_fp16;
     layerKernel = context.LayerKernel::SGEMM_TRANSB_FP16;
     sgemm_cl_kernel_fp16_ = sgemm_cl_transB_kernel_fp16_;

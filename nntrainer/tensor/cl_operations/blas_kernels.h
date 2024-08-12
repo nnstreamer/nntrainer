@@ -61,8 +61,8 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
 /**
  * @brief     sgemm computation : Y = op(A)*op(B) + C,
  * where op(X) is one of X or X**T
- * @param[in] transA CBLAS_TRANSPOSE
- * @param[in] transB CBLAS_TRANSPOSE
+ * @param[in] transA bool transpose
+ * @param[in] transB bool transpose
  * @param[in] A float * for Matrix A
  * @param[in] B float * for Matrix B
  * @param[in] C float * for Matrix C
@@ -74,10 +74,10 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1,
  * @param[in] ldc number of C's columns
  * @param[in] context RunLayerContext reference
  */
-void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const float *A,
-              const float *B, float *C, unsigned int M, unsigned int N,
-              unsigned int K, unsigned int lda, unsigned int ldb,
-              unsigned int ldc, RunLayerContext &context);
+void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
+              float *C, unsigned int M, unsigned int N, unsigned int K,
+              unsigned int lda, unsigned int ldb, unsigned int ldc,
+              RunLayerContext &context);
 
 /**
  * @brief     addition : sum of all input vectors
@@ -140,8 +140,8 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
 /**
  * @brief     fp16 sgemm computation : Y = op(A)*op(B) + C,
  * where op(X) is one of X or X**T
- * @param[in] transA CBLAS_TRANSPOSE
- * @param[in] transB CBLAS_TRANSPOSE
+ * @param[in] transA bool transpose
+ * @param[in] transB bool transpose
  * @param[in] A fp16 * for Matrix A
  * @param[in] B fp16 * for Matrix B
  * @param[in] C fp16 * for Matrix C
@@ -153,10 +153,10 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata, unsigned int dim1,
  * @param[in] ldc number of C's columns
  * @param[in] context RunLayerContext reference
  */
-void sgemm_cl(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, const __fp16 *A,
-              const __fp16 *B, __fp16 *C, unsigned int M, unsigned int N,
-              unsigned int K, unsigned int lda, unsigned int ldb,
-              unsigned int ldc, RunLayerContext &context);
+void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
+              __fp16 *C, unsigned int M, unsigned int N, unsigned int K,
+              unsigned int lda, unsigned int ldb, unsigned int ldc,
+              RunLayerContext &context);
 
 /**
  * @brief     fp16 addition : sum of all input vectors
