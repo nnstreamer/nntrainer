@@ -18,6 +18,7 @@ LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
+LOCAL_LDFLAGS 		+= "-Wl,-z,max-page-size=16384"
 
 LOCAL_MODULE        := app_utils
 LOCAL_SRC_FILES     := $(UTILS_SRCS)

@@ -49,6 +49,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := rms_norm_layer
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := rms_norm.cpp
 
@@ -70,6 +71,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := swiglu_layer
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := swiglu.cpp
 
@@ -91,6 +93,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := custom_multi_head_attention_layer
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := custom_multi_head_attention_layer.cpp
 
@@ -113,6 +116,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_llama
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1
+LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := main.cpp 
 

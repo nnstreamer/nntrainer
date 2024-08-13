@@ -49,6 +49,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_yolo
 LOCAL_LDLIBS := -llog -landroid -fopenmp
+LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := main.cpp det_dataloader.cpp yolo_v2_loss.cpp reorg_layer.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
