@@ -41,7 +41,6 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := picogpt_jni
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -ljnigraphics
-LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := picogpt.cpp picogpt_jni.cpp
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer nntrainer

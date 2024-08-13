@@ -45,7 +45,6 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_deepq
 LOCAL_LDLIBS := -llog -landroid -fopenmp
-LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := main.cpp $(ENVDIR)/CartPole/cartpole.cpp
 
