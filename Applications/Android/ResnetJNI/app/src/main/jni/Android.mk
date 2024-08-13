@@ -39,7 +39,6 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := resnet_jni
 LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -ljnigraphics
-LOCAL_LDFLAGS += "-Wl,-z,max-page-size=16384"
 
 LOCAL_SRC_FILES := resnet.cpp resnet_jni.cpp dataloader.cpp image.cpp
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer nntrainer
