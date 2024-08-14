@@ -6,6 +6,7 @@
  * @date   27 Oct 2020
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is Concat Layer Class for Neural Network
  *
@@ -70,38 +71,57 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions({output_dim});
 
   /**
-   * Setup output_reshape_helper to which output will be reshaped in forwarding
-   * to facilitate easier processing.
+   * The following helper shapes facilitate efficient concatenation and split of
+   * the data.
    *
-   * The helper shape consolidates all the dimensions before the axis
-   * together and all the dimensions after the axis to facilitate
-   * easier splitting of the data.
+   * The helper shapes are created by consolidating all the dimensions before
+   * the concat dimension to the first axis and all the remaining dimensions to
+   * the last axis.
+   *
+   * @note This is possible since the data starting from the concat dimension to
+   * the end is always continuous.
+   *
+   * @example the following shows how the helper dimension will look with given
+   * inputs and concat dimension.
+   *
+   *          | cat_dim 1 | cat_dim 2 | cat_dim 3
+   *  --------|-----------|-----------|-----------
+   *  input0  |  2:1:2:3  |  1:2:1:3  |  1:2:2:3
+   *  input1  |  2:3:2:3  |  1:2:3:3  |  1:2:2:1
+   *  --------|-----------|-----------|-----------
+   *  helper0 |  2:1:1:6  |  2:1:1:3  |  4:1:1:3
+   *  helper1 |  2:1:1:18 |  2:1:1:9  |  4:1:1:1
+   *
    */
-  leading_helper_dim = 1;
+  /// Setup output_reshape_helper (how output should be reshaped)
   output_reshape_helper.channel(1);
   output_reshape_helper.height(1);
   output_reshape_helper.width(1);
+  for (unsigned int axis = concat_dimension;
+       axis < ml::train::TensorDim::getNumDim(); ++axis) {
+    output_reshape_helper.width(output_reshape_helper.width() *
+                                output_dim.getTensorDim(axis));
+  }
+
+  /// Setup input_reshape_helper (how inputs should be reshaped)
+  input_reshape_helper.resize(input_dims.size());
+
+  for (unsigned int idx = 0; idx < input_reshape_helper.size(); idx++) {
+    input_reshape_helper[idx].channel(1);
+    input_reshape_helper[idx].height(1);
+    input_reshape_helper[idx].width(1);
+
+    for (unsigned int axis = concat_dimension;
+         axis < ml::train::TensorDim::getNumDim(); ++axis) {
+
+      input_reshape_helper[idx].width(input_reshape_helper[idx].width() *
+                                      input_dims[idx].getTensorDim(axis));
+    }
+  }
+
+  leading_helper_dim = 1;
   for (unsigned int idx = 1; idx < concat_dimension; ++idx) {
     leading_helper_dim *= output_dim.getTensorDim(idx);
-  }
-
-  output_reshape_helper.height(output_dim.getTensorDim(concat_dimension));
-
-  for (unsigned int idx = concat_dimension + 1;
-       idx < ml::train::TensorDim::getNumDim(); ++idx) {
-    output_reshape_helper.width(output_reshape_helper.width() *
-                                output_dim.getTensorDim(idx));
-  }
-
-  /**
-   * Setup input_reshape_helper to which inputs will be reshaped in forwarding
-   * to facilitate easier processing.
-   */
-  input_reshape_helper.resize(input_dims.size());
-  for (unsigned int idx = 0; idx < input_reshape_helper.size(); idx++) {
-    input_reshape_helper[idx] = output_reshape_helper;
-    input_reshape_helper[idx].height(
-      input_dims[idx].getTensorDim(concat_dimension));
   }
 
   setBatch(input_dims[SINGLE_INOUT_IDX].batch());
@@ -109,46 +129,73 @@ void ConcatLayer::finalize(InitLayerContext &context) {
 
 void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
   /**
+   * Forwarding in ConcatLayer works as follows
+   *
+   *    in1        in2       in3                  output
+   * |---0---| |----3----| |--6--|      |---0---||----3----||--6--|
+   * |---1---| |----4----| |--7--|  =>  |---1---||----4----||--7--|
+   * |---2---| |----5----| |--8--|      |---2---||----5----||--8--|
+   *
+   * @note For each input tensor, it iterates batches and copies the entire
+   * width size to the corresponding output position. In the diagram above, the
+   * row would be a batch, and the column would be a width. the number of each
+   * block in the diagram indicates the order of copy to output.
+   *
    * @todo avoid copy by creating input here as a shared_tensor of the output
    * here and then this layer can be in_place as well
    */
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
-  // Store original input tensor dimensions, then reshape input tensors.
-  std::vector<Tensor> input_tensors;
-  std::vector<TensorDim> original_input_dims;
+  const TensorDim out_dim = output.getDim();
+  output.reshape(output_reshape_helper);
+  unsigned int output_width_offset = 0;
+  TensorDim::TensorType tensor_type = output.getTensorType();
 
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &input = context.getInput(idx);
-    original_input_dims.push_back(input.getDim());
-    input.reshape(input_reshape_helper[idx]);
-    input_tensors.push_back(input);
-  }
+    const TensorDim in_dim = input.getDim();
+    auto const &irh = input_reshape_helper[idx];
+    input.reshape(irh);
+    unsigned int data_copy_size = irh.width();
 
-  // Store the original output tensor dimension, then reshape the output tensor.
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  const TensorDim original_output_dim = output.getDim();
-  output.reshape(output_reshape_helper);
-
-  // Search for an axis and concatenate tensors.
-  const TensorDim out_dim = output.getDim();
-  const TensorDim in_dim = context.getInput(0).getDim();
-
-  for (int axis = 0; axis < 4; ++axis) {
-    if (out_dim[axis] != in_dim[axis]) {
-      /// @todo Currently a new output tensor is created. This can be optimized.
-      Tensor result = Tensor::cat(input_tensors, axis);
-      output.copy(result);
-      break;
+    /** loop over the dimensions before the concat dimension */
+    if (in_dim.getDataType() == TensorDim::DataType::FP32) {
+      /** copy continous tensor data (reshaped width) */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        Tensor dest_tensor = Tensor::Map<float>(
+          output.getAddress<float>(batch, 0, 0, output_width_offset),
+          data_copy_size * sizeof(float),
+          {1, 1, 1, data_copy_size, tensor_type});
+        const Tensor source_tensor =
+          Tensor::Map<float>(input.getAddress<float>(batch, 0, 0, 0),
+                             data_copy_size * sizeof(float),
+                             {1, 1, 1, data_copy_size, tensor_type});
+        dest_tensor.copy(source_tensor);
+      }
+    } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      /** copy continous tensor data (reshaped width) */
+      for (unsigned int batch = 0; batch < output.batch(); batch++) {
+        Tensor dest_tensor = Tensor::Map<_FP16>(
+          output.getAddress<_FP16>(batch, 0, 0, output_width_offset),
+          data_copy_size * sizeof(_FP16),
+          {1, 1, 1, data_copy_size, tensor_type});
+        const Tensor source_tensor =
+          Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, 0, 0),
+                             data_copy_size * sizeof(_FP16),
+                             {1, 1, 1, data_copy_size, tensor_type});
+        dest_tensor.copy(source_tensor);
+      }
+#else
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
     }
+
+    output_width_offset += irh.width();
+    input.reshape(in_dim);
   }
 
-  // Revert the tensors' dimensions back to their original shape.
-  for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
-    Tensor &in = context.getInput(idx);
-    in.reshape(original_input_dims[idx]);
-  }
-
-  output.reshape(original_output_dim);
+  output.reshape(out_dim);
 }
 
 void ConcatLayer::incremental_forwarding(RunLayerContext &context,
@@ -199,14 +246,26 @@ void ConcatLayer::incremental_forwarding(RunLayerContext &context,
 
 void ConcatLayer::calcDerivative(RunLayerContext &context) {
   /**
+   * calcDerivative in ConcatLayer works as follows
+   *
+   *           output                    in1        in2       in3
+   * |---0---||----3----||--6--|      |---0---| |----3----| |--6--|
+   * |---1---||----4----||--7--|  =>  |---1---| |----4----| |--7--|
+   * |---2---||----5----||--8--|      |---2---| |----5----| |--8--|
+   *
+   * @note For each input tensor, it iterates batches and copies the entire
+   * input width size from the output tensor to the corresponding input. In the
+   * diagram above, the row would be a batch, and the column would be a width.
+   * The number of each block in the diagram indicates the order of copy to
+   * inputs.
+   *
    * @todo avoid copy by creating input here as a shared_tensor of the output
    * here and then this layer can be in_place as well
    */
   Tensor output = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   output.reshape(output_reshape_helper);
-  unsigned int output_height_offset = 0;
-  unsigned int data_copy_size = output_reshape_helper.width();
+  unsigned int output_width_offset = 0;
   TensorDim::TensorType tensor_type = output.getTensorType();
 
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
@@ -214,39 +273,36 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];
     input.reshape(irh);
+    unsigned int data_copy_size = irh.width();
 
     if (in_dim.getDataType() == TensorDim::DataType::FP32) {
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
-        /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
-          const Tensor source_tensor = Tensor::Map<float>(
-            output.getAddress<float>(batch, 0, output_height_offset + count, 0),
-            data_copy_size * sizeof(float),
-            {1, 1, 1, data_copy_size, tensor_type});
-          Tensor dest_tensor =
-            Tensor::Map<float>(input.getAddress<float>(batch, 0, count, 0),
-                               data_copy_size * sizeof(float),
-                               {1, 1, 1, data_copy_size, tensor_type});
-          dest_tensor.copy(source_tensor);
-        }
+        /** copy continous data (reshaped width size) in a tensor */
+        const Tensor source_tensor = Tensor::Map<float>(
+          output.getAddress<float>(batch, 0, 0, output_width_offset),
+          data_copy_size * sizeof(float),
+          {1, 1, 1, data_copy_size, tensor_type});
+        Tensor dest_tensor =
+          Tensor::Map<float>(input.getAddress<float>(batch, 0, 0, 0),
+                             data_copy_size * sizeof(float),
+                             {1, 1, 1, data_copy_size, tensor_type});
+        dest_tensor.copy(source_tensor);
       }
     } else if (in_dim.getDataType() == TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       /** loop over the dimensions before the concat dimension */
       for (unsigned int batch = 0; batch < output.batch(); batch++) {
-        /** loop over the concat dimension itself */
-        for (unsigned int count = 0; count < irh.height(); count++) {
-          const Tensor source_tensor = Tensor::Map<_FP16>(
-            output.getAddress<_FP16>(batch, 0, output_height_offset + count, 0),
-            data_copy_size * sizeof(_FP16),
-            {1, 1, 1, data_copy_size, tensor_type});
-          Tensor dest_tensor =
-            Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, count, 0),
-                               data_copy_size * sizeof(_FP16),
-                               {1, 1, 1, data_copy_size, tensor_type});
-          dest_tensor.copy(source_tensor);
-        }
+        /** copy continous data (reshaped width size) in a tensor */
+        const Tensor source_tensor = Tensor::Map<_FP16>(
+          output.getAddress<_FP16>(batch, 0, 0, output_width_offset),
+          data_copy_size * sizeof(_FP16),
+          {1, 1, 1, data_copy_size, tensor_type});
+        Tensor dest_tensor =
+          Tensor::Map<_FP16>(input.getAddress<_FP16>(batch, 0, 0, 0),
+                             data_copy_size * sizeof(_FP16),
+                             {1, 1, 1, data_copy_size, tensor_type});
+        dest_tensor.copy(source_tensor);
       }
 #else
       throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -254,7 +310,7 @@ void ConcatLayer::calcDerivative(RunLayerContext &context) {
     }
 
     input.reshape(in_dim);
-    output_height_offset += irh.height();
+    output_width_offset += irh.width();
   }
 }
 
