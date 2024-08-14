@@ -19,12 +19,30 @@
 #include <optimizer.h>
 
 #include "benchmark/benchmark.h"
-#include <cifar_dataloader.h>
+#include <fake_data_gen.h>
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
+
+uint64_t get_cpu_freq() {
+  unsigned int freq = 0;
+  char cur_cpu_name[512];
+  int cpu = sched_getcpu();
+  snprintf(cur_cpu_name, sizeof(cur_cpu_name),
+           "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", cpu);
+
+  FILE *f = fopen(cur_cpu_name, "r");
+  if (f != nullptr) {
+    if (fscanf(f, "%d", &freq) != 0) {
+      fclose(f);
+      return uint64_t(freq) * 1000;
+    }
+    fclose(f);
+  }
+  return 0;
+}
 
 /** cache loss values post training for test */
 float training_loss = 0.0;
@@ -276,8 +294,11 @@ static void Test_ResnetFull(benchmark::State &state) {
   std::array<UserDataType, 2> user_datas;
   user_datas = createFakeDataGenerator(batch_size, 512, data_split);
   auto &[train_user_data, valid_user_data] = user_datas;
-  for (auto _ : state)
+  auto check_freq = get_cpu_freq();
+  state.counters["check_freq"] = check_freq;
+  for (auto _ : state) {
     createAndRun(epoch, batch_size, train_user_data, valid_user_data);
+  }
 }
 
 BENCHMARK(Test_ResnetFull);

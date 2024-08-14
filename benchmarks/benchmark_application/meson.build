@@ -1,15 +1,13 @@
 build_root = meson.build_root()
 
 sources = ['benchmark_resnet.cpp',
-           cifar_path / 'cifar_dataloader.cpp']
+           fake_datagen_path / 'fake_data_gen.cpp']
 
-resnet_dependencies = [app_utils_dep,
-                       iniparser_dep,
-                       nntrainer_dep,
+resnet_dependencies = [nntrainer_dep,
                        nntrainer_ccapi_dep,
                        benchmark_dep, ]
 
 executable('Benchmark_ResNet',
            sources,
-           include_directories : [include_directories('.'), cifar_include_dir],
+           include_directories : [include_directories('.'), fake_datagen_include_dir],
            dependencies : resnet_dependencies)
