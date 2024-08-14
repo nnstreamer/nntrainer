@@ -245,6 +245,7 @@ void CharTensor::copyData(const Tensor &from) {
   switch (from.getDataType()) {
   case ml::train::TensorDim::DataType::QINT8:
     copy(from.getData());
+    break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;

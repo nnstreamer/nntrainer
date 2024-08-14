@@ -4337,6 +4337,7 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   int channel = 1;
   int height = 3;
   int width = 10;
+  const int size = 90;
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
@@ -4347,9 +4348,9 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   float *indata = input.getData();
   ASSERT_NE(nullptr, indata);
 
-  float *outdata_beta = new float[(input.size())];
-  float *indata_mul = new float[(input.size())];
-  float *outdata = new float[(input.size())];
+  float outdata_beta[size];
+  float indata_mul[size];
+  float outdata[size];
 
   std::transform(
     indata, indata + batch * height * width * channel, outdata_beta,
@@ -4371,10 +4372,6 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
       break;
     }
   }
-
-  delete[] outdata_beta;
-  delete[] indata_mul;
-  delete[] outdata;
 
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
