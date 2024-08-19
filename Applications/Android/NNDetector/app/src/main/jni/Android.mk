@@ -1,5 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
+$(shell ($(LOCAL_PATH))/prepare_android_deps.sh)
+
 include $(CLEAR_VARS)
 
 # ndk path
