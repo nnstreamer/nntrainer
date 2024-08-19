@@ -74,21 +74,18 @@ arch = host_machine.cpu_family()
 
 target = target_machine.cpu_family()
 
-avx_enabled = false
-if get_option('enable-avx')
-  if get_option('platform') != 'android'
-    if target == 'x86_64' or target == 'x86'
-      extra_defines += '-DUSE_AVX=1'
-      add_project_arguments(['-march=native'], language: ['c','cpp'])
-      add_project_arguments(['-mavx2'], language: ['c','cpp'])
-      message('-march=native added for AVX hardware acceleration.')
-      avx_enabled = true
-    else
-      warning('The target arch, ' + target + ', does not support AVX. enable-avx=true is ignored.')
-    endif
-  else
-    warning('Android build does not support AVX. enable-avx=true is ignored.')
+if arch == 'arm' or arch == 'aarch64' or get_option('platform') == 'android'
+  message('Build for ARM architecture')
+  extra_defines += '-DARM=1'
+  if arch == 'arm'
+    extra_defines += '-DARMV7=1'
   endif
+elif arch == 'x86' or arch == 'x86_64'
+  message('Build for X86 architecture')
+  add_project_arguments(['-march=native'], language: ['c','cpp'])
+  add_project_arguments(['-mavx2'], language: ['c','cpp'])
+  message('-march=native added for AVX hardware acceleration.')
+  extra_defines += '-DX86=1'
 endif
 
 if get_option('enable-fp16')
@@ -96,7 +93,6 @@ if get_option('enable-fp16')
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
-     extra_defines += '-DUSE_NEON=1'
    elif arch == 'aarch64'
      ## About FP16 in GCC (from GCC-9.1 manual)
      # https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html
@@ -115,7 +111,6 @@ if get_option('enable-fp16')
      endif
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
-     extra_defines += '-DUSE_NEON=1'
    elif arch == 'arm'
      ## About FP16-SIMD in arm
      # FP16-SIMD is supported since armv8.2.

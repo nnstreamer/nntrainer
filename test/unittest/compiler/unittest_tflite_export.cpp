@@ -183,6 +183,7 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
               << "simple_fc.tflite"
               << "failed, reason: " << std::strerror(errno);
   }
+  delete[] nntr_input;
 }
 
 /**
@@ -309,6 +310,7 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
               << "part_of_resnet.tflite"
               << "failed, reason: " << std::strerror(errno);
   }
+  delete[] nntr_input;
 }
 
 /**

@@ -15,7 +15,7 @@
 #include <limits>
 #include <string>
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <conv2d_transpose_layer.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
