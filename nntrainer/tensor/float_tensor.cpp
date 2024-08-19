@@ -13,7 +13,7 @@
 #include <iostream>
 #include <numeric>
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <float_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
@@ -753,8 +753,8 @@ void FloatTensor::copyData(const Tensor &from) {
     copy_s16_fp32(from.size(), from.getData<int16_t>(), (float *)getData());
     break;
   case ml::train::TensorDim::DataType::QINT8:
-    scopy_s8_to_float32(from.size(), from.getData<int8_t>(), 1,
-                        (float *)getData(), 1);
+    scopy_int8_to_float32(from.size(), from.getData<int8_t>(), 1,
+                          (float *)getData(), 1);
     break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");
@@ -1204,7 +1204,7 @@ void FloatTensor::apply_broadcast(
 }
 
 bool FloatTensor::isValid() const {
-  return is_valid(dim.getDataLen(), Tdatatype::FP32, (float *)getData());
+  return is_valid(dim.getDataLen(), (float *)getData());
 }
 
 } // namespace nntrainer

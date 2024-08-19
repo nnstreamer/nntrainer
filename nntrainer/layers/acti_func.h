@@ -16,8 +16,8 @@
 #define __ACTI_FUNC_H__
 #ifdef __cplusplus
 
-#include <blas_interface.h>
 #include <common_properties.h>
+#include <cpu_backend.h>
 
 #if defined(_WIN32)
 #define _USE_MATH_DEFINES

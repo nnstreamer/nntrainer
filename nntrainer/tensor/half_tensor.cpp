@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <half_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
@@ -1158,7 +1158,7 @@ void HalfTensor::apply_broadcast_util(
 }
 
 bool HalfTensor::isValid() const {
-  return is_valid(dim.getDataLen(), Tdatatype::FP16, (_FP16 *)getData());
+  return is_valid(dim.getDataLen(), (_FP16 *)getData());
 }
 
 } // namespace nntrainer

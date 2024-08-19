@@ -13,7 +13,7 @@
 #define __UINT_TENSOR_H__
 #ifdef __cplusplus
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <iomanip>
 #include <iostream>
 #include <tensor.h>

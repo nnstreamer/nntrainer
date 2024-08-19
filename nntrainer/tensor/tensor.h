@@ -23,7 +23,7 @@
 
 #include <cstddef>
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <nntrainer_log.h>
 #include <tensor_base.h>
 
