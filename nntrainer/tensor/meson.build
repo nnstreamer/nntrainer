@@ -1,5 +1,4 @@
 tensor_sources = [
-  'blas_interface.cpp',
   'cache_elem.cpp',
   'cache_loader.cpp',
   'cache_pool.cpp',
@@ -38,7 +37,6 @@ tensor_headers = [
   'var_grad.h',    
   'quantizer.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h',
   'manager.h',
   'basic_planner.h',
   'memory_planner.h',
@@ -52,33 +50,9 @@ tensor_headers = [
   'task.h'
 ]
 
-arch = host_machine.cpu_family()
-
-
-if avx_enabled == true
-  tensor_sources += 'blas_avx.cpp'
-  tensor_headers += 'blas_avx.h'
-endif
-
-if get_option('enable-fp16') 
-  if arch == 'arm'
-    error ('FP16/ARM code (blas_neon.cpp) uses armv8.2 instructions. armv7 is not supported.')
-  elif arch == 'aarch64' or get_option('platform') == 'android'
-    if get_option('enable-neon')
-      tensor_sources += 'blas_neon.cpp'
-      tensor_headers += 'blas_neon.h'
-      subdir('hgemm')
-      nntrainer_inc += include_directories('hgemm')
-      nntrainer_inc_abs += meson.current_source_dir() / 'hgemm'
-    endif
-  endif
-endif
-
-if get_option('enable-neon')
-  subdir('matrix_transpose_neon')
-  nntrainer_inc += include_directories('matrix_transpose_neon')
-  nntrainer_inc_abs += meson.current_source_dir() / 'matrix_transpose_neon'
-endif
+subdir('cpu_backend')
+nntrainer_inc += include_directories('cpu_backend')
+nntrainer_inc_abs += meson.current_source_dir() / 'cpu_backend'
 
 if get_option('enable-fp16')
   tensor_headers += 'half_tensor.h'

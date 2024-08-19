@@ -11,8 +11,8 @@
 #include <iomanip>
 #include <iostream>
 
-#include <blas_interface.h>
 #include <char_tensor.h>
+#include <cpu_backend.h>
 #include <tensor.h>
 
 namespace nntrainer {

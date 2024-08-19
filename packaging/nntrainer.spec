@@ -57,21 +57,7 @@
 %define fp16_support -Denable-fp16=true
 %else
 %define fp16_support -Denable-fp16=false
-%endif # enalbe_fp16
-
-%ifarch aarch64
-%define neon_support -Denable-neon=true
-%else
-%define neon_support -Denable-neon=false
-%endif # arch aarch64
-
-%ifarch x86_64
-%define enable_avx 1
-%define avx_support -Denable-avx=true
-%else
-%define avx_support -Denable-avx=false
-%endif # arch aarch64
-
+%endif # enable_fp16
 
 Name:		nntrainer
 Summary:	Software framework for training neural networks
@@ -430,7 +416,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      %{fp16_support} %{neon_support} %{avx_support} build --wrap-mode=nodownload
+      %{fp16_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
 
@@ -558,7 +544,43 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/half_tensor.h
 %endif
 %{_includedir}/nntrainer/tensor_wrap_specs.h
-%{_includedir}/nntrainer/blas_interface.h
+%{_includedir}/nntrainer/cpu_backend.h
+%{_includedir}/nntrainer/fallback_internal.h
+%{_includedir}/nntrainer/cblas_interface.h
+%ifarch %{ix86} x86_64
+%{_includedir}/nntrainer/x86_compute_backend.h
+%{_includedir}/nntrainer/avx2_impl.h
+%endif
+%ifarch aarch64
+%{_includedir}/nntrainer/arm_compute_backend.h
+%{_includedir}/nntrainer/neon_impl.h
+%{_includedir}/nntrainer/neon_setting.h
+%{_includedir}/nntrainer/neon_mathfun.h
+%{_includedir}/nntrainer/neon_mathfun.hxx
+%{_includedir}/nntrainer/matrix_transpose_neon.h
+%if 0%{?enable_fp16}
+%{_includedir}/nntrainer/hgemm.h
+%{_includedir}/nntrainer/hgemm_common.h
+%{_includedir}/nntrainer/hgemm_kernel.h
+%{_includedir}/nntrainer/hgemm_util.h
+%{_includedir}/nntrainer/hgemm_noTrans.h
+%{_includedir}/nntrainer/hgemm_transA.h
+%{_includedir}/nntrainer/hgemm_transAB.h
+%{_includedir}/nntrainer/hgemm_transB.h
+%endif
+%endif
+%ifarch %arm
+    %{_includedir}/nntrainer/arm_compute_backend.h
+    %{_includedir}/nntrainer/armv7_neon.h
+    %{_includedir}/nntrainer/neon_impl.h
+    %{_includedir}/nntrainer/neon_setting.h
+    %{_includedir}/nntrainer/neon_mathfun.h
+    %{_includedir}/nntrainer/neon_mathfun.hxx
+    %{_includedir}/nntrainer/matrix_transpose_neon.h
+%endif
+%ifnarch %{ix86} %arm x86_64 aarch64
+%{_includedir}/nntrainer/fallback.h
+%endif
 %{_includedir}/nntrainer/var_grad.h
 %{_includedir}/nntrainer/weight.h
 %{_includedir}/nntrainer/quantizer.h
@@ -587,16 +609,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_simd.h
 %{_includedir}/nntrainer/dynamic_library_loader.h
 %{_includedir}/nntrainer/loss_layer.h
-%ifarch aarch64
-%{_includedir}/nntrainer/matrix_transpose_neon.h
-%if 0%{?enable_fp16}
-%{_includedir}/nntrainer/util_simd_neon.h
-%{_includedir}/nntrainer/blas_neon.h
-%{_includedir}/nntrainer/hgemm.h
-%{_includedir}/nntrainer/hgemm_util.h
-%{_includedir}/nntrainer/matrix_transpose_kernels_neon.h
-%endif
-%endif
 %{_includedir}/nntrainer/acti_func.h
 # model headers
 %{_includedir}/nntrainer/neuralnet.h
@@ -620,11 +632,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/memory_pool.h
 %{_includedir}/nntrainer/swap_device.h
 %{_includedir}/nntrainer/optimizer_wrapped.h
-
-
-%if 0%{?enable_avx}
-%{_includedir}/nntrainer/blas_avx.h
-%endif
 
 %files devel-static
 %{_libdir}/libnntrainer*.a

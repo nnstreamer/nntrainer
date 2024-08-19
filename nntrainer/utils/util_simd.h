@@ -29,8 +29,9 @@ namespace nntrainer {
  * @param sin_ float* for sin_
  * @param alpha scaling factor
  */
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int alpha = 1.0);
+void calc_trigonometric_vals_dup_util(unsigned int N_half, float *angle,
+                                      float *cos_, float *sin_,
+                                      unsigned int alpha = 1.0);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -39,7 +40,7 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
  * @param Y float * for Vector Y
  * @param Z float * for Vector Z
  */
-void swiglu(const unsigned int N, float *X, float *Y, float *Z);
+void swiglu_util(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
  * @brief returns maximum value of the vector X
@@ -48,7 +49,7 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z);
  * @param X float * for Vector X
  * @return float maximum value of vector X
  */
-float max(const unsigned int N, float *X);
+float max_util(const unsigned int N, float *X);
 
 /**
  * @brief softmax function y_i = exp(x_i) / sum( exp(x_i) )
@@ -57,7 +58,7 @@ float max(const unsigned int N, float *X);
  * @param X float * for Vector X
  * @param Y  float * for Vector Y
  */
-void softmax(const unsigned int N, float *X, float *Y);
+void softmax_util(const unsigned int N, float *X, float *Y);
 
 #ifdef ENABLE_FP16
 /**
@@ -71,9 +72,9 @@ void softmax(const unsigned int N, float *X, float *Y);
  * @param cos_ precomputed cos_ for corresponding rotational indices
  * @param sin_ precomputed sin_ for corresponding rotational indices
  */
-void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
-                                    unsigned int w, _FP16 *in, _FP16 *out,
-                                    float *cos_, float *sin_);
+void compute_rotary_embedding_value_util(unsigned int dim, unsigned int half_,
+                                         unsigned int w, _FP16 *in, _FP16 *out,
+                                         float *cos_, float *sin_);
 /**
  * @brief swiglu function : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -82,7 +83,7 @@ void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
  * @param Y _FP16 * for Vector Y
  * @param Z _FP16 * for Vector Z
  */
-void swiglu(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
+void swiglu_util(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
 
 /**
  * @brief returns maximum value of the vector X
@@ -91,7 +92,7 @@ void swiglu(const unsigned int N, _FP16 *X, _FP16 *Y, _FP16 *Z);
  * @param X _FP16 * for Vector X
  * @return _FP16 maximum value of vector X
  */
-_FP16 max(const unsigned int N, _FP16 *X);
+_FP16 max_util(const unsigned int N, _FP16 *X);
 
 /**
  * @brief soft max function with neon y_i = exp(x_i) / sum( exp(x_i) )
@@ -102,7 +103,7 @@ _FP16 max(const unsigned int N, _FP16 *X);
  * @param X _FP16 * for Vector X
  * @param Y  _FP16 * for Vector Y
  */
-void softmax(const unsigned int N, _FP16 *X, _FP16 *Y);
+void softmax_util(const unsigned int N, _FP16 *X, _FP16 *Y);
 #endif
 
 } /* namespace nntrainer */

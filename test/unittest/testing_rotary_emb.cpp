@@ -12,7 +12,9 @@
  */
 
 #include "tensor.h"
+#include "util_simd.h"
 #include <string>
+#include <tensor_dim.h>
 
 /**
  * @brief     Testing code for CPU results and compute frequency for rotary
@@ -141,29 +143,10 @@ void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
             sin_ = freqs_sin[from + h];
           }
           for (unsigned int w = 0; w < in.width(); w = w + dim) {
-#ifdef USE_NEON
-            nntrainer::compute_rotary_embedding_value(
+            nntrainer::compute_rotary_embedding_value_util(
               dim, half_, w, in.getData<_FP16>() + in.getIndex(b, c, h, 0),
               out.getData<_FP16>() + out.getIndex(b, c, h, 0), cos_.data(),
               sin_.data());
-#else
-            for (unsigned int k = 0; k < dim; k++) {
-              unsigned int span = w + k;
-              value = static_cast<float>(in.getValue<_FP16>(b, c, h, span));
-
-              if (k < half_) {
-                transformed_value =
-                  -1.0 *
-                  static_cast<float>(in.getValue<_FP16>(b, c, h, half_ + span));
-              } else {
-                transformed_value =
-                  static_cast<float>(in.getValue<_FP16>(b, c, h, span - half_));
-              }
-              out.setValue(b, c, h, span,
-                           static_cast<_FP16>(value * cos_[k] +
-                                              transformed_value * sin_[k]));
-            }
-#endif
           }
         }
       }
