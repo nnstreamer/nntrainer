@@ -28,17 +28,15 @@ include $(CLEAR_VARS)
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/include/nntrainer
 SIMPLESHOT_DIR = .
 
-
 LOCAL_ARM_NEON := true
-LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
-LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
-LOCAL_CXXFLAGS += -std=c++17 -frtti -fexceptions
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DARM=1 
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/ -DARM=1 
+LOCAL_CXXFLAGS += -std=c++17 -frtti -fexceptions -fopenmp -static-openmp -DARM=1 
 LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp
-LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := simpleshot_jni
-LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -ljnigraphics
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -ljnigraphics -DARM=1 
 
 LOCAL_SRC_FILES := simpleshot.cpp simpleshot_jni.cpp dataloader.cpp image.cpp
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer nntrainer

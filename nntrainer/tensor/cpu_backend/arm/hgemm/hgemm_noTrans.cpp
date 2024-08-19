@@ -20,6 +20,9 @@
 #include <hgemm_util.h>
 #include <limits>
 #include <matrix_transpose_neon.h>
+#ifdef ARMV7
+#include <armv7_neon.h>
+#endif
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {

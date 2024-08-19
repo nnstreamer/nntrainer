@@ -17,6 +17,9 @@
 #include <hgemm_kernel.h>
 #include <hgemm_util.h>
 #include <stdlib.h>
+#ifdef ARMV7
+#include <armv7_neon.h>
+#endif
 
 // 1. Partial sum 64 digits : worst accuracy, best latency
 #define KERNEL_1x8_ACC8()           \

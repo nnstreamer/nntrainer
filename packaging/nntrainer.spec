@@ -57,7 +57,7 @@
 %define fp16_support -Denable-fp16=true
 %else
 %define fp16_support -Denable-fp16=false
-%endif # enalbe_fp16
+%endif # enable_fp16
 
 %ifarch aarch64
 %define neon_support -Denable-neon=true
@@ -540,7 +540,37 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/half_tensor.h
 %endif
 %{_includedir}/nntrainer/tensor_wrap_specs.h
-%{_includedir}/nntrainer/blas_interface.h
+%{_includedir}/nntrainer/cpu_backend.h
+%{_includedir}/nntrainer/fallback_internal.h
+%{_includedir}/nntrainer/cblas_interface.h
+%ifarch %{ix86} x86_64
+%{_includedir}/nntrainer/x86_compute_backend.h
+%if 0%{?enable_fp16}
+%{_includedir}/nntrainer/blas_avx.h
+%endif
+%endif
+%ifarch aarch64
+%{_includedir}/nntrainer/arm_compute_backend.h
+%{_includedir}/nntrainer/neon_impl.h
+%{_includedir}/nntrainer/neon_setting.h
+%{_includedir}/nntrainer/neon_mathfun.h
+%{_includedir}/nntrainer/neon_mathfun.hxx
+%if 0%{?enable_fp16}
+%{_includedir}/nntrainer/hgemm.h
+%{_includedir}/nntrainer/matrix_transpose_neon.h
+%endif
+%endif
+%ifarch %arm
+    %{_includedir}/nntrainer/arm_compute_backend.h
+    %{_includedir}/nntrainer/armv7_neon.h
+    %{_includedir}/nntrainer/neon_impl.h
+    %{_includedir}/nntrainer/neon_setting.h
+    %{_includedir}/nntrainer/neon_mathfun.h
+    %{_includedir}/nntrainer/neon_mathfun.hxx
+%endif
+%ifnarch %{ix86} %arm x86_64 aarch64
+%{_includedir}/nntrainer/fallback.h
+%endif
 %{_includedir}/nntrainer/var_grad.h
 %{_includedir}/nntrainer/weight.h
 # @todo: update dataset headers

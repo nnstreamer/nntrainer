@@ -22,6 +22,9 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/opencl \
 	$(NNTRAINER_ROOT)/nntrainer/optimizers \
 	$(NNTRAINER_ROOT)/nntrainer/tensor \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/fallback \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/aarch64 \
 	$(NNTRAINER_ROOT)/nntrainer/tensor/cl_operations \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \

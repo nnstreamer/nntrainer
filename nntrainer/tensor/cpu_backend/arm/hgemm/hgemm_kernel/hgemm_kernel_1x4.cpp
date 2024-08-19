@@ -15,6 +15,9 @@
 #include <assert.h>
 #include <hgemm_kernel.h>
 #include <stdlib.h>
+#ifdef ARMV7
+#include <armv7_neon.h>
+#endif
 
 template <>
 void hgemm_kernel_1x4(unsigned int M, unsigned int N, unsigned int K,

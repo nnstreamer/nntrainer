@@ -8,11 +8,10 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <char_tensor.h>
+#include <cpu_backend.h>
 #include <iomanip>
 #include <iostream>
-
-#include <blas_interface.h>
-#include <char_tensor.h>
 #include <tensor.h>
 
 namespace nntrainer {
