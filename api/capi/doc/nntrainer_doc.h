@@ -16,12 +16,11 @@
 /**
  * @ingroup  CAPI_ML_FRAMEWORK
  * @defgroup CAPI_ML_NNTRAINER_TRAIN_MODULE Trainer
- * @addtogroup CAPI_ML_NNTRAINER_TRAIN_MODULE
  * @brief The NNTrainer function provides interfaces to create and train Machine
  * Learning models on the device locally.
- * @section CAPI_ML_NNTRAINER_TRAIN_HEADER Required Header
+ * @section CAPI_ML_NNTRAINER_TRAIN_MODULE_HEADER Required Header
  *   \#include <nntrainer/nntrainer.h>\n
- * @section CAPI_ML_NNTRAINER_TRAIN_OVERVIEW Overview
+ * @section CAPI_ML_NNTRAINER_TRAIN_MODULE_OVERVIEW Overview
  * The NNTrainer API provides interfaces to create and train Machine
  * Learning models on the device locally.
  *
@@ -37,7 +36,7 @@
  *
  *  Note that this function set is supposed to be thread-safe.
  *
- * @section CAPI_ML_NNTRAINER_TRAIN_FEATURE Related Features
+ * @section CAPI_ML_NNTRAINER_TRAIN_MODULE_FEATURE Related Features
  * This function is related with the following features:\n
  *  - %http://tizen.org/feature/machine_learning\n
  *  - %http://tizen.org/feature/machine_learning.training\n
