@@ -138,7 +138,7 @@ static void sgemv_FP16(const unsigned int TStorageOrder, bool TransA,
   scopy(lenX, X, 1, X_, 1);
   scopy(lenY, Y, 1, Y_, 1);
 
-  sgemv(order, TransA, M, N, alpha, A_, lda, X_, incX, beta, Y_, incY);
+  sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X_, incX, beta, Y_, incY);
 
   scopy(lenY, Y_, 1, Y, 1);
 
