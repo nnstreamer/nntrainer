@@ -26,6 +26,7 @@
 /usr/include/nntrainer/layer_devel.h
 /usr/include/nntrainer/layer_impl.h
 /usr/include/nntrainer/loss_layer.h
+/usr/include/nntrainer/acti_func.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
 # logger

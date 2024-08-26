@@ -160,6 +160,9 @@ public:
    */
   virtual void finalize(InitLayerContext &context) = 0;
 
+  /**
+   * @brief    Initialize the layer
+   */
   virtual void initialize(RunLayerContext &context){};
 
   /**

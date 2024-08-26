@@ -367,10 +367,10 @@ void packing_B8(unsigned int K, unsigned int N, const __fp16 *src,
                 unsigned int ldb, const __fp16 *dst) {
   assert(K != 0 && N != 0 && N % 8 == 0);
 
-  for (int i = 0; i < K; i++) {
+  for (unsigned int i = 0; i < K; i++) {
     const __fp16 *a_off = src + i * ldb;
     __fp16 *b_off = (__fp16 *)dst + i * 8;
-    for (int j = 0; j < N; j += 8) {
+    for (unsigned int j = 0; j < N; j += 8) {
       float16x8_t v = vld1q_f16(a_off);
       a_off += 8;
 
@@ -384,10 +384,10 @@ void packing_B16(unsigned int K, unsigned int N, const __fp16 *src,
                  unsigned int ldb, const __fp16 *dst) {
   assert(K != 0 && N != 0 && N % 16 == 0);
 
-  for (int i = 0; i < K; i++) {
+  for (unsigned int i = 0; i < K; i++) {
     const __fp16 *a_off = src + i * ldb;
     __fp16 *b_off = (__fp16 *)dst + i * 16;
-    for (int j = 0; j < N; j += 16) {
+    for (unsigned int j = 0; j < N; j += 16) {
       float16x8_t v0_7 = vld1q_f16(a_off);
       float16x8_t v8_15 = vld1q_f16(a_off + 8);
       a_off += 16;
