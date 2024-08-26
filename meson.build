@@ -73,7 +73,7 @@ if get_option('enable-fp16')
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'
    elif arch == 'aarch64'
-     add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
+     add_project_arguments('-march=armv8.2-a+fp16', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
      extra_defines += '-DUSE_NEON=1'

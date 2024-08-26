@@ -48,14 +48,14 @@ public:
   enum class Format { NCHW, NHWC };
 
   /**
-   * @brief Tensor Data Type. Currently QINT4, QINT8, FP16 & FP32 Support
+   * @brief Tensor Data Type. Currently QINT4, QINT8, FP16, FP32 Support
    *
    */
   enum class DataType {
     QINT4, /** quantized int 4*/
     QINT8, /** quantized int 8*/
     FP16,  /** half precision */
-    FP32   /** single precision */
+    FP32,  /** single precision */
   };
 
   /**
@@ -112,7 +112,7 @@ public:
   /**
    * @brief     Creator of TensorDim with Format & DataType
    *
-   * @param fm format NCHW | HNWC
+   * @param fm DataType QINT4 | QINT8 | FP16 | FP32 
    * @param d_type DataType QINT4 | QINT8 | FP16 | FP32
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
@@ -216,7 +216,7 @@ public:
    * @param h height
    * @param w width
    * @param fm format NCHW | HNWC
-   * @param d_type Data Type QINT4 | QINT8 | FP16 | FP32
+   * @param d_type Data Type QINT4 | QINT8 | FP16 | FP32 
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
@@ -245,7 +245,7 @@ public:
    *
    * @param shape shape of format
    * @param fm format NCHW | HNWC
-   * @param d_type data type QINT4 | QINT8 | FP16 | FP32
+   * @param d_type data type QINT4 | QINT8 | FP16 | FP32 
    * @param order data storage order ROW_MAJOR | COL_MAJOR
    */
   TensorDim(const std::string &shape, TensorDim::Format fm,

@@ -576,7 +576,18 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_simd.h
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
+%{_includedir}/nntrainer/blas_neon.h
+%{_includedir}/nntrainer/hgemm.h
+%{_includedir}/nntrainer/hgemm_kernel_4x4.h
+%{_includedir}/nntrainer/hgemm_kernel_4x8.h
+%{_includedir}/nntrainer/hgemm_kernel_8x16.h
+%{_includedir}/nntrainer/hgemm_kernel_8x8.h
+%{_includedir}/nntrainer/hgemm_kernel_pack.h
+%{_includedir}/nntrainer/hgemm_util.h
 %endif
+
+%{_includedir}/nntrainer/acti_func.h
+
 
 %files devel-static
 %{_libdir}/libnntrainer*.a

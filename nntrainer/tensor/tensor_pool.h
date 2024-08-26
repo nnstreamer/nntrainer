@@ -43,8 +43,7 @@ public:
    * @brief     Constructor of TensorPool
    */
   TensorPool() :
-    mem_pool(std::make_unique<MemoryPool>()),
-    cache_loader(nullptr) {}
+    mem_pool(std::make_unique<MemoryPool>()), cache_loader(nullptr) {}
 
   /**
    * @brief     Constructor of TensorPool

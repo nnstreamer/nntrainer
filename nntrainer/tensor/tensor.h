@@ -2041,9 +2041,6 @@ private:
   std::shared_ptr<MemoryData> data;
   size_t offset;
   std::vector<float> scale_factors_fp32;
-#ifdef ENABLE_FP16
-  std::vector<_FP16> scale_factors_fp16;
-#endif
   std::vector<uint8_t> zero_points;
 
   /**<

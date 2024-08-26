@@ -31,7 +31,7 @@ tensor_headers = [
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h'
+  'blas_interface.h',
 ]
 
 cl_sources = [

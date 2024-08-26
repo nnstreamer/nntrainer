@@ -33,9 +33,7 @@ TensorDim::TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
 TensorDim::TensorDim(TensorType t_type_,
                      const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
-  t_type(t_type_),
-  eff_dim_flag(eff_dim_flag_),
-  dyn_dim_flag(dyn_dim_flag_) {
+  t_type(t_type_), eff_dim_flag(eff_dim_flag_), dyn_dim_flag(dyn_dim_flag_) {
   for (size_t i = 0; i < MAXDIM; ++i) {
     dim[i] = 0;
   }
