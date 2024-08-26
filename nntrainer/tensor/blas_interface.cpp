@@ -343,7 +343,8 @@ static void sgemm_FP16(const unsigned int TStorageOrder, bool TransA,
   scopy(M * K, A, 1, A_, 1);
   scopy(N * K, B, 1, B_, 1);
   scopy(M * N, C, 1, C_, 1);
-  sgemm(order, transA, transB, M, N, K, alpha, A_, lda, B_, ldb, beta, C_, ldc);
+  cblas_sgemm(order, transA, transB, M, N, K, alpha, A_, lda, B_, ldb, beta, C_,
+              ldc);
   scopy(M * N, C_, 1, C, 1);
 
   delete[] A_;
