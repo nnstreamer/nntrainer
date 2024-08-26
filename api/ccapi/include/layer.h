@@ -35,9 +35,10 @@ namespace train {
  * @brief     Enumeration of layer type
  */
 enum LayerType {
-  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,      /**< Input Layer type */
-  LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT, /**< Weight Layer type */
-  LAYER_ADD = ML_TRAIN_LAYER_TYPE_ADD,       /**< Add Layer type */
+  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,          /**< Input Layer type */
+  LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT,     /**< Weight Layer type */
+  LAYER_ADD = ML_TRAIN_LAYER_TYPE_ADD,           /**< Add Layer type */
+  LAYER_SUBTRACT = ML_TRAIN_LAYER_TYPE_SUBTRACT, /**< Subtract Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -312,6 +313,14 @@ WeightLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 AddLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_ADD, properties);
+}
+
+/**
+ * @brief Helper function to create subtract layer
+ */
+inline std::unique_ptr<Layer>
+SubtractLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SUBTRACT, properties);
 }
 
 /**
