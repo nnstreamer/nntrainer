@@ -438,9 +438,6 @@ public:
       d.setDataType(o_t);
       w = Tensor(d, true);
     }
-    unsigned int o_ax = getWeightObject(idx).getOutputAxis();
-
-    // t_w.dequantize(w, o_ax);
 
     return;
   }
