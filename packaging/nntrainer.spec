@@ -422,7 +422,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled \
       -Denable-capi=enabled \
-      %{fp16_support} %{neon_support} &{avx_support} build
+      %{fp16_support} %{neon_support} build
 
 ninja -C build %{?_smp_mflags}
 
@@ -572,10 +572,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
-# In the current version, Neon SIMD is enabled only when FP16 is enabled with AArch64.
+# In the current version, Neon SIMD is enabled only when FP16 is enabled with AArch64. 
 # This may be subject to change in future versions.
 %ifarch aarch64
-%{_includedir}/nntrainer/loss_layer.h
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
 %{_includedir}/nntrainer/blas_neon.h
@@ -587,10 +586,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # model headers
 %{_includedir}/nntrainer/neuralnet.h
 
-
-%if 0%{?enable_avx}
-%{_includedir}/nntrainer/blas_avx.h
-%endif
 
 %files devel-static
 %{_libdir}/libnntrainer*.a
