@@ -131,13 +131,13 @@ BuildRequires: tensorflow2-lite-devel
 BuildRequires: tensorflow2-lite-devel
 %endif # support_tflite_interpreter
 
-%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
-%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=false
+%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=disabled
+%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=disabled
 
 %if  0%{?nnstreamer_filter}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
 BuildRequires:	nnstreamer-devel
-%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
+%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=enabled
 
 %if 0%{?unit_test}
 %if 0%{tizen_version_major}%{tizen_version_minor} > 60
@@ -151,7 +151,7 @@ BuildRequires:	python
 %if  0%{?nnstreamer_trainer}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
 BuildRequires:	nnstreamer-devel
-%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=true
+%define enable_nnstreamer_tensor_trainer -Denable-nnstreamer-tensor-trainer=enabled
 %endif # nnstreamer_trainer
 %endif # tizen
 
@@ -413,8 +413,8 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_profile} %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
-      -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
-      -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
+      -Dml-api-support=enabled \
+      -Denable-capi=enabled \
       %{fp16_support} %{neon_support} build
 
 ninja -C build %{?_smp_mflags}
@@ -565,9 +565,18 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
+# In the current version, Neon SIMD is enabled only when FP16 is enabled with AArch64. 
+# This may be subject to change in future versions.
+%ifarch aarch64
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
+%{_includedir}/nntrainer/blas_neon.h
+%{_includedir}/nntrainer/hgemm.h
+%{_includedir}/nntrainer/hgemm_util.h
 %endif
+%endif
+%{_includedir}/nntrainer/acti_func.h
+
 
 %files devel-static
 %{_libdir}/libnntrainer*.a
