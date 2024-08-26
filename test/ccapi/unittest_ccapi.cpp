@@ -67,6 +67,9 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::AddLayer());
   EXPECT_EQ(layer->getType(), "add");
 
+  EXPECT_NO_THROW(layer = ml::train::layer::SubLayer());
+  EXPECT_EQ(layer->getType(), "sub");
+
   EXPECT_NO_THROW(layer = ml::train::layer::FullyConnected());
   EXPECT_EQ(layer->getType(), "fully_connected");
 
