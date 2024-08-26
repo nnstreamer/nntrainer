@@ -580,6 +580,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/neuralnet.h
 
 
+%{_includedir}/nntrainer/acti_func.h
+
+
 %files devel-static
 %{_libdir}/libnntrainer*.a
 %exclude %{_libdir}/libcapi*.a
