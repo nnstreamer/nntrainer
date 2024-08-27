@@ -829,40 +829,40 @@ public:
    * getKernelName function.
    */
   enum LayerKernel {
-    SGEMV = 1 << 0,               /**< placeholder for kernel name */
-    SGEMV_FP16 = 1 << 1,          /**< placeholder for kernel name */
-    DOT = 1 << 2,                 /**< placeholder for kernel name */
-    DOT_FP16 = 1 << 3,            /**< placeholder for kernel name */
-    SGEMM_NOTRANS = 1 << 4,       /**< placeholder for kernel name */
-    SGEMM_NOTRANS_FP16 = 1 << 5,  /**< placeholder for kernel name */
-    SGEMM_TRANSA = 1 << 6,        /**< placeholder for kernel name */
-    SGEMM_TRANSA_FP16 = 1 << 7,   /**< placeholder for kernel name */
-    SGEMM_TRANSB = 1 << 8,        /**< placeholder for kernel name */
-    SGEMM_TRANSB_FP16 = 1 << 9,   /**< placeholder for kernel name */
-    SGEMM_TRANSAB = 1 << 10,      /**< placeholder for kernel name */
-    SGEMM_TRANSAB_FP16 = 1 << 11, /**< placeholder for kernel name */
-    ADD = 1 << 12,                /**< placeholder for kernel name */
-    ADD_FP16 = 1 << 13,           /**< placeholder for kernel name */
-    SWIGLU = 1 << 14,             /**< placeholder for kernel name */
-    SWIGLU_FP16 = 1 << 15,        /**< placeholder for kernel name */
-    SSCAL = 1 << 16,              /**< placeholder for kernel name */
-    SSCAL_FP16 = 1 << 17,         /**< placeholder for kernel name */
-    COPY = 1 << 18,               /**< placeholder for kernel name */
-    COPY_FP16 = 1 << 19,          /**< placeholder for kernel name */
-    RMSNORM = 1 << 20,            /**< placeholder for kernel name */
-    RMSNORM_FP16 = 1 << 21,       /**< placeholder for kernel name */
-    CONCAT_AXIS3 = 1 << 22,       /**< placeholder for kernel name */
-    CONCAT_AXIS3_FP16 = 1 << 23,  /**< placeholder for kernel name */
-    CONCAT_AXIS2 = 1 << 24,       /**< placeholder for kernel name */
-    CONCAT_AXIS2_FP16 = 1 << 25,  /**< placeholder for kernel name */
-    CONCAT_AXIS1 = 1 << 26,       /**< placeholder for kernel name */
-    CONCAT_AXIS1_FP16 = 1 << 27,  /**< placeholder for kernel name */
+    SGEMV = 1ull << 0,               /**< placeholder for kernel name */
+    SGEMV_FP16 = 1ull << 1,          /**< placeholder for kernel name */
+    DOT = 1ull << 2,                 /**< placeholder for kernel name */
+    DOT_FP16 = 1ull << 3,            /**< placeholder for kernel name */
+    SGEMM_NOTRANS = 1ull << 4,       /**< placeholder for kernel name */
+    SGEMM_NOTRANS_FP16 = 1ull << 5,  /**< placeholder for kernel name */
+    SGEMM_TRANSA = 1ull << 6,        /**< placeholder for kernel name */
+    SGEMM_TRANSA_FP16 = 1ull << 7,   /**< placeholder for kernel name */
+    SGEMM_TRANSB = 1ull << 8,        /**< placeholder for kernel name */
+    SGEMM_TRANSB_FP16 = 1ull << 9,   /**< placeholder for kernel name */
+    SGEMM_TRANSAB = 1ull << 10,      /**< placeholder for kernel name */
+    SGEMM_TRANSAB_FP16 = 1ull << 11, /**< placeholder for kernel name */
+    ADD = 1ull << 12,                /**< placeholder for kernel name */
+    ADD_FP16 = 1ull << 13,           /**< placeholder for kernel name */
+    SWIGLU = 1ull << 14,             /**< placeholder for kernel name */
+    SWIGLU_FP16 = 1ull << 15,        /**< placeholder for kernel name */
+    SSCAL = 1ull << 16,              /**< placeholder for kernel name */
+    SSCAL_FP16 = 1ull << 17,         /**< placeholder for kernel name */
+    COPY = 1ull << 18,               /**< placeholder for kernel name */
+    COPY_FP16 = 1ull << 19,          /**< placeholder for kernel name */
+    RMSNORM = 1ull << 20,            /**< placeholder for kernel name */
+    RMSNORM_FP16 = 1ull << 21,       /**< placeholder for kernel name */
+    CONCAT_AXIS3 = 1ull << 22,       /**< placeholder for kernel name */
+    CONCAT_AXIS3_FP16 = 1ull << 23,  /**< placeholder for kernel name */
+    CONCAT_AXIS2 = 1ull << 24,       /**< placeholder for kernel name */
+    CONCAT_AXIS2_FP16 = 1ull << 25,  /**< placeholder for kernel name */
+    CONCAT_AXIS1 = 1ull << 26,       /**< placeholder for kernel name */
+    CONCAT_AXIS1_FP16 = 1ull << 27,  /**< placeholder for kernel name */
   };
 
   /**
    * @brief Global bit mask to check if kernel already initialized.
    */
-  static unsigned int kernelInitializedMask;
+  static unsigned long long kernelInitializedMask;
 
   /**
    * @brief create OpenCl kernel

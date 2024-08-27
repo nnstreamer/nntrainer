@@ -603,7 +603,7 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
 /**
  * @brief Global bit mask to check if kernel already initialized.
  */
-unsigned int RunLayerContext::kernelInitializedMask = 0;
+unsigned long long RunLayerContext::kernelInitializedMask = 0;
 
 /**
  * @brief create OpenCl kernel
