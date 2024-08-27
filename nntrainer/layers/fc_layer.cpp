@@ -42,6 +42,7 @@ enum LORAParams { loraA, loraB, loraTmp, loraOut };
 FullyConnectedLayer::FullyConnectedLayer() :
   LayerImpl(), fc_props(props::Unit(), props::LoraRank()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
+  lora_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
 void FullyConnectedLayer::finalize(InitLayerContext &context) {

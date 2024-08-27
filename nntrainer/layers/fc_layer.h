@@ -110,7 +110,7 @@ private:
     fc_props; /**< fc layer properties : unit - number of output neurons,
                  lora_rank : rank of lora (optional) */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
-  std::array<unsigned int, 2> lora_idx;   /**< indices of the lora weights */
+  std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
 };
 } // namespace nntrainer
 
