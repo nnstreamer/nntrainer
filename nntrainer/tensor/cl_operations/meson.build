@@ -1,15 +1,19 @@
 cl_op_sources = [
   'blas_kernels.cpp',
   'blas_kernel_interface.cpp',
+  'attention_kernel_interface.cpp',
+  'attention_kernels.cpp',
 ]
 
 cl_op_headers = [
   'blas_kernel_interface.h',
   'blas_kernel_strings.h',
+  'attention_kernel_interface.h',
 ]
 
 if get_option('enable-fp16')
   cl_op_sources += 'blas_kernels_fp16.cpp'
+  cl_op_sources += 'attention_kernels_fp16.cpp'
 endif
 
 foreach s : cl_op_sources
