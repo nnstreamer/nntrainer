@@ -65,12 +65,6 @@ TEST(attention_kernels, rotary_emb_kernel_FP32) {
 
   B_fp32.copy(A_fp32);
 
-  // std::cout << "\nA_fp32 and B_fp32 before rotary embedding:" << std::endl;
-  // for (unsigned int i = 0; i < A_fp32.size(); ++i) {
-  //   std::cout << "Element " << i << " -> " << *(A_fp32.getData<float>() + i)
-  //   <<"\t"<<*(B_fp32.getData<float>() + i)<< std::endl;
-  // }
-
   apply_rotary_emb_cl(A_fp32, dim, from, max_timestep, rc);
   apply_rotary_emb_tensor(B_fp32, dim, from, max_timestep);
 
