@@ -15,4 +15,4 @@ e = executable('knn_sample',
   install_dir: application_install_dir
 )
 
-test('app_knn', e, args: [nntr_app_resdir / 'KNN'])
+test('app_knn', e, args: [nntr_app_resdir / 'KNN/'])

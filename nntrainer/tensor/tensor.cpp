@@ -941,6 +941,17 @@ Tensor Tensor::clone() const {
   return output;
 }
 
+Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
+  if (getDataType() == type)
+    return clone();
+  TensorDim dim = getDim();
+  dim.setDataType(type);
+  Tensor output(dim, true);
+  output.copyData(*this);
+  output.setName(getName());
+  return output;
+}
+
 void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";

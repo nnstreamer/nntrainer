@@ -51,19 +51,21 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {}
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
+    nan_count = 0;
+  }
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] swap_path memory swap file path when the swap is enabled
    */
-  NetworkGraph(bool enable_swap, const std::string &swap_path = "",
-               unsigned int lookahead = 0,
+  NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
+               const std::string &swap_path = "", unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
-    tensor_manager(std::make_shared<Manager>(enable_swap, swap_path, lookahead,
-                                             tensor_format_, tensor_dtype_)),
+    tensor_manager(std::make_shared<Manager>(
+      enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
     graph(),
     compiled(false),
     batch_size(0),
@@ -71,9 +73,11 @@ public:
     backward_iter_end(nullptr),
     forward_iter_end(nullptr),
     optimize_memory(true),
-    exec_mode(ExecutionMode::TRAIN),
+    exec_mode(mode),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {}
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {
+    nan_count = 0;
+  }
 
   /**
    * @brief   Destructor of the NeuralNetwork Graph class
@@ -206,13 +210,14 @@ public:
    * @param[in] backwarding_op operation for the backwarding
    * @param[in] apply_grad_clip_op operation for applying the clip gradients
    */
-  void backwarding(
+  bool backwarding(
     int iteration,
-    std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-    std::function<void(Weight &, int)> &apply_grad_clip_op,
+    std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
+    std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
+    std::function<void(Weight &, int)> &lazy_apply_grad_op,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr) const;
+    void *user_data = nullptr);
 
   /**
    * @brief     get begin iterator for the graph
@@ -355,9 +360,9 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights() {
+  void allocateWeights(bool init = true) {
     tensor_manager->allocateWeights(
-      std::get<3>(backward_iter_end->getExecutionOrder()));
+      std::get<3>(backward_iter_end->getExecutionOrder()), init);
   }
 
   /**
@@ -444,6 +449,17 @@ public:
   getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode);
 #endif // ENABLE_TEST
 
+  /**
+   * @brief     reset the loss scale
+   * @param[in] scale
+   */
+  void resetLossScale(float scale);
+
+  /**
+   * @brief     check if it is mixed precision training
+   */
+  bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
@@ -480,7 +496,10 @@ private:
   std::unordered_map<std::string, int>
     profile_keys; /**< profile keys based on the layer type */
   std::vector<Weight *>
-    clip_weights; /**< weights with global norm based clipping enabled */
+    lazy_weights; /**< weights with global norm based clipping enabled */
+  bool is_clip_grad;
+
+  unsigned int nan_count;
 
   /**
    * @brief     topological sort

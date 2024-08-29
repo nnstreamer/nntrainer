@@ -67,11 +67,12 @@ namespace nntrainer {
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -79,18 +80,20 @@ NeuralNetwork::NeuralNetwork() :
   data_buffers({nullptr, nullptr, nullptr}),
   initialized(false),
   compiled(false),
-  loadedFromConfig(false) {
+  loadedFromConfig(false),
+  exec_mode(ExecutionMode::TRAIN) {
   app_context = AppContext(AppContext::Global());
 }
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -145,7 +148,10 @@ void NeuralNetwork::setTrainConfig(const std::vector<std::string> &values) {
     << " of first element: " << left_props.front();
 }
 
-int NeuralNetwork::compile() {
+int NeuralNetwork::compile(ExecutionMode mode) {
+
+  exec_mode = mode;
+
   std::string loss_type = std::get<props::LossType>(model_props).empty()
                             ? std::string()
                             : std::get<props::LossType>(model_props);
@@ -181,7 +187,7 @@ int NeuralNetwork::compile() {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, memory_swap_path, lookahead,
+  model_graph = NetworkGraph(memory_swap, mode, memory_swap_path, lookahead,
                              tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
@@ -260,7 +266,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   }
 
   // Allocate weights
-  model_graph.allocateWeights();
+  model_graph.allocateWeights(exec_mode != ExecutionMode::INFERENCE);
 
   initialized = true;
 
@@ -412,9 +418,21 @@ void NeuralNetwork::backwarding(int iteration,
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  std::function<void(std::shared_ptr<LayerNode>, int)> backwarding_op =
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              int iteration) -> void {
+                              bool training) -> void {
+    (void)this;
+    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+
+    auto f = std::get<0>(node->getExecutionOrder());
+    model_graph.flushCacheExcept(f);
+
+    node->forwarding(training);
+  };
+
+  std::function<bool(std::shared_ptr<LayerNode>, int)> backwarding_op =
+    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
+                              int iteration) -> bool {
     /**
      * Do not change this order:
      * 1. calcGradient
@@ -448,19 +466,30 @@ void NeuralNetwork::backwarding(int iteration,
       /** If gradient must be applied and its not gradient mode, calculate
        * gradient
        */
-      if (!dynamic_training_opt.isGradientMode() && apply_gradient)
+      if (!dynamic_training_opt.isGradientMode() && apply_gradient) {
         node->calcGradient();
+
+        RunLayerContext &rc = node->getRunContext();
+        if (model_graph.isMixedPrecision()) {
+          for (auto w : rc.getWeights()) {
+            if (w->hasGradient())
+              if (!w->getGradientRef().isValid())
+                return false;
+          }
+        }
+      }
     }
 
     model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
     PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
 
     if (stop_cb(userdata)) {
-      return;
+      return true;
     }
 
-    if (node->needsCalcDerivative())
+    if (node->needsCalcDerivative()) {
       node->calcDerivative();
+    }
 
     model_graph.flushCacheExcept(std::get<3>(node->getExecutionOrder()));
     PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
@@ -476,9 +505,10 @@ void NeuralNetwork::backwarding(int iteration,
           opt_->applyGradient(opt_context);
         });
     }
+    return true;
   };
 
-  std::function<void(Weight &, int)> apply_grad_clip_op =
+  std::function<void(Weight &, int)> lazy_apply_grad_op =
     [opt_ = opt.get()](Weight &w, int iteration) -> void {
     w.calcRegularizationGradient();
     w.calcWeightDecayGradient();
@@ -487,8 +517,13 @@ void NeuralNetwork::backwarding(int iteration,
     opt_->applyGradient(opt_context);
   };
 
-  model_graph.backwarding(iteration, backwarding_op, apply_grad_clip_op,
-                          stop_cb, userdata);
+  // return false if the gradient is not valid
+  bool ret = false;
+
+  while (!ret) {
+    ret = model_graph.backwarding(iteration, forwarding_op, backwarding_op,
+                                  lazy_apply_grad_op, stop_cb, userdata);
+  }
 }
 
 void NeuralNetwork::save(const std::string &file_path,
@@ -555,7 +590,7 @@ void NeuralNetwork::load(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->read(model_file);
+      (*iter)->read(model_file, false, exec_mode);
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
@@ -567,7 +602,7 @@ void NeuralNetwork::load(const std::string &file_path,
         if (istrequal(opt_type, "adam")) {
           for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
                iter++) {
-            (*iter)->read(model_file, true);
+            (*iter)->read(model_file, true, exec_mode);
           }
         }
       }
@@ -999,7 +1034,7 @@ int NeuralNetwork::train_run(
         break;
       }
       auto &iteration = iter_view.get();
-      if (iteration.batch() != batch_size) {
+      if (iteration.batch() != static_cast<unsigned int>(batch_size)) {
         /// @todo support partial batch
         continue;
       }
@@ -1125,6 +1160,7 @@ int NeuralNetwork::train_run(
   auto epochs = getEpochs();
   ml_logd("[NNTrainer] Starts training. Current epoch: %d. Total epochs: %d.",
           epoch_idx + 1, getEpochs());
+  epoch_idx = 0;
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     if (stop_cb(stop_user_data)) {
       --epoch_idx;

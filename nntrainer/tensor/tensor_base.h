@@ -652,6 +652,11 @@ public:
                            bool reset_stride, const std::string &name_,
                            TensorBase *ret);
 
+  /**
+   * @copydoc Tensor::isValid()
+   */
+  virtual bool isValid() const = 0;
+
   static constexpr float epsilon = 1e-5;
 
 protected:

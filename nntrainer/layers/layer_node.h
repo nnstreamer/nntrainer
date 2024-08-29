@@ -132,6 +132,32 @@ public:
   }
 
   /**
+   * @brief     set weight and activation data type of layer
+   *
+   * @param[in] weight data type, activation data type
+   */
+  void setDataType(const TensorDim::DataType w_type,
+                   const TensorDim::DataType a_type) {
+    data_type = {w_type, a_type};
+  }
+
+  /**
+   * @brief Get the Weight Data Type
+   *
+   * @return TensorDim::DataType weight data type
+   */
+  const TensorDim::DataType getWeightDataType() const { return data_type[0]; }
+
+  /**
+   * @brief Get the Activation Data Type
+   *
+   * @return TensorDim::DataType activation data type
+   */
+  const TensorDim::DataType getActivationDataType() const {
+    return data_type[1];
+  }
+
+  /**
    * @brief Get the Input Connection Index object
    *
    * @param nth nth input
@@ -253,9 +279,10 @@ public:
    * will be made available during execution of the layer with the context.
    * @note configureRunContext() is expected to called right after this.
    */
-  InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {},
-                            std::array<std::string, 3> tensor_type = {
-                              "NCHW", "FP32", "FP32"});
+  InitLayerContext
+  finalize(const std::vector<TensorDim> &input_dims = {},
+           std::array<std::string, 3> tensor_type = {"NCHW", "FP32", "FP32"},
+           ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief     Refinalize creating the layer node
@@ -487,6 +514,7 @@ public:
   const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
+   * currently, only unittest uses this func.
    *
    * @param idx Identifier of the weight
    * @return Weight& Reference to the weight
@@ -495,11 +523,11 @@ public:
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     if (run_context->weightHasGradient(idx)) {
-      return Weight(run_context->getWeight(idx),
-                    run_context->getWeightGrad(idx),
-                    run_context->getWeightName(idx));
+      return Weight(
+        run_context->getWeight(idx), run_context->getWeightGrad(idx),
+        run_context->getWeightFP32(idx), run_context->getWeightName(idx));
     } else {
-      return Weight(run_context->getWeight(idx), Tensor(),
+      return Weight(run_context->getWeight(idx), Tensor(), Tensor(),
                     run_context->getWeightName(idx));
     }
   }
@@ -718,14 +746,17 @@ public:
    * @param file input file stream
    * @param bool read optimizer variables
    */
-  void read(std::ifstream &file, bool opt_var = false);
+  void read(std::ifstream &file, bool opt_var = false,
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
    * @param bool save optimizer variables
    */
-  void save(std::ofstream &file, bool opt_var = false) const;
+  void
+  save(std::ofstream &file, bool opt_var = false,
+       ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
 
   /**
    * @brief clear optimizer variable to initial state
@@ -819,7 +850,8 @@ public:
   void configureRunContext(const std::vector<Weight *> &weights,
                            const std::vector<Var_Grad *> &inputs,
                            const std::vector<Var_Grad *> &outputs,
-                           const std::vector<Var_Grad *> &tensors);
+                           const std::vector<Var_Grad *> &tensors,
+                           float loss_scale);
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -878,6 +910,16 @@ public:
   }
 
   /**
+   * @brief Set if the layer output needs reinitialization @mixed precsion
+   *
+   * @param nb true if the layer needs to do reinitialization, eles false
+   */
+  void reStoreData(bool nb) {
+    needs_restore_data = nb;
+    run_context->reStoreData(nb);
+  }
+
+  /**
    * @brief Set if the layer needs to do calculation of gradients
    *
    * @param nb true if the layer needs to do backwarding, else false
@@ -897,6 +939,13 @@ public:
    * @param nb true if the layer needs to do backwarding, else false
    */
   bool needsCalcGradient() { return needs_calc_gradient; }
+
+  /**
+   * @brief Set if the layer needs to reinitialization @mixed precsion
+   *
+   * @param nb true if the layer needs reinitialization, eles false
+   */
+  bool reStoreData() { return needs_restore_data; }
 
 private:
   /**
@@ -970,6 +1019,11 @@ properties in the context/graph unless intended. */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
+
+  bool needs_restore_data; /**< cache if this layer needs reinitialization
+                                 output  */
+
+  std::array<TensorDim::DataType, 2> data_type;
 
   /**
    * @brief   Get the effective layer managed by this layer node

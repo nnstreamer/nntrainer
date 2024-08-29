@@ -141,16 +141,19 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap, const std::string &swap_path = "",
+  Manager(bool enable_swap_, const std::string &swap_path = "",
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
-          const std::string tensor_dtype_ = "FP32-FP32") :
-    weight_pool(enable_swap, swap_path, "weight_pool"),
-    tensor_pool(enable_swap, swap_path, "tensor_pool"),
+          const std::string tensor_dtype_ = "FP32-FP32",
+          ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
+    weight_pool(enable_swap_, swap_path, "weight_pool"),
+    tensor_pool(enable_swap_ && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
+                "tensor_pool"),
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    exec_mode(ExecutionMode::TRAIN) {}
+    exec_mode(exec_mode_),
+    enable_swap(enable_swap_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -224,7 +227,8 @@ public:
    */
   std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
-    const TensorLifespan &lifespan, bool is_grad_clip,
+    const std::string &suffix, const TensorLifespan &lifespan,
+    bool is_grad_clip, bool is_mixed_type,
     Initializer initializer = Initializer::NONE);
 
   /**
@@ -381,7 +385,7 @@ public:
    * @note this will make requests to the tensor pool and allocate the
    * corresponding weights
    */
-  void allocateWeights(unsigned int max_exec_order_);
+  void allocateWeights(unsigned int max_exec_order_, bool init = true);
 
   /**
    * @brief Deallocate memory for all the weights
@@ -494,6 +498,11 @@ public:
     exec_mode = mode;
   };
 
+  /**
+   * @brief     return if it is mixed precsion
+   */
+  bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
@@ -528,6 +537,8 @@ private:
   std::vector<std::string> tensor_dtype;
 
   ExecutionMode exec_mode;
+
+  bool enable_swap;
 
   /**
    * @brief Finalize the given tensor pool

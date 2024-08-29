@@ -162,7 +162,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int compile() override;
+  int compile(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     set Property of Network
@@ -624,12 +624,11 @@ s   * @retval shared_ptr<const Tensor>
                const std::string file_path) override;
 
 private:
-  using FlexiblePropTypes =
-    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
-               props::ContinueTrain, props::SaveBestPath,
-               props::MemoryOptimization, props::MemorySwap,
-               props::MemorySwapPath, props::MemorySwapLookahead,
-               props::TensorFormat, props::ModelTensorDataType>;
+  using FlexiblePropTypes = std::tuple<
+    props::Epochs, props::TrainingBatchSize, props::SavePath,
+    props::ContinueTrain, props::SaveBestPath, props::MemoryOptimization,
+    props::MemorySwap, props::MemorySwapPath, props::MemorySwapLookahead,
+    props::TensorFormat, props::ModelTensorDataType, props::MemorySwapMode>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm,
@@ -681,6 +680,8 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
+
+  ExecutionMode exec_mode;
 
   /**
    * @brief save model in ini
