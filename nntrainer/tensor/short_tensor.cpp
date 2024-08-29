@@ -244,6 +244,7 @@ void ShortTensor::copyData(const Tensor &from) {
   switch (from.getDataType()) {
   case ml::train::TensorDim::DataType::UINT16:
     copy(from.getData());
+    break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;
@@ -278,20 +279,7 @@ std::vector<unsigned int> ShortTensor::argmax() const {
   return result;
 }
 
-float ShortTensor::max_abs() const {
-  const uint16_t *data = (uint16_t *)getData();
-  unsigned int idx;
-
-  uint16_t max_val = data[0];
-  for (unsigned int i = 1; i < size(); i += 1) {
-    uint16_t cur_val = (data[i] >= 0) ? data[i] : -1 * data[i];
-    if (cur_val > max_val) {
-      max_val = cur_val;
-    }
-  }
-
-  return max_val;
-}
+float ShortTensor::max_abs() const { return maxValue(); }
 
 float ShortTensor::maxValue() const {
   const uint16_t *data = (uint16_t *)getData();
