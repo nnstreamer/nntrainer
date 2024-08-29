@@ -59,7 +59,6 @@ __kernel void rotary_emb_cl(__global float *input,
                 transformed_value = input[b * channel * height * width + c * height * width + h * width + span - half_];
               }
               value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
-              // printf("GPU Batch: %u, Height: %u, Channel: %u, Width: %u, K: %u, Span: %u, Value: %f, Transformed Value: %f, cos_ptr[k]: %f, sin_ptr[k]: %f\n",  b, h, c, w, k, span, value, transformed_value, cos_ptr[k], sin_ptr[k]);
               output[b * channel * height * width + c * height * width + h * width + span] = value;
             }
           }

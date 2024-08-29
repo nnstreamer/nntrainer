@@ -42,10 +42,6 @@ void precompute_freqs(int dim, unsigned int seq_len,
     sin.assign(seq_len, std::vector<float>(dim, 0));
 
     for (unsigned int i = 0; i < seq_len; ++i) {
-#ifdef USE_NEON
-      nntrainer::calc_trigonometric_vals_dup(half_, freqs.data(), cos[i].data(),
-                                             sin[i].data(), i);
-#else
       for (unsigned int j = 0; j < half_; ++j) {
         float angle = i * freqs[j];
         cos[i][j] = std::cos(angle);
@@ -54,7 +50,6 @@ void precompute_freqs(int dim, unsigned int seq_len,
         sin[i][j] = std::sin(angle);
         sin[i][j + half_] = std::sin(angle); // repeated 2 times
       }
-#endif
     }
     freqs_cos = cos;
     freqs_sin = sin;
@@ -87,10 +82,6 @@ void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
   if (from >= max_timestep) {
     cos_ = std::vector<float>(dim);
     sin_ = std::vector<float>(dim);
-#ifdef USE_NEON
-    nntrainer::calc_trigonometric_vals_dup(half_, freqs.data(), cos_.data(),
-                                           sin_.data(), from);
-#else
     for (unsigned int i = 0; i < half_; ++i) {
       float angle = from * freqs[i];
       cos_[i] = std::cos(angle);
@@ -99,7 +90,6 @@ void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
       sin_[i] = std::sin(angle);
       sin_[i + half_] = std::sin(angle); // repeated 2 times
     }
-#endif
   } else {
     cos_.resize(max_timestep);
     sin_.resize(max_timestep);
@@ -133,10 +123,6 @@ void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
                   transformed_value = in.getValue<float>(b, c, h, span - half_);
                 }
                 value = value * cos_[k] + transformed_value * sin_[k];
-                // printf("CPU Batch: %u, Channel: %u, Height: %u, Width: %u, K:
-                // %u, Span: %u, Value: %f, Transformed Value: %f, cos_ptr[k]:
-                // %f, sin_ptr[k]: %f\n ",  b, c, h, w, k, span, value,
-                // transformed_value, cos_[k], sin_[k]);
                 out.setValue(b, c, h, span, value);
               }
             }
