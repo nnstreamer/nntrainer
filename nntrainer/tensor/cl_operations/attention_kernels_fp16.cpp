@@ -144,14 +144,14 @@ void rotary_emb_cl(__fp16 *in, __fp16 *out,
     result = freqs_cosBuf.WriteData(context.command_queue_inst_,
                                     freqs_cos_flat.data());
     if (!result) {
-      printf("Failed to write cos data\n");
+      printf("Failed to write freqs cos data\n");
       break;
     }
 
     result = freqs_sinBuf.WriteData(context.command_queue_inst_,
                                     freqs_sin_flat.data());
     if (!result) {
-      printf("Failed to write sin data\n");
+      printf("Failed to write freqs sin data\n");
       break;
     }
 
