@@ -39,6 +39,7 @@ enum LayerType {
   LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT,     /**< Weight Layer type */
   LAYER_ADD = ML_TRAIN_LAYER_TYPE_ADD,           /**< Add Layer type */
   LAYER_SUBTRACT = ML_TRAIN_LAYER_TYPE_SUBTRACT, /**< Subtract Layer type */
+  LAYER_MULTIPLY = ML_TRAIN_LAYER_TYPE_MULTIPLY, /**< Multiply Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -321,6 +322,14 @@ AddLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 SubtractLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_SUBTRACT, properties);
+}
+
+/**
+ * @brief Helper function to create multiply layer
+ */
+inline std::unique_ptr<Layer>
+MultiplyLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_MULTIPLY, properties);
 }
 
 /**

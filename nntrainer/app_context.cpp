@@ -61,6 +61,7 @@
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
+#include <multiply_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -259,6 +260,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_ADD);
   ac.registerFactory(nntrainer::createLayer<SubtractLayer>, SubtractLayer::type,
                      LayerType::LAYER_SUBTRACT);
+  ac.registerFactory(nntrainer::createLayer<MultiplyLayer>, MultiplyLayer::type,
+                     LayerType::LAYER_MULTIPLY);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
