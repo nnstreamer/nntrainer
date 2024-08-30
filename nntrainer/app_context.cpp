@@ -42,6 +42,7 @@
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <divide_layer.h>
 #include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
@@ -262,6 +263,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_SUBTRACT);
   ac.registerFactory(nntrainer::createLayer<MultiplyLayer>, MultiplyLayer::type,
                      LayerType::LAYER_MULTIPLY);
+  ac.registerFactory(nntrainer::createLayer<DivideLayer>, DivideLayer::type,
+                     LayerType::LAYER_DIVIDE);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,

@@ -50,6 +50,7 @@ test_target = [
   'unittest_layers_add.cpp',
   'unittest_layers_subtract.cpp',
   'unittest_layers_multiply.cpp',
+  'unittest_layers_divide.cpp',
   'unittest_layers_multiout.cpp',
   'unittest_layers_rnn.cpp',
   'unittest_layers_rnncell.cpp',
