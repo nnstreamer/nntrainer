@@ -929,6 +929,25 @@ static std::unique_ptr<NeuralNetwork> makeMultiplyOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeDivideOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"divide", {"name=divide_layer", "input_layers=in,fc"}},
+               {"mse", {"name=loss", "input_layers=divide_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1004,6 +1023,8 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeSubtractOperation, "subtract_operation",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMultiplyOperation, "multiply_operation",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeDivideOperation, "divide_operation",
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
