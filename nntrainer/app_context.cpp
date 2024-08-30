@@ -58,6 +58,7 @@
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
+#include <mul_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
@@ -254,6 +255,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_ADD);
   ac.registerFactory(nntrainer::createLayer<SubLayer>, SubLayer::type,
                      LayerType::LAYER_SUB);
+  ac.registerFactory(nntrainer::createLayer<MulLayer>, MulLayer::type,
+                     LayerType::LAYER_MUL);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
