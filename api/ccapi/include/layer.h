@@ -40,6 +40,7 @@ enum LayerType {
   LAYER_ADD = ML_TRAIN_LAYER_TYPE_ADD,       /**< Add Layer type */
   LAYER_SUB = ML_TRAIN_LAYER_TYPE_SUB,       /**< Subtract Layer type */
   LAYER_MUL = ML_TRAIN_LAYER_TYPE_MUL,       /**< Multiply Layer type */
+  LAYER_DIV = ML_TRAIN_LAYER_TYPE_DIV,       /**< Divide Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -324,6 +325,14 @@ SubLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 MulLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_MUL, properties);
+}
+
+/**
+ * @brief Helper function to create div layer
+ */
+inline std::unique_ptr<Layer>
+DivLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_DIV, properties);
 }
 
 /**

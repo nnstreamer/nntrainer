@@ -8,6 +8,7 @@ layer_sources = [
   'add_layer.cpp',
   'sub_layer.cpp',
   'mul_layer.cpp',
+  'div_layer.cpp',
   'addition_layer.cpp',
   'attention_layer.cpp',
   'mol_attention_layer.cpp',

@@ -929,6 +929,25 @@ static std::unique_ptr<NeuralNetwork> makeMulOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeDivOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"div", {"name=div_layer", "input_layers=in,fc"}},
+               {"mse", {"name=loss", "input_layers=div_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -995,6 +1014,7 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeAddOperation, "add_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSubOperation, "sub_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMulOperation, "mul_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeDivOperation, "div_operation", ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });
