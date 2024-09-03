@@ -214,7 +214,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
   } while (false);
 }
 
-void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
+void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
                                   unsigned int input_batch_size,
                                   unsigned int input_channels,
                                   unsigned int input_height,
@@ -231,7 +231,7 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
       break;
     }
 
-    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
+    size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
     opencl::Buffer inputA(context.context_inst_, dim_size, true, nullptr);

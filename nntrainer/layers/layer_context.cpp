@@ -641,12 +641,15 @@ bool RunLayerContext::clCreateKernel(std::string kernel_string,
       size_t binary_size = fs.tellg();
       fs.seekg(0, std::ios::beg);
 
-      unsigned char chunk[binary_size];
-      fs.read((char *)chunk, binary_size);
+      // unsigned char chunk = new unsigned char[binary_size];
+      std::shared_ptr<unsigned char> chunk =
+        std::make_shared<unsigned char>(binary_size);
+
+      fs.read((char *)chunk.get(), binary_size);
 
       result = program.CreateCLProgramWithBinary(
         context_inst_.GetContext(), context_inst_.GetDeviceId(), binary_size,
-        chunk,
+        chunk.get(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" +
           getKernelName(layerKernel) + "_kernel.bin",
         "");
