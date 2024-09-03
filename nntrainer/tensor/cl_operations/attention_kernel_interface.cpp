@@ -24,7 +24,7 @@ namespace nntrainer {
  * @param[out] freqs base frequencies array to be used in the future computation
  * @param[in]  theta rotary angle
  */
-void precompute_freqs(int dim, unsigned int seq_len,
+void precompute_freqs(unsigned int dim, unsigned int seq_len,
                       std::vector<std::vector<float>> &freqs_cos,
                       std::vector<std::vector<float>> &freqs_sin,
                       std::vector<float> &freqs, float theta = 10000.0) {
@@ -33,24 +33,24 @@ void precompute_freqs(int dim, unsigned int seq_len,
     freqs.push_back(1.0 / (std::pow(theta, (2 * i) / static_cast<float>(dim))));
   }
 
-  auto cos = std::vector<std::vector<float>>();
-  cos.assign(seq_len, std::vector<float>(dim, 0));
+  auto cos_vec = std::vector<std::vector<float>>();
+  cos_vec.assign(seq_len, std::vector<float>(dim, 0));
 
-  auto sin = std::vector<std::vector<float>>();
-  sin.assign(seq_len, std::vector<float>(dim, 0));
+  auto sin_vec = std::vector<std::vector<float>>();
+  sin_vec.assign(seq_len, std::vector<float>(dim, 0));
 
   for (unsigned int i = 0; i < seq_len; ++i) {
     for (unsigned int j = 0; j < half_; ++j) {
       float angle = i * freqs[j];
-      cos[i][j] = std::cos(angle);
-      cos[i][j + half_] = std::cos(angle); // repeated 2 times
+      cos_vec[i][j] = std::cos(angle);
+      cos_vec[i][j + half_] = std::cos(angle); // repeated 2 times
 
-      sin[i][j] = std::sin(angle);
-      sin[i][j + half_] = std::sin(angle); // repeated 2 times
+      sin_vec[i][j] = std::sin(angle);
+      sin_vec[i][j + half_] = std::sin(angle); // repeated 2 times
     }
   }
-  freqs_cos = cos;
-  freqs_sin = sin;
+  freqs_cos = cos_vec;
+  freqs_sin = sin_vec;
 }
 
 /**
@@ -59,12 +59,15 @@ void precompute_freqs(int dim, unsigned int seq_len,
  * @param[in] dim hidden dim size
  * @param[in] from sequence order
  * @param[in] max_timestep maximum timestep
+ * @param[in] context layer context to get the resource manager and queue id
+ *
+ * @todo      Calling precompute_freqs in finalize to reduce code redundancy.
  */
 void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
                          unsigned int max_timestep, RunLayerContext &context) {
   nntrainer::Tensor out(in.getDim());
-  float value = 0;
-  float transformed_value = 0.0;
+  float value = 0.0f;
+  float transformed_value = 0.0f;
   unsigned int half_ = dim / 2;
 
   std::vector<std::vector<float>> freqs_cos = {};
