@@ -16,8 +16,8 @@
 
 namespace nntrainer {
 
-void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-              unsigned int dim1, unsigned int dim2, unsigned int lda) {
+void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
+              unsigned int dim1, unsigned int dim2, unsigned int lda){
 
   bool result = false;
 
@@ -99,12 +99,11 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
   } while (false);
 }
 
-__fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
-              unsigned int dim1) {
+_FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1){
 
   bool result = false;
 
-  __fp16 cl_ret = 0;
+  _FP16 cl_ret = 0;
 
   do {
     ClContext::SharedPtrClKernel kernel_dot_fp16_ptr =
@@ -122,7 +121,7 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
     opencl::Buffer inputX(cl_context_ref.context_inst_, dim1_size, true,
                           nullptr);
 
-    opencl::Buffer dotResult(cl_context_ref.context_inst_, sizeof(__fp16), true,
+    opencl::Buffer dotResult(cl_context_ref.context_inst_, sizeof(_FP16), true,
                              &cl_ret);
 
     result = inputA.WriteData(cl_context_ref.command_queue_inst_, vecAdata);
@@ -177,9 +176,9 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
   return cl_ret;
 }
 
-void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
-              __fp16 *C, unsigned int M, unsigned int N, unsigned int K,
-              unsigned int lda, unsigned int ldb, unsigned int ldc) {
+void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
+              _FP16 *C, unsigned int M, unsigned int N, unsigned int K,
+              unsigned int lda, unsigned int ldb, unsigned int ldc){
 
   std::string kernel_func_;
   std::string sgemm_cl_kernel_fp16_;
@@ -291,7 +290,7 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
   } while (false);
 }
 
-void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
+void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size){
 
   bool result = false;
 
@@ -354,7 +353,7 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
   } while (false);
 }
 
-void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
+void sscal_cl(_FP16 *X, const unsigned int N, const float alpha){
   bool result = false;
 
   do {

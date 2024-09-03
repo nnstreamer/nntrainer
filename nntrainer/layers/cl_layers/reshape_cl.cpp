@@ -127,7 +127,7 @@ void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
   }
 }
 
-void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
+void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
                                   unsigned int input_batch_size,
                                   unsigned int input_channels,
                                   unsigned int input_height,
@@ -142,7 +142,7 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
       break;
     }
 
-    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
+    size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
@@ -211,10 +211,10 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
 }
 
 void ReshapeLayerCl::copy_cl(const float *input, float *res,
-                             unsigned int input_batch_size,
-                             unsigned int input_channels,
-                             unsigned int input_height,
-                             unsigned int input_width) {
+                                  unsigned int input_batch_size,
+                                  unsigned int input_channels,
+                                  unsigned int input_height,
+                                  unsigned int input_width){
 
   bool result = false;
 

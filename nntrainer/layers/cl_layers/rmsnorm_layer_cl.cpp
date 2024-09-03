@@ -246,9 +246,9 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     opencl::Buffer resultbuf(cl_context_ref.context_inst_,
                              dim1 * sizeof(cl_half), true, nullptr);
 
-    const __fp16 *data = input.getData<__fp16>();
-    __fp16 *rdata = result.getData<__fp16>();
-    const __fp16 *gdata = gamma.getData<__fp16>();
+    const _FP16 *data = input.getData<_FP16>();
+    _FP16 *rdata = result.getData<_FP16>();
+    const _FP16 *gdata = gamma.getData<_FP16>();
     ret = inputbuf.WriteData(cl_context_ref.command_queue_inst_, data);
     if (!ret) {
       break;

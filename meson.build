@@ -21,6 +21,7 @@ add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language:
 add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language: ['c', 'cpp'])
 
 extra_defines = ['-DMIN_CPP_VERSION=201703L']
+dummy_dep = dependency('', required: false)
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
@@ -128,6 +129,10 @@ endif
 if get_option('enable-opencl')
   message ('OpenCL build is enabled. Will work only if OpenCL supported GPU is available.')
   extra_defines += '-DENABLE_OPENCL=1'
+  opencl_dep = dummy_dep
+  if get_option('platform') != 'android'
+    opencl_dep = dependency('OpenCL')
+  endif
 endif
 
 if get_option('opencl-kernel-path') != ''
@@ -203,7 +208,6 @@ nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
 nntrainer_conf.set('MEMORY_SWAP', nntrainer_enable_swap)
 nntrainer_conf.set('MEMORY_SWAP_PATH', nntrainer_swapdir)
 
-dummy_dep = dependency('', required: false)
 ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.

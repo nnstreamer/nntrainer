@@ -127,9 +127,8 @@ public:
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
    */
-  void swiglu_cl_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                      __fp16 *vecYdata, unsigned int dim1, unsigned int dim2);
-#endif
+  void swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                      _FP16 *vecYdata, unsigned int dim1, unsigned int dim2);
 };
 
 } // namespace nntrainer
