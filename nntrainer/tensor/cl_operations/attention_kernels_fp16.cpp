@@ -30,38 +30,36 @@ __kernel void rotary_emb_cl_fp16(__global half *input,
                                       unsigned int half_,
                                       unsigned int max_timestep,
                                       unsigned int from) {
-    unsigned int gid = get_global_id(0);
-    unsigned int gws = get_global_size(0);
-
     __global float *cos_ptr = cos_;
     __global float *sin_ptr = sin_;
 
     float value = 0.0f;
     float transformed_value = 0.0f;
 
-    for (unsigned int b = 0; b < batch; b++) {
-      for (unsigned int c = 0; c < channel; c++) {
-        for (unsigned int h = 0; h < height; h++) {
-          if (from + h < max_timestep) {
-            unsigned idx = (from + h)*dim;
-            for(int i = idx; i < idx + dim; i++ ){
-              cos_ptr[i - idx] = freqs_cos[i];
-              sin_ptr[i - idx] = freqs_sin[i];
-            }
+    unsigned int b = get_global_id(0);
+    unsigned int c = get_global_id(1);
+    
+    if(b < batch && c < channel){
+      for (unsigned int h = 0; h < height; h++) {
+        if (from + h < max_timestep) {
+          unsigned idx = (from + h)*dim;
+          for(int i = idx; i < idx + dim; i++ ){
+            cos_ptr[i - idx] = freqs_cos[i];
+            sin_ptr[i - idx] = freqs_sin[i];
           }
+        }
 
-          for (unsigned int w = 0; w < width; w = w + dim) {
-            for (unsigned int k = 0; k < dim; k++) {
-              unsigned int span = w + k;
-              value = (float)input[b * channel * height * width + c * height * width + h * width + span];
-              if (k < half_) {
-                transformed_value = -1.0f * (float)input[b * channel * height * width + c * height * width + h * width + span + half_];
-              } else {
-                transformed_value = (float)input[b * channel * height * width + c * height * width + h * width + span - half_];
-              }
-              value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
-              output[b * channel * height * width + c * height * width + h * width + span] = (half)value;
+        for (unsigned int w = 0; w < width; w = w + dim) {
+          for (unsigned int k = 0; k < dim; k++) {
+            unsigned int span = w + k;
+            value = (float)input[b * channel * height * width + c * height * width + h * width + span];
+            if (k < half_) {
+              transformed_value = -1.0f * (float)input[b * channel * height * width + c * height * width + h * width + span + half_];
+            } else {
+              transformed_value = (float)input[b * channel * height * width + c * height * width + h * width + span - half_];
             }
+            value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
+            output[b * channel * height * width + c * height * width + h * width + span] = (half)value;
           }
         }
       }
@@ -259,8 +257,8 @@ void rotary_emb_cl(__fp16 *in, __fp16 *out,
       break;
     }
 
-    const int work_groups_count[3] = {1, 1, 1};
-    const int work_group_size[3] = {32, 1, 1}; // test-value
+    const int work_groups_count[3] = {(int)batch, (int)channel, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
     result = context.command_queue_inst_.DispatchCommand(
       kernel_rotary_emb_fp16, work_groups_count, work_group_size);
     if (!result) {
