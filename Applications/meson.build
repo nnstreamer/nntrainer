@@ -26,3 +26,4 @@ if get_option('enable-tflite-backbone')
   subdir('SimpleShot')
 endif
 subdir('PicoGPT/jni')
+subdir('LoRA/jni')

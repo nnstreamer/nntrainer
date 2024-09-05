@@ -121,4 +121,33 @@ private:
   std::vector<unsigned int> idxes; /**< index information for one epoch */
 };
 
+/**
+ * OnesTestDataLoader is a data loader for function testing, generating
+ * ones data for input and zeros for label.
+ */
+class OnesTestDataLoader : public DataLoader {
+
+public:
+  OnesTestDataLoader(const std::vector<TensorDim> &input_shapes,
+                     const std::vector<TensorDim> &output_shapes,
+                     int data_size_);
+
+  /**
+   * @brief Destroy the Random Data Loader object
+   */
+  ~OnesTestDataLoader() {}
+
+  /**
+   * @copydoc void DataLoader::next(float **input, float**label, bool *last)
+   */
+  void next(float **input, float **label, bool *last);
+
+private:
+  unsigned int iteration;
+  unsigned int data_size;
+
+  std::vector<TensorDim> input_shapes;
+  std::vector<TensorDim> output_shapes;
+};
+
 } // namespace nntrainer::util

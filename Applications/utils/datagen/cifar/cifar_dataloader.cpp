@@ -12,7 +12,6 @@
 
 #include "cifar_dataloader.h"
 
-#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <nntrainer_error.h>
@@ -167,6 +166,48 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
     *last = true;
     current_iteration = 0;
     std::shuffle(idxes.begin(), idxes.end(), rng);
+  }
+}
+
+OnesTestDataLoader::OnesTestDataLoader(
+  const std::vector<TensorDim> &input_shapes,
+  const std::vector<TensorDim> &output_shapes, int data_size_) :
+  iteration(0),
+  data_size(data_size_),
+  input_shapes(input_shapes),
+  output_shapes(output_shapes) {}
+
+void OnesTestDataLoader::next(float **input, float **label, bool *last) {
+
+  auto fill_input = [this](float *input, unsigned int length) {
+    for (unsigned int i = 0; i < length; ++i) {
+      *input = 1.0;
+      ++input;
+    }
+  };
+
+  auto fill_label = [this](float *label, unsigned int batch,
+                           unsigned int length) {
+    fillLabel(label, length, 0);
+    label += length;
+  };
+
+  if (updateIteration(iteration, data_size)) {
+    *last = true;
+    return;
+  }
+
+  float **cur_input_tensor = input;
+  for (unsigned int i = 0; i < input_shapes.size(); ++i) {
+    fill_input(*cur_input_tensor, input_shapes.at(i).getFeatureLen());
+    cur_input_tensor++;
+  }
+
+  float **cur_label_tensor = label;
+  for (unsigned int i = 0; i < output_shapes.size(); ++i) {
+    fill_label(*label, output_shapes.at(i).batch(),
+               output_shapes.at(i).getFeatureLen());
+    cur_label_tensor++;
   }
 }
 
