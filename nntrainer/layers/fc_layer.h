@@ -103,6 +103,12 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(nntrainer::RunLayerContext &context,
+                unsigned int batch) override;
+
   inline static const std::string type = "fully_connected";
 
 private:
