@@ -584,6 +584,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif
 %endif
 %{_includedir}/nntrainer/acti_func.h
+# model headers
+%{_includedir}/nntrainer/neuralnet.h
 
 
 %if 0%{?enable_avx}
