@@ -16,6 +16,7 @@
 
 #include "opencl_kernel.h"
 #include "third_party/cl.h"
+#include <memory>
 
 namespace nntrainer::opencl {
 
@@ -96,6 +97,22 @@ public:
    * @return true if command queue execution is successful or false otherwise
    */
   bool DispatchCommand(Kernel kernel, const int (&work_groups_count)[3],
+                       const int (&work_group_size)[3],
+                       cl_event *event = nullptr);
+
+  /**
+   * @brief Overloaded function to initiate execution of the command queue.
+   *
+   * @param kernel_ptr reference of OpenCL kernel shared_ptr
+   * @param work_groups_count Total number of work items that will execute the
+   * kernel function
+   * @param work_group_size Number of work items that make up a work group
+   * @param event Object that identifies this command and can be used to query
+   * or wait for this command to complete
+   * @return true if command queue execution is successful or false otherwise
+   */
+  bool DispatchCommand(const std::shared_ptr<Kernel> &kernel_ptr,
+                       const int (&work_groups_count)[3],
                        const int (&work_group_size)[3],
                        cl_event *event = nullptr);
 
