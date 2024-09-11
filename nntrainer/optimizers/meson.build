@@ -12,7 +12,8 @@ optimizer_sources = [
 optimizer_headers = [
   'optimizer_devel.h',
   'optimizer_context.h',
-  'lr_scheduler.h'
+  'lr_scheduler.h',
+  'optimizer_wrapped.h'
 ]
 
 foreach s : optimizer_sources

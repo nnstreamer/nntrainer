@@ -33,7 +33,18 @@ tensor_headers = [
   'weight.h',
   'var_grad.h',    
   'tensor_wrap_specs.h',
-  'blas_interface.h'
+  'blas_interface.h',
+  'manager.h',
+  'basic_planner.h',
+  'memory_planner.h',
+  'tensor_pool.h',
+  'cache_loader.h',
+  'task_executor.h',
+  'cache_pool.h',
+  'cache_elem.h',
+  'memory_pool.h',
+  'swap_device.h',
+  'task.h'
 ]
 
 arch = host_machine.cpu_family()

@@ -44,3 +44,24 @@
 /usr/include/nntrainer/util_simd.h
 # model
 /usr/include/nntrainer/neuralnet.h
+## neuralnet.h : forwarding() / backwarding() support
+/usr/include/nntrainer/compiler_fwd.h 
+/usr/include/nntrainer/dynamic_training_optimization.h
+/usr/include/nntrainer/layer_node.h
+/usr/include/nntrainer/graph_node.h
+/usr/include/nntrainer/model_common_properties.h
+/usr/include/nntrainer/network_graph.h
+/usr/include/nntrainer/graph_core.h
+/usr/include/nntrainer/graph_node.h
+/usr/include/nntrainer/manager.h
+/usr/include/nntrainer/basic_planner.h
+/usr/include/nntrainer/memory_planner.h
+/usr/include/nntrainer/tensor_pool.h
+/usr/include/nntrainer/cache_loader.h
+/usr/include/nntrainer/task.h
+/usr/include/nntrainer/task_executor.h
+/usr/include/nntrainer/cache_pool.h
+/usr/include/nntrainer/cache_elem.h
+/usr/include/nntrainer/memory_pool.h
+/usr/include/nntrainer/swap_device.h
+/usr/include/nntrainer/optimizer_wrapped.h

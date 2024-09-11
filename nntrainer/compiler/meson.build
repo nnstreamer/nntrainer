@@ -12,7 +12,9 @@ compiler_sources = [
   'loss_realizer.cpp',
 ]
 
-compiler_headers = []
+compiler_headers = [
+  'compiler_fwd.h'
+]
 
 if get_option('enable-tflite-interpreter')
   if not tflite_dep.found()

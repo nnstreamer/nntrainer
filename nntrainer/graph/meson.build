@@ -4,7 +4,13 @@ graph_sources = [
   'connection.cpp'
 ]
 
-graph_headers = ['connection.h']
+graph_headers = [
+  'connection.h',
+  'graph_node.h',
+  'network_graph.h',
+  'graph_core.h',
+  'graph_node.h',
+]
 
 foreach s : graph_sources
   nntrainer_sources += meson.current_source_dir() / s
