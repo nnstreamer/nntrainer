@@ -53,6 +53,7 @@ layer_headers = [
   'layer_impl.h',
   'acti_func.h',
   'common_properties.h',
+  'layer_node.h',
 ]
 
 layer_deps = []
