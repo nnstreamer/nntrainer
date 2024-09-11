@@ -119,6 +119,77 @@ const int ClContext::registerFactory(const FactoryType<T> factory,
   return assigned_int_key;
 }
 
+const ClContext::SharedPtrClKernel &
+ClContext::registerClKernel(std::string kernel_string,
+                            std::string kernel_name) {
+  // check if created before
+  if (ocl_kernel_map.find(kernel_name) != ocl_kernel_map.end()) {
+    ml_logi("Kernel already registered and initialized: %s",
+            kernel_name.c_str());
+    return ocl_kernel_map[kernel_name];
+  }
+
+  // creating shared_ptr for kernel object
+  SharedPtrClKernel kernelPtr = std::make_shared<opencl::Kernel>();
+  if (!clCreateKernel(kernel_string, kernel_name, kernelPtr)) {
+    ml_loge("Failed to register kernel %s", kernel_name.c_str());
+    return nullptr;
+  }
+  // add to map
+  ocl_kernel_map.emplace(kernel_name, kernelPtr);
+  return ocl_kernel_map[kernel_name];
+}
+
+bool ClContext::clCreateKernel(std::string &kernel_string,
+                               std::string &kernel_name,
+                               const SharedPtrClKernel &kernel_ptr_) {
+
+  ml_logi("Kernel initializing: %s", kernel_name.c_str());
+
+  bool result = false;
+
+  do {
+    opencl::Program program;
+
+    // reading binary
+    std::ifstream fs(opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
+                       "_kernel.bin",
+                     std::ios::binary | std::ios::in);
+
+    if (fs.good()) {
+      fs.seekg(0, std::ios::end);
+      size_t binary_size = fs.tellg();
+      fs.seekg(0, std::ios::beg);
+
+      unsigned char chunk[binary_size];
+      fs.read((char *)chunk, binary_size);
+
+      result = program.CreateCLProgramWithBinary(
+        context_inst_.GetContext(), context_inst_.GetDeviceId(), binary_size,
+        chunk,
+        opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
+          "_kernel.bin",
+        "");
+    } else {
+      result =
+        program.CreateCLProgram(context_inst_.GetContext(),
+                                context_inst_.GetDeviceId(), kernel_string, "");
+    }
+
+    if (!result) {
+      break;
+    }
+
+    result = kernel_ptr_->CreateKernelFromProgram(program, kernel_name);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+
+  return result;
+}
+
 /**
  * @copydoc const int ClContext::registerFactory
  */

@@ -40,8 +40,9 @@ std::unique_ptr<Layer> createLayer(const LayerType &type,
  * @brief Factory creator with constructor for layer
  */
 std::unique_ptr<Layer> createLayer(const std::string &type,
-                                   const std::vector<std::string> &properties) {
-  return nntrainer::createLayerNode(type, properties);
+                                   const std::vector<std::string> &properties,
+                                   const LayerComputeEngine &compute_engine) {
+  return nntrainer::createLayerNode(type, properties, compute_engine);
 }
 
 std::unique_ptr<Optimizer>

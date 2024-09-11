@@ -30,6 +30,9 @@
 #include <layer_devel.h>
 
 #include <opencl_command_queue_manager.h>
+#include <opencl_context_manager.h>
+#include <opencl_kernel.h>
+#include <opencl_program.h>
 
 #include <nntrainer_log.h>
 
@@ -49,6 +52,8 @@ public:
 
   template <typename T> using PtrType = std::unique_ptr<T>;
 
+  using SharedPtrClKernel = std::shared_ptr<opencl::Kernel>;
+
   template <typename T>
   using FactoryType = std::function<PtrType<T>(const PropsType &)>;
 
@@ -61,6 +66,9 @@ public:
   /** integer to string key */
   using IntIndexType = std::unordered_map<int, std::string>;
 
+  /** string to kernel pointer map*/
+  using OclKernelMap = std::unordered_map<std::string, SharedPtrClKernel>;
+
   /**
    * This type contains tuple of
    * 1) integer -> string index
@@ -70,6 +78,12 @@ public:
   using IndexType = std::tuple<StrIndexType<T>, IntIndexType>;
 
   template <typename... Ts> using FactoryMap = std::tuple<IndexType<Ts>...>;
+
+  // getting static instance of commandqueue and opencl context
+  opencl::CommandQueueManager &command_queue_inst_ =
+    opencl::CommandQueueManager::GetInstance();
+
+  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
 
   /**
    * @brief   Default constructor
@@ -184,11 +198,22 @@ public:
   }
 
   /**
+   * @brief register or return already present OpenCl kernel pointer
+   * @param kernel_string kernel implementation string
+   * @param kernel_name kernel name
+   * @return reference of std::shared_ptr<opencl::Kernel>
+   */
+  const SharedPtrClKernel &registerClKernel(std::string kernel_string,
+                                            std::string kernel_name);
+
+  /**
    * @brief destructor to release opencl commandQueue
    */
   ~ClContext() {
     if (cl_initialized) {
       command_queue_inst_.ReleaseCommandQueue();
+      // getContext() is called by clCreateKernel
+      context_inst_.ReleaseContext();
     }
   };
 
@@ -199,6 +224,9 @@ private:
   FactoryMap<nntrainer::Layer> factory_map;
 
   template <typename Args, typename T> struct isSupportedHelper;
+
+  // map to store initialized opencl::Kernel
+  OclKernelMap ocl_kernel_map;
 
   /**
    * @brief supportHelper to check if given type is supported within cl context
@@ -214,10 +242,6 @@ private:
    */
   template <typename T>
   struct isSupported : isSupportedHelper<T, decltype(factory_map)> {};
-
-  // getting static instance of commandqueue
-  opencl::CommandQueueManager &command_queue_inst_ =
-    opencl::CommandQueueManager::GetInstance();
 
   /**
    * @brief Initialize opencl commandqueue and context
@@ -235,6 +259,16 @@ private:
     cl_initialized = result;
     return cl_initialized;
   };
+
+  /**
+   * @brief create OpenCl kernel
+   * @param kernel_string reference of implementation string
+   * @param kernel_name reference of kernel_name
+   * @param kernel_ptr_ reference of shared_ptr of Kernel
+   * @return true if successful, false otherwise
+   */
+  bool clCreateKernel(std::string &kernel_string, std::string &kernel_name,
+                      const SharedPtrClKernel &kernel_ptr_);
 };
 
 /**
