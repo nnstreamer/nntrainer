@@ -6,7 +6,9 @@ model_sources = [
 ]
 
 model_headers = [
-  'neuralnet.h'
+  'neuralnet.h',
+  'dynamic_training_optimization.h',
+  'model_common_properties.h',
 ]
 
 foreach s : model_sources

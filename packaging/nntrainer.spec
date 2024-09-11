@@ -578,9 +578,27 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/acti_func.h
 # model headers
 %{_includedir}/nntrainer/neuralnet.h
-
-
-%{_includedir}/nntrainer/acti_func.h
+## neuralnet.h
+%{_includedir}/nntrainer/compiler_fwd.h 
+%{_includedir}/nntrainer/dynamic_training_optimization.h
+%{_includedir}/nntrainer/layer_node.h
+%{_includedir}/nntrainer/graph_node.h
+%{_includedir}/nntrainer/model_common_properties.h
+%{_includedir}/nntrainer/network_graph.h
+%{_includedir}/nntrainer/graph_core.h
+%{_includedir}/nntrainer/graph_node.h
+%{_includedir}/nntrainer/manager.h
+%{_includedir}/nntrainer/basic_planner.h
+%{_includedir}/nntrainer/memory_planner.h
+%{_includedir}/nntrainer/tensor_pool.h
+%{_includedir}/nntrainer/cache_loader.h
+%{_includedir}/nntrainer/task.h
+%{_includedir}/nntrainer/task_executor.h
+%{_includedir}/nntrainer/cache_pool.h
+%{_includedir}/nntrainer/cache_elem.h
+%{_includedir}/nntrainer/memory_pool.h
+%{_includedir}/nntrainer/swap_device.h
+%{_includedir}/nntrainer/optimizer_wrapped.h
 
 
 %files devel-static
