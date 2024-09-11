@@ -459,9 +459,11 @@ void sscal_cl(float *X, const unsigned int N, const float alpha,
   bool result = false;
 
   do {
-    result = context.clCreateKernel(sscal_cl_kernel_,
-                                    context.LayerKernel::SSCAL, kernel_sscal);
-    if (!result) {
+    auto &cc = ClContext::Global();
+    ClContext::SharedPtrClKernel kernel_ptr =
+      cc.registerClKernel(sscal_cl_kernel_, "sscal_cl");
+
+    if (!kernel_ptr) {
       break;
     }
 
@@ -474,12 +476,12 @@ void sscal_cl(float *X, const unsigned int N, const float alpha,
       break;
     }
 
-    result = kernel_sscal.SetKernelArguments(0, &inputX, sizeof(cl_mem));
+    result = kernel_ptr->SetKernelArguments(0, &inputX, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sscal.SetKernelArguments(1, &alpha, sizeof(float));
+    result = kernel_ptr->SetKernelArguments(1, &alpha, sizeof(float));
     if (!result) {
       break;
     }
@@ -488,7 +490,7 @@ void sscal_cl(float *X, const unsigned int N, const float alpha,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = context.command_queue_inst_.DispatchCommand(
-      kernel_sscal, work_groups_count, work_group_size);
+      kernel_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }

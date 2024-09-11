@@ -202,4 +202,34 @@ bool CommandQueueManager::DispatchCommand(Kernel kernel,
   return true;
 }
 
+bool CommandQueueManager::DispatchCommand(
+  const std::shared_ptr<Kernel> &kernel_ptr, const int (&work_groups_count)[3],
+  const int (&work_group_size)[3], cl_event *event) {
+
+  // work_dim of 2 has been hardcoded, might be modified later based on
+  // requirements
+
+  // setting the local_work_size referred to as the size of the
+  // work-group
+  const size_t local[2] = {static_cast<size_t>(work_group_size[0]),
+                           static_cast<size_t>(work_group_size[1])};
+
+  // setting the global_work_size that describe the number of global work-items
+  const size_t global[2] = {static_cast<size_t>(work_groups_count[0]),
+                            static_cast<size_t>(work_groups_count[1])};
+
+  cl_kernel kernel_ = kernel_ptr->GetKernel();
+
+  // returns NULL with error code if fails
+  const int error_code = clEnqueueNDRangeKernel(
+    command_queue_, kernel_, 2, nullptr, global, local, 0, nullptr, event);
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d",
+            error_code);
+    return false;
+  }
+
+  return true;
+}
+
 } // namespace nntrainer::opencl

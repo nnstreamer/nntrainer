@@ -14,6 +14,7 @@
 #ifndef __BLAS_KERNELS_H__
 #define __BLAS_KERNELS_H__
 
+#include <cl_context.h>
 #include <layer_context.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>

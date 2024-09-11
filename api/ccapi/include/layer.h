@@ -266,7 +266,8 @@ createLayer(const LayerType &type,
  */
 std::unique_ptr<Layer>
 createLayer(const std::string &type,
-            const std::vector<std::string> &properties = {});
+            const std::vector<std::string> &properties = {},
+            const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU);
 
 /**
  * @brief General Layer Factory function to register Layer
