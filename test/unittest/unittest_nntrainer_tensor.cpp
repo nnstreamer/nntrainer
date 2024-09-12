@@ -231,6 +231,52 @@ TEST(nntrainer_Tensor, Tensor_05_p) {
   }
 }
 
+TEST(nntrainer_Tensor, Tensor_06_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint8_t>>> in = {{{0, 1}, {2, 3}},
+                                                       {{4, 5}, {6, 7}},
+                                                       {{8, 9}, {10, 11}},
+                                                       {{12, 13}, {14, 15}}};
+
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8});
+  ASSERT_NE(nullptr, tensor.getData<uint8_t>());
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint8_t>(idx));
+        }
+      }
+    }
+  }
+}
+
+TEST(nntrainer_Tensor, Tensor_07_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint32_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32});
+  ASSERT_NE(nullptr, tensor.getData<uint32_t>());
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint32_t>(idx));
+        }
+      }
+    }
+  }
+}
+
 // TEST(nntrainer_Tensor, Tensor_06_p) {
 //   int status = ML_ERROR_NONE;
 //   nntrainer::Tensor tensor = nntrainer::Tensor(
@@ -3602,6 +3648,40 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
   EXPECT_NE(A.getDim(), C.getDim());
 }
 
+TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
+  nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::UINT8);
+  nntrainer::Tensor B = A.clone();
+  nntrainer::Tensor C = A;
+
+  C.setValue(1, 1, 1, 1, 9);
+
+  EXPECT_EQ(A, C);
+  EXPECT_NE(B, C);
+
+  C.reshape(nntrainer::TensorDim(3, 4, 6, 5, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::UINT8));
+  EXPECT_EQ(A.getDim(), B.getDim());
+  EXPECT_NE(A.getDim(), C.getDim());
+}
+
+TEST(nntrainer_Tensor, copy_and_shares_variable_04_p) {
+  nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::UINT32);
+  nntrainer::Tensor B = A.clone();
+  nntrainer::Tensor C = A;
+
+  C.setValue(1, 1, 1, 1, 9);
+
+  EXPECT_EQ(A, C);
+  EXPECT_NE(B, C);
+
+  C.reshape(nntrainer::TensorDim(3, 4, 6, 5, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::UINT32));
+  EXPECT_EQ(A.getDim(), B.getDim());
+  EXPECT_NE(A.getDim(), C.getDim());
+}
+
 TEST(nntrainer_Tensor, reshape_n_01) {
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
 
@@ -3907,6 +3987,26 @@ TEST(nntrainer_Tensor, allocate_05_p) {
   EXPECT_FALSE(t.isAllocated());
 }
 
+TEST(nntrainer_Tensor, allocate_06_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8}},
+    true);
+  EXPECT_TRUE(t.isAllocated());
+
+  t.allocate();
+  EXPECT_TRUE(t.isAllocated());
+}
+
+TEST(nntrainer_Tensor, allocate_07_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32}},
+    true);
+  EXPECT_TRUE(t.isAllocated());
+
+  t.allocate();
+  EXPECT_TRUE(t.isAllocated());
+}
+
 TEST(nntrainer_Tensor, initialize_01_p) {
   nntrainer::Tensor t({1, 2, 3, 4}, true, nntrainer::Initializer::ONES);
 
@@ -4051,7 +4151,51 @@ TEST(nntrainer_Tensor, initialize_12_n) {
     {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}},
     true);
 
-  /// @note ShortTensor does not support HE_NORMAL initialization
+  /// @note UInt16Tensor does not support HE_NORMAL initialization
+  EXPECT_THROW(t.initialize(nntrainer::Initializer::HE_NORMAL),
+               std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, initialize_12_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8}}, true,
+    nntrainer::Initializer::ONES);
+  nntrainer::Tensor golden(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8}}, true,
+    nntrainer::Initializer::ZEROS);
+  EXPECT_NE(golden, t);
+  golden.initialize(nntrainer::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_13_n) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8}},
+    true);
+
+  /// @note UInt8Tensor does not support HE_NORMAL initialization
+  EXPECT_THROW(t.initialize(nntrainer::Initializer::HE_NORMAL),
+               std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, initialize_14_p) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32}},
+    true, nntrainer::Initializer::ONES);
+  nntrainer::Tensor golden(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32}},
+    true, nntrainer::Initializer::ZEROS);
+  EXPECT_NE(golden, t);
+  golden.initialize(nntrainer::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_15_n) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32}},
+    true);
+
+  /// @note UInt32Tensor does not support HE_NORMAL initialization
   EXPECT_THROW(t.initialize(nntrainer::Initializer::HE_NORMAL),
                std::invalid_argument);
 }

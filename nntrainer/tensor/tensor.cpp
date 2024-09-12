@@ -12,8 +12,8 @@
 #include <char_tensor.h>
 #include <float_tensor.h>
 #include <lazy_tensor.h>
-#include <short_tensor.h>
 #include <tensor.h>
+#include <uint_tensor.h>
 
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
@@ -33,9 +33,15 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d_type == Tdatatype::UINT8) {
+    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(name_, fm),
+                                           std::default_delete<UInt8Tensor>());
   } else if (d_type == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(name_, fm),
-                                           std::default_delete<ShortTensor>());
+    itensor = std::shared_ptr<UInt16Tensor>(
+      new UInt16Tensor(name_, fm), std::default_delete<UInt16Tensor>());
+  } else if (d_type == Tdatatype::UINT32) {
+    itensor = std::shared_ptr<UInt32Tensor>(
+      new UInt32Tensor(name_, fm), std::default_delete<UInt32Tensor>());
   } else if (d_type == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(name_, fm),
                                           std::default_delete<CharTensor>());
@@ -63,10 +69,18 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::UINT8) {
+    itensor =
+      std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, alloc_now, init, name),
+                                   std::default_delete<UInt8Tensor>());
   } else if (d.getDataType() == Tdatatype::UINT16) {
     itensor =
-      std::shared_ptr<ShortTensor>(new ShortTensor(d, alloc_now, init, name),
-                                   std::default_delete<ShortTensor>());
+      std::shared_ptr<UInt16Tensor>(new UInt16Tensor(d, alloc_now, init, name),
+                                    std::default_delete<UInt16Tensor>());
+  } else if (d.getDataType() == Tdatatype::UINT32) {
+    itensor =
+      std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, alloc_now, init, name),
+                                    std::default_delete<UInt32Tensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
     itensor =
       std::shared_ptr<CharTensor>(new CharTensor(d, alloc_now, init, name),
@@ -92,9 +106,15 @@ Tensor::Tensor(const TensorDim &d, const void *buf) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::UINT8) {
+    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, buf),
+                                           std::default_delete<UInt8Tensor>());
   } else if (d.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(d, buf),
-                                           std::default_delete<ShortTensor>());
+    itensor = std::shared_ptr<UInt16Tensor>(
+      new UInt16Tensor(d, buf), std::default_delete<UInt16Tensor>());
+  } else if (d.getDataType() == Tdatatype::UINT32) {
+    itensor = std::shared_ptr<UInt32Tensor>(
+      new UInt32Tensor(d, buf), std::default_delete<UInt32Tensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf),
                                           std::default_delete<CharTensor>());
@@ -117,9 +137,15 @@ Tensor::Tensor(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::UINT8) {
+    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
+                                           std::default_delete<UInt8Tensor>());
   } else if (rhs.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
-                                           std::default_delete<ShortTensor>());
+    itensor = std::shared_ptr<UInt16Tensor>(
+      new UInt16Tensor(*rhs.itensor), std::default_delete<UInt16Tensor>());
+  } else if (rhs.getDataType() == Tdatatype::UINT32) {
+    itensor = std::shared_ptr<UInt32Tensor>(
+      new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
@@ -137,9 +163,15 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::UINT8) {
+    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
+                                           std::default_delete<UInt8Tensor>());
   } else if (rhs.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
-                                           std::default_delete<ShortTensor>());
+    itensor = std::shared_ptr<UInt16Tensor>(
+      new UInt16Tensor(*rhs.itensor), std::default_delete<UInt16Tensor>());
+  } else if (rhs.getDataType() == Tdatatype::UINT32) {
+    itensor = std::shared_ptr<UInt32Tensor>(
+      new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
@@ -163,9 +195,15 @@ bool Tensor::operator==(const Tensor &rhs) const {
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
         "Please check if the tensor data type is set properly.");
 #endif
+    } else if (getDataType() == Tdatatype::UINT8) {
+      return *std::dynamic_pointer_cast<UInt8Tensor>(itensor) ==
+             *std::dynamic_pointer_cast<UInt8Tensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::UINT16) {
-      return *std::dynamic_pointer_cast<ShortTensor>(itensor) ==
-             *std::dynamic_pointer_cast<ShortTensor>(rhs.itensor);
+      return *std::dynamic_pointer_cast<UInt16Tensor>(itensor) ==
+             *std::dynamic_pointer_cast<UInt16Tensor>(rhs.itensor);
+    } else if (getDataType() == Tdatatype::UINT32) {
+      return *std::dynamic_pointer_cast<UInt32Tensor>(itensor) ==
+             *std::dynamic_pointer_cast<UInt32Tensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::QINT8) {
       return *std::dynamic_pointer_cast<CharTensor>(itensor) ==
              *std::dynamic_pointer_cast<CharTensor>(rhs.itensor);

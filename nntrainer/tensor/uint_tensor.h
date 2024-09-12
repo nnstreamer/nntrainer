@@ -1,85 +1,90 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * @file	short_tensor.h
+ * @file	uint_tensor.h
  * @date	02 April 2024
- * @brief	This is ShortTensor class for 16-bit unsigned integer calculation
+ * @brief	This is UIntTensor class for unsigned integer calculation
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Donghyeon Jeong <dhyeon.jeong@samsung.com>
+ * @author	Eunju Yang <ej.yang@samsung.com>
  * @bug		No known bugs except for NYI items
  */
 
-#ifndef __SHORT_TENSOR_H__
-#define __SHORT_TENSOR_H__
+#ifndef __UINT_TENSOR_H__
+#define __UINT_TENSOR_H__
 #ifdef __cplusplus
 
+#include <blas_interface.h>
+#include <iomanip>
+#include <iostream>
+#include <tensor.h>
 #include <tensor_base.h>
 
 namespace nntrainer {
 
 /**
- * @class ShortTensor class
- * @brief ShortTensor class for 16-bit unsigned integer calculation
+ * @class UIntTensor class : Template <typename T>
+ * @brief UIntTensor class for T-bit unsigned integer calculation
+ * For typename, uint8_t, uint16_t, uint32_t are supported.
  */
-class ShortTensor : public TensorBase {
+template <typename T> class UIntTensor : public TensorBase {
 public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  ShortTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
+  UIntTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
 
   /**
-   * @brief Construct a new ShortTensor object
+   * @brief Construct a new UIntTensor object
    *
    * @param d Tensor dim for this float tensor
    * @param alloc_now Allocate memory to this tensor or not
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    */
-  ShortTensor(const TensorDim &d, bool alloc_now,
-              Initializer init = Initializer::NONE, std::string name = "");
+  UIntTensor(const TensorDim &d, bool alloc_now,
+             Initializer init = Initializer::NONE, std::string name = "");
 
   /**
-   * @brief Construct a new ShortTensor object
+   * @brief Construct a new UIntTensor object
    *
    * @param d Tensor dim for this tensor
    * @param buf buffer
    */
-  ShortTensor(const TensorDim &d, const void *buf = nullptr);
+  UIntTensor(const TensorDim &d, const void *buf = nullptr);
 
   /**
-   * @brief Construct a new ShortTensor object
+   * @brief Construct a new UIntTensor object
    *
    * @param d data for the Tensor
    * @param fm format for the Tensor
    */
-  ShortTensor(
-    std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-    Tformat fm);
+  UIntTensor(std::vector<std::vector<std::vector<std::vector<T>>>> const &d,
+             Tformat fm);
 
   /**
-   * @brief Construct a new ShortTensor object
+   * @brief Construct a new UIntTensor object
    * @param rhs TensorBase object to copy
    */
-  ShortTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  UIntTensor(TensorBase &rhs) : TensorBase(rhs) {}
 
   /**
    * @brief Basic Destructor
    */
-  ~ShortTensor() {}
+  ~UIntTensor() {}
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator==(const ShortTensor &rhs) const;
+  bool operator==(const UIntTensor &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator!=(const ShortTensor &rhs) const { return !(*this == rhs); }
+  bool operator!=(const UIntTensor &rhs) const { return !(*this == rhs); }
 
   /**
    * @copydoc Tensor::allocate()
@@ -117,13 +122,13 @@ public:
    * @brief     return value at specific location
    * @param[in] i index
    */
-  const uint16_t &getValue(unsigned int i) const;
+  const T &getValue(unsigned int i) const;
 
   /**
    * @brief     return value at specific location
    * @param[in] i index
    */
-  uint16_t &getValue(unsigned int i);
+  T &getValue(unsigned int i);
 
   /**
    * @brief     return value at specific location
@@ -132,8 +137,8 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  const uint16_t &getValue(unsigned int b, unsigned int c, unsigned int h,
-                           unsigned int w) const;
+  const T &getValue(unsigned int b, unsigned int c, unsigned int h,
+                    unsigned int w) const;
 
   /**
    * @brief     return value at specific location
@@ -142,8 +147,7 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  uint16_t &getValue(unsigned int b, unsigned int c, unsigned int h,
-                     unsigned int w);
+  T &getValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w);
 
   /**
    * @copydoc Tensor::setValue(float value)
@@ -230,10 +234,46 @@ private:
    * @brief  Get the Data Type String object
    * @return std::string of tensor data type (UINT16)
    */
-  std::string getStringDataType() const override { return "UINT16"; }
+  std::string getStringDataType() const override {
+    if (typeid(T) == typeid(uint8_t))
+      return "UINT8";
+    else if (typeid(T) == typeid(uint16_t))
+      return "UINT16";
+    else if (typeid(T) == typeid(uint32_t))
+      return "UINT32";
+    else
+      throw std::runtime_error("unsupported type");
+  }
+  Tdatatype checkTensorDataType() const {
+    if (typeid(T) == typeid(uint8_t))
+      return Tdatatype::UINT8;
+    else if (typeid(T) == typeid(uint16_t))
+      return Tdatatype::UINT16;
+    else if (typeid(T) == typeid(uint32_t))
+      return Tdatatype::UINT32;
+    else
+      throw std::runtime_error("unsupported type");
+  }
 };
+
+/******  Alias for UIntTensors ******/
+using UInt8Tensor = UIntTensor<uint8_t>;
+using UInt16Tensor = UIntTensor<uint16_t>;
+using UInt32Tensor = UIntTensor<uint32_t>;
+
+/****  Declare Template classes *****/
+template class UIntTensor<uint8_t>;
+template class UIntTensor<uint16_t>;
+template class UIntTensor<uint32_t>;
+
+/*
+ * Define UIntTenosr's template class methods.
+ * Template methods should be defined with declaration.
+ * To this end, include implementation file
+ */
+#include <uint_tensor.cpp>
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __SHORT_TENSOR_H__ */
+#endif /* __UINT_TENSOR_H__ */
