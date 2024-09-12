@@ -313,7 +313,7 @@ void ConcatLayerCl::ConcatProcess(Tensor const &in1, Tensor const &in2,
                                   Tensor &result, RunLayerContext &context) {
 
   unsigned int input1_batch_size, input1_height, input1_width, input1_channels,
-    input2_batch_size, input2_height, input2_width, input2_channels;
+    input2_height, input2_width, input2_channels;
 
   auto dim1 = in1.getDim();
   auto dim2 = in2.getDim();
@@ -321,7 +321,7 @@ void ConcatLayerCl::ConcatProcess(Tensor const &in1, Tensor const &in2,
   input1_height = dim1.height();
   input1_channels = dim1.channel();
   input1_width = dim1.width();
-  input2_batch_size = dim2.batch();
+
   input2_height = dim2.height();
   input2_channels = dim2.channel();
   input2_width = dim2.width();
@@ -479,7 +479,7 @@ void ConcatLayerCl::concat_cl_axis3(
 }
 
 void ConcatLayerCl::concat_cl_axis3_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_channels,
   unsigned int input1_height, unsigned int input1_width,
   unsigned int input2_width, RunLayerContext &context) {
@@ -498,17 +498,17 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
                   (input1_width + input2_width));
 
     opencl::Buffer inputA(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * input2_width,
                           true, nullptr);
 
     opencl::Buffer inOutY(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * (input1_width + input2_width),
                           true, nullptr);
 
@@ -708,7 +708,7 @@ void ConcatLayerCl::concat_cl_axis2(
 }
 
 void ConcatLayerCl::concat_cl_axis2_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_channels,
   unsigned int input1_width, unsigned int input1_height,
   unsigned int input2_height, RunLayerContext &context) {
@@ -727,17 +727,17 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
                   (input1_height + input2_height));
 
     opencl::Buffer inputA(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input2_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inOutY(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             (input1_height + input2_height) * input1_width,
                           true, nullptr);
 
@@ -937,7 +937,7 @@ void ConcatLayerCl::concat_cl_axis1(
 }
 
 void ConcatLayerCl::concat_cl_axis1_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_height,
   unsigned int input1_width, unsigned int input1_channels,
   unsigned int input2_channels, RunLayerContext &context) {
@@ -956,17 +956,17 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
                   (input1_channels + input2_channels));
 
     opencl::Buffer inputA(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inputX(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input2_channels *
+                          sizeof(_FP16) * input1_batch_size * input2_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inOutY(context.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_width *
+                          sizeof(_FP16) * input1_batch_size * input1_width *
                             input1_height * (input1_channels + input2_channels),
                           true, nullptr);
 

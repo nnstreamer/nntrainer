@@ -99,6 +99,12 @@ class LayerSemanticsGpu : public LayerSemantics {};
  */
 class LayerPropertySemantics : public LayerSemantics {};
 
+/**
+ * @brief LayerPropertySemanticsGpu
+ * @details Inherit LayerSemanticsGpu to solely test negative property cases
+ */
+class LayerPropertySemanticsGpu : public LayerSemanticsGpu {};
+
 typedef enum {
   SKIP_CALC_GRAD = 1 << 0,  /**< skip calculating gradient and compare */
   SKIP_CALC_DERIV = 1 << 1, /**< skip calculating derivative and compare */

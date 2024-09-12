@@ -105,14 +105,14 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
     }
 
     int dim = int(dim1 * dim2);
-    opencl::Buffer inputA(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputA(context.context_inst_, sizeof(float) * dim1 * dim2,
+                          true, nullptr);
 
-    opencl::Buffer inputX(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputX(context.context_inst_, sizeof(float) * dim1 * dim2,
+                          true, nullptr);
 
-    opencl::Buffer inOutY(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inOutY(context.context_inst_, sizeof(float) * dim1 * dim2,
+                          true, nullptr);
 
     result = inputA.WriteData(context.command_queue_inst_, matAdata);
     if (!result) {
@@ -164,9 +164,9 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
   } while (false);
 }
 
-void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
-                                   const __fp16 *vecXdata, __fp16 *vecYdata,
-                                   unsigned int dim1, unsigned int dim2,
+void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                                   _FP16 *vecYdata, unsigned int dim1,
+                                   unsigned int dim2,
                                    RunLayerContext &context) {
 
   bool result = false;
@@ -178,16 +178,16 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
     if (!result) {
       break;
     }
-    
+
     int dim = int(dim1 * dim2);
-    opencl::Buffer inputA(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputA(context.context_inst_, sizeof(_FP16) * dim1 * dim2,
+                          true, nullptr);
 
-    opencl::Buffer inputX(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputX(context.context_inst_, sizeof(_FP16) * dim1 * dim2,
+                          true, nullptr);
 
-    opencl::Buffer inOutY(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inOutY(context.context_inst_, sizeof(_FP16) * dim1 * dim2,
+                          true, nullptr);
 
     result = inputA.WriteData(context.command_queue_inst_, matAdata);
     if (!result) {
@@ -259,9 +259,7 @@ Layer *create_swiglu_layer_cl() {
   return layer;
 }
 
-void destroy_swiglu_layer_cl(Layer *layer) {
-  delete layer;
-}
+void destroy_swiglu_layer_cl(Layer *layer) { delete layer; }
 
 extern "C" {
 LayerPluggable ml_train_layer_pluggable{create_swiglu_layer_cl,

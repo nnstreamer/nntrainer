@@ -138,7 +138,7 @@ public:
    * @param[in] input_width   represents the width of the input tensor
    * @param[in] context RunLayerContext reference
    */
-  void copy_cl_fp16(const __fp16 *input, __fp16 *res,
+  void copy_cl_fp16(const _FP16 *input, _FP16 *res,
                     unsigned int input_batch_size, unsigned int input_channels,
                     unsigned int input_height, unsigned int input_width,
                     RunLayerContext &context);

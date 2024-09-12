@@ -150,8 +150,8 @@ public:
    * @param[in] input2_width   represents the width of the input tensor X
    * @param[in] context RunLayerContext reference
    */
-  void concat_cl_axis3_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                            __fp16 *vecYdata, unsigned int input1_batch_size,
+  void concat_cl_axis3_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                            _FP16 *vecYdata, unsigned int input1_batch_size,
                             unsigned int input1_channels,
                             unsigned int input1_height,
                             unsigned int input1_width,
@@ -190,8 +190,8 @@ public:
    * @param[in] input2_height   represents the height of the input tensor X
    * @param[in] context RunLayerContext reference
    */
-  void concat_cl_axis2_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                            __fp16 *vecYdata, unsigned int input1_batch_size,
+  void concat_cl_axis2_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                            _FP16 *vecYdata, unsigned int input1_batch_size,
                             unsigned int input1_channels,
                             unsigned int input1_width,
                             unsigned int input1_height,
@@ -230,8 +230,8 @@ public:
    * @param[in] input2_channels   represents the channels of the input tensor X
    * @param[in] context RunLayerContext reference
    */
-  void concat_cl_axis1_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                            __fp16 *vecYdata, unsigned int input1_batch_size,
+  void concat_cl_axis1_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                            _FP16 *vecYdata, unsigned int input1_batch_size,
                             unsigned int input1_height,
                             unsigned int input1_width,
                             unsigned int input1_channels,
