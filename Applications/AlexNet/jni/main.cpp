@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during loadFromConfig: " << e.what() << std::endl;
     return 1;
   }
-
+  std::cout << "tmp_code_for_ci_test" << std::endl;
   try {
     model->compile();
   } catch (const std::exception &e) {
