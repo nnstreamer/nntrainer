@@ -25,13 +25,6 @@
 #include <tensor_wrap_specs.h>
 #include <weight.h>
 
-#ifdef ENABLE_OPENCL
-#include <opencl_command_queue_manager.h>
-#include <opencl_context_manager.h>
-#include <opencl_kernel.h>
-#include <opencl_program.h>
-#endif
-
 namespace nntrainer {
 
 class Var_Grad;
@@ -813,74 +806,6 @@ public:
    */
   std::vector<Weight *> getWeights() { return weights; }
 
-#ifdef ENABLE_OPENCL
-  // getting static instances of commandqueue and context
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
-  opencl::CommandQueueManager &command_queue_inst_ =
-    opencl::CommandQueueManager::GetInstance();
-
-  /**
-   * @brief Enumerator for implemented OpenCL layer kernels. Used for resolving
-   * kernelInitializedMask. All kernels should be added with value as enum index
-   * to the power of 2 (e.g: 1, 2, 4, 8 ...). Should also be resolved in
-   * getKernelName function.
-   */
-  enum LayerKernel {
-    SGEMV = 1ull << 0,               /**< placeholder for kernel name */
-    SGEMV_FP16 = 1ull << 1,          /**< placeholder for kernel name */
-    DOT = 1ull << 2,                 /**< placeholder for kernel name */
-    DOT_FP16 = 1ull << 3,            /**< placeholder for kernel name */
-    SGEMM_NOTRANS = 1ull << 4,       /**< placeholder for kernel name */
-    SGEMM_NOTRANS_FP16 = 1ull << 5,  /**< placeholder for kernel name */
-    SGEMM_TRANSA = 1ull << 6,        /**< placeholder for kernel name */
-    SGEMM_TRANSA_FP16 = 1ull << 7,   /**< placeholder for kernel name */
-    SGEMM_TRANSB = 1ull << 8,        /**< placeholder for kernel name */
-    SGEMM_TRANSB_FP16 = 1ull << 9,   /**< placeholder for kernel name */
-    SGEMM_TRANSAB = 1ull << 10,      /**< placeholder for kernel name */
-    SGEMM_TRANSAB_FP16 = 1ull << 11, /**< placeholder for kernel name */
-    ADD = 1ull << 12,                /**< placeholder for kernel name */
-    ADD_FP16 = 1ull << 13,           /**< placeholder for kernel name */
-    SWIGLU = 1ull << 14,             /**< placeholder for kernel name */
-    SWIGLU_FP16 = 1ull << 15,        /**< placeholder for kernel name */
-    SSCAL = 1ull << 16,              /**< placeholder for kernel name */
-    SSCAL_FP16 = 1ull << 17,         /**< placeholder for kernel name */
-    COPY = 1ull << 18,               /**< placeholder for kernel name */
-    COPY_FP16 = 1ull << 19,          /**< placeholder for kernel name */
-    RMSNORM = 1ull << 20,            /**< placeholder for kernel name */
-    RMSNORM_FP16 = 1ull << 21,       /**< placeholder for kernel name */
-    CONCAT_AXIS3 = 1ull << 22,       /**< placeholder for kernel name */
-    CONCAT_AXIS3_FP16 = 1ull << 23,  /**< placeholder for kernel name */
-    CONCAT_AXIS2 = 1ull << 24,       /**< placeholder for kernel name */
-    CONCAT_AXIS2_FP16 = 1ull << 25,  /**< placeholder for kernel name */
-    CONCAT_AXIS1 = 1ull << 26,       /**< placeholder for kernel name */
-    CONCAT_AXIS1_FP16 = 1ull << 27,  /**< placeholder for kernel name */
-  };
-
-  /**
-   * @brief Global bit mask to check if kernel already initialized.
-   */
-  static unsigned long long kernelInitializedMask;
-
-  /**
-   * @brief create OpenCl kernel
-   * @param kernel_string implementation string
-   * @param layerKernel LayerKernel
-   * @param kernel_ reference of Kernel
-   * @return true if kernel creation is successful, false otherwise
-   */
-  bool clCreateKernel(std::string kernel_string, LayerKernel layerKernel,
-                      opencl::Kernel &kernel_);
-
-  /**
-   * @brief destructor to release opencl context
-   */
-  ~RunLayerContext() {
-    if (kernelInitializedMask > 0) {
-      context_inst_.ReleaseContext();
-    }
-  }
-#endif
-
   /**
    * @brief set the compute engine for this node
    * @param compute engine: (CPU/GPU)
@@ -921,15 +846,6 @@ private:
    * @return float Value of the loss
    */
   float getWeightRegularizationLoss(unsigned int idx) const;
-
-#ifdef ENABLE_OPENCL
-  /**
-   * @brief Resolve kernel name from LayerKernel enum
-   * @param layerKernel enumerator of type LayerKernel
-   * @return string name of kernel
-   */
-  std::string getKernelName(LayerKernel layerKernel);
-#endif
 };
 
 } // namespace nntrainer
