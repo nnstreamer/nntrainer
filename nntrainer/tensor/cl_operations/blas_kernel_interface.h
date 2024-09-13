@@ -14,8 +14,8 @@
 #ifndef __BLAS_KERNEL_INTERFACE_H__
 #define __BLAS_KERNEL_INTERFACE_H__
 
-#include <layer_context.h>
 #include <string>
+#include <tensor.h>
 
 namespace nntrainer {
 
@@ -27,8 +27,8 @@ namespace nntrainer {
  * @param[in] trans bool
  * @param[in] trans_m bool
  */
-Tensor dotCl(Tensor const &input, Tensor const &m, RunLayerContext &context,
-             bool trans = false, bool trans_m = false);
+Tensor dotCl(Tensor const &input, Tensor const &m, bool trans = false,
+             bool trans_m = false);
 
 /**
  * @brief Process data and dimensions for OpenCL dot operation
@@ -40,7 +40,7 @@ Tensor dotCl(Tensor const &input, Tensor const &m, RunLayerContext &context,
  * @param[in] trans_m bool
  */
 void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
-           RunLayerContext &context, bool trans = false, bool trans_m = false);
+           bool trans = false, bool trans_m = false);
 
 /**
  * @brief Process data and dimensions for OpenCL dot operation
@@ -52,8 +52,7 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
  * @param[in] trans_m bool
  */
 void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
-                  RunLayerContext &context, bool trans = false,
-                  bool trans_m = false);
+                  bool trans = false, bool trans_m = false);
 
 /**
  * @brief Multiply value element by element immediately
@@ -61,7 +60,7 @@ void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
  * @param[in] value multiplier
  * @param[in] RunLayerContext reference
  */
-void multiplyCl(Tensor &input, float const &value, RunLayerContext &context);
+void multiplyCl(Tensor &input, float const &value);
 
 /**
  * @brief Process data and dimensions for add operation
@@ -69,7 +68,7 @@ void multiplyCl(Tensor &input, float const &value, RunLayerContext &context);
  * @param[in] result Tensor
  * @param[in] RunLayerContext reference
  */
-void add_i_cl(Tensor const &input, Tensor &result, RunLayerContext &context);
+void add_i_cl(Tensor const &input, Tensor &result);
 
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */
