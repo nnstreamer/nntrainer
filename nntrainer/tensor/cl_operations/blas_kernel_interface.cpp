@@ -16,7 +16,7 @@
 
 namespace nntrainer {
 void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
-                  RunLayerContext &context, bool trans, bool trans_m) {
+                  bool trans, bool trans_m) {
   if (!result.isAllocated())
     throw std::invalid_argument(
       "Output tensor must be preallocated for dotBatched operation");
@@ -26,20 +26,19 @@ void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
     Tensor m_b = m.getBatchSlice(b, 1);
     Tensor result_b = result.getBatchSlice(b, 1);
 
-    dotCl(this_b, m_b, result_b, context, trans, trans_m);
+    dotCl(this_b, m_b, result_b, trans, trans_m);
   }
 }
 
-Tensor dotCl(Tensor const &input, Tensor const &m, RunLayerContext &context,
-             bool trans, bool trans_m) {
+Tensor dotCl(Tensor const &input, Tensor const &m, bool trans, bool trans_m) {
   Tensor output("", input.getFormat(), input.getDataType());
-  dotCl(input, m, output, context, trans, trans_m);
+  dotCl(input, m, output, trans, trans_m);
 
   return output;
 }
 
-void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
-           RunLayerContext &context, bool trans, bool trans_m) {
+void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
+           bool trans_m) {
   unsigned int dim1, dim2, mdim1, mdim2;
   if (input.getFormat() == Tformat::NHWC) {
     dim1 = input.batch() * input.height() * input.width();
@@ -128,24 +127,23 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     /// (1 * K) X (1 * M) can be a case
     /// case1: (1 * K) X (K * 1)
     if (M == 1 && N == 1) {
-      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
+      *rdata = dot_cl(data, mdata, K) + (*rdata);
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
-            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda)
+            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
-              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb)
+              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb);
     }
     /// case others: use gemm
     else {
-      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc,
-               context);
+      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -161,24 +159,23 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
     /// (1 * K) X (1 * M) can be a case
     /// case1: (1 * K) X (K * 1)
     if (M == 1 && N == 1) {
-      *rdata = dot_cl(data, mdata, K, context) + (*rdata);
+      *rdata = dot_cl(data, mdata, K) + (*rdata);
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda, context)
-            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda, context);
+      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda)
+            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb, context)
-              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb, context);
+      trans_m ? sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb)
+              : sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb);
     }
     /// case others: use sgemm
     else {
-      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc,
-               context);
+      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
     }
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
@@ -186,24 +183,24 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
   }
 }
 
-void multiplyCl(Tensor &input, float const &value, RunLayerContext &context) {
+void multiplyCl(Tensor &input, float const &value) {
   if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
     float *data = input.getData<float>();
     unsigned int len = input.size();
 
-    sscal_cl(data, len, value, context);
+    sscal_cl(data, len, value);
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     _FP16 *data = input.getData<_FP16>();
     unsigned int len = input.size();
-    sscal_cl(data, len, value, context);
+    sscal_cl(data, len, value);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
 }
 
-void add_i_cl(Tensor const &input, Tensor &result, RunLayerContext &context) {
+void add_i_cl(Tensor const &input, Tensor &result) {
 
   CREATE_IF_EMPTY_DIMS(result, result.getDim());
 
@@ -222,7 +219,7 @@ void add_i_cl(Tensor const &input, Tensor &result, RunLayerContext &context) {
     const float *data = input.getData();
     float *rdata = result.getData();
 
-    addition_cl(data, rdata, size, context);
+    addition_cl(data, rdata, size);
 
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -230,7 +227,7 @@ void add_i_cl(Tensor const &input, Tensor &result, RunLayerContext &context) {
     const _FP16 *data = input.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
 
-    addition_cl(data, rdata, size, context);
+    addition_cl(data, rdata, size);
 
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
