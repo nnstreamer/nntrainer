@@ -24,11 +24,8 @@
 #include <cstddef>
 
 #include <blas_interface.h>
-#include <char_tensor.h>
-#include <float_tensor.h>
 #include <nntrainer_log.h>
 #include <tensor_base.h>
-#include <uint_tensor.h>
 
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
@@ -172,10 +169,7 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
-                                           std::default_delete<FloatTensor>());
-  }
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
@@ -203,6 +197,8 @@ public:
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
+   * @todo      It is more desirable to move this implementaton into
+   *            `tensor.cpp`, for it requires half_tensor.h
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
@@ -237,10 +233,7 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, t_type.format),
-                                           std::default_delete<UInt8Tensor>());
-  }
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
@@ -268,10 +261,7 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<UInt16Tensor>(
-      new UInt16Tensor(d, t_type.format), std::default_delete<UInt16Tensor>());
-  }
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
@@ -299,10 +289,7 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<UInt32Tensor>(
-      new UInt32Tensor(d, t_type.format), std::default_delete<UInt32Tensor>());
-  }
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor
@@ -330,10 +317,7 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(d, t_type.format),
-                                          std::default_delete<CharTensor>());
-  }
+         ml::train::TensorDim::TensorType t_type);
 
   /**
    * @brief     Constructor of Tensor

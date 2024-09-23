@@ -244,6 +244,11 @@ private:
     else
       throw std::runtime_error("unsupported type");
   }
+
+  /**
+   * @brief  check Tensor Data Type (to briefly support template)
+   * @return Tdatatype
+   */
   Tdatatype checkTensorDataType() const {
     if (typeid(T) == typeid(uint8_t))
       return Tdatatype::UINT8;
@@ -266,7 +271,7 @@ template class UIntTensor<uint8_t>;
 template class UIntTensor<uint16_t>;
 template class UIntTensor<uint32_t>;
 
-/*
+/**
  * Define UIntTenosr's template class methods.
  * Template methods should be defined with declaration.
  * To this end, include implementation file
