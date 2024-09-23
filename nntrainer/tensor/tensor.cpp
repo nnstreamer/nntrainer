@@ -20,6 +20,41 @@
 #endif
 namespace nntrainer {
 
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = std::shared_ptr<CharTensor>(new CharTensor(d, t_type.format),
+                                        std::default_delete<CharTensor>());
+}
+
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
+                                         std::default_delete<FloatTensor>());
+}
+
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, t_type.format),
+                                         std::default_delete<UInt8Tensor>());
+}
+
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = std::shared_ptr<UInt16Tensor>(new UInt16Tensor(d, t_type.format),
+                                          std::default_delete<UInt16Tensor>());
+}
+
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
+  ml::train::TensorDim::TensorType t_type) {
+  itensor = std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, t_type.format),
+                                          std::default_delete<UInt32Tensor>());
+}
+
 Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
   itensor = nullptr;
 
