@@ -15,6 +15,7 @@
  */
 
 #include <addition_layer_cl.h>
+#include <blas_kernel_strings.h>
 #include <cl_context.h>
 #include <concat_cl.h>
 #include <fc_layer_cl.h>
@@ -121,6 +122,35 @@ const int ClContext::registerFactory(const FactoryType<T> factory,
           assigned_key.c_str(), assigned_int_key);
 
   return assigned_int_key;
+}
+
+void ClContext::initBlasClKernels() {
+  if (blas_kernels_initialized) {
+    ml_logi(
+      "ClContext: Default blas kernels already registered and initialized");
+    return;
+  }
+
+  registerClKernel(sgemv_cl_kernel_, "sgemv_cl");
+  registerClKernel(dot_cl_kernel_, "dot_cl");
+  registerClKernel(sgemm_cl_noTrans_kernel_, "sgemm_cl_noTrans");
+  registerClKernel(sgemm_cl_transA_kernel_, "sgemm_cl_transA");
+  registerClKernel(sgemm_cl_transB_kernel_, "sgemm_cl_transB");
+  registerClKernel(sgemm_cl_transAB_kernel_, "sgemm_cl_transAB");
+  registerClKernel(addition_cl_kernel_, "addition_cl");
+  registerClKernel(sscal_cl_kernel_, "sscal_cl");
+
+#ifdef ENABLE_FP16
+  registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
+  registerClKernel(dot_cl_kernel_fp16_, "dot_cl_fp16");
+  registerClKernel(sgemm_cl_noTrans_kernel_fp16_, "sgemm_cl_noTrans_fp16");
+  registerClKernel(sgemm_cl_transA_kernel_fp16_, "sgemm_cl_transA_fp16");
+  registerClKernel(sgemm_cl_transB_kernel_fp16_, "sgemm_cl_transB_fp16");
+  registerClKernel(sgemm_cl_transAB_kernel_fp16_, "sgemm_cl_transAB_fp16");
+  registerClKernel(addition_cl_kernel_fp16_, "addition_cl_fp16");
+  registerClKernel(sscal_cl_kernel_fp16_, "sscal_cl_fp16");
+#endif
+  blas_kernels_initialized = true;
 }
 
 const ClContext::SharedPtrClKernel &

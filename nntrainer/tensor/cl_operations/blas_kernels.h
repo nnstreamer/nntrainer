@@ -22,7 +22,7 @@
 namespace nntrainer {
 
 // get global cl_context to use in kernels
-extern ClContext &cl_context_ref;
+static ClContext cl_context_ref;
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
