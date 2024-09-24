@@ -207,6 +207,11 @@ public:
                                             std::string kernel_name);
 
   /**
+   * @brief Initialize and register all blas OpenCl kernels
+   */
+  void initBlasClKernels();
+
+  /**
    * @brief destructor to release opencl commandQueue
    */
   ~ClContext() {
@@ -221,12 +226,15 @@ private:
   // flag to check opencl commandqueue and context inititalization
   bool cl_initialized = false;
 
+  // flag to check default blas kernels registered or not
+  bool blas_kernels_initialized = false;
+
   FactoryMap<nntrainer::Layer> factory_map;
 
   template <typename Args, typename T> struct isSupportedHelper;
 
-  // map to store initialized opencl::Kernel
-  OclKernelMap ocl_kernel_map;
+  // global map to store initialized opencl::Kernel
+  inline static OclKernelMap ocl_kernel_map;
 
   /**
    * @brief supportHelper to check if given type is supported within cl context
