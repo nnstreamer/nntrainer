@@ -27,17 +27,13 @@
 
 using namespace nntrainer;
 
-static RunLayerContext setUpGpuContext() {
-
+static void setUpGpuContext() {
   auto &ac = nntrainer::ClContext::Global();
-  auto rc = RunLayerContext();
-
-  return rc;
+  ac.initBlasClKernels();
 }
 
 TEST(blas_kernels, dotCL_sgemv) {
-  RunLayerContext rc = setUpGpuContext();
-
+  setUpGpuContext();
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -70,7 +66,7 @@ TEST(blas_kernels, dotCL_sgemv) {
                             MOD) *
                              alpha);
 
-  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, rc, transA, transB);
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
   float mseErrorNeon =
@@ -86,7 +82,6 @@ TEST(blas_kernels, dotCL_sgemv) {
 }
 
 TEST(blas_kernels, dotCL_sgemv_n) {
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -120,11 +115,10 @@ TEST(blas_kernels, dotCL_sgemv_n) {
                             MOD) *
                              alpha);
 
-  EXPECT_THROW(dotCl(A_fp32, B_fp32, rc, transA, transB), std::runtime_error);
+  EXPECT_THROW(dotCl(A_fp32, B_fp32, transA, transB), std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, multiply_i) {
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -151,10 +145,10 @@ TEST(nntrainer_Tensor, multiply_i) {
                                k * (width)*alpha + l + 1);
 
   // fp16
-  multiplyCl(input, 0.1, rc);
+  multiplyCl(input, 0.1);
 
   // fp32
-  multiplyCl(input_fp32, 0.1, rc);
+  multiplyCl(input_fp32, 0.1);
 
   float mseErrorNeon = mse<__fp16>(input.getData<__fp16>(),
                                    input_fp32.getData<float>(), input.size());
@@ -168,7 +162,6 @@ TEST(nntrainer_Tensor, multiply_i) {
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_1024_noTrans) {
   /// @note GEMM : A X B = C
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -213,7 +206,7 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_1024_noTrans) {
                             MOD) *
                              alpha);
 
-  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, rc, transA, transB);
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
   float mseErrorNeon =
@@ -230,7 +223,6 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_1024_noTrans) {
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transB) {
   /// @note GEMM : A X B = C
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -275,7 +267,7 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transB) {
                             MOD) *
                              alpha);
 
-  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, rc, transA, transB);
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
   float mseErrorNeon =
@@ -292,7 +284,6 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transB) {
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_1024_transA) {
   /// @note GEMM : A X B = C
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -337,7 +328,7 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_1024_transA) {
                             MOD) *
                              alpha);
 
-  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, rc, transA, transB);
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
   float mseErrorNeon =
@@ -354,7 +345,6 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_1024_transA) {
 
 TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transAB) {
   /// @note GEMM : A X B = C
-  RunLayerContext rc = setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -399,7 +389,7 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transAB) {
                             MOD) *
                              alpha);
 
-  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, rc, transA, transB);
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
   nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
 
   float mseErrorNeon =

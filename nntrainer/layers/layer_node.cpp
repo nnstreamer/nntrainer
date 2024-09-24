@@ -139,6 +139,7 @@ createLayerNode(const ml::train::LayerType &type,
 #ifdef ENABLE_OPENCL
   if (compute_engine == ml::train::LayerComputeEngine::GPU) {
     auto &cc = nntrainer::ClContext::Global();
+    cc.initBlasClKernels();
     return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
                            compute_engine);
   }
@@ -157,6 +158,7 @@ createLayerNode(const std::string &type,
 #ifdef ENABLE_OPENCL
   if (compute_engine == ml::train::LayerComputeEngine::GPU) {
     auto &cc = nntrainer::ClContext::Global();
+    cc.initBlasClKernels();
     return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
                            compute_engine);
   }
