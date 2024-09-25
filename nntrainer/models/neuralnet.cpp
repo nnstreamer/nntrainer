@@ -851,7 +851,7 @@ sharedConstTensors NeuralNetwork::incremental_inference(
 std::vector<float *> NeuralNetwork::incremental_inference(
   unsigned int batch_size, const std::vector<float *> &input,
   const std::vector<float *> &label, unsigned int init_seq_len,
-  unsigned int from, unsigned int to) {
+  unsigned int from, unsigned int to, bool output_hidden_state) {
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
@@ -884,27 +884,33 @@ std::vector<float *> NeuralNetwork::incremental_inference(
   unsigned int step = from ? 0 : to - 1;
 
   for (auto &out : output_tensors) {
-    const auto &out_t = *out.get();
-    float *last_out_buf_data = new float[batch_size * out_t.width()];
+    auto out_t = *out.get();
+    float *last_out_buf_data;
 
-    for (unsigned int batch = 0; batch < batch_size; ++batch) {
-      if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
+    if (output_hidden_state) {
+      last_out_buf_data = out_t.getData();
+    } else {
+      last_out_buf_data = new float[batch_size * out_t.width()];
+
+      for (unsigned int batch = 0; batch < batch_size; ++batch) {
+        if (out->getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-        const _FP16 *out_t_batch_ptr = out_t.getData<_FP16>() +
-                                       batch * out_t.getDim().getFeatureLen() +
-                                       step * out_t.getDim().width();
-        scopy(out_t.getDim().width(), out_t_batch_ptr, 1,
-              last_out_buf_data + batch * out_t.width(), 1);
+          const _FP16 *out_t_batch_ptr =
+            out_t.getData<_FP16>() + batch * out_t.getDim().getFeatureLen() +
+            step * out_t.width();
+          scopy(out_t.width(), out_t_batch_ptr, 1,
+                last_out_buf_data + batch * out_t.width(), 1);
 
 #else
-        throw std::invalid_argument("Error: enable-fp16 is not set");
+          throw std::invalid_argument("Error: enable-fp16 is not set");
 #endif
-      } else if (out->getDataType() == ml::train::TensorDim::DataType::FP32) {
-        const float *out_t_batch_ptr = out_t.getData() +
-                                       batch * out_t.getDim().getFeatureLen() +
-                                       step * out_t.getDim().width();
-        scopy(out_t.getDim().width(), out_t_batch_ptr, 1,
-              last_out_buf_data + batch * out_t.width(), 1);
+        } else if (out->getDataType() == ml::train::TensorDim::DataType::FP32) {
+          const float *out_t_batch_ptr =
+            out_t.getData() + batch * out_t.getDim().getFeatureLen() +
+            step * out_t.width();
+          scopy(out_t.width(), out_t_batch_ptr, 1,
+                last_out_buf_data + batch * out_t.width(), 1);
+        }
       }
     }
 
