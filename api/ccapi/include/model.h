@@ -307,6 +307,7 @@ public:
    * @param[in] init_seq_len initial sequence length
    * @param[in] from current working step index
    * @param[in] to next working step index
+   * @param[in] return_last_output_only return last output if true else return all outputs
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
@@ -314,7 +315,8 @@ public:
   incremental_inference(unsigned int batch, const std::vector<float *> &input,
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
-                        unsigned int to) = 0;
+                        unsigned int to,
+                        bool return_last_output_only = false) = 0;
 
   /**
    * @brief     Summarize the model
