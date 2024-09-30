@@ -182,10 +182,12 @@ TEST_F(CacheLoaderTest, load_async_01_p) {
 
   // Check memory loading for each execution order
   int id = loader->loadAsync(1, complete);
-  EXPECT_EQ(mem->getAddr(), nullptr);
 
   future.wait();
   pool->flush();
+
+  EXPECT_NE(id, 0);
+  EXPECT_EQ(mem->getAddr(), nullptr);
 }
 
 /**
@@ -221,13 +223,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   int id = loader->loadAsync(1, complete1);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(2)
@@ -243,13 +246,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(2, complete2);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(3)
@@ -265,13 +269,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(3, complete3);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(4)
@@ -287,13 +292,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(4, complete4);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(5)
@@ -309,13 +315,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(5, complete5);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(6)
@@ -331,13 +338,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(6, complete6);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(7)
@@ -353,13 +361,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(7, complete7);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(8)
@@ -375,13 +384,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(8, complete8);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(9)
@@ -397,13 +407,14 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
   };
 
   id = loader->loadAsync(9, complete9);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 }
 
@@ -440,13 +451,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   int id = loader->loadAsync(1, complete1);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(2)
@@ -462,13 +474,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(2, complete2);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(3)
@@ -484,13 +497,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(3, complete3);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(4)
@@ -506,13 +520,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(4, complete4);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(5)
@@ -528,13 +543,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(5, complete5);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(6)
@@ -550,13 +566,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(6, complete6);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(7)
@@ -572,13 +589,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(7, complete7);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(8)
@@ -594,13 +612,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(8, complete8);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 
   // Check memory loading for execution order(9)
@@ -616,13 +635,14 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
   };
 
   id = loader->loadAsync(9, complete9);
+  future.wait();
+  pool->flush();
+
   EXPECT_NE(id, 0);
   EXPECT_EQ(mem1->getAddr(), nullptr);
   EXPECT_EQ(mem2->getAddr(), nullptr);
   EXPECT_EQ(mem3->getAddr(), nullptr);
 
-  future.wait();
-  pool->flush();
   delete p;
 }
 
