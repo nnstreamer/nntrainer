@@ -8,6 +8,7 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <algorithm>
 #include <cmath>
 #include <util_simd.h>
 #ifdef USE_NEON
