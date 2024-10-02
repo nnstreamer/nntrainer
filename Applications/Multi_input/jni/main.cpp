@@ -63,13 +63,17 @@ ModelHandle createMultiInputModel() {
   layers.push_back(createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "1:2:2")}));
   layers.push_back(createLayer(
-    "input", {withKey("name", "input1"), withKey("input_shape", "1:2:2")}));
+    "input", {withKey("name", "input1"), withKey("input_shape", "1:4:2")}));
   layers.push_back(createLayer(
-    "input", {withKey("name", "input2"), withKey("input_shape", "1:2:2")}));
+    "input", {withKey("name", "input2"), withKey("input_shape", "1:8:2")}));
 
   layers.push_back(
-    createLayer("concat", {withKey("name", "concat0"), withKey("axis", "3"),
+    createLayer("concat", {withKey("name", "concat0"), withKey("axis", "2"),
                            withKey("input_layers", "input0, input1, input2")}));
+
+  layers.push_back(
+    createLayer("flatten", {withKey("name", "flatten0"),
+                            withKey("input_layers", "concat0")}));
 
   layers.push_back(createLayer(
     "fully_connected", {withKey("unit", 5), withKey("activation", "softmax")}));
@@ -123,16 +127,16 @@ std::array<UserDataType, 1>
 createFakeMultiDataGenerator(unsigned int batch_size,
                              unsigned int simulated_data_size) {
   UserDataType train_data(new nntrainer::util::MultiDataLoader(
-    {{batch_size, 1, 2, 2}, {batch_size, 1, 2, 2}, {batch_size, 1, 2, 2}},
+    {{batch_size, 1, 2, 2}, {batch_size, 1, 4, 2}, {batch_size, 1, 8, 2}},
     {{batch_size, 1, 1, 5}}, simulated_data_size));
 
   return {std::move(train_data)};
 }
 
 int main(int argc, char *argv[]) {
-  unsigned int total_data_size = 16;
-  unsigned int batch_size = 2;
-  unsigned int epoch = 2;
+  unsigned int total_data_size = 32;
+  unsigned int batch_size = 4;
+  unsigned int epoch = 10;
 
   std::array<UserDataType, 1> user_datas;
 
