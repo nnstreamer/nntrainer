@@ -1425,8 +1425,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
           out, {iter->getName(), iter->getType(), first_dim, first_input_name});
         for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
           dim_property.set(iter->getInputDimensions()[i]);
-          print_graph_layer_info(
-            out, {"", "", to_string(dim_property), input_layer_names[i]});
+          print_graph_layer_info(out, {"", "", "", input_layer_names[i]});
         }
         out << std::string(total_col_size,
                            iter == model_graph.cend() - 1 ? '=' : '-')
