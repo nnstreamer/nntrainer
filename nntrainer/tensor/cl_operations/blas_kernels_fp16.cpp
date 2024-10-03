@@ -325,7 +325,7 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
   do {
     ClContext::SharedPtrClKernel kernel_sgemm_fp16_ptr =
       cl_context_ref.registerClKernel(sgemm_cl_kernel_fp16_, kernel_func_);
-    if (!result) {
+    if (!kernel_sgemm_fp16_ptr) {
       break;
     }
 
@@ -400,7 +400,7 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = cl_context_ref.command_queue_inst_.DispatchCommand(
-      *kernel_sgemm_fp16_ptr, work_groups_count, work_group_size);
+      kernel_sgemm_fp16_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
