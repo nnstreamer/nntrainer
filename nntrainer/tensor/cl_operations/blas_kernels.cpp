@@ -14,10 +14,6 @@
 #include <blas_kernels.h>
 
 namespace nntrainer {
-
-// get global cl_context to use in kernels
-ClContext &cl_context_ref = ClContext::Global();
-
 std::string sgemv_cl_kernel_ =
   R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
                       __global float* Y, unsigned int N, unsigned int lda) {                                            

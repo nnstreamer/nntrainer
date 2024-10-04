@@ -43,7 +43,7 @@ void SwiGLULayerCl::forwarding(RunLayerContext &context, bool training) {
   Tensor &in1 = context.getInput(INPUT_IDX_1);
   Tensor &in2 = context.getInput(INPUT_IDX_2);
   Tensor &out = context.getOutput(OUT_IDX);
-  swigluProcess(in1, in2, out, context);
+  swigluProcess(in1, in2, out);
 }
 
 void SwiGLULayerCl::incremental_forwarding(RunLayerContext &context,
@@ -60,14 +60,14 @@ void SwiGLULayerCl::incremental_forwarding(RunLayerContext &context,
     to = 1;
   }
 
-  swigluProcess(in1, in2, out, context);
+  swigluProcess(in1, in2, out);
 }
 
 opencl::Kernel SwiGLULayerCl::kernel_swiglu;
 opencl::Kernel SwiGLULayerCl::kernel_swiglu_fp16;
 
 void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
-                                  Tensor &result, RunLayerContext &context) {
+                                  Tensor &result) {
 
   unsigned int dim1, dim2;
   dim1 = in1.batch() * in1.channel() * in1.height();
@@ -77,13 +77,13 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
     const float *data1 = in1.getData();
     const float *data2 = in2.getData();
     float *rdata = result.getData();
-    swiglu_cl(data1, data2, rdata, dim1, dim2, context);
+    swiglu_cl(data1, data2, rdata, dim1, dim2);
   } else if (in1.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     const _FP16 *data1 = in1.getData<_FP16>();
     const _FP16 *data2 = in2.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
-    swiglu_cl_fp16(data1, data2, rdata, dim1, dim2, context);
+    swiglu_cl_fp16(data1, data2, rdata, dim1, dim2);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
@@ -92,57 +92,53 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
 
 void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
                               float *vecYdata, unsigned int dim1,
-                              unsigned int dim2, RunLayerContext &context) {
+                              unsigned int dim2) {
 
   bool result = false;
 
   do {
-    result =
-      context.clCreateKernel(swiglu_cl_kernel_, context.LayerKernel::SWIGLU,
-                             SwiGLULayerCl::kernel_swiglu);
-    if (!result) {
+    ClContext::SharedPtrClKernel kernel_swiglu_ptr =
+      cl_context_ref.registerClKernel(swiglu_cl_kernel_, "swiglu_cl");
+    if (!kernel_swiglu_ptr) {
       break;
     }
 
     int dim = int(dim1 * dim2);
-    opencl::Buffer inputA(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputA(cl_context_ref.context_inst_,
+                          sizeof(float) * dim1 * dim2, true, nullptr);
 
-    opencl::Buffer inputX(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputX(cl_context_ref.context_inst_,
+                          sizeof(float) * dim1 * dim2, true, nullptr);
 
-    opencl::Buffer inOutY(context.context_inst_, sizeof(float) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inOutY(cl_context_ref.context_inst_,
+                          sizeof(float) * dim1 * dim2, true, nullptr);
 
-    result = inputA.WriteData(context.command_queue_inst_, matAdata);
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
     if (!result) {
       break;
     }
 
-    result = inputX.WriteData(context.command_queue_inst_, vecXdata);
+    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
     if (!result) {
       break;
     }
 
-    result = inOutY.WriteData(context.command_queue_inst_, vecYdata);
+    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu.SetKernelArguments(0, &inputA,
-                                                             sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu.SetKernelArguments(1, &inputX,
-                                                             sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu.SetKernelArguments(2, &inOutY,
-                                                             sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -150,13 +146,13 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
     const int work_groups_count[3] = {dim, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = context.command_queue_inst_.DispatchCommand(
-      SwiGLULayerCl::kernel_swiglu, work_groups_count, work_group_size);
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_swiglu_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutY.ReadData(context.command_queue_inst_, vecYdata);
+    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
     if (!result) {
       break;
     }
@@ -166,58 +162,53 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
 
 void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
                                    const __fp16 *vecXdata, __fp16 *vecYdata,
-                                   unsigned int dim1, unsigned int dim2,
-                                   RunLayerContext &context) {
+                                   unsigned int dim1, unsigned int dim2) {
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(swiglu_cl_kernel_fp16_,
-                                    context.LayerKernel::SWIGLU_FP16,
-                                    SwiGLULayerCl::kernel_swiglu_fp16);
-    if (!result) {
+    ClContext::SharedPtrClKernel kernel_swiglu_ptr =
+      cl_context_ref.registerClKernel(swiglu_cl_kernel_fp16_, "swiglu_cl_fp16");
+    if (!kernel_swiglu_ptr) {
       break;
     }
-    
+
     int dim = int(dim1 * dim2);
-    opencl::Buffer inputA(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputA(cl_context_ref.context_inst_,
+                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
 
-    opencl::Buffer inputX(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inputX(cl_context_ref.context_inst_,
+                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
 
-    opencl::Buffer inOutY(context.context_inst_, sizeof(__fp16) * dim1 * dim2, true,
-                          nullptr);
+    opencl::Buffer inOutY(cl_context_ref.context_inst_,
+                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
 
-    result = inputA.WriteData(context.command_queue_inst_, matAdata);
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
     if (!result) {
       break;
     }
 
-    result = inputX.WriteData(context.command_queue_inst_, vecXdata);
+    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
     if (!result) {
       break;
     }
 
-    result = inOutY.WriteData(context.command_queue_inst_, vecYdata);
+    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu_fp16.SetKernelArguments(
-      0, &inputA, sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu_fp16.SetKernelArguments(
-      1, &inputX, sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = SwiGLULayerCl::kernel_swiglu_fp16.SetKernelArguments(
-      2, &inOutY, sizeof(cl_mem));
+    result = kernel_swiglu_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -225,13 +216,13 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
     const int work_groups_count[3] = {dim, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = context.command_queue_inst_.DispatchCommand(
-      SwiGLULayerCl::kernel_swiglu_fp16, work_groups_count, work_group_size);
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_swiglu_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutY.ReadData(context.command_queue_inst_, vecYdata);
+    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
     if (!result) {
       break;
     }
@@ -259,9 +250,7 @@ Layer *create_swiglu_layer_cl() {
   return layer;
 }
 
-void destroy_swiglu_layer_cl(Layer *layer) {
-  delete layer;
-}
+void destroy_swiglu_layer_cl(Layer *layer) { delete layer; }
 
 extern "C" {
 LayerPluggable ml_train_layer_pluggable{create_swiglu_layer_cl,
