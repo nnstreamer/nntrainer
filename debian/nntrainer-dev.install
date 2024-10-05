@@ -11,7 +11,7 @@
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_base.h
 /usr/include/nntrainer/char_tensor.h
-/usr/include/nntrainer/short_tensor.h
+/usr/include/nntrainer/uint_tensor.h
 /usr/include/nntrainer/float_tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
 /usr/include/nntrainer/blas_interface.h
