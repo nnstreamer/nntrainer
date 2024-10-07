@@ -31,6 +31,7 @@
 #include <sgd.h>
 
 #include <activation_layer.h>
+#include <add_layer.h>
 #include <addition_layer.h>
 #include <attention_layer.h>
 #include <bn_layer.h>
@@ -41,6 +42,7 @@
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <div_layer.h>
 #include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
@@ -57,6 +59,7 @@
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
+#include <mul_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
@@ -72,6 +75,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
+#include <sub_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
@@ -248,6 +252,14 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_IN);
   ac.registerFactory(nntrainer::createLayer<WeightLayer>, WeightLayer::type,
                      LayerType::LAYER_WEIGHT);
+  ac.registerFactory(nntrainer::createLayer<AddLayer>, AddLayer::type,
+                     LayerType::LAYER_ADD);
+  ac.registerFactory(nntrainer::createLayer<SubLayer>, SubLayer::type,
+                     LayerType::LAYER_SUB);
+  ac.registerFactory(nntrainer::createLayer<MulLayer>, MulLayer::type,
+                     LayerType::LAYER_MUL);
+  ac.registerFactory(nntrainer::createLayer<DivLayer>, DivLayer::type,
+                     LayerType::LAYER_DIV);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
