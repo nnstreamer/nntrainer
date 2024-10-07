@@ -46,6 +46,9 @@ convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
   case TensorLifespan::FORWARD_FUNC_LIFESPAN:
     policy = CachePolicy::TEMPORAL;
     break;
+  case TensorLifespan::FORWARD_INFER_LIFESPAN:
+    policy = CachePolicy::SYNC_ONCE;
+    break;
   case TensorLifespan::CALC_DERIV_LIFESPAN:
     policy = CachePolicy::TEMPORAL;
     break;
