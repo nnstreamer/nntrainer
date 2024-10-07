@@ -147,6 +147,10 @@ void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
   if (cols % 16 == 0) {
     unsigned int n = cols / 16;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
+    NNTR_THROW_IF(initialized == nullptr, std::invalid_argument)
+      << "Error: Memory allocation failed.";
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 16; ++i) {
       initialized[i] = false;
@@ -198,6 +202,10 @@ void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
   } else if (cols % 8 == 0) {
     unsigned int n = cols / 8;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
+    NNTR_THROW_IF(initialized == nullptr, std::invalid_argument)
+      << "Error: Memory allocation failed.";
+
     unsigned int step;
     for (unsigned int i = 0; i < cols / 8; ++i) {
       initialized[i] = false;
@@ -239,6 +247,9 @@ void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
   } else if (cols % 4 == 0) {
     unsigned int n = cols / 4;
     bool *initialized = (bool *)malloc(sizeof(bool) * n);
+
+    NNTR_THROW_IF(initialized == nullptr, std::invalid_argument)
+      << "Error: Memory allocation failed.";
 
     unsigned int step;
     for (unsigned int i = 0; i < cols / 4; ++i) {
