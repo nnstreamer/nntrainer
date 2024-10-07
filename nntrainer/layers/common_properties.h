@@ -1476,6 +1476,28 @@ public:
 };
 
 /**
+ * @brief Max Learning Rate props
+ * 
+ */
+class MaxLearningRate : public Property<float> {
+public:
+  static constexpr const char *key =
+    "max_learning_rate";           /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+};
+
+/**
+ * @brief Min Learning Rate props
+ * 
+ */
+class MinLearningRate : public Property<float> {
+public:
+  static constexpr const char *key =
+    "min_learning_rate";           /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+};
+
+/**
  * @brief Iteration props
  *
  */
