@@ -20,8 +20,8 @@
 #include <vector>
 
 #include <activation_layer.h>
-#include <blas_interface.h>
 #include <common_properties.h>
+#include <cpu_backend.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -32,8 +32,7 @@
 
 namespace nntrainer {
 ActivationLayer::ActivationLayer() :
-  Layer(),
-  activation_props(new PropTypes(props::Activation())) {
+  Layer(), activation_props(new PropTypes(props::Activation())) {
   acti_func.setActiFunc(ActivationType::ACT_NONE);
 }
 

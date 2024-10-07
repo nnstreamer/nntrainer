@@ -18,7 +18,7 @@
 #include <cmath>
 #include <immintrin.h>
 
-namespace nntrainer::avx {
+namespace nntrainer {
 
 /**
  * @brief Converts half-precision floating point values to single-precision
@@ -40,7 +40,7 @@ void vcvt_f16_f32(size_t N, const void *input, float *output);
  */
 void vcvt_f32_f16(size_t N, const float *input, void *output);
 
-} // namespace nntrainer::avx
+} // namespace nntrainer
 
 #endif /* __cplusplus */
 #endif /* __BLAS_AVX_H_ */

@@ -14,7 +14,10 @@
 /usr/include/nntrainer/short_tensor.h
 /usr/include/nntrainer/float_tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
-/usr/include/nntrainer/blas_interface.h
+usr/include/nntrainer/fallback_internal.h 
+usr/include/nntrainer/cblas_interface.h
+usr/include/nntrainer/x86_compute_backend.h
+/usr/include/nntrainer/cpu_backend.h
 /usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/weight.h
 # todo: update dataset headers

@@ -25,6 +25,12 @@ and_conf.set('VERSION_MAJOR', nntrainer_version_split[0])
 and_conf.set('VERSION_MINOR', nntrainer_version_split[1])
 and_conf.set('VERSION_MICRO', nntrainer_version_split[2])
 
+arch = host_machine.cpu_family()
+and_conf.set('ARM', 1)
+if arch == 'arm'
+  and_conf.set('ARMV7', 1)
+endif
+
 if get_option('enable-capi').enabled()
    and_conf.set('MESON_CAPI_NNTRAINER_SRCS', ' '.join(capi_src))
    and_conf.set('MESON_CAPI_NNTRAINER_INCS', ' '.join(capi_inc_abs))
