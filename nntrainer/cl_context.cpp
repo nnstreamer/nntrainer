@@ -31,9 +31,9 @@ std::once_flag global_cl_context_init_flag;
 
 static void add_default_object(ClContext &cc) {
 
-  // cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
-  //                    FullyConnectedLayerCl::type,
-  //                    ml::train::LayerType::LAYER_FC);
+  cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
+                     FullyConnectedLayerCl::type,
+                     ml::train::LayerType::LAYER_FC);
 
   // cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
   //                    AdditionLayerCL::type,

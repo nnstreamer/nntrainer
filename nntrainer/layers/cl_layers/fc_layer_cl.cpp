@@ -127,9 +127,9 @@ void FullyConnectedLayerCl::forwarding(RunLayerContext &context,
     // Dequantize is currently disabled
     // weight.dequantize(weight_, axis);
 
-    dotCl(input_, weight_, hidden_, context);
+    dotCl(input_, weight_, hidden_);
   } else {
-    dotCl(input_, weight, hidden_, context);
+    dotCl(input_, weight, hidden_);
   }
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
@@ -171,7 +171,7 @@ void FullyConnectedLayerCl::incremental_forwarding(RunLayerContext &context,
   Tensor input_step = input_.getSharedDataTensor(input_step_dim, 0, true);
   Tensor hidden_step = hidden_.getSharedDataTensor(hidden_step_dim, 0, true);
 
-  dotCl(input_step, weight, hidden_step, context);
+  dotCl(input_step, weight, hidden_step);
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
