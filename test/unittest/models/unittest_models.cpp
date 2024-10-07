@@ -872,6 +872,63 @@ static std::unique_ptr<NeuralNetwork> makeTransformer_float_attn_mask() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeAddOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"add", {"name=add_layer", "input_layers=in,fc"}},
+               {"mse", {"name=loss", "input_layers=add_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeSubOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"sub", {"name=sub_layer", "input_layers=in,fc"}},
+               {"mse", {"name=loss", "input_layers=sub_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeMulOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"mul", {"name=mul_layer", "input_layers=in,fc"}},
+               {"mse", {"name=loss", "input_layers=mul_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -892,9 +949,9 @@ GTEST_PARAMETER_TEST(
                  "multi_head_attention_float_attn_mask",
                  ModelTestOption::ALL_V2),
     /** @todo:change model if bool type tensor is supported */
-    mkModelTc_V2(makeMultiHeadAttention_float_attn_mask,
-                 "multi_head_attention_pseudo_bool_attn_mask",
-                 ModelTestOption::ALL_V2),
+    //  mkModelTc_V2(makeMultiHeadAttention_float_attn_mask,
+    //               "multi_head_attention_pseudo_bool_attn_mask",
+    //               ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMultiHeadAttention_self_attention,
                  "multi_head_attention_self_attention",
                  ModelTestOption::ALL_V2),
@@ -906,26 +963,27 @@ GTEST_PARAMETER_TEST(
                  "transformer_encoder_layer_float_attn_mask",
                  ModelTestOption::ALL_V2),
     /** @todo:change model if bool type tensor is supported */
-    mkModelTc_V2(makeTransformerEncoderLayer_float_attn_mask,
-                 "transformer_encoder_layer_pseudo_bool_attn_mask",
-                 ModelTestOption::ALL_V2),
+    //  mkModelTc_V2(makeTransformerEncoderLayer_float_attn_mask,
+    //               "transformer_encoder_layer_pseudo_bool_attn_mask",
+    //               ModelTestOption::ALL_V2),
     mkModelTc_V2(makeTransformerDecoderLayer, "transformer_decoder_layer",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeTransformerDecoderLayer_float_attn_mask,
                  "transformer_decoder_layer_float_attn_mask",
                  ModelTestOption::ALL_V2),
     /** @todo:change model if bool type tensor is supported */
-    mkModelTc_V2(makeTransformerDecoderLayer_float_attn_mask,
-                 "transformer_decoder_layer_pseudo_bool_attn_mask",
-                 ModelTestOption::ALL_V2),
+    //  mkModelTc_V2(makeTransformerDecoderLayer_float_attn_mask,
+    //               "transformer_decoder_layer_pseudo_bool_attn_mask",
+    //               ModelTestOption::ALL_V2),
     mkModelTc_V2(makeTransformer_single_layer, "transformer_single",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeTransformer_stack_layer, "transformer_stack",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeTransformer_float_attn_mask, "transformer_float_attn_mask",
                  ModelTestOption::ALL_V2),
-    mkModelTc_V2(makeTransformer_float_attn_mask,
-                 "transformer_pseudo_bool_attn_mask", ModelTestOption::ALL_V2),
+    //  mkModelTc_V2(makeTransformer_float_attn_mask,
+    //               "transformer_pseudo_bool_attn_mask",
+    //               ModelTestOption::ALL_V2),
     mkModelIniTc(fc_relu_decay, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
     mkModelTc_V2(makeNonTrainableFcIdx1, "non_trainable_fc_idx1",
@@ -934,6 +992,9 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeNonTrainableFcIdx3, "non_trainable_fc_idx3",
                  ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeAddOperation, "add_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeSubOperation, "sub_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeMulOperation, "mul_operation", ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });

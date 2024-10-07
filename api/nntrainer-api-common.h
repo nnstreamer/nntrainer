@@ -65,6 +65,9 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_IDENTITY = 29, /**< Identity Layer type (Since 8.0) */
   ML_TRAIN_LAYER_TYPE_SWIGLU = 30,   /**< Swiglu Layer type */
   ML_TRAIN_LAYER_TYPE_WEIGHT = 31,   /**< Weight Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_ADD = 32,      /**< Add Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SUB = 33,      /**< Sub Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_MUL = 34,      /**< Mul Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
