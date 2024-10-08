@@ -508,7 +508,7 @@ private:
     lazy_weights; /**< weights with delayed grad update, e.g., gradient
                      clipping, loss scaling */
   bool is_clip_grad;
-
+  float loss_scale;
   unsigned int nan_count;
 
   /**
