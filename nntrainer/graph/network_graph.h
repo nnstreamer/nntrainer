@@ -498,7 +498,7 @@ private:
   std::vector<Weight *>
     lazy_weights; /**< weights with global norm based clipping enabled */
   bool is_clip_grad;
-
+  float loss_scale;
   unsigned int nan_count;
 
   /**
