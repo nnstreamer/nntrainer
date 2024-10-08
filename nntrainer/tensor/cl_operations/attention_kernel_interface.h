@@ -14,8 +14,8 @@
 #ifndef __ATTENTION_KERNEL_INTERFACE_H__
 #define __ATTENTION_KERNEL_INTERFACE_H__
 
-#include <layer_context.h>
 #include <string>
+#include <tensor.h>
 
 namespace nntrainer {
 
@@ -25,10 +25,9 @@ namespace nntrainer {
  * @param[in] dim hidden dim size
  * @param[in] from sequence order
  * @param[in] max_timestep maximum timestep
- * @param[in] context layer context to get the resource manager and queue id
  */
 void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
-                         unsigned int max_timestep, RunLayerContext &context);
+                         unsigned int max_timestep);
 
 } // namespace nntrainer
 #endif /* __ATTENTION_KERNEL_INTERFACE_H__ */

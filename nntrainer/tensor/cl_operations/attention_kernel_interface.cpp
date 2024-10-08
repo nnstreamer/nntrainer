@@ -59,12 +59,11 @@ void precompute_freqs(unsigned int dim, unsigned int seq_len,
  * @param[in] dim hidden dim size
  * @param[in] from sequence order
  * @param[in] max_timestep maximum timestep
- * @param[in] context layer context to get the resource manager and queue id
  *
  * @todo      Calling precompute_freqs in finalize to reduce code redundancy.
  */
 void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
-                         unsigned int max_timestep, RunLayerContext &context) {
+                         unsigned int max_timestep) {
   nntrainer::Tensor out(in.getDim());
   float value = 0.0f;
   float transformed_value = 0.0f;
@@ -111,7 +110,7 @@ void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
 
     rotary_emb_cl(data, rdata, freqs_cos, freqs_sin, cos_, sin_,
                   input_batch_size, input_channels, input_height, input_width,
-                  dim, from, max_timestep, in_size, out_size, context);
+                  dim, from, max_timestep, in_size, out_size);
 
   } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -123,7 +122,7 @@ void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
 
     rotary_emb_cl(data, rdata, freqs_cos, freqs_sin, cos_, sin_,
                   input_batch_size, input_channels, input_height, input_width,
-                  dim, from, max_timestep, in_size, out_size, context);
+                  dim, from, max_timestep, in_size, out_size);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
