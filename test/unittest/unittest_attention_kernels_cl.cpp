@@ -29,16 +29,13 @@
 
 using namespace nntrainer;
 
-static RunLayerContext setUpGpuContext() {
-
+static void setUpGpuContext() {
   auto &ac = nntrainer::ClContext::Global();
-  auto rc = RunLayerContext();
-
-  return rc;
+  ac.initAttentionClKernels();
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP32) {
-  RunLayerContext rc = setUpGpuContext();
+  setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -65,7 +62,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32) {
 
   B_fp32.copy(A_fp32);
 
-  apply_rotary_emb_cl(A_fp32, dim, from, max_timestep, rc);
+  apply_rotary_emb_cl(A_fp32, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp32, dim, from, max_timestep);
 
   float mseErrorNeon_fp32 =
@@ -81,7 +78,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
-  RunLayerContext rc = setUpGpuContext();
+  setUpGpuContext();
 
   int batch = 4;
   int channel = 4;
@@ -108,7 +105,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
 
   B_fp32.copy(A_fp32);
 
-  apply_rotary_emb_cl(A_fp32, dim, from, max_timestep, rc);
+  apply_rotary_emb_cl(A_fp32, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp32, dim, from, max_timestep);
 
   float mseErrorNeon_fp32 =
@@ -124,7 +121,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP16) {
-  RunLayerContext rc = setUpGpuContext();
+  setUpGpuContext();
 
   int batch = 1;
   int channel = 1;
@@ -150,7 +147,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP16) {
 
   B_fp16.copy(A_fp16);
 
-  apply_rotary_emb_cl(A_fp16, dim, from, max_timestep, rc);
+  apply_rotary_emb_cl(A_fp16, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp16, dim, from, max_timestep);
 
   float mseErrorNeon_fp16 = mse<__fp16>(
@@ -166,7 +163,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP16) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
-  RunLayerContext rc = setUpGpuContext();
+  setUpGpuContext();
 
   int batch = 4;
   int channel = 4;
@@ -192,7 +189,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
 
   B_fp16.copy(A_fp16);
 
-  apply_rotary_emb_cl(A_fp16, dim, from, max_timestep, rc);
+  apply_rotary_emb_cl(A_fp16, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp16, dim, from, max_timestep);
 
   float mseErrorNeon_fp16 = mse<__fp16>(

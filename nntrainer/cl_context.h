@@ -212,6 +212,11 @@ public:
   void initBlasClKernels();
 
   /**
+   * @brief Initialize and register all attention OpenCl kernels
+   */
+  void initAttentionClKernels();
+
+  /**
    * @brief destructor to release opencl commandQueue
    */
   ~ClContext() {
@@ -228,6 +233,9 @@ private:
 
   // flag to check default blas kernels registered or not
   bool blas_kernels_initialized = false;
+
+  // flag to check default attention kernels registered or not
+  bool attention_kernels_initialized = false;
 
   FactoryMap<nntrainer::Layer> factory_map;
 

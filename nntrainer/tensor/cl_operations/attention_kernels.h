@@ -14,17 +14,15 @@
 #ifndef __ATTENTION_KERNELS_H__
 #define __ATTENTION_KERNELS_H__
 
-#include <layer_context.h>
+#include <cl_context.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 #include <string>
 
 namespace nntrainer {
 
-/**
- * @brief declaring global kernel objects
- */
-extern opencl::Kernel kernel_rotary_emb;
+// get global cl_context to use in kernels
+static ClContext cl_context_ref;
 
 /**
  * @brief     Rotary Embedding process
@@ -43,7 +41,6 @@ extern opencl::Kernel kernel_rotary_emb;
  * @param[in] max_timestep max timestep
  * @param[in] in_size size of input
  * @param[in] out_size size of output
- * @param[in] context RunLayerContext reference
  */
 void rotary_emb_cl(float *in, float *out,
                    std::vector<std::vector<float>> freqs_cos,
@@ -52,14 +49,9 @@ void rotary_emb_cl(float *in, float *out,
                    unsigned int batch, unsigned int channel,
                    unsigned int height, unsigned int width, unsigned int dim,
                    unsigned int from, unsigned int max_timestamp,
-                   unsigned int in_size, unsigned int out_size,
-                   RunLayerContext &context);
+                   unsigned int in_size, unsigned int out_size);
 
 #ifdef ENABLE_FP16
-/**
- * @brief declaring global fp16 kernel objects
- */
-extern opencl::Kernel kernel_rotary_emb_fp16;
 
 /**
  * @brief     Rotary Embedding process
@@ -78,7 +70,6 @@ extern opencl::Kernel kernel_rotary_emb_fp16;
  * @param[in] max_timestep max timestep
  * @param[in] in_size size of input
  * @param[in] out_size size of output
- * @param[in] context RunLayerContext reference
  */
 void rotary_emb_cl(__fp16 *in, __fp16 *out,
                    std::vector<std::vector<float>> freqs_cos,
@@ -87,8 +78,7 @@ void rotary_emb_cl(__fp16 *in, __fp16 *out,
                    unsigned int batch, unsigned int channel,
                    unsigned int height, unsigned int width, unsigned int dim,
                    unsigned int from, unsigned int max_timestamp,
-                   unsigned int in_size, unsigned int out_size,
-                   RunLayerContext &context);
+                   unsigned int in_size, unsigned int out_size);
 
 #endif
 
