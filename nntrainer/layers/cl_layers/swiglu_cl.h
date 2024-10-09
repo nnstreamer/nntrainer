@@ -14,12 +14,12 @@
 #ifndef __SWIGLU_LAYER_CL_H__
 #define __SWIGLU_LAYER_CL_H__
 
+#include <cl_context.h>
+#include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <node_exporter.h>
-
-#include <common_properties.h>
 #include <layer_impl.h>
+#include <node_exporter.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 #include <utility>
@@ -31,6 +31,10 @@ namespace nntrainer {
  *
  */
 class SwiGLULayerCl final : public Layer {
+
+private:
+  inline static ClContext cl_context_ref;
+
 public:
   /**
    * @brief Construct a new SwiGLU layer object
@@ -100,10 +104,8 @@ public:
    * @param[in] input1 Tensor
    * @param[in] input2 Tensor
    * @param[in] result Tensor
-   * @param[in] RunLayerContext reference
    */
-  void swigluProcess(Tensor const &in1, Tensor const &in2, Tensor &result,
-                     RunLayerContext &context);
+  void swigluProcess(Tensor const &in1, Tensor const &in2, Tensor &result);
 
   /**
    * @brief     swiglu computation
@@ -112,12 +114,11 @@ public:
    * @param[in] vecYdata float * for Output Vector Y
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
-   * @param[in] context RunLayerContext reference
    */
   void swiglu_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-                 unsigned int dim1, unsigned int dim2,
-                 RunLayerContext &context);
+                 unsigned int dim1, unsigned int dim2);
 
+#ifdef ENABLE_FP16
   /**
    * @brief     fp16 swiglu computation
    * @param[in] matAdata fp16 * for Input Vector A
@@ -125,11 +126,10 @@ public:
    * @param[in] vecYdata fp16 * for Output Vector Y
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
-   * @param[in] context RunLayerContext reference
    */
   void swiglu_cl_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                      __fp16 *vecYdata, unsigned int dim1, unsigned int dim2,
-                      RunLayerContext &context);
+                      __fp16 *vecYdata, unsigned int dim1, unsigned int dim2);
+#endif
 };
 
 } // namespace nntrainer

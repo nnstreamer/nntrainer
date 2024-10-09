@@ -78,7 +78,7 @@ void ReshapeLayerCl::forwarding(RunLayerContext &context, bool training) {
   if (!context.executeInPlace()) {
     Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
     const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
-    ReshapeProcess(input, output, context);
+    ReshapeProcess(input, output);
   }
 }
 
@@ -94,15 +94,14 @@ void ReshapeLayerCl::incremental_forwarding(RunLayerContext &context,
       from = 0;
       to = 1;
     }
-    ReshapeProcess(input, output, context);
+    ReshapeProcess(input, output);
   }
 }
 
 opencl::Kernel ReshapeLayerCl::kernel_copy;
 opencl::Kernel ReshapeLayerCl::kernel_copy_fp16;
 
-void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output,
-                                    RunLayerContext &context) {
+void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
 
   unsigned int input_batch_size, input_height, input_width, input_channels;
 
@@ -115,84 +114,81 @@ void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output,
     const float *data = input.getData();
     float *rdata = output.getData();
     copy_cl(data, rdata, input_batch_size, input_channels, input_height,
-            input_width, context);
+            input_width);
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     const _FP16 *data = input.getData<_FP16>();
     _FP16 *rdata = output.getData<_FP16>();
     copy_cl_fp16(data, rdata, input_batch_size, input_channels, input_height,
-                 input_width, context);
+                 input_width);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
 }
 
-void ReshapeLayerCl::copy_cl(const float *input, float *res,
-                             unsigned int input_batch_size,
-                             unsigned int input_channels,
-                             unsigned int input_height,
-                             unsigned int input_width,
-                             RunLayerContext &context) {
+void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
+                                  unsigned int input_batch_size,
+                                  unsigned int input_channels,
+                                  unsigned int input_height,
+                                  unsigned int input_width) {
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(copy_cl_kernel_, context.LayerKernel::COPY,
-                                    ReshapeLayerCl::kernel_copy);
-    if (!result) {
+    ClContext::SharedPtrClKernel kernel_copy_ptr =
+      cl_context_ref.registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
+    if (!kernel_copy_ptr) {
       break;
     }
 
-    size_t dim_size = sizeof(float) * input_batch_size * input_height *
+    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(context.context_inst_, dim_size, true, nullptr);
+    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+                          nullptr);
 
-    opencl::Buffer inOutRes(context.context_inst_, dim_size, true, nullptr);
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+                            nullptr);
 
-    result = inputA.WriteData(context.command_queue_inst_, input);
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(context.command_queue_inst_, res);
+    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(0, &inputA,
-                                                            sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(1, &inOutRes,
-                                                            sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(
-      2, &input_batch_size, sizeof(int));
+    result =
+      kernel_copy_ptr->SetKernelArguments(2, &input_batch_size, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(3, &input_channels,
-                                                            sizeof(int));
+    result =
+      kernel_copy_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(4, &input_height,
-                                                            sizeof(int));
+    result = kernel_copy_ptr->SetKernelArguments(4, &input_height, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy.SetKernelArguments(5, &input_width,
-                                                            sizeof(int));
+    result = kernel_copy_ptr->SetKernelArguments(5, &input_width, sizeof(int));
     if (!result) {
       break;
     }
@@ -200,13 +196,13 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
     const int work_groups_count[3] = {(int)dim_size, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = context.command_queue_inst_.DispatchCommand(
-      ReshapeLayerCl::kernel_copy, work_groups_count, work_group_size);
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutRes.ReadData(context.command_queue_inst_, res);
+    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -214,72 +210,68 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
   } while (false);
 }
 
-void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
-                                  unsigned int input_batch_size,
-                                  unsigned int input_channels,
-                                  unsigned int input_height,
-                                  unsigned int input_width,
-                                  RunLayerContext &context) {
+void ReshapeLayerCl::copy_cl(const float *input, float *res,
+                             unsigned int input_batch_size,
+                             unsigned int input_channels,
+                             unsigned int input_height,
+                             unsigned int input_width) {
 
   bool result = false;
 
   do {
-    result = context.clCreateKernel(copy_cl_kernel_fp16_,
-                                    context.LayerKernel::COPY_FP16,
-                                    ReshapeLayerCl::kernel_copy_fp16);
-    if (!result) {
+    ClContext::SharedPtrClKernel kernel_copy_ptr =
+      cl_context_ref.registerClKernel(copy_cl_kernel_, "copy_cl");
+    if (!kernel_copy_ptr) {
       break;
     }
 
-    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
+    size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(context.context_inst_, dim_size, true, nullptr);
+    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+                          nullptr);
 
-    opencl::Buffer inOutRes(context.context_inst_, dim_size, true, nullptr);
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+                            nullptr);
 
-    result = inputA.WriteData(context.command_queue_inst_, input);
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(context.command_queue_inst_, res);
+    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      0, &inputA, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      1, &inOutRes, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      2, &input_batch_size, sizeof(int));
+    result =
+      kernel_copy_ptr->SetKernelArguments(2, &input_batch_size, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      3, &input_channels, sizeof(int));
+    result =
+      kernel_copy_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      4, &input_height, sizeof(int));
+    result = kernel_copy_ptr->SetKernelArguments(4, &input_height, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = ReshapeLayerCl::kernel_copy_fp16.SetKernelArguments(
-      5, &input_width, sizeof(int));
+    result = kernel_copy_ptr->SetKernelArguments(5, &input_width, sizeof(int));
     if (!result) {
       break;
     }
@@ -287,13 +279,13 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
     const int work_groups_count[3] = {(int)dim_size, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = context.command_queue_inst_.DispatchCommand(
-      ReshapeLayerCl::kernel_copy_fp16, work_groups_count, work_group_size);
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutRes.ReadData(context.command_queue_inst_, res);
+    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }
