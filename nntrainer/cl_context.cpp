@@ -7,6 +7,7 @@
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
  * @author  Niket Agarwal <niket.a@samsung.com>
+ * @author  Yash Singh <yash.singh@samsung.com>
  * @author  Thummala Pallavi <t.pallavi@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This file contains app context related functions and classes that
@@ -20,6 +21,7 @@
 #include <cl_context.h>
 #include <concat_cl.h>
 #include <fc_layer_cl.h>
+#include <lm_head_layer_cl.h>
 #include <reshape_cl.h>
 #include <rmsnorm_layer_cl.h>
 #include <swiglu_cl.h>
@@ -66,6 +68,10 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
                      TransposeLayerCl::type,
                      ml::train::LayerType::LAYER_TRANSPOSE);
+                     
+  cc.registerFactory(nntrainer::createLayer<CustomLMHeadLayerCl>,
+                     CustomLMHeadLayerCl::type,
+                     ml::train::LayerType::LAYER_LM_HEAD);
 }
 
 static void registerer(ClContext &cc) noexcept {
