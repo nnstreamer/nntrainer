@@ -85,6 +85,23 @@ void addition_cl(const float *input, float *res, unsigned int size);
  */
 void sscal_cl(float *X, const unsigned int N, const float alpha);
 
+/**
+ * @brief     transpose computation
+ * @param[in] input float * for Input Tensor
+ * @param[in] res float * for Output Tensor
+ * @param[in] input_batch_size  represents the number of samples in the input
+ * tensor
+ * @param[in] input_channels   represents the channels of the input tensor
+ * @param[in] input_height   represents the height of the input tensor
+ * @param[in] input_width   represents the width of the input tensor
+ * @param[in] axis   transpose about axis, 0-> channels & height, 1-> height &
+ * width, 2-> channels & width
+ */
+void transpose_cl_axis(const float *in, float *res,
+                       unsigned int input_batch_size,
+                       unsigned int input_channels, unsigned int input_height,
+                       unsigned int input_width, unsigned int axis);
+
 #ifdef ENABLE_FP16
 
 /**
@@ -148,6 +165,23 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size);
  * @param[in] context RunLayerContext reference
  */
 void sscal_cl(__fp16 *X, const unsigned int N, const float alpha);
+
+/**
+ * @brief     transpose computation
+ * @param[in] input fp16 * for Input Tensor
+ * @param[in] res fp16 * for Output Tensor
+ * @param[in] input_batch_size  represents the number of samples in the input
+ * tensor
+ * @param[in] input_channels   represents the channels of the input tensor
+ * @param[in] input_height   represents the height of the input tensor
+ * @param[in] input_width   represents the width of the input tensor
+ * @param[in] axis   transpose about axis, 0-> channels & height, 1-> height &
+ * width, 2-> channels and width
+ */
+void transpose_cl_axis(const __fp16 *in, __fp16 *res,
+                       unsigned int input_batch_size,
+                       unsigned int input_channels, unsigned int input_height,
+                       unsigned int input_width, unsigned int axis);
 #endif
 
 } // namespace nntrainer
