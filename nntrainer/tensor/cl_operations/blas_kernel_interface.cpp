@@ -235,4 +235,58 @@ void add_i_cl(Tensor const &input, Tensor &result) {
   }
 }
 
+void transposeCl(const std::string &direction, Tensor const &in,
+                 Tensor &result) {
+
+  unsigned int input_batch_size, input_height, input_width, input_channels;
+
+  input_batch_size = in.batch();
+  input_height = in.height();
+  input_width = in.width();
+  input_channels = in.channel();
+
+  if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    const float *data = in.getData();
+    float *rdata = result.getData();
+    // for transpose about channels and height
+    if (direction[0] == '1' && direction[2] == '0') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 0);
+    }
+    // for transpose about height and width
+    else if (direction[0] == '0' && direction[2] == '2') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 1);
+    }
+    // for transpose about channels and width
+    else if (direction[0] == '2' && direction[2] == '1') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 2);
+    }
+
+  } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    const _FP16 *data = in.getData<_FP16>();
+    _FP16 *rdata = result.getData<_FP16>();
+    // for transpose about channels and height
+    if (direction[0] == '1' && direction[2] == '0') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 0);
+    }
+    // for transpose about height and width
+    else if (direction[0] == '0' && direction[2] == '2') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 1);
+    }
+    // for transpose about channels and width
+    else if (direction[0] == '2' && direction[2] == '1') {
+      transpose_cl_axis(data, rdata, input_batch_size, input_channels,
+                        input_height, input_width, 2);
+    }
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  }
+}
+
 } // namespace nntrainer
