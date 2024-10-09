@@ -954,3 +954,27 @@ if __name__ == "__main__":
     rms_normtest_fp16 = RMSNorm()
     record_single(rms_normtest,(2,3,3,3),"rms_normtest")
     record_single_fp16(rms_normtest_fp16,(2,3,3,3),"rms_normtest_fp16_new")
+
+    def transpose_axis0(tensor, batch_size, input_channel, input_height, input_width):
+        output_shape = (batch_size, input_channel, input_height, input_width)
+        return tf.transpose(tensor, perm=[0, 2, 1, 3])
+
+    transpose_layer_axis0 = tf.keras.layers.Lambda(lambda x: transpose_axis0(x, 2, 3, 3, 3))
+    record_single(transpose_layer_axis0, (2, 3, 3, 3), "transpose_axis0", input_type="float")
+    record_single_fp16(transpose_layer_axis0, (2, 3, 3, 3), "transpose_fp16_axis0", input_type="float")
+
+    def transpose_axis1(tensor, batch_size, input_channel, input_height, input_width):
+        output_shape = (batch_size, input_channel, input_height, input_width)
+        return tf.transpose(tensor, perm=[0, 1, 3, 2])
+
+    transpose_layer_axis1 = tf.keras.layers.Lambda(lambda x: transpose_axis1(x, 2, 3, 3, 3))
+    record_single(transpose_layer_axis1, (2, 3, 3, 3), "transpose_axis1", input_type="float")
+    record_single_fp16(transpose_layer_axis1, (2, 3, 3, 3), "transpose_fp16_axis1", input_type="float")
+
+    def transpose_axis2(tensor, batch_size, input_channel, input_height, input_width):
+        output_shape = (batch_size, input_channel, input_height, input_width)
+        return tf.transpose(tensor, perm=[0, 3, 2, 1])
+
+    transpose_layer_axis2 = tf.keras.layers.Lambda(lambda x: transpose_axis2(x, 2, 3, 3, 3))
+    record_single(transpose_layer_axis2, (2, 3, 3, 3), "transpose_axis2", input_type="float")
+    record_single_fp16(transpose_layer_axis2, (2, 3, 3, 3), "transpose_fp16_axis2", input_type="float")

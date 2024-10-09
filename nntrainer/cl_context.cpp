@@ -23,6 +23,7 @@
 #include <reshape_cl.h>
 #include <rmsnorm_layer_cl.h>
 #include <swiglu_cl.h>
+#include <transpose_cl.h>
 
 namespace nntrainer {
 
@@ -51,6 +52,10 @@ static void add_default_object(ClContext &cc) {
 
   cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
                      ml::train::LayerType::LAYER_CONCAT);
+
+  cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
+                     TransposeLayerCl::type,
+                     ml::train::LayerType::LAYER_TRANSPOSE);
 }
 
 static void registerer(ClContext &cc) noexcept {
