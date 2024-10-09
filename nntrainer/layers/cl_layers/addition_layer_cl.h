@@ -15,6 +15,7 @@
 #define __ADDITION_LAYER_CL_H__
 #ifdef __cplusplus
 
+#include <cl_context.h>
 #include <common_properties.h>
 #include <layer_devel.h>
 
@@ -40,7 +41,7 @@ public:
   /**
    * @brief     Destructor of Addition Layer
    */
-  ~AdditionLayerCL(){};
+  ~AdditionLayerCL() {};
 
   /**
    *  @brief  Move constructor of AdditionLayer.
