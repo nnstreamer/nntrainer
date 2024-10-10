@@ -15,6 +15,7 @@
 #define __RESHAPE_LAYER_CL_H__
 #ifdef __cplusplus
 
+#include <cl_context.h>
 #include <common_properties.h>
 #include <layer_devel.h>
 #include <opencl_buffer.h>
@@ -26,6 +27,10 @@ namespace nntrainer {
  * @brief   Reshape Layer
  */
 class ReshapeLayerCl : public Layer {
+
+private:
+  inline static ClContext cl_context_ref;
+
 public:
   /**
    * @brief     Constructor of Reshape Layer
@@ -107,10 +112,8 @@ public:
    * @brief Process data and dimensions for reshape operation
    * @param[in] input Tensor
    * @param[in] result Tensor
-   * @param[in] context RunLayerContext reference
    */
-  void ReshapeProcess(Tensor const &input, Tensor &result,
-                      RunLayerContext &context);
+  void ReshapeProcess(Tensor const &input, Tensor &result);
 
   /**
    * @brief     copy computation
@@ -121,12 +124,12 @@ public:
    * @param[in] input_channels   represents the channels of the input tensor
    * @param[in] input_height   represents the height of the input tensor
    * @param[in] input_width   represents the width of the input tensor
-   * @param[in] context RunLayerContext reference
    */
   void copy_cl(const float *input, float *res, unsigned int input_batch_size,
                unsigned int input_channels, unsigned int input_height,
-               unsigned int input_width, RunLayerContext &context);
+               unsigned int input_width);
 
+#ifdef ENABLE_FP16
   /**
    * @brief     copy computation
    * @param[in] input fp16 * for Input Tensor
@@ -136,12 +139,11 @@ public:
    * @param[in] input_channels   represents the channels of the input tensor
    * @param[in] input_height   represents the height of the input tensor
    * @param[in] input_width   represents the width of the input tensor
-   * @param[in] context RunLayerContext reference
    */
   void copy_cl_fp16(const __fp16 *input, __fp16 *res,
                     unsigned int input_batch_size, unsigned int input_channels,
-                    unsigned int input_height, unsigned int input_width,
-                    RunLayerContext &context);
+                    unsigned int input_height, unsigned int input_width);
+#endif
 
 protected:
   std::tuple<props::TargetShape>

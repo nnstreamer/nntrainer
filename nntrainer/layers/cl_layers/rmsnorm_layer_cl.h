@@ -19,6 +19,7 @@
 #include <layer_impl.h>
 #include <nntrainer_log.h>
 
+#include <cl_context.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 
@@ -49,7 +50,12 @@ public:
  * @class   RMSNormLayer
  * @brief   RMS Norm layer
  */
+
 class RMSNormLayerCl : public LayerImpl {
+
+private:
+  inline static ClContext cl_context_ref;
+
 public:
   /**
    * @brief     Constructor of RMS Norm Layer
@@ -84,9 +90,9 @@ public:
   void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-￼   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
-￼   * int from, unsigned int to, bool training)
-￼   */
+   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
+   * int from, unsigned int to, bool training)
+   */
   void incremental_forwarding(RunLayerContext &context, unsigned int from,
                               unsigned int to, bool training) override;
 
@@ -121,24 +127,22 @@ public:
    * @param[in] result Tensor
    * @param[in] gamma Tensor
    * @param[in] epsilon float
-   * @param[in] RunLayerContext reference
    */
 
   void rmsnormProcess(Tensor const &input, Tensor &result, Tensor const &gamma,
-                      const float epsilon, RunLayerContext &context);
-
+                      const float epsilon);
+#ifdef ENABLE_FP16
   /**
    * @brief Process data and dimensions for FP16 rms norm operation
    * @param[in] input Tensor
    * @param[in] result Tensor
    * @param[in] gamma Tensor
    * @param[in] epsilon float
-   * @param[in] RunLayerContext reference
    */
 
   void rmsnormProcess_fp16(Tensor const &input, Tensor &result,
-                           Tensor const &gamma, const float epsilon,
-                           RunLayerContext &context);
+                           Tensor const &gamma, const float epsilon);
+#endif
   /**
    * @copydoc Layer::supportBackwarding()
    */

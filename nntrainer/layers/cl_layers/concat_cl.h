@@ -15,6 +15,7 @@
 #define __CONCAT_LAYER_CL_H__
 #ifdef __cplusplus
 
+#include <cl_context.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
@@ -31,6 +32,10 @@ namespace nntrainer {
  * @brief   Concat Layer
  */
 class ConcatLayerCl : public Layer {
+
+private:
+  inline static ClContext cl_context_ref;
+
 public:
   /**
    * @brief     Constructor of Concat Layer
@@ -113,10 +118,8 @@ public:
    * @param[in] input1 Tensor
    * @param[in] input2 Tensor
    * @param[in] result Tensor
-   * @param[in] RunLayerContext reference
    */
-  void ConcatProcess(Tensor const &in1, Tensor const &in2, Tensor &result,
-                     RunLayerContext &context);
+  void ConcatProcess(Tensor const &in1, Tensor const &in2, Tensor &result);
 
   /**
    * @brief     concat computation for axis 3
@@ -129,34 +132,11 @@ public:
    * @param[in] input1_height   represents the height of the input tensor
    * @param[in] input1_width   represents the width of the input tensor A
    * @param[in] input2_width   represents the width of the input tensor X
-   * @param[in] context RunLayerContext reference
    */
   void concat_cl_axis3(const float *matAdata, const float *vecXdata,
                        float *vecYdata, unsigned int input1_batch_size,
                        unsigned int input1_channels, unsigned int input1_height,
-                       unsigned int input1_width, unsigned int input2_width,
-                       RunLayerContext &context);
-
-  /**
-   * @brief     concat computation for axis 3 fp16
-   * @param[in] matAdata fp16 * for Input Tensor A
-   * @param[in] vecXdata fp16 * for Input Tensor X
-   * @param[in] vecYdata fp16 * for Output Tensor Y
-   * @param[in] input1_batch_size  represents the number of samples in the input
-   * tensor
-   * @param[in] input1_channels   represents the channels of the input tensor
-   * @param[in] input1_height   represents the height of the input tensor
-   * @param[in] input1_width   represents the width of the input tensor A
-   * @param[in] input2_width   represents the width of the input tensor X
-   * @param[in] context RunLayerContext reference
-   */
-  void concat_cl_axis3_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                            __fp16 *vecYdata, unsigned int input1_batch_size,
-                            unsigned int input1_channels,
-                            unsigned int input1_height,
-                            unsigned int input1_width,
-                            unsigned int input2_width,
-                            RunLayerContext &context);
+                       unsigned int input1_width, unsigned int input2_width);
 
   /**
    * @brief     concat computation for axis 2
@@ -169,34 +149,11 @@ public:
    * @param[in] input1_width   represents the width of the input tensor
    * @param[in] input1_height   represents the height of the input tensor A
    * @param[in] input2_height   represents the height of the input tensor X
-   * @param[in] context RunLayerContext reference
    */
   void concat_cl_axis2(const float *matAdata, const float *vecXdata,
                        float *vecYdata, unsigned int input1_batch_size,
                        unsigned int input1_channels, unsigned int input1_width,
-                       unsigned int input1_height, unsigned int input2_height,
-                       RunLayerContext &context);
-
-  /**
-   * @brief     concat computation for axis 2 fp16
-   * @param[in] matAdata fp16 * for Input Tensor A
-   * @param[in] vecXdata fp16 * for Input Tensor X
-   * @param[in] vecYdata fp16 * for Output Tensor Y
-   * @param[in] input1_batch_size  represents the number of samples in the input
-   * tensor
-   * @param[in] input1_channels   represents the channels of the input tensor
-   * @param[in] input1_width   represents the width of the input tensor
-   * @param[in] input1_height   represents the height of the input tensor A
-   * @param[in] input2_height   represents the height of the input tensor X
-   * @param[in] context RunLayerContext reference
-   */
-  void concat_cl_axis2_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                            __fp16 *vecYdata, unsigned int input1_batch_size,
-                            unsigned int input1_channels,
-                            unsigned int input1_width,
-                            unsigned int input1_height,
-                            unsigned int input2_height,
-                            RunLayerContext &context);
+                       unsigned int input1_height, unsigned int input2_height);
 
   /**
    * @brief     concat computation for axis 1
@@ -209,13 +166,51 @@ public:
    * @param[in] input1_width   represents the width of the input tensor
    * @param[in] input1_channels   represents the channels of the input tensor A
    * @param[in] input2_channels   represents the channels of the input tensor X
-   * @param[in] context RunLayerContext reference
    */
   void concat_cl_axis1(const float *matAdata, const float *vecXdata,
                        float *vecYdata, unsigned int input1_batch_size,
                        unsigned int input1_height, unsigned int input1_width,
                        unsigned int input1_channels,
-                       unsigned int input2_channels, RunLayerContext &context);
+                       unsigned int input2_channels);
+
+#ifdef ENABLE_FP16
+  /**
+   * @brief     concat computation for axis 3 fp16
+   * @param[in] matAdata fp16 * for Input Tensor A
+   * @param[in] vecXdata fp16 * for Input Tensor X
+   * @param[in] vecYdata fp16 * for Output Tensor Y
+   * @param[in] input1_batch_size  represents the number of samples in the input
+   * tensor
+   * @param[in] input1_channels   represents the channels of the input tensor
+   * @param[in] input1_height   represents the height of the input tensor
+   * @param[in] input1_width   represents the width of the input tensor A
+   * @param[in] input2_width   represents the width of the input tensor X
+   */
+  void concat_cl_axis3_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
+                            __fp16 *vecYdata, unsigned int input1_batch_size,
+                            unsigned int input1_channels,
+                            unsigned int input1_height,
+                            unsigned int input1_width,
+                            unsigned int input2_width);
+
+  /**
+   * @brief     concat computation for axis 2 fp16
+   * @param[in] matAdata fp16 * for Input Tensor A
+   * @param[in] vecXdata fp16 * for Input Tensor X
+   * @param[in] vecYdata fp16 * for Output Tensor Y
+   * @param[in] input1_batch_size  represents the number of samples in the input
+   * tensor
+   * @param[in] input1_channels   represents the channels of the input tensor
+   * @param[in] input1_width   represents the width of the input tensor
+   * @param[in] input1_height   represents the height of the input tensor A
+   * @param[in] input2_height   represents the height of the input tensor X
+   */
+  void concat_cl_axis2_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
+                            __fp16 *vecYdata, unsigned int input1_batch_size,
+                            unsigned int input1_channels,
+                            unsigned int input1_width,
+                            unsigned int input1_height,
+                            unsigned int input2_height);
 
   /**
    * @brief     concat computation for axis 1 fp16
@@ -228,16 +223,14 @@ public:
    * @param[in] input1_width   represents the width of the input tensor
    * @param[in] input1_channels   represents the channels of the input tensor A
    * @param[in] input2_channels   represents the channels of the input tensor X
-   * @param[in] context RunLayerContext reference
    */
   void concat_cl_axis1_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
                             __fp16 *vecYdata, unsigned int input1_batch_size,
                             unsigned int input1_height,
                             unsigned int input1_width,
                             unsigned int input1_channels,
-                            unsigned int input2_channels,
-                            RunLayerContext &context);
-
+                            unsigned int input2_channelst);
+#endif
 private:
   std::tuple<props::ConcatDimension> concat_props;
 };
