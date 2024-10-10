@@ -20,6 +20,7 @@ Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 @author	Debadri Samaddar <s.debadri@samsung.com>
 @author	Niket Agarwal <niket.a@samsung.com>
 @author	Thummala Pallavi <t.pallavi@samsung.com>
+@author	Yash Singh <yash.singh@samsung.com>
 """
 
 import warnings
@@ -954,3 +955,8 @@ if __name__ == "__main__":
     rms_normtest_fp16 = RMSNorm()
     record_single(rms_normtest,(2,3,3,3),"rms_normtest")
     record_single_fp16(rms_normtest_fp16,(2,3,3,3),"rms_normtest_fp16_new")
+    
+    lm_head = K.layers.Dense(5)
+    record_single(lm_head, (3, 1, 1, 10), "lm_head_GPU1")
+    lm_head1616 = K.layers.Dense(5)
+    record_single_fp16(lm_head1616, (3, 1, 1, 10), "lm_head_GPU1_w16a16")
