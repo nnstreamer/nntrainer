@@ -201,10 +201,10 @@ public:
    * @brief register or return already present OpenCl kernel pointer
    * @param kernel_string kernel implementation string
    * @param kernel_name kernel name
-   * @return reference of std::shared_ptr<opencl::Kernel>
+   * @return std::shared_ptr<opencl::Kernel>
    */
-  const SharedPtrClKernel &registerClKernel(std::string kernel_string,
-                                            std::string kernel_name);
+  const SharedPtrClKernel registerClKernel(std::string kernel_string,
+                                           std::string kernel_name);
 
   /**
    * @brief Initialize and register all blas OpenCl kernels
