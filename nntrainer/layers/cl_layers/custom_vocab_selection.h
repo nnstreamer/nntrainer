@@ -93,7 +93,7 @@ public:
   /**
    * @brief Destructor of VocabSelectionNNTrainer class
    */
-  ~VocabSelectionNNTrainer() {};
+  ~VocabSelectionNNTrainer(){};
 };
 
 } // namespace nntrainer

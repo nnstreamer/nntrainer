@@ -32,21 +32,6 @@ nntrainer::VocabSelectionNNTrainer::VocabSelectionNNTrainer(
   this->lshBits = lshBlockNum * lshBlockSize;
   this->lshData = std::vector<lshDataBlock>(this->vocabCnt * lshBlockNum);
 
-  // for (unsigned int i = 0; i < vocabCnt; ++i) {
-  //     for (unsigned int j = 0; j < lshBlockNum; ++j) {
-  //         unsigned int actualSize = std::min(lshBlockSize, hiddenSize -
-  //         (int)j * lshBlockSize); lshDataBlock d; for (unsigned int k = 0; k
-  //         < actualSize; ++k) {
-  //             d[k] = weights.getValue<_FP16>(0, 0, i, j * lshBlockSize + k) >
-  //             0 ? 1 : 0;
-  //         }
-  //         for (unsigned int k = actualSize; k < lshBlockSize; ++k) {
-  //             d[k] = 0;
-  //         }
-  //         this->lshData[i * lshBlockNum + j] = d;
-  //     }
-  // }
-
   for (unsigned int i = 0; i < lshBlockNum; ++i) {
     unsigned int actualSize =
       std::min(lshBlockSize, hiddenSize - (int)i * lshBlockSize);
