@@ -45,9 +45,8 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
                      ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
 
-  // cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-  //                    RMSNormLayerCl::type,
-  //                    ml::train::LayerType::LAYER_RMSNORM);
+  cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+                     RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
 
   cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
                      ml::train::LayerType::LAYER_CONCAT);
