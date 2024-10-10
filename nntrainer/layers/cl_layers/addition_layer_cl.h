@@ -35,7 +35,7 @@ public:
   /**
    * @brief     Destructor of Addition Layer
    */
-  ~AdditionLayerCL() {};
+  ~AdditionLayerCL(){};
 
   /**
    *  @brief  Move constructor of AdditionLayer.

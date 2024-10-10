@@ -80,7 +80,10 @@ public:
    */
   void finalize(nntrainer::InitLayerContext &context) override;
 
-  void initialize(nntrainer::RunLayerContext &context) override {
+  /**
+   * @copydoc Layer::intialize(RunLayerContext &context)
+   */
+  void initialize(nntrainer::RunLayerContext &context) {
     auto use_vocab_selection =
       std::get<props::UseVocabSelection>(custom_lm_head_props).get();
 
@@ -123,7 +126,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(nntrainer::Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {};
+                const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()

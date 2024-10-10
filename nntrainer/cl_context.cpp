@@ -68,7 +68,7 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
                      TransposeLayerCl::type,
                      ml::train::LayerType::LAYER_TRANSPOSE);
-                     
+
   cc.registerFactory(nntrainer::createLayer<CustomLMHeadLayerCl>,
                      CustomLMHeadLayerCl::type,
                      ml::train::LayerType::LAYER_LM_HEAD);
