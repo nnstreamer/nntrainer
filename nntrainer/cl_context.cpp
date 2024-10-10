@@ -149,7 +149,7 @@ void ClContext::initBlasClKernels() {
   blas_kernels_initialized = true;
 }
 
-const ClContext::SharedPtrClKernel &
+const ClContext::SharedPtrClKernel
 ClContext::registerClKernel(std::string kernel_string,
                             std::string kernel_name) {
   // check if created before
