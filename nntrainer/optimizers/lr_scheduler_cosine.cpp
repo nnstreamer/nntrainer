@@ -35,18 +35,17 @@ void CosineAnnealingLearningRateScheduler::finalize() {
   NNTR_THROW_IF(std::get<props::DecaySteps>(lr_props).empty(),
                 std::invalid_argument)
     << "[CosineAnnealingLearningRateScheduler] Decay Steps is not set";
-  CosineAnnealingLearningRateScheduler::finalize();
 }
 
 void CosineAnnealingLearningRateScheduler::setProperty(
   const std::vector<std::string> &values) {
   auto left = loadProperties(values, lr_props);
-  CosineAnnealingLearningRateScheduler::setProperty(left);
+  NNTR_THROW_IF(left.size(), std::invalid_argument)
+    << "[CosineAnnealingLearningRateScheduler] There are unparsed properties";
 }
 
 void CosineAnnealingLearningRateScheduler::exportTo(
   Exporter &exporter, const ml::train::ExportMethods &method) const {
-  CosineAnnealingLearningRateScheduler::exportTo(exporter, method);
   exporter.saveResult(lr_props, method, this);
 }
 
@@ -54,8 +53,6 @@ double CosineAnnealingLearningRateScheduler::getLearningRate(size_t iteration) {
   auto const &max_lr = std::get<props::MaxLearningRate>(lr_props);
   auto const &min_lr = std::get<props::MinLearningRate>(lr_props);
   auto const &decay_steps = std::get<props::DecaySteps>(lr_props);
-
-  auto lr = CosineAnnealingLearningRateScheduler::getLearningRate(iteration);
 
   // Cosine annealing formula
   double cosine_decay =
