@@ -1477,7 +1477,7 @@ public:
 
 /**
  * @brief Max Learning Rate props
- * 
+ *
  */
 class MaxLearningRate : public Property<float> {
 public:
@@ -1488,7 +1488,7 @@ public:
 
 /**
  * @brief Min Learning Rate props
- * 
+ *
  */
 class MinLearningRate : public Property<float> {
 public:

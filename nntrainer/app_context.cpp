@@ -51,9 +51,9 @@
 #include <input_layer.h>
 #include <layer_normalization_layer.h>
 #include <lr_scheduler_constant.h>
+#include <lr_scheduler_cosine.h>
 #include <lr_scheduler_exponential.h>
 #include <lr_scheduler_step.h>
-#include <lr_scheduler_cosine.h>
 #include <lstm.h>
 #include <lstmcell.h>
 #include <mol_attention_layer.h>
