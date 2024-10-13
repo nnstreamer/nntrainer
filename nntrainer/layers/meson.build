@@ -16,6 +16,7 @@ layer_sources = [
   'concat_layer.cpp',
   'bn_layer.cpp',
   'layer_normalization_layer.cpp',
+  'conv2d_transpose_layer.cpp',
   'conv2d_layer.cpp',
   'conv1d_layer.cpp',
   'fc_layer.cpp',
