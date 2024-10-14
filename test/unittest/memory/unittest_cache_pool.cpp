@@ -68,11 +68,6 @@ public:
 };
 
 /**
- * @brief creation and destruction
- */
-TEST_F(CachePoolTest, create_destroy) {}
-
-/**
  * @brief get cache memory
  */
 TEST_F(CachePoolTest, get_memory_01_p) {

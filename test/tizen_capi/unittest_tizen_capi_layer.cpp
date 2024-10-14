@@ -26,7 +26,7 @@
 #include <nntrainer_test_util.h>
 
 /**
- * @brief Neural Network Layer Create / Delete Test (possitive test)
+ * @brief Neural Network Layer Create / Delete Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
   ml_train_layer_h handle;
@@ -38,7 +38,7 @@ TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (possitive test)
+ * @brief Neural Network Layer Create / Delete Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_02_p) {
   ml_train_layer_h handle;
@@ -233,6 +233,58 @@ TEST(nntrainer_capi_nnlayer, setproperty_11_n) {
 }
 
 /**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_12_n) {
+  ml_train_layer_h handle = nullptr;
+  int status;
+  /**
+   * If property is set which is an inappropriate way, then error.
+   */
+  status = ml_train_layer_set_property(handle, "relu", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_13_n) {
+  ml_train_layer_h handle = nullptr;
+  int status;
+  /**
+   * If property is set which is an inappropriate way, then error.
+   */
+  status = ml_train_layer_set_property(handle, "=relu", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_14_n) {
+  ml_train_layer_h handle = nullptr;
+  int status;
+  /**
+   * If property is set which is an inappropriate way, then error.
+   */
+  status = ml_train_layer_set_property(handle, "=0.01", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_15_n) {
+  ml_train_layer_h handle = nullptr;
+  int status;
+  /**
+   * If property is set which is an inappropriate way, then error.
+   */
+  status = ml_train_layer_set_property(handle, "activation:relu", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
  * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_01_p) {
@@ -274,6 +326,55 @@ TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_03_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_layer_set_property_with_single_param(
     handle, "input_shape=1:1:6270 ! normalization=true ! standardization=true");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negative test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_04_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle, "input_shape=1:1:6270 / normalization=true / standardization=true");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negative test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_05_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle,
+    "input_shape=1:1:6270 // normalization=true // standardization=true");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negative test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_with_single_param_06_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_set_property_with_single_param(
+    handle, "input_shape=1:1:6270 : normalization=true : standardization=true");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_layer_destroy(handle);
