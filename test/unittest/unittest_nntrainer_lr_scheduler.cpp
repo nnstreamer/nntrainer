@@ -65,6 +65,48 @@ TEST(lr_constant, ctor_initializer_04_n) {
 }
 
 /**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_05_n) {
+  EXPECT_THROW(nntrainer::createLearningRateScheduler<
+                 nntrainer::ConstantLearningRateScheduler>({"lr=0.1"}),
+               std::invalid_argument);
+}
+
+/**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_06_n) {
+  EXPECT_THROW(
+    nntrainer::createLearningRateScheduler<
+      nntrainer::ConstantLearningRateScheduler>({"learning_rate:0.1"}),
+    std::invalid_argument);
+}
+
+/**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_07_n) {
+  EXPECT_THROW(
+    nntrainer::createLearningRateScheduler<
+      nntrainer::ConstantLearningRateScheduler>({"learning_rate(0.1)"}),
+    std::invalid_argument);
+}
+
+/**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_08_n) {
+  EXPECT_THROW(nntrainer::createLearningRateScheduler<
+                 nntrainer::ConstantLearningRateScheduler>({"0.1"}),
+               std::invalid_argument);
+}
+
+/**
  * @brief test set and get learning rate
  *
  */
@@ -96,6 +138,24 @@ TEST(lr_constant, prop_03_p) {
   EXPECT_NO_THROW(lr->getLearningRate(0));
   EXPECT_FLOAT_EQ(lr->getLearningRate(0), lr->getLearningRate(100));
   EXPECT_FLOAT_EQ(lr->getLearningRate(10), 1.0f);
+}
+
+/**
+ * @brief test set property with wrong format
+ *
+ */
+TEST(lr_constant, prop_04_n) {
+  auto lr = createLRS("constant");
+  EXPECT_THROW(lr->setProperty({"learning_rate:0.1"}), std::invalid_argument);
+}
+
+/**
+ * @brief test set property with wrong format
+ *
+ */
+TEST(lr_constant, prop_05_n) {
+  auto lr = createLRS("constant");
+  EXPECT_THROW(lr->setProperty({"learning_rate(0.1)"}), std::invalid_argument);
 }
 
 /**
@@ -172,6 +232,14 @@ TEST(lr_exponential, prop_02_n) {
 }
 
 /**
+ * @brief test set property with wrong format
+ *
+ */
+TEST(lr_exponential, prop_03_n) {
+  auto lr = createLRS("exponential");
+  EXPECT_THROW(lr->setProperty({"learning_rate:0.1"}), std::invalid_argument);
+}
+/**
  * @brief test finalize
  *
  */
@@ -211,6 +279,14 @@ TEST(lr_exponential, finalize_03_n) {
 TEST(lr_step, prop_01_n) {
   auto lr = createLRS("step");
   EXPECT_THROW(lr->setProperty({"unknown=unknown"}), std::invalid_argument);
+}
+/**
+ * @brief test set property with wrong format
+ *
+ */
+TEST(lr_step, prop_02_n) {
+  auto lr = createLRS("step");
+  EXPECT_THROW(lr->setProperty({"learning_rate:0.1"}), std::invalid_argument);
 }
 
 /**

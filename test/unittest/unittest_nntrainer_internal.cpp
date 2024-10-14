@@ -53,7 +53,27 @@ TEST(nntrainer_Optimizer, create_02_n) {
 /**
  * @brief Optimizer create
  */
-TEST(nntrainer_Optimizer, setType_02_n) {
+TEST(nntrainer_Optimizer, create_03_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(op =
+                     ac.createObject<nntrainer::Optimizer>("adam", {"lr=0.1"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, create_04_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(
+    op = ac.createObject<nntrainer::Optimizer>("adam", {"learning_rate:0.1"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, create_05_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("sgd", {}));
@@ -62,7 +82,27 @@ TEST(nntrainer_Optimizer, setType_02_n) {
 /**
  * @brief Optimizer create
  */
-TEST(nntrainer_Optimizer, setType_03_n) {
+TEST(nntrainer_Optimizer, create_06_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(op =
+                     ac.createObject<nntrainer::Optimizer>("sgd", {"lr=0.1"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, create_07_n) {
+  std::unique_ptr<nntrainer::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(
+    op = ac.createObject<nntrainer::Optimizer>("sgd", {"learning_rate:0.1"}));
+}
+
+/**
+ * @brief Optimizer create
+ */
+TEST(nntrainer_Optimizer, create_08_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_ANY_THROW(op =
@@ -72,7 +112,7 @@ TEST(nntrainer_Optimizer, setType_03_n) {
 /**
  * @brief Optimizer create
  */
-TEST(nntrainer_Optimizer, setType_04_n) {
+TEST(nntrainer_Optimizer, create_09_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
   auto &ac = nntrainer::AppContext::Global();
   EXPECT_ANY_THROW(
