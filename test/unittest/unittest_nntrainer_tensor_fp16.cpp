@@ -4848,12 +4848,6 @@ TEST(nntrainer_Tensor, fill_p) {
     EXPECT_EQ(target, original);
   }
 
-  /// same dimension, buffer size is different (not tested)
-  {
-    /// there is no way to make non contiguous tensor publicily yet
-    EXPECT_TRUE(true);
-  }
-
   /// uninitialized with initialized flag is true
   {
     nntrainer::Tensor target;
