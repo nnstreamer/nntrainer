@@ -442,6 +442,7 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layer_node.cpp \
 	 ../unittest/layers/unittest_layers.cpp \
 	 ../unittest/layers/unittest_layers_impl.cpp \
+	 ../unittest/layers/unittest_layers_transpose_cl.cpp \
 	 ../unittest/layers/unittest_layers_concat_cl.cpp \
 	 ../unittest/layers/unittest_layers_swiglu_cl.cpp \
 	 ../unittest/layers/unittest_layers_fully_connected_cl.cpp \
@@ -499,7 +500,7 @@ LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := googletest_main test_util
 include $(BUILD_EXECUTABLE)
 
-# unittest_ccapi
+#unittest_ccapi
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_ccapi
