@@ -673,6 +673,13 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, multiply_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, multiply_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -1521,6 +1528,13 @@ TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -1826,6 +1840,13 @@ TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -2040,6 +2061,27 @@ TEST(nntrainer_Tensor, pow_01_p) {
   actual = input.pow(-0.5f);
   expected = constant(0.5, 3, 2, 4, 5);
   EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_supported_01_n) {
+  nntrainer::Tensor target(3, 1, 3, 1);
+  nntrainer::Tensor target2(3, 1, 3, 3);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_broadcastable_02_n) {
+  nntrainer::Tensor target(3, 2, 4, 5);
+  nntrainer::Tensor target2(3, 2, 3, 1);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, subtract_i_01_p) {
@@ -3792,12 +3834,6 @@ TEST(nntrainer_Tensor, fill_p) {
     target.fill(original, false);
 
     EXPECT_EQ(target, original);
-  }
-
-  /// same dimension, buffer size is different (not tested)
-  {
-    /// there is no way to make non contiguous tensor publicily yet
-    EXPECT_TRUE(true);
   }
 
   /// uninitialized with initialized flag is true

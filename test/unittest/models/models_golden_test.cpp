@@ -43,51 +43,6 @@ void nntrainerModelTest::validate(
   }
 }
 
-/**
- * @brief check given ini is failing/suceeding at unoptimized running
- */
-TEST_P(nntrainerModelTest, model_test) {
-  if (!shouldCompare()) {
-    std::cout << "[ SKIPPED  ] option not enabled \n";
-    return;
-  }
-  /** Check model with all optimizations off */
-  compare(false);
-
-  /// add stub test for tcm
-  EXPECT_TRUE(true);
-}
-
-/**
- * @brief check given ini is failing/suceeding at optimized running
- */
-TEST_P(nntrainerModelTest, model_test_optimized) {
-  if (!shouldCompare()) {
-    std::cout << "[ SKIPPED  ] option not enabled \n";
-    return;
-  }
-  /** Check model with all optimizations on */
-
-  compare(true);
-
-  /// add stub test for tcm
-  EXPECT_TRUE(true);
-}
-
-/**
- * @brief check given ini is failing/suceeding at validation
- */
-TEST_P(nntrainerModelTest, model_test_validate) {
-  if (!shouldValidate()) {
-    std::cout << "[ SKIPPED  ] option not enabled \n";
-    return;
-  }
-
-  validate(true);
-  /// add stub test for tcm
-  EXPECT_TRUE(true);
-}
-
 TEST_P(nntrainerModelTest, model_test_save_load_compare) {
   if (!shouldSaveLoadIniTest() || !shouldCompare()) {
     std::cout << "[ SKIPPED  ] option not enabled \n";

@@ -942,5 +942,5 @@ TEST(LossRealizer, loss_realizer_p) {
   };
   LossRealizer r;
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
-  compileAndRealizeAndEqual(r, realizers, before, after);
+  EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
 }
