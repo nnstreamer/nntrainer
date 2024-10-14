@@ -18,7 +18,7 @@
 
 #include <blas_avx.h>
 
-namespace nntrainer::avx {
+namespace nntrainer {
 
 void vcvt_f16_f32(size_t N, const void *input, float *output) {
   assert(N != 0);
@@ -114,4 +114,4 @@ void vcvt_f32_f16(size_t N, const float *input, void *output) {
   }
 }
 
-} // namespace nntrainer::avx
+} // namespace nntrainer

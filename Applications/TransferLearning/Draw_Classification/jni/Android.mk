@@ -18,6 +18,9 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/models \
 	$(NNTRAINER_ROOT)/nntrainer/graph \
 	$(NNTRAINER_ROOT)/nntrainer/tensor \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/fallback \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/arm \
 	$(NNTRAINER_ROOT)/nntrainer/optimizers \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \
