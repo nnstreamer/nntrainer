@@ -898,7 +898,7 @@ size_t Tensor::getOffset() const { return itensor->getOffset(); }
 
 void Tensor::copy(const Tensor &from) {
   /// @todo enable copy to non-contiguous tensor
-  if (!itensor->getContiguous()) {
+  if (!itensor->getContiguous() || !from.getContiguous()) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
