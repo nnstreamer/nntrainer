@@ -21,6 +21,27 @@ KLDLossLayer::KLDLossLayer() {}
 
 KLDLossLayer::~KLDLossLayer() {}
 
+void KLDLossLayer::finalize(nntrainer::InitLayerContext &context) {
+  if (context.getNumInputs() != 2) {
+    throw std::invalid_argument("kld loss requires two input");
+  }
+  const auto &input_dims = context.getInputDimensions();
+
+  if (input_dims.front() != input_dims.back()) {
+    throw std::invalid_argument("dimension of mu and log_var is different");
+  }
+
+  auto &input_dim = input_dims.front();
+
+  temp_idx = context.requestTensor(input_dim, "temp");
+  before_sum_idx = context.requestTensor(
+    input_dim, "before_sum", nntrainer::Initializer::NONE, false,
+    nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
+
+  /// output is a scaler-like tensor
+  context.setOutputDimensions({{input_dim.batch(), 1, 1, 1}});
+}
+
 void KLDLossLayer::setProperty(const std::vector<std::string> &values) {
   if (values.size()) {
     throw std::invalid_argument(
