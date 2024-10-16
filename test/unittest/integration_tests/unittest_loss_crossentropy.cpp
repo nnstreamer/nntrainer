@@ -48,48 +48,46 @@ static std::string withKey(const std::string &key,
 
 TEST(crossentropy_loss, model_pass_test) {
 
-  std::unique_ptr<ml::train::Model> model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "cross")});
+  std::unique_ptr<ml::train::Model> model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
 
   std::shared_ptr<ml::train::Layer> input_layer = ml::train::createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")});
 
-  std::shared_ptr<ml::train::Layer> fc_layer = ml::train::createLayer("fully_connected",
-                {withKey("unit", 100), withKey("activation", "softmax")});
+  std::shared_ptr<ml::train::Layer> fc_layer = ml::train::createLayer(
+    "fully_connected",
+    {withKey("unit", 100), withKey("activation", "softmax")});
 
   model->addLayer(input_layer);
   model->addLayer(fc_layer);
 
-  model->setProperty({withKey("batch_size", 16),
-                      withKey("epochs", 10)});
+  model->setProperty({withKey("batch_size", 16), withKey("epochs", 10)});
 
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
   int status = model->compile();
-  EXPECT_EQ(status,ML_ERROR_NONE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = model->initialize();
-  EXPECT_EQ(status,ML_ERROR_NONE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(crossentropy_loss, model_fail_test) {
 
-  std::unique_ptr<ml::train::Model> model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "cross")});
+  std::unique_ptr<ml::train::Model> model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
 
   std::shared_ptr<ml::train::Layer> input_layer = ml::train::createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")});
-  std::shared_ptr<ml::train::Layer> fc_layer = ml::train::createLayer("fully_connected",
-                {withKey("unit", 100), withKey("activation", "relu")});
+  std::shared_ptr<ml::train::Layer> fc_layer = ml::train::createLayer(
+    "fully_connected", {withKey("unit", 100), withKey("activation", "relu")});
 
   model->addLayer(input_layer);
   model->addLayer(fc_layer);
 
-  model->setProperty({withKey("batch_size", 16),
-                      withKey("epochs", 10)});
+  model->setProperty({withKey("batch_size", 16), withKey("epochs", 10)});
 
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
   int status = model->compile();
   EXPECT_FALSE(status == ML_ERROR_NONE);
-
 }
