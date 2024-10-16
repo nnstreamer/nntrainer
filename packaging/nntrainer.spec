@@ -495,10 +495,11 @@ lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/
     --exclude "*/tensorflow*" \
     --exclude "*/Applications/*" \
     --exclude "*/test/*" \
-    --exclude "*/meson*/*" \
     --exclude "*/nntrainer_logger.cpp" \
     --exclude "*/tf_schema_generated.h" \
     --exclude "*/nnstreamer_layer.*"
+
+#    --exclude "*/meson*/*" \
 # nnstreamer layer is untestable here
 
 # Visualize the report
