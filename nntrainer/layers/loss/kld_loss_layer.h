@@ -38,6 +38,11 @@ public:
   ~KLDLossLayer();
 
   /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(nntrainer::InitLayerContext &context) override;
+
+  /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
