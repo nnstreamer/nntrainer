@@ -35,9 +35,9 @@ auto semantic_loss_mse = LayerSemanticsParamType(
   nntrainer::MSELossLayer::type, {},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-auto semantic_loss_kld = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::KLDLossLayer>,
-  nntrainer::KLDLossLayer::type, {}, 0, false, 1);
+auto semantic_loss_kld =
+  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::KLDLossLayer>,
+                          nntrainer::KLDLossLayer::type, {}, 0, false, 1);
 
 auto semantic_loss_cross = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropyLossLayer>,
