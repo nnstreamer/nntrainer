@@ -21,7 +21,7 @@
 #include <layer_context.h>
 #include <tensor.h>
 
-#include "testing_rotarty_emb.cpp"
+#include "testing_rotary_emb.cpp"
 
 #define EXPECT_IN_RANGE(VAL, MIN, MAX) \
   EXPECT_GE((VAL), (MIN));             \
