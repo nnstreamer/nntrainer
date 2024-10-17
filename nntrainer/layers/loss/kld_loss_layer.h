@@ -25,27 +25,17 @@ namespace nntrainer {
  * @class   KLD (Kullback-Leibler Divergence) Loss layer
  * @brief   kld loss layer
  */
-class KLDLossLayer final : public LossLayer {
+class KLDLossLayer : public LossLayer {
 public:
   /**
    * @brief     Constructor of Constant Loss Layer
    */
-  KLDLossLayer();
+  KLDLossLayer() : LossLayer() {}
 
   /**
    * @brief     Destructor of MSE Loss Layer
    */
-  ~KLDLossLayer();
-
-  /**
-   * @copydoc Layer::finalize(InitLayerContext &context)
-   */
-  void finalize(nntrainer::InitLayerContext &context) override;
-
-  /**
-   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
-   */
-  void setProperty(const std::vector<std::string> &values) override;
+  ~KLDLossLayer() = default;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
@@ -62,20 +52,9 @@ public:
    */
   const std::string getType() const override { return KLDLossLayer::type; }
 
-  /**
-   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
-   */
-  void setBatch(nntrainer::RunLayerContext &context,
-                unsigned int batch) override;
-
   inline static const std::string type = "kld";
-
-private:
-  unsigned before_sum_idx;
-  unsigned temp_idx;
 };
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-
 #endif // __KLD_LOSS_LAYER_H__
