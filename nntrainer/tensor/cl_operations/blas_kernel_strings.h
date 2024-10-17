@@ -118,11 +118,11 @@ static const std::string sgemm_cl_transAB_kernel_ =
     })";
 
 static const std::string addition_cl_kernel_ =
-  R"(__kernel void addition_cl(__global const float* input, __global float* output, const unsigned int size) {
+  R"(__kernel void addition_cl(const __global float* input, __global float* output, unsigned int size_input, unsigned int size_res) {
     #pragma printf_support
     size_t idx = get_global_id(0);
-    if (idx < size) {
-        output[idx] = output[idx] + input[idx];
+    if (idx < size_res) {
+        output[idx] = output[idx] + input[idx % size_input];
     }
   })";
 
@@ -324,10 +324,10 @@ static const std::string addition_cl_kernel_fp16_ =
   R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    __kernel void addition_cl_fp16(__global const half* input, __global half* output, const unsigned int size) {
+    __kernel void addition_cl_fp16(const __global half* input, __global half* output, unsigned int size_input, unsigned int size_res) {
     size_t idx = get_global_id(0);
-    if (idx < size) {
-        output[idx] = output[idx] + input[idx];
+    if (idx < size_res) {
+        output[idx] = output[idx] + input[idx % size_input];
     }
   })";
 

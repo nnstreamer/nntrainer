@@ -300,7 +300,8 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
   } while (false);
 }
 
-void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
+void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
+                 unsigned int size_res) {
 
   bool result = false;
 
@@ -312,11 +313,12 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
       break;
     }
 
-    size_t dim1_size = sizeof(cl_half) * size;
+    size_t dim1_size = sizeof(cl_half) * size_input;
+    size_t dim2_size = sizeof(cl_half) * size_res;
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
                           nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim1_size, true,
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim2_size, true,
                             nullptr);
 
     result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
@@ -342,12 +344,18 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
     }
 
     result =
-      kernel_addition_fp16_ptr->SetKernelArguments(2, &size, sizeof(int));
+      kernel_addition_fp16_ptr->SetKernelArguments(2, &size_input, sizeof(int));
     if (!result) {
       break;
     }
 
-    const int work_groups_count[3] = {(int)size, 1, 1};
+    result =
+      kernel_addition_fp16_ptr->SetKernelArguments(3, &size_res, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size_res, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
     result = cl_context_ref.command_queue_inst_.DispatchCommand(
       kernel_addition_fp16_ptr, work_groups_count, work_group_size);

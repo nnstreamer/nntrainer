@@ -37,9 +37,9 @@ static void add_default_object(ClContext &cc) {
                      FullyConnectedLayerCl::type,
                      ml::train::LayerType::LAYER_FC);
 
-  // cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
-  //                    AdditionLayerCL::type,
-  //                    ml::train::LayerType::LAYER_ADDITION);
+  cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
+                     AdditionLayerCL::type,
+                     ml::train::LayerType::LAYER_ADDITION);
 
   cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
                      ml::train::LayerType::LAYER_SWIGLU);

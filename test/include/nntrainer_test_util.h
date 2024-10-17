@@ -177,6 +177,20 @@ private:
     }                                             \
   } while (0)
 
+#define GEN_TEST_INPUT_C(input, equation_i_j_k_l) \
+  do {                                            \
+    for (int i = 0; i < batch_b; ++i) {           \
+      for (int j = 0; j < channel; ++j) {         \
+        for (int k = 0; k < height; ++k) {        \
+          for (int l = 0; l < width; ++l) {       \
+            float val = (equation_i_j_k_l);       \
+            input.setValue(i, j, k, l, val);      \
+          }                                       \
+        }                                         \
+      }                                           \
+    }                                             \
+  } while (0)
+
 /**
  * @brief return a tensor filled with contant value with dimension
  */

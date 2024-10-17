@@ -64,11 +64,10 @@ void multiplyCl(Tensor &input, float const &value);
 
 /**
  * @brief Process data and dimensions for add operation
- * @param[in] input Tensor
  * @param[in] result Tensor
- * @param[in] RunLayerContext reference
+ * @param[in] input Tensor
  */
-void add_i_cl(Tensor const &input, Tensor &result);
+void add_i_cl(Tensor &result, Tensor const &input);
 
 /**
  * @brief Process data and dimensions for transpose operation
