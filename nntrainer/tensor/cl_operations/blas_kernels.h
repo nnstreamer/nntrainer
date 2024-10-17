@@ -74,7 +74,8 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  * @param[in] size number of elements in input vector
  * @param[in] context RunLayerContext reference
  */
-void addition_cl(const float *input, float *res, unsigned int size);
+void addition_cl(const float *input, float *res, unsigned int size_input,
+                 unsigned int size_res);
 
 /**
  * @brief     sscal value element by element immediately
@@ -138,7 +139,8 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
  * @param[in] size number of elements in input vector
  * @param[in] context RunLayerContext reference
  */
-void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size);
+void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size_input,
+                 unsigned int size_res);
 
 /**
  * @brief     fp16 sscal value element by element immediately
