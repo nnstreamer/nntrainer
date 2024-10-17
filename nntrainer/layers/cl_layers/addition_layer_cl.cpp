@@ -37,7 +37,7 @@ void AdditionLayerCL::forwarding(RunLayerContext &context, bool training) {
     if (!idx) {
       hidden_.copy(input_);
     } else {
-      add_i_cl(input_, hidden_, context);
+      add_i_cl(hidden_, input_);
     }
   }
 }
@@ -77,7 +77,7 @@ void AdditionLayerCL::incremental_forwarding(RunLayerContext &context,
       if (!idx) {
         hidden_step.copy(input_step);
       } else {
-        add_i_cl(input_step, hidden_step, context);
+        add_i_cl(hidden_step, input_step);
       }
     }
   }

@@ -530,6 +530,58 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transAB) {
   EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
 }
 
+TEST(blas_kernels, addition_i) {
+
+  int batch = 12;
+  int channel = 1;
+  int height = 26;
+  int width = 26;
+
+  int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor C_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor D_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+  GEN_TEST_INPUT(C_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(D_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  A_fp32.add_i(B_fp32);
+  add_i_cl(C_fp32, D_fp32);
+
+  float mseErrorNeon =
+    mse<float>(A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
+
+  double cosSimNeon = cosine_similarity<float>(
+    A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSimNeon, 0.99, 1);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 
