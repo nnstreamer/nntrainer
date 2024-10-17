@@ -17,30 +17,11 @@
 #include <vector>
 
 namespace nntrainer {
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 KLDLossLayer::KLDLossLayer() {}
 
 KLDLossLayer::~KLDLossLayer() {}
-
-void KLDLossLayer::finalize(nntrainer::InitLayerContext &context) {
-  if (context.getNumInputs() != 2) {
-    throw std::invalid_argument("kld loss requires two input");
-  }
-  const auto &input_dims = context.getInputDimensions();
-
-  if (input_dims.front() != input_dims.back()) {
-    throw std::invalid_argument("dimension of mu and log_var is different");
-  }
-
-  auto &input_dim = input_dims.front();
-
-  temp_idx = context.requestTensor(input_dim, "temp");
-  before_sum_idx = context.requestTensor(
-    input_dim, "before_sum", nntrainer::Initializer::NONE, false,
-    nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
-
-  /// output is a scaler-like tensor
-  context.setOutputDimensions({{input_dim.batch(), 1, 1, 1}});
-}
 
 void KLDLossLayer::setProperty(const std::vector<std::string> &values) {
   if (values.size()) {
@@ -50,42 +31,47 @@ void KLDLossLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void KLDLossLayer::forwarding(RunLayerContext &context, bool training) {
-  // -0.5 * sum(1 + log_std - pow(mu, 2) - exp(log_std))
-  auto &mu = context.getInput(0);
-  auto &log_std = context.getInput(1);
-  auto &ret = context.getOutput(0);
-  auto &temp = context.getTensor(temp_idx);
-  auto &before_sum = context.getTensor(before_sum_idx);
+  // Result = (P * (P / Q).log()).sum()
+  // KL(P ∣∣ Q) whereP denotes the distribution of the observations in datasets
+  // and Q denotes the model output.
 
-  mu.pow(2.0f, temp);                 // 1. temp = mu ^ 2
-  log_std.subtract(temp, before_sum); // 2. before_sum = log_std - temp
-  log_std.apply<float>(expf, temp);   // 3. temp = exp(log_std) - 1
-  temp.subtract_i(1.0f);
-  before_sum.subtract_i(temp);          // 4. before_sum = before_sum - temp
-  before_sum.sum({1, 2, 3}, ret, -0.5); // 5. sum * 0.5
+  nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+    nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);
+    nntrainer::Tensor temp; // temp output
+    /**
+     * 1. Output = label / predicted
+     * 2. Output = output * label
+     * 3. Output = log(output)
+     * 4. Output = sum(output)
+     */
+    label.divide(predicted, temp);
+    temp.multiply_i(label);
+    temp.apply<float>(logf, temp);
+    output.fill(temp.sum({0, 1, 2, 3}));
+  }
 }
 
 void KLDLossLayer::calcDerivative(RunLayerContext &context) {
-  auto &d_incoming = context.getIncomingDerivative(0);
-  auto &mu = context.getInput(0);
+  /**
+   * d/dQ = -P**2/(Q**2) * ln(P/Q)
+   */
+  nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX); // Q
+  nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);     // P
+  nntrainer::Tensor &deriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  auto &temp = context.getTensor(temp_idx);
+  nntrainer::Tensor temp;
+  temp = label.divide(predicted);
+  temp.apply<float>(logf, temp);
 
-  auto &d_mu = context.getOutgoingDerivative(0);
-  auto &d_var = context.getOutgoingDerivative(1);
+  label.pow_i(2);
+  predicted.pow_i(2);
+  label.divide_i(predicted);
 
-  // d_mu = d_incoming * mu
-  mu.multiply(d_incoming, d_mu);
-
-  // temp is exp(log_std) - 1;
-  // d_var =  d_incoming * (-0.5) * ( 1 - exp(log_std) )
-  //       =  d_incoming * (0.5) * ( temp )
-  temp.multiply(d_incoming.multiply(0.5), d_var);
+  temp.multiply_i(label);
+  temp.multiply_i(-1.0f);
+  deriv.fill(temp);
 }
 
-void KLDLossLayer::setBatch(nntrainer::RunLayerContext &context,
-                            unsigned int batch) {
-  context.updateTensor(temp_idx, batch);
-  context.updateTensor(before_sum_idx, batch);
-}
 } // namespace nntrainer

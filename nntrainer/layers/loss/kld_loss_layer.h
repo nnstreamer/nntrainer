@@ -38,11 +38,6 @@ public:
   ~KLDLossLayer();
 
   /**
-   * @copydoc Layer::finalize(InitLayerContext &context)
-   */
-  void finalize(nntrainer::InitLayerContext &context) override;
-
-  /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
@@ -62,17 +57,7 @@ public:
    */
   const std::string getType() const override { return KLDLossLayer::type; }
 
-  /**
-   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
-   */
-  void setBatch(nntrainer::RunLayerContext &context,
-                unsigned int batch) override;
-
   inline static const std::string type = "kld";
-
-private:
-  unsigned before_sum_idx;
-  unsigned temp_idx;
 };
 } // namespace nntrainer
 
