@@ -2,9 +2,9 @@
 /**
  * Copyright (C) 2024 Donghak Park <donghak.park@samsung.com>
  *
- * @file unittest_loss_crossentropy.cpp
+ * @file integration_tests.cpp
  * @date 16 Oct 2024
- * @brief CrossEntropy loss Layer Test
+ * @brief Layer Integration Test
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Donghak Park <donghak.park@samsung.com>
  * @bug No known bugs except for NYI items
