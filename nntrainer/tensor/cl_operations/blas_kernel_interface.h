@@ -64,11 +64,11 @@ void multiplyCl(Tensor &input, float const &value);
 
 /**
  * @brief Process data and dimensions for add operation
- * @param[in] input Tensor
- * @param[in] result Tensor
+ * @param[in] inputA Tensor
+ * @param[in] inputB Tensor
  * @param[in] RunLayerContext reference
  */
-void add_i_cl(Tensor const &input, Tensor &result);
+void add_i_cl(Tensor &inputA, Tensor const &inputB);
 
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */
