@@ -2,7 +2,7 @@ test_name = 'integration_tests'
 
 test_target = [
     'integration_tests.cpp',
-    'unittest_loss_crossentropy.cpp',
+    'integration_test_loss.cpp',
 ]
 
 exe = executable(
