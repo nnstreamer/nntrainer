@@ -1,46 +1,46 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * @file	short_tensor.cpp
+ * @file	uint_tensor.cpp
  * @date	02 April 2024
- * @brief	This is ShortTensor class for 16-bit unsigned integer calculation
+ * @brief	This is UIntTensor class for unsigned integer calculation
+ *          This uint_tensor.cpp contains some codes to define
+ *          UIntTensor template methods. This file cannot be used directly but
+ *          included by uint_tensor.h only.
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Donghyeon Jeong <dhyeon.jeong@samsung.com>
+ * @author	Eunju Yang <ej.yang@samsung.com>
  * @bug		No known bugs except for NYI items
  */
 
-#include <iomanip>
-#include <iostream>
+#ifdef __UINT_TENSOR_H__
 
-#include <blas_interface.h>
-#include <short_tensor.h>
-#include <tensor.h>
+template <typename T>
+UIntTensor<T>::UIntTensor(std::string name_, Tformat fm) :
+  TensorBase(name_, fm, checkTensorDataType()) {}
 
-namespace nntrainer {
-
-ShortTensor::ShortTensor(std::string name_, Tformat fm) :
-  TensorBase(name_, fm, Tdatatype::UINT16) {}
-
-ShortTensor::ShortTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name) :
+template <typename T>
+UIntTensor<T>::UIntTensor(const TensorDim &d, bool alloc_now, Initializer init,
+                          std::string name) :
   TensorBase(d, alloc_now, init, name) {
   if (alloc_now)
     allocate();
 }
 
-ShortTensor::ShortTensor(const TensorDim &d, const void *buf) :
-  ShortTensor(d, true) {
+template <typename T>
+UIntTensor<T>::UIntTensor(const TensorDim &d, const void *buf) :
+  UIntTensor(d, true) {
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
   }
 }
 
-ShortTensor::ShortTensor(
-  std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-  Tformat fm) {
+template <typename T>
+UIntTensor<T>::UIntTensor(
+  std::vector<std::vector<std::vector<std::vector<T>>>> const &d, Tformat fm) {
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
-      "[Tensor] trying to initialize ShortTensor from empty vector");
+      "[Tensor] trying to initialize UIntTensor from empty vector");
   }
 
   dim.setTensorDim(0, d.size());
@@ -54,17 +54,15 @@ ShortTensor::ShortTensor(
     dim.setTensorDim(1, d[0][0][0].size());
   }
 
-  dim.setTensorType({fm, Tdatatype::UINT16});
+  dim.setTensorType({fm, checkTensorDataType()});
 
   strides = dim.computeStrides();
   contiguous = true;
   initializer = Initializer::NONE;
 
-  MemoryData *mem_data =
-    new MemoryData((void *)(new uint16_t[dim.getDataLen()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<uint16_t>();
-  });
+  MemoryData *mem_data = new MemoryData((void *)(new T[dim.getDataLen()]()));
+  data = std::shared_ptr<MemoryData>(
+    mem_data, [](MemoryData *mem_data) { delete[] mem_data->getAddr<T>(); });
 
   offset = 0;
 
@@ -86,9 +84,10 @@ ShortTensor::ShortTensor(
   }
 }
 
-bool ShortTensor::operator==(const ShortTensor &rhs) const {
-  const uint16_t *_data = (uint16_t *)getData();
-  const uint16_t *_rdata = (uint16_t *)rhs.getData();
+template <typename T>
+bool UIntTensor<T>::operator==(const UIntTensor<T> &rhs) const {
+  const T *_data = (T *)getData();
+  const T *_rdata = (T *)rhs.getData();
   for (size_t i = 0; i < size(); ++i) {
     if (_data[i] != _rdata[i])
       return false;
@@ -97,7 +96,7 @@ bool ShortTensor::operator==(const ShortTensor &rhs) const {
   return true;
 }
 
-void ShortTensor::allocate() {
+template <typename T> void UIntTensor<T>::allocate() {
   if (empty() || data)
     return;
 
@@ -109,9 +108,9 @@ void ShortTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-    mem_data = new MemoryData((void *)(new uint16_t[dim.getDataLen()]{}));
+    mem_data = new MemoryData((void *)(new T[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint16_t>();
+      delete[] mem_data->template getAddr<T>();
       delete mem_data;
     });
 
@@ -120,87 +119,91 @@ void ShortTensor::allocate() {
   }
 }
 
-void ShortTensor::deallocate() {
+template <typename T> void UIntTensor<T>::deallocate() {
   data = nullptr;
   offset = 0;
 }
-
-void *ShortTensor::getData() const {
+template <typename T> void *UIntTensor<T>::getData() const {
   if (!data)
     return nullptr;
 
   data->validate();
-  return data->getAddr<uint16_t>() + offset;
+  return data->getAddr<T>() + offset;
 }
 
-void *ShortTensor::getData(size_t idx) const {
+template <typename T> void *UIntTensor<T>::getData(size_t idx) const {
   if (!data)
     return nullptr;
 
   data->validate();
-  return data->getAddr<uint16_t>() + offset + idx;
+  return data->getAddr<T>() + offset + idx;
 }
 
-void *ShortTensor::getAddress(unsigned int i) {
+template <typename T> void *UIntTensor<T>::getAddress(unsigned int i) {
   size_t index = getIndex(batch(), channel(), height(), width());
   if (i > index) {
     return nullptr;
   }
-  return &((uint16_t *)getData())[i];
+  return &((T *)getData())[i];
 }
 
-const void *ShortTensor::getAddress(unsigned int i) const {
+template <typename T>
+const void *UIntTensor<T>::getAddress(unsigned int i) const {
   size_t index = getIndex(batch(), channel(), height(), width());
   if (i > index) {
     return nullptr;
   }
-  return &((uint16_t *)getData())[i];
+  return &((T *)getData())[i];
 }
 
-const uint16_t &ShortTensor::getValue(unsigned int i) const {
-  return ((uint16_t *)getData())[i];
+template <typename T> const T &UIntTensor<T>::getValue(unsigned int i) const {
+  return ((T *)getData())[i];
 }
 
-uint16_t &ShortTensor::getValue(unsigned int i) {
-  return ((uint16_t *)getData())[i];
+template <typename T> T &UIntTensor<T>::getValue(unsigned int i) {
+  return ((T *)getData())[i];
 }
 
-const uint16_t &ShortTensor::getValue(unsigned int b, unsigned int c,
-                                      unsigned int h, unsigned int w) const {
+template <typename T>
+const T &UIntTensor<T>::getValue(unsigned int b, unsigned int c, unsigned int h,
+                                 unsigned int w) const {
   return getValue(getIndex(b, c, h, w));
 }
 
-uint16_t &ShortTensor::getValue(unsigned int b, unsigned int c, unsigned int h,
-                                unsigned int w) {
+template <typename T>
+T &UIntTensor<T>::getValue(unsigned int b, unsigned int c, unsigned int h,
+                           unsigned int w) {
   return getValue(getIndex(b, c, h, w));
 }
 
-void ShortTensor::setValue(float value) {
-  uint16_t *data = (uint16_t *)getData();
+template <typename T> void UIntTensor<T>::setValue(float value) {
+  T *data = (T *)getData();
   std::fill(data, data + size(), value);
 }
 
-void ShortTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
-                           unsigned int w, float value, float beta) {
+template <typename T>
+void UIntTensor<T>::addValue(unsigned int b, unsigned int c, unsigned int h,
+                             unsigned int w, float value, float beta) {
   auto const &idx = getIndex(b, c, h, w);
-  float output = ((uint16_t *)getData())[idx];
+  float output = ((T *)getData())[idx];
   output *= beta;
   output += value;
 
-  ((uint16_t *)getData())[idx] = std::trunc(output);
+  ((T *)getData())[idx] = std::trunc(output);
 }
 
-void ShortTensor::setValue(unsigned int b, unsigned int c, unsigned int h,
-                           unsigned int w, float value) {
-  ((uint16_t *)getData())[getIndex(b, c, h, w)] = (uint16_t)value;
+template <typename T>
+void UIntTensor<T>::setValue(unsigned int b, unsigned int c, unsigned int h,
+                             unsigned int w, float value) {
+  ((T *)getData())[getIndex(b, c, h, w)] = (T)value;
 }
 
-void ShortTensor::setZero() {
+template <typename T> void UIntTensor<T>::setZero() {
   /// @todo replace with apply_i or scal
   setValue(0);
 }
 
-void ShortTensor::initialize() {
+template <typename T> void UIntTensor<T>::initialize() {
   if (empty() || !isAllocated())
     return;
 
@@ -223,17 +226,17 @@ void ShortTensor::initialize() {
   putData();
 }
 
-void ShortTensor::initialize(Initializer init) {
+template <typename T> void UIntTensor<T>::initialize(Initializer init) {
   initializer = init;
   initialize();
 }
 
-void ShortTensor::copy(const Tensor &from) {
+template <typename T> void UIntTensor<T>::copy(const Tensor &from) {
   reshape(from.getDim());
   copy(from.getData());
 }
 
-void ShortTensor::copyData(const Tensor &from) {
+template <typename T> void UIntTensor<T>::copyData(const Tensor &from) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot copy.";
 
@@ -251,21 +254,22 @@ void ShortTensor::copyData(const Tensor &from) {
   }
 }
 
-void ShortTensor::copy_with_stride(const Tensor &input, Tensor &output) {
+template <typename T>
+void UIntTensor<T>::copy_with_stride(const Tensor &input, Tensor &output) {
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
       for (unsigned int h = 0; h < output.height(); ++h) {
         for (unsigned int w = 0; w < output.width(); ++w) {
-          output.setValue(b, c, h, w, input.getValue<uint16_t>(b, c, h, w));
+          output.setValue(b, c, h, w, input.getValue<T>(b, c, h, w));
         }
       }
     }
   }
 }
 
-std::vector<unsigned int> ShortTensor::argmax() const {
+template <typename T> std::vector<unsigned int> UIntTensor<T>::argmax() const {
   std::vector<unsigned int> result;
-  const uint16_t *data = (uint16_t *)getData();
+  const T *data = (T *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -279,20 +283,22 @@ std::vector<unsigned int> ShortTensor::argmax() const {
   return result;
 }
 
-float ShortTensor::max_abs() const { return maxValue(); }
+template <typename T> float UIntTensor<T>::max_abs() const {
+  return maxValue();
+}
 
-float ShortTensor::maxValue() const {
-  const uint16_t *data = (uint16_t *)getData();
+template <typename T> float UIntTensor<T>::maxValue() const {
+  const T *data = (T *)getData();
   return *std::max_element(data, data + size());
 }
 
-float ShortTensor::minValue() const {
-  const uint16_t *data = (uint16_t *)getData();
+template <typename T> float UIntTensor<T>::minValue() const {
+  const T *data = (T *)getData();
   return *std::min_element(data, data + size());
 }
 
-void ShortTensor::print(std::ostream &out) const {
-  const uint16_t *data = (uint16_t *)getData();
+template <typename T> void UIntTensor<T>::print(std::ostream &out) const {
+  const T *data = (T *)getData();
   unsigned int len = size();
   out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
   out << dim;
@@ -336,7 +342,7 @@ void ShortTensor::print(std::ostream &out) const {
   }
 }
 
-void ShortTensor::copy(const void *buf) {
+template <typename T> void UIntTensor<T>::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot copy.";
 
@@ -346,8 +352,8 @@ void ShortTensor::copy(const void *buf) {
 
   /// @todo need to optimize
   for (unsigned int i = 0; i < size(); ++i) {
-    ((uint16_t *)getData())[i] = ((uint16_t *)buf)[i];
+    ((T *)getData())[i] = ((T *)buf)[i];
   }
 }
 
-} // namespace nntrainer
+#endif
