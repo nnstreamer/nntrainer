@@ -15,6 +15,7 @@
  */
 
 #include <addition_layer_cl.h>
+#include <attention_kernel_strings.h>
 #include <blas_kernel_strings.h>
 #include <cl_context.h>
 #include <concat_cl.h>
@@ -147,6 +148,21 @@ void ClContext::initBlasClKernels() {
   registerClKernel(sscal_cl_kernel_fp16_, "sscal_cl_fp16");
 #endif
   blas_kernels_initialized = true;
+}
+
+void ClContext::initAttentionClKernels() {
+  if (attention_kernels_initialized) {
+    ml_logi("ClContext: Default attention kernels already registered and "
+            "initialized");
+    return;
+  }
+
+  registerClKernel(rotary_emb_cl_kernel_, "rotary_emb_cl");
+
+#ifdef ENABLE_FP16
+  registerClKernel(rotary_emb_cl_kernel_fp16_, "rotary_emb_cl_fp16");
+#endif
+  attention_kernels_initialized = true;
 }
 
 const ClContext::SharedPtrClKernel
