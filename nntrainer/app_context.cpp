@@ -51,6 +51,7 @@
 #include <input_layer.h>
 #include <layer_normalization_layer.h>
 #include <lr_scheduler_constant.h>
+#include <lr_scheduler_cosine.h>
 #include <lr_scheduler_exponential.h>
 #include <lr_scheduler_step.h>
 #include <lstm.h>
@@ -242,6 +243,10 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(
     ml::train::createLearningRateScheduler<StepLearningRateScheduler>,
     StepLearningRateScheduler::type, LRType::STEP);
+  ac.registerFactory(ml::train::createLearningRateScheduler<
+                       CosineAnnealingLearningRateScheduler>,
+                     CosineAnnealingLearningRateScheduler::type,
+                     LRType::COSINE);
 
   using LayerType = ml::train::LayerType;
   ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
