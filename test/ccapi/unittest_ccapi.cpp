@@ -64,6 +64,15 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::WeightLayer());
   EXPECT_EQ(layer->getType(), "weight");
 
+  EXPECT_NO_THROW(layer = ml::train::layer::AddLayer());
+  EXPECT_EQ(layer->getType(), "add");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::SubtractLayer());
+  EXPECT_EQ(layer->getType(), "subtract");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::MultiplyLayer());
+  EXPECT_EQ(layer->getType(), "multiply");
+
   EXPECT_NO_THROW(layer = ml::train::layer::FullyConnected());
   EXPECT_EQ(layer->getType(), "fully_connected");
 
