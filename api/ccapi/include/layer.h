@@ -35,8 +35,12 @@ namespace train {
  * @brief     Enumeration of layer type
  */
 enum LayerType {
-  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,      /**< Input Layer type */
-  LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT, /**< Weight Layer type */
+  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT,          /**< Input Layer type */
+  LAYER_WEIGHT = ML_TRAIN_LAYER_TYPE_WEIGHT,     /**< Weight Layer type */
+  LAYER_ADD = ML_TRAIN_LAYER_TYPE_ADD,           /**< Add Layer type */
+  LAYER_SUBTRACT = ML_TRAIN_LAYER_TYPE_SUBTRACT, /**< Subtract Layer type */
+  LAYER_MULTIPLY = ML_TRAIN_LAYER_TYPE_MULTIPLY, /**< Multiply Layer type */
+  LAYER_DIVIDE = ML_TRAIN_LAYER_TYPE_DIVIDE,     /**< Divide Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -303,6 +307,38 @@ Input(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 WeightLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_WEIGHT, properties);
+}
+
+/**
+ * @brief Helper function to create add layer
+ */
+inline std::unique_ptr<Layer>
+AddLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_ADD, properties);
+}
+
+/**
+ * @brief Helper function to create subtract layer
+ */
+inline std::unique_ptr<Layer>
+SubtractLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SUBTRACT, properties);
+}
+
+/**
+ * @brief Helper function to create mul layer
+ */
+inline std::unique_ptr<Layer>
+MultiplyLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_MULTIPLY, properties);
+}
+
+/**
+ * @brief Helper function to create divide layer
+ */
+inline std::unique_ptr<Layer>
+DivideLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_DIVIDE, properties);
 }
 
 /**
