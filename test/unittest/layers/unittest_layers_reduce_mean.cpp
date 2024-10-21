@@ -18,7 +18,7 @@
 
 auto semantic_reduce_mean_all = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ReduceMeanLayer>,
-  nntrainer::ReduceMeanLayer::type, {},
+  nntrainer::ReduceMeanLayer::type, {"axis=1"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 auto semantic_reduce_mean = LayerSemanticsParamType(
