@@ -144,10 +144,10 @@ void Manager::reinitialize() {
   tensor_pool.reinitialize();
 }
 
-void Manager::allocateWeights(unsigned int max_exec_order_) {
+void Manager::allocateWeights(unsigned int max_exec_order_, bool init) {
   if (!weight_pool.isAllocated()) {
     finalizeTensorPool(weight_pool, 0, max_exec_order_);
-    weight_pool.allocate();
+    weight_pool.allocate(init);
   }
 }
 
@@ -376,7 +376,9 @@ std::vector<Weight *> Manager::requestWeights(
    *  and therefore, if we remove the calcDerivative order, then tests fails.
    */
 
-  TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
+  TensorLifespan var_ls = swap_mode == "inference"
+                            ? TensorLifespan::FORWARD_INFER_LIFESPAN
+                            : TensorLifespan::MAX_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
 
   std::vector<Weight *> ret;

@@ -16,6 +16,7 @@
 #include <profiler.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -70,7 +71,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
     << std::string(strerror_r(errno, error_buf, error_buflen));
 
   void *buf = static_cast<void *>(ptr + diff);
-  mapped[buf] = std::make_pair(ptr, len);
+  mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
   return buf;
 #else
@@ -88,7 +89,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
       << "SwapDevice: seek file: " << dev_path;
 
     len = read(fd, ptr, size);
-    NNTR_THROW_IF(len != (ssize_t)size, std::runtime_error)
+    NNTR_THROW_IF(len != (size_t)size, std::runtime_error)
       << "SwapDevice: read file: " << dev_path;
   }
 
@@ -107,7 +108,22 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
     << "Couldn't find buffer";
 
+  off_t off;
+  ssize_t len;
+
   auto info = mapped[ptr];
+  if (!dealloc_only) {
+    off = lseek(fd, std::get<2>(info), SEEK_SET);
+    NNTR_THROW_IF(off < 0, std::runtime_error)
+      << "SwapDevice: seek file: " << dev_path;
+
+    ssize_t size = std::get<3>(info);
+    len = write(fd, ptr, size);
+    NNTR_THROW_IF(len != size, std::runtime_error)
+      << "SwapDevice: write file: " << len << "::" << std::to_string(size)
+      << dev_path;
+  }
+
   ret = munmap(std::get<void *>(info), std::get<size_t>(info));
   const size_t error_buflen = 100;
   char error_buf[error_buflen];
