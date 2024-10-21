@@ -24,6 +24,7 @@
 /usr/include/nntrainer/layer_context.h
 /usr/include/nntrainer/layer_devel.h
 /usr/include/nntrainer/layer_impl.h
+/usr/include/nntrainer/operation_layer.h
 /usr/include/nntrainer/acti_func.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
