@@ -50,6 +50,7 @@ test_target = [
   'unittest_layers_multiout.cpp',
   'unittest_layers_rnn.cpp',
   'unittest_layers_rnncell.cpp',
+  'unittest_layers_reduce_mean.cpp',
   'unittest_layers_lstm.cpp',
   'unittest_layers_lstmcell.cpp',
   'unittest_layers_gru.cpp',
@@ -62,7 +63,7 @@ test_target = [
   'unittest_layers_attention.cpp',
   'unittest_layers_dropout.cpp',
   'unittest_layers_reshape.cpp',
-  # 'unittest_layers_mol_attention.cpp',
+  'unittest_layers_mol_attention.cpp',
   'unittest_layers_multi_head_attention.cpp',
   'unittest_layers_positional_encoding.cpp',
   'unittest_layers_upsample2d.cpp'
