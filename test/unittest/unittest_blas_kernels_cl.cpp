@@ -27,10 +27,7 @@
 
 using namespace nntrainer;
 
-static void setUpGpuContext() {
-  auto &ac = nntrainer::ClContext::Global();
-  ac.initBlasClKernels();
-}
+static void setUpGpuContext() { auto &ac = nntrainer::ClContext::Global(); }
 
 TEST(blas_kernels, dotCL_sgemv) {
   setUpGpuContext();
