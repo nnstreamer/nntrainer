@@ -99,6 +99,7 @@ typedef enum {
   ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT = 0,    /**< Constant lr scheduler */
   ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL = 1, /**< Exponentially lr scheduler */
   ML_TRAIN_LR_SCHEDULER_TYPE_STEP = 2,        /**< Step lr scheduler */
+  ML_TRAIN_LR_SCHEDULER_TYPE_COSINE = 3,      /**< Cosine lr scheduler */
   ML_TRAIN_LR_SCHEDULER_TYPE_UNKNOWN = 999    /**< Unknown lr scheduler */
 } ml_train_lr_scheduler_type_e;
 
