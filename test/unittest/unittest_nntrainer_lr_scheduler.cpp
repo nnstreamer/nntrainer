@@ -16,6 +16,7 @@
 
 #include <lr_scheduler.h>
 #include <lr_scheduler_constant.h>
+#include <lr_scheduler_cosine.h>
 #include <lr_scheduler_exponential.h>
 #include <nntrainer_error.h>
 
@@ -52,6 +53,14 @@ TEST(lr_constant, ctor_initializer_02_p) {
  */
 TEST(lr_constant, ctor_initializer_03_n) {
   EXPECT_ANY_THROW(createLRS("random"));
+}
+
+/**
+ * @brief test constructing lr scheduler
+ *
+ */
+TEST(lr_constant, ctor_initializer_cosine_n) {
+  EXPECT_NO_THROW(createLRS("cosine"));
 }
 
 /**
@@ -418,6 +427,57 @@ TEST(lr_step, get_learning_rate_02_p) {
   EXPECT_FLOAT_EQ(lr->getLearningRate(1000), 0.001f);
 }
 
+TEST(lr_cosine, prop_01_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_THROW(lr->setProperty({"unknown=unknown"}), std::invalid_argument);
+}
+
+TEST(lr_cosine, prop_02_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_THROW(lr->setProperty({"learning_rate:0.1"}), std::invalid_argument);
+}
+
+TEST(lr_cosine, prop_03_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
+}
+
+TEST(lr_cosine, prop_04_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
+}
+
+TEST(lr_cosine, prop_05_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
+}
+
+TEST(lr_cosine, prop_06_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+}
+
+TEST(lr_cosine, finalize_01_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_THROW(lr->finalize(), std::invalid_argument);
+}
+
+TEST(lr_cosine, finalize_02_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
+  EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+  EXPECT_NO_THROW(lr->finalize());
+}
+TEST(lr_cosine, getlearningrate_01_n) {
+  auto lr = createLRS("cosine");
+  EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
+  EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
+  EXPECT_NO_THROW(lr->setProperty({"decay_steps=1"}));
+  EXPECT_NO_THROW(lr->finalize());
+  EXPECT_FLOAT_EQ(lr->getLearningRate(0), 1);
+}
 int main(int argc, char **argv) {
   int result = -1;
 

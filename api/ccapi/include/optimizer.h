@@ -143,8 +143,9 @@ SGD(const std::vector<std::string> &properties = {}) {
 enum LearningRateSchedulerType {
   CONSTANT = ML_TRAIN_LR_SCHEDULER_TYPE_CONSTANT, /**< constant */
   EXPONENTIAL =
-    ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL, /**< exponentially decay */
-  STEP = ML_TRAIN_LR_SCHEDULER_TYPE_STEP    /**< step wise decay */
+    ML_TRAIN_LR_SCHEDULER_TYPE_EXPONENTIAL,  /**< exponentially decay */
+  STEP = ML_TRAIN_LR_SCHEDULER_TYPE_STEP,    /**< step wise decay */
+  COSINE = ML_TRAIN_LR_SCHEDULER_TYPE_COSINE /**< cosine annealing */
 };
 
 /**
@@ -248,6 +249,15 @@ Exponential(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<LearningRateScheduler>
 Step(const std::vector<std::string> &properties = {}) {
   return createLearningRateScheduler(LearningRateSchedulerType::STEP,
+                                     properties);
+}
+
+/**
+ * @brief Helper function to create cosine learning rate scheduler
+ */
+inline std::unique_ptr<LearningRateScheduler>
+Cosine(const std::vector<std::string> &properties = {}) {
+  return createLearningRateScheduler(LearningRateSchedulerType::COSINE,
                                      properties);
 }
 

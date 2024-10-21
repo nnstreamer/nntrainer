@@ -16,10 +16,50 @@
 
 #include "nntrainer_test_util.h"
 
+using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
+using LayerHandle = std::shared_ptr<ml::train::Layer>;
+using ModelHandle = std::unique_ptr<ml::train::Model>;
+using ml::train::createLayer;
+
+/**
+ * @brief make "key=value" from key and value
+ *
+ * @tparam T type of a value
+ * @param key key
+ * @param value value
+ * @return std::string with "key=value"
+ */
+template <typename T>
+static std::string withKey(const std::string &key, const T &value) {
+  std::stringstream ss;
+  ss << key << "=" << value;
+  return ss.str();
+}
+
+template <typename T>
+static std::string withKey(const std::string &key,
+                           std::initializer_list<T> value) {
+  if (std::empty(value)) {
+    throw std::invalid_argument("empty data cannot be converted");
+  }
+
+  std::stringstream ss;
+  ss << key << "=";
+
+  auto iter = value.begin();
+  for (; iter != value.end() - 1; ++iter) {
+    ss << *iter << ',';
+  }
+  ss << *iter;
+
+  return ss.str();
+}
+
 namespace initest {
 typedef enum {
-  LOAD = 1 << 0, /**< should fail at load */
-  INIT = 1 << 1, /**< should fail at init */
+  LOAD = 1 << 0,   /**< should fail at load */
+  INIT = 1 << 1,   /**< should fail at init */
+  REINIT = 1 << 2, /**< should fail at reinit */
 } IniFailAt;
 };
 
@@ -52,6 +92,8 @@ protected:
   bool failAtLoad() { return failAt & initest::IniFailAt::LOAD; }
 
   bool failAtInit() { return failAt & initest::IniFailAt::INIT; }
+
+  bool failAtReinit() { return failAt & initest::IniFailAt::REINIT; }
 
   nntrainer::NeuralNetwork NN;
 
@@ -88,6 +130,13 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   }
 
   status = NN.initialize();
+  if (failAtLoad()) {
+    EXPECT_NE(status, ML_ERROR_NONE);
+  } else {
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
+
+  status = NN.reinitialize();
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
   } else {
@@ -245,6 +294,77 @@ GTEST_PARAMETER_TEST(nntrainerIniAutoTests, nntrainerGraphTest,
                         conv2d10, conv2d11, addition0, out1, conv2d12, conv2d13,
                         addition1, conv2d14, pooling3, fclayer0, fclayer1},
                        SUCCESS)));
+
+TEST(nntrainerGraphUnitTest, cross_with_relu) {
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=1:1:1"});
+  auto relu0 = LayerRepresentation(
+    "activation", {"name=relu0", "activation=relu", "input_layers=in0"});
+
+  auto g = makeGraph({input0, relu0});
+
+  nntrainer::NetworkGraph ng;
+
+  ModelHandle nn_model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+
+  for (auto &node : g) {
+    EXPECT_NO_THROW(nn_model->addLayer(node));
+  }
+
+  EXPECT_NE(nn_model->compile(), ML_ERROR_NONE);
+  EXPECT_NE(nn_model->initialize(), ML_ERROR_NONE);
+}
+
+TEST(nntrainerGraphUnitTest, compile_twice) {
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=1:1:1"});
+  auto relu0 = LayerRepresentation(
+    "activation", {"name=relu0", "activation=softmax", "input_layers=in0"});
+
+  auto g = makeGraph({input0, relu0});
+
+  nntrainer::NetworkGraph ng;
+
+  ModelHandle nn_model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+
+  for (auto &node : g) {
+    EXPECT_NO_THROW(nn_model->addLayer(node));
+  }
+
+  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+  try {
+    nn_model->compile();
+  } catch (const std::exception &e) {
+    EXPECT_STREQ(e.what(), "cannot remap identifiers after finalized");
+  }
+}
+
+TEST(nntrainerGraphUnitTest, call_functions) {
+  auto input0 = LayerRepresentation("input", {"name=in0", "input_shape=1:1:1"});
+  auto relu0 = LayerRepresentation(
+    "activation", {"name=relu0", "activation=softmax", "input_layers=in0"});
+
+  auto g = makeGraph({input0, relu0});
+
+  nntrainer::NetworkGraph ng;
+
+  ModelHandle nn_model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+
+  for (auto &node : g) {
+    EXPECT_NO_THROW(nn_model->addLayer(node));
+  }
+
+  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
+  try {
+    for (auto &node : g) {
+      nn_model->addLayer(node);
+    }
+  } catch (const std::exception &e) {
+    EXPECT_STREQ(e.what(), "Cannot modify graph after compile");
+  }
+}
 
 int main(int argc, char **argv) {
   int result = -1;
