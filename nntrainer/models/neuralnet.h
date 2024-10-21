@@ -408,7 +408,8 @@ s   * @retval shared_ptr<const Tensor>
                                              const std::vector<float *> &label,
                                              unsigned int init_seq_len,
                                              unsigned int from,
-                                             unsigned int to) override;
+                                             unsigned int to,
+                                             bool return_last_output_only = false) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
