@@ -17,13 +17,22 @@
 namespace nntrainer {
 
 void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-              unsigned int dim1, unsigned int dim2, unsigned int lda) {
+              bool TransA, unsigned int dim1, unsigned int dim2,
+              unsigned int lda) {
 
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_sgemv_fp16_ptr =
-      cl_context_ref.registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
+    ClContext::SharedPtrClKernel kernel_sgemv_fp16_ptr;
+
+    if (TransA) {
+      kernel_sgemv_fp16_ptr =
+        cl_context_ref.registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
+    } else {
+      kernel_sgemv_fp16_ptr = cl_context_ref.registerClKernel(
+        sgemv_cl_noTrans_kernel_fp16_, "sgemv_cl_noTrans_fp16");
+    }
+
     if (!kernel_sgemv_fp16_ptr) {
       break;
     }
