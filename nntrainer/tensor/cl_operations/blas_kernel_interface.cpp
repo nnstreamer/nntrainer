@@ -131,15 +131,15 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda)
-            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda);
+      trans ? sgemv_cl(data, mdata, rdata, trans, dim2, dim1, lda)
+            : sgemv_cl(data, mdata, rdata, trans, dim1, dim2, lda);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb)
-              : sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb);
+      trans_m ? sgemv_cl(mdata, data, rdata, !trans_m, mdim1, mdim2, ldb)
+              : sgemv_cl(mdata, data, rdata, !trans_m, mdim2, mdim1, ldb);
     }
     /// case others: use gemm
     else {
@@ -163,15 +163,15 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, dim2, dim1, lda)
-            : sgemv_cl(data, mdata, rdata, dim1, dim2, lda);
+      trans ? sgemv_cl(data, mdata, rdata, trans, dim2, dim1, lda)
+            : sgemv_cl(data, mdata, rdata, trans, dim1, dim2, lda);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, mdim1, mdim2, ldb)
-              : sgemv_cl(mdata, data, rdata, mdim2, mdim1, ldb);
+      trans_m ? sgemv_cl(mdata, data, rdata, !trans_m, mdim1, mdim2, ldb)
+              : sgemv_cl(mdata, data, rdata, !trans_m, mdim2, mdim1, ldb);
     }
     /// case others: use sgemm
     else {

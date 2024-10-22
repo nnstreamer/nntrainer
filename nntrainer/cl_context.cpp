@@ -135,6 +135,7 @@ void ClContext::initBlasClKernels() {
   }
 
   registerClKernel(sgemv_cl_kernel_, "sgemv_cl");
+  registerClKernel(sgemv_cl_noTrans_kernel_, "sgemv_cl_noTrans");
   registerClKernel(dot_cl_kernel_, "dot_cl");
   registerClKernel(sgemm_cl_noTrans_kernel_, "sgemm_cl_noTrans");
   registerClKernel(sgemm_cl_transA_kernel_, "sgemm_cl_transA");
@@ -145,6 +146,7 @@ void ClContext::initBlasClKernels() {
 
 #ifdef ENABLE_FP16
   registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
+  registerClKernel(sgemv_cl_noTrans_kernel_fp16_, "sgemv_cl_noTrans_fp16");
   registerClKernel(dot_cl_kernel_fp16_, "dot_cl_fp16");
   registerClKernel(sgemm_cl_noTrans_kernel_fp16_, "sgemm_cl_noTrans_fp16");
   registerClKernel(sgemm_cl_transA_kernel_fp16_, "sgemm_cl_transA_fp16");

@@ -29,6 +29,18 @@ static const std::string sgemv_cl_kernel_ =
           
     })";
 
+static const std::string sgemv_cl_noTrans_kernel_ =
+  R"(__kernel void sgemv_cl_noTrans(const __global float* A, const __global float* X,
+                      __global float* Y, unsigned int N, unsigned int lda) {                                            
+        unsigned int i;
+        i = get_global_id(0);                         
+        float y0 = 0.0f;
+        for (unsigned int j = 0; j < N; j++)                         
+            y0 += A[j + i * lda] * X[j]; 
+        Y[i] = y0;                            
+          
+    })";
+
 static const std::string dot_cl_kernel_ =
   R"(__kernel void dot_cl(const __global float* A, const __global float* X, unsigned int K, __global float* res) {
         *res = 0;
@@ -202,6 +214,21 @@ static const std::string sgemv_cl_kernel_fp16_ =
         half y0 = 0.0f;
         for (unsigned int j = 0; j < N; j++)                         
             y0 += A[i + j * lda] * X[j]; 
+        Y[i] = y0;                            
+          
+    })";
+
+static const std::string sgemv_cl_noTrans_kernel_fp16_ =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    __kernel void sgemv_cl_noTrans_fp16(const __global half* A, const __global half* X,
+                      __global half* Y, unsigned int N, unsigned int lda) {                                            
+        unsigned int i;
+        i = get_global_id(0);                         
+        half y0 = 0.0f;
+        for (unsigned int j = 0; j < N; j++)                         
+            y0 += A[j + i * lda] * X[j]; 
         Y[i] = y0;                            
           
     })";

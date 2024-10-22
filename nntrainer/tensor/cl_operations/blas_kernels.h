@@ -29,13 +29,15 @@ static ClContext cl_context_ref;
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
  * @param[in] vecYdata float * for Vector Y
+ * @param[in] transA bool transpose
  * @param[in] dim1 number of A's columns
  * @param[in] dim2 number of A's rows
  * @param[in] lda number of X's columns
  * @param[in] context RunLayerContext reference
  */
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-              unsigned int dim1, unsigned int dim2, unsigned int lda);
+              bool TransA, unsigned int dim1, unsigned int dim2,
+              unsigned int lda);
 
 /**
  * @brief     dot computation : sum of all X * Y
@@ -109,13 +111,15 @@ void transpose_cl_axis(const float *in, float *res,
  * @param[in] matAdata fp16 * for Matrix A
  * @param[in] vecXdata fp16 * for Vector X
  * @param[in] vecYdata fp16 * for Vector Y
+ * @param[in] transA bool transpose
  * @param[in] dim1 number of A's columns
  * @param[in] dim2 number of A's rows
  * @param[in] lda number of X's columns
  * @param[in] context RunLayerContext reference
  */
 void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-              unsigned int dim1, unsigned int dim2, unsigned int lda);
+              bool TransA, unsigned int dim1, unsigned int dim2,
+              unsigned int lda);
 
 /**
  * @brief     fp16 dot computation : sum of all X * Y
