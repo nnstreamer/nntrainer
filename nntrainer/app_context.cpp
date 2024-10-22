@@ -31,6 +31,7 @@
 #include <sgd.h>
 
 #include <activation_layer.h>
+#include <add_layer.h>
 #include <addition_layer.h>
 #include <attention_layer.h>
 #include <bn_layer.h>
@@ -73,6 +74,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
+#include <subtract_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
@@ -253,6 +255,10 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_IN);
   ac.registerFactory(nntrainer::createLayer<WeightLayer>, WeightLayer::type,
                      LayerType::LAYER_WEIGHT);
+  ac.registerFactory(nntrainer::createLayer<AddLayer>, AddLayer::type,
+                     LayerType::LAYER_ADD);
+  ac.registerFactory(nntrainer::createLayer<SubtractLayer>, SubtractLayer::type,
+                     LayerType::LAYER_SUBTRACT);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
