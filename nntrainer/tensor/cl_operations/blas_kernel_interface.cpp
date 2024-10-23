@@ -200,38 +200,47 @@ void multiplyCl(Tensor &input, float const &value) {
   }
 }
 
-void add_i_cl(Tensor const &input, Tensor &result) {
+void add_i_cl(Tensor &inputA, Tensor const &inputB) {
 
-  CREATE_IF_EMPTY_DIMS(result, result.getDim());
+  NNTR_THROW_IF(inputB.getData() == nullptr, std::invalid_argument)
+    << inputB.getName() << " is not allocated";
+  NNTR_THROW_IF(inputA.getData() == nullptr, std::invalid_argument)
+    << inputA.getName() << " is not allocated";
 
-  NNTR_THROW_IF(result.getData() == nullptr, std::invalid_argument)
-    << result.getName() << " is not allocated";
-  NNTR_THROW_IF(input.getData() == nullptr, std::invalid_argument)
-    << input.getName() << " is not allocated";
+  // Broadcasting done for the case where batch size vary for both inputs
+  // If batch size vary, batch size of inputB must be 1
+  if ((inputA.getDim() == inputB.getDim()) ||
+      (inputA.getDim() != inputB.getDim() && inputB.batch() == 1 &&
+       inputA.channel() == inputB.channel() &&
+       inputA.height() == inputB.height() &&
+       inputA.width() == inputB.width())) {
 
-  if (input.getDim() != result.getDim()) {
-    throw std::invalid_argument(
-      "Error: Dimensions does not match for addition");
-  }
+    if (inputA.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      unsigned int sizeA = inputA.size();
+      unsigned int sizeB = inputB.size();
+      float *dataA = inputA.getData();
+      const float *dataB = inputB.getData();
 
-  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    unsigned int size = input.size();
-    const float *data = input.getData();
-    float *rdata = result.getData();
+      addition_cl(dataB, dataA, sizeB, sizeA);
 
-    addition_cl(data, rdata, size);
-
-  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    } else if (inputA.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-    unsigned int size = input.size();
-    const _FP16 *data = input.getData<_FP16>();
-    _FP16 *rdata = result.getData<_FP16>();
+      unsigned int sizeA = inputA.size();
+      unsigned int sizeB = inputB.size();
+      _FP16 *dataA = inputA.getData<_FP16>();
+      const _FP16 *dataB = inputB.getData<_FP16>();
 
-    addition_cl(data, rdata, size);
+      addition_cl(dataB, dataA, sizeB, sizeA);
 
 #else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+      throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+    }
+  }
+
+  else {
+    throw std::invalid_argument(
+      "Error: Broadcasting not supported for these dimensions!");
   }
 }
 
