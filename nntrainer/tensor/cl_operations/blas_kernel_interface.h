@@ -70,5 +70,14 @@ void multiplyCl(Tensor &input, float const &value);
  */
 void add_i_cl(Tensor const &input, Tensor &result);
 
+/**
+ * @brief Process data and dimensions for transpose operation
+ * @param[in] direction string
+ * @param[in] input Tensor
+ * @param[in] result Tensor
+ */
+void transposeCl(const std::string &direction, Tensor const &in,
+                 Tensor &result);
+
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */
