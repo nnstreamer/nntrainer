@@ -3648,7 +3648,7 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
   EXPECT_NE(A.getDim(), C.getDim());
 }
 
-TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
+TEST(nntrainer_Tensor, copy_and_shares_variable_04_p) {
   nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::UINT8);
   nntrainer::Tensor B = A.clone();
@@ -3665,7 +3665,7 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
   EXPECT_NE(A.getDim(), C.getDim());
 }
 
-TEST(nntrainer_Tensor, copy_and_shares_variable_04_p) {
+TEST(nntrainer_Tensor, copy_and_shares_variable_05_p) {
   nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::UINT32);
   nntrainer::Tensor B = A.clone();
