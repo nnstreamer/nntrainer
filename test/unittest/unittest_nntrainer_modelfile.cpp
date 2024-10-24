@@ -362,7 +362,7 @@ GTEST_PARAMETER_TEST(
      mkIniTc("basic4_p", {nw_base + "loss=cross", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
      mkIniTc("basic5_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
      mkIniTc("basic6_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-     mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=relu" }, SUCCESS),
+     mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
     //  mkIniTc("basic_bn_p", {nw_base_cross, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=relu" }, SUCCESS),
     //  mkIniTc("basic_bn2_p", {nw_base_cross, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
     /**
@@ -769,16 +769,16 @@ TEST(nntrainerIniTest, backbone_17_p) {
  * it should be referred relative to the .ini
  * @todo Fail on Android
  */
-// TEST(nntrainerIniTest, backbone_from_different_directory_n) {
-//   ScopedIni b{"base", {nw_base_cross, batch_normal}};
-//   ScopedIni s{getResPath("original"),
-//               {nw_base_cross + "loss=mse", adam, input,
-//                backbone_valid + "input_layers=inputlayer"}};
+TEST(nntrainerIniTest, backbone_from_different_directory_n) {
+  ScopedIni b{"base", {nw_base_cross, batch_normal}};
+  ScopedIni s{getResPath("original"),
+              {nw_base_cross + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
-//   nntrainer::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
 
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
-// }
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
+}
 
 /**
  * @brief backbone is at different directory, if working directory is not set,
