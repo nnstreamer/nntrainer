@@ -20,7 +20,8 @@ Epochs::Epochs(unsigned int value) { set(value); }
 
 bool LossType::isValid(const std::string &value) const {
   ml_logw("Model loss property is deprecated, use loss layer directly instead");
-  return istrequal(value, "cross") || istrequal(value, "mse");
+  return istrequal(value, "cross") || istrequal(value, "mse") ||
+         istrequal(value, "kld");
 }
 
 TrainingBatchSize::TrainingBatchSize(unsigned int value) { set(value); }
