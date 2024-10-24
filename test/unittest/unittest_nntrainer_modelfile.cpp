@@ -638,27 +638,24 @@ TEST(nntrainerIniTest, backbone_07_p) {
 /**
  * @brief Ini file unittest with backbone
  * @note Input shape is provided in model file
- * @todo C++ exception with description "First node must be identified as an
- * input if it is qualified to be input, name: conv2d" thrown in the test body.
  */
-// TEST(nntrainerIniTest, backbone_15_n) {
-//   ScopedIni base("base", {conv2d, conv2d});
+TEST(nntrainerIniTest, backbone_15_n) {
+  ScopedIni base("base", {conv2d, conv2d});
 
-//   ScopedIni full("backbone_15_n_scaled", {nw_base_mse, adam,
-//   backbone_valid});
+  ScopedIni full("backbone_15_n_scaled", {nw_base_mse, adam, backbone_valid});
 
-//   nntrainer::NeuralNetwork NN_scaled, NN_full;
-//   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
-//   EXPECT_THROW(NN_full.initialize(), std::invalid_argument);
+  nntrainer::NeuralNetwork NN_scaled, NN_full;
+  EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
+  EXPECT_THROW(NN_full.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
-//   ScopedIni scaled("backbone_15_n_scaled",
-//                    {nw_base_mse, adam, backbone_scaled});
+  ScopedIni scaled("backbone_15_n_scaled",
+                   {nw_base_mse, adam, backbone_scaled});
 
-//   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
-//   EXPECT_THROW(NN_scaled.initialize(), std::invalid_argument);
-// }
+  EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
+  EXPECT_THROW(NN_scaled.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
+}
 /**
  * @brief Ini file unittest with backbone
  * @note Input shape is striped from backbone and not provided in model file
