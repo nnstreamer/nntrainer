@@ -73,6 +73,8 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clCreateBuffer);
   LoadFunction(clEnqueueWriteBuffer);
   LoadFunction(clEnqueueReadBuffer);
+  LoadFunction(clEnqueueMapBuffer);
+  LoadFunction(clEnqueueUnmapMemObject);
   LoadFunction(clCreateProgramWithSource);
   LoadFunction(clCreateProgramWithBinary);
   LoadFunction(clBuildProgram);
@@ -98,6 +100,8 @@ PFN_clCreateCommandQueue clCreateCommandQueue;
 PFN_clCreateBuffer clCreateBuffer;
 PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
+PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
+PFN_clEnqueueUnmapMemObject clEnqueueUnmapMemObject;
 PFN_clCreateProgramWithSource clCreateProgramWithSource;
 PFN_clCreateProgramWithBinary clCreateProgramWithBinary;
 PFN_clBuildProgram clBuildProgram;

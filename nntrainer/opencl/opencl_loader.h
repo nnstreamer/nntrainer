@@ -72,6 +72,21 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueReadBuffer)(
   void * /**< ptr */, cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
+typedef void *(CL_API_CALL *PFN_clEnqueueMapBuffer)(
+  cl_command_queue /**< command_queue */, cl_mem /**< buffer */,
+  cl_bool /**< blocking_map */, cl_map_flags /**< map_flags */,
+  size_t /**< offset */, size_t /**< size */,
+  cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */,
+  cl_int * /**< errcode_ret */
+);
+
+typedef cl_int(CL_API_CALL *PFN_clEnqueueUnmapMemObject)(
+  cl_command_queue /**< command_queue */, cl_mem /**< memobj */,
+  void * /**< mapped_ptr */, cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */
+);
+
 typedef cl_program(CL_API_CALL *PFN_clCreateProgramWithSource)(
   cl_context /**< context */, cl_uint /**< count */,
   const char ** /**< strings */, const size_t * /**< lengths */,
@@ -144,6 +159,8 @@ extern PFN_clCreateCommandQueue clCreateCommandQueue;
 extern PFN_clCreateBuffer clCreateBuffer;
 extern PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 extern PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
+extern PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
+extern PFN_clEnqueueUnmapMemObject clEnqueueUnmapMemObject;
 extern PFN_clCreateProgramWithSource clCreateProgramWithSource;
 extern PFN_clCreateProgramWithBinary clCreateProgramWithBinary;
 extern PFN_clBuildProgram clBuildProgram;
