@@ -29,7 +29,7 @@ if [ $? != 0 ]; then
   exit 1
 fi
 
-adb shell mkdir -p /data/local/tmp/nntr_android_test
+adb shell mkdir -p /data/local/tmp/nntr_android_test/res
 
 adb push . /data/local/tmp/nntr_android_test
 
