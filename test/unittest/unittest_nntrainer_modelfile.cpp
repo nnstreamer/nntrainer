@@ -302,8 +302,8 @@ static nntrainer::IniSection conv2d_shape("conv2d_shape",
                                           "stride = 1,1 |"
                                           "padding = 0,0 |");
 
-static nntrainer::IniSection input2d("inputlayer", "Type = input |"
-                                                   "Input_Shape = 3:100:100");
+static nntrainer::IniSection input2d("inputlayer2d", "Type = input |"
+                                                     "Input_Shape = 3:100:100");
 
 static nntrainer::IniSection backbone_random("block1", "backbone = random.ini");
 
@@ -508,7 +508,8 @@ TEST(nntrainerIniTest, backbone_04_p) {
 //   ScopedIni backbone_made(
 //     "backbone_made", {nw_base_cross, sgd, input2d,
 //                       I("block1") + backbone_valid +
-//                       "input_layers=inputlayer", I("block2") + backbone_valid
+//                       "input_layers=inputlayer2d", I("block2") +
+//                       backbone_valid
 //                       + "input_layers=block1", I("block3") + backbone_valid +
 //                       "input_layers=block2", I("block4") + backbone_valid +
 //                       "input_layers=block3"});
@@ -529,7 +530,7 @@ TEST(nntrainerIniTest, backbone_04_p) {
 //   // std::string conv2d_orig_name = conv2d.getName();
 //   ScopedIni direct_made(
 //     "direct_made", {nw_base_cross, sgd, input2d,
-//                     I("block1conv2d") + conv2d + "input_layers=inputlayer",
+//                     I("block1conv2d") + conv2d + "input_layers=inputlayer2d",
 //                     I("block2conv2d") + conv2d + "input_layers=block1conv2d",
 //                     I("block3conv2d") + conv2d + "input_layers=block2conv2d",
 //                     I("block4conv2d") + conv2d +
@@ -667,15 +668,15 @@ TEST(nntrainerIniTest, backbone_17_p) {
 
   ScopedIni full(
     "backbone_17_p_full",
-    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer2d"});
 
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  ScopedIni scaled(
-    "backbone_17_p_scaled",
-    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
+  ScopedIni scaled("backbone_17_p_scaled",
+                   {nw_base_mse, adam, input2d,
+                    backbone_scaled + "input_layers=inputlayer2d"});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
@@ -690,7 +691,7 @@ TEST(nntrainerIniTest, backbone_17_p) {
 // TEST(nntrainerIniTest, backbone_18_n) {
 //   nntrainer::NeuralNetwork NN;
 
-//   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
+//   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer2d",
 //                           flatten + "input_layers=conv2d"});
 //   ScopedIni backbone("Backbone_18_n",
 //                      {nw_base_mse, adam, input,
@@ -705,19 +706,19 @@ TEST(nntrainerIniTest, backbone_17_p) {
  * @note Input layer name not found, empty backbone
  * @todo fix this testcase to check unknown input layer name
  */
-// TEST(nntrainerIniTest, backbone_19_n) {
-//   nntrainer::NeuralNetwork NN;
+TEST(nntrainerIniTest, backbone_19_n) {
+  nntrainer::NeuralNetwork NN;
 
-//   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
-//                           batch_normal + "input_layers=conv2d"});
+  ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer2d",
+                          batch_normal + "input_layers=conv2d"});
 
-//   ScopedIni backbone("backbone_19_n",
-//                      {nw_base_mse, adam, input,
-//                       backbone_valid_inout + "input_layers=inputlayer"});
+  ScopedIni backbone("backbone_19_n",
+                     {nw_base_mse, adam, input,
+                      backbone_valid_inout + "input_layers=inputlayer"});
 
-//   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
-//             ML_ERROR_INVALID_PARAMETER);
-// }
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
+            ML_ERROR_INVALID_PARAMETER);
+}
 
 /**
  * @brief Ini file unittest with backbone
@@ -725,23 +726,22 @@ TEST(nntrainerIniTest, backbone_17_p) {
  * @todo C++ exception with description "Failed to initialize: in size + padding
  * is smaller than effective kernel" thrown in the test body.
  */
-// TEST(nntrainerIniTest, backbone_20_p) {
-//   nntrainer::NeuralNetwork NN;
+TEST(nntrainerIniTest, backbone_20_p) {
+  nntrainer::NeuralNetwork NN;
 
-//   ScopedIni base("base",
-//                  {input2d, conv2d + "input_layers=inputlayer",
-//                   flatten + "input_layers=conv2d", out +
-//                   "input_layers=flat"});
+  ScopedIni base("base",
+                 {input2d, conv2d + "input_layers=inputlayer2d",
+                  flatten + "input_layers=conv2d", out + "input_layers=flat"});
 
-//   ScopedIni backbone("backbone_20_p",
-//                      {nw_base_mse, adam, input,
-//                       backbone_valid_inout + "input_layers=inputlayer"});
+  ScopedIni backbone("backbone_20_p",
+                     {nw_base_mse, adam, input,
+                      backbone_valid_inout + "input_layers=inputlayer"});
 
-//   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.size(), 6u);
-// }
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.size(), 10u);
+}
 
 /**
  * @brief backbone is relative to original ini, if working directory is not set,
