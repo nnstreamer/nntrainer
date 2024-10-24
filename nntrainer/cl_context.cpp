@@ -55,6 +55,7 @@ static void add_default_object(ClContext &cc) {
 
 static void registerer(ClContext &cc) noexcept {
   try {
+    cc.initBlasClKernels();
     add_default_object(cc);
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
