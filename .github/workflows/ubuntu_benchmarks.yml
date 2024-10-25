@@ -1,10 +1,8 @@
 name: Ubuntu Benchmarks
 
 on:
-#  schedule:
-#    - cron: '0 2 * * *'
-  pull_request:
-    types: [opened, edited, reopened, synchronize]
+  schedule:
+    - cron: '0 2 * * *'
 
 jobs:
   meson_test:
@@ -12,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-20.04, ubuntu-22.04 ]
 
     steps:
     - uses: actions/checkout@v4
