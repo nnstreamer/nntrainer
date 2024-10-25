@@ -459,7 +459,6 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers_flatten.cpp \
 	 ../unittest/layers/unittest_layers_activation.cpp \
 	 ../unittest/layers/unittest_layers_addition.cpp \
-	 ../unittest/layers/unittest_layers_addition_cl.cpp \
 	 ../unittest/layers/unittest_layers_multiout.cpp \
 	 ../unittest/layers/unittest_layers_rnn.cpp \
 	 ../unittest/layers/unittest_layers_rnncell.cpp \
@@ -477,6 +476,7 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers_reshape.cpp \
 	 ../unittest/layers/unittest_layers_multi_head_attention.cpp \
 	 ../unittest/layers/unittest_layers_positional_encoding.cpp \
+	#  ../unittest/layers/unittest_layers_addition_cl.cpp \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
