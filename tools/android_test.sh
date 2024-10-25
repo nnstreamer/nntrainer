@@ -30,6 +30,7 @@ if [ $? != 0 ]; then
 fi
 
 adb shell mkdir -p /data/local/tmp/nntr_android_test/res
+adb shell mkdir -p /data/local/tmp/nntr_android_test/nntrainer_opencl_kernels
 
 adb push . /data/local/tmp/nntr_android_test
 
@@ -42,5 +43,16 @@ fi
 # The steps are as follows.
 
 # $ meson build [flags...]
-# $ cd build
-# $ adb push res/ /data/local/tmp/nntr_android_test
+# meson build will unzip golden data for the unit tests
+cd ../../../
+if [ ! -d build ]; then
+  meson build -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Denable-neon=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false
+else
+  echo "warning: build has already been taken, this script tries to reconfigure and try building"
+  pushd build
+  meson configure -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Denable-neon=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false
+  popd
+fi
+
+cd build
+adb push res/ /data/local/tmp/nntr_android_test
