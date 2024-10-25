@@ -294,7 +294,7 @@ endif
 gmock_dep = dependency('gmock', static: true, main: false, required: false)
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
 gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
-
+benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
 
 if get_option('enable-test') # and get_option('platform') != 'android'
   extra_defines += '-DENABLE_TEST=1'
@@ -474,4 +474,8 @@ endif
 
 if get_option('platform') != 'none'
   message('building for ' + get_option('platform'))
+endif
+
+if get_option('enable-benchmarks')
+  subdir('benchmarks')
 endif
