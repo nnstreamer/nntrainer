@@ -106,12 +106,15 @@ public:
 
   inline static const std::string type = "concat";
 
-  static opencl::Kernel kernel_concat_axis3;
-  static opencl::Kernel kernel_concat_axis3_fp16;
-  static opencl::Kernel kernel_concat_axis2;
-  static opencl::Kernel kernel_concat_axis2_fp16;
   static opencl::Kernel kernel_concat_axis1;
+  static opencl::Kernel kernel_concat_axis2;
+  static opencl::Kernel kernel_concat_axis3;
+
+#ifdef ENABLE_FP16
   static opencl::Kernel kernel_concat_axis1_fp16;
+  static opencl::Kernel kernel_concat_axis2_fp16;
+  static opencl::Kernel kernel_concat_axis3_fp16;
+#endif
 
   /**
    * @brief Process data and dimensions for concat
@@ -174,6 +177,7 @@ public:
                        unsigned int input2_channels);
 
 #ifdef ENABLE_FP16
+
   /**
    * @brief     concat computation for axis 3 fp16
    * @param[in] matAdata fp16 * for Input Tensor A
@@ -231,6 +235,7 @@ public:
                             unsigned int input1_channels,
                             unsigned int input2_channelst);
 #endif
+
 private:
   std::tuple<props::ConcatDimension> concat_props;
 };

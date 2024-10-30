@@ -106,7 +106,10 @@ public:
   inline static const std::string type = "reshape";
 
   static opencl::Kernel kernel_copy;
+
+#ifdef ENABLE_FP16
   static opencl::Kernel kernel_copy_fp16;
+#endif
 
   /**
    * @brief Process data and dimensions for reshape operation
