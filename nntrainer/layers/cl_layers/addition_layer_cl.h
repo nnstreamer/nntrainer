@@ -18,12 +18,6 @@
 #include <common_properties.h>
 #include <layer_devel.h>
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty())                   \
-      tensor = Tensor(__VA_ARGS__);       \
-  } while (0);
-
 namespace nntrainer {
 
 /**
