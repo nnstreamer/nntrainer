@@ -189,6 +189,24 @@ public:
   virtual void *getData(size_t idx) const = 0;
 
   /**
+   * @copydoc Tensor::getScale()
+   */
+  virtual void *getScale() const {
+    throw std::invalid_argument(
+      "Tensor::getScale() is not supported in tensor data type " +
+      getStringDataType());
+  }
+
+  /**
+   * @copydoc Tensor::getScale(size_t idx)
+   */
+  virtual void *getScale(size_t idx) const {
+    throw std::invalid_argument(
+      "Tensor::getScale() is not supported in tensor data type " +
+      getStringDataType());
+  }
+
+  /**
    * @brief     i data index
    * @retval    address of ith data
    */
@@ -568,7 +586,7 @@ public:
    * @brief     Get size of current tensor
    * @retval    unsigned int size of the current tensor
    */
-  size_t size() const { return dim.getDataLen(); }
+  virtual size_t size() const { return dim.getDataLen(); }
 
   /**
    * @brief     Get if the tensor is empty
@@ -605,6 +623,13 @@ public:
    * @retval    width size
    */
   size_t width() const { return dim.width(); }
+
+  /**
+   * @brief     return Tensor scale factor size if exists
+   * @retval    scale factor size
+   * @note      Override for quantize tensor
+   */
+  virtual size_t scale_size() const { return 0; }
 
   /**
    * @brief Merge the given two axis for tensor at second axis inplace
