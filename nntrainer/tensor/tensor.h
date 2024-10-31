@@ -294,6 +294,15 @@ public:
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
   /**
+   *  @brief  Constructor of Tensor by directly assigning TensorBase.
+   *  @param[in] rhs shared_ptr of a TensorBase
+   *  @note TensorBase is an abstract class so we can't directly instantiate it.
+   *  Make sure to use a shared_ptr with a derived class when utilizing this
+   *  constructor.
+   */
+  Tensor(std::shared_ptr<TensorBase> rhs);
+
+  /**
    * @brief Basic Destructor
    */
   ~Tensor() = default;
