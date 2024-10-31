@@ -126,6 +126,13 @@ Tensor::Tensor(const Tensor &rhs) {
   }
 }
 
+Tensor::Tensor(std::shared_ptr<TensorBase> rhs) {
+  NNTR_THROW_IF(rhs == nullptr, std::invalid_argument)
+    << "Error: received a nullptr. Tensor cannot be constructed";
+
+  itensor = rhs;
+}
+
 Tensor &Tensor::operator=(const Tensor &rhs) {
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
