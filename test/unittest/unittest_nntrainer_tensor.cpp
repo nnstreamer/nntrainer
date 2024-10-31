@@ -13,6 +13,7 @@
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
+#include <float_tensor.h>
 #include <fstream>
 #include <nntrainer_error.h>
 #include <tensor.h>
@@ -3726,6 +3727,38 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   C.reshape(nntrainer::TensorDim(3, 4, 6, 5));
   EXPECT_EQ(A->getDim(), B.getDim());
   EXPECT_NE(A->getDim(), C.getDim());
+}
+
+TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_n) {
+  std::shared_ptr<nntrainer::TensorBase> itensor = nullptr;
+
+  // create tensor with TensorBase pointer (nullptr)
+  EXPECT_THROW(nntrainer::Tensor tensor(itensor), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_p) {
+  nntrainer::TensorDim dim(3, 2, 4, 5);
+
+  std::shared_ptr<nntrainer::TensorBase> itensor =
+    std::shared_ptr<nntrainer::FloatTensor>(
+      new nntrainer::FloatTensor(dim),
+      std::default_delete<nntrainer::FloatTensor>());
+
+  // create tensor with TensorBase pointer
+  nntrainer::Tensor tensor = nntrainer::Tensor(itensor);
+
+  EXPECT_NO_THROW(tensor.initialize(nntrainer::Initializer::ONES));
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(1, tensor.getValue<float>(idx));
+        }
+      }
+    }
+  }
 }
 
 TEST(nntrainer_Tensor, print_small_size_01) {
