@@ -451,6 +451,22 @@ public:
   }
 
   /**
+   * @brief     return scale pointer of Tensor
+   * @retval    template T pointer
+   */
+  template <typename T = float> T *getScale() const {
+    return (T *)itensor->getScale();
+  }
+
+  /**
+   * @brief     return scale pointer of Tensor
+   * @retval    template T pointer
+   */
+  template <typename T = float> T *getScale(size_t idx) const {
+    return (T *)itensor->getScale(idx);
+  }
+
+  /**
    * @brief     i data index
    * @retval    template T pointer (address of ith data)
    */
@@ -1587,6 +1603,12 @@ public:
    * @retval    width size
    */
   size_t width() const;
+
+  /**
+   * @brief     return Tensor scale factor size if exists
+   * @retval    scale factor size
+   */
+  size_t scale_size() const;
 
   /**
    * @brief Merge the given two axis for tensor at second axis inplace

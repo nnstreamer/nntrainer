@@ -1175,6 +1175,8 @@ size_t Tensor::height() const { return itensor->height(); }
 
 size_t Tensor::width() const { return itensor->width(); }
 
+size_t Tensor::scale_size() const { return itensor->scale_size(); }
+
 void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot merge axis";
