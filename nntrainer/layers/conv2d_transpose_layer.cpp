@@ -50,64 +50,74 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
  * @param[in] dilation kernel dilation factor : x, y each
  * @param[out] image image tensor to put
  */
-static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
+static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<unsigned, 4> &padding,
                    const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
                    const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
                    Tensor &image) {
   auto [pt, pb, pl, pr] = padding;
 
-  unsigned k_height = kdim.height();
-  unsigned k_width = kdim.width();
+  unsigned int channel = image.channel();
+  int in_height = image.height();
+  int in_width = image.width();
+
+  unsigned int k_height = kdim.height();
+  unsigned int k_width = kdim.width();
 
   /// effective kernel height considering dilation
-  unsigned eff_k_height = (k_height - 1) * dilation[0] + 1;
+  unsigned int eff_k_height = (k_height - 1) * dilation[0] + 1;
   /// effective kernel width considering dilation
-  unsigned eff_k_width = (k_width - 1) * dilation[1] + 1;
+  unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  unsigned im_channel = image.channel();
-  int im_height = image.height();
-  int im_width = image.width();
+  unsigned int height = (in_height - 1)*mstride[0]+eff_k_height;
+  unsigned int width = (in_width - 1)*mstride[1]+eff_k_height;
 
-  unsigned hstride = mstride[0];
-  unsigned wstride = mstride[1];
+  unsigned int out_height = height - pt - pb; // col_matrix.height
+  unsigned int out_width = width - pl - pr;   // col_matrix.width
 
-  unsigned hdilation = dilation[0];
-  unsigned wdilation = dilation[1];
-
-  /// image considering padding
-  unsigned im_eff_height = im_height + pt + pb;
-  unsigned im_eff_width = im_width + pl + pr;
   image.setZero();
 
-  int h_stride_end = im_eff_height - eff_k_height - pt;
-  int w_stride_end = im_eff_width - eff_k_width - pl;
+  int h_stride_end = height - eff_k_height - pt;
+  int w_stride_end = width - eff_k_width - pl;
 
-  unsigned col_w = 0;
-  for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
-    for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
-      unsigned col_h = 0;
-      int patch_height_end = hs + eff_k_height;
-      int patch_width_end = ws + eff_k_width;
-      for (unsigned c = 0; c < im_channel; c++) {
-        for (int h = hs; h < patch_height_end; h += hdilation) {
-          if (h < 0 || im_height <= h) {
-            col_h += k_width;
-            continue;
-          }
-          for (int w = ws; w < patch_width_end; w += wdilation) {
-            if (w < 0 || im_width <= w) {
-              col_h++;
+  /// get a patch, size of kernel
+  /// hs is height_strided, ws is width_strided
+  unsigned int owidth = col_matrix.width();
+  unsigned int base_im_w = 0;
+
+  unsigned int H = k_height;
+  unsigned int W = k_width;
+  unsigned int C = image.channel();
+  
+  int out_i = -1;
+  for (unsigned int oh = 0; oh < out_height; ++oh)
+  {
+    for (unsigned int ow = 0; ow < out_width; ++ow)
+    {
+      out_i++;
+      int out_j = -1;
+      //half_cpu o = bias->buf[oc];
+      for (unsigned int c = 0; c < C; ++c)
+      {
+        for (unsigned int r = 0; r < H; ++r)
+        {
+          for (unsigned int s = 0; s < W; ++s)
+          {
+            out_j++;
+            if ((oh - (r * dilation[0] - pt)) % mstride[0] != 0)
               continue;
-            }
-
+            if ((ow - (s * dilation[1] - pl)) % mstride[1] != 0)
+              continue;
+            unsigned int h = (oh - (r * dilation[0] - pt)) / mstride[0];
+            unsigned int w = (ow - (s * dilation[1] - pl)) / mstride[1];
+            if (h >= H || w >= W)
+              continue;
             float *val = image.getAddress<float>(0, c, h, w);
-            *val += col_matrix.getValue<float>(0, 0, col_h, col_w);
-            col_h++;
+            *val += col_matrix.getValue<float>(0, 0, out_i, out_j);
+            //out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w)
           }
         }
       }
-      col_w++;
     }
   }
 }
@@ -153,7 +163,7 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
   unsigned int height = (in_height - 1)*mstride[0]+eff_k_height;
-  unsigned int width = (in_width - 1)*mstride[0]+eff_k_height;
+  unsigned int width = (in_width - 1)*mstride[1]+eff_k_height;
 
   unsigned int out_height = height - pt - pb;
   unsigned int out_width = width - pl - pr;
@@ -171,40 +181,39 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
   unsigned int owidth = out.width();
   unsigned int base_im_w = 0;
 
-  int H = k_height;
-  int W = k_width;
-  int C = in.channel();
+  unsigned int H = k_height;
+  unsigned int W = k_width;
+  unsigned int C = in.channel();
   
   int out_i = -1;
-  for (size_t oh = 0; oh < out_height; ++oh)
+  for (unsigned int oh = 0; oh < out_height; ++oh)
   {
-    for (size_t ow = 0; ow < out_width; ++ow)
+    for (unsigned int ow = 0; ow < out_width; ++ow)
     {
       out_i++;
       int out_j = -1;
       //half_cpu o = bias->buf[oc];
-      for (size_t c = 0; c < C; ++c)
+      for (unsigned int c = 0; c < C; ++c)
       {
-        for (size_t r = 0; r < H; ++r)
+        for (unsigned int r = 0; r < H; ++r)
         {
-          for (size_t s = 0; s < W; ++s)
+          for (unsigned int s = 0; s < W; ++s)
           {
             out_j++;
             if ((oh - (r * dilation[0] - pt)) % mstride[0] != 0)
               continue;
             if ((ow - (s * dilation[1] - pl)) % mstride[1] != 0)
               continue;
-            size_t h = (oh - (r * dilation[0] - pt)) / mstride[0];
-            size_t w = (ow - (s * dilation[1] - pl)) / mstride[1];
+            unsigned int h = (oh - (r * dilation[0] - pt)) / mstride[0];
+            unsigned int w = (ow - (s * dilation[1] - pl)) / mstride[1];
             if (h >= H || w >= W)
               continue;
-            out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w)
+            out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w);
           }
         }
       }
     }
   }
-
 }
 
 } // namespace
@@ -263,29 +272,43 @@ void Conv2DTransposeLayer::finalize(InitLayerContext &context) {
                             1.0f, bias_decay, "bias", true, 0);
   }
 
-  // this output_dim must be the same with dimension of hidden
-  unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
-  unsigned int eff_in_width = in_dim.width() + padding[2] + padding[3];
 
-  unsigned int eff_k_height = (kernel_size[0] - 1) * dilation[0] + 1;
-  unsigned int eff_k_width = (kernel_size[1] - 1) * dilation[1] + 1;
+  auto [pt, pb, pl, pr] = padding;
+
+  unsigned int channel = in_dim.channel();
+  int in_height = in_dim.height();
+  int in_width = in_dim.width();
+
+  unsigned int k_height = kernel_size[0];
+  unsigned int k_width = kernel_size[1];
+
+  /// effective kernel height considering dilation
+  unsigned int eff_k_height = (k_height - 1) * dilation[0] + 1;
+  /// effective kernel width considering dilation
+  unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
+
+  unsigned int height = (in_height - 1)*stride[0]+eff_k_height;
+  unsigned int width = (in_width - 1)*stride[1]+eff_k_height;
+
+  unsigned int out_height = height - pt - pb;
+  unsigned int out_width = width - pl - pr;
 
   TensorDim out_dim;
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
-  out_dim.height((eff_in_height - eff_k_height) / stride[0] + 1);
-  out_dim.width((eff_in_width - eff_k_width) / stride[1] + 1);
+  out_dim.height(out_height);
+  out_dim.width(out_width);
   context.setOutputDimensions({out_dim});
 
-  NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
+  NNTR_THROW_IF(height < kernel_size[0] || width < kernel_size[1],
                 std::invalid_argument)
     << "Failed to initialize: in size + padding is smaller than effective "
        "kernel";
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  NNTR_THROW_IF(eff_in_height - padding[0] - kernel_size[0] > IM ||
-                  eff_in_width - padding[2] - kernel_size[1] > IM,
+  NNTR_THROW_IF(height - padding[0] - kernel_size[0] > IM ||
+                  width - padding[2] - kernel_size[1] > IM,
                 std::invalid_argument)
     << "Failed to initialize: Calculated patch end is over int max";
 }
@@ -416,7 +439,7 @@ void Conv2DTransposeLayer::calcDerivative(RunLayerContext &context) {
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
       filter_kernel.dot(deriv_sub, result, true, false);
-      col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      col2im_transpose(result, filter_dim, padding, stride, dilation, in_deriv_sub);
     }
     result.deallocate();
   };
@@ -484,7 +507,7 @@ void Conv2DTransposeLayer::calcGradient(RunLayerContext &context) {
          * expense of memory. In this case, memory of im2col_result must be
          * saved for the whole batch. try this while benchmarking.
          */
-        im2col(in_sub, filter_dim, padding, stride, dilation, result);
+        im2col_transpose(in_sub, filter_dim, padding, stride, dilation, result);
         deriv_sub.dot(result, delK_sub, false, false);
       }
       result.deallocate();
@@ -515,7 +538,7 @@ void Conv2DTransposeLayer::calcGradient(RunLayerContext &context) {
        * expense of memory. In this case, memory of im2col_result must be saved
        * for the whole batch. try this while benchmarking.
        */
-      im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      im2col_transpose(in_sub, filter_dim, padding, stride, dilation, result);
       deriv_sub.dot(result, delK, false, false, b == 0 ? 0 : 1);
     }
     result.deallocate();
