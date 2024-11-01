@@ -171,6 +171,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
                            extensions, NULL);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceInfo returned %d", status);
+    delete[] extensions;
     return false;
   }
 

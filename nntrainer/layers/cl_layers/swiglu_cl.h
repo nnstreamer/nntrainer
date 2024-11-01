@@ -129,6 +129,7 @@ public:
    */
   void swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
                       _FP16 *vecYdata, unsigned int dim1, unsigned int dim2);
+#endif
 };
 
 } // namespace nntrainer

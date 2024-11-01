@@ -208,8 +208,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
       size_t binary_size = fs.tellg();
       fs.seekg(0, std::ios::beg);
 
-      unsigned char chunk[binary_size];
-      fs.read((char *)chunk, binary_size);
+      unsigned char *chunk = new unsigned char[binary_size];
+      fs.read((char*) chunk, binary_size);
 
       result = program.CreateCLProgramWithBinary(
         context_inst_.GetContext(), context_inst_.GetDeviceId(), binary_size,
@@ -217,6 +217,7 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
         "");
+      delete [] chunk;
     } else {
       result =
         program.CreateCLProgram(context_inst_.GetContext(),
