@@ -450,6 +450,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor in_sub = input_.getBatchSlice(b, 1);
 
       im2col(in_sub, filter_dim, padding, stride, dilation, result);
+      // filter kernel is (K, CRS), result is (CRS, OH*OW)
       filter_kernel.dot(result, out, false, true);
     }
     result.deallocate();
@@ -504,8 +505,10 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
       Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
+      // filter_kernel is (K, CRS), deriv_sub is (K, OH*OW), result is (CRS, OH*OW)
       filter_kernel.dot(deriv_sub, result, true, false);
       col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      // in_derv_sub is (C,H,W)
     }
     result.deallocate();
   };
@@ -573,6 +576,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
          * expense of memory. In this case, memory of im2col_result must be
          * saved for the whole batch. try this while benchmarking.
          */
+        // deriv_sub is (K, OH*OW) and result is (CRS, OH*OW)
         im2col(in_sub, filter_dim, padding, stride, dilation, result);
         deriv_sub.dot(result, delK_sub, false, false);
       }

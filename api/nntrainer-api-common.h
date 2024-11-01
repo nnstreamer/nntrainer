@@ -70,6 +70,7 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_MULTIPLY = 34, /**< Multiply Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_DIVIDE = 35,   /**< Divide Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_TRANSPOSE = 36, /**< Transpose Layer type */
+  ML_TRAIN_LAYER_TYPE_CONV2D_TRANSPOSE = 37, /**< Convolution 2D Transpose Layer (Since 10.0) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
