@@ -31,28 +31,14 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
     size_t dim1_size = sizeof(cl_half) * dim1;
     size_t dim2_size = sizeof(cl_half) * dim2;
     opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          dim1 * dim2 * sizeof(cl_half), true, nullptr);
+                          dim1 * dim2 * sizeof(cl_half), true,
+                          (void *)matAdata);
 
     opencl::Buffer inputX(cl_context_ref.context_inst_, dim2_size, true,
-                          nullptr);
+                          (void *)vecXdata);
 
-    opencl::Buffer inOutY(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
+    opencl::Buffer inOutY(cl_context_ref.context_inst_, dim1_size, false,
+                          vecYdata);
 
     result =
       kernel_sgemv_fp16_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
@@ -91,7 +77,10 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
       break;
     }
 
-    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
+    // to avoid cache inconsistency
+    vecYdata = (__fp16 *)(inOutY.MapBuffer(cl_context_ref.command_queue_inst_,
+                                           0, dim1_size, true));
+    result = inOutY.UnMapBuffer(cl_context_ref.command_queue_inst_, vecYdata);
     if (!result) {
       break;
     }
@@ -117,23 +106,13 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
     size_t dim1_size = sizeof(cl_half) * dim1;
 
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
+                          (void *)vecAdata);
 
     opencl::Buffer inputX(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
+                          (void *)vecXdata);
 
-    opencl::Buffer dotResult(cl_context_ref.context_inst_, sizeof(__fp16), true,
-                             &cl_ret);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, vecAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
+    opencl::Buffer dotResult(cl_context_ref.context_inst_, sizeof(__fp16),
+                             false, &cl_ret);
 
     result =
       kernel_dot_fp16_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
@@ -167,7 +146,11 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
       break;
     }
 
-    result = dotResult.ReadData(cl_context_ref.command_queue_inst_, &cl_ret);
+    // to avoid cache inconsistency
+    __fp16 *tmp = (__fp16 *)(dotResult.MapBuffer(
+      cl_context_ref.command_queue_inst_, 0, sizeof(__fp16), true));
+    cl_ret = *tmp;
+    result = dotResult.UnMapBuffer(cl_context_ref.command_queue_inst_, tmp);
     if (!result) {
       break;
     }
@@ -213,28 +196,12 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
     size_t m_n_size = M * N * sizeof(cl_half);
 
     opencl::Buffer inputA(cl_context_ref.context_inst_, m_k_size, true,
-                          nullptr);
+                          (void *)A);
 
     opencl::Buffer inputB(cl_context_ref.context_inst_, k_n_size, true,
-                          nullptr);
+                          (void *)B);
 
-    opencl::Buffer inOutC(cl_context_ref.context_inst_, m_n_size, true,
-                          nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, A);
-    if (!result) {
-      break;
-    }
-
-    result = inputB.WriteData(cl_context_ref.command_queue_inst_, B);
-    if (!result) {
-      break;
-    }
-
-    result = inOutC.WriteData(cl_context_ref.command_queue_inst_, C);
-    if (!result) {
-      break;
-    }
+    opencl::Buffer inOutC(cl_context_ref.context_inst_, m_n_size, false, C);
 
     result =
       kernel_sgemm_fp16_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
@@ -283,7 +250,10 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
       break;
     }
 
-    result = inOutC.ReadData(cl_context_ref.command_queue_inst_, C);
+    // to avoid cache inconsistency
+    C = (__fp16 *)(inOutC.MapBuffer(cl_context_ref.command_queue_inst_, 0,
+                                    m_n_size, true));
+    result = inOutC.UnMapBuffer(cl_context_ref.command_queue_inst_, C);
     if (!result) {
       break;
     }
@@ -305,20 +275,10 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
 
     size_t dim1_size = sizeof(cl_half) * size;
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
+                          (void *)input);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim1_size, true,
-                            nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
-    if (!result) {
-      break;
-    }
-
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
-    if (!result) {
-      break;
-    }
+    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim1_size, false,
+                            res);
 
     result =
       kernel_addition_fp16_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
@@ -346,7 +306,10 @@ void addition_cl(const __fp16 *input, __fp16 *res, unsigned int size) {
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    // to avoid cache inconsistency
+    res = (__fp16 *)(inOutRes.MapBuffer(cl_context_ref.command_queue_inst_, 0,
+                                        dim1_size, true));
+    result = inOutRes.UnMapBuffer(cl_context_ref.command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -367,12 +330,7 @@ void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
 
     size_t x_size = N * sizeof(cl_half);
 
-    opencl::Buffer inputX(cl_context_ref.context_inst_, x_size, false, nullptr);
-
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, X);
-    if (!result) {
-      break;
-    }
+    opencl::Buffer inputX(cl_context_ref.context_inst_, x_size, false, X);
 
     result =
       kernel_sscal_fp16_ptr->SetKernelArguments(0, &inputX, sizeof(cl_mem));
@@ -395,7 +353,10 @@ void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
       break;
     }
 
-    result = inputX.ReadData(cl_context_ref.command_queue_inst_, X);
+    // to avoid cache inconsistency
+    X = (__fp16 *)(inputX.MapBuffer(cl_context_ref.command_queue_inst_, 0,
+                                    x_size, 0));
+    result = inputX.UnMapBuffer(cl_context_ref.command_queue_inst_, X);
     if (!result) {
       break;
     }
