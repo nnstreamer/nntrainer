@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <layer_impl.h>
+#include <layer_impl_cl.h>
 
 namespace nntrainer {
 
@@ -25,7 +25,7 @@ namespace nntrainer {
  * @class   FullyConnecedLayer
  * @brief   fully connected layer
  */
-class FullyConnectedLayerCl : public LayerImpl {
+class FullyConnectedLayerCl : public LayerImplCl {
 public:
   /**
    * @brief     Constructor of Fully Connected Layer
@@ -101,12 +101,19 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  static bool registerClKernels() { return true; };
+
   inline static const std::string type = "fully_connected";
 
 private:
   std::tuple<props::Unit>
     fc_props; /**< fc layer properties : unit - number of output neurons */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
+
+  const static int num_layer_kernels = 0; /** < number of layer kernels */
+
+  static std::vector<ClContext::SharedPtrClKernel>
+    layer_kernel_ptrs; /**< kernel list relevant with this layer */
 };
 } // namespace nntrainer
 

@@ -19,7 +19,7 @@
 #include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <layer_impl.h>
+#include <layer_impl_cl.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 #include <tensor_dim.h>
@@ -31,10 +31,7 @@ namespace nntrainer {
  * @class   Concat Layer
  * @brief   Concat Layer
  */
-class ConcatLayerCl : public Layer {
-
-private:
-  inline static ClContext cl_context_ref;
+class ConcatLayerCl : public LayerImplCl {
 
 public:
   /**
@@ -104,14 +101,12 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "concat";
+  /**
+   * @brief registerClKernels
+   */
+  static bool registerClKernels();
 
-  static opencl::Kernel kernel_concat_axis3;
-  static opencl::Kernel kernel_concat_axis3_fp16;
-  static opencl::Kernel kernel_concat_axis2;
-  static opencl::Kernel kernel_concat_axis2_fp16;
-  static opencl::Kernel kernel_concat_axis1;
-  static opencl::Kernel kernel_concat_axis1_fp16;
+  inline static const std::string type = "concat";
 
   /**
    * @brief Process data and dimensions for concat
@@ -233,6 +228,18 @@ public:
 #endif
 private:
   std::tuple<props::ConcatDimension> concat_props;
+
+  inline static std::vector<ClContext::SharedPtrClKernel>
+    layer_kernel_ptrs; /** kernel list relevant with this layer */
+
+  enum Kernels {
+    CONCAT_CL_AXIS1,
+    CONCAT_CL_AXIS2,
+    CONCAT_CL_AXIS3,
+    CONCAT_CL_AXIS1_FP16,
+    CONCAT_CL_AXIS2_FP16,
+    CONCAT_CL_AXIS3_FP16,
+  };
 };
 
 } // namespace nntrainer

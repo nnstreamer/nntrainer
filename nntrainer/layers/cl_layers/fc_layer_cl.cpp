@@ -29,7 +29,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 enum FCParams { weight, bias };
 
 FullyConnectedLayerCl::FullyConnectedLayerCl() :
-  LayerImpl(), fc_props(props::Unit()) {
+  LayerImplCl(), fc_props(props::Unit()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 

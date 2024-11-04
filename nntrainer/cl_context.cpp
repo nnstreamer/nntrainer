@@ -33,6 +33,7 @@ std::once_flag global_cl_context_init_flag;
 
 static void add_default_object(ClContext &cc) {
 
+  FullyConnectedLayerCl::registerClKernels();
   cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
                      FullyConnectedLayerCl::type,
                      ml::train::LayerType::LAYER_FC);
@@ -41,15 +42,18 @@ static void add_default_object(ClContext &cc) {
                      AdditionLayerCL::type,
                      ml::train::LayerType::LAYER_ADDITION);
 
-  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
-                     ml::train::LayerType::LAYER_SWIGLU);
+  // cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
+  // SwiGLULayerCl::type,
+  //  ml::train::LayerType::LAYER_SWIGLU);
 
+  ReshapeLayerCl::registerClKernels();
   cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
                      ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
 
-  cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-                     RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+  // cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+  //  RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
 
+  ConcatLayerCl::registerClKernels();
   cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
                      ml::train::LayerType::LAYER_CONCAT);
 
