@@ -233,11 +233,53 @@ std::string concat_cl_axis1_kernel_ =
 })";
 
 namespace nntrainer {
-ConcatLayerCl::ConcatLayerCl() : Layer() {}
+ConcatLayerCl::ConcatLayerCl() : LayerImplCl() {}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
+
+bool ConcatLayerCl::registerClKernels() {
+  ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
+
+  kernel_concat_ptr =
+    cl_context_ref.registerClKernel(concat_cl_axis1_kernel_, "concat_cl_axis1");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis1 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  kernel_concat_ptr =
+    cl_context_ref.registerClKernel(concat_cl_axis2_kernel_, "concat_cl_axis2");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis2 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  kernel_concat_ptr =
+    cl_context_ref.registerClKernel(concat_cl_axis3_kernel_, "concat_cl_axis3");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis3 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  kernel_concat_ptr = cl_context_ref.registerClKernel(
+    concat_cl_axis1_kernel_fp16_, "concat_cl_axis1_fp16");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  kernel_concat_ptr = cl_context_ref.registerClKernel(
+    concat_cl_axis2_kernel_fp16_, "concat_cl_axis2_fp16");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  kernel_concat_ptr = cl_context_ref.registerClKernel(
+    concat_cl_axis3_kernel_fp16_, "concat_cl_axis3_fp16");
+  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
+    << "OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel";
+  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+  return true;
+}
 
 void ConcatLayerCl::finalize(InitLayerContext &context) {
   auto &concat_dimension_prop = std::get<props::ConcatDimension>(concat_props);
@@ -301,13 +343,6 @@ void ConcatLayerCl::incremental_forwarding(RunLayerContext &context,
   }
   ConcatProcess(in1, in2, out);
 }
-
-opencl::Kernel ConcatLayerCl::kernel_concat_axis3;
-opencl::Kernel ConcatLayerCl::kernel_concat_axis3_fp16;
-opencl::Kernel ConcatLayerCl::kernel_concat_axis2;
-opencl::Kernel ConcatLayerCl::kernel_concat_axis2_fp16;
-opencl::Kernel ConcatLayerCl::kernel_concat_axis1;
-opencl::Kernel ConcatLayerCl::kernel_concat_axis1_fp16;
 
 void ConcatLayerCl::ConcatProcess(Tensor const &in1, Tensor const &in2,
                                   Tensor &result) {
@@ -375,12 +410,8 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis3_kernel_,
-                                      "concat_cl_axis3");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+
+    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3];
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -486,12 +517,9 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis3_kernel_fp16_,
-                                      "concat_cl_axis3_fp16");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+
+    const auto &kernel_concat_ptr =
+      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3_FP16];
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -599,12 +627,8 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis2_kernel_,
-                                      "concat_cl_axis2");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+
+    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2];
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -710,12 +734,8 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis2_kernel_fp16_,
-                                      "concat_cl_axis2_fp16");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+    const auto &kernel_concat_ptr =
+      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2_FP16];
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -823,12 +843,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis1_kernel_,
-                                      "concat_cl_axis1");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS1];
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
@@ -934,12 +949,9 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_concat_ptr =
-      cl_context_ref.registerClKernel(concat_cl_axis1_kernel_fp16_,
-                                      "concat_cl_axis1_fp16");
-    if (!kernel_concat_ptr) {
-      break;
-    }
+
+    const auto &kernel_concat_ptr =
+      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS1_FP16];
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
