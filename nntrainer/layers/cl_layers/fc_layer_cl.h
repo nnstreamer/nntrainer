@@ -110,8 +110,6 @@ private:
     fc_props; /**< fc layer properties : unit - number of output neurons */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
 
-  const static int num_layer_kernels = 0; /** < number of layer kernels */
-
   static std::vector<ClContext::SharedPtrClKernel>
     layer_kernel_ptrs; /**< kernel list relevant with this layer */
 };

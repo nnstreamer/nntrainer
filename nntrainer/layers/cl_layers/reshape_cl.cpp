@@ -49,6 +49,43 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
+bool ReshapeLayerCl::registerClKernels() {
+
+  // check if already registered
+  if (!layer_kernel_ptrs.empty())
+    return true;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
+
+    kernel_copy_ptr =
+      cl_context_ref.registerClKernel(copy_cl_kernel_, "copy_cl");
+    if (!kernel_copy_ptr) {
+      ml_loge("OpenCL Error: Fail to register copy_cl kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
+
+#ifdef ENABLE_FP16
+    kernel_copy_ptr =
+      cl_context_ref.registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
+    if (!kernel_copy_ptr) {
+      ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
+#endif
+
+    return true;
+
+  } while (false);
+
+  // claer all registered kernels if any error occurs during registration
+  layer_kernel_ptrs.clear();
+
+  return false;
+};
+
 void ReshapeLayerCl::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Reshape only supports 1 input for now";
@@ -98,9 +135,6 @@ void ReshapeLayerCl::incremental_forwarding(RunLayerContext &context,
   }
 }
 
-opencl::Kernel ReshapeLayerCl::kernel_copy;
-opencl::Kernel ReshapeLayerCl::kernel_copy_fp16;
-
 void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
 
   unsigned int input_batch_size, input_height, input_width, input_channels;
@@ -136,11 +170,7 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_copy_ptr =
-      cl_context_ref.registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
-    if (!kernel_copy_ptr) {
-      break;
-    }
+    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -219,11 +249,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_copy_ptr =
-      cl_context_ref.registerClKernel(copy_cl_kernel_, "copy_cl");
-    if (!kernel_copy_ptr) {
-      break;
-    }
+    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
