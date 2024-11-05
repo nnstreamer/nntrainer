@@ -240,45 +240,73 @@ static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
 bool ConcatLayerCl::registerClKernels() {
-  ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
 
-  kernel_concat_ptr =
-    cl_context_ref.registerClKernel(concat_cl_axis1_kernel_, "concat_cl_axis1");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis1 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+  // check if already registered
+  if (!layer_kernel_ptrs.empty())
+    return true;
 
-  kernel_concat_ptr =
-    cl_context_ref.registerClKernel(concat_cl_axis2_kernel_, "concat_cl_axis2");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis2 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+  do {
 
-  kernel_concat_ptr =
-    cl_context_ref.registerClKernel(concat_cl_axis3_kernel_, "concat_cl_axis3");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis3 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+    ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
 
-  kernel_concat_ptr = cl_context_ref.registerClKernel(
-    concat_cl_axis1_kernel_fp16_, "concat_cl_axis1_fp16");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+    kernel_concat_ptr = cl_context_ref.registerClKernel(concat_cl_axis1_kernel_,
+                                                        "concat_cl_axis1");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis1 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-  kernel_concat_ptr = cl_context_ref.registerClKernel(
-    concat_cl_axis2_kernel_fp16_, "concat_cl_axis2_fp16");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+    kernel_concat_ptr = cl_context_ref.registerClKernel(concat_cl_axis2_kernel_,
+                                                        "concat_cl_axis2");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis2 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-  kernel_concat_ptr = cl_context_ref.registerClKernel(
-    concat_cl_axis3_kernel_fp16_, "concat_cl_axis3_fp16");
-  NNTR_THROW_IF(!kernel_concat_ptr, std::runtime_error)
-    << "OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel";
-  layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+    kernel_concat_ptr = cl_context_ref.registerClKernel(concat_cl_axis3_kernel_,
+                                                        "concat_cl_axis3");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis3 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-  return true;
+#ifdef ENABLE_FP16
+    kernel_concat_ptr = cl_context_ref.registerClKernel(
+      concat_cl_axis1_kernel_fp16_, "concat_cl_axis1_fp16");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+    kernel_concat_ptr = cl_context_ref.registerClKernel(
+      concat_cl_axis2_kernel_fp16_, "concat_cl_axis2_fp16");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+
+    kernel_concat_ptr = cl_context_ref.registerClKernel(
+      concat_cl_axis3_kernel_fp16_, "concat_cl_axis3_fp16");
+    if (!kernel_concat_ptr) {
+      ml_loge("OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
+#endif
+
+    return true;
+
+  } while (false);
+
+  // clear all registered kernels if any error occurs during registration
+  layer_kernel_ptrs.clear();
+
+  return false;
 }
 
 void ConcatLayerCl::finalize(InitLayerContext &context) {

@@ -33,30 +33,37 @@ std::once_flag global_cl_context_init_flag;
 
 static void add_default_object(ClContext &cc) {
 
-  FullyConnectedLayerCl::registerClKernels();
-  cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
-                     FullyConnectedLayerCl::type,
-                     ml::train::LayerType::LAYER_FC);
+  if (FullyConnectedLayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
+                       FullyConnectedLayerCl::type,
+                       ml::train::LayerType::LAYER_FC);
+  }
 
   cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
                      AdditionLayerCL::type,
                      ml::train::LayerType::LAYER_ADDITION);
 
-  // cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
-  // SwiGLULayerCl::type,
-  //  ml::train::LayerType::LAYER_SWIGLU);
+  // @todo swiglulayercl also needs to be updated.
+  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
+  SwiGLULayerCl::type,
+   ml::train::LayerType::LAYER_SWIGLU);
 
-  ReshapeLayerCl::registerClKernels();
-  cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
-                     ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
+  if (ReshapeLayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
+                       ReshapeLayerCl::type,
+                       ml::train::LayerType::LAYER_RESHAPE);
+  }
 
-  // cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-  //  RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+  // @todo rmsnormlayercl also needs to be updated.
+  cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+   RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
 
-  ConcatLayerCl::registerClKernels();
-  cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
-                     ml::train::LayerType::LAYER_CONCAT);
+  if (ConcatLayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>,
+                       ConcatLayerCl::type, ml::train::LayerType::LAYER_CONCAT);
+  }
 
+  // @todo transposlayercl also needs to be updated.
   cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
                      TransposeLayerCl::type,
                      ml::train::LayerType::LAYER_TRANSPOSE);

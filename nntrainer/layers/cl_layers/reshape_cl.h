@@ -18,6 +18,7 @@
 #include <cl_context.h>
 #include <common_properties.h>
 #include <layer_devel.h>
+#include <layer_impl_cl.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 
@@ -26,10 +27,7 @@ namespace nntrainer {
  * @class   Reshape Layer
  * @brief   Reshape Layer
  */
-class ReshapeLayerCl : public Layer {
-
-private:
-  inline static ClContext cl_context_ref;
+class ReshapeLayerCl : public LayerImplCl {
 
 public:
   /**
@@ -105,15 +103,17 @@ public:
 
   inline static const std::string type = "reshape";
 
-  static opencl::Kernel kernel_copy;
-  static opencl::Kernel kernel_copy_fp16;
-
   /**
    * @brief Process data and dimensions for reshape operation
    * @param[in] input Tensor
    * @param[in] result Tensor
    */
   void ReshapeProcess(Tensor const &input, Tensor &result);
+
+  /**
+   * @brief registerClKernels
+   */
+  static bool registerClKernels();
 
   /**
    * @brief     copy computation
@@ -145,9 +145,13 @@ public:
                     unsigned int input_height, unsigned int input_width);
 #endif
 
-protected:
+private:
   std::tuple<props::TargetShape>
     reshape_props; /**< reshape properties : target_shape after reshape */
+
+  inline static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+
+  enum Kernels { COPY_CL, COPY_CL_FP16 };
 };
 
 } // namespace nntrainer
