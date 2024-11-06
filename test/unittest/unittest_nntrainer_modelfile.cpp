@@ -737,18 +737,18 @@ TEST(nntrainerIniTest, backbone_20_p) {
  * it should be referred relative to the .ini
  * @todo Fix TC to check invalid working directory and relative ini source
  */
-// TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
-//   ScopedIni b{getResPath("base"), {nw_base_cross, batch_normal}};
-//   ScopedIni s{getResPath("original"),
-//               {nw_base_cross + "loss=mse", adam, input,
-//                backbone_valid + "input_layers=inputlayer"}};
+TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
+  ScopedIni b{getResPath("base"), {nw_base_cross, batch_normal}};
+  ScopedIni s{getResPath("original"),
+              {nw_base_cross + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
-//   nntrainer::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
 
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-// }
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+}
 
 /**
  * @brief backbone is at different directory, if working directory is not set,
@@ -773,18 +773,18 @@ TEST(nntrainerIniTest, backbone_from_different_directory_n) {
  * graph representation is not being properly deserialized, there are
  * some bugs when setting layerNode properties.
  */
-// TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
-//   ScopedIni b{getResPath("base", {"test"}), {nw_base_cross, batch_normal}};
-//   ScopedIni s{getResPath("original"),
-//               {nw_base_cross + "loss=mse", adam, input,
-//                backbone_valid + "input_layers=inputlayer"}};
+TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
+  ScopedIni b{getResPath("base", {"test"}), {nw_base_cross, batch_normal}};
+  ScopedIni s{getResPath("original"),
+              {nw_base_cross + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
-//   nntrainer::AppContext ac(nntrainer::AppContext::Global());
-//   ac.setWorkingDirectory(getResPath("", {"test"}));
-//   nntrainer::NeuralNetwork NN(ac);
+  nntrainer::AppContext ac(nntrainer::AppContext::Global());
+  ac.setWorkingDirectory(getResPath("", {"test"}));
+  nntrainer::NeuralNetwork NN(ac);
 
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-// }
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+}
 
 /**
  * @brief Ini file unittest with distributed layer
