@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <layer_impl.h>
+#include <layer_impl_cl.h>
 #include <nntrainer_log.h>
 
 #include <cl_context.h>
@@ -25,36 +25,11 @@
 
 namespace nntrainer {
 
-namespace props {
-
-/**
- * @brief RMS_NORM_GAMMA_INIT_GPU Initialization Enumeration Information
- *
- */
-class RMS_NORM_GAMMA_INIT_GPU final
-  : public ::nntrainer::EnumProperty<::nntrainer::props::InitializerInfo> {
-public:
-  /**
-   * @brief Construct a RMS_NORM_GAMMA_INIT object
-   */
-  RMS_NORM_GAMMA_INIT_GPU(
-    ::nntrainer::Initializer value = ::nntrainer::Initializer::ONES) {
-    set(value);
-  };
-  using prop_tag = enum_class_prop_tag;
-  static constexpr const char *key = "gamma_initializer";
-};
-}; // namespace props
-
 /**
  * @class   RMSNormLayer
  * @brief   RMS Norm layer
  */
-
-class RMSNormLayerCl : public LayerImpl {
-
-private:
-  inline static ClContext cl_context_ref;
+class RMSNormLayerCl : public LayerImplCl {
 
 public:
   /**
@@ -118,9 +93,6 @@ public:
    */
   const std::string getType() const override { return RMSNormLayerCl::type; };
 
-  static opencl::Kernel kernel_rmsnorm;
-  static opencl::Kernel kernel_rmsnorm_fp16;
-
   /**
    * @brief Process data and dimensions for rms norm operation
    * @param[in] input Tensor
@@ -153,12 +125,26 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  /**
+   * @brief registerClKernels
+   */
+  static bool registerClKernels();
+
   inline static const std::string type = "rmsnorm";
 
 private:
   std::array<unsigned int, 1> wt_idx;
-  std::tuple<props::RMS_NORM_GAMMA_INIT_GPU, props::Epsilon>
+
+  std::tuple<props::RMS_NORM_GAMMA_INIT, props::Epsilon>
     rmsnorm_props; /**< rmsnorm layer properties */
+
+  inline static std::vector<ClContext::SharedPtrClKernel>
+    layer_kernel_ptrs; /**< kernel list relevant with this layer */
+
+  enum Kernels {
+    RMSNORM_CL,
+    RMSNORM_CL_FP16,
+  };
 };
 } // namespace nntrainer
 
