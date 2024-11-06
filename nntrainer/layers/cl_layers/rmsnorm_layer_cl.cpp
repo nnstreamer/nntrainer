@@ -91,13 +91,12 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum RMSParams { gamma };
 
-RMSNormLayerCl::RMSNormLayerCl() : LayerImpl() { wt_idx.fill(0); }
+RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
 
 void RMSNormLayerCl::finalize(InitLayerContext &context) {
   std::vector<TensorDim> dim = context.getInputDimensions();
   context.setOutputDimensions(dim);
-  auto &rmsparams_gamma =
-    std::get<props::RMS_NORM_GAMMA_INIT_GPU>(rmsnorm_props);
+  auto &rmsparams_gamma = std::get<props::RMS_NORM_GAMMA_INIT>(rmsnorm_props);
 
   TensorDim gamma_dim(
     1, 1, 1, dim[0].width(),
@@ -123,9 +122,6 @@ void RMSNormLayerCl::forwarding(RunLayerContext &context, bool training) {
   }
 }
 
-opencl::Kernel RMSNormLayerCl::kernel_rmsnorm;
-opencl::Kernel RMSNormLayerCl::kernel_rmsnorm_fp16;
-
 void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
                                     Tensor const &gamma, const float epsilon) {
   bool ret = false;
@@ -138,11 +134,8 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
   int w = input.width();
 
   do {
-    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-      cl_context_ref.registerClKernel(rmsnorm_cl_kernel_, "rmsnorm_cl");
-    if (!kernel_rmsnorm_ptr) {
-      break;
-    }
+
+    auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL];
 
     opencl::Buffer inputbuf(cl_context_ref.context_inst_, dim1 * sizeof(float),
                             true, nullptr);
@@ -219,6 +212,7 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
   } while (false);
 }
 
+#ifdef ENABLE_FP16
 void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
                                          Tensor const &gamma,
                                          const float epsilon) {
@@ -232,12 +226,8 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   int h = input.height();
   int w = input.width();
   do {
-    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-      cl_context_ref.registerClKernel(rmsnorm_cl_kernel_fp16_,
-                                      "rmsnorm_cl_fp16");
-    if (!kernel_rmsnorm_ptr) {
-      break;
-    }
+    auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL_FP16];
+
     opencl::Buffer inputbuf(cl_context_ref.context_inst_,
                             dim1 * sizeof(cl_half), true, nullptr);
 
@@ -308,6 +298,7 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     }
   } while (false);
 }
+#endif
 
 void RMSNormLayerCl::incremental_forwarding(nntrainer::RunLayerContext &context,
                                             unsigned int from, unsigned int to,
@@ -339,7 +330,11 @@ void RMSNormLayerCl::incremental_forwarding(nntrainer::RunLayerContext &context,
   if (in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
     rmsnormProcess(in, out, gamma, epsilon);
   } else {
+#ifdef ENABLE_FP16
     rmsnormProcess_fp16(in, out, gamma, epsilon);
+#else
+    throw std::runtime_error("enable-fp16 is not enabled");
+#endif
   }
 }
 
@@ -360,6 +355,46 @@ void RMSNormLayerCl::exportTo(Exporter &exporter,
 void RMSNormLayerCl::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, rmsnorm_props);
   LayerImpl::setProperty(remain_props);
+}
+
+bool RMSNormLayerCl::registerClKernels() {
+
+  // check if already registered
+  if (!layer_kernel_ptrs.empty()) {
+    ml_loge("kernels for concat layer are already registered.");
+    return false;
+  }
+
+  do {
+
+    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr = nullptr;
+
+    kernel_rmsnorm_ptr =
+      cl_context_ref.registerClKernel(rmsnorm_cl_kernel_, "rmsnorm_cl");
+    if (!kernel_rmsnorm_ptr) {
+      ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
+
+#ifdef ENABLE_FP16
+    kernel_rmsnorm_ptr = cl_context_ref.registerClKernel(
+      rmsnorm_cl_kernel_fp16_, "rmsnorm_cl_fp16");
+    if (!kernel_rmsnorm_ptr) {
+      ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
+#endif
+
+    return true;
+
+  } while (false);
+
+  // clear all registered kernels if any error occurs during registration
+  layer_kernel_ptrs.clear();
+
+  return false;
 }
 
 } // namespace nntrainer

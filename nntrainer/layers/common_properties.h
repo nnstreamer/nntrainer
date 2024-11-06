@@ -1076,6 +1076,19 @@ public:
 };
 
 /**
+ * @brief RMS_NORM_GAMMA_INIT Initialization Enumeration Information
+ */
+class RMS_NORM_GAMMA_INIT final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a RMS_NORM_GAMMA_INIT object
+   */
+  RMS_NORM_GAMMA_INIT(Initializer value = Initializer::ONES) { set(value); };
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "gamma_initializer";
+};
+
+/**
  * @brief     Enumeration of tensor regularization type
  */
 struct RegularizerInfo {
