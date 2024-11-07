@@ -371,10 +371,7 @@ GTEST_PARAMETER_TEST(
     //  mkIniTc("basic_train_valid_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer", train_set, valid_set}, SUCCESS),
     //  mkIniTc("basic_all_p", {dataset, nw_base_cross, test_set, sgd, input, out+"input_layers=inputlayer", train_set, valid_set}, SUCCESS),
     //  mkIniTc("basic_test_train_valid_p", {dataset, nw_base_cross, test_set, sgd, input, out+"input_layers=inputlayer", train_set, valid_set}, SUCCESS),
-     mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
-     /**
-      * @todo Fail on Android loadConfig Test
-      */
+    mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
@@ -466,7 +463,6 @@ TEST(nntrainerIniTest, backbone_02_n) {
 
 /**
  * @brief Ini file unittest with backbone with normal backbone
- * @todo Fail at NN.loadFromConfig(s.getIniName())
  */
 TEST(nntrainerIniTest, backbone_03_p) {
   ScopedIni b{"base", {nw_base_cross, batch_normal}};
@@ -489,7 +485,6 @@ TEST(nntrainerIniTest, backbone_04_p) {
 
 /**
  * @brief Ini file unittest matching model with and without backbone
- * @todo Fail at different layer names : "conv2d" vs "block1conv2d"
  */
 TEST(nntrainerIniTest, backbone_05_p) {
 
@@ -695,7 +690,6 @@ TEST(nntrainerIniTest, backbone_17_p) {
 /**
  * @brief Ini file unittest with backbone
  * @note Input layer name not found, empty backbone
- * @todo fix this testcase to check unknown input layer name
  */
 TEST(nntrainerIniTest, backbone_19_n) {
   nntrainer::NeuralNetwork NN;
@@ -712,8 +706,6 @@ TEST(nntrainerIniTest, backbone_19_n) {
 /**
  * @brief Ini file unittest with backbone
  * @note input and output layer specified are found
- * @todo C++ exception with description "Failed to initialize: in size + padding
- * is smaller than effective kernel" thrown in the test body.
  */
 TEST(nntrainerIniTest, backbone_20_p) {
   nntrainer::NeuralNetwork NN;
@@ -753,7 +745,6 @@ TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
 /**
  * @brief backbone is at different directory, if working directory is not set,
  * it should be referred relative to the .ini
- * @todo Fail on Android
  */
 TEST(nntrainerIniTest, backbone_from_different_directory_n) {
   ScopedIni b{"base", {nw_base_cross, batch_normal}};
