@@ -640,16 +640,16 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   graph.addNode(layer);
 }
 
-InPlace
+InPlaceType
 NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
 
   if (!lnode->supportInPlace()) {
-    return InPlace::NONE;
+    return InPlaceType::NONE;
   }
 
   if (lnode->getType() == InputLayer::type &&
       !istrequal(getTensorType()[2], "FP32")) {
-    return InPlace::NONE;
+    return InPlaceType::NONE;
   }
 
   /** layers which behave as a no-op - flatten */
@@ -692,11 +692,12 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
       const auto &input_name = lnode->getInputConnectionName(i);
-      if (getLayerNode(input_name)->executeInPlace() == InPlace::RESTRICTING)
-        return InPlace::RESTRICTING;
+      if (getLayerNode(input_name)->getInPlaceType() ==
+          InPlaceType::RESTRICTING)
+        return InPlaceType::RESTRICTING;
     }
 
-    return InPlace::NON_RESTRICTING;
+    return InPlaceType::NON_RESTRICTING;
   }
 
   /**
@@ -710,7 +711,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * inplace, and then its restricting mode.
    */
   if (no_op_shared(lnode))
-    return InPlace::RESTRICTING;
+    return InPlaceType::RESTRICTING;
 
   /**
    * @note Conditions to decide if this layer node can be in-place:
@@ -740,9 +741,9 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       lnode->getType() == LayerNormalizationLayer::type) {
     for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
-      if (getLayerNode(lnode->getInputConnectionName(i))->executeInPlace() ==
-          InPlace::RESTRICTING)
-        return InPlace::NONE;
+      if (getLayerNode(lnode->getInputConnectionName(i))->getInPlaceType() ==
+          InPlaceType::RESTRICTING)
+        return InPlaceType::NONE;
     }
 
     /**
@@ -751,9 +752,9 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
      * layer.
      */
     if (io_independent_backwarding(lnode))
-      return InPlace::NON_RESTRICTING;
+      return InPlaceType::NON_RESTRICTING;
 
-    return InPlace::RESTRICTING;
+    return InPlaceType::RESTRICTING;
   }
 
   /**
@@ -762,17 +763,17 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    */
   if (lnode->getInputConnections().empty()) {
     if (!istrequal(getTensorType()[2], "FP32"))
-      return InPlace::NONE;
+      return InPlaceType::NONE;
   }
 
-  return InPlace::NONE;
+  return InPlaceType::NONE;
 }
 
 void NetworkGraph::inPlaceOptimize() {
   if (optimize_memory) {
     for (unsigned int idx = 0; idx < graph.size(); ++idx) {
       auto const &lnode = getSortedLayerNode(idx);
-      lnode->executeInPlace(canExecuteInPlace(lnode));
+      lnode->setInPlaceType(canExecuteInPlace(lnode));
     }
   }
 }
@@ -842,7 +843,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
 
-  if (lnode->executeInPlace() != InPlace::NONE && lnode->supportInPlace()) {
+  if (lnode->getInPlaceType() != InPlaceType::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);
@@ -998,7 +999,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
   auto out_specs = init_context.getOutSpecs();
   /// @note try move inplace control to finalize
   bool shared_var = false, shared_grad = false;
-  if (lnode->executeInPlace() != InPlace::NONE) {
+  if (lnode->getInPlaceType() != InPlaceType::NONE) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);

@@ -47,14 +47,14 @@ void ReshapeLayer::finalize(InitLayerContext &context) {
 }
 
 void ReshapeLayer::forwarding(RunLayerContext &context, bool training) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     context.getOutput(SINGLE_INOUT_IDX)
       .copyData(context.getInput(SINGLE_INOUT_IDX));
   }
 }
 
 void ReshapeLayer::calcDerivative(RunLayerContext &context) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     context.getOutgoingDerivative(SINGLE_INOUT_IDX)
       .copyData(context.getIncomingDerivative(SINGLE_INOUT_IDX));
   }

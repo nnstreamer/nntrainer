@@ -609,7 +609,7 @@ private:
    *
    * @return the mode of inplace for the layer
    */
-  InPlace canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
+  InPlaceType canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
 
   /**
    * @brief compute optimized backward end. This function calculated the valid

@@ -186,7 +186,7 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
-  inplace(InPlace::NONE),
+  inplace_type(InPlaceType::NONE),
   needs_calc_derivative(false),
   needs_calc_gradient(false),
 
@@ -689,8 +689,8 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
   }
 
   auto context = InitLayerContext(
-    actual_input_dims, out_info, executeInPlace() != InPlace::NONE, getName(),
-    scope, max_norm, tensor_type, loss_scale, mode);
+    actual_input_dims, out_info, getInPlaceType() != InPlaceType::NONE,
+    getName(), scope, max_norm, tensor_type, loss_scale, mode);
 
   layer->finalize(context);
 
@@ -782,8 +782,8 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
   }
 
   auto context = InitLayerContext(actual_input_dims, out_info,
-                                  executeInPlace() != InPlace::NONE, getName(),
-                                  scope, max_norm);
+                                  getInPlaceType() != InPlaceType::NONE,
+                                  getName(), scope, max_norm);
 
   layer->finalize(context);
 
@@ -814,7 +814,7 @@ void LayerNode::forwarding(bool training) {
 
   PROFILE_TIME_START(forward_event_key);
   if (reStoreData()) {
-    if (executeInPlace() == InPlace::NONE) {
+    if (getInPlaceType() == InPlaceType::NONE) {
       for (unsigned int i = 0; i < run_context->getNumOutputs(); ++i) {
         run_context->getOutput(i).setValue(0);
         if (!run_context->getOutputGradUnsafe(i).isValid())
@@ -947,7 +947,7 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &tensors,
                                     float loss_scale) {
   run_context = std::make_unique<RunLayerContext>(
-    getName(), getTrainable(), 0.0f, executeInPlace() != InPlace::NONE,
+    getName(), getTrainable(), 0.0f, getInPlaceType() != InPlaceType::NONE,
     loss_scale, false, weights, inputs, outputs, tensors);
 }
 

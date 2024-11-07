@@ -46,7 +46,7 @@ void InputLayer::setProperty(const std::vector<std::string> &values) {
 
 void InputLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
     hidden_.copyData(input_);
   }
