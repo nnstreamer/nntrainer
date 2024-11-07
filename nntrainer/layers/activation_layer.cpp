@@ -32,8 +32,7 @@
 
 namespace nntrainer {
 ActivationLayer::ActivationLayer() :
-  Layer(),
-  activation_props(new PropTypes(props::Activation())) {
+  Layer(), activation_props(new PropTypes(props::Activation())) {
   acti_func.setActiFunc(ActivationType::ACT_NONE);
 }
 
@@ -65,7 +64,7 @@ void ActivationLayer::finalize(InitLayerContext &context) {
     InitLayerContext::outSpec(context.getInputDimensions()[0], "out",
                               TensorLifespan::FORWARD_DERIV_LIFESPAN));
   context.requestOutputs(std::move(out_specs));
-  acti_func.executeInPlace(context.executeInPlace());
+  acti_func.setInPlace(context.getInPlace());
 }
 
 void ActivationLayer::forwarding(RunLayerContext &context, bool training) {

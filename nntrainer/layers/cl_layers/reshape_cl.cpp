@@ -75,7 +75,7 @@ void ReshapeLayerCl::finalize(InitLayerContext &context) {
 }
 
 void ReshapeLayerCl::forwarding(RunLayerContext &context, bool training) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
     const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
     ReshapeProcess(input, output);
@@ -85,7 +85,7 @@ void ReshapeLayerCl::forwarding(RunLayerContext &context, bool training) {
 void ReshapeLayerCl::incremental_forwarding(RunLayerContext &context,
                                             unsigned int from, unsigned int to,
                                             bool training) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
     const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
     if (from) {
@@ -294,7 +294,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
 }
 
 void ReshapeLayerCl::calcDerivative(RunLayerContext &context) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     context.getOutgoingDerivative(SINGLE_INOUT_IDX)
       .copyData(context.getIncomingDerivative(SINGLE_INOUT_IDX));
   }

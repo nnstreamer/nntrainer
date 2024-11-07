@@ -383,7 +383,7 @@ public:
    *
    * @return true if in-place, else false
    */
-  bool executeInPlace() const { return in_place; }
+  bool getInPlace() const { return in_place; }
 
   /**
    * @brief   get Initial value of Loss_Scale. This is set to RunLayerContext
@@ -889,7 +889,7 @@ public:
    *
    * @return true if in-place, else false
    */
-  bool executeInPlace() const { return in_place; }
+  bool getInPlace() const { return in_place; }
 
   /**
    * @brief   get layer weights

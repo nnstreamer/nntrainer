@@ -31,7 +31,7 @@ void MultiOutLayer::finalize(InitLayerContext &context) {
 }
 
 void MultiOutLayer::forwarding(RunLayerContext &context, bool training) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     const Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
     for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
       context.getOutput(idx).fill(input_);
@@ -42,7 +42,7 @@ void MultiOutLayer::forwarding(RunLayerContext &context, bool training) {
 void MultiOutLayer::incremental_forwarding(RunLayerContext &context,
                                            unsigned int from, unsigned int to,
                                            bool training) {
-  if (!context.executeInPlace()) {
+  if (!context.getInPlace()) {
     if (from) {
       NNTR_THROW_IF(to - from != 1, std::invalid_argument)
         << "incremental step size is not 1";

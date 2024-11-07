@@ -27,7 +27,7 @@ void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
-  if (!context.executeInPlace())
+  if (!context.getInPlace())
     output.fill(predicted);
 }
 

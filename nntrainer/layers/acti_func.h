@@ -760,7 +760,7 @@ public:
    *
    * @param val True if execute in-place, else false
    */
-  void executeInPlace(bool val) {
+  void setInPlace(bool val) {
     if (val && !supportInPlace())
       throw std::runtime_error(
         "Error setting activation layer to work in-place");

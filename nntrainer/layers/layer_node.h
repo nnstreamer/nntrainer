@@ -59,7 +59,7 @@ class LossScaleForMixed;
  * @brief Enum class for the various types of inplace modes supported by layer
  *
  */
-enum class InPlace {
+enum class InPlaceType {
   NONE,           /**< layer is not inplace */
   RESTRICTING,    /**< layer is in-place and does place restriction on layers
                     ahead of it to be in-place */
@@ -370,19 +370,19 @@ public:
    *
    * @param val in place state for the layer
    */
-  void executeInPlace(InPlace val) {
-    if (val != InPlace::NONE && !supportInPlace())
+  void setInPlaceType(InPlaceType val) {
+    if (val != InPlaceType::NONE && !supportInPlace())
       throw std::runtime_error("Error setting layer to work in-place");
 
-    inplace = val;
+    inplace_type = val;
   }
 
   /**
    * @brief   Get if the layer is going to execute in-place
    *
-   * @return InPlace type for the layer
+   * @return Inplace type for the layer
    */
-  InPlace executeInPlace() const { return inplace; }
+  InPlaceType getInPlaceType() const { return inplace_type; }
 
   /**
    * @brief  check if this layer requires label to be passed
@@ -967,8 +967,8 @@ private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
-  InPlace
-    inplace; /**< store if the current layer is going to operate in-place */
+  InPlaceType inplace_type; /**< store if the current layer is going to operate
+                               in-place */
   bool needs_calc_derivative; /**< cache if this layer needs to do
                                  calcDerivative */
   bool needs_calc_gradient; /**< cache if this layer needs to do calcGradient */
