@@ -67,11 +67,12 @@ namespace nntrainer {
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -86,11 +87,12 @@ NeuralNetwork::NeuralNetwork() :
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::MemorySwap(), props::MemorySwapPath(),
+                   props::MemorySwapLookahead(), props::TensorFormat(),
+                   props::ModelTensorDataType(), props::MemorySwapMode()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -172,6 +174,8 @@ int NeuralNetwork::compile() {
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
   const std::string memory_swap_path =
     std::get<props::MemorySwapPath>(model_flex_props);
+  const std::string memory_swap_mode =
+    std::get<props::MemorySwapMode>(model_flex_props);
   unsigned int lookahead =
     std::get<props::MemorySwapLookahead>(model_flex_props);
 
@@ -181,8 +185,8 @@ int NeuralNetwork::compile() {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, memory_swap_path, lookahead,
-                             tensor_format, tensor_type);
+  model_graph = NetworkGraph(memory_swap, memory_swap_mode, memory_swap_path,
+                             lookahead, tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
@@ -260,7 +264,9 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   }
 
   // Allocate weights
-  model_graph.allocateWeights();
+  const std::string memory_swap_mode =
+    std::get<props::MemorySwapMode>(model_flex_props);
+  model_graph.allocateWeights(memory_swap_mode.compare("inference") != 0);
 
   initialized = true;
 
