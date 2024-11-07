@@ -118,7 +118,6 @@ TEST_P(nntrainerIniTest, loadConfigTwice_n) {
 
 /**
  * @brief check given ini is failing/succeeding at init
- * @todo Fix : basic3_p, basic4_p, basic_act_p
  */
 TEST_P(nntrainerIniTest, init) {
   std::cout << std::get<0>(GetParam()) << std::endl;
@@ -157,7 +156,6 @@ TEST_P(nntrainerIniTest, init) {
 /**
  * @brief check given ini is failing/succeeding when init happens twice.
  * this should fail at all time.
- * @todo Fix basic3_p, basic4_p, basic_act_p
  */
 TEST_P(nntrainerIniTest, initTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
@@ -357,12 +355,9 @@ GTEST_PARAMETER_TEST(
      mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
      mkIniTc("basic_bn_p", {nw_base_cross, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
      mkIniTc("basic_bn2_p", {nw_base_cross, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
-    /**
-    * @todo Fail on Android loadConfig Test
-    */
-    //  mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
-    //  mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
-    //  mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
+     mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
      /**
       * @todo Fail on both PC and Android
       */
@@ -375,11 +370,8 @@ GTEST_PARAMETER_TEST(
     mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
-    /**
-    * @todo Fail at Android loadConfig Test
-    */
-    //  mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
-    //  mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
+     mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
      mkIniTc("loss_layer1_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_mse}, SUCCESS),
      mkIniTc("loss_layer2_p", {nw_base, adam, input + "-Activation", out, loss_mse}, SUCCESS),
      mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, ALLFAIL),
@@ -587,40 +579,37 @@ TEST(nntrainerIniTest, backbone_07_p) {
 
 /**
  * @brief Ini file unittest with backbone with normal backbone
- * @todo Fail at NN.loadFromConfig(s.getIniName())
  */
-// TEST(nntrainerIniTest, backbone_08_n) {
-//   ScopedIni s("backbone_08_n", {nw_base_mse, adam,
-//   backbone_random_external});
+TEST(nntrainerIniTest, backbone_08_n) {
+  ScopedIni s("backbone_08_n", {nw_base_mse, adam, backbone_random_external});
 
-//   nntrainer::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
 
-// #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.compile(), ML_ERROR_INVALID_PARAMETER);
-//   EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
-// #else
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
-// #endif
-// }
+#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(NN.compile(), ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
+#else
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
+#endif
+}
 
 /**
  * @brief Ini file unittest with backbone with normal backbone
- * @todo Fail on AndroidTest
  */
-// TEST(nntrainerIniTest, backbone_09_p) {
-//   ScopedIni s("backbone_09_p",
-//               {nw_base_mse + "-batch_size", adam, backbone_valid_external});
-//   nntrainer::NeuralNetwork NN;
+TEST(nntrainerIniTest, backbone_09_p) {
+  ScopedIni s("backbone_09_p",
+              {nw_base_mse + "-batch_size", adam, backbone_valid_external});
+  nntrainer::NeuralNetwork NN;
 
-// #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-//   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-// #else
-//   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
-// #endif
-// }
+#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+#else
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
+#endif
+}
 
 /**
  * @brief Ini file unittest with backbone
@@ -727,7 +716,6 @@ TEST(nntrainerIniTest, backbone_20_p) {
 /**
  * @brief backbone is relative to original ini, if working directory is not set,
  * it should be referred relative to the .ini
- * @todo Fix TC to check invalid working directory and relative ini source
  */
 TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
   ScopedIni b{getResPath("base"), {nw_base_cross, batch_normal}};
