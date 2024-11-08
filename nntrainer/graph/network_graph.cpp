@@ -695,7 +695,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       return InPlace::NONE;
   }
 
-  return InPlace::NONE;
+  return InPlace::NON_RESTRICTING;
 }
 
 void NetworkGraph::inPlaceOptimize() {
