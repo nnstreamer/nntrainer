@@ -15,6 +15,7 @@
 #include <blas_neon.h>
 #include <blas_neon_setting.h>
 #include <hgemm.h>
+#include <iostream>
 #include <memory>
 #include <nntrainer_error.h>
 
@@ -585,6 +586,29 @@ bool isValid(const size_t N, const float *X) {
   }
 
   return true;
+}
+
+static inline void __scopy_kernel(const float *X, float *Y) {
+  vst1q_f32(Y, vld1q_f32(X));
+}
+
+void custom_scopy(const unsigned int N, const float *X, const int incX,
+                  float *Y, const int incY) {
+  unsigned int N4 = (N >> 2) << 2;
+  for (unsigned int i = 0; i < N4; i += 4) {
+#ifdef __aarch64__
+    __asm__ __volatile__("ld1 {v0.4s}, [%1]\n\t"
+                         "st1 {v0.4s}, [%0]\n\t"
+                         :
+                         : "+r"(&Y[i]), "+r"(&X[i])
+                         : "v0", "memory");
+#elif
+    __scopy_kernel(N, X + i, Y + i);
+#endif
+  }
+  for (unsigned int i = N4; i < N; ++i) {
+    Y[i] = X[i];
+  }
 }
 
 #ifdef ENABLE_FP16

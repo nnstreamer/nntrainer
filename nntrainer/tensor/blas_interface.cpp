@@ -597,8 +597,8 @@ static float sdot_raw(const unsigned int N, const float *X,
   return ret;
 }
 
-static void scopy_raw(const unsigned int N, const float *X, const int incX,
-                      float *Y, const int incY) {
+static void __scopy_fallback(const unsigned int N, const float *X,
+                             const int incX, float *Y, const int incY) {
   unsigned int incy = abs(incY);
   unsigned int incx = abs(incX);
 
@@ -856,7 +856,7 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
 #endif
     cblas_scopy(N, (float *)X, incX, (float *)Y, incY);
 #else
-    scopy_raw(N, (float *)X, incX, (float *)Y, incY);
+    __scopy_fallback(N, (float *)X, incX, (float *)Y, incY);
 #endif
 
   } else if (d_type == ml::train::TensorDim::DataType::FP16) {
@@ -870,15 +870,19 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
 
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int incY) {
-#ifdef USE_BLAS
-#ifdef BLAS_NUM_THREADS
-  openblas_set_num_threads(BLAS_NUM_THREADS);
-#endif
-  // cblas_scopy(N, X, incX, Y, incY);
-  for (unsigned int i = 0; i < N; ++i)
-    Y[i * incY] = X[i * incX];
+/**
+ * @note Using 'cblas_scopy' shown some SIGSEGV, temporally use custom-scopy
+ * #ifdef USE_BLAS #ifdef BLAS_NUM_THREADS
+ *  openblas_set_num_threads(BLAS_NUM_THREADS);
+ * #endif
+ *  cblas_scopy(N, X, incX, Y, incY);
+ */
+#ifdef USE_NEON
+  nntrainer::neon::custom_scopy(N, X, incX, Y, incY);
+#elif USE_AVX
+  nntrainer::avx::custom_scopy(N, X, incX, Y, incY);
 #else
-  scopy_raw(N, X, incX, Y, incY);
+  __scopy_fallback(N, X, incX, Y, incY);
 #endif
 }
 

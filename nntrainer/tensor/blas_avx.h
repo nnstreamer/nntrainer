@@ -60,6 +60,16 @@ bool isValid(const size_t N, const _Float16 *X);
  */
 bool isValid(const size_t N, const float *X);
 
+/**
+ * @brief cblas_scopy occasionally emits SIGSEGV, so implement a custom version.
+ *
+ * @param N length of the vector
+ * @param X float * for Vector X (input)
+ * @param Y float * for Vector Y (output)
+ */
+void custom_scopy(const unsigned int N, const float *X, const int incX,
+                  float *Y, const int incY);
+
 } // namespace nntrainer::avx
 
 #endif /* __cplusplus */
