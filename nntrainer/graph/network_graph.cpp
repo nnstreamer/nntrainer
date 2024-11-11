@@ -229,6 +229,14 @@ int NetworkGraph::checkCompiledGraph() {
 void NetworkGraph::markNodesForBackwarding() {
   /** accumulate all the nodes which must support backwarding */
   std::unordered_set<std::string> must_support_backwarding;
+  if (exec_mode == ExecutionMode::INFERENCE) {
+    for (auto iter = cbegin(); iter != cend(); iter++) {
+      auto lnode = (*iter);
+      lnode->needsCalcGradient(false);
+      lnode->needsCalcDerivative(false);
+    }
+    return;
+  }
 
   /**
    * if a node is trainable, then all the nodes ahead of it must support
@@ -867,14 +875,16 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   }
   lnode->setDataType(init_context.getWeightDataType(),
                      init_context.getActivationDataType());
-
+  bool trainable = lnode->getTrainable();
+  if (exec_mode == ExecutionMode::INFERENCE)
+    trainable = false;
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
-                                   lnode->getTrainable(), shared_weight_names),
+                                   trainable, shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
-                                   lnode->getTrainable(), shared_tensor_names),
+                                   trainable, shared_tensor_names),
     init_context.getLossScale());
 
   return outputs;
@@ -1550,6 +1560,22 @@ void NetworkGraph::flushCache() { tensor_manager->flushCache(); }
 
 void NetworkGraph::flushCacheExcept(unsigned int order) {
   tensor_manager->flushCacheExcept(order);
+}
+
+void NetworkGraph::LoadTensors(unsigned int order) {
+  tensor_manager->LoadTensors(order);
+}
+
+bool NetworkGraph::checkLoadComplete(unsigned int order) {
+  return tensor_manager->checkLoadComplete(order);
+}
+
+bool NetworkGraph::checkUnloadComplete(unsigned int order) {
+  return tensor_manager->checkUnloadComplete(order);
+}
+
+void NetworkGraph::UnloadTensors(unsigned int order) {
+  tensor_manager->UnloadTensors(order);
 }
 
 void NetworkGraph::requestOptimizerVariable(

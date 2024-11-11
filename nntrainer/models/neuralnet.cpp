@@ -67,12 +67,11 @@ namespace nntrainer {
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::TensorFormat(),
-                   props::ModelTensorDataType(), props::MemorySwapMode()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -88,12 +87,11 @@ NeuralNetwork::NeuralNetwork() :
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::TensorFormat(),
-                   props::ModelTensorDataType(), props::MemorySwapMode()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -102,6 +100,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
+  exec_mode(ExecutionMode::TRAIN),
   app_context(app_context_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
@@ -214,6 +213,18 @@ int NeuralNetwork::compile(ExecutionMode mode) {
 int NeuralNetwork::initialize(ExecutionMode mode) {
   int status = ML_ERROR_NONE;
 
+  if (mode != exec_mode) {
+    if (mode == ExecutionMode::INFERENCE) {
+      ml_logd("Execution mode mismatch : train mode @compile & inference mode "
+              "@ initialize");
+      exec_mode = mode;
+    } else {
+      NNTR_THROW_IF(exec_mode == ExecutionMode::TRAIN, std::invalid_argument)
+        << "Execution mode mismatch : trying to train with compiled for "
+           "infence";
+    }
+  }
+
   if (initialized) {
     ml_loge("Error: Initializing the model again");
     return ML_ERROR_NOT_SUPPORTED;
@@ -244,7 +255,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   }
 
   status = model_graph.initialize(
-    mode, input_conn,
+    exec_mode, input_conn,
     std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
 
@@ -267,6 +278,8 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
 
   // Allocate weights
   model_graph.allocateWeights(exec_mode != ExecutionMode::INFERENCE);
+  // enable this to save initialized weights for INFERENCE
+  // model_graph.allocateWeights(true);
 
   initialized = true;
 
@@ -329,6 +342,7 @@ NeuralNetwork::~NeuralNetwork() {
  */
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
                               bool training) -> void {
@@ -336,9 +350,65 @@ sharedConstTensors NeuralNetwork::forwarding(
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
 
-    node->forwarding(training);
+    // temperally remain. when we evaluate all for asynch mode, we weill remove
+    if (exec_mode == ExecutionMode::TRAIN) {
+      model_graph.flushCacheExcept(f);
+      node->forwarding(training);
+    } else {
+
+      /**
+       currently, it supports FSU asynch mode for inference. The prcedure of
+       FSU is below,
+
+       Prerequests : This function is called node by node at the forwarding
+       function in network graph.
+
+       Step 1. If the execution order is the first (f==0) then, it will try to
+               load tensors which used at layer 0.
+
+       Step 2. It check whether these tensors from Step 1, then do the
+               forwarding of the first node.
+
+       Step 3. Then check the look a head which says how many layer weights need
+               to be loaded before running to hide overehad due to FSU,
+
+       Step 4. Try to get the tesors by asking tensors for layers which is done
+               by thread pool
+
+       Step 5. Try to release the weights which has execution order less then f.
+
+       Step n. repeat next layer starting with checking the tenosrs are loaded,
+               and if it is loaded, then run forwarding. Every time it finishes
+               the forwarding, ask load tensors for next n layers.
+      **/
+
+      if (f == 0)
+        model_graph.LoadTensors(f);
+
+      if (model_graph.checkLoadComplete(f)) {
+        node->forwarding(training);
+        ml_logd("Forwarding is done %d : %s", f, node->getName().c_str());
+
+        unsigned int lookahead =
+          std::get<props::MemorySwapLookahead>(model_flex_props);
+
+        if (lookahead != 0) {
+          if ((f) % (lookahead + 1) == lookahead - 1) {
+            std::cout << "request load tensor : " << f + lookahead + 1
+                      << std::endl;
+            ml_logd("request load tensor for %d", f + 1);
+            model_graph.LoadTensors((f / (lookahead + 1) + 1) *
+                                    (lookahead + 1));
+          }
+        } else {
+          model_graph.LoadTensors(f);
+        }
+
+        if (f != 0)
+          model_graph.UnloadTensors(f);
+      }
+    }
   };
 
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+ * Copyright (C) 2024 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   main.cpp
- * @date   24 Jun 2021
- * @todo   move resnet model creating to separate sourcefile
- * @brief  task runner for the resnet
+ * @date   10 Dec 2024
+ * @brief  Test Application for Asynch FSU
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
  */
 #include <array>
@@ -76,9 +75,9 @@ static std::string withKey(const std::string &key,
 }
 
 /**
- * @brief Create resnet 18
+ * @brief Create network
  *
- * @return vector of layers that contain full graph of resnet18
+ * @return vector of layers that contain full graph of asynch
  */
 std::vector<LayerHandle> createGraph() {
   using ml::train::createLayer;
@@ -86,22 +85,22 @@ std::vector<LayerHandle> createGraph() {
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:32")}));
+    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:320")}));
 
-  layers.push_back(
-    createLayer("fully_connected",
-                {withKey("unit", 10)}));
+  layers.push_back(createLayer("fully_connected",
+                               {withKey("unit", 100),
+                                withKey("weight_initializer", "xavier_uniform"),
+                                withKey("bias_initializer", "zeros")}));
 
-  layers.push_back(
-    createLayer("fully_connected",
-                {withKey("unit", 10)}));
+  layers.push_back(createLayer("fully_connected",
+                               {withKey("unit", 100),
+                                withKey("weight_initializer", "xavier_uniform"),
+                                withKey("bias_initializer", "zeros")}));
 
   return layers;
 }
 
-/// @todo update createResnet18 to be more generic
 ModelHandle create() {
-  /// @todo support "LOSS : cross" for TF_Lite Exporter
   ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                              {withKey("loss", "mse")});
 
@@ -126,17 +125,19 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
   return 0;
 }
 
-/// @todo maybe make num_class also a parameter
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
                   UserDataType &valid_user_data) {
 
   // setup model
   ModelHandle model = create();
-  model->setProperty({withKey("batch_size", batch_size),
-                      withKey("epochs", epochs),
-                      withKey("save_path", "model_full.bin"),
-		      withKey("memory_swap","true")});
+  model->setProperty(
+    {withKey("batch_size", batch_size), withKey("epochs", epochs),
+     // withKey("save_path", "model_full.bin")});
+     // withKey("save_path", "model_full.bin"), withKey("memory_swap",
+     // "true")});
+     withKey("memory_swap", "true"), withKey("memory_swap_lookahead", "1"),
+     withKey("model_tensor_type", "FP16-FP16")});
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
@@ -156,28 +157,24 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   auto dataset_valid = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
 
-  // model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
-  //                   std::move(dataset_train));
-  // model->setDataset(ml::train::DatasetModeType::MODE_VALID,
-  //                   std::move(dataset_valid));
-
-  // if (transfer_learning)
-  //   model->load(pretrained_bin_path);
-  // model->train();
+  // to test asynch fsu, we do need save the model weight data in file
+  model->save("simplefc_weight_fp16_fp16_100.bin",
+              ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  model->load("./simplefc_weight_fp16_fp16_100.bin");
 
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
-  uint feature_size = 32;
+  uint feature_size = 320;
 
-  float input [32];
-  float label [1];
+  float input[320];
+  float label[1];
 
-  for(uint j=0;j<feature_size;++j)
+  for (uint j = 0; j < feature_size; ++j)
     input[j] = j;
 
-  std::vector<float*> in;
-  std::vector<float*> l;
-  std::vector<float*> answer;
+  std::vector<float *> in;
+  std::vector<float *> l;
+  std::vector<float *> answer;
 
   in.push_back(input);
   l.push_back(label);
@@ -187,8 +184,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   in.clear();
   l.clear();
 
-  std::cout << "done"<<std::endl;
-
+  std::cout << "done" << std::endl;
 }
 
 std::array<UserDataType, 2>
@@ -196,10 +192,10 @@ createFakeDataGenerator(unsigned int batch_size,
                         unsigned int simulated_data_size,
                         unsigned int data_split) {
   UserDataType train_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 1, 1, 32}}, {{batch_size, 1, 1, 10}},
+    {{batch_size, 1, 1, 320}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
   UserDataType valid_data(new nntrainer::util::RandomDataLoader(
-    {{batch_size, 1, 1, 32}}, {{batch_size, 1, 1, 10}},
+    {{batch_size, 1, 1, 320}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
 
   return {std::move(train_data), std::move(valid_data)};
@@ -231,9 +227,9 @@ int main(int argc, char *argv[]) {
 
   std::string data_dir = "fake";
   uint batch_size = 1;
-  uint data_split =1;
+  uint data_split = 1;
   uint epoch = 1;
-  
+
   std::array<UserDataType, 2> user_datas;
 
   try {

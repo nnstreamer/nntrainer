@@ -85,6 +85,29 @@ public:
                         long timeout_ms);
 
   /**
+   * @brief Load cache data asynchronously with execution order
+   *
+   * @param order execution order
+   * @param complete complete callback
+   * @return async task id
+   */
+  virtual int flushAsync(unsigned int order,
+                         TaskExecutor::CompleteCallback callback);
+
+  /**
+   * @brief Load cache data asynchronously with execution order
+   *
+   * @param order execution order
+   * @param complete complete callback
+   * @param timeout timeout time in ms
+   * @return async task id
+   * @note timeout_ms does not work now.
+   */
+  virtual int flushAsync(unsigned int order,
+                         TaskExecutor::CompleteCallback callback,
+                         long timeout_ms);
+
+  /**
    * @brief Cancel async task
    *
    * @param id task id
@@ -94,7 +117,8 @@ public:
 
 private:
   std::shared_ptr<CachePool> pool; /**< cache pool */
-  TaskExecutor *task_executor;     /**< task executor */
+  TaskExecutor *load_task_executor;   /**< task executor */
+  TaskExecutor *unload_task_executor; /**< task executor */
 };
 
 } // namespace nntrainer
