@@ -291,6 +291,15 @@ public:
   /**
    * @brief load cache data by execution order
    *
+   * @param order execution order
+   * @return async task id
+   */
+  int flushCacheExecAsync(unsigned int order,
+                          TaskExecutor::CompleteCallback complete_callback);
+
+  /**
+   * @brief load cache data by execution order
+   *
    * @param id async task id
    */
   void loadCacheCancel(int id);

@@ -30,17 +30,16 @@ namespace nntrainer {
 std::atomic_int32_t TaskExecutor::ids(1);
 
 TaskExecutor::TaskExecutor(const std::string &n) :
-  name(n), run_thread(true), wait_complete(false) {
+  name(n), run_thread(true), wait_complete(false), stop_all(false) {
   task_thread = std::thread([&]() {
     ml_logd("Task Thread(%s): start thread", name.c_str());
     while (run_thread) {
-      std::unique_lock lk(task_mutex);
-      if (!task_cv.wait_for(lk, std::chrono::milliseconds(500),
-                            [&] { return !task_queue.empty(); }))
-        continue;
+      std::unique_lock<std::mutex> lk(task_mutex);
+      task_cv.wait(lk, [&] { return !task_queue.empty() || stop_all; });
+      if (stop_all && task_queue.empty())
+        return;
 
       auto &task_info = task_queue.front();
-      lk.unlock();
 
       const auto &id = std::get<int>(task_info);
       const auto &callback = std::get<CompleteCallback>(task_info);
@@ -48,7 +47,6 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       auto status = worker(task_info);
       callback(id, status);
 
-      lk.lock();
       task_queue.pop_front();
       lk.unlock();
     }
@@ -58,7 +56,8 @@ TaskExecutor::TaskExecutor(const std::string &n) :
 
 TaskExecutor::~TaskExecutor() {
   run_thread = false;
-
+  stop_all = true;
+  task_cv.notify_all();
   task_thread.join();
 }
 

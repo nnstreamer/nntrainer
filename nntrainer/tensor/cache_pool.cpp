@@ -215,7 +215,7 @@ void CachePool::flushExcept(unsigned int order) {
     auto id = elem->getId();
     auto exe_order = exe_orders.at(id - 1);
     auto found = std::find(exe_order.begin(), exe_order.end(), order);
-    if (found == exe_order.end()) {
+    if (found != exe_order.end()) {
       /**
        * We assumes that flushExcept will be called in front of each execution
        * order, and the order is incremental. So, we can conclude that, if the

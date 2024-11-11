@@ -145,6 +145,7 @@ void Manager::reinitialize() {
 }
 
 void Manager::allocateWeights(unsigned int max_exec_order_, bool init) {
+  max_exec_order = max_exec_order_;
   if (!weight_pool.isAllocated()) {
     finalizeTensorPool(weight_pool, 0, max_exec_order_);
     weight_pool.allocate(init);
@@ -375,11 +376,16 @@ std::vector<Weight *> Manager::requestWeights(
    *  However, current implementation of loss needs the gradient computation.
    *  and therefore, if we remove the calcDerivative order, then tests fails.
    */
-
-  TensorLifespan var_ls =
-    (enable_swap && (exec_mode == ExecutionMode::INFERENCE))
-      ? TensorLifespan::FORWARD_INFER_LIFESPAN
-      : TensorLifespan::MAX_LIFESPAN;
+  TensorLifespan var_ls;
+  if (exec_mode != ExecutionMode::INFERENCE) {
+    var_ls = TensorLifespan::MAX_LIFESPAN;
+  } else {
+    if (enable_swap) {
+      var_ls = TensorLifespan::FORWARD_INFER_LIFESPAN;
+    } else {
+      var_ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
+    }
+  }
 
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
 
@@ -394,6 +400,8 @@ std::vector<Weight *> Manager::requestWeights(
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
       var_exec_order.push_back(order);
+      if (exec_mode == ExecutionMode::INFERENCE)
+        break;
     }
     // auto var_exec_order = default_var_exec_order;
     std::vector<unsigned int> grad_exec_order;
@@ -728,6 +736,116 @@ void Manager::flushCache() {
     weight_pool.flushCache();
     tensor_pool.flushCache();
   }
+}
+
+bool Manager::checkLoadComplete(unsigned int order) {
+  if (async_load_tensor.count(order) == 1) {
+    auto &tasks = async_load_tensor[order];
+    std::unique_lock<std::mutex> lock(completed_load_mutex);
+    if (exec_mode == ExecutionMode::TRAIN) {
+      auto w_fut = completed_load_tensor[std::get<0>(tasks)].get_future();
+      auto t_fut = completed_load_tensor[std::get<1>(tasks)].get_future();
+      lock.unlock();
+      if (std::get<0>(tasks) != 0)
+        w_fut.wait();
+      if (std::get<1>(tasks) != 0)
+        t_fut.wait();
+    } else {
+      auto w_fut = completed_load_tensor[std::get<0>(tasks)].get_future();
+      lock.unlock();
+      if (std::get<0>(tasks) != 0)
+        w_fut.wait();
+    }
+    async_load_tensor.erase(order);
+    ml_logd("wait and completed %d", order);
+  } else {
+    ml_logd("without wait completed %d", order);
+  }
+  return true;
+}
+
+bool Manager::checkUnloadComplete(unsigned int order) {
+  if (async_unload_tensor.count(order)) {
+    auto &tasks = async_unload_tensor[order];
+    std::unique_lock<std::mutex> lock(completed_unload_mutex);
+    if (exec_mode == ExecutionMode::TRAIN) {
+      auto w_fut = completed_unload_tensor[std::get<0>(tasks)].get_future();
+      auto t_fut = completed_unload_tensor[std::get<1>(tasks)].get_future();
+      lock.unlock();
+      if (std::get<0>(tasks) != 0)
+        w_fut.wait();
+      if (std::get<1>(tasks) != 0)
+        t_fut.wait();
+    } else {
+      auto w_fut = completed_unload_tensor[std::get<0>(tasks)].get_future();
+      lock.unlock();
+      if (std::get<0>(tasks) != 0)
+        w_fut.wait();
+    }
+    async_unload_tensor.erase(order);
+  }
+  return true;
+}
+
+void Manager::LoadTensors(unsigned int order) {
+  auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
+    return pool.loadCacheExecAsync(
+      order, [&](int id, TaskExecutor::CompleteStatus status) {
+        std::scoped_lock<std::mutex> lock(completed_load_mutex);
+        completed_load_tensor[id].set_value(true);
+      });
+  };
+
+  auto enqueTasks = [&](unsigned int o) {
+    if (async_load_tensor.count(o)) {
+      ml_logd("Task loadTensors (%d) is in progress", o);
+      return;
+    }
+    auto load_weight = loadTensorsAsync(weight_pool, o);
+    ml_logd("load weigth is requested in LoadTensors with order - %d", o);
+    int load_tensor = 0;
+    if (exec_mode != ml::train::ExecutionMode::INFERENCE) {
+      load_tensor = loadTensorsAsync(tensor_pool, o);
+      ml_logd("load tensor is requested in LoadTensors with order - %d", o);
+    }
+    NNTR_THROW_IF(load_weight < 0 || load_tensor < 0, std::runtime_error)
+      << "Fail to launch task";
+    async_load_tensor[o] = std::make_tuple(load_weight, load_tensor);
+  };
+
+  for (unsigned int i = order; i < order + swap_lookahead + 1; ++i) {
+    if (i <= max_exec_order)
+      enqueTasks(i);
+  }
+}
+
+void Manager::UnloadTensors(unsigned int order) {
+  auto unloadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
+    return pool.flushCacheExecAsync(
+      order, [&](int id, TaskExecutor::CompleteStatus status) {
+        std::scoped_lock<std::mutex> lock(completed_unload_mutex);
+        completed_unload_tensor[id].set_value(true);
+      });
+  };
+
+  auto enqueTasks = [&](unsigned int o) {
+    if (async_unload_tensor.count(o)) {
+      ml_logd("Task unloadTensors (%d) is in progress", o);
+      return;
+    }
+    auto unload_weight = unloadTensorsAsync(weight_pool, o);
+    ml_logd("unload weight is requested in UnLoadTensors with order - %d", o);
+    int unload_tensor = 0;
+    if (exec_mode != ml::train::ExecutionMode::INFERENCE) {
+      unload_tensor = unloadTensorsAsync(tensor_pool, o);
+      ml_logd("unload tensor is requested in UnLoadTensors with order - %d", o);
+    }
+    NNTR_THROW_IF(unload_weight < 0 || unload_tensor < 0, std::runtime_error)
+      << "Faile to launch task";
+    async_unload_tensor[o] = std::make_tuple(unload_weight, unload_tensor);
+  };
+
+  enqueTasks(order);
 }
 
 void Manager::flushCacheExcept(unsigned int order) {

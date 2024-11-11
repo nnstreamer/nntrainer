@@ -370,8 +370,12 @@ public:
    * @brief Allocate memory for all the managed weights
    */
   void allocateWeights(bool init = true) {
-    tensor_manager->allocateWeights(
-      std::get<3>(backward_iter_end->getExecutionOrder()), init);
+    unsigned int max_exec_order =
+      std::get<3>(backward_iter_end->getExecutionOrder());
+
+    if (exec_mode == ExecutionMode::INFERENCE)
+      max_exec_order = std::get<0>(forward_iter_end->getExecutionOrder());
+    tensor_manager->allocateWeights(max_exec_order, init);
   }
 
   /**
@@ -446,6 +450,34 @@ public:
    * @param order except execution order
    */
   void flushCacheExcept(const unsigned int order);
+
+  /**
+   * @brief Load data of order to the device
+   *
+   * @param order execution order
+   */
+  void LoadTensors(const unsigned int order);
+
+  /**
+   * @brief check data of order is loaded
+   *
+   * @param order execution order
+   */
+  bool checkLoadComplete(const unsigned int order);
+
+  /**
+   * @brief check data of order is Unloaded
+   *
+   * @param order execution order
+   */
+  bool checkUnloadComplete(const unsigned int order);
+
+  /**
+   * @brief Load data of order to the device
+   *
+   * @param order execution order
+   */
+  void UnloadTensors(const unsigned int order);
 
 #ifdef ENABLE_TEST
   /**
