@@ -157,6 +157,16 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
  */
 bool isValid(const size_t N, const float *input);
 
+/**
+ * @brief cblas_scopy occasionally emits SIGSEGV, so implement a custom version.
+ *
+ * @param N length of the vector
+ * @param X float * for Vector X (input)
+ * @param Y float * for Vector Y (output)
+ */
+void custom_scopy(const unsigned int N, const float *X, const int incX,
+                  float *Y, const int incY);
+
 #ifdef ENABLE_FP16
 /**
  * @brief     hgemv computation with neon : Y = alpha*A*X + beta*Y

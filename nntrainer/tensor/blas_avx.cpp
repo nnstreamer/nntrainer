@@ -274,4 +274,19 @@ bool isValid(const size_t N, const float *input) {
   return true;
 }
 
+void custom_scopy(const unsigned int N, const float *X, const int incX,
+                  float *Y, const int incY) {
+  unsigned int N8 = (N >> 3) << 3;
+  for (unsigned int i = 0; i < N8; i += 8) {
+    __asm__ __volatile__("vmovups (%1), %%ymm0\n\t"
+                         "vmovups %%ymm0, (%0)\n\t"
+                         :
+                         : "r"(&Y[i]), "r"(&X[i])
+                         : "ymm0", "memory");
+  }
+  for (unsigned int i = N8; i < N; ++i) {
+    Y[i] = X[i];
+  }
+}
+
 } // namespace nntrainer::avx
