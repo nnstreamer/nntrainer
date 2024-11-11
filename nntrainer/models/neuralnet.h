@@ -628,7 +628,7 @@ private:
     props::Epochs, props::TrainingBatchSize, props::SavePath,
     props::ContinueTrain, props::SaveBestPath, props::MemoryOptimization,
     props::MemorySwap, props::MemorySwapPath, props::MemorySwapLookahead,
-    props::TensorFormat, props::ModelTensorDataType, props::MemorySwapMode>;
+    props::TensorFormat, props::ModelTensorDataType>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm,
@@ -673,6 +673,8 @@ private:
   RunStats training;   /** training statistics of the model */
   RunStats testing;    /** testing statistics of the model */
 
+  ExecutionMode exec_mode; /** execution mode : train : inference */
+
   AppContext app_context; /** Configurations bound to current app */
 
   NetworkGraph model_graph;                 /** Network Model Graph */
@@ -680,8 +682,6 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
-
-  ExecutionMode exec_mode;
 
   /**
    * @brief save model in ini

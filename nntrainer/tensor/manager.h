@@ -132,6 +132,7 @@ public:
    * @brief     Constructor of Manager
    */
   Manager() :
+    enable_swap(false),
     enable_optimizations(true),
     swap_lookahead(0),
     tensor_format("NCHW"),
@@ -148,12 +149,12 @@ public:
     weight_pool(enable_swap_, swap_path, "weight_pool"),
     tensor_pool(enable_swap_ && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
                 "tensor_pool"),
+    enable_swap(enable_swap_),
     enable_optimizations(true),
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    exec_mode(exec_mode_),
-    enable_swap(enable_swap_) {}
+    exec_mode(exec_mode_) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -487,6 +488,39 @@ public:
   void flushCacheExcept(unsigned int order);
 
   /**
+   * @brief load cache data for the execution order
+   *
+   * @param order execution order
+   * @note preloading loads execution order data asynchronously,
+   *       for lookahead size.
+   */
+  void LoadTensors(unsigned int order);
+
+  /**
+   * @brief check completion of load data for the execution order
+   *
+   * @param order execution order
+   * @note preloading tensors for execution order.
+   */
+  bool checkLoadComplete(unsigned int order);
+
+  /**
+   * @brief check completion of unload data for the execution order
+   *
+   * @param order execution order
+   * @note preloading tensors for execution order.
+   */
+  bool checkUnloadComplete(unsigned int order);
+
+  /**
+   * @brief flush load data for the execution order
+   *
+   * @param order execution order
+   * @note flush tensors for execution order.
+   */
+  void UnloadTensors(unsigned int order);
+
+  /**
    * @brief     reinitialize manager
    */
   void reinitialize();
@@ -520,13 +554,40 @@ private:
   TensorPool weight_pool; /**< tensor pool to request tensors */
   TensorPool tensor_pool; /**< tensor pool to request tensors */
 
+  /** async load task <execution order, weight completed id> */
+  std::map<unsigned int, int> async_task_weight_load;
+
+  /** async unload task <execution order, weight completed id> */
+  std::map<unsigned int, int> async_task_weight_unload;
+
+  /**< async tasks <execution order, <weight_pool completed id, tensor_pool
+   * completed id>>
+   */
+
   std::map<unsigned int, std::tuple<int, int>> async_task_eos;
   /**< async tasks <execution order, <weight_pool completed id, tensor_pool
    * completed id>>
    */
+  std::map<unsigned int, std::tuple<int, int>> async_load_tensor;
+
+  std::map<unsigned int, bool> complete_load_tensor;
+
+  std::map<unsigned int, std::tuple<int, int>> async_unload_tensor;
+
   std::map<int, std::promise<bool>> completed;
+
+  std::map<int, std::promise<bool>> completed_load_tensor;
+
+  std::map<int, std::promise<bool>> completed_unload_tensor;
+
   /**< async tasks completion <task id, promise> */
   std::mutex completed_mutex; /**< mutex for async tasks completion */
+
+  std::mutex completed_load_mutex; /**< mutex for async tasks completion */
+
+  std::mutex completed_unload_mutex; /**< mutex for async tasks completion */
+
+  bool enable_swap; /**< to enable swap */
 
   bool enable_optimizations; /**< to enable memory optimizations */
 
@@ -538,7 +599,7 @@ private:
 
   ExecutionMode exec_mode;
 
-  bool enable_swap;
+  unsigned int max_exec_order;
 
   /**
    * @brief Finalize the given tensor pool
