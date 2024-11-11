@@ -15,7 +15,6 @@
 #include <blas_neon.h>
 #include <blas_neon_setting.h>
 #include <hgemm.h>
-#include <iostream>
 #include <memory>
 #include <nntrainer_error.h>
 
@@ -600,9 +599,9 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
     __asm__ __volatile__("ld1 {v0.4s}, [%1]\n\t"
                          "st1 {v0.4s}, [%0]\n\t"
                          :
-                         : "+r"(&Y[i]), "+r"(&X[i])
+                         : "r"(&Y[i]), "r"(&X[i])
                          : "v0", "memory");
-#elif
+#else
     __scopy_kernel(N, X + i, Y + i);
 #endif
   }
