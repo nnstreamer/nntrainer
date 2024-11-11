@@ -122,32 +122,23 @@ static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
   }
 }
 
-/* ConvTranspose2d
- * @param [in1]     in: [N, C, H, W]
- * @param [in2] weight: [C, K, R, S]
- * @param [in3]   bias: [K]
- * @param [out]    out: [N, K, OH, OW]
+/**
+ * @brief	reform the data to 2d matrix
+ * a region is sampled considering @a padding, @a mstride of unit, @a kdim
+ * Each region is mapped to one column
  *
- *    OH = (H - 1) * stride - 2 * pad + dilation * (R - 1) + output_pad + 1
- *    OW = (W - 1) * stride - 2 * pad + dilation * (S - 1) + output_pad + 1
- *    In this model, R = S = 3, stride = 2, pad = 1, dilation = 1, output_pad = 1
- *
- * 'N' is the number of input tensors.
- * 'C' is the number of input channels.
- * 'H' is the height of the input tensor.
- * 'W' is the width of the input tensor.
- * 'K' is the number of output channels.
- * 'R' is the height of the filter.
- * 'S' is the width of the filter.
- * 'OH' is the height of the output tensor.
- * 'OW' is the width of the output tensor.
+ * @param [in] in input data 
+ * @param [in] kdim kernel dimension for defined number of row
+ * @param [in] padding padding information
+ * @param [in] mstride stride value : x, y direction
+ * @param [in] dilation kernel dilation factor : x, y each
+ * @param [out] out out tensor
  */
 static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
                    const std::array<unsigned int, 4> &padding,
                    const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
                    const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
                    Tensor &out) {
-  // dilation[0] -> height
   auto [pt, pb, pl, pr] = padding;
 
   unsigned int channel = in.channel();
@@ -177,7 +168,6 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
   int w_stride_end = width - eff_k_width - pl;
 
   /// get a patch, size of kernel
-  /// hs is height_strided, ws is width_strided
   unsigned int owidth = out.width();
   unsigned int base_im_w = 0;
 
