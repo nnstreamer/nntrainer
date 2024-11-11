@@ -505,7 +505,8 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
       Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
-      // filter_kernel is (K, CRS), deriv_sub is (K, OH*OW), result is (CRS, OH*OW)
+      // filter_kernel is (K, CRS), deriv_sub is (K, OH*OW), result is (CRS,
+      // OH*OW)
       filter_kernel.dot(deriv_sub, result, true, false);
       col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
       // in_derv_sub is (C,H,W)

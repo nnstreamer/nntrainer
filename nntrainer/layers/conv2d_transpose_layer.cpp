@@ -50,11 +50,12 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
  * @param[in] dilation kernel dilation factor : x, y each
  * @param[out] image image tensor to put
  */
-static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
-                   const std::array<unsigned, 4> &padding,
-                   const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
-                   const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
-                   Tensor &image) {
+static void col2im_transpose(
+  const Tensor &col_matrix, const TensorDim &kdim,
+  const std::array<unsigned, 4> &padding,
+  const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
+  const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
+  Tensor &image) {
   auto [pt, pb, pl, pr] = padding;
 
   unsigned int channel = image.channel();
@@ -69,8 +70,8 @@ static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  unsigned int height = (in_height - 1)*mstride[0]+eff_k_height;
-  unsigned int width = (in_width - 1)*mstride[1]+eff_k_height;
+  unsigned int height = (in_height - 1) * mstride[0] + eff_k_height;
+  unsigned int width = (in_width - 1) * mstride[1] + eff_k_height;
 
   unsigned int out_height = height - pt - pb; // col_matrix.height
   unsigned int out_width = width - pl - pr;   // col_matrix.width
@@ -88,21 +89,16 @@ static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
   unsigned int H = k_height;
   unsigned int W = k_width;
   unsigned int C = image.channel();
-  
+
   int out_i = -1;
-  for (unsigned int oh = 0; oh < out_height; ++oh)
-  {
-    for (unsigned int ow = 0; ow < out_width; ++ow)
-    {
+  for (unsigned int oh = 0; oh < out_height; ++oh) {
+    for (unsigned int ow = 0; ow < out_width; ++ow) {
       out_i++;
       int out_j = -1;
-      //half_cpu o = bias->buf[oc];
-      for (unsigned int c = 0; c < C; ++c)
-      {
-        for (unsigned int r = 0; r < H; ++r)
-        {
-          for (unsigned int s = 0; s < W; ++s)
-          {
+      // half_cpu o = bias->buf[oc];
+      for (unsigned int c = 0; c < C; ++c) {
+        for (unsigned int r = 0; r < H; ++r) {
+          for (unsigned int s = 0; s < W; ++s) {
             out_j++;
             if ((oh - (r * dilation[0] - pt)) % mstride[0] != 0)
               continue;
@@ -114,7 +110,7 @@ static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
               continue;
             float *val = image.getAddress<float>(0, c, h, w);
             *val += col_matrix.getValue<float>(0, 0, out_i, out_j);
-            //out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w)
+            // out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w)
           }
         }
       }
@@ -127,18 +123,19 @@ static void col2im_transpose(const Tensor &col_matrix, const TensorDim &kdim,
  * a region is sampled considering @a padding, @a mstride of unit, @a kdim
  * Each region is mapped to one column
  *
- * @param [in] in input data 
+ * @param [in] in input data
  * @param [in] kdim kernel dimension for defined number of row
  * @param [in] padding padding information
  * @param [in] mstride stride value : x, y direction
  * @param [in] dilation kernel dilation factor : x, y each
  * @param [out] out out tensor
  */
-static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
-                   const std::array<unsigned int, 4> &padding,
-                   const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
-                   const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
-                   Tensor &out) {
+static void im2col_transpose(
+  const Tensor &in, const TensorDim &kdim,
+  const std::array<unsigned int, 4> &padding,
+  const std::array<props::Stride, CONV2D_TRANSPOSE_DIM> &mstride,
+  const std::array<props::Dilation, CONV2D_TRANSPOSE_DIM> &dilation,
+  Tensor &out) {
   auto [pt, pb, pl, pr] = padding;
 
   unsigned int channel = in.channel();
@@ -153,8 +150,8 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  unsigned int height = (in_height - 1)*mstride[0]+eff_k_height;
-  unsigned int width = (in_width - 1)*mstride[1]+eff_k_height;
+  unsigned int height = (in_height - 1) * mstride[0] + eff_k_height;
+  unsigned int width = (in_width - 1) * mstride[1] + eff_k_height;
 
   unsigned int out_height = height - pt - pb;
   unsigned int out_width = width - pl - pr;
@@ -174,21 +171,16 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
   unsigned int H = k_height;
   unsigned int W = k_width;
   unsigned int C = in.channel();
-  
+
   int out_i = -1;
-  for (unsigned int oh = 0; oh < out_height; ++oh)
-  {
-    for (unsigned int ow = 0; ow < out_width; ++ow)
-    {
+  for (unsigned int oh = 0; oh < out_height; ++oh) {
+    for (unsigned int ow = 0; ow < out_width; ++ow) {
       out_i++;
       int out_j = -1;
-      //half_cpu o = bias->buf[oc];
-      for (unsigned int c = 0; c < C; ++c)
-      {
-        for (unsigned int r = 0; r < H; ++r)
-        {
-          for (unsigned int s = 0; s < W; ++s)
-          {
+      // half_cpu o = bias->buf[oc];
+      for (unsigned int c = 0; c < C; ++c) {
+        for (unsigned int r = 0; r < H; ++r) {
+          for (unsigned int s = 0; s < W; ++s) {
             out_j++;
             if ((oh - (r * dilation[0] - pt)) % mstride[0] != 0)
               continue;
@@ -198,7 +190,7 @@ static void im2col_transpose(const Tensor &in, const TensorDim &kdim,
             unsigned int w = (ow - (s * dilation[1] - pl)) / mstride[1];
             if (h >= H || w >= W)
               continue;
-            out_data[(out_i)*owidth + out_j] += in.getValue<float>(0,c,h,w);
+            out_data[(out_i)*owidth + out_j] += in.getValue<float>(0, c, h, w);
           }
         }
       }
@@ -214,9 +206,10 @@ Conv2DTransposeLayer::Conv2DTransposeLayer(
   const std::array<unsigned int, CONV2D_TRANSPOSE_DIM * 2> &padding_) :
   LayerImpl(),
   padding(padding_),
-  conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_TRANSPOSE_DIM>(),
-             std::array<props::Stride, CONV2D_TRANSPOSE_DIM>(), props::Padding2D(),
-             std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>()) {
+  conv_props(
+    props::FilterSize(), std::array<props::KernelSize, CONV2D_TRANSPOSE_DIM>(),
+    std::array<props::Stride, CONV2D_TRANSPOSE_DIM>(), props::Padding2D(),
+    std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -240,7 +233,8 @@ void Conv2DTransposeLayer::finalize(InitLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &kernel_size =
     std::get<std::array<props::KernelSize, CONV2D_TRANSPOSE_DIM>>(conv_props);
-  auto &stride = std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
+  auto &stride =
+    std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>>(conv_props);
 
@@ -262,7 +256,6 @@ void Conv2DTransposeLayer::finalize(InitLayerContext &context) {
                             1.0f, bias_decay, "bias", true, 0);
   }
 
-
   auto [pt, pb, pl, pr] = padding;
 
   unsigned int channel = in_dim.channel();
@@ -277,8 +270,8 @@ void Conv2DTransposeLayer::finalize(InitLayerContext &context) {
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  unsigned int height = (in_height - 1)*stride[0]+eff_k_height;
-  unsigned int width = (in_width - 1)*stride[1]+eff_k_height;
+  unsigned int height = (in_height - 1) * stride[0] + eff_k_height;
+  unsigned int width = (in_width - 1) * stride[1] + eff_k_height;
 
   unsigned int out_height = height - pt - pb;
   unsigned int out_width = width - pl - pr;
@@ -307,7 +300,8 @@ void Conv2DTransposeLayer::forwarding(RunLayerContext &context, bool training) {
   int status = ML_ERROR_NONE;
 
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
-  auto &stride = std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
+  auto &stride =
+    std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>>(conv_props);
 
@@ -366,7 +360,8 @@ void Conv2DTransposeLayer::forwarding(RunLayerContext &context, bool training) {
    */
   auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
                             void *user_data) {
-    Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim)); // result is temporary data
+    Tensor result = Tensor(
+      calcCol2ImOutputDim(out_dim, filter_dim)); // result is temporary data
     result.setZero();
     for (unsigned int b = s; b < e; ++b) {
       Tensor out = hidden_.getBatchSlice(b, 1);
@@ -400,7 +395,8 @@ void Conv2DTransposeLayer::forwarding(RunLayerContext &context, bool training) {
 
 void Conv2DTransposeLayer::calcDerivative(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
-  auto &stride = std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
+  auto &stride =
+    std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>>(conv_props);
 
@@ -429,7 +425,8 @@ void Conv2DTransposeLayer::calcDerivative(RunLayerContext &context) {
       deriv_sub.reshape(
         {filter_size, derivative.width() * derivative.height()});
       filter_kernel.dot(deriv_sub, result, true, false);
-      col2im_transpose(result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      col2im_transpose(result, filter_dim, padding, stride, dilation,
+                       in_deriv_sub);
     }
     result.deallocate();
   };
@@ -447,7 +444,8 @@ void Conv2DTransposeLayer::calcDerivative(RunLayerContext &context) {
 
 void Conv2DTransposeLayer::calcGradient(RunLayerContext &context) {
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
-  auto &stride = std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
+  auto &stride =
+    std::get<std::array<props::Stride, CONV2D_TRANSPOSE_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>>(conv_props);
 
@@ -541,8 +539,8 @@ void Conv2DTransposeLayer::calcGradient(RunLayerContext &context) {
   }
 }
 
-void Conv2DTransposeLayer::exportTo(Exporter &exporter,
-                           const ml::train::ExportMethods &method) const {
+void Conv2DTransposeLayer::exportTo(
+  Exporter &exporter, const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(conv_props, method, this);
 }
