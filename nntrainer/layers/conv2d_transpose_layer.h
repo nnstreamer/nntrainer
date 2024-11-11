@@ -33,8 +33,8 @@ public:
   /**
    * @brief     Constructor of Conv 2D Transpose Layer
    */
-  Conv2DTransposeLayer(const std::array<unsigned int, CONV2D_TRANSPOSE_DIM * 2> &padding_ = {
-                0, 0, 0, 0});
+  Conv2DTransposeLayer(const std::array<unsigned int, CONV2D_TRANSPOSE_DIM * 2>
+                         &padding_ = {0, 0, 0, 0});
 
   /**
    * @brief     Destructor of Conv 2D Transpose Layer
@@ -83,7 +83,9 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return Conv2DTransposeLayer::type; };
+  const std::string getType() const override {
+    return Conv2DTransposeLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
@@ -110,7 +112,8 @@ public:
 
 private:
   std::array<unsigned int, CONV2D_TRANSPOSE_DIM * 2> padding;
-  std::tuple<props::FilterSize, std::array<props::KernelSize, CONV2D_TRANSPOSE_DIM>,
+  std::tuple<props::FilterSize,
+             std::array<props::KernelSize, CONV2D_TRANSPOSE_DIM>,
              std::array<props::Stride, CONV2D_TRANSPOSE_DIM>, props::Padding2D,
              std::array<props::Dilation, CONV2D_TRANSPOSE_DIM>>
     conv_props;
