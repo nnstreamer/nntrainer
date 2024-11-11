@@ -597,15 +597,6 @@ static float sdot_raw(const unsigned int N, const float *X,
   return ret;
 }
 
-static void __scopy_fallback(const unsigned int N, const float *X,
-                             const int incX, float *Y, const int incY) {
-  unsigned int incy = abs(incY);
-  unsigned int incx = abs(incX);
-
-  for (unsigned int i = 0; i < N; ++i)
-    Y[i * incy] = X[i * incx];
-}
-
 static void sscal_raw(const unsigned int N, const float alpha, float *X,
                       const int incX) {
   unsigned int incx = abs(incX);
@@ -667,6 +658,15 @@ static unsigned int isamax_raw(const unsigned int N, const float *X,
 }
 
 #endif
+
+static void __scopy_fallback(const unsigned int N, const float *X,
+                             const int incX, float *Y, const int incY) {
+  unsigned int incy = abs(incY);
+  unsigned int incx = abs(incX);
+
+  for (unsigned int i = 0; i < N; ++i)
+    Y[i * incy] = X[i * incx];
+}
 
 void sscal(const unsigned int N, const float alpha, void *X, const int incX,
            ml::train::TensorDim::DataType d_type) {
@@ -870,20 +870,24 @@ void scopy(const unsigned int N, const void *X, const int incX, void *Y,
 
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int incY) {
-/**
- * @note Using 'cblas_scopy' shown some SIGSEGV, temporally use custom-scopy
- * #ifdef USE_BLAS #ifdef BLAS_NUM_THREADS
- *  openblas_set_num_threads(BLAS_NUM_THREADS);
- * #endif
- *  cblas_scopy(N, X, incX, Y, incY);
- */
+  /**
+   * @note Using 'cblas_scopy' shown some SIGSEGV, temporally use custom-scopy
+   * #ifdef USE_BLAS #ifdef BLAS_NUM_THREADS
+   *  openblas_set_num_threads(BLAS_NUM_THREADS);
+   * #endif
+   *  cblas_scopy(N, X, incX, Y, incY);
+   */
+  if (incX == 1 && incY == 1) {
 #ifdef USE_NEON
-  nntrainer::neon::custom_scopy(N, X, incX, Y, incY);
+    nntrainer::neon::custom_scopy(N, X, incX, Y, incY);
 #elif USE_AVX
-  nntrainer::avx::custom_scopy(N, X, incX, Y, incY);
+    nntrainer::avx::custom_scopy(N, X, incX, Y, incY);
 #else
-  __scopy_fallback(N, X, incX, Y, incY);
+    __scopy_fallback(N, X, incX, Y, incY);
 #endif
+  } else {
+    __scopy_fallback(N, X, incX, Y, incY);
+  }
 }
 
 void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
