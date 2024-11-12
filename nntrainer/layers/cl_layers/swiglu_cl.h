@@ -79,7 +79,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {};
+                const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
@@ -94,7 +94,10 @@ public:
   inline static const std::string type = "swiglu";
 
   static opencl::Kernel kernel_swiglu;
+
+#ifdef ENABLE_FP16
   static opencl::Kernel kernel_swiglu_fp16;
+#endif
 
   std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
                                             number of output neurons */
@@ -127,8 +130,8 @@ public:
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
    */
-  void swiglu_cl_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
-                      __fp16 *vecYdata, unsigned int dim1, unsigned int dim2);
+  void swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                      _FP16 *vecYdata, unsigned int dim1, unsigned int dim2);
 #endif
 };
 

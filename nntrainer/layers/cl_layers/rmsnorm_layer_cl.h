@@ -119,7 +119,10 @@ public:
   const std::string getType() const override { return RMSNormLayerCl::type; };
 
   static opencl::Kernel kernel_rmsnorm;
+
+#ifdef ENABLE_FP16
   static opencl::Kernel kernel_rmsnorm_fp16;
+#endif
 
   /**
    * @brief Process data and dimensions for rms norm operation

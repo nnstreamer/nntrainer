@@ -166,11 +166,12 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  char extensions[extension_size];
+  char *extensions = new char[extension_size];
   status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
                            extensions, NULL);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceInfo returned %d", status);
+    delete[] extensions;
     return false;
   }
 
@@ -178,6 +179,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
     ml_loge("fp16 (half) is not supported by device");
     return false;
   }
+  delete[] extensions;
 #endif
 
   return true;
