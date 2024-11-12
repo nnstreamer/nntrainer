@@ -6,6 +6,7 @@ optimizer_sources = [
   'lr_scheduler_constant.cpp',
   'lr_scheduler_cosine.cpp',
   'lr_scheduler_exponential.cpp',
+  'lr_scheduler_linear.cpp',
   'lr_scheduler_step.cpp',
   'optimizer_wrapped.cpp'
 ]

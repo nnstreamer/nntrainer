@@ -55,6 +55,7 @@
 #include <lr_scheduler_constant.h>
 #include <lr_scheduler_cosine.h>
 #include <lr_scheduler_exponential.h>
+#include <lr_scheduler_linear.h>
 #include <lr_scheduler_step.h>
 #include <lstm.h>
 #include <lstmcell.h>
@@ -251,6 +252,9 @@ static void add_default_object(AppContext &ac) {
                        CosineAnnealingLearningRateScheduler>,
                      CosineAnnealingLearningRateScheduler::type,
                      LRType::COSINE);
+  ac.registerFactory(
+    ml::train::createLearningRateScheduler<LinearLearningRateScheduler>,
+    LinearLearningRateScheduler::type, LRType::LINEAR);
 
   using LayerType = ml::train::LayerType;
   ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,

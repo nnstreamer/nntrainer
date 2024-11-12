@@ -30,7 +30,8 @@ enum LearningRateSchedulerType {
   CONSTANT = 0, /**< constant */
   EXPONENTIAL,  /**< exponentially decay */
   STEP,         /**< step wise decay */
-  COSINE        /**< cosine annealing */
+  COSINE,       /**< cosine annealing */
+  LINEAR        /**< linear decay */
 };
 
 /**
@@ -88,6 +89,11 @@ public:
    * - decay_steps : float,
    *
    * Cosine Annealing Learning rate scheduler
+   * - max_learning_rate : float
+   * - min_learning_rate : float
+   * - decay_steps : float
+   *
+   * Linear Learning rate scheduler
    * - max_learning_rate : float
    * - min_learning_rate : float
    * - decay_steps : float
