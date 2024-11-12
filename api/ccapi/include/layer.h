@@ -136,11 +136,6 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
-   * @brief Initialize layer
-   */
-  virtual void initialize() = 0;
-
-  /**
    * @brief     Default allowed properties
    * - input shape : string
    * - bias zero : bool

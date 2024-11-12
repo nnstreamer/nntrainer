@@ -161,11 +161,6 @@ public:
   virtual void finalize(InitLayerContext &context) = 0;
 
   /**
-   * @brief    Initialize the layer
-   */
-  virtual void initialize(RunLayerContext &context){};
-
-  /**
    * @brief     Forward Propagation of a layer
    * @param     context Context of the layer
    * @param     training true if training, false if inference
