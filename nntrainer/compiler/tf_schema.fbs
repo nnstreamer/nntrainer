@@ -413,8 +413,7 @@ enum BuiltinOperator : int32 {
   UNSORTED_SEGMENT_SUM = 155,
   ATAN2 = 156,
   UNSORTED_SEGMENT_MIN = 157,
-  SIGN = 158,
-  CONV_2D_TRANSPOSE = 159
+  SIGN = 158
 }
 // LINT.ThenChange(nnapi_linter/linter.proto)
 
@@ -422,7 +421,6 @@ enum BuiltinOperator : int32 {
 union BuiltinOptions {
   Conv2DOptions,
   DepthwiseConv2DOptions,
-  Conv2DTransposeOptions,
   ConcatEmbeddingsOptions,
   LSHProjectionOptions,
   Pool2DOptions,
@@ -562,15 +560,6 @@ enum ActivationFunctionType : byte {
 // LINT.ThenChange(//tensorflow/compiler/mlir/lite/ir/tfl_op_enums.td)
 
 table Conv2DOptions {
-  padding:Padding;
-  stride_w:int;
-  stride_h:int;
-  fused_activation_function:ActivationFunctionType;
-  dilation_w_factor:int = 1;
-  dilation_h_factor:int = 1;
-}
-
-table Conv2DTransposeOptions {
   padding:Padding;
   stride_w:int;
   stride_h:int;
