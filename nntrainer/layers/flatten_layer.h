@@ -28,8 +28,9 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() : ReshapeLayer(), flatten_props(
-    props::StartDimension(), props::EndDimension()) {}
+  FlattenLayer() :
+    ReshapeLayer(),
+    flatten_props(props::StartDimension(), props::EndDimension()) {}
 
   /**
    * @brief     Destructor of Flatten Layer

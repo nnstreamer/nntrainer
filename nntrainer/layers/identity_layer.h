@@ -21,6 +21,7 @@ namespace nntrainer {
 
 /**
  * @class   Identity Layer
+ * @brief   Identity Layer
  * @note    Identity layers takes multiple tensors as input, redirects to output
  * without doing nothing (or if unavoidable, copying)
  */
@@ -72,6 +73,17 @@ public:
    * @copydoc Layer::supportInPlace()
    */
   bool supportInPlace() const override { return true; }
+
+  /**
+   * @brief Initialize the in-place type of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlaceType() final {
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::RESTRICTING;
+  }
 
   /**
    * @copydoc Layer::getType()

@@ -642,7 +642,6 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 InPlaceType
 NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
-
   if (!lnode->supportInPlace()) {
     return InPlaceType::NONE;
   }
@@ -652,121 +651,39 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     return InPlaceType::NONE;
   }
 
-  /** layers which behave as a no-op - flatten */
-  auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {
-    return lnode->getType() == FlattenLayer::type ||
-           lnode->getType() == IdentityLayer::type;
-  };
+  if (lnode->getType() == MultiOutLayer::type) {
+    return InPlaceType::RESTRICTING;
+  }
 
-  /** layers which behave as a no-op but shares memory among parallel nodes -
-   * multiout */
-  auto no_op_shared = [](const std::shared_ptr<LayerNode> &lnode) {
-    return lnode->getType() == MultiOutLayer::type;
-  };
-
-  /**
-   * layers whose backwarding is not dependent on input/output but only its
-   * derivatives and weights, if any - batch normalization
-   */
-  auto io_independent_backwarding =
-    [](const std::shared_ptr<LayerNode> &lnode) {
-      return (lnode->getType() == BatchNormalizationLayer::type) ||
-             (lnode->getType() == LayerNormalizationLayer::type);
-    };
-
-  /**
-   * @note Conditions to decide if this layer node can be in-place:
-   * 1. if the layer is a no-op, then it can operate in-place as it is not
-   * modifying its input/output tensors and does not need to check its
-   * neighboring nodes for dependency.
-   * 2. if the layer is not supporting backwarding, there is no dependency
-   * requirement with other nodes for backwarding.
-   *
-   * @note Conditions to decide the type of inplace for this layer:
-   * 1. if the previous layers were restricting, then this layer will also be
-   * restricting.
-   * 2. if the previous layer were non_restricting or not inplace, then this
-   * layer will be non-restricting.
-   */
-  if (no_op(lnode) || !lnode->supportBackwarding()) {
-    for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
+  InPlaceType inplace_type = lnode->initializeInPlaceType();
+  /** Set inplace_type based on the input connections */
+  switch (inplace_type) {
+  /** A case where it cannot operate in-place */
+  case InPlaceType::NONE:
+    return InPlaceType::NONE;
+  /** A case where it can operate in-place even if there is a multi-out type
+   * input connection. */
+  case InPlaceType::RESTRICTING:
+    for (size_t i = 0, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
-      const auto &input_name = lnode->getInputConnectionName(i);
+      const std::string &input_name = lnode->getInputConnectionName(i);
       if (getLayerNode(input_name)->getInPlaceType() ==
           InPlaceType::RESTRICTING)
         return InPlaceType::RESTRICTING;
     }
-
     return InPlaceType::NON_RESTRICTING;
-  }
-
-  /**
-   * @note Conditions to decide if this layer node can be in-place:
-   * if the layer is a no-op-shared, then it can operate in-place as it is not
-   * modifying its input/output tensors and does not need to check its
-   * neighboring nodes for dependency.
-   *
-   * @note Conditions to decide the type of inplace for this layer:
-   * As all the output nodes are sharing memory, the output nodes cant execute
-   * inplace, and then its restricting mode.
-   */
-  if (no_op_shared(lnode))
-    return InPlaceType::RESTRICTING;
-
-  /**
-   * @note Conditions to decide if this layer node can be in-place:
-   * This is a generic case where the layer can support in-place but will
-   * modify its input in-place. This includes layers like activation, etc.
-   * Apply checks below to ensure that the layers can work in-place:
-   * - if any of the input layer are restriction, then this layer cannot work
-   *   as layers behind this layer have added restrictions.
-   * - if all of the input layers are either not inplace or have no
-   * restrictions, then this layer can operate in-place.
-   *
-   * @note Conditions to decide the type of inplace for this layer:
-   * This is a generic case, and always restrictions on the next nodes to be
-   * not inplace.
-   *
-   * @note This logic is prone to change as more layers are allowed to
-   * work in-place such as concat layer, split layer, addition layer, dropout
-   * layer, etc.
-   *
-   * @todo This logic sets layers to in-place one-by-one as they arrive. However
-   * setting some layers to in-place can save more memory than others (like
-   * multiout layer vs activation layer). The layers need to sorted based on the
-   * memory save they provide and then make them in-place in that order.
-   */
-  if (lnode->getType() == ActivationLayer::type ||
-      lnode->getType() == BatchNormalizationLayer::type ||
-      lnode->getType() == LayerNormalizationLayer::type) {
-    for (auto i = 0u, num_node = lnode->getNumInputConnections(); i < num_node;
+  /** A case where it cannot operate in-place if there is a multi-out type
+   * input connection. */
+  default:
+    for (size_t i = 0, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
-      if (getLayerNode(lnode->getInputConnectionName(i))->getInPlaceType() ==
+      const std::string &input_name = lnode->getInputConnectionName(i);
+      if (getLayerNode(input_name)->getInPlaceType() ==
           InPlaceType::RESTRICTING)
         return InPlaceType::NONE;
     }
-
-    /**
-     * if the layer does io_independent_backwarding where the input and output
-     * is not required during backwarding, then it is a non-restricting in-place
-     * layer.
-     */
-    if (io_independent_backwarding(lnode))
-      return InPlaceType::NON_RESTRICTING;
-
-    return InPlaceType::RESTRICTING;
+    return InPlaceType::NON_RESTRICTING;
   }
-
-  /**
-   * if the layer's input and output type is not FP32, then it cannot be
-   * inplace. We assume that the input is always FP32.
-   */
-  if (lnode->getInputConnections().empty()) {
-    if (!istrequal(getTensorType()[2], "FP32"))
-      return InPlaceType::NONE;
-  }
-
-  return InPlaceType::NONE;
 }
 
 void NetworkGraph::inPlaceOptimize() {
@@ -796,13 +713,10 @@ setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
     shared_var = true;
     shared_grad = true;
   }
-  /** @todo for addition layer, variables are not shared but gradients are */
+
   /**
    * @todo for layers which support in-place, both variables and gradients
    * will be shared.
-   *
-   * @todo add a check here is the layer being checked here can support
-   * in-place or not
    */
 }
 
@@ -821,8 +735,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
-   * allocated output. This is necessary for manager to know when this output
-   * node is going to be used.
+   * allocated output. This is necessary for manager to know when this
+   * output node is going to be used.
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
@@ -835,8 +749,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** In-Place optimizations */
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated output. This is necessary for manager to know when this output
-   * node is going to be used with in-place optimizations.
+   * allocated output. This is necessary for manager to know when this
+   * output node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
 
@@ -881,10 +795,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       TensorSpecV2::RequestType::PLACEHOLDER;
   }
 
-  /// @note below needs to be enabled only for inference mode, but need decision
-  /// if we are going to separate inference initialization from train
-  /// initialization this might not worth optimize because in general output of
-  /// a neuralnet is very small
+  /// @note below needs to be enabled only for inference mode, but need
+  /// decision if we are going to separate inference initialization from
+  /// train initialization this might not worth optimize because in general
+  /// output of a neuralnet is very small
   if (lnode->getOutputConnections().size() == 0u) {
     std::for_each(out_specs.begin(), out_specs.end(),
                   [this](VarGradSpecV2 &spec) {
@@ -910,8 +824,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   std::vector<std::string> shared_weight_names;
   std::vector<std::string> shared_tensor_names;
   if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
-    /// @note below is commented but kept from quick fix to be referenced for
-    /// later(#1707)
+    /// @note below is commented but kept from quick fix to be referenced
+    /// for later(#1707)
     // auto shared_node = getLayerNode(shared_node_str).get();
     // NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
     //   << "shared_node requested but it is not registered in the graph,
@@ -925,7 +839,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     //   lnode->getType()
     //   << " depedent node name: " << lnode->getName();
     // NNTR_THROW_IF(!shared_node->isFinalized(), std::invalid_argument)
-    //   << "shared node must be prior to the dependent node and it should be
+    //   << "shared node must be prior to the dependent node and it should
+    //   be
     //   "
     //      "finalized beforehand, shared node name: "
     //   << shared_node_str << " dependent node name: " << lnode->getName();
@@ -936,9 +851,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // }
     // auto &rc = node->getRunContext();
 
-    /// @fixme tensor should be only shared if context explicitly requested to
-    /// do so. This has to be added to the part of tensor spec, other wise it
-    /// will break many things
+    /// @fixme tensor should be only shared if context explicitly requested
+    /// to do so. This has to be added to the part of tensor spec, other
+    /// wise it will break many things
     const auto &t_specs = init_context.getTensorsSpec();
     for (auto i = 0u; i < t_specs.size(); ++i) {
       shared_tensor_names.emplace_back(std::get<3>(t_specs.at(i)));
@@ -979,8 +894,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
-   * allocated output. This is necessary for manager to know when this output
-   * node is going to be used.
+   * allocated output. This is necessary for manager to know when this
+   * output node is going to be used.
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
@@ -993,8 +908,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
   /** In-Place optimizations */
   /**
    * Request manager for either a pre-allocated input as output or a newly
-   * allocated output. This is necessary for manager to know when this output
-   * node is going to be used with in-place optimizations.
+   * allocated output. This is necessary for manager to know when this
+   * output node is going to be used with in-place optimizations.
    */
   auto out_specs = init_context.getOutSpecs();
   /// @note try move inplace control to finalize
@@ -1033,10 +948,10 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
       TensorSpecV2::RequestType::PLACEHOLDER;
   }
 
-  /// @note below needs to be enabled only for inference mode, but need decision
-  /// if we are going to separate inference initialization from train
-  /// initialization this might not worth optimize because in general output of
-  /// a neuralnet is very small
+  /// @note below needs to be enabled only for inference mode, but need
+  /// decision if we are going to separate inference initialization from
+  /// train initialization this might not worth optimize because in general
+  /// output of a neuralnet is very small
   if (lnode->getOutputConnections().size() == 0u) {
     std::for_each(out_specs.begin(), out_specs.end(),
                   [this](VarGradSpecV2 &spec) {
@@ -1062,8 +977,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
   std::vector<std::string> shared_weight_names;
   std::vector<std::string> shared_tensor_names;
   if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
-    /// @note below is commented but kept from quick fix to be referenced for
-    /// later(#1707)
+    /// @note below is commented but kept from quick fix to be referenced
+    /// for later(#1707)
     // auto shared_node = getLayerNode(shared_node_str).get();
     // NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
     //   << "shared_node requested but it is not registered in the graph,
@@ -1077,7 +992,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
     //   lnode->getType()
     //   << " depedent node name: " << lnode->getName();
     // NNTR_THROW_IF(!shared_node->isFinalized(), std::invalid_argument)
-    //   << "shared node must be prior to the dependent node and it should be
+    //   << "shared node must be prior to the dependent node and it should
+    //   be
     //   "
     //      "finalized beforehand, shared node name: "
     //   << shared_node_str << " dependent node name: " << lnode->getName();
@@ -1088,9 +1004,9 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
     // }
     // auto &rc = node->getRunContext();
 
-    /// @fixme tensor should be only shared if context explicitly requested to
-    /// do so. This has to be added to the part of tensor spec, other wise it
-    /// will break many things
+    /// @fixme tensor should be only shared if context explicitly requested
+    /// to do so. This has to be added to the part of tensor spec, other
+    /// wise it will break many things
     const auto &t_specs = init_context.getTensorsSpec();
     for (auto i = 0u; i < t_specs.size(); ++i) {
       shared_tensor_names.emplace_back(std::get<3>(t_specs.at(i)));
@@ -1266,14 +1182,14 @@ int NetworkGraph::initialize(ExecutionMode mode,
           rc.getWeightObject(i).setAsGradientFirstAccess();
         }
         /**
-         * if the gradient is to be clipped by global norm, then the last access
-         * is by clipping itself. However, as clipping is not a layer and does
-         * not contain any weights, such weights never get assigned
+         * if the gradient is to be clipped by global norm, then the last
+         * access is by clipping itself. However, as clipping is not a layer
+         * and does not contain any weights, such weights never get assigned
          * gradient_last_access. This is a quick hotfix.
-         * TODO: make an independent clipping layer which will execute at the
-         * end, and will share ownership of weights which it will clip. This
-         * will remove this hot fix, and also remove the checks of if weights
-         * require clipping.
+         * TODO: make an independent clipping layer which will execute at
+         * the end, and will share ownership of weights which it will clip.
+         * This will remove this hot fix, and also remove the checks of if
+         * weights require clipping.
          */
         if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
                                          last_grad_access) ||
@@ -1359,9 +1275,9 @@ int NetworkGraph::initialize(ExecutionMode mode,
     markNodesForBackwarding();
     backward_iter_end = computeBackwardEnd();
   } catch (std::exception &e) {
-    ml_loge(
-      "Backwarding required from layer which doesn't support backwarding: %s",
-      e.what());
+    ml_loge("Backwarding required from layer which doesn't support "
+            "backwarding: %s",
+            e.what());
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -1479,14 +1395,14 @@ int NetworkGraph::reinitialize(
           rc.getWeightObject(i).setAsGradientFirstAccess();
         }
         /**
-         * if the gradient is to be clipped by global norm, then the last access
-         * is by clipping itself. However, as clipping is not a layer and does
-         * not contain any weights, such weights never get assigned
+         * if the gradient is to be clipped by global norm, then the last
+         * access is by clipping itself. However, as clipping is not a layer
+         * and does not contain any weights, such weights never get assigned
          * gradient_last_access. This is a quick hotfix.
-         * TODO: make an independent clipping layer which will execute at the
-         * end, and will share ownership of weights which it will clip. This
-         * will remove this hot fix, and also remove the checks of if weights
-         * require clipping.
+         * TODO: make an independent clipping layer which will execute at
+         * the end, and will share ownership of weights which it will clip.
+         * This will remove this hot fix, and also remove the checks of if
+         * weights require clipping.
          */
         if (tensor_manager->isLastAccess(rc.getWeightGrad(i).getName(),
                                          last_grad_access) ||
