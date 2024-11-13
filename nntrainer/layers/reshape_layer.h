@@ -79,6 +79,17 @@ public:
   bool supportInPlace() const override { return true; }
 
   /**
+   * @brief Initialize the in-place type of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlaceType() final {
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::RESTRICTING;
+  }
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */

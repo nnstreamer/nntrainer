@@ -56,18 +56,6 @@ class LossScaleForMixed;
 } // namespace props
 
 /**
- * @brief Enum class for the various types of inplace modes supported by layer
- *
- */
-enum class InPlaceType {
-  NONE,           /**< layer is not inplace */
-  RESTRICTING,    /**< layer is in-place and does place restriction on layers
-                    ahead of it to be in-place */
-  NON_RESTRICTING /**< layer is in-place and does NOT place restriction on the
-                    layers ahead of it to be in-place */
-};
-
-/**
  * @class   LayerNode class
  * @brief   layer node class for the graph
  */
@@ -365,6 +353,16 @@ public:
    */
   bool supportInPlace() const;
 
+  /**
+   * @brief Initialize the in-place type of the layer
+   * @details If it is a layer that supports in-place, the default in-place type
+   * is NONE_RESTRICTING, but if there is a RESTRICTING type among the input
+   * layers, it is set to NONE in the network_graph.cpp.
+   * Layers with exceptional behavior such as No-Operation layers should
+   * override this function.
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlaceType();
   /**
    * @brief   Notify that this layer will execute in-place
    *

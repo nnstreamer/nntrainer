@@ -931,6 +931,15 @@ bool LayerNode::supportInPlace() const {
 }
 
 /**
+ * @brief Initialize the in-place type of the layer
+ * @return InPlaceType
+ */
+InPlaceType LayerNode::initializeInPlaceType() {
+  inplace_type = layer->initializeInPlaceType();
+  return inplace_type;
+}
+
+/**
  * @brief  check if this layer requires label to be passed
  */
 bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
