@@ -75,17 +75,6 @@ void InputLayer::finalize(InitLayerContext &context) {
   }
 
   context.setOutputDimensions(output_dims);
-
-  is_inplace = true;
-
-  /**
-   * @note Input Layer assuems that the FP32 IN Tensor always. Therefore, if the
-   * activation data type is not fp32, then it does not support in-place
-   * operation.
-   */
-  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32) {
-    is_inplace = false;
-  }
 }
 
 } /* namespace nntrainer */

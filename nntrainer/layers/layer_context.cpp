@@ -41,11 +41,11 @@ static void suffixSpec(VarGradSpecV2 &spec, unsigned int idx) {
 
 InitLayerContext::InitLayerContext(
   const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
-  bool in_place_, const std::string &n, const std::string &prefix_,
+  bool is_inplace_, const std::string &n, const std::string &prefix_,
   const float max_norm, std::array<std::string, 3> tensor_type_,
   const float loss_scale_, ml::train::ExecutionMode mode_) :
   input_dim(dim),
-  in_place(in_place_),
+  is_inplace(is_inplace_),
   clip_by_global_norm(max_norm),
   output_specs(),
   req_out_is_connected(req_out_connected),
@@ -126,13 +126,13 @@ const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
 }
 
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
-                                 float l, bool in_place_, float loss_scale_,
+                                 float l, bool is_inplace_, float loss_scale_,
                                  bool restore_, const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
   loss(l),
-  in_place(in_place_),
+  is_inplace(is_inplace_),
   loss_scale(loss_scale_),
   restoreData(restore_),
   weights(w),
