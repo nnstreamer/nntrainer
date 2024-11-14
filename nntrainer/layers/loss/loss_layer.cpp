@@ -25,10 +25,6 @@ void LossLayer::finalize(InitLayerContext &context) {
                     nntrainer::TensorDataTypeInfo>::from_string("FP32"));
 
   context.setOutputDimensions(output_dim);
-
-  is_inplace = true;
-  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32)
-    is_inplace = false;
 }
 
 void LossLayer::updateLoss(RunLayerContext &context, const Tensor &l) {

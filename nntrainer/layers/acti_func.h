@@ -37,8 +37,8 @@ public:
    */
   template <typename T = float>
   ActiFunc(ActivationType at = ActivationType::ACT_NONE,
-           bool in_place_ = true) :
-    in_place(in_place_) {
+           bool is_inplace_ = true) :
+    is_inplace(is_inplace_) {
     setActiFunc<T>(at);
   }
 
@@ -72,19 +72,19 @@ public:
       this->setActivation<T>(leakyRelu<T>, leakyReluPrime<T>);
       break;
     case ActivationType::ACT_SWISH:
-      in_place = false;
+      is_inplace = false;
       this->setActivation<Tensor>(swish<T>, swishPrime<T>);
       break;
     case ActivationType::ACT_GELU:
-      in_place = false;
+      is_inplace = false;
       this->setActivation<Tensor>(gelu<T>, geluPrime<T>);
       break;
     case ActivationType::ACT_TANH_GELU:
-      in_place = false;
+      is_inplace = false;
       this->setActivation<Tensor>(tanhGelu<T>, tanhGeluPrime<T>);
       break;
     case ActivationType::ACT_SIGMOID_GELU:
-      in_place = false;
+      is_inplace = false;
       this->setActivation<Tensor>(sigmoidGelu<T>, sigmoidGeluPrime<T>);
       break;
     case ActivationType::ACT_ELU:
@@ -149,7 +149,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const { return in_place; }
+  bool supportInPlace() const { return is_inplace; }
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -649,7 +649,7 @@ public:
       &activation_fn,
     std::function<funcParam &(funcParam const &, funcParam const &, funcParam &,
                               funcParam const &)> const &activation_prime_fn) {
-    if (in_place)
+    if (is_inplace)
       return ML_ERROR_INVALID_PARAMETER;
 
     _act_fn = activation_fn;
@@ -672,7 +672,7 @@ public:
       &activation_fn,
     std::function<funcParam &(funcParam &, funcParam &)> const
       &activation_prime_fn) {
-    if (!in_place) {
+    if (!is_inplace) {
       _act_prime_fn = [activation_prime_fn](
                         funcParam const &t_in, funcParam &t_out,
                         funcParam &outgoing_derivative,
@@ -715,7 +715,7 @@ public:
     _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
       return x.apply(activation_fn, hidden);
     };
-    if (!in_place) {
+    if (!is_inplace) {
       _act_prime_fn =
         [activation_prime_fn](Tensor const &t_in, Tensor &t_out,
                               Tensor &outgoing_derivative,
@@ -765,7 +765,7 @@ public:
       throw std::runtime_error(
         "Error setting activation layer to work in-place");
 
-    in_place = val;
+    is_inplace = val;
   }
 
 private:
@@ -780,7 +780,7 @@ private:
 
   ActivationType
     activation_type; /**< type of the activation represented by this */
-  bool in_place;     /**< if this class should operate in_place */
+  bool is_inplace;   /**< if this class should operate is_inplace */
 };
 
 } // namespace nntrainer

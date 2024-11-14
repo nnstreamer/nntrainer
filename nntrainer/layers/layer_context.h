@@ -46,7 +46,7 @@ public:
    * @param dim Input dimensions for the layer
    * @param req_out_connected bool vector to tell if requested output is
    * trainable or not
-   * @param in_place_ true if the context is inplacable
+   * @param is_inplace_ true if the context is inplacable
    * @param name name
    * @param prefix_ prefix
    * @param max_norm max norm
@@ -57,7 +57,7 @@ public:
    */
   InitLayerContext(
     const std::vector<TensorDim> &dim,
-    const std::vector<bool> &req_out_connected, bool in_place_,
+    const std::vector<bool> &req_out_connected, bool is_inplace_,
     const std::string &n = "", const std::string &prefix_ = "",
     const float max_norm = 0.0,
     std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32", "FP32"},
@@ -383,7 +383,7 @@ public:
    *
    * @return true if in-place, else false
    */
-  bool getInPlace() const { return in_place; }
+  bool getInPlace() const { return is_inplace; }
 
   /**
    * @brief   get Initial value of Loss_Scale. This is set to RunLayerContext
@@ -403,7 +403,7 @@ public:
 
 private:
   std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
-  bool in_place;             /**< if the layer is expected to run in-place */
+  bool is_inplace;           /**< if the layer is expected to run in-place */
   float clip_by_global_norm; /**< max norm value for clip by norm */
 
   std::vector<VarGradSpecV2> output_specs; /**< Specification for the output */
@@ -440,14 +440,15 @@ public:
    *
    */
   RunLayerContext() :
-    loss(0.0), in_place(false), loss_scale(1.0), restoreData(false) {}
+    loss(0.0), is_inplace(false), loss_scale(1.0), restoreData(false) {}
 
   /**
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext(const std::string &name, bool in_place_) : RunLayerContext() {
-    in_place = in_place_;
+  RunLayerContext(const std::string &name, bool is_inplace_) :
+    RunLayerContext() {
+    is_inplace = is_inplace_;
     std::get<props::Name>(props).set(name);
   }
 
@@ -455,9 +456,10 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext(const std::string &name, bool in_place_, float loss_scale_) :
+  RunLayerContext(const std::string &name, bool is_inplace_,
+                  float loss_scale_) :
     RunLayerContext() {
-    in_place = in_place_;
+    is_inplace = is_inplace_;
     std::get<props::Name>(props).set(name);
     loss_scale = loss_scale_;
   }
@@ -468,7 +470,7 @@ public:
    * @param name name of the layer
    * @param trainable if the layer is trainable
    * @param l loss of the layer
-   * @param in_place_ execution in-place of the layer
+   * @param is_inplace_ execution in-place of the layer
    * @param loss_scale loss_scale of the layer
    * @param w weights of the layer
    * @param in inputs of the layer
@@ -476,7 +478,7 @@ public:
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool in_place_, float loss_scale_, bool restoreData_,
+                  bool is_inplace_, float loss_scale_, bool restoreData_,
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
@@ -889,7 +891,7 @@ public:
    *
    * @return true if in-place, else false
    */
-  bool getInPlace() const { return in_place; }
+  bool getInPlace() const { return is_inplace; }
 
   /**
    * @brief   get layer weights
@@ -946,7 +948,7 @@ public:
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
-  bool in_place;    /**< if the layer is expected to run in-place */
+  bool is_inplace;  /**< if the layer is expected to run in-place */
   float loss_scale; /**< loss_scale of the layer */
   bool restoreData; /**< reset output for mixed precsion */
 
