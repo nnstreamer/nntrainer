@@ -352,7 +352,7 @@ public:
   bool supportInPlace() const;
 
   /**
-   * @brief Initialize the in-place type of the layer
+   * @brief Initialize the in-place settings of the layer
    * @details If it is a layer that supports in-place, the default in-place type
    * is NONE_RESTRICTING, but if there is a RESTRICTING type among the input
    * layers, it is set to NONE in the network_graph.cpp.
@@ -360,7 +360,7 @@ public:
    * override this function.
    * @return InPlaceType
    */
-  InPlaceType initializeInPlaceType();
+  InPlaceType initializeInPlace();
   /**
    * @brief   Notify that this layer will execute in-place
    *

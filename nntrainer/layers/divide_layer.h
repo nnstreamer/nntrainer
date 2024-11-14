@@ -30,7 +30,10 @@ public:
   /**
    * @brief Constructor of Divide Layer
    */
-  DivideLayer() : BinaryOperationLayer(), divide_props(props::Print()) {}
+  DivideLayer() :
+    BinaryOperationLayer(),
+    divide_props(props::Print(), props::InPlaceProp()),
+    support_backwarding(true) {}
 
   /**
    * @brief Destructor of Divide Layer
@@ -72,7 +75,27 @@ public:
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return true; };
+  bool supportBackwarding() const final { return support_backwarding; };
+
+  /**
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlace() final {
+    if (std::get<props::InPlaceProp>(divide_props).empty() ||
+        !std::get<props::InPlaceProp>(divide_props).get()) {
+      is_inplace = false;
+      support_backwarding = true;
+    } else {
+      is_inplace = true;
+      support_backwarding = false;
+    }
+
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::NON_RESTRICTING;
+  }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
@@ -91,7 +114,8 @@ public:
    */
   const std::string getType() const final { return DivideLayer::type; };
 
-  std::tuple<props::Print> divide_props;
+  std::tuple<props::Print, props::InPlaceProp> divide_props;
+  bool support_backwarding; /**< support backwarding */
 
   inline static const std::string type = "divide";
 };

@@ -646,8 +646,10 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 InPlaceType
 NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
-  if (!lnode->supportInPlace()) {
-    return InPlaceType::NONE;
+  InPlaceType inplace_type = lnode->initializeInPlace();
+
+  if (inplace_type == InPlaceType::NONE) {
+    return inplace_type;
   }
 
   if (lnode->getType() == InputLayer::type &&
@@ -659,26 +661,21 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     return InPlaceType::RESTRICTING;
   }
 
-  InPlaceType inplace_type = lnode->initializeInPlaceType();
-  /** Set inplace_type based on the input connections */
-  switch (inplace_type) {
-  /** A case where it cannot operate in-place */
-  case InPlaceType::NONE:
-    return InPlaceType::NONE;
   /** A case where it can operate in-place even if there is a multi-out type
    * input connection. */
-  case InPlaceType::RESTRICTING:
+  if (inplace_type == InPlaceType::RESTRICTING) {
     for (size_t i = 0, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
       const std::string &input_name = lnode->getInputConnectionName(i);
       if (getLayerNode(input_name)->getInPlaceType() ==
           InPlaceType::RESTRICTING)
-        return InPlaceType::RESTRICTING;
+        return inplace_type;
     }
     return InPlaceType::NON_RESTRICTING;
+  }
   /** A case where it cannot operate in-place if there is a multi-out type
    * input connection. */
-  default:
+  else { /** condition: NON_RESTRICTING */
     for (size_t i = 0, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
       const std::string &input_name = lnode->getInputConnectionName(i);
@@ -686,7 +683,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
           InPlaceType::RESTRICTING)
         return InPlaceType::NONE;
     }
-    return InPlaceType::NON_RESTRICTING;
+    return inplace_type;
   }
 }
 
