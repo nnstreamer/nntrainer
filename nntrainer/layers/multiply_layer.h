@@ -30,7 +30,10 @@ public:
   /**
    * @brief Constructor of Multiply Layer
    */
-  MultiplyLayer() : BinaryOperationLayer(), multiply_props(props::Print()) {}
+  MultiplyLayer() :
+    BinaryOperationLayer(),
+    multiply_props(props::Print(), props::InPlaceProp()),
+    support_backwarding(true) {}
 
   /**
    * @brief Destructor of Multiply Layer
@@ -70,9 +73,29 @@ public:
   void calcDerivative(RunLayerContext &context) final;
 
   /**
-   * @copydoc bool supportBackwarding() const
+   * @copydoc bool supportBackwarding()
    */
-  bool supportBackwarding() const final { return true; };
+  bool supportBackwarding() const final { return support_backwarding; };
+
+  /**
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlace() final {
+    if (std::get<props::InPlaceProp>(multiply_props).empty() ||
+        !std::get<props::InPlaceProp>(multiply_props).get()) {
+      is_inplace = false;
+      support_backwarding = true;
+    } else {
+      is_inplace = true;
+      support_backwarding = false;
+    }
+
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::NON_RESTRICTING;
+  }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
@@ -91,7 +114,8 @@ public:
    */
   const std::string getType() const final { return MultiplyLayer::type; };
 
-  std::tuple<props::Print> multiply_props;
+  std::tuple<props::Print, props::InPlaceProp> multiply_props;
+  bool support_backwarding; /**< support backwarding */
 
   inline static const std::string type = "multiply";
 };

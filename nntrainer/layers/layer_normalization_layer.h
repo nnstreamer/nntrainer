@@ -99,17 +99,21 @@ public:
    */
   bool supportBackwarding() const override { return true; }
 
+  /**
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlace() final {
+    is_inplace = true;
+    return InPlaceType::NON_RESTRICTING;
+  }
+
   using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
-
-  /**
-   * @copydoc Layer::supportInPlace()
-   */
-  bool supportInPlace() const override { return true; }
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)

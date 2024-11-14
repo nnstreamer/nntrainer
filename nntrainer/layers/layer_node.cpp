@@ -931,11 +931,11 @@ bool LayerNode::supportInPlace() const {
 }
 
 /**
- * @brief Initialize the in-place type of the layer
+ * @brief Initialize the in-place settings of the layer
  * @return InPlaceType
  */
-InPlaceType LayerNode::initializeInPlaceType() {
-  inplace_type = layer->initializeInPlaceType();
+InPlaceType LayerNode::initializeInPlace() {
+  inplace_type = layer->initializeInPlace();
   return inplace_type;
 }
 

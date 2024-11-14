@@ -125,6 +125,16 @@ public:
 };
 
 /**
+ * @brief Inplace operation property
+ *
+ */
+class InPlaceProp : public nntrainer::Property<bool> {
+public:
+  static constexpr const char *key = "inplace"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;               /**< property type */
+};
+
+/**
  * @brief trainable property, use this to set and check how if certain layer is
  * trainable
  *

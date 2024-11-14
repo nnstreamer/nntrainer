@@ -33,9 +33,7 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 InputLayer::InputLayer() :
-  Layer(),
-  input_props(props::Normalization(), props::Standardization()),
-  is_inplace(true) {}
+  Layer(), input_props(props::Normalization(), props::Standardization()) {}
 
 void InputLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, input_props);

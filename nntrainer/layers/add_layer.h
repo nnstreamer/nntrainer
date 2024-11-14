@@ -35,7 +35,8 @@ public:
   /**
    * @brief Constructor of Add Layer
    */
-  AddLayer() : BinaryOperationLayer(), add_props(props::Print()) {}
+  AddLayer() :
+    BinaryOperationLayer(), add_props(props::Print(), props::InPlaceProp()) {}
 
   /**
    *  @brief  Move constructor of Add Layer.
@@ -75,6 +76,23 @@ public:
   bool supportBackwarding() const final { return true; };
 
   /**
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlace() final {
+    if (std::get<props::InPlaceProp>(add_props).empty() ||
+        std::get<props::InPlaceProp>(add_props).get()) {
+      is_inplace = true;
+    } else {
+      is_inplace = false;
+    }
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::NON_RESTRICTING;
+  }
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
@@ -91,7 +109,7 @@ public:
    */
   const std::string getType() const final { return AddLayer::type; }
 
-  std::tuple<props::Print> add_props;
+  std::tuple<props::Print, props::InPlaceProp> add_props;
 
   inline static const std::string type = "add";
 };

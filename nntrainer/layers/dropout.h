@@ -30,9 +30,7 @@ public:
    * @brief     Constructor of DropOut Layer
    */
   DropOutLayer(float dropout = 0.0) :
-    Layer(),
-    dropout_rate(props::DropOutRate(dropout)),
-    epsilon(1e-3) {}
+    Layer(), dropout_rate(props::DropOutRate(dropout)), epsilon(1e-3) {}
 
   /**
    * @brief     Destructor of DropOut Layer
@@ -88,13 +86,6 @@ public:
    * &value)
    */
   void setProperty(const std::vector<std::string> &values) override;
-
-  /**
-   * @copydoc Layer::supportInPlace()
-   *
-   * @todo Enable in-place support once supported by manager
-   */
-  bool supportInPlace() const override { return false; }
 
   inline static const std::string type = "dropout";
 

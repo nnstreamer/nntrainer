@@ -112,11 +112,6 @@ public:
   }
 
   /**
-   * @copydoc Layer::supportInPlace()
-   */
-  virtual bool supportInPlace() const override { return false; }
-
-  /**
    * @copydoc Layer::requireLabel()
    */
   virtual bool requireLabel() const override {

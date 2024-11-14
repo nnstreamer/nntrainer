@@ -80,9 +80,13 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
-   * @copydoc Layer::supportInPlace()
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
    */
-  bool supportInPlace() const override { return is_inplace; }
+  InPlaceType initializeInPlace() final {
+    is_inplace = true;
+    return InPlaceType::NON_RESTRICTING;
+  }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
@@ -105,7 +109,6 @@ public:
 
 private:
   std::tuple<props::Normalization, props::Standardization> input_props;
-  bool is_inplace;
 };
 } // namespace nntrainer
 

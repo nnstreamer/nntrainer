@@ -253,10 +253,10 @@ public:
    * @details all layers default to out of place execution
    * @note all layers default to out of place execution
    */
-  virtual bool supportInPlace() const { return false; }
+  virtual bool supportInPlace() const { return is_inplace; }
 
   /**
-   * @brief Initialize the in-place type of the layer
+   * @brief Initialize the in-place settings of the layer
    * @details If it is a layer that supports in-place, the default in-place type
    * is NONE_RESTRICTING, but if there is a RESTRICTING type among the input
    * layers, it is set to NONE in the network_graph.cpp.
@@ -264,7 +264,7 @@ public:
    * override this function.
    * @return InPlaceType
    */
-  virtual InPlaceType initializeInPlaceType() {
+  virtual InPlaceType initializeInPlace() {
     if (!supportInPlace())
       return InPlaceType::NONE;
     else
@@ -287,6 +287,9 @@ public:
    * @return true if supports backwarding, else false
    */
   virtual bool supportBackwarding() const = 0;
+
+protected:
+  bool is_inplace = false; /**< whether this layer is in-place or not */
 };
 
 /// @todo Decide where to put and how to implement(#986)

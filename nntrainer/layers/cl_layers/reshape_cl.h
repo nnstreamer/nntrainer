@@ -87,9 +87,13 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
-   * @copydoc Layer::supportInPlace()
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
    */
-  bool supportInPlace() const override { return true; }
+  InPlaceType initializeInPlace() final {
+    is_inplace = true;
+    return InPlaceType::NON_RESTRICTING;
+  }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods

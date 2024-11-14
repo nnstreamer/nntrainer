@@ -30,7 +30,9 @@ public:
   /**
    * @brief Constructor of Subtract Layer
    */
-  SubtractLayer() : BinaryOperationLayer(), subtract_props(props::Print()) {}
+  SubtractLayer() :
+    BinaryOperationLayer(),
+    subtract_props(props::Print(), props::InPlaceProp()) {}
 
   /**
    * @brief Destructor of Sub Layer
@@ -75,6 +77,23 @@ public:
   bool supportBackwarding() const final { return true; };
 
   /**
+   * @brief Initialize the in-place settings of the layer
+   * @return InPlaceType
+   */
+  InPlaceType initializeInPlace() final {
+    if (std::get<props::InPlaceProp>(subtract_props).empty() ||
+        std::get<props::InPlaceProp>(subtract_props).get()) {
+      is_inplace = true;
+    } else {
+      is_inplace = false;
+    }
+    if (!supportInPlace())
+      return InPlaceType::NONE;
+    else
+      return InPlaceType::NON_RESTRICTING;
+  }
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
@@ -91,7 +110,7 @@ public:
    */
   const std::string getType() const final { return SubtractLayer::type; };
 
-  std::tuple<props::Print> subtract_props;
+  std::tuple<props::Print, props::InPlaceProp> subtract_props;
 
   inline static const std::string type = "subtract";
 };
