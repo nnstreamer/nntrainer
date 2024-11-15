@@ -931,6 +931,13 @@ bool LayerNode::supportInPlace() const {
 }
 
 /**
+ * @brief Get the inplace direction for the layer
+ */
+InPlaceDirection LayerNode::getInPlaceDirection() const {
+  return layer->getInPlaceDirection();
+};
+
+/**
  * @brief Initialize the in-place settings of the layer
  * @return InPlaceType
  */

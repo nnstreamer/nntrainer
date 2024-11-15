@@ -235,7 +235,8 @@ class Activation;
 class BatchNormalization;
 class Packed;
 class LossScaleForMixed;
-class InplaceProp;
+class InPlaceProp;
+class InPlaceDirectionProp;
 } // namespace props
 
 class LayerNode;
