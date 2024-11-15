@@ -54,6 +54,24 @@ enum class InPlaceType {
 };
 
 /**
+ * @brief Emum class for the direction of inplace
+ *
+ * @details When the In-Place option is enabled and the layer has binary inputs,
+ * you can specify the direction of the in-place operation using this
+ * enumeration. For instance, if a layer is in-place with the direction set to
+ * LEFT, the output of the layer will be written directly into the 'input[0]' of
+ * the preceding layer. Conversely, if the direction is set to RIGHT, the output
+ * of the layer will be written directly into the 'input[1]' of the preceding
+ * layer.
+ */
+enum class InPlaceDirection {
+  NONE,  /**< default. It will be set to LEFT or RIGHT only when the type of the
+            operation  layer is binary and the is_inplace setting is true */
+  LEFT,  /**< left side of the layer is in-place */
+  RIGHT, /**< right side of the layer is in-place */
+};
+
+/**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  *
@@ -254,6 +272,15 @@ public:
    * @note all layers default to out of place execution
    */
   virtual bool supportInPlace() const { return is_inplace; }
+
+  /**
+   * @brief Get the inplace direction for the tensor operation layer
+   *
+   * @return InPlaceDirection
+   */
+  virtual InPlaceDirection getInPlaceDirection() {
+    return InPlaceDirection::NONE;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer

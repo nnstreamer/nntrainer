@@ -136,6 +136,17 @@ public:
 };
 
 /**
+ * @brief Inplace direction property
+ *
+ */
+class InPlaceDirectionProp : public nntrainer::Property<std::string> {
+public:
+  static constexpr const char *key =
+    "inplace_direction";         /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+};
+
+/**
  * @brief trainable property, use this to set and check how if certain layer is
  * trainable
  *

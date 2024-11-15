@@ -36,7 +36,9 @@ public:
    * @brief Constructor of Add Layer
    */
   AddLayer() :
-    BinaryOperationLayer(), add_props(props::Print(), props::InPlaceProp()) {}
+    BinaryOperationLayer(),
+    add_props(props::Print(), props::InPlaceProp(),
+              props::InPlaceDirectionProp()) {}
 
   /**
    *  @brief  Move constructor of Add Layer.
@@ -76,6 +78,22 @@ public:
   bool supportBackwarding() const final { return true; };
 
   /**
+   * @brief Get the inplace direction for the tensor operation layer
+   *
+   * @return InPlaceDirection
+   */
+  InPlaceDirection getInPlaceDirection() override {
+    if (!supportInPlace())
+      return InPlaceDirection::NONE;
+    if (std::get<props::InPlaceDirectionProp>(add_props).empty() ||
+        (std::get<props::InPlaceDirectionProp>(add_props).get() == "left")) {
+      return InPlaceDirection::LEFT;
+    } else {
+      return InPlaceDirection::RIGHT;
+    }
+  };
+
+  /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
@@ -109,7 +127,8 @@ public:
    */
   const std::string getType() const final { return AddLayer::type; }
 
-  std::tuple<props::Print, props::InPlaceProp> add_props;
+  std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
+    add_props;
 
   inline static const std::string type = "add";
 };
