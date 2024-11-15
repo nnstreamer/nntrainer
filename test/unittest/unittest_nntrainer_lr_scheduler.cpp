@@ -490,23 +490,23 @@ TEST(lr_linear, prop_02_n) {
   EXPECT_THROW(lr->setProperty({"learning_rate:0.1"}), std::invalid_argument);
 }
 
-TEST(lr_linear, prop_03_n) {
+TEST(lr_linear, prop_03_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
 }
 
-TEST(lr_linear, prop_04_n) {
+TEST(lr_linear, prop_04_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
 }
 
-TEST(lr_linear, prop_05_n) {
+TEST(lr_linear, prop_05_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
   EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
 }
 
-TEST(lr_linear, prop_06_n) {
+TEST(lr_linear, prop_06_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"decay_steps=5"}));
 }
@@ -516,7 +516,7 @@ TEST(lr_linear, finalize_01_n) {
   EXPECT_THROW(lr->finalize(), std::invalid_argument);
 }
 
-TEST(lr_linear, finalize_02_n) {
+TEST(lr_linear, finalize_02_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
   EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
@@ -524,7 +524,7 @@ TEST(lr_linear, finalize_02_n) {
   EXPECT_NO_THROW(lr->finalize());
 }
 
-TEST(lr_linear, getlearningrate_01_n) {
+TEST(lr_linear, getlearningrate_01_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
   EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
@@ -533,7 +533,7 @@ TEST(lr_linear, getlearningrate_01_n) {
   EXPECT_FLOAT_EQ(lr->getLearningRate(0), 1);
 }
 
-TEST(lr_linear, getlearningrate_02_n) {
+TEST(lr_linear, getlearningrate_02_p) {
   auto lr = createLRS("linear");
   EXPECT_NO_THROW(lr->setProperty({"max_learning_rate=1.0"}));
   EXPECT_NO_THROW(lr->setProperty({"min_learning_rate=0.1"}));
