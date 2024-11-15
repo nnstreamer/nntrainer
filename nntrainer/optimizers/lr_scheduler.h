@@ -96,7 +96,7 @@ public:
    * Linear Learning rate scheduler
    * - max_learning_rate : float
    * - min_learning_rate : float
-   * - decay_steps : float
+   * - decay_steps : positive integer
    *
    * more to be added
    */
