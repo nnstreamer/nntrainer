@@ -35,6 +35,9 @@ void LinearLearningRateScheduler::finalize() {
   NNTR_THROW_IF(std::get<props::DecaySteps>(lr_props).empty(),
                 std::invalid_argument)
     << "[LinearLearningRateScheduler] Decay Steps is not set";
+  NNTR_THROW_IF(std::get<props::DecaySteps>(lr_props) <= 0,
+                std::invalid_argument)
+    << "[LinearLearningRateScheduler] Decay Steps must be a positive integer";
 }
 
 void LinearLearningRateScheduler::setProperty(
