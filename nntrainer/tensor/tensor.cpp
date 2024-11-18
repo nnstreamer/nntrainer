@@ -1036,9 +1036,12 @@ void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
 
-  std::streamsize sz = static_cast<std::streamsize>(bytes());
+  /// @note Save quantization information which only works on Quantized Tensor
+  itensor->save_quantization_info(file);
+
+  std::streamsize sz = static_cast<std::streamsize>(bytes() + scale_size());
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "save size: " << bytes()
+    << "save size: " << bytes() + scale_size()
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
@@ -1049,10 +1052,13 @@ void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
-  std::streamsize sz = static_cast<std::streamsize>(bytes());
+  /// @note Read quantization information which only works on Quantized Tensor
+  itensor->read_quantization_info(file);
+
+  std::streamsize sz = static_cast<std::streamsize>(bytes() + scale_size());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << bytes()
+    << "read size: " << bytes() + scale_size()
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedRead(file, getData<char>(), sz, "[Tensor::read] operation failed");

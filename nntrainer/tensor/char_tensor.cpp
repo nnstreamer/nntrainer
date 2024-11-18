@@ -348,6 +348,8 @@ void CharTensor::print(std::ostream &out) const {
     }
     out.copyfmt(init);
   }
+
+  /// @todo print quantization information
 }
 
 void CharTensor::copy(const void *buf) {
@@ -362,6 +364,16 @@ void CharTensor::copy(const void *buf) {
   for (unsigned int i = 0; i < size(); ++i) {
     ((int8_t *)getData())[i] = ((int8_t *)buf)[i];
   }
+}
+
+void CharTensor::save_quantization_info(std::ostream &file) {
+  checkedWrite(file, (char *)&axis, sizeof(uint8_t),
+               "[CharTensor::save] failed to write quantization information");
+}
+
+void CharTensor::read_quantization_info(std::ifstream &file) {
+  checkedRead(file, (char *)&axis, sizeof(uint8_t),
+              "[CharTensor::read] failed to read quantization information");
 }
 
 } // namespace nntrainer

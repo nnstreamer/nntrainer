@@ -217,7 +217,22 @@ public:
    */
   void print(std::ostream &out) const override;
 
+  /**
+   * @copydoc TensorBase::save_quantization_info()
+   */
+  void save_quantization_info(std::ostream &file) override;
+
+  /**
+   * @copydoc TensorBase::read_quantization_info()
+   */
+  void read_quantization_info(std::ifstream &file) override;
+
 private:
+  /**
+   * @brief quantization axis
+   */
+  uint8_t axis;
+
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
    * initialized otherwise undefined behavior
