@@ -583,6 +583,16 @@ public:
                   unsigned int w) const noexcept;
 
   /**
+   * @brief     Save quantization information
+   */
+  virtual void save_quantization_info(std::ostream &file) {}
+
+  /**
+   * @brief     Read quantization information
+   */
+  virtual void read_quantization_info(std::ifstream &file) {}
+
+  /**
    * @brief     Get size of current tensor
    * @retval    unsigned int size of the current tensor
    */
