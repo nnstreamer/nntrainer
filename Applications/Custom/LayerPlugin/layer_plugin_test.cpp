@@ -29,9 +29,9 @@ TEST(AppContext, DlRegisterOpen_p) {
 
   ac.registerLayer("libpow_layer.so", NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("custom_pow");
 
-  EXPECT_EQ(layer->getType(), "pow");
+  EXPECT_EQ(layer->getType(), "custom_pow");
 }
 
 TEST(AppContext, DlRegisterWrongPath_n) {
@@ -49,9 +49,9 @@ TEST(AppContext, DlRegisterDirectory_p) {
 
   ac.registerPluggableFromDirectory(NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("custom_pow");
 
-  EXPECT_EQ(layer->getType(), "pow");
+  EXPECT_EQ(layer->getType(), "custom_pow");
 }
 
 TEST(AppContext, DlRegisterDirectory_n) {
@@ -64,8 +64,8 @@ TEST(AppContext, DlRegisterDirectory_n) {
 TEST(AppContext, DefaultEnvironmentPath_p) {
   /// as NNTRAINER_PATH is fed to the test, this should success without an
   /// error
-  std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
-  EXPECT_EQ(l->getType(), "pow");
+  std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("custom_pow");
+  EXPECT_EQ(l->getType(), "custom_pow");
   std::shared_ptr<nntrainer::LayerNode> lnode =
     std::static_pointer_cast<nntrainer::LayerNode>(l);
 
