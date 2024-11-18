@@ -92,6 +92,8 @@ InputConnection::InputConnection(const Connection &value) :
 
 Epsilon::Epsilon(float value) { set(value); }
 
+Exponent::Exponent(float value) { set(value); }
+
 bool Epsilon::isValid(const float &value) const { return value > 0.0f; }
 
 Momentum::Momentum(float value) { set(value); }

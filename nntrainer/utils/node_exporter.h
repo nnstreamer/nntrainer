@@ -237,6 +237,7 @@ class Packed;
 class LossScaleForMixed;
 class InPlaceProp;
 class InPlaceDirectionProp;
+class Exponent;
 } // namespace props
 
 class LayerNode;

@@ -72,6 +72,7 @@
 #include <plugged_optimizer.h>
 #include <pooling2d_layer.h>
 #include <positional_encoding_layer.h>
+#include <pow_layer.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
@@ -273,6 +274,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MULTIPLY);
   ac.registerFactory(nntrainer::createLayer<DivideLayer>, DivideLayer::type,
                      LayerType::LAYER_DIVIDE);
+  ac.registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
+                     LayerType::LAYER_POW);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
