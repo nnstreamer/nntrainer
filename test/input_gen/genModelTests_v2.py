@@ -801,6 +801,7 @@ if __name__ == "__main__":
         label_dims=[(1, 10)],
         name="fc_mixed_training",
         optimizer=fc_mixed_training.getOptimizer(),
+        type="mixed",
     )
 
     inspect_file("fc_mixed_training.nnmodelgolden")
@@ -846,6 +847,7 @@ if __name__ == "__main__":
         label_dims=[(1, 1)],
         name="fc_mixed_training_nan_sgd",
         optimizer=fc_mixed_training_nan_sgd.getOptimizer(),
+        type="mixed",
     )
 
     #    Function to check the created golden test file

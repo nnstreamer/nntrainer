@@ -17,9 +17,9 @@ from torch import autocast
 
 from transLayer_v2 import params_translated
 
-if torch.__version__ != "1.9.1":
+if torch.__version__ != "2.4":
     print(
-        "the script was tested at version 1.9.1 it might not work if torch version is different"
+        "the script was tested at version 2.4 it might not work if torch version is different"
     )
 
 SEED = 1234
@@ -92,6 +92,7 @@ def record_v2(
     input_dtype=None,
     input_label_reader=None,
     optimizer=None,
+    type="default",
 ):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
@@ -132,7 +133,7 @@ def record_v2(
         model_ = model.cuda()
 
         print(inputs[0], " inputs inside")
-        output = model_(inputs[0], labels[0])
+        output = model_(inputs[0].cuda(), labels[0].cuda())
 
         print("model output type: ", output.dtype)
 
@@ -145,51 +146,64 @@ def record_v2(
         print("Gradient      ---------------")
         for param in model_.parameters():
             print(param.grad)
-            mask = torch.isnan(param.grad) or torch.isinf(param.grad)
-            check_nan = mask.int()
-            if check_nan.sum().item():
-                is_nan = True
-            else:
-                is_nan = False
+            is_nan = torch.any(torch.isnan(param.grad) | torch.isinf(param.grad))
+            if is_nan:
+                print("nan or inf detected in gradient")
+                break
 
         if not is_nan:
             print("------------------------------- not nan")
             write_fn(output, "int32", "float32")
         return output, is_nan
 
-    with open(file_name, "wb") as f:
-        # write number of iterations
-        print("iteration : ", iteration)
-        np.array([iteration], dtype="int32").tofile(f)
+    if type == "default":
+        with open(file_name, "wb") as f:
+            # write number of iterations
+            np.array([iteration], dtype="int32").tofile(f)
 
-        write_fn = _get_writer_mixed(f)
-        for i in range(iteration):
-            if input_label_reader != None:
-                inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
-            else:
-                inputs = _rand_like(
-                    input_dims, dtype=input_dtype if input_dtype is not None else float
+            write_fn = _get_writer(f)
+            for _ in range(iteration):
+                record_iteration(write_fn)
+
+    elif type == "mixed":
+        with open(file_name, "wb") as f:
+            # write number of iterations
+            print("iteration : ", iteration)
+            np.array([iteration], dtype="int32").tofile(f)
+
+            write_fn = _get_writer_mixed(f)
+            for i in range(iteration):
+                if input_label_reader != None:
+                    inputs, labels = input_label_reader(
+                        input_dims, label_dims, input_dtype
+                    )
+                else:
+                    inputs = _rand_like(
+                        input_dims,
+                        dtype=input_dtype if input_dtype is not None else float,
+                    )
+                    labels = _rand_like(label_dims, dtype=float)
+                print("inputs ==============")
+                write_fn(inputs, "int32", "float32")
+                print("labels ==============")
+                write_fn(labels, "int32", "float32")
+                is_nan = True
+                print("=========================== ", i)
+                scaler = amp.GradScaler()
+                print("weights ==============")
+                write_fn(
+                    list(t for _, t in params_translated(model)), "int16", "float16"
                 )
-                labels = _rand_like(label_dims, dtype=float)
-            print("inputs ==============")
-            write_fn(inputs, "int32", "float32")
-            print("labels ==============")
-            write_fn(labels, "int32", "float32")
-            is_nan = True
-            print("=========================== ", i)
-            scaler = amp.GradScaler()
-            print("weights ==============")
-            write_fn(list(t for _, t in params_translated(model)), "int16", "float16")
-            print("\n\n")
-            while is_nan:
-                print("before is_nan_", is_nan)
-                output, is_nan_ = record_iteration_with_amp(
-                    write_fn, inputs, labels, is_nan, scaler
-                )
-                is_nan = is_nan_
-                print("after is_nan_", is_nan)
-                scaler.step(optimizer)
-                scaler.update()
+                print("\n\n")
+                while is_nan:
+                    print("before is_nan_", is_nan)
+                    output, is_nan_ = record_iteration_with_amp(
+                        write_fn, inputs, labels, is_nan, scaler
+                    )
+                    is_nan = is_nan_
+                    print("after is_nan_", is_nan)
+                    scaler.step(optimizer)
+                    scaler.update()
 
 
 ##
