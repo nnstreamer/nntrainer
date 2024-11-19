@@ -31,15 +31,15 @@ __all__ = ["record_v2", "inspect_file"]
 
 
 def _get_writer(file):
-    def write_fn(items, type = 'float32'):
+    def write_fn(items, type="float32"):
         if not isinstance(items, (list, tuple)):
             items = [items]
 
         for item in items:
             print(item.numel(), " -0-----")
             print(item)
-            np.array([item.numel()], dtype='int32').tofile(file)
-            a=np.array(item.detach().cpu(), dtype=type)
+            np.array([item.numel()], dtype="int32").tofile(file)
+            a = np.array(item.detach().cpu(), dtype=type)
             a.tofile(file)
             print(a.dtype)
 
@@ -47,14 +47,15 @@ def _get_writer(file):
 
     return write_fn
 
+
 def _get_writer_mixed(file):
-    def write_fn(items, num_type = 'int32', type = 'float32'):
+    def write_fn(items, num_type="int32", type="float32"):
         if not isinstance(items, (list, tuple)):
             items = [items]
 
         for item in items:
             np.array([item.numel()], dtype=num_type).tofile(file)
-            a=np.array(item.detach().cpu(), dtype=type)
+            a = np.array(item.detach().cpu(), dtype=type)
             a.tofile(file)
 
         return items
@@ -71,7 +72,7 @@ def _rand_like(shapes, scale=1, dtype=None):
 
     if not isinstance(dtype, list):
         dtype = [dtype] * len(shapes)
-    np_array = list([shape_to_np(s,t) for s,t in zip(shapes, dtype)])
+    np_array = list([shape_to_np(s, t) for s, t in zip(shapes, dtype)])
     return list([torch.tensor(t * scale) for t in np_array])
 
 
@@ -81,8 +82,17 @@ def _rand_like(shapes, scale=1, dtype=None):
 # @param input_dims dimensions to record including batch (list of tuple)
 # @param label_dims dimensions to record including batch (list of tuple)
 # @param name golden name
-def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
-              input_dtype=None, input_label_reader=None, optimizer=None):
+def record_v2(
+    model,
+    iteration,
+    input_dims,
+    label_dims,
+    name,
+    clip=False,
+    input_dtype=None,
+    input_label_reader=None,
+    optimizer=None,
+):
     ## file format is as below
     # [<number of iteration(int)> <Iteration> <Iteration>...<Iteration>]
     # Each iteration contains
@@ -101,7 +111,9 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
         if input_label_reader != None:
             inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
         else:
-            inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
+            inputs = _rand_like(
+                input_dims, dtype=input_dtype if input_dtype is not None else float
+            )
             labels = _rand_like(label_dims, dtype=float)
         write_fn(inputs)
         write_fn(labels)
@@ -117,22 +129,22 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
         optimizer.step()
 
     def record_iteration_with_amp(write_fn, inputs, labels, is_nan, scaler):
-        model_= model.cuda()
+        model_ = model.cuda()
 
         print(inputs[0], " inputs inside")
         output = model_(inputs[0], labels[0])
 
-        print("model output type: ",output.dtype)
+        print("model output type: ", output.dtype)
 
-        with autocast(device_type='cuda', dtype=torch.float16):
-            l=model_.loss(output, labels[0].to('cuda'))
+        with autocast(device_type="cuda", dtype=torch.float16):
+            l = model_.loss(output, labels[0].to("cuda"))
 
         optimizer.zero_grad()
 
         scaler.scale(l).backward()
         print("Gradient      ---------------")
         for param in model_.parameters():
-            print (param.grad)
+            print(param.grad)
             mask = torch.isnan(param.grad) or torch.isinf(param.grad)
             check_nan = mask.int()
             if check_nan.sum().item():
@@ -140,10 +152,9 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
             else:
                 is_nan = False
 
-
         if not is_nan:
             print("------------------------------- not nan")
-            write_fn(output,'int32','float32')
+            write_fn(output, "int32", "float32")
         return output, is_nan
 
     with open(file_name, "wb") as f:
@@ -156,25 +167,30 @@ def record_v2(model, iteration, input_dims, label_dims, name, clip=False,
             if input_label_reader != None:
                 inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
             else:
-                inputs = _rand_like(input_dims, dtype=input_dtype if input_dtype is not None else float)
+                inputs = _rand_like(
+                    input_dims, dtype=input_dtype if input_dtype is not None else float
+                )
                 labels = _rand_like(label_dims, dtype=float)
             print("inputs ==============")
-            write_fn(inputs,'int32', 'float32')
+            write_fn(inputs, "int32", "float32")
             print("labels ==============")
-            write_fn(labels, 'int32', 'float32')
-            is_nan = True;
+            write_fn(labels, "int32", "float32")
+            is_nan = True
             print("=========================== ", i)
             scaler = amp.GradScaler()
             print("weights ==============")
-            write_fn(list(t for _, t in params_translated(model)),'int16','float16')
+            write_fn(list(t for _, t in params_translated(model)), "int16", "float16")
             print("\n\n")
-            while(is_nan):
-                print( "before is_nan_", is_nan)
-                output,is_nan_ = record_iteration_with_amp(write_fn, inputs, labels, is_nan, scaler)
+            while is_nan:
+                print("before is_nan_", is_nan)
+                output, is_nan_ = record_iteration_with_amp(
+                    write_fn, inputs, labels, is_nan, scaler
+                )
                 is_nan = is_nan_
-                print( "after is_nan_", is_nan)
+                print("after is_nan_", is_nan)
                 scaler.step(optimizer)
                 scaler.update()
+
 
 ##
 # @brief inpsect if file is created correctly
@@ -194,4 +210,3 @@ def inspect_file(file_name, show_content=True):
             t = np.fromfile(f, dtype="float32", count=sz)
             if show_content:
                 print(t)
-
