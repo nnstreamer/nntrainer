@@ -242,8 +242,10 @@ static constexpr size_t INPUT_IDX_2 = 1;
 bool ConcatLayerCl::registerClKernels() {
 
   // check if already registered
-  if (!layer_kernel_ptrs.empty())
-    return true;
+  if (!layer_kernel_ptrs.empty()) {
+    ml_loge("kernels for concat layer are already registered");
+    return false;
+  }
 
   do {
 
