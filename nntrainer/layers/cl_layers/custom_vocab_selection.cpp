@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2024 Yash Singh <yash.singh@samsung.com>>
+ * Copyright (C) 2024 Hyeonseok Lee <hs89.lee@samsung.com>
+ * Copyright (C) 2024 Yash Singh <yash.singh@samsung.com>
  *
  * @file   custom_vocab_selection.cpp
  * @date   1 Oct 2024

@@ -14,7 +14,6 @@
 #ifndef __CUSTOM_LM_HEAD_LAYER_H__
 #define __CUSTOM_LM_HEAD_LAYER_H__
 
-#include <custom_properties.h>
 #include <custom_vocab_selection.h>
 #include <layer_context.h>
 #include <layer_impl.h>
@@ -152,13 +151,12 @@ public:
 
 private:
   std::tuple<nntrainer::props::Unit, props::UseVocabSelection,
-             props::LshChoices, props::SmartReply>
+             props::LshChoices>
     custom_lm_head_props;
   std::array<unsigned int, 4> weight_idx; /**< indices of the weights */
   std::unique_ptr<nntrainer::Tensor>
     weight_T; // temporary weight. will be removed
 };
-
 } // namespace nntrainer
 
 #endif /* __LM_HEAD_LAYER_CL_H__ */

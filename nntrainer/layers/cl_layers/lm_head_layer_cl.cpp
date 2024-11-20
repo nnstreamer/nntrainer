@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2024 Yash Singh <yash.singh@samsung.com>>
+ * Copyright (C) 2024 Yash Singh <yash.singh@samsung.com>
  *
  * @file   lm_head_layer_cl.cpp
  * @date   1 Oct 2024
@@ -26,7 +26,7 @@ enum LMHeadParams { weight, bias, candidate_weight, candidate_hidden_step };
 CustomLMHeadLayerCl::CustomLMHeadLayerCl() :
   LayerImpl(),
   custom_lm_head_props(nntrainer::props::Unit(), props::UseVocabSelection(),
-                       props::LshChoices(), props::SmartReply()) {
+                       props::LshChoices()) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -36,8 +36,6 @@ void CustomLMHeadLayerCl::finalize(nntrainer::InitLayerContext &context) {
   auto &weight_regularizer_constant =
     std::get<nntrainer::props::WeightRegularizerConstant>(*layer_impl_props);
   auto weight_initializer = nntrainer::props::InitializerInfo::Enum::ZEROS;
-  // auto &weight_initializer =
-  //   std::get<nntrainer::props::WeightInitializer>(*layer_impl_props);
   auto &weight_decay =
     std::get<nntrainer::props::WeightDecay>(*layer_impl_props);
   auto &bias_decay = std::get<nntrainer::props::BiasDecay>(*layer_impl_props);
@@ -170,14 +168,14 @@ void CustomLMHeadLayerCl::incremental_forwarding(
   hidden_step_dim.batch(1);
   hidden_step_dim.height(1);
 
-  bool smart_reply = std::get<props::SmartReply>(custom_lm_head_props).get();
+  // bool smart_reply = std::get<props::SmartReply>(custom_lm_head_props).get();
 
   unsigned int b_size = input_dim.batch();
   unsigned omp_num = 4;
-  if (smart_reply && !_from) {
-    b_size = 1;
-    omp_num = 1;
-  }
+  // if (smart_reply && !_from) {
+  //   b_size = 1;
+  //   omp_num = 1;
+  // }
 
   // #pragma omp parallel for num_threads(omp_num)
   for (unsigned int b = 0; b < b_size; ++b) {
@@ -228,7 +226,7 @@ void CustomLMHeadLayerCl::incremental_forwarding(
       nntrainer::Tensor &bias =
         context.getWeight(weight_idx[LMHeadParams::bias]);
 
-      add_i_cl(bias, hidden_step);
+      add_i_cl(hidden_step, bias);
     }
   }
 }
@@ -239,21 +237,4 @@ void CustomLMHeadLayerCl::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, custom_lm_head_props);
   LayerImpl::setProperty(remain_props);
 }
-
-#ifdef PLUGGABLE
-
-nntrainer::Layer *create_custom_lm_head_layer() {
-  auto layer = new CustomLMHeadLayerCl();
-  return layer;
-}
-
-void destroy_custom_lm_head_layer(nntrainer::Layer *layer) { delete layer; }
-
-extern "C" {
-nntrainer::LayerPluggable ml_train_layer_pluggable{
-  create_custom_lm_head_layer, destroy_custom_lm_head_layer};
-}
-
-#endif
-
 } // namespace nntrainer
