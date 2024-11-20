@@ -44,9 +44,8 @@ static void add_default_object(ClContext &cc) {
                      ml::train::LayerType::LAYER_ADDITION);
 
   // @todo swiglulayercl also needs to be updated.
-  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
-  SwiGLULayerCl::type,
-   ml::train::LayerType::LAYER_SWIGLU);
+  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
+                     ml::train::LayerType::LAYER_SWIGLU);
 
   if (ReshapeLayerCl::registerClKernels()) {
     cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
@@ -56,7 +55,7 @@ static void add_default_object(ClContext &cc) {
 
   // @todo rmsnormlayercl also needs to be updated.
   cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-   RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+                     RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
 
   if (ConcatLayerCl::registerClKernels()) {
     cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>,
