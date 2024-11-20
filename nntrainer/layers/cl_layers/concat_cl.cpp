@@ -536,114 +536,6 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
   } while (false);
 }
 
-void ConcatLayerCl::concat_cl_axis3_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-  unsigned int input1_batch_size, unsigned int input1_channels,
-  unsigned int input1_height, unsigned int input1_width,
-  unsigned int input2_width) {
-
-  bool result = false;
-
-  do {
-
-    const auto &kernel_concat_ptr =
-      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3_FP16];
-
-    int dim = int(input1_batch_size * input1_channels * input1_height *
-                  (input1_width + input2_width));
-
-    opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
-                            input1_height * input1_width,
-                          true, nullptr);
-
-    opencl::Buffer inputX(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
-                            input1_height * input2_width,
-                          true, nullptr);
-
-    opencl::Buffer inOutY(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
-                            input1_height * (input1_width + input2_width),
-                          true, nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input1_width, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input2_width, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {dim, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
-
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
-}
-
 void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
                                     const float *vecXdata, float *vecYdata,
                                     unsigned int input1_batch_size,
@@ -673,113 +565,6 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
 
     opencl::Buffer inOutY(cl_context_ref.context_inst_,
                           sizeof(float) * input1_batch_size * input1_channels *
-                            (input1_height + input2_height) * input1_width,
-                          true, nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
-    if (!result) {
-      break;
-    }
-
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input2_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    const int work_groups_count[3] = {dim, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
-
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
-    if (!result) {
-      break;
-    }
-
-    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
-}
-
-void ConcatLayerCl::concat_cl_axis2_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-  unsigned int input1_batch_size, unsigned int input1_channels,
-  unsigned int input1_width, unsigned int input1_height,
-  unsigned int input2_height) {
-
-  bool result = false;
-
-  do {
-    const auto &kernel_concat_ptr =
-      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2_FP16];
-
-    int dim = int(input1_batch_size * input1_channels * input1_width *
-                  (input1_height + input2_height));
-
-    opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
-                            input1_height * input1_width,
-                          true, nullptr);
-
-    opencl::Buffer inputX(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
-                            input2_height * input1_width,
-                          true, nullptr);
-
-    opencl::Buffer inOutY(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
                             (input1_height + input2_height) * input1_width,
                           true, nullptr);
 
@@ -968,11 +753,233 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
   } while (false);
 }
 
-void ConcatLayerCl::concat_cl_axis1_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
-  unsigned int input1_batch_size, unsigned int input1_height,
-  unsigned int input1_width, unsigned int input1_channels,
-  unsigned int input2_channels) {
+#ifdef ENABLE_FP16
+void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
+                                         const _FP16 *vecXdata, _FP16 *vecYdata,
+                                         unsigned int input1_batch_size,
+                                         unsigned int input1_channels,
+                                         unsigned int input1_height,
+                                         unsigned int input1_width,
+                                         unsigned int input2_width) {
+
+  bool result = false;
+
+  do {
+
+    const auto &kernel_concat_ptr =
+      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3_FP16];
+
+    int dim = int(input1_batch_size * input1_channels * input1_height *
+                  (input1_width + input2_width));
+
+    opencl::Buffer inputA(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            input1_height * input1_width,
+                          true, nullptr);
+
+    opencl::Buffer inputX(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            input1_height * input2_width,
+                          true, nullptr);
+
+    opencl::Buffer inOutY(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            input1_height * (input1_width + input2_width),
+                          true, nullptr);
+
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
+    if (!result) {
+      break;
+    }
+
+    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
+    if (!result) {
+      break;
+    }
+
+    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(6, &input1_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(7, &input2_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {dim, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_concat_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
+                                         const _FP16 *vecXdata, _FP16 *vecYdata,
+                                         unsigned int input1_batch_size,
+                                         unsigned int input1_channels,
+                                         unsigned int input1_width,
+                                         unsigned int input1_height,
+                                         unsigned int input2_height) {
+
+  bool result = false;
+
+  do {
+    const auto &kernel_concat_ptr =
+      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2_FP16];
+
+    int dim = int(input1_batch_size * input1_channels * input1_width *
+                  (input1_height + input2_height));
+
+    opencl::Buffer inputA(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            input1_height * input1_width,
+                          true, nullptr);
+
+    opencl::Buffer inputX(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            input2_height * input1_width,
+                          true, nullptr);
+
+    opencl::Buffer inOutY(cl_context_ref.context_inst_,
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
+                            (input1_height + input2_height) * input1_width,
+                          true, nullptr);
+
+    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
+    if (!result) {
+      break;
+    }
+
+    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
+    if (!result) {
+      break;
+    }
+
+    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_concat_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(6, &input2_height, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    result =
+      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
+    if (!result) {
+      break;
+    }
+
+    const int work_groups_count[3] = {dim, 1, 1};
+    const int work_group_size[3] = {32, 32, 1}; // test-value
+
+    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+      kernel_concat_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      break;
+    }
+
+    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
+    if (!result) {
+      break;
+    }
+
+  } while (false);
+}
+
+void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
+                                         const _FP16 *vecXdata, _FP16 *vecYdata,
+                                         unsigned int input1_batch_size,
+                                         unsigned int input1_height,
+                                         unsigned int input1_width,
+                                         unsigned int input1_channels,
+                                         unsigned int input2_channels) {
 
   bool result = false;
 
@@ -985,17 +992,17 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
                   (input1_channels + input2_channels));
 
     opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_channels *
+                          sizeof(_FP16) * input1_batch_size * input1_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inputX(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input2_channels *
+                          sizeof(_FP16) * input1_batch_size * input2_channels *
                             input1_height * input1_width,
                           true, nullptr);
 
     opencl::Buffer inOutY(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * input1_batch_size * input1_width *
+                          sizeof(_FP16) * input1_batch_size * input1_width *
                             input1_height * (input1_channels + input2_channels),
                           true, nullptr);
 
@@ -1075,6 +1082,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
 
   } while (false);
 }
+#endif
 
 void ConcatLayerCl::calcDerivative(RunLayerContext &context) {
   //   /**
