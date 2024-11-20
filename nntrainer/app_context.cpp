@@ -279,7 +279,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_LAYER_NORMALIZATION);
   ac.registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
                      LayerType::LAYER_CONV2D);
-  ac.registerFactory(nntrainer::createLayer<Conv2DTransposeLayer>, Conv2DTransposeLayer::type,
+  ac.registerFactory(nntrainer::createLayer<Conv2DTransposeLayer>,
+                     Conv2DTransposeLayer::type,
                      LayerType::LAYER_CONV2D_TRANSPOSE);
   ac.registerFactory(nntrainer::createLayer<Conv1DLayer>, Conv1DLayer::type,
                      LayerType::LAYER_CONV1D);
