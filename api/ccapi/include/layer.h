@@ -45,7 +45,9 @@ enum LayerType {
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
   LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /**< Convolution 2D Layer type */
-  LAYER_CONV2D_TRANSPOSE = ML_TRAIN_LAYER_TYPE_CONV2D_TRANSPOSE, /**< Convolution 2D Transpose Layer type */
+  LAYER_CONV2D_TRANSPOSE =
+    ML_TRAIN_LAYER_TYPE_CONV2D_TRANSPOSE, /**< Convolution 2D Transpose Layer
+                                             type */
   LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /**< Pooling 2D Layer type */
   LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /**< Flatten Layer type */
   LAYER_ACTIVATION =
