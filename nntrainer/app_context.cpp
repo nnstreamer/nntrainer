@@ -28,6 +28,7 @@
 #include <util_func.h>
 
 #include <adam.h>
+#include <adamw.h>
 #include <sgd.h>
 
 #include <activation_layer.h>
@@ -229,6 +230,8 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createOptimizer<SGD>, SGD::type, OptType::SGD);
   ac.registerFactory(nntrainer::createOptimizer<Adam>, Adam::type,
                      OptType::ADAM);
+  ac.registerFactory(nntrainer::createOptimizer<AdamW>, AdamW::type,
+                     OptType::ADAMW);
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Optimizer>,
                      "unknown", OptType::UNKNOWN);
 

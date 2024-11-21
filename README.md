@@ -112,6 +112,7 @@ NNTrainer Provides
  |:-------:|:---:|:---:|
  | sgd | Stochastic Gradient Decent | - |
  | adam | Adaptive Moment Estimation | - |
+ | adamw | Adam with decoupled weight decay regularization | - |
 
  | Keyword | Learning Rate | Description |
  |:-------:|:---:|:---:|
