@@ -8,7 +8,8 @@ optimizer_sources = [
   'lr_scheduler_exponential.cpp',
   'lr_scheduler_linear.cpp',
   'lr_scheduler_step.cpp',
-  'optimizer_wrapped.cpp'
+  'optimizer_wrapped.cpp',
+  'adamw.cpp',
 ]
 
 optimizer_headers = [
