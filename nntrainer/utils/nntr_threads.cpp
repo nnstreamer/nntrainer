@@ -13,19 +13,25 @@
 #include <algorithm>
 #include <nntr_threads.h>
 
+#ifdef NNTR_NUM_THREADS
+static const unsigned int nntr_num_threads = NNTR_NUM_THREADS;
+#else
+static const unsigned int nntr_num_threads = 1;
+#endif
+
 namespace nntrainer {
 
 ParallelBatch::ParallelBatch(unsigned int batch_size) :
   cb(nullptr),
   batch(batch_size),
-  num_workers(NNTR_NUM_THREADS > batch ? 1 : NNTR_NUM_THREADS),
+  num_workers(nntr_num_threads > batch ? 1 : nntr_num_threads),
   user_data_prop(new props::PropsUserData(nullptr)){};
 
 ParallelBatch::ParallelBatch(threaded_cb threaded_cb_, unsigned int batch_size,
                              void *user_data_) :
   cb(threaded_cb_),
   batch(batch_size),
-  num_workers(NNTR_NUM_THREADS > batch ? 1 : NNTR_NUM_THREADS),
+  num_workers(nntr_num_threads > batch ? 1 : nntr_num_threads),
   user_data_prop(new props::PropsUserData(user_data_)) {}
 
 ParallelBatch::~ParallelBatch() {}
