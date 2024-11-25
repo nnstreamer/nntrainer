@@ -75,6 +75,9 @@ void InputLayer::finalize(InitLayerContext &context) {
   }
 
   context.setOutputDimensions(output_dims);
+  is_inplace = true;
+  if (context.getActivationDataType() != ml::train::TensorDim::DataType::FP32)
+    is_inplace = false;
 }
 
 } /* namespace nntrainer */

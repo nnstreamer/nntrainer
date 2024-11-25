@@ -105,7 +105,7 @@ public:
 
 private:
   std::tuple<props::Normalization, props::Standardization> input_props;
-  bool is_inplace = true;
+  bool is_inplace;
 };
 } // namespace nntrainer
 
