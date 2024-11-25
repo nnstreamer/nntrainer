@@ -72,7 +72,7 @@ protected:
   Tensor
     l; /**< loss tensor to store intermediate value to calculate loss value */
 
-  bool is_inplace = true;
+  bool is_inplace;
 };
 
 } // namespace nntrainer
