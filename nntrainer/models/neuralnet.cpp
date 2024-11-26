@@ -1058,7 +1058,7 @@ int NeuralNetwork::train_run(
 
   auto train_for_iteration =
     [this, stop_cb, stop_user_data](RunStats &stat, DataBuffer &buffer) {
-      ml_loge("train for iteration");
+      ml_logi("train for iteration");
       forwarding(true, stop_cb, stop_user_data);
       backwarding(iter++, stop_cb, stop_user_data);
 
