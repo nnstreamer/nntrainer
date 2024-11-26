@@ -1,3 +1,6 @@
+model_util_path = meson.current_source_dir()
+model_util_include_dir = include_directories('.')
+
 test_name = 'unittest_models'
 mixed_test_name = 'unittest_mixed_models'
 
