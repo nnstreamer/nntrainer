@@ -46,7 +46,7 @@ static void checkFile(const T &file, const char *error_msg) {
     throw std::runtime_error(error_msg);
   }
 }
-
+// test comment
 void checkedRead(std::ifstream &file, char *array, std::streamsize size,
                  const char *error_msg = default_error_msg) {
   file.read(array, size);
