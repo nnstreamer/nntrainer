@@ -23,6 +23,11 @@
 #include <optimizer.h>
 using namespace nntrainer;
 
+/**
+ *  Supported Layer list
+ *  [InputLayer, BatchNormalizationLayer, FullyConnectedLayer, Conv1DLayer]
+ */
+
 TEST(mixed_precision, input_only_model_test) {
 
   std::unique_ptr<ml::train::Model> nn =
@@ -44,6 +49,59 @@ TEST(mixed_precision, input_only_model_test) {
   EXPECT_EQ(nn->reinitialize(), ML_ERROR_NONE);
 }
 
+TEST(mixed_precision, conv1d_model_test) {
+
+  std::unique_ptr<ml::train::Model> nn =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"loss=mse"});
+  nn->setProperty(
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"});
+
+  auto graph = makeGraph({
+    {"input", {"name=in", "input_shape=3:1:3"}},
+    {"conv1d", {"name=conv1d_0", "filters=1", "kernel_size=3"}},
+    {"conv1d", {"name=conv1d_1", "filters=1", "kernel_size=1"}},
+    {"batch_normalization", {"name=bn_0", "epsilon=0.00001", "momentum=0.9"}},
+    {"batch_normalization", {"name=bn_1", "epsilon=0.00001", "momentum=0.9"}},
+  });
+
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("adam", {"learning_rate = 0.1"}));
+
+  EXPECT_EQ(nn->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(nn->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(nn->reinitialize(), ML_ERROR_NONE);
+}
+
+TEST(mixed_precision, lstm_test) {
+
+  std::unique_ptr<ml::train::Model> nn =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"loss=mse"});
+  nn->setProperty(
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"});
+
+  auto graph = makeGraph({
+    {"input", {"name=in", "input_shape=1:3:3"}},
+    {"lstm", {"name=lstm_0", "unit=1"}},
+    {"lstm", {"name=lstm_1", "unit=1"}},
+    {"lstm", {"name=lstm_2", "unit=1"}},
+    {"batch_normalization", {"name=bn_0", "epsilon=0.00001", "momentum=0.9"}},
+    {"batch_normalization", {"name=bn_1", "epsilon=0.00001", "momentum=0.9"}},
+  });
+
+  for (auto &node : graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("adam", {"learning_rate = 0.1"}));
+
+  EXPECT_EQ(nn->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(nn->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(nn->reinitialize(), ML_ERROR_NONE);
+}
+
 TEST(mixed_precision, loss_scale_test) {
   std::unique_ptr<ml::train::Model> nn =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"loss=mse"});
@@ -52,10 +110,8 @@ TEST(mixed_precision, loss_scale_test) {
                                 "loss_scale=0"}),
                std::invalid_argument);
 
-  EXPECT_NO_THROW(
-    nn->setProperty(
-      {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"}),
-    std::invalid_argument);
+  EXPECT_NO_THROW(nn->setProperty(
+    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"}));
 }
 
 TEST(mixed_precision, model_tensor_type_test) {

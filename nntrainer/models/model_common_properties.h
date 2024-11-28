@@ -238,6 +238,14 @@ public:
   LossScale(float value = 1.0f);
   static constexpr const char *key = "loss_scale"; /**< unique key to access */
   using prop_tag = float_prop_tag;                 /**< property type */
+
+  /**
+   * @brief check if valid
+   *
+   * @param value value to check
+   * @return bool true if valid
+   */
+  bool isValid(const float &value) const override;
 };
 
 } // namespace nntrainer::props
