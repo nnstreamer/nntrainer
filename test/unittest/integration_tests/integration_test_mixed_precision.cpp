@@ -23,11 +23,6 @@
 #include <optimizer.h>
 using namespace nntrainer;
 
-int add_3(int &a) {
-  a += 3;
-  return 0;
-}
-
 TEST(mixed_precision, input_only_model_test) {
 
   std::unique_ptr<ml::train::Model> nn =
@@ -52,18 +47,36 @@ TEST(mixed_precision, input_only_model_test) {
 TEST(mixed_precision, loss_scale_test) {
   std::unique_ptr<ml::train::Model> nn =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"loss=mse"});
-  nn->setProperty(
-    {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=0"});
 
-  auto graph = makeGraph({
-    {"input", {"name=in", "input_shape=1:1:3"}},
-  });
+  EXPECT_THROW(nn->setProperty({"batch_size=1", "model_tensor_type=FP16-FP16",
+                                "loss_scale=0"}),
+               std::invalid_argument);
 
-  for (auto &node : graph) {
-    nn->addLayer(node);
+  EXPECT_NO_THROW(
+    nn->setProperty(
+      {"batch_size=1", "model_tensor_type=FP16-FP16", "loss_scale=65536"}),
+    std::invalid_argument);
+}
+
+TEST(mixed_precision, model_tensor_type_test) {
+  std::unique_ptr<ml::train::Model> nn =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"loss=mse"});
+
+  std::string positive_type_list[] = {"QINT4-FP16", "QINT4-FP32", "QINT8-FP16",
+                                      "QINT8-FP32", "FP16-FP16",  "FP16-FP32",
+                                      "FP32-FP16",  "FP32-FP32"};
+  std::string negative_type_list[] = {"FP16-XXX", "XXX-XXX", "", "ttkt",
+                                      "UINT8-UINT8"};
+
+  for (auto type_item : positive_type_list) {
+    EXPECT_NO_THROW(nn->setProperty(
+      {"batch_size=1", "model_tensor_type=" + type_item, "loss_scale=65536"}));
   }
 
-  nn->setOptimizer(ml::train::createOptimizer("adam", {"learning_rate = 0.1"}));
-
-  EXPECT_THROW(nn->compile(), std::invalid_argument);
+  for (auto type_item : negative_type_list) {
+    EXPECT_THROW(
+      nn->setProperty(
+        {"batch_size=1", "model_tensor_type=" + type_item, "loss_scale=65536"}),
+      std::invalid_argument);
+  }
 }
