@@ -69,6 +69,10 @@ void FilePath::set(const std::string &v) {
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
 
+bool LossScaleForMixed::isValid(const float &value) const {
+  return (value != 0);
+}
+
 bool DirPath::isValid(const std::string &v) const {
   struct stat dir;
   return (stat(v.c_str(), &dir) == 0);

@@ -1462,6 +1462,15 @@ class LossScaleForMixed : public Property<float> {
 public:
   static constexpr const char *key = "loss_scale"; /**< unique key to access */
   using prop_tag = float_prop_tag;                 /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @retval true if it is Not 0
+   * @retval false if it is 0
+   */
+  bool isValid(const float &value) const override;
 };
 
 /**
