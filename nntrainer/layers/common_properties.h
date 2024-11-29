@@ -1466,7 +1466,7 @@ public:
   /**
    * @brief check if given value is valid
    *
-   * @param v value to check
+   * @param value value to check
    * @retval true if it is Not 0
    * @retval false if it is 0
    */
