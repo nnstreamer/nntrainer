@@ -67,10 +67,11 @@ static void add_default_object(ClContext &cc) {
                        ConcatLayerCl::type, ml::train::LayerType::LAYER_CONCAT);
   }
 
-  // @todo transposlayercl also needs to be updated.
-  cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
-                     TransposeLayerCl::type,
-                     ml::train::LayerType::LAYER_TRANSPOSE);
+  if (TransposeLayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
+                       TransposeLayerCl::type,
+                       ml::train::LayerType::LAYER_TRANSPOSE);
+  }
 }
 
 static void registerer(ClContext &cc) noexcept {

@@ -95,11 +95,10 @@ public:
   const std::string getType() const override { return AdditionLayerCL::type; };
 
   /**
-   * @brief     registerClKernels for addition_layer_cl
-   * @details   registerClKernels for addition_layer_cl always returns true
-   * without any specific action for kernel registeration. It only uses
-   * cl_blas_kernels and there is no specific kernels for this. If there are
-   * specific kernels for this, it should be updated to register the kernels .
+   * @brief     Register Cl Kernels for `AdditionLayerCl`, bypassing the
+   * registration process since it does not require any specific kernels. This
+   * function simply returns `true` because `AdditionLayerCl` does not rely on
+   * the specific kernels for the layer.
    */
   static bool registerClKernels() { return true; };
 
