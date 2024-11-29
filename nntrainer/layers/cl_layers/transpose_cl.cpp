@@ -70,20 +70,4 @@ void TransposeLayerCl::setProperty(const std::vector<std::string> &values) {
   }
 }
 
-#ifdef PLUGGABLE
-
-Layer *create_transpose_layer_cl() {
-  auto layer = new TransposeLayerCl();
-  return layer;
-}
-
-void destroy_transpose_layer_cl(Layer *layer) { delete layer; }
-
-extern "C" {
-LayerPluggable ml_train_layer_pluggable{create_transpose_layer_cl,
-                                        destroy_transpose_layer_cl};
-}
-
-#endif
-
 } // namespace nntrainer
