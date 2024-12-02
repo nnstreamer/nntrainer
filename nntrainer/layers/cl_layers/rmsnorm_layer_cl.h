@@ -135,7 +135,7 @@ public:
 private:
   std::array<unsigned int, 1> wt_idx;
 
-  std::tuple<props::RMS_NORM_GAMMA_INIT, props::Epsilon>
+  std::tuple<props::GammaInitializer, props::Epsilon>
     rmsnorm_props; /**< rmsnorm layer properties */
 
   inline static std::vector<ClContext::SharedPtrClKernel>

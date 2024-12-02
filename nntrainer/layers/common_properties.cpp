@@ -314,13 +314,13 @@ WeightInitializer::WeightInitializer(Initializer value) { set(value); }
 
 BiasInitializer::BiasInitializer(Initializer value) { set(value); }
 
-BNPARAMS_MU_INIT::BNPARAMS_MU_INIT(Initializer value) { set(value); }
+MuInitializer::MuInitializer(Initializer value) { set(value); }
 
-BNPARAMS_VAR_INIT::BNPARAMS_VAR_INIT(Initializer value) { set(value); }
+VarInitializer::VarInitializer(Initializer value) { set(value); }
 
-BNPARAMS_GAMMA_INIT::BNPARAMS_GAMMA_INIT(Initializer value) { set(value); }
+GammaInitializer::GammaInitializer(Initializer value) { set(value); }
 
-BNPARAMS_BETA_INIT::BNPARAMS_BETA_INIT(Initializer value) { set(value); }
+BetaInitializer::BetaInitializer(Initializer value) { set(value); }
 
 BasicRegularizer::BasicRegularizer(nntrainer::WeightRegularizer value) {
   set(value);

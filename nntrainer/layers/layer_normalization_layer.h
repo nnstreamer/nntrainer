@@ -128,9 +128,8 @@ private:
     remain_axes; /**< remained axes (exclusive with normalize axes) */
 
   std::array<unsigned int, 7> wt_idx;
-  std::tuple<std::vector<props::Axis>, props::Epsilon,
-             props::BNPARAMS_GAMMA_INIT, props::BNPARAMS_BETA_INIT,
-             props::WeightDecay, props::BiasDecay>
+  std::tuple<std::vector<props::Axis>, props::Epsilon, props::GammaInitializer,
+             props::BetaInitializer, props::WeightDecay, props::BiasDecay>
     layer_normalization_props;
 };
 

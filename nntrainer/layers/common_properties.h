@@ -1030,72 +1030,59 @@ public:
 };
 
 /**
- * @brief BNPARAMS_MU_INIT Initialization Enumeration Information
+ * @brief MuInitializer Initialization Enumeration Information
  *
  */
-class BNPARAMS_MU_INIT final : public EnumProperty<InitializerInfo> {
+class MuInitializer final : public EnumProperty<InitializerInfo> {
 public:
   /**
-   * @brief Construct a BNPARAMS_MU_INIT object
+   * @brief Construct a MuInitializer object
    */
-  BNPARAMS_MU_INIT(Initializer value = Initializer::ZEROS);
+  MuInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_mean_initializer";
 };
 
 /**
- * @brief BNPARAMS_VAR_INIT Initialization Enumeration Information
+ * @brief VarInitializer Initialization Enumeration Information
  *
  */
-class BNPARAMS_VAR_INIT final : public EnumProperty<InitializerInfo> {
+class VarInitializer final : public EnumProperty<InitializerInfo> {
 public:
   /**
-   * @brief Construct a BNPARAMS_VAR_INIT object
+   * @brief Construct a VarInitializer object
    */
-  BNPARAMS_VAR_INIT(Initializer value = Initializer::ONES);
+  VarInitializer(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_variance_initializer";
 };
 
 /**
- * @brief BNPARAMS_GAMMA_INIT Initialization Enumeration Information
+ * @brief GammaInitializer Initialization Enumeration Information
  *
  */
-class BNPARAMS_GAMMA_INIT final : public EnumProperty<InitializerInfo> {
+class GammaInitializer final : public EnumProperty<InitializerInfo> {
 public:
   /**
-   * @brief Construct a BNPARAMS_GAMMA_INIT object
+   * @brief Construct a GammaInitializer object
    */
-  BNPARAMS_GAMMA_INIT(Initializer value = Initializer::ONES);
+  GammaInitializer(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "gamma_initializer";
 };
 
 /**
- * @brief BNPARAMS_BETA_INIT Initialization Enumeration Information
+ * @brief BetaInitializer Initialization Enumeration Information
  *
  */
-class BNPARAMS_BETA_INIT final : public EnumProperty<InitializerInfo> {
+class BetaInitializer final : public EnumProperty<InitializerInfo> {
 public:
   /**
-   * @brief Construct a BNPARAMS_BETA_INIT object
+   * @brief Construct a BetaInitializer object
    */
-  BNPARAMS_BETA_INIT(Initializer value = Initializer::ZEROS);
+  BetaInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "beta_initializer";
-};
-
-/**
- * @brief RMS_NORM_GAMMA_INIT Initialization Enumeration Information
- */
-class RMS_NORM_GAMMA_INIT final : public EnumProperty<InitializerInfo> {
-public:
-  /**
-   * @brief Construct a RMS_NORM_GAMMA_INIT object
-   */
-  RMS_NORM_GAMMA_INIT(Initializer value = Initializer::ONES) { set(value); };
-  using prop_tag = enum_class_prop_tag;
-  static constexpr const char *key = "gamma_initializer";
 };
 
 /**
