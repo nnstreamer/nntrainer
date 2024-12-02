@@ -96,7 +96,7 @@ RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
 void RMSNormLayerCl::finalize(InitLayerContext &context) {
   std::vector<TensorDim> dim = context.getInputDimensions();
   context.setOutputDimensions(dim);
-  auto &rmsparams_gamma = std::get<props::RMS_NORM_GAMMA_INIT>(rmsnorm_props);
+  auto &rmsparams_gamma = std::get<props::GammaInitializer>(rmsnorm_props);
 
   TensorDim gamma_dim(
     1, 1, 1, dim[0].width(),

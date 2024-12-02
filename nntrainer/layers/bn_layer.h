@@ -126,9 +126,9 @@ private:
   std::vector<unsigned int> axes_to_reduce; /**< target axes to reduce */
   std::array<unsigned int, 11>
     wt_idx; /**< indices of the weights and tensors */
-  std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT, props::BNPARAMS_VAR_INIT,
-             props::BNPARAMS_BETA_INIT, props::BNPARAMS_GAMMA_INIT,
-             props::Momentum, props::Axis, props::WeightDecay, props::BiasDecay>
+  std::tuple<props::Epsilon, props::MuInitializer, props::VarInitializer,
+             props::BetaInitializer, props::GammaInitializer, props::Momentum,
+             props::Axis, props::WeightDecay, props::BiasDecay>
     bn_props;
 };
 

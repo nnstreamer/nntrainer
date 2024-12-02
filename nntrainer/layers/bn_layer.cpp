@@ -50,10 +50,10 @@ enum BNParams {
 BatchNormalizationLayer::BatchNormalizationLayer() :
   Layer(),
   divider(0),
-  bn_props(props::Epsilon(), props::BNPARAMS_MU_INIT(),
-           props::BNPARAMS_VAR_INIT(), props::BNPARAMS_BETA_INIT(),
-           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis(),
-           props::WeightDecay(), props::BiasDecay()) {
+  bn_props(props::Epsilon(), props::MuInitializer(), props::VarInitializer(),
+           props::BetaInitializer(), props::GammaInitializer(),
+           props::Momentum(), props::Axis(), props::WeightDecay(),
+           props::BiasDecay()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -62,10 +62,10 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Only one input is allowed for batch normalization layer";
 
-  auto &bnparams_mu = std::get<props::BNPARAMS_MU_INIT>(bn_props);
-  auto &bnparams_var = std::get<props::BNPARAMS_VAR_INIT>(bn_props);
-  auto &bnparams_beta = std::get<props::BNPARAMS_BETA_INIT>(bn_props);
-  auto &bnparams_gamma = std::get<props::BNPARAMS_GAMMA_INIT>(bn_props);
+  auto &bnparams_mu = std::get<props::MuInitializer>(bn_props);
+  auto &bnparams_var = std::get<props::VarInitializer>(bn_props);
+  auto &bnparams_beta = std::get<props::BetaInitializer>(bn_props);
+  auto &bnparams_gamma = std::get<props::GammaInitializer>(bn_props);
   auto &weight_decay = std::get<props::WeightDecay>(bn_props);
   auto &bias_decay = std::get<props::BiasDecay>(bn_props);
 

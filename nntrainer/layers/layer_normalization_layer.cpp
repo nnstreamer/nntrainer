@@ -38,9 +38,9 @@ enum LNParams {
 
 LayerNormalizationLayer::LayerNormalizationLayer() :
   Layer(),
-  layer_normalization_props(
-    std::vector<props::Axis>(), props::Epsilon(), props::BNPARAMS_GAMMA_INIT(),
-    props::BNPARAMS_BETA_INIT(), props::WeightDecay(), props::BiasDecay()) {
+  layer_normalization_props(std::vector<props::Axis>(), props::Epsilon(),
+                            props::GammaInitializer(), props::BetaInitializer(),
+                            props::WeightDecay(), props::BiasDecay()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -51,9 +51,9 @@ void LayerNormalizationLayer::finalize(InitLayerContext &context) {
   }
 
   auto gamma_initializer =
-    std::get<props::BNPARAMS_GAMMA_INIT>(layer_normalization_props).get();
+    std::get<props::GammaInitializer>(layer_normalization_props).get();
   auto beta_initializer =
-    std::get<props::BNPARAMS_BETA_INIT>(layer_normalization_props).get();
+    std::get<props::BetaInitializer>(layer_normalization_props).get();
   auto weight_decay = std::get<props::WeightDecay>(layer_normalization_props);
   auto bias_decay = std::get<props::BiasDecay>(layer_normalization_props);
 

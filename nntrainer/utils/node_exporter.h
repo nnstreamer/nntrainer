@@ -258,10 +258,10 @@ class BatchNormalizationLayer;
  */
 template <>
 void Exporter::saveTflResult(
-  const std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT,
-                   props::BNPARAMS_VAR_INIT, props::BNPARAMS_BETA_INIT,
-                   props::BNPARAMS_GAMMA_INIT, props::Momentum, props::Axis,
-                   props::WeightDecay, props::BiasDecay> &props,
+  const std::tuple<props::Epsilon, props::MuInitializer, props::VarInitializer,
+                   props::BetaInitializer, props::GammaInitializer,
+                   props::Momentum, props::Axis, props::WeightDecay,
+                   props::BiasDecay> &props,
   const BatchNormalizationLayer *self);
 
 class LayerImpl;
