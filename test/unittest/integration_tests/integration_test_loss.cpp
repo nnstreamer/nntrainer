@@ -36,7 +36,6 @@ static std::string withKey(const std::string &key,
 
   std::stringstream ss;
   ss << key << "=";
-
   auto iter = value.begin();
   for (; iter != value.end() - 1; ++iter) {
     ss << *iter << ',';
@@ -50,6 +49,7 @@ TEST(crossentropy_loss, model_pass_test) {
 
   std::unique_ptr<ml::train::Model> model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+  // test comment
 
   std::shared_ptr<ml::train::Layer> input_layer = ml::train::createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")});
