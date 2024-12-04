@@ -14,15 +14,18 @@
 #ifndef __BLAS_KERNELS_H__
 #define __BLAS_KERNELS_H__
 
+#include <cl_buffer_manager.h>
 #include <cl_context.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
+
 #include <string>
 
 namespace nntrainer {
 
 // get global cl_context to use in kernels
 static ClContext cl_context_ref;
+static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
  * @brief     sgemv computation : Y = A*X + Y

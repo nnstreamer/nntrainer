@@ -87,6 +87,24 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueUnmapMemObject)(
   const cl_event * /**< event_wait_list */, cl_event * /**< event */
 );
 
+typedef cl_int(CL_API_CALL *PFN_clEnqueueWriteBufferRect)(
+  cl_command_queue /**< command_queue */, cl_mem /**< buffer */,
+  cl_bool /**< blocking_write */, const size_t * /**< buffer_offset */,
+  const size_t * /**< host_offset */, const size_t * /**< region */,
+  size_t /**< buffer_row_pitch */, size_t /**< buffer_slice_pitch */,
+  size_t /**< host_row_pitch */, size_t /**< host_slice_pitch */,
+  const void * /**< ptr */, cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */);
+
+typedef cl_int(CL_API_CALL *PFN_clEnqueueReadBufferRect)(
+  cl_command_queue /**< command_queue */, cl_mem /**< buffer */,
+  cl_bool /**< blocking_read */, const size_t * /**< buffer_offset */,
+  const size_t * /**< host_offset */, const size_t * /**< region */,
+  size_t /**< buffer_row_pitch */, size_t /**< buffer_slice_pitch */,
+  size_t /**< host_row_pitch */, size_t /**< host_slice_pitch */,
+  void * /**< ptr */, cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */);
+
 typedef cl_program(CL_API_CALL *PFN_clCreateProgramWithSource)(
   cl_context /**< context */, cl_uint /**< count */,
   const char ** /**< strings */, const size_t * /**< lengths */,
@@ -161,6 +179,8 @@ extern PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 extern PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
 extern PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
 extern PFN_clEnqueueUnmapMemObject clEnqueueUnmapMemObject;
+extern PFN_clEnqueueWriteBufferRect clEnqueueWriteBufferRect;
+extern PFN_clEnqueueReadBufferRect clEnqueueReadBufferRect;
 extern PFN_clCreateProgramWithSource clCreateProgramWithSource;
 extern PFN_clCreateProgramWithBinary clCreateProgramWithBinary;
 extern PFN_clBuildProgram clBuildProgram;
