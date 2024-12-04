@@ -131,6 +131,41 @@ bool CommandQueueManager::EnqueueReadBuffer(cl_mem buffer, size_t size_in_bytes,
   return true;
 }
 
+bool CommandQueueManager::EnqueueReadBufferRegion(
+  cl_mem buffer, size_t size_in_bytes, void *data, size_t host_origin_offset,
+  size_t buffer_origin_offset, bool async) {
+
+  // managing synchronization
+  const cl_bool blocking = async ? CL_FALSE : CL_TRUE;
+
+  // (x, y, z) offset in the memory region associated with buffer
+  const size_t buffer_origin[] = {buffer_origin_offset, 0, 0};
+  // (x, y, z) offset in the memory region associated with host
+  const size_t host_origin[] = {host_origin_offset, 0, 0};
+  // region defines the (width in bytes, height in rows, depth in slices)
+  const size_t region[] = {size_in_bytes, 1, 1};
+  // length of each row in bytes
+  size_t row_pitch = region[0];
+  // length of each 2D slice in bytes
+  size_t slice_pitch = region[0] * region[1];
+
+  // Buffer and host data are interpreted as 1D in this case
+  // hence row and slice pitch are same for both
+  cl_int error_code = clEnqueueReadBufferRect(
+    command_queue_, buffer, blocking, buffer_origin, host_origin, region,
+    row_pitch, slice_pitch, row_pitch, slice_pitch, data, 0, nullptr, nullptr);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to write data region to GPU (clEnqueueWriteBufferRect). "
+            "OpenCL error "
+            "code: %d",
+            error_code);
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * @brief Writing buffer object. Used from Buffer class
  *
@@ -150,8 +185,44 @@ bool CommandQueueManager::EnqueueWriteBuffer(cl_mem buffer,
   auto error_code =
     clEnqueueWriteBuffer(command_queue_, buffer, blocking, 0, size_in_bytes,
                          data, 0, nullptr, nullptr);
+
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to upload data to GPU (clEnqueueWriteBuffer). OpenCL error "
+            "code: %d",
+            error_code);
+    return false;
+  }
+
+  return true;
+}
+
+bool CommandQueueManager::EnqueueWriteBufferRegion(
+  cl_mem buffer, size_t size_in_bytes, const void *data,
+  size_t host_origin_offset, size_t buffer_origin_offset, bool async) {
+
+  // managing synchronization
+  const cl_bool blocking = async ? CL_FALSE : CL_TRUE;
+
+  // (x, y, z) offset in the memory region associated with buffer
+  const size_t buffer_origin[] = {buffer_origin_offset, 0, 0};
+  // (x, y, z) offset in the memory region associated with host
+  const size_t host_origin[] = {host_origin_offset, 0, 0};
+  // region defines the (width in bytes, height in rows, depth in slices)
+  const size_t region[] = {size_in_bytes, 1, 1};
+  // length of each row in bytes
+  size_t row_pitch = region[0];
+  // length of each 2D slice in bytes
+  size_t slice_pitch = region[0] * region[1];
+
+  // Buffer and host data are interpreted as 1D in this case
+  // hence row and slice pitch are same for both
+  cl_int error_code = clEnqueueWriteBufferRect(
+    command_queue_, buffer, blocking, buffer_origin, host_origin, region,
+    row_pitch, slice_pitch, row_pitch, slice_pitch, data, 0, nullptr, nullptr);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to write data region to GPU (clEnqueueWriteBufferRect). "
+            "OpenCL error "
             "code: %d",
             error_code);
     return false;

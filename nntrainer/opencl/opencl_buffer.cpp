@@ -27,7 +27,7 @@ namespace nntrainer::opencl {
  * @param read_only flag
  * @param data data for the buffer
  */
-Buffer::Buffer(ContextManager &context_manager, int size_in_bytes,
+Buffer::Buffer(ContextManager &context_manager, size_t size_in_bytes,
                bool read_only, void *data) {
   cl_context context = context_manager.GetContext();
   cl_mem_flags flags = read_only ? CL_MEM_READ_ONLY : CL_MEM_READ_WRITE;
@@ -94,6 +94,20 @@ bool Buffer::WriteData(CommandQueueManager &command_queue_inst,
   return command_queue_inst.EnqueueWriteBuffer(mem_buf_, size_, data);
 }
 
+bool Buffer::WriteDataRegion(CommandQueueManager &command_queue_inst,
+                             size_t size_in_bytes, const void *data,
+                             size_t host_origin_offset,
+                             size_t buffer_origin_offset) {
+  if (size_in_bytes > size_) {
+    ml_loge("Failed to write buffer region. Region size(%lu bytes) greater "
+            "than buffer size(%lu bytes).",
+            size_in_bytes, size_);
+    return false;
+  }
+  return command_queue_inst.EnqueueWriteBufferRegion(
+    mem_buf_, size_in_bytes, data, host_origin_offset, buffer_origin_offset);
+}
+
 /**
  * @brief reading data from the buffer
  *
@@ -103,6 +117,20 @@ bool Buffer::WriteData(CommandQueueManager &command_queue_inst,
  */
 bool Buffer::ReadData(CommandQueueManager &command_queue_inst, void *data) {
   return command_queue_inst.EnqueueReadBuffer(mem_buf_, size_, data);
+}
+
+bool Buffer::ReadDataRegion(CommandQueueManager &command_queue_inst,
+                            size_t size_in_bytes, void *data,
+                            size_t host_origin_offset,
+                            size_t buffer_origin_offset) {
+  if (size_in_bytes > size_) {
+    ml_loge("Failed to read from buffer region. Region size(%lu bytes) greater "
+            "than buffer size(%lu bytes).",
+            size_in_bytes, size_);
+    return false;
+  }
+  return command_queue_inst.EnqueueReadBufferRegion(
+    mem_buf_, size_in_bytes, data, host_origin_offset, buffer_origin_offset);
 }
 
 void *Buffer::MapBuffer(CommandQueueManager &command_queue_inst,
