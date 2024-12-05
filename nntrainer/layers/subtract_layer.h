@@ -32,7 +32,8 @@ public:
    */
   SubtractLayer() :
     BinaryOperationLayer(),
-    subtract_props(props::Print(), props::InPlaceProp()) {}
+    subtract_props(props::Print(), props::InPlaceProp(),
+                   props::InPlaceDirectionProp()) {}
 
   /**
    * @brief Destructor of Sub Layer
@@ -77,6 +78,23 @@ public:
   bool supportBackwarding() const final { return true; };
 
   /**
+   * @brief Get the inplace direction for the tensor operation layer
+   *
+   * @return InPlaceDirection
+   */
+  InPlaceDirection getInPlaceDirection() override {
+    if (!supportInPlace())
+      return InPlaceDirection::NONE;
+    if (std::get<props::InPlaceDirectionProp>(subtract_props).empty() ||
+        (std::get<props::InPlaceDirectionProp>(subtract_props).get() ==
+         "left")) {
+      return InPlaceDirection::LEFT;
+    } else {
+      return InPlaceDirection::RIGHT;
+    }
+  };
+
+  /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
@@ -110,7 +128,8 @@ public:
    */
   const std::string getType() const final { return SubtractLayer::type; };
 
-  std::tuple<props::Print, props::InPlaceProp> subtract_props;
+  std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
+    subtract_props;
 
   inline static const std::string type = "subtract";
 };

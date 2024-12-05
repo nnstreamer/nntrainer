@@ -32,7 +32,8 @@ public:
    */
   DivideLayer() :
     BinaryOperationLayer(),
-    divide_props(props::Print(), props::InPlaceProp()),
+    divide_props(props::Print(), props::InPlaceProp(),
+                 props::InPlaceDirectionProp()),
     support_backwarding(true) {}
 
   /**
@@ -78,6 +79,22 @@ public:
   bool supportBackwarding() const final { return support_backwarding; };
 
   /**
+   * @brief Get the inplace direction for the tensor operation layer
+   *
+   * @return InPlaceDirection
+   */
+  InPlaceDirection getInPlaceDirection() override {
+    if (!supportInPlace())
+      return InPlaceDirection::NONE;
+    if (std::get<props::InPlaceDirectionProp>(divide_props).empty() ||
+        (std::get<props::InPlaceDirectionProp>(divide_props).get() == "left")) {
+      return InPlaceDirection::LEFT;
+    } else {
+      return InPlaceDirection::RIGHT;
+    }
+  };
+
+  /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
@@ -114,7 +131,8 @@ public:
    */
   const std::string getType() const final { return DivideLayer::type; };
 
-  std::tuple<props::Print, props::InPlaceProp> divide_props;
+  std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
+    divide_props;
   bool support_backwarding; /**< support backwarding */
 
   inline static const std::string type = "divide";
