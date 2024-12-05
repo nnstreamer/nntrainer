@@ -151,7 +151,7 @@ int api_model_run() {
     /// creating array of layers same as in `custom_layer_client.ini`
     layers = std::vector<std::shared_ptr<ml::train::Layer>>{
       ml::train::layer::Input({"name=inputlayer", "input_shape=1:1:100"}),
-      ml::train::createLayer("pow", {"name=powlayer", "exponent=3"}),
+      ml::train::createLayer("custom_pow", {"name=powlayer", "exponent=3"}),
       ml::train::layer::FullyConnected(
         {"name=outputlayer", "input_layers=powlayer", "unit=10",
          "bias_initializer=zeros", "activation=softmax"}),

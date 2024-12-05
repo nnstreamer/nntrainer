@@ -381,11 +381,18 @@ public:
   InPlaceType getInPlaceType() const { return inplace_type; }
 
   /**
+   * @brief Get the inplace direction for the layer
+   *
+   * @return InPlaceDirection
+   */
+  InPlaceDirection getInPlaceDirection() const;
+
+  /**
    * @brief  check if this layer requires label to be passed
    * @return true if requires a label when training, else false
-   * @note   if requireLabel() == true means, for now, that it is endpoint of a
-   * graph(numOutlayers == 0). label will be fed to the gradient of hidden if
-   * requireLabel is true
+   * @note   if requireLabel() == true means, for now, that it is endpoint of
+   * a graph(numOutlayers == 0). label will be fed to the gradient of hidden
+   * if requireLabel is true
    */
   bool requireLabel() const;
 
