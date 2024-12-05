@@ -34,7 +34,7 @@ private:
    * @brief Private constructor to prevent object creation
    *
    */
-  ClBufferManager();
+  ClBufferManager(){};
 
   /**
    * @brief OpenCl context global instance
@@ -60,6 +60,11 @@ public:
   opencl::Buffer *readBufferC;
   opencl::Buffer *writeBufferA;
   opencl::Buffer *writeBufferB;
+
+  /**
+   * @brief Initialize Buffer objects.
+   */
+  void initBuffers();
 
   /**
    * @brief Destroy Buffer pointers.

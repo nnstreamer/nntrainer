@@ -21,7 +21,7 @@ ClBufferManager &ClBufferManager::getInstance() {
 
 // to-do: Implementation to be updated with array of Buffer objects if required
 // fp16 Buffer objects to be added in future
-ClBufferManager::ClBufferManager() {
+void ClBufferManager::initBuffers() {
   readBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   readBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   readBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
@@ -36,6 +36,7 @@ ClBufferManager::~ClBufferManager() {
   delete readBufferC;
   delete writeBufferA;
   delete writeBufferB;
+  ml_logi("ClBufferManager: Buffers destroyed");
 }
 
 } // namespace nntrainer
