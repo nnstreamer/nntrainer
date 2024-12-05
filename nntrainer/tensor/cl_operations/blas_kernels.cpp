@@ -39,41 +39,40 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 
     size_t dim1_size = sizeof(float) * dim1;
     size_t dim2_size = sizeof(float) * dim2;
-    opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          dim1 * dim2 * sizeof(float), true, nullptr);
 
-    opencl::Buffer inputX(cl_context_ref.context_inst_, dim2_size, true,
-                          nullptr);
-
-    opencl::Buffer inOutY(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
-
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
+    result = clbuffInstance.readBufferA->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1 * dim2 * sizeof(float),
+      matAdata);
     if (!result) {
       break;
     }
 
-    result = inputX.WriteData(cl_context_ref.command_queue_inst_, vecXdata);
+    result = clbuffInstance.readBufferB->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim2_size, vecXdata);
     if (!result) {
       break;
     }
 
-    result = inOutY.WriteData(cl_context_ref.command_queue_inst_, vecYdata);
+    result = clbuffInstance.writeBufferA->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelArguments(0, clbuffInstance.readBufferA,
+                                                  sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(1, &inputX, sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelArguments(1, clbuffInstance.readBufferB,
+                                                  sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(2, &inOutY, sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelArguments(
+      2, clbuffInstance.writeBufferA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -97,7 +96,8 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
       break;
     }
 
-    result = inOutY.ReadData(cl_context_ref.command_queue_inst_, vecYdata);
+    result = clbuffInstance.writeBufferA->ReadDataRegion(
+      cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;
     }

@@ -74,6 +74,22 @@ public:
                          bool async = false);
 
   /**
+   * @brief Reading 1D region from a buffer object. Used from Buffer class
+   *
+   * @param buffer cl_mem buffer object
+   * @param size_in_bytes size of data region
+   * @param data pointer for the region
+   * @param host_origin_offset offset in the host memory region
+   * @param buffer_origin_offset offset in the buffer memory region
+   * @param async flag for asynchronous operation
+   * @return true if reading is successful or false otherwise
+   */
+  bool EnqueueReadBufferRegion(cl_mem buffer, size_t size_in_bytes, void *data,
+                               size_t host_origin_offset = 0,
+                               size_t buffer_origin_offset = 0,
+                               bool async = false);
+
+  /**
    * @brief Writing buffer object. Used from Buffer class
    *
    * @param buffer cl_mem buffer object
@@ -85,6 +101,20 @@ public:
   bool EnqueueWriteBuffer(cl_mem buffer, size_t size_in_bytes, const void *data,
                           bool async = false);
 
+  /**
+   * @brief Writing 1D region of a buffer object. Used from Buffer class
+   *
+   * @param buffer cl_mem buffer object
+   * @param size_in_bytes size of data region
+   * @param data pointer for the region
+   * @param origin_offset offset in the memory region
+   * @param async flag for asynchronous operation
+   * @return true if writing is successful or false otherwise
+   */
+  bool EnqueueWriteBufferRegion(cl_mem buffer, size_t size_in_bytes,
+                                const void *data, size_t host_origin_offset = 0,
+                                size_t buffer_origin_offset = 0,
+                                bool async = false);
   /**
    * @brief Mapping a region of a buffer object into the host address space
    *
