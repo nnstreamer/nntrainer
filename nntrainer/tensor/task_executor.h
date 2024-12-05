@@ -153,6 +153,7 @@ protected:
   std::string name;
   bool run_thread;
   bool wait_complete;
+  bool stop_all;
 
   std::list<TaskInfo<>> task_queue;
 

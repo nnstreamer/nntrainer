@@ -489,7 +489,8 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
 
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
       /// @note shared weights are only be read at the first acecss
-      if (run_context->isGradientLastAccess(i)) {
+      //      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->isGradientFirstAccess(i)) {
         if (layer->getType() == BatchNormalizationLayer::type) {
           if ((mode == ml::train::ExecutionMode::TRAIN) &&
               (this->getWeightDataType() != TensorDim::DataType::FP32)) {
@@ -526,7 +527,7 @@ void LayerNode::save(std::ofstream &file, bool opt_var,
 
   if (opt_var) {
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i) && getTrainable()) {
+      if (run_context->isGradientFirstAccess(i) && getTrainable()) {
         // @note save optimizer variables
         if (run_context->weightHasGradient(i)) {
           for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
@@ -539,7 +540,7 @@ void LayerNode::save(std::ofstream &file, bool opt_var,
   } else {
     // @note shared weights are only be saved at the first access
     for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i)) {
+      if (run_context->isGradientFirstAccess(i)) {
 
         /** @note For batch normalization layer, we do need full precision for
          * training and the data type of weight is full precision. But for

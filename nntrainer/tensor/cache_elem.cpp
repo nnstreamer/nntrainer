@@ -60,7 +60,6 @@ void CacheElem::swapIn(Options opt) {
   mem_data->setAddr((void *)buf);
   mem_data->setValid(true);
   active = true;
-
 #ifdef PROFILE
   std::string msg("CacheElem(");
   msg += device->getDevicePath() + ") #" + std::to_string(id);

@@ -435,6 +435,8 @@ bool TensorPool::isTensorLongTerm(const TensorLifespan &lifespan) {
   switch (lifespan) {
   case TensorLifespan::EPOCH_LIFESPAN:
     [[fallthrough]];
+  case TensorLifespan::FORWARD_INFER_LIFESPAN:
+    [[fallthrough]];
   case TensorLifespan::MAX_LIFESPAN:
     return true;
   case TensorLifespan::FORWARD_FUNC_LIFESPAN:
@@ -470,7 +472,15 @@ int TensorPool::loadCacheExecAsync(
   if (dynamic_cast<CachePool *>(mem_pool.get()))
     return cache_loader->loadAsync(order, complete_callback);
   else
-    return -1;
+    return 0;
+}
+
+int TensorPool::flushCacheExecAsync(
+  unsigned int order, TaskExecutor::CompleteCallback complete_callback) {
+  if (dynamic_cast<CachePool *>(mem_pool.get()))
+    return cache_loader->flushAsync(order, complete_callback);
+  else
+    return 0;
 }
 
 void TensorPool::loadCacheCancel(int id) {

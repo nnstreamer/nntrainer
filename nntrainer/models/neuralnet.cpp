@@ -67,12 +67,11 @@ namespace nntrainer {
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::TensorFormat(),
-                   props::ModelTensorDataType(), props::MemorySwapMode()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -88,12 +87,11 @@ NeuralNetwork::NeuralNetwork() :
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
-                   props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath(), props::MemoryOptimization(),
-                   props::MemorySwap(), props::MemorySwapPath(),
-                   props::MemorySwapLookahead(), props::TensorFormat(),
-                   props::ModelTensorDataType(), props::MemorySwapMode()),
+  model_flex_props(
+    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
+    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
+    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
+    props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -102,6 +100,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
+  exec_mode(ExecutionMode::TRAIN),
   app_context(app_context_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
@@ -214,6 +213,20 @@ int NeuralNetwork::compile(ExecutionMode mode) {
 int NeuralNetwork::initialize(ExecutionMode mode) {
   int status = ML_ERROR_NONE;
 
+  if (mode != exec_mode) {
+    if (mode == ExecutionMode::INFERENCE) {
+      ml_logd("Execution mode mismatch : train mode @compile & inference mode "
+              "@ initialize");
+      exec_mode = mode;
+    } else {
+      NNTR_THROW_IF(((mode == ExecutionMode::INFERENCE) &&
+                     (exec_mode == ExecutionMode::TRAIN)),
+                    std::invalid_argument)
+        << "Execution mode mismatch : trying to train with compiled for "
+           "infence";
+    }
+  }
+
   if (initialized) {
     ml_loge("Error: Initializing the model again");
     return ML_ERROR_NOT_SUPPORTED;
@@ -244,7 +257,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   }
 
   status = model_graph.initialize(
-    mode, input_conn,
+    exec_mode, input_conn,
     std::vector<Connection>(label_layers.begin(), label_layers.end()));
   NN_RETURN_STATUS();
 
@@ -267,6 +280,8 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
 
   // Allocate weights
   model_graph.allocateWeights(exec_mode != ExecutionMode::INFERENCE);
+  // enable this to save initialized weights for INFERENCE
+  // model_graph.allocateWeights(true);
 
   initialized = true;
 
@@ -336,9 +351,38 @@ sharedConstTensors NeuralNetwork::forwarding(
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
 
-    node->forwarding(training);
+    // temperally remain. when we evaluate all for asynch mode, we weill remove
+    if (exec_mode == ExecutionMode::TRAIN) {
+      model_graph.flushCacheExcept(f);
+      node->forwarding(training);
+    } else {
+      if (f == 0)
+        model_graph.LoadTensors(f);
+
+      if (model_graph.checkLoadComplete(f)) {
+        node->forwarding(training);
+        ml_logd("Forwarding is done %d : %s", f, node->getName().c_str());
+
+        unsigned int lookahead =
+          std::get<props::MemorySwapLookahead>(model_flex_props);
+
+        if (lookahead != 0) {
+          if ((f) % (lookahead + 1) == lookahead - 1) {
+            std::cout << "request load tensor : " << f + lookahead + 1
+                      << std::endl;
+            ml_logd("request load tensor for %d", f + 1);
+            model_graph.LoadTensors((f / (lookahead + 1) + 1) *
+                                    (lookahead + 1));
+          }
+        } else {
+          model_graph.LoadTensors(f);
+        }
+
+        if (f != 0)
+          model_graph.UnloadTensors(f);
+      }
+    }
   };
 
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
