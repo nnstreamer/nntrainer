@@ -91,7 +91,7 @@ void AdamW::applyGradient(RunOptimizerContext &context) {
   x_grad.divide_i(biasCorrection1);
   x_grad.multiply_i(wm);
 
-  context.applyGradient(context.getLearningRate());
+  context.applyGradient(context.getLearningRate(), x_grad);
 }
 
 } // namespace nntrainer
