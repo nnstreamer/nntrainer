@@ -191,9 +191,6 @@ Requires:	capi-machine-learning-training = %{version}-%{release}
 %endif #tizen
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow2-lite
-%if 0%{tizen_version_major}%{tizen_version_minor} > 60
-BuildRequires:	nnstreamer-test-devel
-%endif
 BuildRequires:	nnstreamer-tensorflow2-lite
 BuildRequires:	tensorflow2-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
