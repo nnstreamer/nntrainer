@@ -43,9 +43,10 @@ static void add_default_object(ClContext &cc) {
                      AdditionLayerCL::type,
                      ml::train::LayerType::LAYER_ADDITION);
 
-  // @todo swiglulayercl also needs to be updated.
-  cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
-                     ml::train::LayerType::LAYER_SWIGLU);
+  if (SwiGLULayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
+                       SwiGLULayerCl::type, ml::train::LayerType::LAYER_SWIGLU);
+  }
 
   if (ReshapeLayerCl::registerClKernels()) {
     cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
