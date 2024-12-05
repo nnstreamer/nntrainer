@@ -59,7 +59,7 @@ convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
     policy = CachePolicy::TEMPORAL;
     break;
   case TensorLifespan::CALC_GRAD_DERIV_LIFESPAN:
-    policy = CachePolicy::TEMPORAL;
+    policy = CachePolicy::ITERATION_CONSIST;
     break;
   case TensorLifespan::CALC_GRAD_DERIV_AGRAD_LIFESPAN:
     policy = CachePolicy::ITERATION_CONSIST;
@@ -68,7 +68,7 @@ convertTensorLifespanToCachePolicy(const TensorLifespan lifespan) {
     policy = CachePolicy::ITERATION_CONSIST;
     break;
   case TensorLifespan::FORWARD_GRAD_AGRAD_LIFESPAN:
-    policy = CachePolicy::ITERATION_CONSIST;
+    policy = CachePolicy::ALWAYS_SYNCED;
     break;
   case TensorLifespan::FORWARD_DERIV_LIFESPAN:
     policy = CachePolicy::ALWAYS_SYNCED;
