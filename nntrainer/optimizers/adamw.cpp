@@ -52,7 +52,16 @@ void AdamW::setProperty(const std::vector<std::string> &values) {
 }
 
 void AdamW::applyGradient(RunOptimizerContext &context) {
-  Tensor &x_grad = context.getGradient();
+  Tensor empty_tensor;
+
+  Tensor &x_grad =
+    context.getGradient().getDataType() == ml::train::TensorDim::DataType::FP32
+      ? context.getGradient()
+      : empty_tensor;
+
+  if (x_grad.empty()) {
+    x_grad = context.getGradient().clone();
+  }
 
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
@@ -77,11 +86,10 @@ void AdamW::applyGradient(RunOptimizerContext &context) {
   std::function<double(double)> sqrtEps = [epsilon](double f) {
     return 1 / (sqrtDouble(f) + epsilon);
   };
-  Tensor &term = wv;
-  term.apply<float>(sqrtEps);
-  term.divide_i(biasCorrection1);
-  term.multiply_i(wm);
-  x_grad.add_i(term);
+  wv.apply<float>(sqrtEps);
+  x_grad = wv;
+  x_grad.divide_i(biasCorrection1);
+  x_grad.multiply_i(wm);
 
   context.applyGradient(context.getLearningRate());
 }
