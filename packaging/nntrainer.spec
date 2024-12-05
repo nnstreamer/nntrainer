@@ -46,7 +46,7 @@
 
 %endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
-%define enable_fp16 0
+%define enable_fp16 1
 ### nntrainer fp16 implementation relies on NEON, which requires armv8.2-a
 ### armv7l Tizen: do not support fp16 neon.
 ### aarch64 Tizen: uses armv8.0a. no fp16 neon.
@@ -191,9 +191,6 @@ Requires:	capi-machine-learning-training = %{version}-%{release}
 %endif #tizen
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow2-lite
-%if 0%{tizen_version_major}%{tizen_version_minor} > 60
-BuildRequires:	nnstreamer-test-devel
-%endif
 BuildRequires:	nnstreamer-tensorflow2-lite
 BuildRequires:	tensorflow2-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
