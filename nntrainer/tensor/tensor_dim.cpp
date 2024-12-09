@@ -165,6 +165,8 @@ uint TensorDim::getDataTypeSize() const {
     return sizeof(int8_t);
   case TensorDim::DataType::QINT4:
     return sizeof(int8_t);
+  case TensorDim::DataType::BCQ:
+    return sizeof(uint32_t);
   default:
     return sizeof(float);
   }
@@ -392,6 +394,8 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "QINT8";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT4) {
     type_ = "QINT4";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::BCQ) {
+    type_ = "BCQ";
   }
 
   std::string format_ =

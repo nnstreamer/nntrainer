@@ -143,6 +143,17 @@ if get_option('opencl-kernel-path') != ''
   message ('OpenCL kernel path set to: @0@'.format(get_option('opencl-kernel-path')))
   extra_defines += '-DOPENCL_KERNEL_PATH=@0@'.format(get_option('opencl-kernel-path'))
 endif
+
+if get_option('enable-biqgemm')
+  # check if BiQGEMM directory exist. otherwise, throw an error
+  fs = import('fs')
+  if fs.is_dir('../BiQGEMM')
+    extra_defines += '-DENABLE_BIQGEMM=1'
+    biqgemm_inc = include_directories('../BiQGEMM')
+  else
+    error ('BiQGEMM cannot be enabled without BiQGEMM library.')
+  endif
+endif
     
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
