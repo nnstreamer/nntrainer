@@ -54,6 +54,7 @@ public:
   enum class DataType {
     QINT4,  /** quantized int 4*/
     QINT8,  /** quantized int 8*/
+    BCQ,    /** binary-code-based quantized*/
     UINT8,  /** unsigned int 8 bit */
     UINT16, /** unsigned int 16 bit */
     UINT32, /** unsigned int 32 bit */

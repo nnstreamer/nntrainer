@@ -76,6 +76,12 @@ if get_option('enable-fp16')
   tensor_sources += 'half_tensor.cpp'
 endif
 
+if get_option('enable-biqgemm')
+  tensor_headers += 'bcq_tensor.h'
+  tensor_sources += 'bcq_tensor.cpp'
+  nntrainer_inc += biqgemm_inc
+endif
+
 if get_option('enable-opencl')
   subdir('cl_operations')
   nntrainer_inc += include_directories('cl_operations')
