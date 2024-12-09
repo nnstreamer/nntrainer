@@ -1094,9 +1094,11 @@ void Tensor::save(std::ostream &file) {
   /// @note Save quantization information which only works on Quantized Tensor
   itensor->save_quantization_info(file);
 
-  std::streamsize sz = static_cast<std::streamsize>(bytes() + scale_size());
+  /// @note Scale factors are temporary fixed to float for now
+  std::streamsize sz =
+    static_cast<std::streamsize>(bytes() + scale_size() * sizeof(float));
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "save size: " << bytes() + scale_size()
+    << "save size: " << bytes() + scale_size() * sizeof(float)
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
@@ -1110,10 +1112,12 @@ void Tensor::read(std::ifstream &file) {
   /// @note Read quantization information which only works on Quantized Tensor
   itensor->read_quantization_info(file);
 
-  std::streamsize sz = static_cast<std::streamsize>(bytes() + scale_size());
+  /// @note Scale factors are temporary fixed to float for now
+  std::streamsize sz =
+    static_cast<std::streamsize>(bytes() + scale_size() * sizeof(float));
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << bytes() + scale_size()
+    << "read size: " << bytes() + scale_size() * sizeof(float)
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedRead(file, getData<char>(), sz, "[Tensor::read] operation failed");

@@ -207,14 +207,14 @@ public:
   std::vector<unsigned int> argmax() const override;
 
   /**
-   * @copydoc TensorBase::save_quant_bit(std::ostream &file)
+   * @copydoc TensorBase::save_quantization_info(std::ostream &file)
    */
-  // void save_quant_bit(std::ostream &file) override;
+  void save_quantization_info(std::ostream &file) override;
 
   /**
-   * @copydoc TensorBase::read_quant_bit(std::ifstream &file)
+   * @copydoc TensorBase::read_quantization_info(std::ifstream &file)
    */
-  // void read_quant_bit(std::ifstream &file) override;
+  void read_quantization_info(std::ifstream &file) override;
 
   /**
    * @copydoc TensorBase::size()
