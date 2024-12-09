@@ -269,11 +269,15 @@ std::vector<unsigned int> BCQTensor::argmax() const {
   return result;
 }
 
-// void BCQTensor::save_quant_bit(std::ostream &file) { return; }
+void BCQTensor::save_quantization_info(std::ostream &file) {
+  checkedWrite(file, (char *)&quantized_bit_size, sizeof(uint16_t),
+               "[BCQTensor::save] failed to write quantization information");
+}
 
-// void BCQTensor::read_quant_bit(std::ifstream &file) {
-//   file.read((char *)&quantized_bit_size, sizeof(uint16_t));
-// }
+void BCQTensor::read_quantization_info(std::ifstream &file) {
+  checkedRead(file, (char *)&quantized_bit_size, sizeof(uint16_t),
+              "[BCQTensor::read] failed to read quantization information");
+}
 
 size_t BCQTensor::size() const {
   return quantized_bit_size * dim.height() * ((dim.width() + 31) / 32);
