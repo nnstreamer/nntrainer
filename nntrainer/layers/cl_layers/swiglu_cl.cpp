@@ -243,19 +243,4 @@ void SwiGLULayerCl::setProperty(const std::vector<std::string> &values) {
   }
 }
 
-#ifdef PLUGGABLE
-
-Layer *create_swiglu_layer_cl() {
-  auto layer = new SwiGLULayerCl();
-  return layer;
-}
-
-void destroy_swiglu_layer_cl(Layer *layer) { delete layer; }
-
-extern "C" {
-LayerPluggable ml_train_layer_pluggable{create_swiglu_layer_cl,
-                                        destroy_swiglu_layer_cl};
-}
-
-#endif
 } // namespace nntrainer
