@@ -16,6 +16,7 @@
 
 #include <common_properties.h>
 #include <layer_devel.h>
+#include <layer_impl_cl.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 
@@ -25,13 +26,13 @@ namespace nntrainer {
  * @brief A tranpose layer.
  *
  */
-class TransposeLayerCl final : public Layer {
+class TransposeLayerCl final : public LayerImplCl {
 public:
   /**
    * @brief Construct a new transpose layer object
    *
    */
-  TransposeLayerCl() : Layer(), transpose_props(props::Print()) {}
+  TransposeLayerCl() : LayerImplCl(), transpose_props(props::Print()) {}
 
   /**
    * @brief Destroy the transpose layer object
@@ -82,15 +83,18 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  /**
+   * @brief     registerClKernels for transpose_cl
+   * @details   registerClKernels for transpose_cl always returns true
+   * without any specific action for kernel registeration. It only uses
+   * cl_blas_kernels and there is no specific kernels for this. If there are
+   * specific kernels for this, it should be updated to register the kernels .
+   */
+  static bool registerClKernels() { return true; };
+
   inline static const std::string type = "transpose";
 
-  static opencl::Kernel kernel_transpose_axis0;
-  static opencl::Kernel kernel_transpose_fp16_axis0;
-  static opencl::Kernel kernel_transpose_axis1;
-  static opencl::Kernel kernel_transpose_fp16_axis1;
-  static opencl::Kernel kernel_transpose_axis2;
-  static opencl::Kernel kernel_transpose_fp16_axis2;
-
+private:
   std::tuple<props::Print> transpose_props; /**< transpose layer properties :
                                             unit - number of output neurons */
 };
