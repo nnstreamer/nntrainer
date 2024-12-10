@@ -443,6 +443,7 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers.cpp \
 	 ../unittest/layers/unittest_layers_impl.cpp \
 	 ../unittest/layers/unittest_layers_transpose_cl.cpp \
+	 ../unittest/layers/unittest_layers_lm_head_cl.cpp \
 	 ../unittest/layers/unittest_layers_concat_cl.cpp \
 	 ../unittest/layers/unittest_layers_swiglu_cl.cpp \
 	 ../unittest/layers/unittest_layers_fully_connected_cl.cpp \
