@@ -179,7 +179,7 @@ typedef enum {
  * }
  *
  * // Fill label data
- * for (int idx = 0; idx < num_inputs; ++ idx) {
+ * for (int idx = 0; idx < num_labels; ++ idx) {
  *   for (int len = 0; len < label_length[idx]; ++ len) {
  *     label[idx][len] = rand();
  *   }
