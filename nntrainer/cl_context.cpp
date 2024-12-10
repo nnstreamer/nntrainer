@@ -53,9 +53,11 @@ static void add_default_object(ClContext &cc) {
                        ml::train::LayerType::LAYER_RESHAPE);
   }
 
-  // @todo rmsnormlayercl also needs to be updated.
-  cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-                     RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+  if (RMSNormLayerCl::registerClKernels()) {
+    cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+                       RMSNormLayerCl::type,
+                       ml::train::LayerType::LAYER_RMSNORM);
+  }
 
   if (ConcatLayerCl::registerClKernels()) {
     cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>,
