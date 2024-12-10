@@ -21,7 +21,7 @@
 
 GTEST_PARAMETER_TEST(PowLayer, LayerPluginCommonTest,
                      ::testing::Values(std::make_tuple("libpow_layer.so",
-                                                       "pow")));
+                                                       "custom_pow")));
 
 auto semantic_pow =
   LayerSemanticsParamType(nntrainer::createLayer<custom::PowLayer>,

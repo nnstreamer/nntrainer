@@ -77,7 +77,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "pow";
+  inline static const std::string type = "custom_pow";
 
 private:
   float exponent;
