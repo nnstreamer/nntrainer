@@ -50,6 +50,11 @@ if get_option('enable-opencl')
   nntrainer_elements += 'layers/cl_layers'
 endif
 
+if get_option('enable-qnn')
+  message ('QNN build is enabled. Will work only if Qualcomm NPU is available.')
+  nntrainer_elements += 'npu'
+endif
+
 foreach elem : nntrainer_elements
   subdir(elem)
   nntrainer_inc += include_directories(elem)
