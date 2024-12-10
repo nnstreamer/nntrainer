@@ -64,7 +64,9 @@ nntrainer_common_sources = [
 
 if get_option('enable-opencl')
   nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
+  nntrainer_headers += meson.current_source_dir() / 'cl_buffer_manager.h'
   nntrainer_common_sources += 'cl_context.cpp'
+  nntrainer_common_sources += 'cl_buffer_manager.cpp'
 endif
 
 foreach s : nntrainer_common_sources

@@ -54,8 +54,8 @@ public:
    * @param read_only flag
    * @param data data for the buffer
    */
-  Buffer(ContextManager &context_manager, int size_in_bytes, bool read_only,
-         void *data);
+  Buffer(ContextManager &context_manager, size_t size_in_bytes, bool read_only,
+         void *data = nullptr);
 
   /**
    * @brief Move constructor for buffer by deleting the previous buffer
@@ -107,6 +107,21 @@ public:
   bool WriteData(CommandQueueManager &command_queue_inst, const void *data);
 
   /**
+   * @brief writing data to a buffer region
+   *
+   * @param command_queue_inst reference of command queue instance
+   * @param size_in_bytes size of region
+   * @param data pointer of region
+   * @param host_origin_offset offset in the host memory region
+   * @param buffer_origin_offset offset in the buffer memory region
+   * @return true if successful write or false otherwise
+   */
+  bool WriteDataRegion(CommandQueueManager &command_queue_inst,
+                       size_t size_in_bytes, const void *data,
+                       size_t host_origin_offset = 0,
+                       size_t buffer_origin_offset = 0);
+
+  /**
    * @brief reading data from the buffer
    *
    * @param command_queue_inst reference of command queue instance
@@ -114,6 +129,21 @@ public:
    * @return true if successful read or false otherwise
    */
   bool ReadData(CommandQueueManager &command_queue_inst, void *data);
+
+  /**
+   * @brief Reading data from a buffer region
+   *
+   * @param command_queue_inst reference of command queue instance
+   * @param size_in_bytes size of region
+   * @param data pointer of region
+   * @param host_origin_offset offset in the host memory region
+   * @param buffer_origin_offset offset in the buffer memory region
+   * @return true if successful write or false otherwise
+   */
+  bool ReadDataRegion(CommandQueueManager &command_queue_inst,
+                      size_t size_in_bytes, void *data,
+                      size_t host_origin_offset = 0,
+                      size_t buffer_origin_offset = 0);
 
   /**
    * @brief Mapping buffer to host memory
