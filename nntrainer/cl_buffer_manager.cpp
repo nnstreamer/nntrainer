@@ -22,20 +22,20 @@ ClBufferManager &ClBufferManager::getInstance() {
 // to-do: Implementation to be updated with array of Buffer objects if required
 // fp16 Buffer objects to be added in future
 void ClBufferManager::initBuffers() {
-  readBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  readBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  readBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  writeBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  writeBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
+  inBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
+  outBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
   ml_logi("ClBufferManager: Buffers initialized");
 }
 
 ClBufferManager::~ClBufferManager() {
-  delete readBufferA;
-  delete readBufferB;
-  delete readBufferC;
-  delete writeBufferA;
-  delete writeBufferB;
+  delete inBufferA;
+  delete inBufferB;
+  delete inBufferC;
+  delete outBufferA;
+  delete outBufferB;
   ml_logi("ClBufferManager: Buffers destroyed");
 }
 

@@ -40,39 +40,39 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     size_t dim1_size = sizeof(float) * dim1;
     size_t dim2_size = sizeof(float) * dim2;
 
-    result = clbuffInstance.readBufferA->WriteDataRegion(
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, dim1 * dim2 * sizeof(float),
       matAdata);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.readBufferB->WriteDataRegion(
+    result = clbuffInstance.getInBufferB()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, dim2_size, vecXdata);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.writeBufferA->WriteDataRegion(
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(0, clbuffInstance.readBufferA,
-                                                  sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_sgemv_ptr->SetKernelArguments(1, clbuffInstance.readBufferB,
-                                                  sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemv_ptr->SetKernelArguments(
-      2, clbuffInstance.writeBufferA, sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+    if (!result) {
+      break;
+    }
+
+    result = kernel_sgemv_ptr->SetKernelArguments(
+      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -96,7 +96,7 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
       break;
     }
 
-    result = clbuffInstance.writeBufferA->ReadDataRegion(
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
       cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;

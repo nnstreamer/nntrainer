@@ -34,7 +34,12 @@ private:
    * @brief Private constructor to prevent object creation
    *
    */
-  ClBufferManager(){};
+  ClBufferManager() :
+    inBufferA(nullptr),
+    inBufferB(nullptr),
+    inBufferC(nullptr),
+    outBufferA(nullptr),
+    outBufferB(nullptr){};
 
   /**
    * @brief OpenCl context global instance
@@ -45,7 +50,13 @@ private:
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
-  size_t buffer_size_bytes = 8192 * 8192 * sizeof(float);
+  const size_t buffer_size_bytes = 8192 * 8192 * sizeof(float);
+
+  opencl::Buffer *inBufferA;
+  opencl::Buffer *inBufferB;
+  opencl::Buffer *inBufferC;
+  opencl::Buffer *outBufferA;
+  opencl::Buffer *outBufferB;
 
 public:
   /**
@@ -55,16 +66,40 @@ public:
    */
   static ClBufferManager &getInstance();
 
-  opencl::Buffer *readBufferA;
-  opencl::Buffer *readBufferB;
-  opencl::Buffer *readBufferC;
-  opencl::Buffer *writeBufferA;
-  opencl::Buffer *writeBufferB;
-
   /**
    * @brief Initialize Buffer objects.
    */
   void initBuffers();
+
+  /**
+   * @brief Get read only inBufferA.
+   * @return opencl::Buffer* or nullptr if initBuffers() is not called
+   */
+  opencl::Buffer *getInBufferA() { return inBufferA; }
+
+  /**
+   * @brief Get read only inBufferB.
+   * @return opencl::Buffer* or nullptr if initBuffers() is not called
+   */
+  opencl::Buffer *getInBufferB() { return inBufferB; }
+
+  /**
+   * @brief Get read only inBufferC.
+   * @return opencl::Buffer* or nullptr if initBuffers() is not called
+   */
+  opencl::Buffer *getInBufferC() { return inBufferC; }
+
+  /**
+   * @brief Get read-write outBufferA.
+   * @return opencl::Buffer* or nullptr if initBuffers() is not called
+   */
+  opencl::Buffer *getOutBufferA() { return outBufferA; }
+
+  /**
+   * @brief Get read-write outBufferB.
+   * @return opencl::Buffer* or nullptr if initBuffers() is not called
+   */
+  opencl::Buffer *getOutBufferB() { return outBufferB; }
 
   /**
    * @brief Destroy Buffer pointers.
