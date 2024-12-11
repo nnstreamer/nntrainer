@@ -18,6 +18,7 @@
 #include <string>
 
 #include <base_properties.h>
+#include <common.h>
 #include <connection.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
@@ -945,10 +946,31 @@ struct ActivationTypeInfo {
  * @brief Activation Enumeration Information
  *
  */
-class Activation final : public EnumProperty<ActivationTypeInfo> {
+class Activation final
+  : public EnumProperty<nntrainer::props::ActivationTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "activation";
+};
+
+/**
+ * @brief     Enumeration of Run Engine type
+ */
+struct ComputeEngineTypeInfo {
+  using Enum = ml::train::LayerComputeEngine;
+  static constexpr std::initializer_list<Enum> EnumList = {Enum::CPU, Enum::GPU,
+                                                           Enum::QNN};
+  static constexpr const char *EnumStr[] = {"cpu", "gpu", "qnn"};
+};
+
+/**
+ * @brief ComputeEngine Enumeration Information
+ *
+ */
+class ComputeEngine final : public EnumProperty<ComputeEngineTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "engine";
 };
 
 /**
