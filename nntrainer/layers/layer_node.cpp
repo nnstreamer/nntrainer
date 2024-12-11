@@ -129,6 +129,55 @@ public:
  *
  */
 LayerNode::~LayerNode() = default;
+  
+/**
+ * @brief get the compute engine property from property string vector
+ *  : default is CPU
+ * @return LayerComputeEngine Enum : CPU, GPU, QNN
+ *
+ */
+ml::train::LayerComputeEngine
+getComputeEngine(const std::vector<std::string> &props) {
+  for (auto &prop : props) {
+    std::string key, value;
+    int status = nntrainer::getKeyValue(prop, key, value);
+    if (nntrainer::istrequal(key, "engine")) {
+      constexpr const auto data =
+        std::data(props::ComputeEngineTypeInfo::EnumList);
+      for (uint i = 0; i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
+        if (nntrainer::istrequal(value.c_str(),
+                                 props::ComputeEngineTypeInfo::EnumStr[i])) {
+          return data[i];
+        }
+      }
+    }
+  }
+
+  return ml::train::LayerComputeEngine::CPU;
+}
+
+/**
+ * @brief get the compute engine property from property string vector
+ *  : default is CPU
+ * @return LayerComputeEngine Enum : CPU, GPU, QNN
+ *
+ */
+ml::train::LayerComputeEngine
+getComputeEngine(const std::vector<std::string> &props) {
+  for (auto &prop : props) {
+    std::string key, value;
+    int status = nntrainer::getKeyValue(prop, key, value);
+    if (nntrainer::istrequal(key, "engine")) {
+      if (nntrainer::istrequal(value, "qnn")) {
+        return ml::train::LayerComputeEngine::QNN;
+      } else if (nntrainer::istrequal(value, "gpu")) {
+        return ml::train::LayerComputeEngine::GPU;
+      }
+    }
+  }
+
+  return ml::train::LayerComputeEngine::CPU;
+}
 
 /**
  * @brief get the compute engine property from property string vector
