@@ -551,6 +551,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/blas_interface.h
 %{_includedir}/nntrainer/var_grad.h
 %{_includedir}/nntrainer/weight.h
+%{_includedir}/nntrainer/quantizer.h
 # @todo: update dataset headers
 %{_includedir}/nntrainer/databuffer.h
 %{_includedir}/nntrainer/databuffer_factory.h
