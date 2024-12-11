@@ -43,8 +43,10 @@ ModelTensorDataType::ModelTensorDataType(ModelTensorDataTypeInfo::Enum value) {
 LossScale::LossScale(float value) { set(value); }
 
 bool LossScale::isValid(const float &value) const {
-  ml_loge("Loss scale cannot be 0");
-  return value != 0;
+  bool is_valid = (std::fpclassify(value) != FP_ZERO);
+  if (!is_valid)
+    ml_loge("Loss scale cannot be 0");
+  return is_valid;
 }
 
 } // namespace nntrainer::props
