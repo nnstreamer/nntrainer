@@ -53,6 +53,7 @@ class InputConnection;
 class ClipGradByGlobalNorm;
 class Packed;
 class LossScaleForMixed;
+class ComputeEngine;
 } // namespace props
 
 /**
@@ -994,11 +995,12 @@ will also contain the properties of the layer. The properties will be copied
 upon final creation. Editing properties of the layer after init will not the
 properties in the context/graph unless intended. */
 
-  using PropsType = std::tuple<props::Name, props::Distribute, props::Trainable,
-                               std::vector<props::InputConnection>,
-                               std::vector<props::InputShape>,
-                               props::SharedFrom, props::ClipGradByGlobalNorm,
-                               props::Packed, props::LossScaleForMixed>;
+  using PropsType =
+    std::tuple<props::Name, props::Distribute, props::Trainable,
+               std::vector<props::InputConnection>,
+               std::vector<props::InputShape>, props::SharedFrom,
+               props::ClipGradByGlobalNorm, props::Packed,
+               props::LossScaleForMixed, props::ComputeEngine>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence
@@ -1070,9 +1072,7 @@ properties in the context/graph unless intended. */
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
-                const std::vector<std::string> &properties = {},
-                const ml::train::LayerComputeEngine &compute_engine =
-                  ml::train::LayerComputeEngine::CPU);
+                const std::vector<std::string> &properties = {});
 
 /**
  * @brief LayerNode creator with constructor
@@ -1082,9 +1082,7 @@ createLayerNode(const ml::train::LayerType &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
-                const std::vector<std::string> &properties = {},
-                const ml::train::LayerComputeEngine &compute_engine =
-                  ml::train::LayerComputeEngine::CPU);
+                const std::vector<std::string> &properties = {});
 
 /**
  * @brief LayerNode creator with constructor
@@ -1095,9 +1093,7 @@ createLayerNode(const std::string &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
-                const std::vector<std::string> &properties,
-                const ml::train::LayerComputeEngine &compute_engine =
-                  ml::train::LayerComputeEngine::CPU);
+                const std::vector<std::string> &properties);
 
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__
