@@ -518,6 +518,19 @@ class DivideOperation(torch.nn.Module):
         return out, loss
 
 
+class PowOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = out.pow(3)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
@@ -834,6 +847,16 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="multiply_operation",
+    )
+
+    pow_operation = PowOperation()
+    record_v2(
+        pow_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="pow_operation",
     )
 
     # Function to check the created golden test file
