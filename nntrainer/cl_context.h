@@ -29,6 +29,7 @@
 #include <layer.h>
 #include <layer_devel.h>
 
+#include <cl_buffer_manager.h>
 #include <opencl_command_queue_manager.h>
 #include <opencl_context_manager.h>
 #include <opencl_kernel.h>
@@ -79,11 +80,13 @@ public:
 
   template <typename... Ts> using FactoryMap = std::tuple<IndexType<Ts>...>;
 
-  // getting static instance of commandqueue and opencl context
+  // getting static instance of commandqueue, opencl context and buffermanager
   opencl::CommandQueueManager &command_queue_inst_ =
     opencl::CommandQueueManager::GetInstance();
 
   opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
+
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   /**
    * @brief   Default constructor
@@ -272,6 +275,9 @@ private:
 
     // getContext() called inside createCommandQueue which creates clContext
     bool result = command_queue_inst_.CreateCommandQueue();
+    // initialize device buffers
+    clbuffInstance.initBuffers();
+
     cl_initialized = result;
     return cl_initialized;
   };
