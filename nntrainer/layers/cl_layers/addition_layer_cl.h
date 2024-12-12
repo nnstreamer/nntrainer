@@ -18,6 +18,7 @@
 #include <cl_context.h>
 #include <common_properties.h>
 #include <layer_devel.h>
+#include <layer_impl_cl.h>
 
 namespace nntrainer {
 
@@ -25,12 +26,12 @@ namespace nntrainer {
  * @class   AdditionLayerCL
  * @brief   Addition Layer
  */
-class AdditionLayerCL : public Layer {
+class AdditionLayerCL : public LayerImplCl {
 public:
   /**
    * @brief     Constructor of Addition Layer
    */
-  AdditionLayerCL() : Layer(), add_props(props::Print()) {}
+  AdditionLayerCL() : LayerImplCl(), add_props(props::Print()) {}
 
   /**
    * @brief     Destructor of Addition Layer
@@ -93,10 +94,20 @@ public:
    */
   const std::string getType() const override { return AdditionLayerCL::type; };
 
-  std::tuple<props::Print>
-    add_props; /**< fc layer properties : unit - number of output neurons */
+  /**
+   * @brief     registerClKernels for addition_layer_cl
+   * @details   registerClKernels for addition_layer_cl always returns true
+   * without any specific action for kernel registeration. It only uses
+   * cl_blas_kernels and there is no specific kernels for this. If there are
+   * specific kernels for this, it should be updated to register the kernels .
+   */
+  static bool registerClKernels() { return true; };
 
   inline static const std::string type = "addition";
+
+private:
+  std::tuple<props::Print>
+    add_props; /**< fc layer properties : unit - number of output neurons */
 };
 
 } // namespace nntrainer
