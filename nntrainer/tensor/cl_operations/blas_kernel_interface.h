@@ -43,6 +43,40 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
            bool trans = false, bool trans_m = false);
 
 /**
+ * @brief  fused process data and dimensions for OpenCL dot operation, addition
+ * and RMS
+ * @param[in] input Tensor
+ * @param[in] m Tensor
+ * @param[in] bias Tensor
+ * @param[in] disable_bias_value bool
+ * @param[in] gamma Tensor
+ * @param[in] epsilon float
+ * @param[in] trans bool
+ * @param[in] trans_m bool
+ */
+Tensor fusedProcess(Tensor const &input, Tensor const &m, Tensor const &bias,
+                    bool disable_bias_value, Tensor const &gamma,
+                    const float epsilon, bool trans = false,
+                    bool trans_m = false);
+
+/**
+ * @brief  fused process data and dimensions for OpenCL dot operation, addition
+ * and RMS
+ * @param[in] input Tensor
+ * @param[in] m Tensor
+ * @param[in] result Tensor
+ * @param[in] bias Tensor
+ * @param[in] disable_bias_value bool
+ * @param[in] gamma Tensor
+ * @param[in] epsilon float
+ * @param[in] trans bool
+ * @param[in] trans_m bool
+ */
+void fusedProcess(Tensor const &input, Tensor const &m, Tensor &result,
+                  Tensor const &bias, bool disable_bias_value,
+                  Tensor const &gamma, const float epsilon, bool trans = false,
+                  bool trans_m = false);
+/**
  * @brief Process data and dimensions for OpenCL dot operation
  * @param[in] input Tensor
  * @param[in] m Tensor

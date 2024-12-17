@@ -90,6 +90,7 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clRetainCommandQueue);
   LoadFunction(clReleaseCommandQueue);
   LoadFunction(clReleaseMemObject);
+  LoadFunction(clWaitForEvents);
 }
 
 PFN_clGetPlatformIDs clGetPlatformIDs;
@@ -117,5 +118,6 @@ PFN_clReleaseContext clReleaseContext;
 PFN_clRetainCommandQueue clRetainCommandQueue;
 PFN_clReleaseCommandQueue clReleaseCommandQueue;
 PFN_clReleaseMemObject clReleaseMemObject;
+PFN_clWaitForEvents clWaitForEvents;
 
 } // namespace nntrainer::opencl

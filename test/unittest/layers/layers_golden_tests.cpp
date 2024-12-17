@@ -134,6 +134,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
           str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
             from_string(tensor_type[1]));
         weights_.emplace_back(spec_, true);
+        // std::cout<<"allocate weights if"<<std::endl;
         sizeCheckedReadTensor(weights_.back().getVariableRef(), file,
                               weights_.back().getName());
 
@@ -141,6 +142,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
         weights.back().getVariableRef().copyData(
           weights_.back().getVariableRef());
       } else {
+        // std::cout<<"allocate weights else"<<std::endl;
         weights.emplace_back(spec, true);
         sizeCheckedReadTensor(weights.back().getVariableRef(), file,
                               weights.back().getName());
@@ -302,6 +304,9 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                            bool skip_compare, bool skip_cos_sim,
                            const std::string &name, TensorDim::DataType d_type,
                            unsigned int match_percentage = 100) {
+    std::cout << "Inside layer_golden_tests.cpp and compare_tensor func line "
+                 "307 && Name: "
+              << name << std::endl;
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
         continue;
@@ -309,7 +314,13 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       const auto &tensor = tensor_getter(i);
       auto answer = tensor.clone(d_type);
       sizeCheckedReadTensor(answer, file, name + " at " + std::to_string(i));
-
+      std::cout << "Index\tTensor"
+                << "\t"
+                << "Answer" << std::endl;
+      for (unsigned int i = 0; i < answer.size(); ++i) {
+        std::cout << i << "\t" << *(tensor.getData() + i) << "\t"
+                  << *(answer.getData() + i) << std::endl;
+      }
       if (skip_compare) {
         continue;
       }

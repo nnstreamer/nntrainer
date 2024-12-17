@@ -21,7 +21,7 @@ Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 @author	Niket Agarwal <niket.a@samsung.com>
 @author	Thummala Pallavi <t.pallavi@samsung.com>
 """
-
+import numpy as np
 import warnings
 from recorder import (
     record_single,
@@ -978,3 +978,89 @@ if __name__ == "__main__":
     transpose_layer_axis2 = tf.keras.layers.Lambda(lambda x: transpose_axis2(x, 2, 3, 3, 3))
     record_single(transpose_layer_axis2, (2, 3, 3, 3), "transpose_axis2", input_type="float")
     record_single_fp16(transpose_layer_axis2, (2, 3, 3, 3), "transpose_fp16_axis2", input_type="float")
+    
+    class FusedLayer_Ind(tf.keras.layers.Layer):
+        def __init__(self, units, epsilon=1e-3, **kwargs):
+            super(FusedLayer_Ind, self).__init__(**kwargs)
+            self.units = units
+            self.epsilon = epsilon
+            # self.rms = RMSNorm()
+
+        def build(self, input_shape):
+            self.fc_weights = self.add_weight(
+                shape=(input_shape[-1], self.units),
+                initializer='ones',
+                trainable=False,
+                name='fc_weights'
+            )
+            self.fc_biases = self.add_weight(
+                shape=(self.units, ),
+                initializer='zeros',
+                trainable=False,
+                name='fc_biases'
+            )
+            self.rms_gamma = self.add_weight(
+                shape=(self.units,),
+                initializer='ones',
+                trainable=False,
+                name='rms_gamma'
+            )
+            super(FusedLayer_Ind, self).build(input_shape)
+
+        def call(self, inputs):
+            print("Inputs: ", inputs)
+            print("\nWeights: ", np.array(self.fc_weights))
+            fc_output = tf.matmul(inputs, self.fc_weights)
+            print("\nFC Output: ", fc_output)
+            print("\nBias: ", np.array(self.fc_biases))
+            addition_output = fc_output + self.fc_biases
+            print("\nAddition output: ", addition_output)
+
+            # **** Implement RMS normalization            
+            mean_square = tf.reduce_mean(tf.square(addition_output), axis=[-1], keepdims=True)
+            # Compute the RMS value with epsilon for numerical stability
+            rms_value = tf.sqrt(mean_square + self.epsilon)
+            # Normalize inputs and scale by gamma
+            normalized_output = addition_output / rms_value * self.rms_gamma
+            print("\nFinal normalized output: ", normalized_output)
+            return normalized_output
+            # normalized_output = self.rms(addition_output)
+            # print("\nFinal normalized output: ", normalized_output)
+            # return normalized_output
+    
+    class FusedLayer(tf.keras.layers.Layer):
+        def __init__(self, units, epsilon=1e-3, **kwargs):
+            super(FusedLayer, self).__init__(**kwargs)
+            self.units = units
+            self.epsilon = epsilon
+            self.fc = K.layers.Dense(units, kernel_initializer='ones', bias_initializer=self.custom_bias_initializer)
+            # , activation=None, use_bias=True, kernel_initializer='ones', bias_initializer='zeros'
+            self.rms = RMSNorm(epsilon=self.epsilon)
+
+        def custom_bias_initializer(self, shape, dtype=None):
+            # Create a bias vector with the same shape as the weight matrix
+            return tf.constant(np.random.uniform(0.00, 0.00, size=(1, 1, 2,2)), dtype=dtype)
+        
+        def call(self, inputs):
+            print("\nInitial input: ", inputs)
+            x = self.fc(inputs)
+            print("\nFC weights shape: ", self.fc.kernel.shape)
+            print("\nFC weights: ", self.fc.kernel.numpy())
+            print("\nFC bias shape: ", self.fc.bias.shape)
+            print("\nFC bias: ", self.fc.bias.numpy())
+            print("\nFC output: ", x)
+            x = self.rms(x)
+            print("\nRMS output: ", x)
+            return x
+
+    # fused_layer_Ind = FusedLayer_Ind(units=1)
+    # fused_layer_single_plain = FusedLayer(units=2)
+    
+    fused_layer = FusedLayer_Ind(units=3)
+    record_single(fused_layer, (1, 1, 2, 3), "fused_plain")
+    inspect_file("fused_plain.nnlayergolden")
+    
+    # fused_layer_single_plain = FusedLayer(units=2)
+    # record_single(fused_layer_Ind, (1, 1, 2, 3), "fused_plain_Ind")
+    # record_single_fp16(fused_layer_single_plain, (1, 1, 1, 3), "fused_single_batch1")
+    

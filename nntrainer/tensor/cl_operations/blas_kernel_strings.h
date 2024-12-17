@@ -21,6 +21,7 @@ static const std::string sgemv_cl_kernel_ =
   R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
                       __global float* Y, unsigned int N, unsigned int lda) {                                            
         unsigned int i;
+        // printf("Inside kernel sgemv_cl_kernel\n");
         i = get_global_id(0);                         
         float y0 = 0.0f;
         for (unsigned int j = 0; j < N; j++)                         
@@ -33,6 +34,7 @@ static const std::string sgemv_cl_noTrans_kernel_ =
   R"(__kernel void sgemv_cl_noTrans(const __global float* A, const __global float* X,
                       __global float* Y, unsigned int N, unsigned int lda) {                                            
         unsigned int i;
+        // printf("Inside kernel sgemv_cl_noTrans_kernel\n");
         i = get_global_id(0);                         
         float y0 = 0.0f;
         for (unsigned int j = 0; j < N; j++)                         
@@ -52,7 +54,7 @@ static const std::string dot_cl_kernel_ =
 static const std::string sgemm_cl_noTrans_kernel_ =
   R"(__kernel void sgemm_cl_noTrans(const __global float* A, const __global float* B,
                       __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
-        
+        // printf("Inside kernel sgemm_cl_noTrans_kernel\n");
         unsigned int m = get_global_id(0);
         unsigned int n = get_global_id(1);
         float c = 0.0f;
@@ -68,7 +70,7 @@ static const std::string sgemm_cl_noTrans_kernel_ =
 static const std::string sgemm_cl_transA_kernel_ =
   R"(__kernel void sgemm_cl_transA(const __global float* A, const __global float* B,
                       __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
-        
+        // printf("Inside kernel sgemm_cl_TransA_kernel\n");
         unsigned int m = get_global_id(0);
         unsigned int n = get_global_id(1);
         float c = 0.0f;
@@ -86,7 +88,7 @@ static const std::string sgemm_cl_transB_kernel_ =
                               __global float *C, unsigned int K,
                               unsigned int lda, unsigned int ldb,
                               unsigned int ldc) {
-
+        // printf("Inside kernel sgemm_cl_TransB_kernel\n");
         unsigned int m = get_global_id(0);
         unsigned int n = get_global_id(1);
         float c = 0.0f;
@@ -104,7 +106,7 @@ static const std::string sgemm_cl_transAB_kernel_ =
                                __global float *C, unsigned int K,
                                unsigned int lda, unsigned int ldb,
                                unsigned int ldc) {
-
+        // printf("Inside kernel sgemm_cl_TransAB_kernel\n");
         unsigned int m = get_global_id(0);
         unsigned int n = get_global_id(1);
         float c = 0.0f;
@@ -202,7 +204,63 @@ static const std::string transpose_cl_kernel_axis2 =
     }
 })";
 
+static const std::string rmsnorm_cl_kernel_new =
+  R"(__kernel void rmsnorm_cl(__global const float *input, __global float *output, __global const float *alpha, float epsilon, int B, int C, int H, int W){
+    // Compute the corresponding batch, height, and channel indices
+    int n = get_global_id(0) / C;
+    int c = get_global_id(0) % C;
+    int h = get_global_id(1);
+    int index = ((n * C + c) * H + h) * W;
+    // Calculate RMS norm for the current channel, height, and batch
+    float sum_squares = 0.0f;
+    for (int j = 0; j < W; ++j) {
+        sum_squares += input[index+j] * input[index+j];
+    }
+    sum_squares /= W;
+    float rms_norm = sqrt(sum_squares + epsilon);
+    // Each work item processes all width elements for its specific n, h, c
+    for (int w = 0; w < W; ++w) {
+        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
+    }
+})";
+
 #ifdef ENABLE_FP16
+
+static const std::string rmsnorm_cl_kernel_fp16_new =
+  R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    __kernel void rmsnorm_cl_fp16(
+    __global const half *input,  // Input tensor
+    __global half *output,    // Output tensor
+    __global const half *alpha,  // Alpha values (one for each width)
+    half epsilon,
+    int B,                  // Number of batches
+    int C,                  // Number of channels
+    int H,                  // Height of feature map
+    int W                   // Width of feature map
+) {
+    int global_id = get_global_id(0);  // Get the global work item index
+
+    // Compute the corresponding batch, height, and channel indices
+    int n = global_id / C;       // Batch index
+    int c = global_id % C;                    // Height index
+    int h = get_global_id(1);                    // Channel index
+    int index = ((n * C + c) * H + h) * W;
+
+    // Calculate RMS norm for the current channel, height, and batch
+    half sum_squares = 0.0f;
+    for (int j = 0; j < W; ++j) {
+        sum_squares += input[index+j] * input[index+j];
+    }
+    sum_squares /= W;
+    half rms_norm = sqrt(sum_squares + epsilon);
+    // Each work item processes all width elements for its specific n, h, c
+    for (int w = 0; w < W; ++w) {
+        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
+    } 
+}
+)";
+
 static const std::string sgemv_cl_kernel_fp16_ =
   R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable

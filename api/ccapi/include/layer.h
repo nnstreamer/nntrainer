@@ -108,7 +108,9 @@ enum LayerType {
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN      /**< Unknown */
+  LAYER_FUSED_FC_RMS =
+    ML_TRAIN_LAYER_TYPE_FUSED_FC_RMS,         /**< Fused FC and RMS layer*/
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
 /**

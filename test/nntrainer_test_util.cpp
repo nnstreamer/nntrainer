@@ -299,7 +299,8 @@ void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
-
+  std::cout << "Inside sizeCheckedReadTensor func && string: " << error_msg
+            << std::endl;
   NNTR_THROW_IF(t.getDim().getDataLen() != sz, std::invalid_argument)
     << "[ReadFail] dimension does not match at " << error_msg << " sz: " << sz
     << " dimsize: " << t.getDim().getDataLen() << '\n';

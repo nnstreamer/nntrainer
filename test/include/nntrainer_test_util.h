@@ -191,6 +191,45 @@ private:
     }                                             \
   } while (0)
 
+#define GEN_TEST_INPUT_RES(input, val)          \
+  do {                                          \
+    for (int i = 0; i < batch_res; ++i) {       \
+      for (int j = 0; j < channel_res; ++j) {   \
+        for (int k = 0; k < height_res; ++k) {  \
+          for (int l = 0; l < width_res; ++l) { \
+            input.setValue(i, j, k, l, val);    \
+          }                                     \
+        }                                       \
+      }                                         \
+    }                                           \
+  } while (0)
+
+#define GEN_TEST_BIAS(input, val)               \
+  do {                                          \
+    for (int i = 0; i < batch_res; ++i) {       \
+      for (int j = 0; j < channel_res; ++j) {   \
+        for (int k = 0; k < height_res; ++k) {  \
+          for (int l = 0; l < width_res; ++l) { \
+            input.setValue(i, j, k, l, val);    \
+          }                                     \
+        }                                       \
+      }                                         \
+    }                                           \
+  } while (0)
+
+#define GEN_TEST_INPUT_GAMMA(input, val)        \
+  do {                                          \
+    for (int i = 0; i < 1; ++i) {               \
+      for (int j = 0; j < 1; ++j) {             \
+        for (int k = 0; k < 1; ++k) {           \
+          for (int l = 0; l < width_res; ++l) { \
+            input.setValue(i, j, k, l, val);    \
+          }                                     \
+        }                                       \
+      }                                         \
+    }                                           \
+  } while (0)
+
 /**
  * @brief return a tensor filled with contant value with dimension
  */

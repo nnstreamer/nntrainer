@@ -62,14 +62,15 @@ typedef enum {
     27, /**< Layer Normalization Layer type (Since 7.0) */
   ML_TRAIN_LAYER_TYPE_POSITIONAL_ENCODING =
     28, /**< Positional Encoding Layer type (Since 7.0) */
-  ML_TRAIN_LAYER_TYPE_IDENTITY = 29, /**< Identity Layer type (Since 8.0) */
-  ML_TRAIN_LAYER_TYPE_SWIGLU = 30,   /**< Swiglu Layer type */
-  ML_TRAIN_LAYER_TYPE_WEIGHT = 31,   /**< Weight Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_ADD = 32,      /**< Add Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_SUBTRACT = 33, /**< Subtract Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_MULTIPLY = 34, /**< Multiply Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_DIVIDE = 35,   /**< Divide Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_TRANSPOSE = 36, /**< Transpose Layer type */
+  ML_TRAIN_LAYER_TYPE_IDENTITY = 29,     /**< Identity Layer type (Since 8.0) */
+  ML_TRAIN_LAYER_TYPE_SWIGLU = 30,       /**< Swiglu Layer type */
+  ML_TRAIN_LAYER_TYPE_WEIGHT = 31,       /**< Weight Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_ADD = 32,          /**< Add Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SUBTRACT = 33,     /**< Subtract Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_MULTIPLY = 34,     /**< Multiply Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_DIVIDE = 35,       /**< Divide Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_TRANSPOSE = 36,    /**< Transpose Layer type */
+  ML_TRAIN_LAYER_TYPE_FUSED_FC_RMS = 37, /**< Fused fc and RMS layer type */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =

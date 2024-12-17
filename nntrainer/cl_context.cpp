@@ -20,6 +20,7 @@
 #include <cl_context.h>
 #include <concat_cl.h>
 #include <fc_layer_cl.h>
+#include <fused_fc_norm_cl.h>
 #include <reshape_cl.h>
 #include <rmsnorm_layer_cl.h>
 #include <swiglu_cl.h>
@@ -56,6 +57,10 @@ static void add_default_object(ClContext &cc) {
   cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
                      TransposeLayerCl::type,
                      ml::train::LayerType::LAYER_TRANSPOSE);
+
+  cc.registerFactory(nntrainer::createLayer<FullyConnectedRMSNormLayerCl>,
+                     FullyConnectedRMSNormLayerCl::type,
+                     ml::train::LayerType::LAYER_FUSED_FC_RMS);
 }
 
 static void registerer(ClContext &cc) noexcept {
@@ -143,6 +148,7 @@ void ClContext::initBlasClKernels() {
   registerClKernel(sgemm_cl_transAB_kernel_, "sgemm_cl_transAB");
   registerClKernel(addition_cl_kernel_, "addition_cl");
   registerClKernel(sscal_cl_kernel_, "sscal_cl");
+  registerClKernel(rmsnorm_cl_kernel_new, "rmsnorm_cl");
 
 #ifdef ENABLE_FP16
   registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
@@ -154,6 +160,8 @@ void ClContext::initBlasClKernels() {
   registerClKernel(sgemm_cl_transAB_kernel_fp16_, "sgemm_cl_transAB_fp16");
   registerClKernel(addition_cl_kernel_fp16_, "addition_cl_fp16");
   registerClKernel(sscal_cl_kernel_fp16_, "sscal_cl_fp16");
+  registerClKernel(rmsnorm_cl_kernel_fp16_new, "rmsnorm_cl_fp16");
+
 #endif
   blas_kernels_initialized = true;
 }

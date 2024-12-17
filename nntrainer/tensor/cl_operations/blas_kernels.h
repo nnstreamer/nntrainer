@@ -25,6 +25,66 @@ namespace nntrainer {
 static ClContext cl_context_ref;
 
 /**
+ * @brief     fused_sgemv computation : Y = A*X + Y
+ * @param[in] matAdata float * for Matrix A
+ * @param[in] vecXdata float * for Vector X
+ * @param[in] vecYdata float * for Vector Y
+ * @param[in] gdata float * for vector gamma
+ * @param[in] bdata float * for vector bias for addition
+ * @param[in] isAdditionPossible bool if addition possible
+ * @param[in] epsilon float epsilon value for RMSprop
+ * @param[in] TransA bool transpose
+ * @param[in] isbias bool if bias is present
+ * @param[in] dim1 number of A's columns
+ * @param[in] dim2 number of A's rows
+ * @param[in] bias_dim1 bias dimensions
+ * @param[in] lda number of X's columns
+ * @param[in] b batch of result
+ * @param[in] c channel of result
+ * @param[in] h height of result
+ * @param[in] w width of result
+ */
+void fused_sgemv_cl_rms(const float *matAdata, const float *vecXdata,
+                        float *vecYdata, const float *gdata, const float *bdata,
+                        bool isAdditionPossible, float epsilon, bool TransA,
+                        bool isbias, unsigned int dim1, unsigned int dim2,
+                        unsigned int bias_dim1, unsigned int lda, int b, int c,
+                        int h, int w);
+
+/**
+ * @brief     sgemm computation : Y = op(A)*op(B) + C,
+ * where op(X) is one of X or X**T
+ * @param[in] TransA bool transpose
+ * @param[in] TransB bool transpose
+ * @param[in] A float * for Matrix A
+ * @param[in] B float * for Matrix B
+ * @param[in] C float * for Matrix C
+ * @param[in] gdata float * for vector gamma
+ * @param[in] bdata float * for vector bias for addition
+ * @param[in] isAdditionPossible bool if addition possible
+ * @param[in] epsilon float epsilon value for RMSprop
+ * @param[in] isbias bool if bias is present
+ * @param[in] M number of op(A)'s and C's row
+ * @param[in] N number of op(B)'s and C's columns
+ * @param[in] K number of op(A)'s and columns and op(B)'s rows
+ * @param[in] lda number of A's columns
+ * @param[in] ldb number of B's columns
+ * @param[in] ldc number of C's columns
+ * @param[in] bias_dim1 bias dimensions
+ * @param[in] b batch of result
+ * @param[in] c channel of result
+ * @param[in] h height of result
+ * @param[in] w width of result
+ * @param[in] context RunLayerContext reference
+ */
+void fused_sgemm_cl_rms(bool TransA, bool TransB, const float *A,
+                        const float *B, float *C, const float *gdata,
+                        const float *bdata, bool isAdditionPossible,
+                        float epsilon, bool isbias, unsigned int M,
+                        unsigned int N, unsigned int K, unsigned int lda,
+                        unsigned int ldb, unsigned int ldc,
+                        unsigned int bias_dim1, int b, int c, int h, int w);
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
