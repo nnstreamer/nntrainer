@@ -495,7 +495,8 @@ public:
     Tensor &t_w = weights[idx]->getVariableRef();
 
     if (t_w.getDataType() == Tdatatype::FP32 ||
-        t_w.getDataType() == Tdatatype::FP16) {
+        t_w.getDataType() == Tdatatype::FP16 ||
+        t_w.getDataType() == Tdatatype::BCQ) {
       w = t_w;
       return;
     }
