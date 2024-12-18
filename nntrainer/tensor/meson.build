@@ -80,7 +80,7 @@ if get_option('enable-biqgemm')
   tensor_headers += 'bcq_tensor.h'
   tensor_sources += 'bcq_tensor.cpp'
   nntrainer_inc += biqgemm_inc
-  nntrainer_inc_abs += meson.source_root() / '..' / 'BiQGEMM'
+  nntrainer_inc_abs += meson.source_root() / biqgemm_path
 endif
 
 if get_option('enable-opencl')
