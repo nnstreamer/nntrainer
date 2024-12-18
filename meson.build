@@ -145,16 +145,30 @@ if get_option('opencl-kernel-path') != ''
 endif
 
 if get_option('enable-biqgemm')
-  # check if BiQGEMM directory exist. otherwise, throw an error
-  fs = import('fs')
-  if fs.is_dir('../BiQGEMM')
-    extra_defines += '-DENABLE_BIQGEMM=1'
-    biqgemm_inc = include_directories('../BiQGEMM')
+  # In order to enable biqgemm, BiQGEMM lib, which is header-only library, is required.
+  # This meson tries to find its installation.
+  #   1. Checking 'prefix'/'includedir'/BiQGEMM
+  #   2. Checking path meson-option specifies
+  biqgemm_path = join_paths(get_option('prefix'), get_option('includedir'), 'BiQGEMM')
+  if cxx.has_header('BiQGEMM.h', args: '-I'+biqgemm_path)
+      message('[lib:biqgemm] biqgemm header is found successfully')
+      extra_defines += '-DENABLE_BIQGEMM=1'
+      biqgemm_inc = include_directories(biqgemm_path)
   else
-    error ('BiQGEMM cannot be enabled without BiQGEMM library.')
+      # relative path from biqgemm is assumed
+      biqgemm_path = get_option('biqgemm-path')
+      message('[lib:biqgemm] fallback: finding biqgemm from user-path :' + biqgemm_path)
+      fs = import('fs')
+      if fs.is_dir(biqgemm_path) 
+        message('[lib:biqgemm] biqgemm header is found successfully')
+        extra_defines += '-DENABLE_BIQGEMM=1'
+        biqgemm_inc = include_directories(biqgemm_path)
+      else
+        error ('BiQGEMM cannot be enabled without BiQGEMM library.')
+      endif
   endif
-endif
-    
+endif # end of enable-biqgemm
+
 foreach extra_arg : warning_flags
   if cc.has_argument (extra_arg)
     add_project_arguments([extra_arg], language: 'c')
