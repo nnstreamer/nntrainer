@@ -230,6 +230,19 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       unsigned int ld_dst);
 #endif
 /**
+ * @brief Matrix transpose / 2D Tensor transpose
+ *
+ * @param M row length of input matrix
+ * @param N col length of input matrix
+ * @param src src data of input matrix
+ * @param ld_src data offset of input matrix
+ * @param dst destination of output matrix
+ * @param ld_dst data offset of output matrix
+ */
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const float *src, unsigned int ld_src, float *dst,
+                      unsigned int ld_dst);
+/**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
  * @param[in] X void * for Vector X
