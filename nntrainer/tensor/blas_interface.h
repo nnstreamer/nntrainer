@@ -87,6 +87,15 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
                            const int incX, _FP16 *Y, const int incY);
 
 /**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X int8_t * for Vector X
+ * @param[in] Y __fp16 * for Vector Y
+ */
+void scopy_int8_to_float16(const unsigned int N, const int8_t *X,
+                           const int incX, _FP16 *Y, const int incY);
+
+/**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
  * @param[in] X __fp16 * for Vector X
@@ -274,6 +283,16 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
  */
 void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
            const int incY);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X int8_t * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+void scopy(const unsigned int N, const int8_t *X, const int incX, int8_t *Y,
+           const int intY);
+
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -291,6 +310,15 @@ void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
  */
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
                            const int incX, float *Y, const int incY);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint8_t * for Vector X
+ * @param[in] Y float * for Vector Y
+ */
+void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
+                           const int incX, float *Y, const int intY);
 
 /**
  * @brief     sdot computation : sum of all X * Y
