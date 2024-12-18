@@ -764,7 +764,7 @@ void FloatTensor::copyData(const Tensor &from) {
 #endif
     break;
   case ml::train::TensorDim::DataType::QINT8:
-    scopy_int8_to_float32(from.size(), from.getData<uint8_t>(), 1,
+    scopy_int8_to_float32(from.size(), from.getData<int8_t>(), 1,
                           (float *)getData(), 1);
     break;
   default:
