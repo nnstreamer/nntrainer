@@ -845,7 +845,14 @@ Tensor &FloatTensor::transpose(const std::string &direction,
       }
     } else {
       if (is_format_nchw) {
-        transposeloop(l, i, k, j, SL, SI, SK, SJ);
+        for (unsigned int b = 0; b < batch(); ++b) {
+          for (unsigned int c = 0; c < channel(); ++c) {
+            transpose_matrix(
+              height(), width(), (float *)getData() + getIndex(b, c, 0, 0),
+              width(), (float *)output.getData() + output.getIndex(b, c, 0, 0),
+              output.width());
+          }
+        }
       } else {
         transposeloop_nhwc(l, k, j, i, SL, SK, SJ, SI);
       }
