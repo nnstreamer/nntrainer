@@ -983,7 +983,7 @@ void HalfTensor::copyData(const Tensor &from) {
     copy(from.getData<_FP16>());
     break;
   case ml::train::TensorDim::DataType::QINT8:
-    scopy_int8_to_float16(from.size(), from.getData<uint8_t>(), 1,
+    scopy_int8_to_float16(from.size(), from.getData<int8_t>(), 1,
                           (_FP16 *)getData(), 1);
     break;
   default:

@@ -361,9 +361,7 @@ void CharTensor::copy(const void *buf) {
   }
 
   /// @todo need to optimize
-  for (unsigned int i = 0; i < size(); ++i) {
-    ((int8_t *)getData())[i] = ((int8_t *)buf)[i];
-  }
+  scopy(size(), (int8_t *)buf, 1, (int8_t *)getData(), 1);
 }
 
 void CharTensor::save_quantization_info(std::ostream &file) {

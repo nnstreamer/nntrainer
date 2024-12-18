@@ -404,6 +404,22 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
   }
 }
 
+void copy_int8(const unsigned int N, const int8_t *X, int8_t *Y) {
+  ///@note int8 Tensor and int4 Tensor share the same memory offset
+  unsigned int idx = 0;
+  for (; N - idx >= 16; idx += 16) {
+    int8x16_t batch = vld1q_s8(&X[idx]);
+    vst1q_s8(&Y[idx], batch);
+  }
+  for (; N - idx >= 8; idx += 8) {
+    int8x8_t batch = vld1_s8(&X[idx]);
+    vst1_s8(&Y[idx], batch);
+  }
+  for (; N - idx >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 void sine(const unsigned int N, float *X, float *Y, float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
@@ -1469,6 +1485,34 @@ void copy_int8_to_fp16(const unsigned int N, const uint8_t *X, __fp16 *Y) {
   }
 }
 
+void copy_int8_to_fp16(const unsigned int N, const int8_t *X, __fp16 *Y) {
+  unsigned int idx = 0;
+  for (; (N - idx) >= 16; idx += 16) {
+    int8x16_t batch = vld1q_s8(&X[idx]);
+    int8x8_t low = vget_low_s8(batch);
+    int8x8_t high = vget_high_s8(batch);
+
+    // convert to s16
+    int16x8_t batch_low_s16 = vmovl_s8(low);
+    int16x8_t batch_high_s16 = vmovl_s8(high);
+
+    // todo : experiment with vcvt_f32_s32_ bitwise operation w.r.t.
+    // time/accuracy
+    vst1q_f16(&Y[idx], vcvtq_f16_s16(batch_low_s16));
+    vst1q_f16(&Y[idx + 8], vcvtq_f16_s16(batch_high_s16));
+  }
+  for (; (N - idx) >= 8; idx += 8) {
+    int8x8_t batch = vld1_s8(&X[idx]);
+
+    // convert to s16
+    int16x8_t batch_s16 = vmovl_s8(batch);
+    vst1q_f16(&Y[idx], vcvtq_f16_s16(batch_s16));
+  }
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   unsigned int idx = 0;
   for (; (N - idx) >= 16; idx += 16) {
@@ -1505,6 +1549,48 @@ void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
 
     vst1q_f32(&Y[idx], vcvtq_f32_u32(batch_u32_low));
     vst1q_f32(&Y[idx + 4], vcvtq_f32_u32(batch_u32_high));
+  }
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
+void copy_int8_to_fp32(const unsigned int N, const int8_t *X, float *Y) {
+  unsigned int idx = 0;
+  for (; (N - idx) >= 16; idx += 16) {
+    int8x16_t batch = vld1q_s8(&X[idx]);
+    int8x8_t low = vget_low_s8(batch);
+    int8x8_t high = vget_high_s8(batch);
+
+    // convert to s16
+    int16x8_t batch_low_s16 = vmovl_s8(low);
+    int16x8_t batch_high_s16 = vmovl_s8(high);
+
+    // convert to s32
+    int32x4_t batch_low_s32_low = vmovl_s16(vget_low_s16(batch_low_s16));
+    int32x4_t batch_low_s32_high = vmovl_s16(vget_high_s16(batch_low_s16));
+    int32x4_t batch_high_s32_low = vmovl_s16(vget_low_s16(batch_high_s16));
+    int32x4_t batch_high_s32_high = vmovl_s16(vget_high_s16(batch_high_s16));
+
+    // todo : experiment with vcvt_f32_s32_ bitwise operation w.r.t.
+    // time/accuracy
+    vst1q_f32(&Y[idx], vcvtq_f32_s32(batch_low_s32_low));
+    vst1q_f32(&Y[idx + 4], vcvtq_f32_s32(batch_low_s32_high));
+    vst1q_f32(&Y[idx + 8], vcvtq_f32_s32(batch_high_s32_low));
+    vst1q_f32(&Y[idx + 12], vcvtq_f32_s32(batch_high_s32_high));
+  }
+  for (; (N - idx) >= 8; idx += 8) {
+    int8x8_t batch = vld1_s8(&X[idx]);
+
+    // convert to s16
+    int16x8_t batch_s16 = vmovl_s8(batch);
+
+    // convert to s32
+    int32x4_t batch_s32_low = vmovl_s16(vget_low_s16(batch_s16));
+    int32x4_t batch_s32_high = vmovl_s16(vget_high_s16(batch_s16));
+
+    vst1q_f32(&Y[idx], vcvtq_f32_s32(batch_s32_low));
+    vst1q_f32(&Y[idx + 4], vcvtq_f32_s32(batch_s32_high));
   }
   for (; (N - idx) >= 1; ++idx) {
     Y[idx] = X[idx];
