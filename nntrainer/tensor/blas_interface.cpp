@@ -659,6 +659,16 @@ static unsigned int isamax_raw(const unsigned int N, const float *X,
 
 #endif
 
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const float *src, unsigned int ld_src, float *dst,
+                      unsigned int ld_dst) {
+#ifdef USE_NEON
+  transpose_neon<float>(M, N, src, ld_src, dst, ld_dst);
+#else
+  transpose_fallback<float>(M, N, src, ld_src, dst, ld_dst);
+#endif
+}
+
 static void __scopy_fallback(const unsigned int N, const float *X,
                              const int incX, float *Y, const int incY) {
   unsigned int incy = abs(incY);

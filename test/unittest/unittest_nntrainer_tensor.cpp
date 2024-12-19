@@ -5487,6 +5487,26 @@ TEST(nntrainer_Tensor, is_valid_01) {
   EXPECT_EQ(input.isValid(), false);
 }
 
+TEST(nntrainer_Tensor, transpose_5122048) {
+  int batch = 1;
+  int channel = 1;
+  int height = 512;
+  int width = 2048;
+
+  bool transA = false;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  GEN_TEST_INPUT_RAND(A_fp32, 0, 1);
+
+  nntrainer::Tensor A_T = A_fp32.transpose("0:2:1");
+  nntrainer::Tensor A_T_T = A_T.transpose("0:2:1");
+  EXPECT_EQ(A_fp32, A_T_T);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
