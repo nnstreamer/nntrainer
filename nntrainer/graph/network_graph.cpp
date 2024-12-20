@@ -776,6 +776,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
         if (lnode->getType() == IdentityLayer::type) {
           s.variable_spec.reference_name = inputs[i]->getName();
           s.variable_spec.dim.setFormat(inputs[i]->getDim().getFormat());
+        } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
+          s.variable_spec.reference_name = inputs[1]->getName();
+          s.variable_spec.dim.setFormat(inputs[1]->getDim().getFormat());
         } else {
           s.variable_spec.reference_name = inputs[0]->getName();
           s.variable_spec.dim.setFormat(inputs[0]->getDim().getFormat());
@@ -787,6 +790,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
         if (lnode->getType() == IdentityLayer::type) {
           s.gradient_spec->reference_name = inputs[i]->getGradientName();
           s.gradient_spec->dim.setFormat(inputs[i]->getDim().getFormat());
+        } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
+          s.gradient_spec->reference_name = inputs[1]->getGradientName();
+          s.gradient_spec->dim.setFormat(inputs[1]->getDim().getFormat());
         } else {
           s.gradient_spec->reference_name = inputs[0]->getGradientName();
           s.gradient_spec->dim.setFormat(inputs[0]->getDim().getFormat());
@@ -934,6 +940,8 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
         if (lnode->getType() == IdentityLayer::type) {
           s.variable_spec.reference_name = inputs[i]->getName();
+        } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
+          s.variable_spec.reference_name = inputs[1]->getName();
         } else {
           s.variable_spec.reference_name = inputs[0]->getName();
         }
@@ -943,6 +951,12 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
           TensorSpecV2::RequestType::READ_ONLY_VIEW;
         if (lnode->getType() == IdentityLayer::type) {
           s.gradient_spec->reference_name = inputs[i]->getGradientName();
+        } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
+          // @note With binary inputs, inputs[0] represents the left input
+          // tensor while inputs[1] represents the right input tensor. As a
+          // result, if the in-place direction is set to right, the in-place
+          // memory is assigned to inputs[1].
+          s.gradient_spec->reference_name = inputs[1]->getGradientName();
         } else {
           s.gradient_spec->reference_name = inputs[0]->getGradientName();
         }
