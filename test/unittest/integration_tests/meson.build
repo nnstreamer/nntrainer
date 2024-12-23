@@ -11,8 +11,14 @@ mixed_precision_targets = [
     'integration_test_mixed_precision.cpp',
 ]
 
+fsu_targets = [
+    model_util_path / 'models_test_utils.cpp',
+    'integration_test_fsu.cpp',
+]
+
 if get_option('enable-fp16')
     test_target += mixed_precision_targets
+    test_target += fsu_targets
 endif
 
 exe = executable(
