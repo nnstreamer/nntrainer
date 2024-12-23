@@ -350,13 +350,13 @@ sharedConstTensors NeuralNetwork::forwarding(
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-
+    bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
     // temperally remain. when we evaluate all for asynch mode, we weill remove
-    if (exec_mode == ExecutionMode::TRAIN) {
+    if (exec_mode == ExecutionMode::TRAIN or
+        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
     } else {
-
       /**
        currently, it supports FSU asynch mode for inference. The prcedure of
        FSU is below,
