@@ -602,7 +602,7 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
                          : "r"(&Y[i]), "r"(&X[i])
                          : "v0", "memory");
 #else
-    __scopy_kernel(N, X + i, Y + i);
+    __scopy_kernel(X + i, Y + i);
 #endif
   }
   for (unsigned int i = N4; i < N; ++i) {

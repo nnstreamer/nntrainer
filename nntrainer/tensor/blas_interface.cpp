@@ -891,7 +891,7 @@ void scopy(const unsigned int N, const float *X, const int incX, float *Y,
 }
 
 void scopy(const unsigned int N, const uint8_t *X, const int incX, uint8_t *Y,
-           const int intY) {
+           const int incY) {
 #ifdef USE_NEON
   nntrainer::neon::copy_int8_or_int4(N, X, Y);
 #else
