@@ -31,3 +31,4 @@ endif
 subdir('PicoGPT/jni')
 
 subdir('SimpleFC/jni')
+subdir('Subgraph/jni')
