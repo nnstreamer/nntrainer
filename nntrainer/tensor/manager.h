@@ -137,7 +137,8 @@ public:
     swap_lookahead(0),
     tensor_format("NCHW"),
     tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
-    exec_mode(ExecutionMode::TRAIN) {}
+    exec_mode(ExecutionMode::TRAIN),
+    last_order(0) {}
 
   /**
    * @brief     Constructor of Manager
@@ -154,7 +155,8 @@ public:
     swap_lookahead(lookahead),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    exec_mode(exec_mode_) {}
+    exec_mode(exec_mode_),
+    last_order(0) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -600,6 +602,8 @@ private:
   ExecutionMode exec_mode;
 
   unsigned int max_exec_order;
+
+  unsigned int last_order;
 
   /**
    * @brief Finalize the given tensor pool

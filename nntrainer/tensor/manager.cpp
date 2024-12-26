@@ -813,9 +813,11 @@ void Manager::LoadTensors(unsigned int order) {
     async_load_tensor[o] = std::make_tuple(load_weight, load_tensor);
   };
 
-  for (unsigned int i = order; i < order + swap_lookahead + 1; ++i) {
-    if (i <= max_exec_order)
+  for (unsigned int i = order>last_order?order:last_order; i < order + swap_lookahead + 1; ++i) {
+    if (!async_load_tensor.count(i) && i <= max_exec_order) {
       enqueTasks(i);
+      last_order = i;
+    }
   }
 }
 
