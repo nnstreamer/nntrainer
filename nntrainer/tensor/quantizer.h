@@ -13,6 +13,7 @@
 #ifdef __cplusplus
 
 #include <tensor.h>
+#include <unordered_map>
 
 namespace nntrainer {
 
