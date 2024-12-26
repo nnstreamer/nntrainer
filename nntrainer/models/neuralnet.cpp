@@ -393,20 +393,10 @@ sharedConstTensors NeuralNetwork::forwarding(
         unsigned int lookahead =
           std::get<props::MemorySwapLookahead>(model_flex_props);
 
-        if (lookahead != 0) {
-          if ((f) % (lookahead + 1) == lookahead - 1) {
-            std::cout << "request load tensor : " << f + lookahead + 1
-                      << std::endl;
-            ml_logd("request load tensor for %d", f + 1);
-            model_graph.LoadTensors((f / (lookahead + 1) + 1) *
-                                    (lookahead + 1));
-          }
-        } else {
+        if (f != 0) {
           model_graph.LoadTensors(f);
-        }
-
-        if (f != 0)
           model_graph.UnloadTensors(f);
+        }
       }
     }
   };
