@@ -17,18 +17,18 @@
 
 namespace nntrainer {
 
-CharTensor::CharTensor(std::string name_, Tformat fm) :
+CharTensor::CharTensor(std::string name_, Tformat fm, QScheme qscheme_) :
   TensorBase(name_, fm, Tdatatype::QINT8) {}
 
 CharTensor::CharTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                       std::string name) :
-  TensorBase(d, alloc_now, init, name) {
+                       std::string name, QScheme qscheme_) :
+  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
   if (alloc_now)
     allocate();
 }
 
-CharTensor::CharTensor(const TensorDim &d, const void *buf) :
-  CharTensor(d, true) {
+CharTensor::CharTensor(const TensorDim &d, const void *buf, QScheme qscheme_) :
+  CharTensor(d, true, Initializer::NONE, "", qscheme_) {
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
@@ -37,7 +37,7 @@ CharTensor::CharTensor(const TensorDim &d, const void *buf) :
 
 CharTensor::CharTensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-  Tformat fm) {
+  std::vector<float> const &scales, Tformat fm, QScheme qscheme_) {
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize CharTensor from empty vector");
@@ -59,9 +59,14 @@ CharTensor::CharTensor(
   strides = dim.computeStrides();
   contiguous = true;
   initializer = Initializer::NONE;
+  qscheme = qscheme_;
 
-  MemoryData *mem_data =
-    new MemoryData((void *)(new int8_t[dim.getDataLen()]()));
+  NNTR_THROW_IF(scales.size() != scale_size(), std::invalid_argument)
+    << "invalid scale factor size " << scales.size();
+
+  /// @note 4 * scale_size() assumes scale factors are in full-precision fp.
+  MemoryData *mem_data = new MemoryData(
+    (void *)(new int8_t[dim.getDataLen() + sizeof(float) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<int8_t>();
   });
@@ -84,13 +89,28 @@ CharTensor::CharTensor(
           for (unsigned int l = 0; l < channel(); ++l)
             this->setValue(i, l, j, k, d[i][j][k][l]);
   }
+
+  // copy scale factors
+  scopy(scale_size(), scales.data(), 1, (float *)getScale(), 1);
 }
 
 bool CharTensor::operator==(const CharTensor &rhs) const {
+  if (qscheme != rhs.qscheme)
+    return false;
+
+  // compare quantized data
   const int8_t *_data = (int8_t *)getData();
   const int8_t *_rdata = (int8_t *)rhs.getData();
   for (size_t i = 0; i < size(); ++i) {
     if (_data[i] != _rdata[i])
+      return false;
+  }
+
+  // compare scale factors
+  const float *_scales = (float *)getScale();
+  const float *_rscales = (float *)rhs.getScale();
+  for (size_t i = 0; i < scale_size(); ++i) {
+    if (std::fabs(_scales[i] - _rscales[i]) > 1e-5)
       return false;
   }
 
@@ -109,7 +129,8 @@ void CharTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-    mem_data = new MemoryData((void *)(new int8_t[dim.getDataLen()]{}));
+    mem_data = new MemoryData(
+      (void *)(new int8_t[dim.getDataLen() + 4 * scale_size()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<int8_t>();
       delete mem_data;
@@ -139,6 +160,25 @@ void *CharTensor::getData(size_t idx) const {
 
   data->validate();
   return data->getAddr<int8_t>() + offset + idx;
+}
+
+void *CharTensor::getScale() const {
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return ((int8_t *)getData()) + size();
+}
+
+void *CharTensor::getScale(size_t idx) const {
+  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
+    << "Tensor::getScale() index is not valid";
+
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return ((float *)getScale()) + idx;
 }
 
 void *CharTensor::getAddress(unsigned int i) {
@@ -349,8 +389,38 @@ void CharTensor::print(std::ostream &out) const {
     out.copyfmt(init);
   }
 
-  /// @todo print quantization information
+  /// print quantization information
+  const float *q_scales = (float *)getScale();
+
+  if (scale_size() > 50) {
+    out << "Scale factors: [" << q_scales[0] << ' ' << q_scales[1] << ' '
+        << q_scales[2] << " ... " << q_scales[len - 3] << ' '
+        << q_scales[len - 2] << ' ' << q_scales[len - 1] << ']' << std::endl;
+    return;
+  }
+
+  out << "Scale factors: ";
+  for (unsigned i = 0; i < scale_size(); ++i) {
+    out << q_scales[i] << " ";
+  }
+  out << std::endl;
 }
+
+size_t CharTensor::scale_size() const {
+  switch (qscheme) {
+  case QScheme::PER_TENSOR_AFFINE:
+    return 1;
+    break;
+  case QScheme::PER_CHANNEL_AFFINE:
+    return width();
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
+QScheme CharTensor::q_scheme() const { return qscheme; }
 
 void CharTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
@@ -360,17 +430,19 @@ void CharTensor::copy(const void *buf) {
     return;
   }
 
-  /// @todo need to optimize
   scopy(size(), (int8_t *)buf, 1, (int8_t *)getData(), 1);
+
+  float *scales = (float *)(((int8_t *)buf) + size());
+  scopy(scale_size(), scales, 1, (float *)getScale(), 1);
 }
 
 void CharTensor::save_quantization_info(std::ostream &file) {
-  checkedWrite(file, (char *)&axis, sizeof(uint8_t),
+  checkedWrite(file, (char *)&qscheme, sizeof(uint8_t),
                "[CharTensor::save] failed to write quantization information");
 }
 
 void CharTensor::read_quantization_info(std::ifstream &file) {
-  checkedRead(file, (char *)&axis, sizeof(uint8_t),
+  checkedRead(file, (char *)&qscheme, sizeof(uint8_t),
               "[CharTensor::read] failed to read quantization information");
 }
 

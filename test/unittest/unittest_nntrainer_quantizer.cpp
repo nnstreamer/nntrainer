@@ -52,10 +52,16 @@ TEST(nntrainer_Quantizer, per_tensor_affine_03_p) {
                         -0.07760239, -0.28348053, -0.37242615, 0.30941701};
   nntrainer::Tensor input({1, 1, 4, 4}, input_data);
 
-  int8_t qdata[] = {-47, -28, 87,  -1,  123, -42, 39,   -22,
-                    -59, -97, 127, -96, -21, -78, -102, 85};
+  std::vector<int8_t> qdata = {-47, -28, 87,  -1,  123, -42, 39,   -22,
+                               -59, -97, 127, -96, -21, -78, -102, 85};
+  float qscale = 0.00363567f;
+  int8_t *scale_array = reinterpret_cast<int8_t *>(&qscale);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdata.push_back(scale_array[i]);
+  }
   nntrainer::Tensor quant_answer(
-    {1, 1, 4, 4, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}, qdata);
+    {1, 1, 4, 4, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+    qdata.data());
 
   float output_data[] = {-0.17087643, -0.10179872, 0.31630316,  -0.00363567,
                          0.44718724,  -0.15269808, 0.14179108,  -0.07998471,
@@ -96,14 +102,20 @@ TEST(nntrainer_Quantizer, per_tensor_affine_04_p) {
     -0.20489319, 0.33036807,  0.27226517,  -0.25207010};
   nntrainer::Tensor input({1, 1, 8, 8}, input_data);
 
-  int8_t qdata[] = {-109, 9,    16,  14,  66,   16,   56,  -58, -29, 127, 61,
-                    -35,  -104, 121, -92, -122, 51,   68,  -97, 114, 31,  -33,
-                    33,   -110, -98, -60, -69,  -118, 25,  -18, 62,  8,   39,
-                    -107, 60,   -33, 91,  -99,  61,   85,  -58, -86, 98,  -41,
-                    -76,  110,  89,  -33, 82,   120,  -38, 12,  91,  102, 12,
-                    -1,   103,  -90, -71, -96,  -76,  122, 101, -93};
+  std::vector<int8_t> qdata = {
+    -109, 9,    16,   14,  66,  16,  56,  -58,  -29, 127, 61,   -35, -104,
+    121,  -92,  -122, 51,  68,  -97, 114, 31,   -33, 33,  -110, -98, -60,
+    -69,  -118, 25,   -18, 62,  8,   39,  -107, 60,  -33, 91,   -99, 61,
+    85,   -58,  -86,  98,  -41, -76, 110, 89,   -33, 82,  120,  -38, 12,
+    91,   102,  12,   -1,  103, -90, -71, -96,  -76, 122, 101,  -93};
+  float qscale = 0.00270727f;
+  int8_t *scale_array = reinterpret_cast<int8_t *>(&qscale);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdata.push_back(scale_array[i]);
+  }
   nntrainer::Tensor quant_answer(
-    {1, 1, 8, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}, qdata);
+    {1, 1, 8, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+    qdata.data());
 
   float output_data[] = {
     -0.29509223, 0.02436541,  0.04331629,  0.03790175,  0.17867969,

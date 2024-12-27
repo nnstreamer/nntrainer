@@ -12,10 +12,15 @@
 #define __QUANTIZER_H__
 #ifdef __cplusplus
 
-#include <tensor.h>
+#include <memory>
+#include <stdexcept>
 #include <unordered_map>
 
+#include <tensor_dim.h>
+
 namespace nntrainer {
+
+class Tensor;
 
 /**
  * @brief defines the quantization scheme
@@ -73,7 +78,8 @@ protected:
    * @param input Input tensor
    * @param qtype quantized data type
    */
-  virtual void calculateQParams(const Tensor &input, Tdatatype qtype) = 0;
+  virtual void calculateQParams(const Tensor &input,
+                                ml::train::TensorDim::DataType qtype) = 0;
 
 public:
   /**
@@ -112,14 +118,16 @@ public:
    * @param[in] input Floating point tensor to quantize
    * @return Tensor quantized tensor
    */
-  virtual Tensor quantize(const Tensor &input, Tdatatype qtype) = 0;
+  virtual Tensor quantize(const Tensor &input,
+                          ml::train::TensorDim::DataType qtype) = 0;
 
   /**
    * @brief Dequantize a quantized tensor into a tensor.
    * @param[in] input Quantized tensor to dequantize
    * @return Tensor dequantized tensor
    */
-  virtual Tensor dequantize(const Tensor &input, Tdatatype qtype) = 0;
+  virtual Tensor dequantize(const Tensor &input,
+                            ml::train::TensorDim::DataType qtype) = 0;
 
   /**
    * @brief Get quantization Scheme type.
@@ -172,12 +180,14 @@ public:
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input, Tdatatype qtype) override;
+  Tensor quantize(const Tensor &input,
+                  ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input, Tdatatype dtype) override;
+  Tensor dequantize(const Tensor &input,
+                    ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
@@ -191,9 +201,11 @@ private:
   long int quant_max;
 
   /**
-   * @copydoc Quantizer::calculateQParams(const Tensor &input, Tdatatype qtype)
+   * @copydoc Quantizer::calculateQParams(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input, Tdatatype qtype) override;
+  void calculateQParams(const Tensor &input,
+                        ml::train::TensorDim::DataType qtype) override;
 };
 
 /**
@@ -220,12 +232,14 @@ public:
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input, Tdatatype qtype) override;
+  Tensor quantize(const Tensor &input,
+                  ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input, Tdatatype dtype) override;
+  Tensor dequantize(const Tensor &input,
+                    ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
@@ -239,9 +253,11 @@ private:
   long int quant_max;
 
   /**
-   * @copydoc Quantizer::calculateQParams(const Tensor &input, Tdatatype qtype)
+   * @copydoc Quantizer::calculateQParams(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input, Tdatatype qtype) override {}
+  void calculateQParams(const Tensor &input,
+                        ml::train::TensorDim::DataType qtype) override {}
 };
 
 /**
@@ -265,12 +281,14 @@ public:
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input, Tdatatype qtype) override;
+  Tensor quantize(const Tensor &input,
+                  ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input, Tdatatype dtype) override;
+  Tensor dequantize(const Tensor &input,
+                    ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
@@ -279,9 +297,11 @@ public:
 
 private:
   /**
-   * @copydoc Quantizer::calculateQParams(const Tensor &input, Tdatatype qtype)
+   * @copydoc Quantizer::calculateQParams(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input, Tdatatype qtype) override {}
+  void calculateQParams(const Tensor &input,
+                        ml::train::TensorDim::DataType qtype) override {}
 };
 
 /**
