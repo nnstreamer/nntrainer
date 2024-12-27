@@ -267,8 +267,11 @@ std::shared_ptr<ml::train::Model> genModel() {
       {"name=layer_normalization", "axis=3", "epsilon=1e-5"});
   model->addLayer(layer_normalization);
 
-  model->setOptimizer(
+  int status = model->setOptimizer(
     ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
+  if (status) {
+    throw std::invalid_argument("failed to set optimizer!");
+  }
   model->setProperty({"input_layers=wte_input, wpe_input"});
 
   return model;

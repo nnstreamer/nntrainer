@@ -305,11 +305,20 @@ int main(int argc, char *argv[]) {
     // create optimizer
     auto optimizer = ml::train::createOptimizer(
       "adam", {"learning_rate=0.001", "epsilon=1e-8", "torch_ref=true"});
-    model->setOptimizer(std::move(optimizer));
+    int status = model->setOptimizer(std::move(optimizer));
+    if (status) {
+      throw std::invalid_argument("failed to set optimizer");
+    }
 
     // compile and initialize model
-    model->compile();
-    model->initialize();
+    status = model->compile();
+    if (status) {
+      throw std::invalid_argument("model compilation failed!");
+    }
+    status = model->initialize();
+    if (status) {
+      throw std::invalid_argument("model initialization failed!");
+    }
     model->save("./yolov2.ini", ml::train::ModelFormat::MODEL_FORMAT_INI);
     // model->load(MODEL_INIT_BIN_PATH);
 

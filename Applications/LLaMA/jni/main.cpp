@@ -668,9 +668,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
                         withKey("save_path", "test_model.bin")});
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  g_model->setOptimizer(std::move(optimizer));
+  int status = g_model->setOptimizer(std::move(optimizer));
+  if (status) {
+    throw std::invalid_argument("failed to set optimizer!");
+  }
 
-  int status = g_model->compile();
+  status = g_model->compile();
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
