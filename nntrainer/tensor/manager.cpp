@@ -793,7 +793,7 @@ bool Manager::checkUnloadComplete(unsigned int order) {
   return true;
 }
 
-void Manager::LoadTensors(unsigned int order) {
+void Manager::LoadTensors(unsigned int order, unsigned int remainder_lookahead) {
   auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
     return pool.loadCacheExecAsync(
       order, [&](int id, TaskExecutor::CompleteStatus status) {
@@ -819,9 +819,10 @@ void Manager::LoadTensors(unsigned int order) {
     async_load_tensor[o] = std::make_tuple(load_weight, load_tensor);
   };
 
-  for (unsigned int i = order; i < order + swap_lookahead + 1; ++i) {
-    if (i <= max_exec_order)
+  for (unsigned int i = order; i < order + remainder_lookahead + 1; ++i) {
+    if (i <= max_exec_order) {
       enqueTasks(i);
+    }
   }
 }
 
@@ -900,6 +901,14 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
     pool.finalize(OptimizedV1Planner(), start, end);
   else
     pool.finalize(BasicPlanner(), start, end);
+}
+
+unsigned int Manager::getNumLoadedWeightPoolTensors() {
+  return weight_pool.getNumLoadedTensors();
+}
+
+unsigned int Manager::getNumLoadedTensorPoolTensors() {
+  return tensor_pool.getNumLoadedTensors();
 }
 
 } // namespace nntrainer

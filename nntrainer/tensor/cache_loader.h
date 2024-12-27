@@ -115,6 +115,8 @@ public:
    */
   virtual int cancelAsync(int id);
 
+  virtual unsigned int getNumLoadedTensors();
+
 private:
   std::shared_ptr<CachePool> pool; /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
