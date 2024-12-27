@@ -430,7 +430,10 @@ int main(int argc, char *argv[]) {
     // create optimizer
     auto optimizer = ml::train::createOptimizer(
       "adam", {"learning_rate=0.000001", "epsilon=1e-8", "torch_ref=true"});
-    model->setOptimizer(std::move(optimizer));
+    int status = model->setOptimizer(std::move(optimizer));
+    if (status) {
+      throw std::invalid_argument("failed to set optimizer");
+    }
 
     // compile and initialize model
     model->compile();

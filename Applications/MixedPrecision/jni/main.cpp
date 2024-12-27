@@ -134,9 +134,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 #endif
 
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
-  model->setOptimizer(std::move(optimizer));
+  int status = model->setOptimizer(std::move(optimizer));
+  if (status) {
+    throw std::invalid_argument("failed to set optimizer!");
+  }
 
-  int status = model->compile();
+  status = model->compile();
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }

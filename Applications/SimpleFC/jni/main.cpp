@@ -140,9 +140,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
      withKey("model_tensor_type", "FP16-FP16")});
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  model->setOptimizer(std::move(optimizer));
+  int status = model->setOptimizer(std::move(optimizer));
+  if (status) {
+    throw std::invalid_argument("failed to set optimizer!");
+  }
 
-  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  status = model->compile(ml::train::ExecutionMode::INFERENCE);
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
