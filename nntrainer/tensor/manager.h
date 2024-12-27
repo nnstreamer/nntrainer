@@ -497,7 +497,7 @@ public:
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size.
    */
-  void LoadTensors(unsigned int order);
+  void LoadTensors(unsigned int order, unsigned int remainder_lookahead = 0);
 
   /**
    * @brief check completion of load data for the execution order
@@ -539,6 +539,10 @@ public:
    * @brief     return if it is mixed precsion
    */
   bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
+
+  unsigned int getNumLoadedWeightPoolTensors();
+
+  unsigned int getNumLoadedTensorPoolTensors();
 
 private:
   /** @todo: merge this list to one */

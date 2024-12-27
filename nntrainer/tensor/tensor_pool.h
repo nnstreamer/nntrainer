@@ -304,6 +304,8 @@ public:
    */
   void loadCacheCancel(int id);
 
+  unsigned int getNumLoadedTensors();
+
 private:
   /**
    * @brief Source tensor detailed specification
