@@ -1323,6 +1323,7 @@ NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
 int NeuralNetwork::setOptimizer(
   std::shared_ptr<ml::train::Optimizer> optimizer) {
   if (initialized) {
+    ml_loge("Cannot set optimizer if already initialized");
     return ML_ERROR_NOT_SUPPORTED;
   }
 
