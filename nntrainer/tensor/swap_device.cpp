@@ -70,6 +70,8 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
   void *buf = static_cast<void *>(ptr + diff);
   mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
+  ++num_loaded_tensors;
+
   return buf;
 #else
   off_t off;
@@ -91,6 +93,8 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
   }
 
   allocated[ptr] = std::make_pair(offset, (ssize_t)size);
+
+  ++num_loaded_tensors;
 
   return ptr;
 #endif
@@ -158,7 +162,10 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
 #endif
 
 #endif
+  --num_loaded_tensors;
 }
+
+unsigned int SwapDevice::getNumLoadedTensors() { return num_loaded_tensors; }
 
 /**
  * @brief Close device
