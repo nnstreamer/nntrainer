@@ -10,6 +10,7 @@ compiler_sources = [
   'multiout_realizer.cpp',
   'bn_realizer.cpp',
   'loss_realizer.cpp',
+  'subgraph_realizer.cpp',
 ]
 
 compiler_headers = [

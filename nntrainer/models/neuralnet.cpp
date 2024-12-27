@@ -49,6 +49,7 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
+#include <subgraph_realizer.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -1459,7 +1460,23 @@ void NeuralNetwork::addWithReferenceLayers(
       new RecurrentRealizer(type_properties, input_conns, end_conns));
   }
 
-  if (!scope.empty()) {
+  /**
+   * @brief add SubGraphRealizer when type is SUBGRAPH
+   * subgraphrealizer updates the name of the node.
+   * Thus, remaprealizer should not be applied again.
+   * @note scope name should be set to apply subgraph realizer.
+   */
+  if (type == ml::train::ReferenceLayersType::SUBGRAPH) {
+
+    // Applied only when `scope` is specified.
+    if (scope.empty()) {
+      ml_logd(
+        "The subgraph's scope name is not set. Subgraph setting is skipped.");
+      return;
+    }
+    realizers.emplace_back(
+      new SubgraphRealizer(scope, type_properties, input_conns));
+  } else if (!scope.empty()) {
     realizers.emplace_back(
       new RemapRealizer([&scope, &input_conns](std::string &name) {
         for (auto &i : input_conns) {
