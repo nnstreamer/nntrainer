@@ -18,6 +18,7 @@
 
 #include <memory_data.h>
 #include <nntrainer_error.h>
+#include <quantizer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -640,6 +641,17 @@ public:
    * @note      Override for quantize tensor
    */
   virtual size_t scale_size() const { return 0; }
+
+  /**
+   * @brief     return Tensor quantization scheme
+   * @retval    Qscheme qscheme
+   * @note      Override for quantize tensor
+   */
+  virtual QScheme q_scheme() const {
+    throw std::invalid_argument(
+      "Tensor::q_scheme() is not supported in tensor data type " +
+      getStringDataType());
+  }
 
   /**
    * @brief Merge the given two axis for tensor at second axis inplace

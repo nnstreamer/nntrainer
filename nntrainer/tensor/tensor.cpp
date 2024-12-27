@@ -27,9 +27,11 @@ namespace nntrainer {
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<CharTensor>(new CharTensor(d, t_type.format),
-                                        std::default_delete<CharTensor>());
+  std::vector<float> const &scales, ml::train::TensorDim::TensorType t_type,
+  QScheme qscheme_) {
+  itensor = std::shared_ptr<CharTensor>(
+    new CharTensor(d, scales, t_type.format, qscheme_),
+    std::default_delete<CharTensor>());
 }
 
 Tensor::Tensor(
@@ -102,7 +104,7 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 }
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-               std::string name) {
+               std::string name, QScheme qscheme) {
   itensor = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
@@ -130,9 +132,9 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
       std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, alloc_now, init, name),
                                     std::default_delete<UInt32Tensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
-    itensor =
-      std::shared_ptr<CharTensor>(new CharTensor(d, alloc_now, init, name),
-                                  std::default_delete<CharTensor>());
+    itensor = std::shared_ptr<CharTensor>(
+      new CharTensor(d, alloc_now, init, name, qscheme),
+      std::default_delete<CharTensor>());
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor =
@@ -150,7 +152,7 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
   }
 }
 
-Tensor::Tensor(const TensorDim &d, const void *buf) {
+Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
   itensor = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
@@ -173,7 +175,7 @@ Tensor::Tensor(const TensorDim &d, const void *buf) {
     itensor = std::shared_ptr<UInt32Tensor>(
       new UInt32Tensor(d, buf), std::default_delete<UInt32Tensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf),
+    itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf, qscheme),
                                           std::default_delete<CharTensor>());
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
@@ -1038,6 +1040,7 @@ void Tensor::copy(const Tensor &from) {
   }
 
   if (from.size() != 0 && size() == from.size() &&
+      scale_size() == from.scale_size() &&
       getDataType() == from.getDataType()) {
     // if tensor size and data type match, copy data
     itensor->copy(from);
@@ -1252,6 +1255,8 @@ size_t Tensor::height() const { return itensor->height(); }
 size_t Tensor::width() const { return itensor->width(); }
 
 size_t Tensor::scale_size() const { return itensor->scale_size(); }
+
+QScheme Tensor::q_scheme() const { return itensor->q_scheme(); }
 
 void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)

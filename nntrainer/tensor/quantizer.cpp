@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <quantizer.h>
+#include <tensor.h>
 
 namespace nntrainer {
 
@@ -63,6 +64,8 @@ Tensor PerTensorAffineQuantizer::quantize(const Tensor &input,
       }
     }
   }
+
+  *output.getScale<float>() = scale;
 
   return output;
 }
