@@ -1,4 +1,4 @@
-subgraph_source = ['main.cpp', cifar_path / 'cifar_dataloader.cpp']
+subgraph_source = ['main.cpp']
 subgraph_dependencies = [app_utils_dep, nntrainer_dep, nntrainer_ccapi_dep]
 
 e = executable(

@@ -1,3 +1,14 @@
+/**
+ * Copyright (C) 2024 Samsung Electronics Co., Ltd. All Rights Reserved.
+ *
+ * @file	model_util.h
+ * @date	27 Dec 2024
+ * @brief	This is util functions for example model
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Eunju Yang <ej.yang@samsung.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
 #include <string>
 
 /**
@@ -15,6 +26,9 @@ static std::string withKey(const std::string &key, const T &value) {
   return ss.str();
 }
 
+/**
+ * @brief make "key=value" from key and value
+ */
 template <typename T>
 static std::string withKey(const std::string &key,
                            std::initializer_list<T> value) {
