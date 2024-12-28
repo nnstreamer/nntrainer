@@ -31,6 +31,7 @@
 #include <optimizer.h>
 #include <optimizer_devel.h>
 
+#include <context.h>
 #include <nntrainer_error.h>
 
 namespace nntrainer {
@@ -42,32 +43,8 @@ namespace {} // namespace
  * @class AppContext contains user-dependent configuration
  * @brief App
  */
-class AppContext {
+class AppContext : public Context {
 public:
-  using PropsType = std::vector<std::string>;
-
-  template <typename T> using PtrType = std::unique_ptr<T>;
-
-  template <typename T>
-  using FactoryType = std::function<PtrType<T>(const PropsType &)>;
-
-  template <typename T>
-  using PtrFactoryType = PtrType<T> (*)(const PropsType &);
-  template <typename T>
-  using StrIndexType = std::unordered_map<std::string, FactoryType<T>>;
-
-  /** integer to string key */
-  using IntIndexType = std::unordered_map<int, std::string>;
-
-  /**
-   * This type contains tuple of
-   * 1) integer -> string index
-   * 2) string -> factory index
-   */
-  template <typename T>
-  using IndexType = std::tuple<StrIndexType<T>, IntIndexType>;
-
-  template <typename... Ts> using FactoryMap = std::tuple<IndexType<Ts>...>;
 
   /**
    * @brief   Default constructor
@@ -75,12 +52,17 @@ public:
   AppContext() = default;
 
   /**
+   * @brief   Default destructor
+   */
+  ~AppContext() override = default;
+
+  /**
    *
    * @brief Get Global app context.
    *
    * @return AppContext&
    */
-  static AppContext &Global();
+  AppContext &Global();
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set
@@ -201,6 +183,44 @@ public:
                             const std::string &key = "",
                             const int int_key = -1);
 
+  std::unique_ptr<nntrainer::Layer>
+  createLayerObject(const std::string &type,
+                    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Layer>(type, properties);
+  }
+
+  std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
+    const std::string &type,
+    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Optimizer>(type, properties);
+  }
+
+  std::unique_ptr<ml::train::LearningRateScheduler>
+  createLearningRateSchedulerObject(
+    const std::string &type,
+    const std::vector<std::string> &properties = {}) override {
+    return createObject<ml::train::LearningRateScheduler>(type, properties);
+  }
+
+  std::unique_ptr<nntrainer::Layer>
+  createLayerObject(const int int_key,
+                    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Layer>(int_key, properties);
+  }
+
+  std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
+    const int int_key,
+    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Optimizer>(int_key, properties);
+  }
+
+  std::unique_ptr<ml::train::LearningRateScheduler>
+  createLearningRateSchedulerObject(
+    const int int_key,
+    const std::vector<std::string> &properties = {}) override {
+    return createObject<ml::train::LearningRateScheduler>(int_key, properties);
+  }
+
   /**
    * @brief Create an Object from the integer key
    *
@@ -270,6 +290,8 @@ public:
   static PtrType<T> unknownFactory(const PropsType &props) {
     throw std::invalid_argument("cannot create unknown object");
   }
+
+  std::string getName() override { return "cpu"; }
 
 private:
   FactoryMap<nntrainer::Optimizer, nntrainer::Layer,

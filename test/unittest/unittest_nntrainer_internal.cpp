@@ -36,8 +36,9 @@
  */
 TEST(nntrainer_Optimizer, create_01_p) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("adam", {}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_NO_THROW(op = ac->createOptimizerObject("adam", {}));
 }
 
 /**
@@ -45,9 +46,9 @@ TEST(nntrainer_Optimizer, create_01_p) {
  */
 TEST(nntrainer_Optimizer, create_02_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(
-    op = ac.createObject<nntrainer::Optimizer>("adam", {"unknown"}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op = ac->createOptimizerObject("adam", {"unknown"}));
 }
 
 /**
@@ -55,9 +56,9 @@ TEST(nntrainer_Optimizer, create_02_n) {
  */
 TEST(nntrainer_Optimizer, create_03_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(op =
-                     ac.createObject<nntrainer::Optimizer>("adam", {"lr=0.1"}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op = ac->createOptimizerObject("adam", {"lr=0.1"}));
 }
 
 /**
@@ -65,9 +66,10 @@ TEST(nntrainer_Optimizer, create_03_n) {
  */
 TEST(nntrainer_Optimizer, create_04_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(
-    op = ac.createObject<nntrainer::Optimizer>("adam", {"learning_rate:0.1"}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op =
+                     ac->createOptimizerObject("adam", {"learning_rate:0.1"}));
 }
 
 /**
@@ -75,8 +77,9 @@ TEST(nntrainer_Optimizer, create_04_n) {
  */
 TEST(nntrainer_Optimizer, create_05_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_NO_THROW(op = ac.createObject<nntrainer::Optimizer>("sgd", {}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_NO_THROW(op = ac->createOptimizerObject("sgd", {}));
 }
 
 /**
@@ -84,9 +87,9 @@ TEST(nntrainer_Optimizer, create_05_n) {
  */
 TEST(nntrainer_Optimizer, create_06_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(op =
-                     ac.createObject<nntrainer::Optimizer>("sgd", {"lr=0.1"}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op = ac->createOptimizerObject("sgd", {"lr=0.1"}));
 }
 
 /**
@@ -94,9 +97,11 @@ TEST(nntrainer_Optimizer, create_06_n) {
  */
 TEST(nntrainer_Optimizer, create_07_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(
-    op = ac.createObject<nntrainer::Optimizer>("sgd", {"learning_rate:0.1"}));
+  // auto &ac = nntrainer::AppContext::Global();
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op =
+                     ac->createOptimizerObject("sgd", {"learning_rate:0.1"}));
 }
 
 /**
@@ -104,9 +109,9 @@ TEST(nntrainer_Optimizer, create_07_n) {
  */
 TEST(nntrainer_Optimizer, create_08_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(op =
-                     ac.createObject<nntrainer::Optimizer>("sgd", {"unknown"}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op = ac->createOptimizerObject("sgd", {"unknown"}));
 }
 
 /**
@@ -114,9 +119,9 @@ TEST(nntrainer_Optimizer, create_08_n) {
  */
 TEST(nntrainer_Optimizer, create_09_n) {
   std::unique_ptr<nntrainer::Optimizer> op;
-  auto &ac = nntrainer::AppContext::Global();
-  EXPECT_ANY_THROW(
-    op = ac.createObject<nntrainer::Optimizer>("non-existing type", {}));
+  auto &eg = nntrainer::Engine::Global();
+  auto ac = eg.getRegisteredContext("cpu");
+  EXPECT_ANY_THROW(op = ac->createOptimizerObject("non-existing type", {}));
 }
 
 TEST(nntrainer_throw_if, throw_invalid_arg_p) {

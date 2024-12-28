@@ -665,7 +665,7 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
  */
 int main(int argc, char **argv) {
   try {
-    nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+    nntrainer::Engine::Global().setWorkingDirectory(getTestResPath(""));
   } catch (std::invalid_argument &e) {
     std::cout << "failed to get test res path\n";
   }

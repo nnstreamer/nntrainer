@@ -39,7 +39,7 @@
 
 #include <bitmap_helpers.h>
 
-#include <app_context.h>
+#include <engine.h>
 #define TRAINING true
 
 /**
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
 
   /// @todo add api version of this
   try {
-    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+    nntrainer::Engine::Global().setWorkingDirectory(data_path);
   } catch (std::invalid_argument &e) {
     std::cerr << "setting data_path failed, pwd is used instead";
   }
