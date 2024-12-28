@@ -239,6 +239,7 @@ getResPath(const std::string &filename,
 nntrainer::GraphRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   static auto &eg = nntrainer::Engine::Global();
+
   nntrainer::GraphRepresentation graph_rep;
 
   for (const auto &layer_representation : layer_reps) {
