@@ -25,8 +25,8 @@
 
 static std::unique_ptr<nntrainer::LearningRateScheduler>
 createLRS(const std::string &type) {
-  auto &ac = nntrainer::AppContext::Global();
-  auto lrs = ac.createObject<ml::train::LearningRateScheduler>(type);
+  auto &eg = nntrainer::Engine::Global();
+  auto lrs = eg.createLearningRateSchedulerObject(type, {});
   auto lrs_ptr = static_cast<nntrainer::LearningRateScheduler *>(lrs.release());
   return std::unique_ptr<nntrainer::LearningRateScheduler>(lrs_ptr);
 }
