@@ -20,6 +20,7 @@
 
 #include <app_context.h>
 #include <det_dataloader.h>
+#include <engine.h>
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
@@ -379,8 +380,11 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   try {
-    auto &app_context = nntrainer::AppContext::Global();
-    app_context.registerFactory(nntrainer::createLayer<custom::UpsampleLayer>);
+    auto &ct_engine = nntrainer::Engine::Global();
+    auto app_context = static_cast<nntrainer::AppContext *>(
+      ct_engine.getRegisteredContext("cpu"));
+
+    app_context->registerFactory(nntrainer::createLayer<custom::UpsampleLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
@@ -388,8 +392,10 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    auto &app_context = nntrainer::AppContext::Global();
-    app_context.registerFactory(
+    auto &ct_engine = nntrainer::Engine::Global();
+    auto app_context = static_cast<nntrainer::AppContext *>(
+      ct_engine.getRegisteredContext("cpu"));
+    app_context->registerFactory(
       nntrainer::createLayer<custom::YoloV3LossLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register yolov3 loss, reason: " << e.what()
