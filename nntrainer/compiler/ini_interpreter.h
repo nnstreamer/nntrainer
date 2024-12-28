@@ -18,7 +18,7 @@
 
 #include <iniparser.h>
 
-#include <app_context.h>
+#include <engine.h>
 #include <interpreter.h>
 
 namespace nntrainer {
@@ -35,7 +35,7 @@ public:
    * @param pathResolver_ path resolver function to be used
    */
   IniGraphInterpreter(
-    const AppContext &app_context_ = AppContext::Global(),
+    const Engine &ct_engine_ = Engine::Global(),
     std::function<const std::string(const std::string &)> pathResolver_ =
       [](const std::string &path) { return path; });
 
@@ -58,7 +58,7 @@ public:
   GraphRepresentation deserialize(const std::string &in) override;
 
 private:
-  AppContext app_context;
+  Engine ct_engine;
   std::function<const std::string(std::string)> pathResolver;
 };
 
