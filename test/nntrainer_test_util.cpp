@@ -238,14 +238,19 @@ getResPath(const std::string &filename,
 
 nntrainer::GraphRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
-  static auto &ac = nntrainer::AppContext::Global();
+  static auto &eg = nntrainer::Engine::Global();
+  // #ifdef ENABLE_QNN
+  //   static auto &qc = nntrainer::QNNContext::Global();
+  // #endif
   nntrainer::GraphRepresentation graph_rep;
 
   for (const auto &layer_representation : layer_reps) {
     /// @todo Use unique_ptr here
     std::shared_ptr<nntrainer::LayerNode> layer = nntrainer::createLayerNode(
-      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      eg.createLayerObject(layer_representation.first,
+                           layer_representation.second),
       layer_representation.second);
+
     graph_rep.push_back(layer);
   }
 
@@ -256,14 +261,15 @@ nntrainer::GraphRepresentation makeCompiledGraph(
   const std::vector<LayerRepresentation> &layer_reps,
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers,
   const std::string &loss_layer) {
-  static auto &ac = nntrainer::AppContext::Global();
+  static auto &eg = nntrainer::Engine::Global();
 
   nntrainer::GraphRepresentation graph_rep;
   auto model_graph = nntrainer::NetworkGraph();
 
   for (auto &layer_representation : layer_reps) {
     std::shared_ptr<nntrainer::LayerNode> layer = nntrainer::createLayerNode(
-      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      eg.createLayerObject(layer_representation.first,
+                           layer_representation.second),
       layer_representation.second);
     graph_rep.push_back(layer);
   }

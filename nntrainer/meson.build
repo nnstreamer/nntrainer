@@ -17,6 +17,8 @@ nntrainer_headers = [
    meson.current_source_dir() / 'nntrainer_logger.h',
    meson.current_source_dir() / 'nntrainer_error.h',
    meson.current_source_dir() / 'app_context.h',
+   meson.current_source_dir() / 'context.h',
+   meson.current_source_dir() / 'engine.h',
 ]
 
 nntrainer_base_deps=[
@@ -64,7 +66,8 @@ endforeach
 
 nntrainer_common_sources = [
   'nntrainer_logger.cpp',
-  'app_context.cpp'
+  'app_context.cpp',
+  'engine.cpp'
 ]
 
 nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ruy'

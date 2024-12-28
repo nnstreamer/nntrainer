@@ -14,7 +14,7 @@
 
 #include <interpreter.h>
 
-#include <app_context.h>
+#include <engine.h>
 namespace nntrainer {
 
 /**
@@ -28,8 +28,8 @@ public:
    *
    * @param app_context_ app context to create layers
    */
-  TfliteInterpreter(const AppContext &app_context_ = AppContext::Global()) :
-    app_context(app_context_) {}
+  TfliteInterpreter(const Engine &ct_engine_ = Engine::Global()) :
+    ct_engine(ct_engine_) {}
 
   /**
    * @brief Destroy the Tflite Interpreter object
@@ -49,7 +49,7 @@ public:
   GraphRepresentation deserialize(const std::string &in) override;
 
 private:
-  AppContext app_context;
+  Engine ct_engine;
 };
 
 } // namespace nntrainer

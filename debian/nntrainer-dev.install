@@ -36,6 +36,8 @@
 /usr/include/nntrainer/loss_layer.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
+/usr/include/nntrainer/context.h
+/usr/include/nntrainer/engine.h
 # logger
 /usr/include/nntrainer/nntrainer_log.h
 /usr/include/nntrainer/nntrainer_logger.h
