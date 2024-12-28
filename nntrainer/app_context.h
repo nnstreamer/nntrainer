@@ -57,6 +57,11 @@ public:
   ~AppContext() override = default;
 
   /**
+   * @brief   Default destructor
+   */
+  ~AppContext() override = default;
+
+  /**
    *
    * @brief Get Global app context.
    *
