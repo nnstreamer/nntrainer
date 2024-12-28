@@ -19,11 +19,12 @@
 #include <utility>
 
 #include <activation_layer.h>
-#include <app_context.h>
 #include <base_properties.h>
 #include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
+#include <context.h>
+#include <engine.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -129,55 +130,6 @@ public:
  *
  */
 LayerNode::~LayerNode() = default;
-  
-/**
- * @brief get the compute engine property from property string vector
- *  : default is CPU
- * @return LayerComputeEngine Enum : CPU, GPU, QNN
- *
- */
-ml::train::LayerComputeEngine
-getComputeEngine(const std::vector<std::string> &props) {
-  for (auto &prop : props) {
-    std::string key, value;
-    int status = nntrainer::getKeyValue(prop, key, value);
-    if (nntrainer::istrequal(key, "engine")) {
-      constexpr const auto data =
-        std::data(props::ComputeEngineTypeInfo::EnumList);
-      for (uint i = 0; i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
-        if (nntrainer::istrequal(value.c_str(),
-                                 props::ComputeEngineTypeInfo::EnumStr[i])) {
-          return data[i];
-        }
-      }
-    }
-  }
-
-  return ml::train::LayerComputeEngine::CPU;
-}
-
-/**
- * @brief get the compute engine property from property string vector
- *  : default is CPU
- * @return LayerComputeEngine Enum : CPU, GPU, QNN
- *
- */
-ml::train::LayerComputeEngine
-getComputeEngine(const std::vector<std::string> &props) {
-  for (auto &prop : props) {
-    std::string key, value;
-    int status = nntrainer::getKeyValue(prop, key, value);
-    if (nntrainer::istrequal(key, "engine")) {
-      if (nntrainer::istrequal(value, "qnn")) {
-        return ml::train::LayerComputeEngine::QNN;
-      } else if (nntrainer::istrequal(value, "gpu")) {
-        return ml::train::LayerComputeEngine::GPU;
-      }
-    }
-  }
-
-  return ml::train::LayerComputeEngine::CPU;
-}
 
 /**
  * @brief get the compute engine property from property string vector
@@ -212,19 +164,8 @@ getComputeEngine(const std::vector<std::string> &props) {
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -233,19 +174,8 @@ createLayerNode(const ml::train::LayerType &type,
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
