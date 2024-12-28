@@ -12,8 +12,8 @@
  * @details wraps the optimizer and learning rate scheduler together
  */
 
-#include <app_context.h>
 #include <common_properties.h>
+#include <engine.h>
 #include <lr_scheduler_constant.h>
 #include <lr_scheduler_exponential.h>
 #include <nntrainer_log.h>
@@ -28,9 +28,8 @@ namespace nntrainer {
 std::unique_ptr<OptimizerWrapped>
 createOptimizerWrapped(const ml::train::OptimizerType &type,
                        const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return createOptimizerWrapped(ac.createObject<OptimizerCore>(type),
-                                properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createOptimizerWrapped(eg.createOptimizerObject(type), properties);
 }
 
 /**
@@ -39,9 +38,8 @@ createOptimizerWrapped(const ml::train::OptimizerType &type,
 std::unique_ptr<OptimizerWrapped>
 createOptimizerWrapped(const std::string &type,
                        const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return createOptimizerWrapped(ac.createObject<OptimizerCore>(type),
-                                properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createOptimizerWrapped(eg.createOptimizerObject(type), properties);
 }
 
 /**
