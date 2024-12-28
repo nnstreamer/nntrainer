@@ -81,10 +81,10 @@ NeuralNetwork::NeuralNetwork() :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN) {
-  app_context = AppContext::Global();
+  ct_engine = Engine(Engine::Global());
 }
 
-NeuralNetwork::NeuralNetwork(AppContext app_context_) :
+NeuralNetwork::NeuralNetwork(Engine ct_engine_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
   model_flex_props(
@@ -101,7 +101,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN),
-  app_context(app_context_) {}
+  ct_engine(ct_engine_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -109,7 +109,7 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  ModelLoader loader(app_context);
+  ModelLoader loader(ct_engine);
   NeuralNetwork tempNet(*this);
 
   int status = loader.loadFromContext(tempNet);

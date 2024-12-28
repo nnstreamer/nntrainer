@@ -62,8 +62,8 @@ int ModelLoader::loadLearningRateSchedulerConfigIni(
     parseProperties(ini, "LearningRateScheduler", {"type"});
 
   try {
-    auto lrs = app_context.createObject<ml::train::LearningRateScheduler>(
-      lrs_type, properties);
+    auto lrs =
+      ct_engine.createLearningRateSchedulerObject(lrs_type, properties);
     auto opt_wrapped = std::static_pointer_cast<OptimizerWrapped>(optimizer);
     opt_wrapped->setLearningRateScheduler(std::move(lrs));
   } catch (std::exception &e) {
@@ -428,7 +428,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
   ml_logd("parsing graph started");
   try {
     std::unique_ptr<GraphInterpreter> ini_interpreter =
-      std::make_unique<nntrainer::IniGraphInterpreter>(app_context,
+      std::make_unique<nntrainer::IniGraphInterpreter>(ct_engine,
                                                        path_resolver);
     auto graph_representation = ini_interpreter->deserialize(ini_file);
 
@@ -497,8 +497,9 @@ int ModelLoader::loadFromONNX(std::string onnx_file, NeuralNetwork &model) {
  * @brief     load all properties from context
  */
 int ModelLoader::loadFromContext(NeuralNetwork &model) {
-  auto props = app_context.getProperties();
-  model.setTrainConfig(props);
+  /// @todo: Property for Context needs to updated
+  // auto props = app_context.getProperties();
+  // model.setTrainConfig(props);
 
   return ML_ERROR_NONE;
 }
@@ -508,15 +509,15 @@ int ModelLoader::loadFromContext(NeuralNetwork &model) {
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
 
-  if (model_file_context != nullptr) {
+  if (model_file_engine != nullptr) {
     ml_loge(
-      "model_file_context is already initialized, there is a possiblity that "
+      "model_file_engine is already initialized, there is a possiblity that "
       "last load from config wasn't finished correctly, and model loader is "
       "reused");
     return ML_ERROR_UNKNOWN;
   }
 
-  model_file_context = std::make_unique<AppContext>();
+  model_file_engine = std::make_unique<Engine>();
 
   auto config_realpath_char = getRealpath(config.c_str(), nullptr);
   if (config_realpath_char == nullptr) {
@@ -531,12 +532,15 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
 
   auto base_path =
     std::filesystem::path(config_realpath).parent_path().string();
-  model_file_context->setWorkingDirectory(base_path);
+
+  auto base_path = config_realpath.substr(0, pos);
+  model_file_engine->setWorkingDirectory(base_path);
+
   ml_logd("for the current model working directory is set to %s",
           base_path.c_str());
 
   int status = loadFromConfig(config_realpath, model, false);
-  model_file_context.reset();
+  model_file_engine.reset();
   return status;
 }
 
