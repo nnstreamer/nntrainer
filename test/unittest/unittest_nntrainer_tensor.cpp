@@ -200,12 +200,23 @@ TEST(nntrainer_Tensor, Tensor_04_p) {
     in.push_back(ttv);
   }
 
+  std::vector<float> scales = {1.349f, 3.135f, 6.196f, 2.105f, 6.125f,
+                               4.106f, 0.916f, 7.014f, 9.814f, 5.556f};
+
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+    in, scales, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+    nntrainer::QScheme::PER_CHANNEL_AFFINE);
   ASSERT_NE(nullptr, tensor.getData<int8_t>(0));
 
   if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
     status = ML_ERROR_INVALID_PARAMETER;
+
+  float *scale_data = tensor.getScale<float>();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(scale_data[idx], scales[idx]);
+  }
+
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -335,9 +346,11 @@ TEST(nntrainer_Tensor, Tensor_08_n) {
     in.push_back(ttv);
   }
 
-  EXPECT_THROW(nntrainer::Tensor(
-                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}),
-               std::out_of_range);
+  EXPECT_THROW(
+    nntrainer::Tensor(in, {3.561f},
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE),
+    std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, Tensor_09_n) {
@@ -3815,7 +3828,7 @@ TEST(nntrainer_Tensor, print_small_size_02) {
            << "         1          1 \n"
            << "         1          1 \n"
            << "\n"
-           << "-------\n";
+           << "-------\nScale factors: 0 \n";
 
   EXPECT_EQ(ss.str(), expected.str());
 }

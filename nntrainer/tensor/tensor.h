@@ -25,6 +25,7 @@
 
 #include <blas_interface.h>
 #include <nntrainer_log.h>
+#include <quantizer.h>
 #include <tensor_base.h>
 
 #ifdef ENABLE_FP16
@@ -63,17 +64,21 @@ public:
    * @param alloc_now If the memory of the tensor must be allocated
    * @param init Initializer for the tensor
    * @param name Name of the tensor
+   * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(const TensorDim &d, bool alloc_now,
-         Initializer init = Initializer::NONE, std::string name = "");
+         Initializer init = Initializer::NONE, std::string name = "",
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
    * @param d Tensor dim for this tensor
    * @param buf buffer
+   * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
    * @note Memory for this tensor is instantaneously allocated
    */
-  Tensor(const TensorDim &d, const void *buf = nullptr);
+  Tensor(const TensorDim &d, const void *buf = nullptr,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief     Constructor of Tensor
@@ -83,10 +88,12 @@ public:
    * @param[in] d3 Width
    * @param[in] fm Tensor Format
    * @param[in] d_type Tensor Data Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32) :
-    Tensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr){};
+         Tdatatype d_type = Tdatatype::FP32,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+    Tensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor
@@ -95,10 +102,12 @@ public:
    * @param[in] d3 Width
    * @param[in] fm Tensor Format
    * @param[in] d_type Tensor Data Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32) :
-    Tensor(1, d1, d2, d3, fm, d_type){};
+         Tdatatype d_type = Tdatatype::FP32,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+    Tensor(1, d1, d2, d3, fm, d_type, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor with batch size one and d1 size one
@@ -106,20 +115,24 @@ public:
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    * @param[in] fm Tensor Format
    * @param[in] d_type Tensor Data Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32) :
-    Tensor(1, 1, d2, d3, fm, d_type){};
+         Tdatatype d_type = Tdatatype::FP32,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+    Tensor(1, 1, d2, d3, fm, d_type, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    * @param[in] fm Tensor Format
    * @param[in] d_type Tensor Data Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
-                  Tdatatype d_type = Tdatatype::FP32) :
-    Tensor(1, 1, 1, d3, fm, d_type){};
+                  Tdatatype d_type = Tdatatype::FP32,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+    Tensor(1, 1, 1, d3, fm, d_type, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor
@@ -128,10 +141,12 @@ public:
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
-         ml::train::TensorDim::TensorType t_type) :
-    Tensor(TensorDim(d0, d1, d2, d3, t_type), nullptr){};
+         ml::train::TensorDim::TensorType t_type,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+    Tensor(TensorDim(d0, d1, d2, d3, t_type), nullptr, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor
@@ -139,9 +154,11 @@ public:
    * @param[in] d2 Height
    * @param[in] d3 Width
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(size_t d1, size_t d2, size_t d3,
-         ml::train::TensorDim::TensorType t_type) :
+         ml::train::TensorDim::TensorType t_type,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, d1, d2, d3, t_type){};
 
   /**
@@ -149,19 +166,23 @@ public:
    * @param[in] d2 Height (NCHW) or Width (NHWC)
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type) :
+  Tensor(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type,
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3,
            (t_type.format == Tformat::NCHW) ? d2 : 1,
-           (t_type.format == Tformat::NCHW) ? d3 : d2, t_type){};
+           (t_type.format == Tformat::NCHW) ? d3 : d2, t_type, qscheme_){};
   /**
    * @brief     Constructor of Tensor with just Width or Channel
    * @param[in] d3 Width (NCHW) or Channel (NHWC)
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type) :
+  explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3, 1,
-           (t_type.format == Tformat::NCHW) ? d3 : 1, t_type){};
+           (t_type.format == Tformat::NCHW) ? d3 : 1, t_type, qscheme_){};
 
   /**
    * @brief     Constructor of Tensor
@@ -312,32 +333,43 @@ public:
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
   /**
-   * @brief     Constructor of Tensor
+   * @brief     Constructor of CharTensor (QINT8)
    * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] scales scale factors for the Tensor.
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-         ml::train::TensorDim::TensorType t_type);
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
 
   /**
-   * @brief     Constructor of Tensor
+   * @brief     Constructor of CharTensor (QINT8)
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] scales scale factors for the Tensor.
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(std::vector<std::vector<std::vector<int8_t>>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
+           qscheme_){};
 
   /**
-   * @brief     Constructor of Tensor
+   * @brief     Constructor of CharTensor (QINT8)
    * @note      This constructor copies vector again. needs refactoring
    * @param[in] d data for the Tensor with batch size one
+   * @param[in] scales scale factors for the Tensor.
    * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
   Tensor(std::vector<std::vector<int8_t>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
+           qscheme_){};
 
   /**
    *  @brief  Constructor of Tensor by directly assigning TensorBase.
