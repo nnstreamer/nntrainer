@@ -902,21 +902,6 @@ public:
   std::vector<Weight *> getWeights() { return weights; }
 
   /**
-   * @brief set the compute engine for this node
-   * @param compute engine: (CPU/GPU)
-   */
-  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
-                          ml::train::LayerComputeEngine::CPU) {
-    this->compute_engine = compute_engine;
-  }
-
-  /**
-   * @brief get the compute engine for this node
-   * @return ompute engine: (CPU/GPU)
-   */
-  ml::train::LayerComputeEngine getComputeEngine() { return compute_engine; }
-
-  /**
    * @brief get loss scale
    * @return loss scale
    */
@@ -957,9 +942,6 @@ private:
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
   std::vector<Var_Grad *> outputs; /**< outputs of the layer */
   std::vector<Var_Grad *> tensors; /**< tensors of the layer */
-
-  ml::train::LayerComputeEngine compute_engine =
-    ml::train::LayerComputeEngine::CPU;
 
 #ifdef DEBUG
   std::map<std::string, const void *>
