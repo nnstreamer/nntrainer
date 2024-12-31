@@ -9,6 +9,7 @@
  */
 
 #include <quantizer.h>
+#include <tensor.h>
 
 namespace nntrainer {
 

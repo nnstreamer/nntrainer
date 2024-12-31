@@ -200,12 +200,23 @@ TEST(nntrainer_Tensor, Tensor_04_p) {
     in.push_back(ttv);
   }
 
+  std::vector<float> scales = {1.349f, 3.135f, 6.196f, 2.105f, 6.125f,
+                               4.106f, 0.916f, 7.014f, 9.814f, 5.556f};
+
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+    in, scales, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+    nntrainer::QScheme::PER_CHANNEL_AFFINE);
   ASSERT_NE(nullptr, tensor.getData<int8_t>(0));
 
   if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
     status = ML_ERROR_INVALID_PARAMETER;
+
+  float *scale_data = tensor.getScale<float>();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(scale_data[idx], scales[idx]);
+  }
+
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -335,9 +346,11 @@ TEST(nntrainer_Tensor, Tensor_08_n) {
     in.push_back(ttv);
   }
 
-  EXPECT_THROW(nntrainer::Tensor(
-                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}),
-               std::out_of_range);
+  EXPECT_THROW(
+    nntrainer::Tensor(in, {3.561f},
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE),
+    std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, Tensor_09_n) {
@@ -1022,6 +1035,89 @@ TEST(nntrainer_Tensor, multiply_08_n) {
   nntrainer::Tensor output(dim, false);
 
   EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
+/**
+ * @brief Test elementwise multiplication of qint8
+ * @note Compare quantized int 8 mutiplication result with float multiplication
+ */
+TEST(nntrainer_Quantizer, multiply_09_p) {
+  size_t batch = 1;
+  size_t channel = 1;
+  size_t height = 4;
+  size_t width = 4;
+
+  // float tensor A and B (original data)
+  float dataA[] = {-0.16924214, -0.10338581, 0.31561565,  -0.00533330,
+                   0.44809300,  -0.15348488, 0.14003623,  -0.07908171,
+                   -0.21415669, -0.35267806, 0.46354777,  -0.35009885,
+                   -0.07760239, -0.28348053, -0.37242615, 0.30941701};
+  nntrainer::Tensor A({batch, channel, height, width}, dataA);
+
+  float dataB[] = {-0.27615008, 0.43723762,  -0.34135219, -0.01534167,
+                   -0.32217509, 0.43340221,  0.11122712,  -0.46792096,
+                   -0.48326263, -0.26464382, 0.48709807,  -0.18793547,
+                   0.02684793,  -0.10355628, 0.06903752,  -0.07670835};
+  nntrainer::Tensor B({batch, channel, height, width}, dataB);
+
+  // quantized tensor qA and qB (quantized data - per tensor affine)
+  std::vector<int8_t> qdataA = {-47, -28, 87,  -1,  123, -42, 39,   -22,
+                                -59, -97, 127, -96, -21, -78, -102, 85};
+  float scaleA = 0.00363567f;
+  int8_t *arrayA = reinterpret_cast<int8_t *>(&scaleA);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdataA.push_back(arrayA[i]);
+  }
+  nntrainer::Tensor qA({batch, channel, height, width, nntrainer::Tformat::NCHW,
+                        nntrainer::Tdatatype::QINT8},
+                       qdataA.data());
+
+  std::vector<int8_t> qdataB = {-72,  114, -89, -4,  -84, 113, 29, -122,
+                                -126, -69, 127, -49, 7,   -27, 18, -20};
+  float scaleB = 0.0038354177f;
+  int8_t *arrayB = reinterpret_cast<int8_t *>(&scaleB);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdataB.push_back(arrayB[i]);
+  }
+  nntrainer::Tensor qB({batch, channel, height, width, nntrainer::Tformat::NCHW,
+                        nntrainer::Tdatatype::QINT8},
+                       qdataB.data());
+
+  // output tensors to store result
+  nntrainer::Tensor C(batch, channel, height, width);
+  nntrainer::Tensor qC(batch, channel, height, width, nntrainer::Tformat::NCHW,
+                       nntrainer::Tdatatype::QINT8);
+
+  // perform multiplication
+  EXPECT_NO_THROW(A.multiply(B, C));
+  EXPECT_NO_THROW(qA.multiply(qB, qC, 0.001927134f));
+
+  // compare multiplication result
+  /// @todo change line 1098 - 1104 to clone() after #2834
+  // nntrainer::Tensor dequantizedC = qC.clone(nntrainer::Tdatatype::FP32);
+  nntrainer::Tensor dequantizedC(batch, channel, height, width);
+  float *data = dequantizedC.getData<float>();
+  int8_t *qdata = qC.getData<int8_t>();
+
+  for (unsigned int i = 0; i < dequantizedC.size(); ++i) {
+    data[i] = qdata[i];
+  }
+
+  // dequantize
+  dequantizedC.multiply_i(0.001927134f);
+
+  const float eps = 1e-3;
+
+  for (unsigned int b = 0; b < batch; b++) {
+    for (unsigned c = 0; c < channel; c++) {
+      for (unsigned h = 0; h < height; h++) {
+        for (unsigned w = 0; w < width; w++) {
+          EXPECT_NEAR(C.getValue(b, c, h, w), dequantizedC.getValue(b, c, h, w),
+                      eps);
+        }
+      }
+    }
+  }
 }
 
 TEST(nntrainer_Tensor, multiply_float_01_p) {
@@ -3815,7 +3911,7 @@ TEST(nntrainer_Tensor, print_small_size_02) {
            << "         1          1 \n"
            << "         1          1 \n"
            << "\n"
-           << "-------\n";
+           << "-------\nScale factors: 0 \n";
 
   EXPECT_EQ(ss.str(), expected.str());
 }

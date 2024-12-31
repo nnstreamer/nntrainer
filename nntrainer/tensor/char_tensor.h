@@ -12,6 +12,7 @@
 #define __CHAR_TENSOR_H__
 #ifdef __cplusplus
 
+#include <quantizer.h>
 #include <tensor_base.h>
 
 namespace nntrainer {
@@ -25,7 +26,8 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  CharTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
+  CharTensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new CharTensor object
@@ -34,27 +36,33 @@ public:
    * @param alloc_now Allocate memory to this tensor or not
    * @param init Initializer for the tensor
    * @param name Name of the tensor
+   * @param qscheme_ Quantization scheme of the tensor
    */
   CharTensor(const TensorDim &d, bool alloc_now,
-             Initializer init = Initializer::NONE, std::string name = "");
+             Initializer init = Initializer::NONE, std::string name = "",
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new CharTensor object
    *
    * @param d Tensor dim for this tensor
    * @param buf buffer
+   * @param qscheme_ quantization scheme of the tensor
    */
-  CharTensor(const TensorDim &d, const void *buf = nullptr);
+  CharTensor(const TensorDim &d, const void *buf = nullptr,
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new CharTensor object
    *
    * @param d data for the Tensor
+   * @param scales scale factors for the Tensor
    * @param fm format for the Tensor
+   * @param qscheme_ quantization scheme of the tensor
    */
   CharTensor(
     std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-    Tformat fm);
+    std::vector<float> const &scales, Tformat fm, QScheme qscheme_);
 
   /**
    * @brief Construct a new CharTensor object
@@ -100,6 +108,16 @@ public:
    * @copydoc Tensor::getData(size_t idx)
    */
   void *getData(size_t idx) const override;
+
+  /**
+   * @copydoc Tensor::getScale()
+   */
+  void *getScale() const override;
+
+  /**
+   * @copydoc Tensor::getScale(size_t idx)
+   */
+  void *getScale(size_t idx) const override;
 
   /**
    * @brief     i data index
@@ -178,6 +196,25 @@ public:
   void initialize(Initializer init) override;
 
   /**
+   * @copydoc Tensor::multiply_i(float const &value)
+   */
+  int multiply_i(float const &value) override;
+
+  /**
+   * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
+   * float scale = 0.0)
+   *
+   * @note multiply only works under the following conditions.
+   * 1. appropriate scale must be provided (feature to automatically determine
+   * the scale factor will be added in the future update.)
+   * 2. should have same data type QINT8.
+   * 3. should have same size (broadcasting is currently not supported)
+   * 4. only per-tensor quantization qscheme is supported
+   */
+  Tensor &multiply(Tensor const &m, Tensor &output,
+                   const float scale = 0.0) const override;
+
+  /**
    * @copydoc Tensor::copy(const Tensor &from)
    */
   void copy(const Tensor &from) override;
@@ -227,11 +264,16 @@ public:
    */
   void read_quantization_info(std::ifstream &file) override;
 
+  /**
+   * @copydoc Tensor::scale_size()
+   */
+  size_t scale_size() const override;
+
 private:
   /**
-   * @brief quantization axis
+   * @brief quantization scheme
    */
-  uint8_t axis;
+  QScheme qscheme;
 
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
