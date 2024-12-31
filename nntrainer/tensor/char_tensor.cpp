@@ -64,7 +64,6 @@ CharTensor::CharTensor(
   NNTR_THROW_IF(scales.size() != scale_size(), std::invalid_argument)
     << "invalid scale factor size " << scales.size();
 
-  /// @note 4 * scale_size() assumes scale factors are in full-precision fp.
   MemoryData *mem_data = new MemoryData(
     (void *)(new int8_t[dim.getDataLen() + sizeof(float) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
@@ -267,6 +266,56 @@ void CharTensor::initialize() {
 void CharTensor::initialize(Initializer init) {
   initializer = init;
   initialize();
+}
+
+int CharTensor::multiply_i(float const &value) {
+  // multiply value to scale factors
+  float *g_scale = (float *)getScale();
+
+  sscal(scale_size(), value, g_scale, 1);
+  return ML_ERROR_NONE;
+}
+
+Tensor &CharTensor::multiply(Tensor const &input, Tensor &output,
+                             const float scale) const {
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, q_scheme());
+
+  NNTR_THROW_IF(q_scheme() != input.q_scheme(), std::invalid_argument)
+    << "[Tensor] Cannot multiply tensors with different quantization schemes.";
+
+  /// @note remove after vector scale multiply is implemented
+  NNTR_THROW_IF(q_scheme() != QScheme::PER_TENSOR_AFFINE, std::invalid_argument)
+    << "Multiplication other than per tensor affine quantization scheme is "
+       "NYI.";
+
+  float lhs_scale = *(float *)getScale();
+  float rhs_scale = *input.getScale<float>();
+
+  /// @note current impl assumes pre-established quantization parameters are set
+  /// @todo 1. verify result_scale is valid 2. calculate qparams if not given
+  NNTR_THROW_IF(std::fpclassify(lhs_scale) == FP_ZERO ||
+                  std::fpclassify(rhs_scale) == FP_ZERO ||
+                  std::fpclassify(scale) == FP_ZERO,
+                std::invalid_argument)
+    << "scale factors not set, cannot multiply";
+
+  float multiplier = lhs_scale * rhs_scale / scale;
+
+  int8_t *lhs = (int8_t *)getData();
+  int8_t *rhs = input.getData<int8_t>();
+  int8_t *result = output.getData<int8_t>();
+
+  for (unsigned int i = 0; i < size(); ++i) {
+    int32_t accum_val =
+      static_cast<int32_t>(lhs[i]) * static_cast<int32_t>(rhs[i]);
+
+    result[i] =
+      std::max(-128, std::min((int)std::lround(multiplier * accum_val), 127));
+  }
+
+  *output.getScale<float>() = scale;
+
+  return output;
 }
 
 void CharTensor::copy(const Tensor &from) {
