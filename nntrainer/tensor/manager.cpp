@@ -381,9 +381,9 @@ std::vector<Weight *> Manager::requestWeights(
     var_ls = TensorLifespan::MAX_LIFESPAN;
   } else {
     if (enable_swap) {
-      var_ls = TensorLifespan::FORWARD_INFER_LIFESPAN;
-    } else {
       var_ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
+    } else {
+      var_ls = TensorLifespan::FORWARD_INFER_LIFESPAN;
     }
   }
 
