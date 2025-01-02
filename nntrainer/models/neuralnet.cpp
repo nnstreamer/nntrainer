@@ -262,10 +262,15 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
   model_graph.setBatchSize(
     std::get<props::TrainingBatchSize>(model_flex_props));
 
-  // initialize optimizer and related variables
-  /// @todo: initialize should take a mode and check if mode is train but
-  /// optimizer is not given, make it as a hard error
-  if (opt) {
+  // If the execution mode is `train`, the optimizer and its relevant variables
+  // are initialized. Throws an error if the optimizer is not set for training;
+  // otherwise, it initializes
+  if (exec_mode == ExecutionMode::TRAIN) {
+
+    if (!opt) {
+      ml_loge("Optimizer should be set before initialization for training.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     /** TODO: update request of optimizer to be of same format as
      * Layer::requestTensor */
     opt->finalize();
@@ -1643,6 +1648,12 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
   }
   case ml::train::ExportMethods::METHOD_FLATBUFFER: {
 
+    /**
+     * @todo The current FLATBUFFER exporter only supports TRAIN execution mode.
+     * It should be updated to support both train and inference mode.
+     * It would be more natural to support inference by default since tflite is
+     * typically used solely for inference
+     */
     model_graph.deallocateTensors();
     model_graph.allocateTensors(ExecutionMode::TRAIN);
     break;

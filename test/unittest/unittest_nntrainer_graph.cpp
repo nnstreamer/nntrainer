@@ -331,6 +331,8 @@ TEST(nntrainerGraphUnitTest, compile_twice) {
     EXPECT_NO_THROW(nn_model->addLayer(node));
   }
 
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
   try {

@@ -90,6 +90,8 @@ genModel(const std::vector<LayerRepresentation> &layers) {
     model.addLayer(layer);
   }
 
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  model.setOptimizer(std::move(optimizer));
   model.compile();
   model.initialize();
 

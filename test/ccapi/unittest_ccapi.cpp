@@ -415,6 +415,9 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
 
 /**
  * @brief Neural Network Model Training
+ * @note Compilation without any argument sets default execution mode as train.
+ *       The train mode requires optimizer to be set. Thus, both initialize and
+ *       train throw errors.
  */
 TEST(nntrainer_ccapi, train_with_config_02_n) {
   std::unique_ptr<ml::train::Model> model;
@@ -427,7 +430,7 @@ TEST(nntrainer_ccapi, train_with_config_02_n) {
 
   EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
-  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(model->train(), ML_ERROR_INVALID_PARAMETER);
 }
 
