@@ -1576,8 +1576,9 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
   tensor_manager->flushCacheExcept(order);
 }
 
-void NetworkGraph::LoadTensors(unsigned int order) {
-  tensor_manager->LoadTensors(order);
+void NetworkGraph::LoadTensors(unsigned int order,
+                               unsigned int remainder_lookahead) {
+  tensor_manager->LoadTensors(order, remainder_lookahead);
 }
 
 bool NetworkGraph::checkLoadComplete(unsigned int order) {
@@ -1613,6 +1614,14 @@ void NetworkGraph::resetLossScale(float scale) {
     auto &ln = *iter;
     ln->getRunContext().setLossScale(scale);
   }
+}
+
+unsigned int NetworkGraph::getNumLoadedWeightPoolTensors() {
+  return tensor_manager->getNumLoadedWeightPoolTensors();
+}
+
+unsigned int NetworkGraph::getNumLoadedTensorPoolTensors() {
+  return tensor_manager->getNumLoadedWeightPoolTensors();
 }
 
 } /* namespace nntrainer */
