@@ -135,6 +135,17 @@ public:
 };
 
 /**
+ * @brief Inplace direction property
+ *
+ */
+class InPlaceDirectionProp : public nntrainer::Property<std::string> {
+public:
+  static constexpr const char *key =
+    "inplace_direction";         /**< unique key to access */
+  using prop_tag = str_prop_tag; /**< property type */
+};
+
+/**
  * @brief trainable property, use this to set and check how if certain layer is
  * trainable
  *
@@ -267,6 +278,22 @@ public:
    * @retval false if it is smaller than 0.0
    */
   bool isValid(const float &value) const override;
+};
+
+/**
+ * @brief Exponent property, this is used for pow operation
+ *
+ */
+class Exponent : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new Exponent object
+   *
+   */
+  Exponent(float value = 1.0f);
+  static constexpr const char *key = "exponent"; /**< unique key to access */
+  using prop_tag = float_prop_tag;               /**< property type */
 };
 
 /**
