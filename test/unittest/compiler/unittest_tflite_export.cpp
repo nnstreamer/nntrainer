@@ -149,6 +149,8 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   nn_model->addLayer(createLayer("fully_connected",
                                  {withKey("name", "fc1"), withKey("unit", 1)}));
 
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
 
@@ -278,6 +280,8 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
     nn_model->addLayer(node);
   }
 
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
 
@@ -359,6 +363,8 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
   nn_model->addLayer(createLayer(
     "fully_connected", {withKey("name", "fc0"), withKey("unit", 10)}));
 
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
 

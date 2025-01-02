@@ -834,7 +834,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_03_p) {
   ml_train_model_h model;
   ml_train_layer_h get_layer;
 
-  ScopedIni s("getLayer_03_p", {model_base, inputlayer});
+  ScopedIni s("getLayer_03_p", {model_base, inputlayer, optimizer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
   EXPECT_EQ(status, ML_ERROR_NONE);
