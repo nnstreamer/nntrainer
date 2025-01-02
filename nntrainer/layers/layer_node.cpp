@@ -19,11 +19,12 @@
 #include <utility>
 
 #include <activation_layer.h>
-#include <app_context.h>
 #include <base_properties.h>
 #include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
+#include <context.h>
+#include <engine.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -135,17 +136,9 @@ LayerNode::~LayerNode() = default;
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
-                const std::vector<std::string> &properties,
-                const ml::train::LayerComputeEngine &compute_engine) {
-#ifdef ENABLE_OPENCL
-  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
-                           compute_engine);
-  }
-#endif
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+                const std::vector<std::string> &properties) {
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -153,17 +146,9 @@ createLayerNode(const ml::train::LayerType &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
-                const std::vector<std::string> &properties,
-                const ml::train::LayerComputeEngine &compute_engine) {
-#ifdef ENABLE_OPENCL
-  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties,
-                           compute_engine);
-  }
-#endif
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+                const std::vector<std::string> &properties) {
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -171,15 +156,10 @@ createLayerNode(const std::string &type,
  */
 std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
-                const std::vector<std::string> &properties,
-                const ml::train::LayerComputeEngine &compute_engine) {
+                const std::vector<std::string> &properties) {
   auto lnode = std::make_unique<LayerNode>(std::move(layer));
 
   lnode->setProperty(properties);
-
-  if (compute_engine == ml::train::LayerComputeEngine::GPU) {
-    lnode->setComputeEngine(compute_engine);
-  }
 
   return lnode;
 }
@@ -192,10 +172,10 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
 
   output_connections(),
   run_context(nullptr),
-  layer_node_props(
-    new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
-                  {}, props::SharedFrom(), props::ClipGradByGlobalNorm(),
-                  props::Packed(), props::LossScaleForMixed())),
+  layer_node_props(new PropsType(
+    props::Name(), props::Distribute(), props::Trainable(), {}, {},
+    props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed(),
+    props::LossScaleForMixed(), props::ComputeEngine())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -669,6 +649,10 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   if (!std::get<props::LossScaleForMixed>(*layer_node_props).empty())
     loss_scale = std::get<props::LossScaleForMixed>(*layer_node_props).get();
+
+  if (!std::get<props::ComputeEngine>(*layer_node_props).empty()) {
+    compute_engine = std::get<props::ComputeEngine>(*layer_node_props).get();
+  }
 
   if (!std::get<props::Packed>(*layer_node_props).empty()) {
     bool isPacked = std::get<props::Packed>(*layer_node_props);

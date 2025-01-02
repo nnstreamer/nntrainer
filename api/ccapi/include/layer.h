@@ -115,14 +115,6 @@ enum LayerType {
 };
 
 /**
- * @brief     Enumeration of layer compute engine
- */
-enum LayerComputeEngine {
-  CPU, /**< CPU as the compute engine */
-  GPU, /**< GPU as the compute engine */
-};
-
-/**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  */
@@ -261,16 +253,14 @@ public:
  */
 std::unique_ptr<Layer>
 createLayer(const LayerType &type,
-            const std::vector<std::string> &properties = {},
-            const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU);
+            const std::vector<std::string> &properties = {});
 
 /**
  * @brief Factory creator with constructor for layer
  */
 std::unique_ptr<Layer>
 createLayer(const std::string &type,
-            const std::vector<std::string> &properties = {},
-            const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU);
+            const std::vector<std::string> &properties = {});
 
 /**
  * @brief General Layer Factory function to register Layer
@@ -343,37 +333,35 @@ DivideLayer(const std::vector<std::string> &properties = {}) {
 /**
  * @brief Helper function to create fully connected layer
  */
-inline std::unique_ptr<Layer> FullyConnected(
-  const std::vector<std::string> &properties = {},
-  const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_FC, properties, compute_engine);
+inline std::unique_ptr<Layer>
+FullyConnected(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_FC, properties);
 }
 
 /**
  * @brief Helper function to create Swiglu layer
  */
 inline std::unique_ptr<Layer>
-Swiglu(const std::vector<std::string> &properties = {},
-       const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_SWIGLU, properties, compute_engine);
+Swiglu(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SWIGLU, properties);
 }
 
-/**
- * @brief Helper function to create RMS normalization layer for GPU
- */
-inline std::unique_ptr<Layer>
-RMSNormCl(const std::vector<std::string> &properties = {},
-          const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU) {
-  return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
-}
+// /**
+//  * @brief Helper function to create RMS normalization layer for GPU
+//  */
+// inline std::unique_ptr<Layer>
+// RMSNormCl(const std::vector<std::string> &properties = {},
+//           const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU)
+//           {
+//   return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
+// }
 
 /**
  * @brief Helper function to create Transpose layer
  */
 inline std::unique_ptr<Layer>
-Transpose(const std::vector<std::string> &properties = {},
-          const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_TRANSPOSE, properties, compute_engine);
+Transpose(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_TRANSPOSE, properties);
 }
 
 /**
@@ -428,27 +416,24 @@ Flatten(const std::vector<std::string> &properties = {}) {
  * @brief Helper function to create reshape layer
  */
 inline std::unique_ptr<Layer>
-Reshape(const std::vector<std::string> &properties = {},
-        const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_RESHAPE, properties, compute_engine);
+Reshape(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_RESHAPE, properties);
 }
 
 /**
  * @brief Helper function to create addition layer
  */
 inline std::unique_ptr<Layer>
-Addition(const std::vector<std::string> &properties = {},
-         const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_ADDITION, properties, compute_engine);
+Addition(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_ADDITION, properties);
 }
 
 /**
  * @brief Helper function to create concat layer
  */
 inline std::unique_ptr<Layer>
-Concat(const std::vector<std::string> &properties = {},
-       const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
-  return createLayer(LayerType::LAYER_CONCAT, properties, compute_engine);
+Concat(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CONCAT, properties);
 }
 
 /**

@@ -41,12 +41,11 @@ class nntrainerIniTest
 
 public:
   static void SetUpTestCase() {
-    nntrainer::AppContext::Global().setWorkingDirectory(
-      getResPath("", {"test"}));
+    nntrainer::Engine::Global().setWorkingDirectory(getResPath("", {"test"}));
   }
 
   static void TearDownTestCase() {
-    nntrainer::AppContext::Global().unsetWorkingDirectory();
+    nntrainer::Engine::Global().unsetWorkingDirectory();
   }
 
 protected:
@@ -758,9 +757,9 @@ TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
               {nw_base_cross + "loss=mse", adam, input,
                backbone_valid + "input_layers=inputlayer"}};
 
-  nntrainer::AppContext ac(nntrainer::AppContext::Global());
-  ac.setWorkingDirectory(getResPath("", {"test"}));
-  nntrainer::NeuralNetwork NN(ac);
+  nntrainer::Engine eg(nntrainer::Engine::Global());
+  eg.setWorkingDirectory(getResPath("", {"test"}));
+  nntrainer::NeuralNetwork NN(eg);
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 }

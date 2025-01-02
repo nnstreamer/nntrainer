@@ -18,6 +18,7 @@
 #include <string>
 
 #include <base_properties.h>
+#include <common.h>
 #include <connection.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
@@ -945,7 +946,8 @@ struct ActivationTypeInfo {
  * @brief Activation Enumeration Information
  *
  */
-class Activation final : public EnumProperty<ActivationTypeInfo> {
+class Activation final
+  : public EnumProperty<nntrainer::props::ActivationTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "activation";

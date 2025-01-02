@@ -1622,7 +1622,7 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_06_n) {
  */
 int main(int argc, char **argv) {
   try {
-    nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+    nntrainer::Engine::Global().setWorkingDirectory(getTestResPath(""));
   } catch (std::invalid_argument &e) {
     ml_loge("Failed to get test res path\n");
   }

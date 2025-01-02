@@ -25,12 +25,14 @@
 constexpr unsigned SAMPLE_TRIES = 10;
 
 TEST_P(LayerSemantics, createFromAppContext_pn) {
-  auto &ac = nntrainer::AppContext::Global();
+  auto &eg = nntrainer::Engine::Global();
+  auto ac =
+    static_cast<nntrainer::AppContext *>(eg.getRegisteredContext("cpu"));
   if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
-    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
+    ac->registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
   }
 
-  EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
+  EXPECT_EQ(ac->createObject<nntrainer::Layer>(expected_type)->getType(),
             expected_type);
 }
 
@@ -143,15 +145,13 @@ TEST_P(LayerSemanticsGpu, createFromClContext_pn) {
 // }
 
 TEST_P(LayerSemanticsGpu, setPropertiesInvalid_n) {
-  auto lnode =
-    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  auto lnode = nntrainer::createLayerNode(expected_type, {"engine=gpu"});
   /** must not crash */
   EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
 }
 
 TEST_P(LayerSemanticsGpu, finalizeValidateLayerNode_p) {
-  auto lnode =
-    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  auto lnode = nntrainer::createLayerNode(expected_type, {"engine=gpu"});
   std::vector<std::string> props = {"name=test"};
   std::string input_shape = "input_shape=1:1:1";
   std::string input_layers = "input_layers=a";
@@ -181,8 +181,7 @@ TEST_P(LayerSemanticsGpu, finalizeValidateLayerNode_p) {
 }
 
 TEST_P(LayerSemanticsGpu, getTypeValidateLayerNode_p) {
-  auto lnode =
-    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  auto lnode = nntrainer::createLayerNode(expected_type, {"engine=gpu"});
   std::string type;
 
   EXPECT_NO_THROW(type = lnode->getType());
@@ -190,8 +189,7 @@ TEST_P(LayerSemanticsGpu, getTypeValidateLayerNode_p) {
 }
 
 TEST_P(LayerSemanticsGpu, gettersValidateLayerNode_p) {
-  auto lnode =
-    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  auto lnode = nntrainer::createLayerNode(expected_type, {"engine=gpu"});
 
   EXPECT_NO_THROW(lnode->supportInPlace());
   EXPECT_NO_THROW(lnode->requireLabel());
@@ -199,8 +197,7 @@ TEST_P(LayerSemanticsGpu, gettersValidateLayerNode_p) {
 }
 
 TEST_P(LayerSemanticsGpu, setBatchValidateLayerNode_p) {
-  auto lnode =
-    nntrainer::createLayerNode(expected_type, {}, ComputeEngine::GPU);
+  auto lnode = nntrainer::createLayerNode(expected_type, {"engine=gpu"});
   std::vector<std::string> props = {"name=test"};
   std::string input_shape = "input_shape=1:1:1";
   std::string input_layers = "input_layers=a";
