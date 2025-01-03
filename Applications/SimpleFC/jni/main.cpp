@@ -139,7 +139,20 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
-  model->load(file_path);
+  // to test asynch fsu, we do need save the model weight data in file
+  std::string filePath = "simplefc_weight_fp16_fp16_100.bin";
+  if (std::filesystem::exists(filePath)) {
+    model->load(filePath);
+
+    auto load_end = std::chrono::system_clock::now();
+    std::chrono::duration<double> load_elapsed_seconds = load_end - start;
+    std::time_t load_end_time = std::chrono::system_clock::to_time_t(load_end);
+    std::cout << "Load finished computation at " << std::ctime(&load_end_time)
+              << "elapsed time: " << load_elapsed_seconds.count() << "s\n";
+  } else {
+    model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    model->load(filePath);
+  }
 
   answer = model->inference(1, in);
 
