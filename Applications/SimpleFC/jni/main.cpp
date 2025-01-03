@@ -15,7 +15,6 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <fstream>
 #include <vector>
 
 #include <layer.h>
@@ -29,7 +28,6 @@
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
-
 
 /**
  * @brief make "key=value" from key and value
@@ -79,10 +77,10 @@ std::vector<LayerHandle> createGraph() {
     createLayer("input", {withKey("name", "input0"),
                           withKey("input_shape", "1:1024:1440")}));
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 30; i++) {
     layers.push_back(createLayer(
       "fully_connected",
-      {withKey("unit", 1440), withKey("weight_initializer", "xavier_uniform"),
+      {withKey("unit", 10000), withKey("weight_initializer", "xavier_uniform"),
        withKey("bias_initializer", "zeros")}));
   }
   layers.push_back(createLayer("fully_connected",
@@ -158,13 +156,15 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::string filePath = "./simplefc_weight_fp16_fp16_100.bin";
   if (access(filePath.c_str(), F_OK) == 0) {
     model->load(filePath);
-
+    auto load_end = std::chrono::system_clock::now();
+    std::chrono::duration<double> load_elapsed_seconds = load_end - start;
+    std::time_t load_end_time = std::chrono::system_clock::to_time_t(load_end);
+    std::cout << "Load finished computation at " << std::ctime(&load_end_time)
+              << "elapsed time: " << load_elapsed_seconds.count() << "s\n";
   } else {
     model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     model->load(filePath);
   }
-
-  // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
   answer = model->inference(1, in, l);
   std::cout << answer[0][0] << std::endl;

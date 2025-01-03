@@ -500,7 +500,7 @@ void LayerNode::exportTo(Exporter &exporter,
 }
 
 void LayerNode::read(std::ifstream &file, bool opt_var,
-                     ml::train::ExecutionMode mode) {
+                     ml::train::ExecutionMode mode, bool swap) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
 
@@ -519,24 +519,21 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
       /// @note shared weights are only be read at the first acecss
       //      if (run_context->isGradientLastAccess(i)) {
       if (run_context->isGradientFirstAccess(i)) {
-        if (layer->getType() == BatchNormalizationLayer::type) {
-          if ((mode == ml::train::ExecutionMode::TRAIN) &&
-              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+        if (layer->getType() == BatchNormalizationLayer::type &&
+            mode == ml::train::ExecutionMode::TRAIN &&
+            (this->getWeightDataType() != TensorDim::DataType::FP32)) {
+          /** @note for batch normalization layer, we do need full precision
+           * for training. but weight can be saved with other type. for
+           * training, bn weight type is fixed with full precsion */
 
-            /** @note for batch normalization layer, we do need full precision
-             * for training. but weight can be saved with other type. for
-             * training, bn weight type is fixed with full precsion */
-
-            TensorDim dim = run_context->getWeight(i).getDim();
-            dim.setDataType(this->getWeightDataType());
-            Tensor T_read(dim, true);
-            T_read.read(file);
-            run_context->getWeight(i).copyData(T_read);
-          } else {
-            run_context->getWeight(i).read(file);
-          }
+          TensorDim dim = run_context->getWeight(i).getDim();
+          dim.setDataType(this->getWeightDataType());
+          Tensor T_read(dim, true);
+          T_read.read(file);
+          run_context->getWeight(i).copyData(T_read);
         } else {
-          run_context->getWeight(i).read(file);
+          if (!swap)
+            run_context->getWeight(i).read(file);
         }
 
         if (run_context->isMixedPrecision(i) && getTrainable() &&
