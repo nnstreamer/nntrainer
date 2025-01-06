@@ -137,37 +137,35 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
 
     auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL];
 
-    opencl::Buffer inputbuf(cl_context_ref.context_inst_, dim1 * sizeof(float),
-                            true, nullptr);
-
-    opencl::Buffer gammabuf(cl_context_ref.context_inst_,
-                            input.width() * sizeof(float), true, nullptr);
-    opencl::Buffer resultbuf(cl_context_ref.context_inst_, dim1 * sizeof(float),
-                             true, nullptr);
-
     const float *data = input.getData();
     float *rdata = result.getData();
     const float *gdata = gamma.getData();
-    ret = inputbuf.WriteData(cl_context_ref.command_queue_inst_, data);
+    ret = clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1 * sizeof(float), data);
     if (!ret) {
       break;
     }
 
-    ret = gammabuf.WriteData(cl_context_ref.command_queue_inst_, gdata);
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(0, &inputbuf, sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(1, &resultbuf, sizeof(cl_mem));
+    ret = clbuffInstance.getInBufferB()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, input.width() * sizeof(float), gdata);
     if (!ret) {
       break;
     }
 
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(2, &gammabuf, sizeof(cl_mem));
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+    if (!ret) {
+      break;
+    }
+
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+    if (!ret) {
+      break;
+    }
+
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
@@ -204,7 +202,8 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
       break;
     }
 
-    ret = resultbuf.ReadData(cl_context_ref.command_queue_inst_, rdata);
+    ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      cl_context_ref.command_queue_inst_, dim1 * sizeof(float), rdata);
     if (!ret) {
       break;
     }
@@ -228,40 +227,42 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   do {
     auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL_FP16];
 
-    opencl::Buffer inputbuf(cl_context_ref.context_inst_,
-                            dim1 * sizeof(cl_half), true, nullptr);
-
-    opencl::Buffer gammabuf(cl_context_ref.context_inst_,
-                            input.width() * sizeof(cl_half), true, nullptr);
-    opencl::Buffer resultbuf(cl_context_ref.context_inst_,
-                             dim1 * sizeof(cl_half), true, nullptr);
-
     const __fp16 *data = input.getData<__fp16>();
     __fp16 *rdata = result.getData<__fp16>();
     const __fp16 *gdata = gamma.getData<__fp16>();
-    ret = inputbuf.WriteData(cl_context_ref.command_queue_inst_, data);
+
+    ret = clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1 * sizeof(cl_half), data);
     if (!ret) {
       break;
     }
 
-    ret = gammabuf.WriteData(cl_context_ref.command_queue_inst_, gdata);
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(0, &inputbuf, sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(1, &resultbuf, sizeof(cl_mem));
+    ret = clbuffInstance.getInBufferB()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, input.width() * sizeof(cl_half),
+      gdata);
     if (!ret) {
       break;
     }
 
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(2, &gammabuf, sizeof(cl_mem));
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+    if (!ret) {
+      break;
+    }
+
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+    if (!ret) {
+      break;
+    }
+
+    ret = kernel_rmsnorm_ptr->SetKernelArguments(
+      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
     ret = kernel_rmsnorm_ptr->SetKernelArguments(4, &b, sizeof(int));
+
     if (!ret) {
       break;
     }
@@ -275,6 +276,7 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     if (!ret) {
       break;
     }
+
     ret = kernel_rmsnorm_ptr->SetKernelArguments(6, &h, sizeof(int));
     if (!ret) {
       break;
@@ -292,7 +294,8 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
       break;
     }
 
-    ret = resultbuf.ReadData(cl_context_ref.command_queue_inst_, rdata);
+    ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      cl_context_ref.command_queue_inst_, dim1 * sizeof(cl_half), rdata);
     if (!ret) {
       break;
     }
