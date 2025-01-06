@@ -61,6 +61,8 @@ public:
 
 protected:
   inline static ClContext cl_context_ref;
+  inline static ClBufferManager &clbuffInstance =
+    ClBufferManager::getInstance();
 };
 
 } // namespace nntrainer

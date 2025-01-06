@@ -34,6 +34,8 @@ class SwiGLULayerCl final : public Layer {
 
 private:
   inline static ClContext cl_context_ref;
+  inline static ClBufferManager &clbuffInstance =
+    ClBufferManager::getInstance();
 
 public:
   /**
