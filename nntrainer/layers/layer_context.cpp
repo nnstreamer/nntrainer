@@ -127,10 +127,12 @@ const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
 
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  float l, bool is_inplace_, float loss_scale_,
+                                 std::shared_ptr<ContextData> ct_data_,
                                  bool restore_, const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
+  ct_data(ct_data_),
   loss(l),
   is_inplace(is_inplace_),
   loss_scale(loss_scale_),
