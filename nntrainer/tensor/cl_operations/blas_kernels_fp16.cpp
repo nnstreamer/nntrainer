@@ -315,30 +315,28 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
 
     size_t dim1_size = sizeof(cl_half) * size_input;
     size_t dim2_size = sizeof(cl_half) * size_res;
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim2_size, true,
-                            nullptr);
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1_size, input);
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim2_size, res);
     if (!result) {
       break;
     }
 
-    result =
-      kernel_addition_fp16_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_addition_fp16_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_addition_fp16_ptr->SetKernelArguments(1, &inOutRes,
-                                                          sizeof(cl_mem));
+    result = kernel_addition_fp16_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -363,7 +361,8 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      cl_context_ref.command_queue_inst_, dim2_size, res);
     if (!result) {
       break;
     }
