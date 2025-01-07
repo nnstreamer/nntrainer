@@ -309,11 +309,6 @@ public:
                       const float beta) const override;
 
   /**
-   * @copydoc Tensor::add_i(Tensor const &m, float const alpha)
-   */
-  int add_i(Tensor const &m, Tensor &output, float const alpha) override;
-
-  /**
    * @copydoc Tensor::add_i_partial()
    */
   int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
