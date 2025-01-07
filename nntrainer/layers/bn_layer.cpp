@@ -376,4 +376,49 @@ void BatchNormalizationLayer::setBatch(RunLayerContext &context,
   }
 }
 
+void BatchNormalizationLayer::read(std::ifstream &file,
+                                   RunLayerContext &run_context, bool opt_var,
+                                   ml::train::ExecutionMode mode,
+                                   bool trainable,
+                                   TensorDim::DataType definedWeightDataType) {
+  if (opt_var) {
+    for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+      if (run_context.isGradientLastAccess(i) && trainable) {
+        /// @note read optimizer variables
+        for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i); ++j) {
+          run_context.getWeightOptVar(i, j).read(file);
+        }
+      }
+    }
+  } else {
+    for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+      /// @note shared weights are only be read at the first acecss
+      //      if (run_context->isGradientLastAccess(i)) {
+      if (run_context.isGradientFirstAccess(i)) {
+        if ((mode == ml::train::ExecutionMode::TRAIN) &&
+            (definedWeightDataType != TensorDim::DataType::FP32)) {
+
+          /** @note for batch normalization layer, we do need full
+          precision
+           * for training. but weight can be saved with other type. for
+           * training, bn weight type is fixed with full precsion */
+
+          TensorDim dim = run_context.getWeight(i).getDim();
+          dim.setDataType(definedWeightDataType);
+          Tensor T_read(dim, true);
+          T_read.read(file);
+          run_context.getWeight(i).copyData(T_read);
+        } else {
+          run_context.getWeight(i).read(file);
+        }
+
+        if (run_context.isMixedPrecision(i) && trainable &&
+            !run_context.getWeightFP32(i).empty()) {
+          run_context.getWeightFP32(i).copyData(run_context.getWeight(i));
+        }
+      }
+    }
+  }
+}
+
 } /* namespace nntrainer */

@@ -29,6 +29,7 @@
 
 #include <base_properties.h>
 #include <common.h>
+#include <layer_context.h>
 #include <tensor_dim.h>
 
 namespace ml::train {
@@ -38,7 +39,6 @@ class Layer;
 namespace nntrainer {
 
 class InitLayerContext;
-class RunLayerContext;
 class Exporter;
 
 /**
@@ -319,6 +319,44 @@ public:
    * @return true if supports backwarding, else false
    */
   virtual bool supportBackwarding() const = 0;
+
+  /**
+   * @brief     read layer Weight & Bias data from file
+   * @param file input file stream
+   * @param run context for layer
+   * @param bool read optimizer variables
+   * @param mode execution mode
+   * @param bool trainable
+   * @param type Required Weight Tensor Type from Network
+   *
+   */
+  virtual void read(std::ifstream &file, RunLayerContext &run_context,
+                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
+                    TensorDim::DataType defineWeightDataType) {
+    if (opt_var) {
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        if (run_context.isGradientLastAccess(i) && trainable) {
+          /// @note read optimizer variables
+          for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i); ++j) {
+            run_context.getWeightOptVar(i, j).read(file);
+          }
+        }
+      }
+    } else {
+
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        /// @note shared weights are only be read at the first acecss
+        if (run_context.isGradientFirstAccess(i)) {
+          run_context.getWeight(i).read(file);
+
+          if (run_context.isMixedPrecision(i) && trainable &&
+              !run_context.getWeightFP32(i).empty()) {
+            run_context.getWeightFP32(i).copyData(run_context.getWeight(i));
+          }
+        }
+      }
+    }
+  }
 
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */
