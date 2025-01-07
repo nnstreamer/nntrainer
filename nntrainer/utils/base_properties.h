@@ -735,7 +735,8 @@ struct ComputeEngineTypeInfo {
  * @brief ComputeEngine Enumeration Information
  *
  */
-class ComputeEngine final : public EnumProperty<ComputeEngineTypeInfo> {
+class ComputeEngine final
+  : public EnumProperty<nntrainer::props::ComputeEngineTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "engine";
