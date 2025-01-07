@@ -980,10 +980,11 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
                                     const std::vector<Var_Grad *> &tensors,
-                                    float loss_scale) {
+                                    float loss_scale,
+                                    std::shared_ptr<ContextData> ct_data) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, getInPlaceType() != InPlaceType::NONE,
-    loss_scale, false, weights, inputs, outputs, tensors);
+    loss_scale, ct_data, false, weights, inputs, outputs, tensors);
 }
 
 /**
