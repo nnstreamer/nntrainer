@@ -410,12 +410,6 @@ Tensor &TensorBase::add_strided(Tensor const &input, Tensor &output,
     getStringDataType());
 }
 
-int TensorBase::add_i(Tensor const &m, Tensor &output, float const alpha) {
-  throw std::invalid_argument(
-    "Tensor::add_i() is currently not supported in tensor data type " +
-    getStringDataType());
-}
-
 int TensorBase::add_i_partial(unsigned int len, unsigned int addr_idx,
                               Tensor &m, unsigned int incX, unsigned int incY,
                               const Tensor alphas, unsigned int alpha_idx) {
