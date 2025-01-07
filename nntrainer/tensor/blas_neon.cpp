@@ -626,6 +626,81 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
   }
 }
 
+void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
+              const float *lhs_scale, const float *rhs_scale,
+              const float *res_scale, unsigned int scale_len) {
+  if (scale_len == 1) {
+    return __ele_qmul_kernel(lhs, rhs, res, data_len, lhs_scale[0],
+                             rhs_scale[0], res_scale[0]);
+  } else {
+    return __ele_qmul_kernel(lhs, rhs, res, data_len, lhs_scale, rhs_scale,
+                             res_scale, scale_len);
+  }
+}
+
+void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
+                       unsigned int data_len, const float lhs_scale,
+                       const float rhs_scale, const float res_scale) {
+  float32x4_t multiplier = vdupq_n_f32(lhs_scale * rhs_scale / res_scale);
+  int8x16_t int8_max = vdupq_n_s8(127);
+  int8x16_t int8_min = vdupq_n_s8(-128);
+  unsigned int N16 = (data_len >> 4) << 4;
+  for (unsigned int n = 0; n < N16; n += 16) {
+    int16x8_t lhs0_7 = vmovl_s8(vld1_s8(lhs));
+    lhs += 8;
+    int16x8_t lhs8_15 = vmovl_s8(vld1_s8(lhs));
+    lhs += 8;
+    int16x8_t rhs0_7 = vmovl_s8(vld1_s8(rhs));
+    rhs += 8;
+    int16x8_t rhs8_15 = vmovl_s8(vld1_s8(rhs));
+    rhs += 8;
+
+    int32x4_t res0_3 = vmull_s16(vget_low_s16(lhs0_7), vget_low_s16(rhs0_7));
+    int32x4_t res4_7 = vmull_s16(vget_high_s16(lhs0_7), vget_high_s16(rhs0_7));
+    int32x4_t res8_11 = vmull_s16(vget_low_s16(lhs8_15), vget_low_s16(rhs8_15));
+    int32x4_t res12_15 =
+      vmull_s16(vget_high_s16(lhs8_15), vget_high_s16(rhs8_15));
+
+    float32x4_t res_f32_0 = vcvtq_f32_s32(res0_3);
+    float32x4_t res_f32_1 = vcvtq_f32_s32(res4_7);
+    float32x4_t res_f32_2 = vcvtq_f32_s32(res8_11);
+    float32x4_t res_f32_3 = vcvtq_f32_s32(res12_15);
+
+    res_f32_0 = vmulq_f32(res_f32_0, multiplier);
+    res_f32_1 = vmulq_f32(res_f32_1, multiplier);
+    res_f32_2 = vmulq_f32(res_f32_2, multiplier);
+    res_f32_3 = vmulq_f32(res_f32_3, multiplier);
+
+    /// @note: currently we use vcvtnq_s32_f32 instead of vcvtq_s32_f32
+    res0_3 = vcvtnq_s32_f32(res_f32_0);
+    res4_7 = vcvtnq_s32_f32(res_f32_1);
+    res8_11 = vcvtnq_s32_f32(res_f32_2);
+    res12_15 = vcvtnq_s32_f32(res_f32_3);
+
+    int8x16_t output = vcombine_s8(
+      vqmovn_s16(vcombine_s16(vqmovn_s32(res0_3), vqmovn_s32(res4_7))),
+      vqmovn_s16(vcombine_s16(vqmovn_s32(res8_11), vqmovn_s32(res12_15))));
+
+    output = vmaxq_s8(output, int8_min);
+    output = vminq_s8(output, int8_max);
+
+    vst1q_s8(res, output);
+    res += 16;
+  }
+  for (unsigned int n = N16; n < data_len; ++n) {
+    res[n] = std::max(
+      -128, std::min(127, (int)std::lround(lhs[n] * rhs[n] * lhs_scale *
+                                           rhs_scale / res_scale)));
+  }
+}
+
+void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
+                       unsigned int data_len, const float *lhs_scale,
+                       const float *rhs_scale, const float *res_scale,
+                       unsigned int scale_len) {
+  std::invalid_argument(
+    "Error : __ele_qmul_kernel for vector quantization parameter is NYI.");
+}
 #ifdef ENABLE_FP16
 
 void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,

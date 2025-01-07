@@ -183,6 +183,55 @@ bool isValid(const size_t N, const float *input);
 void custom_scopy(const unsigned int N, const float *X, const int incX,
                   float *Y, const int incY);
 
+/**
+ * @brief elementwise multiplication of int8_t vectors. This kernel consider
+ * data overflow from precision, and saturation.
+ *
+ * @param lhs int8_t * for Vector lhs (input)
+ * @param rhs int8_t * for Vector rhs (input)
+ * @param res  int8_t * for Vector res (output)
+ * @param data_len length of the vector
+ * @param lhs_scale scale factor of the lhs vector
+ * @param rhs_scale scale factor of the rhs vector
+ * @param res_scale scale factor of the result vector
+ * @param scale_len length of the scale factor
+ */
+void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
+              const float *lhs_scale, const float *rhs_scale,
+              const float *res_scale, unsigned int scale_len);
+
+/**
+ * @brief elementwise multiplication of int8_t vectors. This kernel consider
+ * data overflow from precision, and saturation. (Scalar Qparam)
+ *
+ * @param lhs int8_t * for Vector lhs (input)
+ * @param rhs int8_t * for Vector rhs (input)
+ * @param res  int8_t * for Vector res (output)
+ * @param data_len length of the vector
+ * @param lhs_scale scale factor of the lhs vector
+ * @param rhs_scale scale factor of the rhs vector
+ * @param res_scale scale factor of the result vector
+ */
+void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
+                       unsigned int data_len, const float lhs_scale,
+                       const float rhs_scale, const float res_scale);
+
+/**
+ * @brief elementwise multiplication of int8_t vectors. This kernel consider
+ * data overflow from precision, and saturation. (Vector Qparam)
+ *
+ * @param lhs int8_t * for Vector lhs (input)
+ * @param rhs int8_t * for Vector rhs (input)
+ * @param res  int8_t * for Vector res (output)
+ * @param data_len length of the vector
+ * @param lhs_scale scale factor of the lhs vector
+ * @param rhs_scale scale factor of the rhs vector
+ * @param res_scale scale factor of the result vector
+ */
+void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
+                       unsigned int data_len, const float *lhs_scale,
+                       const float *rhs_scale, const float *res_scale,
+                       unsigned int scale_len);
 #ifdef ENABLE_FP16
 /**
  * @brief     hgemv computation with neon : Y = alpha*A*X + beta*Y
