@@ -41,7 +41,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork SubGraph Class
    */
-  SubGraphBase(std::shared_ptr<Manager> tm) :
+  SubGraphBase(std::shared_ptr<Manager> tm, unsigned int lookahead_ = 0) :
     tensor_manager(tm),
     subgraph(),
     compiled(false),
@@ -52,7 +52,8 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
+    lookahead(lookahead_) {
     nan_count = 0;
   }
 
@@ -160,11 +161,9 @@ public:
    */
   sharedConstTensors forwarding(
     bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr, bool swap_mode = false);
 
   /**
    * @brief     forwarding network subgraph
@@ -175,8 +174,6 @@ public:
    */
   sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
     void *user_data = nullptr);
@@ -517,6 +514,7 @@ private:
   bool is_clip_grad;
   float loss_scale;
   unsigned int nan_count;
+  unsigned int lookahead;
 
   /**
    * @brief     topological sort
@@ -626,6 +624,18 @@ private:
    * @return end of the backward iter;
    */
   LayerNode *computeBackwardEnd();
+
+  /**
+   * @brief forwarding_op function
+   */
+  void forwarding_op(std::shared_ptr<LayerNode> node, bool training,
+                     bool swap_mode = false);
+  /**
+   * @brief forwarding_op function
+   */
+  void incremental_forwarding_op(std::shared_ptr<LayerNode> node,
+                                 unsigned int from, unsigned int to,
+                                 bool training);
 };
 
 } // namespace nntrainer

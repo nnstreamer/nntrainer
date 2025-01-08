@@ -73,7 +73,7 @@ public:
                const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(std::make_shared<Manager>(
       enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
-    graph(tensor_manager),
+    graph(tensor_manager, lookahead),
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
@@ -190,11 +190,9 @@ public:
    */
   sharedConstTensors forwarding(
     bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr, bool swap_mode = false);
 
   /**
    * @brief     forwarding network graph
@@ -205,8 +203,6 @@ public:
    */
   sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
     void *user_data = nullptr);
