@@ -425,9 +425,8 @@ Tensor &HalfTensor::add_strided(Tensor const &input, Tensor &output,
 int HalfTensor::add_i_partial(unsigned int len, unsigned int addr_idx,
                               Tensor &m, unsigned int incX, unsigned int incY,
                               const Tensor alphas, unsigned int alpha_idx) {
-  saxpy(len, alphas.getValue<_FP16>(alpha_idx), m.getData<_FP16>(), incX,
-        (_FP16 *)getAddress(addr_idx), incY);
-
+  ele_add(len, nullptr, m.getData<_FP16>(), (_FP16 *)getAddress(addr_idx), 0.F,
+          alphas.getValue<_FP16>(alpha_idx), 1.F, incX, incY);
   return ML_ERROR_NONE;
 }
 
@@ -438,12 +437,12 @@ Tensor &HalfTensor::add(float const &value, Tensor &output) const {
   return output;
 }
 
-Tensor &HalfTensor::add(Tensor const &m, Tensor &output,
-                        float const alpha) const {
+Tensor &HalfTensor::add(Tensor const &m, Tensor &output, float const alpha,
+                        float const beta, float const gamma) const {
   auto f = [&](const BroadcastInfo &e, const _FP16 *buf, const _FP16 *m_buf,
                _FP16 *out_buf) {
-    ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
-            strides[3]);
+    ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, beta, gamma,
+            e.strides[3], strides[3]);
   };
   apply_broadcast(m, f, output);
   return output;

@@ -162,20 +162,36 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
              unsigned int o_stride = 1);
 
 /**
- * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
+ * @brief     elementwise vector addition : Z = X + beta * Y + gamma *
  * Z
  * @param[in] N  length of the vector
  * @param[in] X _FP16 * for Vector X
  * @param[in] Y _FP16 * for Vector Y
  * @param[in] Z _FP16 * for Vector Z
- * @param[in] alpha scalar multiplier for input
- * @param[in] beta scalar multiplier for output
+ * @param[in] beta scalar multiplier for input
+ * @param[in] gamma scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
+ */
+void xpbypcz(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float beta = 1.f, float gamma = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
+
+/**
+ * @brief     elementwise vector addition : Z = alpha * X + beta * Y + gamma *
+ * Z. This function classify whether the given context is saxpy or xpbypcz.
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] beta scalar multiplier for input
+ * @param[in] gamma scalar multiplier for output
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
 void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, float gamma = 0.f,
+             unsigned int i_stride = 1, unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -496,8 +512,24 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              unsigned int o_stride = 1);
 
 /**
- * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
+ * @brief     elementwise vector addition : Z = X + beta * Y + gamma *
  * Z
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[in] Y float * for Vector Y
+ * @param[in] Z float * for Vector Z
+ * @param[in] beta scalar multiplier for input
+ * @param[in] gamma scalar multiplier for output
+ * @param[in] i_stride input stride
+ * @param[in] o_stride output stride
+ */
+void xpbypcz(const unsigned int N, const float *X, const float *Y, float *Z,
+             float beta = 1.f, float gamma = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
+
+/**
+ * @brief     elementwise vector addition : Z = alpha * X + beta * Y + gamma *
+ * Z. This function classify whether the given context is saxpy or xpbypcz.
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
@@ -508,8 +540,8 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] o_stride output stride
  */
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, float gamma = 0.f,
+             unsigned int i_stride = 1, unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z

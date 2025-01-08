@@ -452,11 +452,11 @@ static void ele_mul_fallback(const unsigned int N, const _FP16 *X,
   }
 }
 
-static void ele_add_fallback(const unsigned int N, const _FP16 *X,
-                             const _FP16 *Y, _FP16 *Z, float alpha, float beta,
+static void xpbypcz_fallback(const unsigned int N, const _FP16 *X,
+                             const _FP16 *Y, _FP16 *Z, float beta, float gamma,
                              unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X + static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
+    *Z = *X + static_cast<_FP16>(beta) * *Y + static_cast<_FP16>(gamma) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -498,17 +498,30 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
     ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
-void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-             float alpha, float beta, unsigned int i_stride,
+void xpbypcz(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float beta, float gamma, unsigned int i_stride,
              unsigned int o_stride) {
   if (i_stride == 1 && o_stride == 1) {
 #if (defined USE__FP16 && USE_NEON)
-    nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+    nntrainer::neon::xpbypcz(N, X, Y, Z, beta, gamma);
 #else
-    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    xpbypcz_fallback(N, X, Y, Z, beta, gamma, i_stride, o_stride);
 #endif
   } else
-    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    xpbypcz_fallback(N, X, Y, Z, beta, gamma, i_stride, o_stride);
+}
+
+void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float alpha, float beta, float gamma, unsigned int i_stride,
+             unsigned int o_stride) {
+  if (std::fpclassify(alpha) == FP_ZERO && gamma == 1.F) {
+    return saxpy(N, beta, Y, i_stride, Z, o_stride);
+  } else if (alpha == 1.F) {
+    return xpbypcz(N, X, Y, Z, beta, gamma, i_stride, o_stride);
+  } else {
+    std::invalid_argument("Addition for 3 term with non-unit alpha and 2 term "
+                          "with non-unit gamma is NYI");
+  }
 }
 
 void ele_sub(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
@@ -727,30 +740,6 @@ void sscal(const unsigned int N, const float alpha, float *X, const int incX) {
 #else
   sscal_raw(N, alpha, X, incX);
 #endif
-}
-
-void saxpy(const unsigned int N, const float alpha, const void *X,
-           const int incX, void *Y, const int incY,
-           ml::train::TensorDim::DataType d_type) {
-  if (d_type == ml::train::TensorDim::DataType::FP32) {
-#ifdef USE_BLAS
-#ifdef BLAS_NUM_THREADS
-    openblas_set_num_threads(BLAS_NUM_THREADS);
-#endif
-    cblas_saxpy(N, alpha, static_cast<const float *>(X), incX,
-                static_cast<float *>(Y), incY);
-#else
-    saxpy_raw(N, alpha, static_cast<const float *>(X), incX,
-              static_cast<float *>(Y), incY);
-#endif
-  } else if (d_type == ml::train::TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-    saxpy_FP16(N, alpha, static_cast<const _FP16 *>(X), incX,
-               static_cast<_FP16 *>(Y), incY);
-#else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
-#endif
-  }
 }
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
@@ -1147,11 +1136,11 @@ static void ele_mul_fallback(const unsigned int N, const float *X,
   }
 }
 
-static void ele_add_fallback(const unsigned int N, const float *X,
-                             const float *Y, float *Z, float alpha, float beta,
+static void xpbypcz_fallback(const unsigned int N, const float *X,
+                             const float *Y, float *Z, float beta, float gamma,
                              unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X + alpha * *Y + beta * *Z;
+    *Z = *X + beta * *Y + gamma * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -1203,17 +1192,17 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
     ele_mul_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
-void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha, float beta, unsigned int i_stride,
+void xpbypcz(const unsigned int N, const float *X, const float *Y, float *Z,
+             float beta, float gamma, unsigned int i_stride,
              unsigned int o_stride) {
   if (i_stride == 1 && o_stride == 1) {
-#ifdef USE_NEON
-    nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+#if (defined USE__FP16 && USE_NEON)
+    nntrainer::neon::xpbypcz(N, X, Y, Z, beta, gamma);
 #else
-    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    xpbypcz_fallback(N, X, Y, Z, beta, gamma, i_stride, o_stride);
 #endif
   } else
-    ele_add_fallback(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+    xpbypcz_fallback(N, X, Y, Z, beta, gamma, i_stride, o_stride);
 }
 
 void ele_sub(const unsigned int N, const float *X, const float *Y, float *Z,
@@ -1266,6 +1255,19 @@ bool is_valid(const size_t N, ml::train::TensorDim::DataType d_type,
     return is_valid_fallback(N, vec);
   }
   return false;
+}
+
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta, float gamma, unsigned int i_stride,
+             unsigned int o_stride) {
+  if (std::fpclassify(alpha) == FP_ZERO && gamma == 1.F) {
+    return saxpy(N, beta, Y, i_stride, Z, o_stride);
+  } else if (alpha == 1.F) {
+    return xpbypcz(N, X, Y, Z, beta, gamma, i_stride, o_stride);
+  } else {
+    std::invalid_argument("Addition for 3 term with non-unit alpha and 2 term "
+                          "with non-unit gamma is NYI");
+  }
 }
 
 } // namespace nntrainer

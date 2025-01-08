@@ -424,8 +424,8 @@ Tensor &TensorBase::add(float const &value, Tensor &output) const {
     getStringDataType());
 }
 
-Tensor &TensorBase::add(Tensor const &m, Tensor &output,
-                        float const alpha) const {
+Tensor &TensorBase::add(Tensor const &m, Tensor &output, float const alpha,
+                        float const beta, float const gamma) const {
   throw std::invalid_argument(
     "Tensor::add() is currently not supported in tensor data type " +
     getStringDataType());

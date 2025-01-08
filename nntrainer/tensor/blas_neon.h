@@ -160,16 +160,16 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f);
 
 /**
- * @brief     elementwise vector addition : Z = X + alpha * Y + beta * Z
+ * @brief     elementwise vector addition : Z = X + beta * Y + gamma * Z
  * @param[in] N  length of the vector
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  * @param[in] Z float * for Vector Z
- * @param[in] alpha scalar multiplier for input
- * @param[in] beta scalar multiplier for output
+ * @param[in] beta scalar multiplier for input
+ * @param[in] gamma scalar multiplier for output
  */
-void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f);
+void xpbypcz(const unsigned int N, const float *X, const float *Y, float *Z,
+             float beta = 1.f, float gamma = 0.f);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -243,17 +243,17 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
 void ele_mul(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
              float alpha = 1.f, float beta = 0.f);
 /**
- * @brief     elementwise vector addition with neon : Z = X + alpha * Y + beta *
+ * @brief     elementwise vector addition with neon : Z = X + beta * Y + gamma *
  * Z
  * @param[in] N  length of the vector
  * @param[in] X __fp16 * for Vector X
  * @param[in] Y __fp16 * for Vector Y
  * @param[in] Z __fp16 * for Vector Z
- * @param[in] alpha scalar multiplier for input
- * @param[in] beta scalar multiplier for output
+ * @param[in] beta scalar multiplier for input
+ * @param[in] gamma scalar multiplier for output
  */
-void ele_add(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
-             float alpha = 1.f, float beta = 0.f);
+void xpbypcz(const unsigned N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
+             float beta = 1.f, float gamma = 0.f);
 
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +

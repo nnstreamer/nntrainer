@@ -993,7 +993,8 @@ public:
    * @param[in]  alpha Values to be scaled
    * @retval     Calculated Tensor
    */
-  Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1) const;
+  Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1,
+              float const beta = 1, float const gamma = 0) const;
 
   /**
    * @brief     memcpyless version of subtract

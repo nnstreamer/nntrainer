@@ -323,7 +323,8 @@ public:
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha) const;
+  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1,
+                      float const beta = 1, float const gamma = 0) const;
 
   /**
    * @copydoc Tensor::subtract(float const &value, Tensor &output)
