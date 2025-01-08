@@ -443,8 +443,8 @@ Tensor &FloatTensor::add_strided(Tensor const &input, Tensor &output,
 int FloatTensor::add_i_partial(unsigned int len, unsigned int addr_idx,
                                Tensor &m, unsigned int incX, unsigned int incY,
                                const Tensor alphas, unsigned int alpha_idx) {
-  saxpy(len, alphas.getValue<float>(alpha_idx), m.getData<float>(), incX,
-        (float *)getAddress(addr_idx), incY);
+  ele_add(len, nullptr, m.getData<float>(), (float *)getAddress(addr_idx), 0.F,
+          alphas.getValue<float>(alpha_idx), 1.F, incX, incY);
 
   return ML_ERROR_NONE;
 }
@@ -455,12 +455,12 @@ Tensor &FloatTensor::add(float const &value, Tensor &output) const {
   return output;
 }
 
-Tensor &FloatTensor::add(Tensor const &m, Tensor &output,
-                         float const alpha) const {
+Tensor &FloatTensor::add(Tensor const &m, Tensor &output, float const alpha,
+                         float const beta, float const gamma) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
-    ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
-            strides[3]);
+    ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, beta, gamma,
+            e.strides[3], strides[3]);
   };
   apply_broadcast(m, f, output);
   return output;

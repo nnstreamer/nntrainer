@@ -324,8 +324,8 @@ public:
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  Tensor &add(Tensor const &m, Tensor &output,
-              float const alpha) const override;
+  Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1,
+              float const beta = 1, float const gamma = 0) const override;
 
   /**
    * @copydoc Tensor::subtract(float const &value, Tensor &output)
