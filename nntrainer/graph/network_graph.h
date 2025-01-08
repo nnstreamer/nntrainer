@@ -25,6 +25,7 @@
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
+#include <optimizer_wrapped.h>
 #include <subgraph_base.h>
 
 namespace nntrainer {
@@ -178,10 +179,12 @@ public:
    * @note if the gradient is to be clipped by norm, this is noop
    *
    * @param node node to try apply gradient
-   * @param apply_func apply function
+   * @param iteration iteration where the applyGradients is called
+   * @param opt shared ptr of the optimizer used for applyGradients (opt is
+   * passed from neuralnetwork)
    */
-  static void applyGradients(LayerNode *node,
-                             const std::function<void(Weight &)> &apply_func);
+  void applyGradients(LayerNode *node, int iteration,
+                      std::shared_ptr<OptimizerWrapped> opt);
 
   /**
    * @brief     forwarding network graph
@@ -210,21 +213,22 @@ public:
   /**
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
-   * @param[in] forwarding_op operation for the forwarding
-   * @param[in] backwarding_op operation for the backwarding
-   * @param[in] lazy_apply_grad_op operation for applying the lazy gradients
+   * @param[in] stop_cb callback function which return stop condition
+   * @param[in] user_data user data used for backwarding
+   * @param[in] is_grad_opt_mode flag to designate grad_opt_mode (passed from
+   *            neuralnet)
+   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
+   *            passed from neuralnetwork)
    * @retval ret it is false then the gradient has NaN valude in mixed precision
-   * training. If it is, then we need to control the loss scale factor and
-   * compute again the derivatives.
+   *         training. If it is, then we need to control the loss scale factor
+   *         and compute again the derivatives.
    */
   bool backwarding(
     int iteration,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
-    std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-    std::function<void(Weight &, int)> &lazy_apply_grad_op,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr, bool is_grad_opt_mode = false,
+    std::shared_ptr<OptimizerWrapped> opt = nullptr);
 
   /**
    * @brief     get begin iterator for the graph
