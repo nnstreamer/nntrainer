@@ -415,111 +415,12 @@ void NeuralNetwork::backwarding(int iteration,
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
-    (void)this;
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
-
-    auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
-
-    node->forwarding(training);
-  };
-
-  std::function<bool(std::shared_ptr<LayerNode>, int)> backwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              int iteration) -> bool {
-    /**
-     * Do not change this order:
-     * 1. calcGradient
-     * 2. calcDerivative
-     * 3. applyGradient
-     * 4. gradientClippingOnLastAccess
-     */
-
-    model_graph.flushCacheExcept(std::get<1>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("CalcGradient: " + node->getName());
-
-    bool apply_gradient = true;
-    if (node->getTrainable()) {
-      /** If gradient optimization mode, then calculate gradient first */
-      if (dynamic_training_opt.isGradientMode())
-        node->calcGradient();
-
-      /**
-       * If optimization off, or gradient must be applied, then this will be
-       * true
-       * @todo This apply gradient should be passed to the each weight and later
-       * be queried when updating gradient at once. (after moving apply_gradient
-       * out of this function)
-       *
-       */
-      // auto &layer = node->getObject();
-      // apply_gradient = dynamic_training_opt.checkIfApply(
-      //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0],
-      //   opt, iteration);
-
-      /** If gradient must be applied and its not gradient mode, calculate
-       * gradient
-       */
-      if (!dynamic_training_opt.isGradientMode() && apply_gradient) {
-        node->calcGradient();
-
-        RunLayerContext &rc = node->getRunContext();
-        if (model_graph.isMixedPrecision()) {
-          for (auto w : rc.getWeights()) {
-            if (w->hasGradient())
-              if (!w->getGradientRef().isValid())
-                return false;
-          }
-        }
-      }
-    }
-
-    model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
-
-    if (stop_cb(userdata)) {
-      return true;
-    }
-
-    if (node->needsCalcDerivative()) {
-      node->calcDerivative();
-    }
-
-    model_graph.flushCacheExcept(std::get<3>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
-
-    if (apply_gradient) {
-      /// Apply gradient only at the end of the last shared weight access
-      model_graph.applyGradients(
-        node.get(), [iteration, opt_ = opt.get()](Weight &w) {
-          w.calcRegularizationGradient();
-          w.calcWeightDecayGradient();
-          RunOptimizerContext opt_context(&w, iteration,
-                                          opt_->getLearningRate(iteration));
-          opt_->applyGradient(opt_context);
-        });
-    }
-    return true;
-  };
-
-  std::function<void(Weight &, int)> lazy_apply_grad_op =
-    [opt_ = opt.get()](Weight &w, int iteration) -> void {
-    w.calcRegularizationGradient();
-    w.calcWeightDecayGradient();
-    RunOptimizerContext opt_context(&w, iteration,
-                                    opt_->getLearningRate(iteration));
-    opt_->applyGradient(opt_context);
-  };
-
   // return false if the gradient is not valid
   bool ret = false;
 
   while (!ret) {
-    ret = model_graph.backwarding(iteration, forwarding_op, backwarding_op,
-                                  lazy_apply_grad_op, stop_cb, userdata);
+    ret = model_graph.backwarding(iteration, stop_cb, userdata,
+                                  dynamic_training_opt.isGradientMode(), opt);
   }
 }
 
