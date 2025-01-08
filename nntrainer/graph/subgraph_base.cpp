@@ -37,6 +37,7 @@
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer_context.h>
 #include <profiler.h>
 #include <rnn.h>
 #include <rnncell.h>
@@ -325,8 +326,8 @@ void SubGraphBase::setBatchSize(unsigned int batch_size) {
     label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
-void SubGraphBase::applyGradients(
-  LayerNode *node, const std::function<void(Weight &)> &apply_func) {
+void SubGraphBase::applyGradients(LayerNode *node, int iteration,
+                                  std::shared_ptr<OptimizerWrapped> opt) {
 
   if (!node->getTrainable())
     return;
@@ -360,7 +361,12 @@ void SubGraphBase::applyGradients(
       continue;
     }
 
-    apply_func(rc.getWeightObject(i));
+    auto &w = rc.getWeightObject(i);
+    w.calcRegularizationGradient();
+    w.calcWeightDecayGradient();
+    RunOptimizerContext opt_context(&w, iteration,
+                                    opt->getLearningRate(iteration));
+    opt->applyGradient(opt_context);
   }
 }
 
@@ -407,12 +413,10 @@ sharedConstTensors SubGraphBase::incremental_forwarding(
   return out;
 }
 
-bool SubGraphBase::backwarding(
-  int iteration,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
-  std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-  std::function<void(Weight &, int)> &lazy_apply_grad_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+bool SubGraphBase::backwarding(int iteration,
+                               std::function<bool(void *userdata)> stop_cb,
+                               void *user_data, bool is_grad_opt_mode,
+                               std::shared_ptr<OptimizerWrapped> opt) {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -433,10 +437,11 @@ bool SubGraphBase::backwarding(
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  for (iter_ = iter_begin; iter_ != iter_end && !stop_cb(userdata); iter_++) {
+  for (iter_ = iter_begin; iter_ != iter_end && !stop_cb(user_data); iter_++) {
     auto &ln = *iter_;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    is_valid = backwarding_op(ln, iteration);
+    is_valid =
+      backwarding_op(ln, iteration, stop_cb, user_data, is_grad_opt_mode, opt);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
 
     if (!is_valid) {
@@ -461,12 +466,12 @@ bool SubGraphBase::backwarding(
 
     auto f_iter = cbegin() + subgraph.getSortedNodeIdx((*iter_)->getName());
 
-    for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
+    for (auto iter = f_iter; iter != cend() && !stop_cb(user_data); iter++) {
       auto &ln = *iter;
       ln->reStoreData(true);
     }
 
-    for (auto iter = f_iter; iter != cend() && !stop_cb(userdata); iter++) {
+    for (auto iter = f_iter; iter != cend() && !stop_cb(user_data); iter++) {
       auto &ln = *iter;
       PROFILE_TIME_START(profile_keys.at(ln->getType()));
       forwarding_op(*iter, true);
@@ -506,7 +511,7 @@ bool SubGraphBase::backwarding(
   }
   /** apply the gradient with the above global norm */
   for (auto w : lazy_weights) {
-    lazy_apply_grad_op(*w, iteration);
+    lazy_apply_grad_op(*w, iteration, opt);
   }
   nan_count++;
 
@@ -1675,6 +1680,89 @@ void SubGraphBase::incremental_forwarding_op(std::shared_ptr<LayerNode> node,
   auto f = std::get<0>(node->getExecutionOrder());
   tensor_manager->flushCacheExcept(f);
   node->incremental_forwarding(from, to, training);
+}
+
+bool SubGraphBase::backwarding_op(std::shared_ptr<LayerNode> node,
+                                  int iteration,
+                                  std::function<bool(void *userData)> stop_cb,
+                                  void *user_data, bool is_grad_opt_mode,
+                                  std::shared_ptr<OptimizerWrapped> opt) {
+
+  /**
+   * Do not change this order:
+   * 1. calcGradient
+   * 2. calcDerivative
+   * 3. applyGradient
+   * 4. gradientClippingOnLastAccess
+   */
+
+  flushCacheExcept(std::get<1>(node->getExecutionOrder()));
+  PROFILE_MEM_ANNOTATE("CalcGradient: " + node->getName());
+
+  bool apply_gradient = true;
+  if (node->getTrainable()) {
+    /** If gradient optimization mode, then calculate gradient first */
+    if (is_grad_opt_mode)
+      node->calcGradient();
+
+    /**
+     * If optimization off, or gradient must be applied, then this will be
+     * true
+     * @todo This apply gradient should be passed to the each weight and later
+     * be queried when updating gradient at once. (after moving apply_gradient
+     * out of this function)
+     *
+     */
+    // auto &layer = node->getObject();
+    // apply_gradient = dynamic_training_opt.checkIfApply(
+    //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0],
+    //   opt, iteration);
+
+    /** If gradient must be applied and its not gradient mode, calculate
+     * gradient
+     */
+    if (!is_grad_opt_mode && apply_gradient) {
+      node->calcGradient();
+
+      RunLayerContext &rc = node->getRunContext();
+      if (isMixedPrecision()) {
+        for (auto w : rc.getWeights()) {
+          if (w->hasGradient())
+            if (!w->getGradientRef().isValid())
+              return false;
+        }
+      }
+    }
+  }
+
+  flushCacheExcept(std::get<2>(node->getExecutionOrder()));
+  PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
+
+  if (stop_cb(user_data)) {
+    return true;
+  }
+
+  if (node->needsCalcDerivative()) {
+    node->calcDerivative();
+  }
+
+  flushCacheExcept(std::get<3>(node->getExecutionOrder()));
+  PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
+
+  if (apply_gradient) {
+    /// Apply gradient only at the end of the last shared weight access
+    applyGradients(node.get(), iteration, opt);
+  }
+  return true;
+}
+
+void SubGraphBase::lazy_apply_grad_op(Weight &w, int iteration,
+                                      std::shared_ptr<OptimizerWrapped> opt) {
+  w.calcRegularizationGradient();
+  w.calcWeightDecayGradient();
+  RunOptimizerContext opt_context(&w, iteration,
+                                  opt->getLearningRate(iteration));
+  opt->applyGradient(opt_context);
 }
 
 } /* namespace nntrainer */
