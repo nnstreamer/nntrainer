@@ -318,6 +318,54 @@ Tensor &CharTensor::multiply(Tensor const &input, Tensor &output,
   return output;
 }
 
+Tensor &CharTensor::add(Tensor const &input, Tensor &output,
+                        float const scale) const {
+  CREATE_IF_EMPTY_DIMS(output, dim, nullptr, qscheme);
+
+  NNTR_THROW_IF(q_scheme() != input.q_scheme(), std::invalid_argument)
+    << "[Tensor] Cannot multiply tensors with different quantization schemes.";
+
+  /// @note remove after vector scale multiply is implemented
+  NNTR_THROW_IF(q_scheme() != QScheme::PER_TENSOR_AFFINE, std::invalid_argument)
+    << "Tensor addition other than per tensor affine quantization scheme is "
+       "NYI.";
+
+  float lhs_scale = *(float *)getScale();
+  float rhs_scale = *input.getScale<float>();
+
+  /// @note current impl assumes pre-established quantization parameters are set
+  /// @todo 1. verify result_scale is valid 2. calculate qparams if not given
+  ///       3. check qscheme is per tensor affine
+  NNTR_THROW_IF(std::fpclassify(lhs_scale) == FP_ZERO ||
+                  std::fpclassify(rhs_scale) == FP_ZERO ||
+                  std::fpclassify(scale) == FP_ZERO,
+                std::invalid_argument)
+    << "scale factors not set, cannot multiply";
+
+  /// @todo check whether the following method has faster execution speed.
+  /// 1. clone input A and B to A_fp32 and B_fp32
+  /// 2. dequantize A_fp32 and B_fp32
+  /// 3. perform addition: A_fp32.add(B_fp32, output_fp32)
+  /// 4. quantize output_fp32
+  for (unsigned int b = 0; b < batch(); ++b) {
+    for (unsigned int c = 0; c < channel(); ++c) {
+      for (unsigned int h = 0; h < height(); ++h) {
+        for (unsigned int w = 0; w < width(); ++w) {
+          float val = getValue(b, c, h, w) * lhs_scale +
+                      input.getValue<int8_t>(b, c, h, w) * rhs_scale;
+
+          output.setValue(
+            b, c, h, w,
+            std::max(-128, std::min((int)std::lround(val / scale), 127)));
+        }
+      }
+    }
+  }
+  *output.getScale<float>() = scale;
+
+  return output;
+}
+
 void CharTensor::copy(const Tensor &from) {
   reshape(from.getDim());
   copy(from.getData());
