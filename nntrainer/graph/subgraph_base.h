@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
+ * Copyright (C) 2025 Eunju Yang <ej.yang@samsung.com>
  *
- * @file    network_graph.h
- * @date    19 Oct 2020
+ * @file    subgraph_base.h
+ * @date    07 Jan 2025
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Jijoong Moon <jijoong.moon@samsung.com>
  * @author  Eunju Yang <ej.yang@samsung.com>
  * @bug     No known bugs except for NYI items
- * @brief   This is Network Graph Class for Neural Network
+ * @brief   This is a Network SubGraph Class for Neural Network
  *
  */
 
-#ifndef __NETWORK_GRAPH_H__
-#define __NETWORK_GRAPH_H__
+#ifndef __SUBGRAPH_BASE_H__
+#define __SUBGRAPH_BASE_H__
 #ifdef __cplusplus
 
 #include <list>
@@ -25,7 +25,6 @@
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
-#include <subgraph_base.h>
 
 namespace nntrainer {
 
@@ -33,18 +32,18 @@ using ExecutionMode = ml::train::ExecutionMode;
 
 class Connection;
 /**
- * @class   NeuralNetwork Graph Class
- * @brief   NeuralNetwork Graph Class which manage layers
+ * @class   NeuralNetwork SubGraph Class
+ * @brief   NeuralNetwork SubGraph Class which manage layers
  */
-class NetworkGraph {
+class SubGraphBase {
 
 public:
   /**
-   * @brief     Constructor of NeuralNetwork Graph Class
+   * @brief     Constructor of NeuralNetwork SubGraph Class
    */
-  NetworkGraph() :
-    tensor_manager(std::make_shared<Manager>()),
-    graph(tensor_manager),
+  SubGraphBase(std::shared_ptr<Manager> tm) :
+    tensor_manager(tm),
+    subgraph(),
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
@@ -53,67 +52,34 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
-    is_clip_grad(false),
-    loss_scale(1.0f) {
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
     nan_count = 0;
   }
 
   /**
-   * @brief     Constructor of NeuralNetwork Graph Class
-   * @param[in] enable_swap enable memory swap for tensor
-   * @param[in] mode execution mode (default ExecutionMode::TRAIN)
-   * @param[in] swap_path memory swap file path when the swap is enabled
-   * @param[in] tensor_format define tensor format. One of NCHW and NHWC
-   * (default NCHW)
-   * @param[in] tensor_type It says weight type and activation type (default
-   * FP32-FP32)
-   */
-  NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
-               const std::string &swap_path = "", unsigned int lookahead = 0,
-               const std::string &tensor_format_ = "NCHW",
-               const std::string &tensor_dtype_ = "FP32-FP32") :
-    tensor_manager(std::make_shared<Manager>(
-      enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
-    graph(tensor_manager),
-    compiled(false),
-    batch_size(0),
-    graph_exec_end(0),
-    backward_iter_end(nullptr),
-    forward_iter_end(nullptr),
-    optimize_memory(true),
-    exec_mode(mode),
-    tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
-    is_clip_grad(false),
-    loss_scale(1.0f) {
-    nan_count = 0;
-  }
-
-  /**
-   * @brief   Destructor of the NeuralNetwork Graph class
+   * @brief   Destructor of the NeuralNetwork SubGraph class
    *
    */
-  ~NetworkGraph() = default;
+  ~SubGraphBase() = default;
 
   /**
-   * @brief     Compile the graph
-   * @param[in] loss_type loss for the graph
+   * @brief     Compile the subgraph
+   * @param[in] loss_type loss for the subgraph
    * returns ML_ERROR_NONE on success, error on failure
    */
   int compile(const std::string &loss_type);
 
   /**
-   * @brief Create new LayerNode and add into Graph
+   * @brief Create new LayerNode and add into SubGraph
    * @param[in] layer shared_ptr of Layer
    */
   void addLayer(std::shared_ptr<LayerNode> layer);
 
   /**
-   * @brief get current flat graph from the model before sorting
-   * @note graph contains pointer to the actual nodes, which is not deeply
+   * @brief get current flat subgraph from the model before sorting
+   * @note subgraph contains pointer to the actual nodes, which is not deeply
    * copied.
-   * @retval current flat graph
+   * @retval current flat subgraph
    *
    * @todo remove getting unsorted layers from model loader, compile model
    * loader
@@ -126,22 +92,22 @@ public:
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() const { return graph.size(); }
+  unsigned int size() const { return subgraph.size(); }
 
   /**
-   * @brief get if the graph is empty
+   * @brief get if the subgraph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const { return graph.empty(); }
+  bool empty() const { return subgraph.empty(); }
 
   /**
    * @brief     Swap function for the class
    */
-  friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
+  friend void swap(SubGraphBase &lhs, SubGraphBase &rhs) {
     /// @fixme this swap function need maintenance
     using std::swap;
 
-    swap(lhs.graph, rhs.graph);
+    swap(lhs.subgraph, rhs.subgraph);
   }
 
   /**
@@ -150,7 +116,7 @@ public:
    * @ret LayerNode
    */
   std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) const {
-    return graph.getSortedLayerNode(ith);
+    return std::static_pointer_cast<LayerNode>(subgraph.getSortedNode(ith));
   }
 
   /**
@@ -159,7 +125,7 @@ public:
    * @retval LayerNode
    */
   std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) const {
-    return graph.getLayerNode(layer_name);
+    return std::static_pointer_cast<LayerNode>(subgraph.getNode(layer_name));
   }
 
   /**
@@ -188,7 +154,7 @@ public:
                              const std::function<void(Weight &)> &apply_func);
 
   /**
-   * @brief     forwarding network graph
+   * @brief     forwarding network subgraph
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
@@ -201,7 +167,7 @@ public:
     void *user_data = nullptr);
 
   /**
-   * @brief     forwarding network graph
+   * @brief     forwarding network subgraph
    * @param[in] from start step
    * @param[in] to end step
    * @param[in] training true if forwarding is on training
@@ -216,7 +182,7 @@ public:
     void *user_data = nullptr);
 
   /**
-   * @brief     backwarding the network graph
+   * @brief     backwarding the network subgraph
    * @param[in] iteration current iteration number
    * @param[in] forwarding_op operation for the forwarding
    * @param[in] backwarding_op operation for the backwarding
@@ -235,31 +201,35 @@ public:
     void *user_data = nullptr);
 
   /**
-   * @brief     get begin iterator for the graph
+   * @brief     get begin iterator for the subgraph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cbegin() const { return graph.cbegin(); }
-
-  /**
-   * @brief     get end iterator for the graph
-   * @retval    const iterator
-   */
-  graph_const_iterator<LayerNode> cend() const { return graph.cend(); }
-
-  /**
-   * @brief     get reverse begin iterator for the graph
-   * @retval    const reverse iterator
-   */
-  graph_const_reverse_iterator<LayerNode> crbegin() const {
-    return graph.crbegin();
+  graph_const_iterator<LayerNode> cbegin() const {
+    return subgraph.cbegin<LayerNode>();
   }
 
   /**
-   * @brief     get reverse end iterator for the graph
+   * @brief     get end iterator for the subgraph
+   * @retval    const iterator
+   */
+  graph_const_iterator<LayerNode> cend() const {
+    return subgraph.cend<LayerNode>();
+  }
+
+  /**
+   * @brief     get reverse begin iterator for the subgraph
+   * @retval    const reverse iterator
+   */
+  graph_const_reverse_iterator<LayerNode> crbegin() const {
+    return subgraph.crbegin<LayerNode>();
+  }
+
+  /**
+   * @brief     get reverse end iterator for the subgraph
    * @retval    const reverse iterator
    */
   graph_const_reverse_iterator<LayerNode> crend() const {
-    return graph.crend();
+    return subgraph.crend<LayerNode>();
   }
 
   /**
@@ -279,13 +249,13 @@ public:
   }
 
   /**
-   * @brief     getter of output dimension of graph
+   * @brief     getter of output dimension of subgraph
    * @retval    output tensor dim list
    */
   std::vector<TensorDim> getOutputDimension() const;
 
   /**
-   * @brief     getter of input dimension of graph
+   * @brief     getter of input dimension of subgraph
    * @retval    input tensor dim list
    */
   std::vector<TensorDim> getInputDimension() const;
@@ -298,17 +268,17 @@ public:
   unsigned int getBatchSize() const;
 
   /**
-   * @brief     Copy the graph
-   * @param[in] from Graph Object to copy
-   * @retval    Graph Object copyed
+   * @brief     Copy the subgraph
+   * @param[in] from SubGraphBase Object to copy
+   * @retval    SubGraph Object copyed
    */
-  NetworkGraph &copy(NetworkGraph &from) {
-    graph.copy(from.graph);
+  SubGraphBase &copy(SubGraphBase &from) {
+    subgraph.copy(from.subgraph);
     return *this;
   }
 
   /**
-   * @brief initialize network graph
+   * @brief initialize network subgraph
    *
    * @param model_input_names model input connection if empty list given, all of
    * node that can be inputs will be identified in the sort order
@@ -321,7 +291,7 @@ public:
                  const std::vector<Connection> &model_label_names = {});
 
   /**
-   * @brief reinitialize network graph
+   * @brief reinitialize network subgraph
    *
    * @param model_input_names model input connection if empty list given, all of
    * node that can be inputs will be identified in the sort order
@@ -371,7 +341,14 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights(bool init = true) { graph.allocateWeights(init); }
+  void allocateWeights(bool init = true) {
+    unsigned int max_exec_order =
+      std::get<3>(backward_iter_end->getExecutionOrder());
+
+    if (exec_mode == ExecutionMode::INFERENCE)
+      max_exec_order = std::get<0>(forward_iter_end->getExecutionOrder());
+    tensor_manager->allocateWeights(max_exec_order, init);
+  }
 
   /**
    * @brief Deallocate memory for all the weights
@@ -383,7 +360,10 @@ public:
    *
    * @param val true to enable, else false
    */
-  void setMemoryOptimizations(bool val) { graph.setMemoryOptimizations(val); }
+  void setMemoryOptimizations(bool val) {
+    tensor_manager->setOptimizations(val);
+    optimize_memory = val;
+  }
 
   /**
    * @brief     Create optimizer variable for every weights
@@ -396,7 +376,7 @@ public:
     bool request_only_trainable = true);
 
   /**
-   * @brief Feed inputs and labels to the graph
+   * @brief Feed inputs and labels to the subgraph
    *
    * @param inputs Input data
    * @param labels Label data
@@ -405,7 +385,7 @@ public:
                        const std::vector<Tensor> &labels);
 
   /**
-   * @brief Feed inputs and labels to the graph
+   * @brief Feed inputs and labels to the subgraph
    *
    * @param inputs Input data
    * @param labels Label data
@@ -413,7 +393,7 @@ public:
   void setInputsLabels(sharedConstTensors &inputs, sharedConstTensors &labels);
 
   /**
-   * @brief Get the Output Tensors list for the graph
+   * @brief Get the Output Tensors list for the subgraph
    *
    * @return std::vector<Tensor> List of output tensors
    * @note this tensor list is analogous to the label list
@@ -425,7 +405,10 @@ public:
    *
    * @return TensorDim::Format NCHW or NHWC
    */
-  std::array<std::string, 3> getTensorType() { return graph.getTensorType(); };
+  std::array<std::string, 3> getTensorType() {
+
+    return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
+  };
 
   /**
    * @brief Flush data to the device
@@ -445,8 +428,7 @@ public:
    *
    * @param order execution order
    */
-  void LoadTensors(const unsigned int order,
-                   unsigned int remainder_lookahead = 0);
+  void LoadTensors(const unsigned int order);
 
   /**
    * @brief check data of order is loaded
@@ -491,27 +473,13 @@ public:
    */
   bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
 
-  /**
-   * @brief Get Number of Loaded WeightPool Tensor
-   *
-   * @return Number of Loaded WeightPool Tensor
-   */
-  unsigned int getNumLoadedWeightPoolTensors();
-
-  /**
-   * @brief Get Number of Loaded TensorPool Tensor
-   *
-   * @return Number of Loaded TensorPool Tensor
-   */
-  unsigned int getNumLoadedTensorPoolTensors();
-
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  SubGraphBase graph;          /** core graph object */
-  bool compiled;               /**< if the model graph is compiled */
+  GraphCore subgraph;          /** core graph object */
+  bool compiled;               /**< if the subgraph is compiled */
   unsigned int batch_size;     /**< current batch_size */
   unsigned int graph_exec_end; /**< Inclusive, last execution order of the
                                   given graph */
@@ -524,14 +492,17 @@ private:
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
-  std::vector<std::string> label_list;  /**< identifier for the model labels */
-  std::vector<std::string> input_list;  /**< identifier for the model inputs */
-  std::vector<std::string> output_list; /**< identifier for the model outputs */
-  std::vector<TensorDim> label_dims;    /**< graph label dimensions */
-  std::vector<TensorDim> input_dims;    /**< graph input dimensions */
+  std::vector<std::string>
+    label_list; /**< identifier for the subgraph labels */
+  std::vector<std::string>
+    input_list; /**< identifier for the subgraph inputs */
+  std::vector<std::string>
+    output_list;                     /**< identifier for the subgraph outputs */
+  std::vector<TensorDim> label_dims; /**< subgraph label dimensions */
+  std::vector<TensorDim> input_dims; /**< subgraph input dimensions */
 
   bool optimize_memory;    /**< optimize memory */
-  ExecutionMode exec_mode; /**< execution mode with which the graph has been
+  ExecutionMode exec_mode; /**< execution mode with which the subgraph has been
                               currently set or previously set */
 
   std::string tensor_format; /**< Model Tensor Format: NCHW or NHWC */
@@ -546,9 +517,118 @@ private:
   bool is_clip_grad;
   float loss_scale;
   unsigned int nan_count;
+
+  /**
+   * @brief     topological sort
+   * @param[in] ith index of LayerNode
+   * @param[in] visited temp list
+   * @param[in] stack for Node list to visit.
+   */
+  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
+                           std::stack<std::shared_ptr<LayerNode>> &Stack);
+
+  /**
+   * @brief     check if subgraph is ready to compile.
+   * @retval #ML_ERROR_NONE subgraph is ready to compile
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
+   */
+  int isCompilable();
+
+  /**
+   * @brief     check if the compiled subgraph is of correct form.
+   * @retval #ML_ERROR_NONE subgraph is compiled correctly
+   * @retval #ML_ERROR_INVALID_PARAMETER did not compile correctly
+   */
+  int checkCompiledGraph();
+
+  /**
+   * @brief     mark nodes required for backwarding.
+   */
+  void markNodesForBackwarding();
+
+  /**
+   * @brief     adding loss layer at last position
+   * @param[in] loss_type loss type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addLossLayer(const std::string &loss_type);
+
+  /**
+   * @brief     set output connections for all the layers
+   */
+  void setOutputConnections();
+
+  /**
+   * @brief     Ensure that layer has a name.
+   * @param[in] layer Layer whose name is to be ensured to be valid
+   * @param[in] prefix Prefix to be attached to the layer name
+   * @param[in] postfix Postfix to be attached to the layer name
+   * @param[in] force_rename If the layer must be forcefully rename
+   * @details   Ensures that the layer has a unique and a valid name. A valid
+   * name pre-assigned to the layer can be changed if force_rename is enabled.
+   */
+  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
+                  const std::string &postfix = "", bool force_rename = false);
+
+  /**
+   * @brief Create new LayerNode and add into SubGraph
+   * @param[in] layer shared_ptr of Layer
+   */
+  void addLayerNode(std::unique_ptr<Layer> layer);
+
+  /**
+   * @brief finalize already added loss layers
+   *
+   * @details This involves verify if the requirements of the added loss layers
+   * match and merging loss layers with activation layers if needed.
+   */
+  void finalizeLossLayer();
+
+  /**
+   * @brief Set the order of execution for all the nodes in the subgraph
+   *
+   * @details This sets the order of execution using the order from the
+   * topological sort. The order of forwarding matches the topological sort. The
+   * order for backwarding is in the exact reverse order. The calcDerivative()
+   * is expected to be called right after calcGradient().
+   */
+  void setExecutionOrder();
+
+  /**
+   * @brief Set external data to the given tensors with name
+   *
+   * @param data External data
+   * @param names Names of the tensor to set the data to
+   */
+  void setExternalTensors(const std::vector<Tensor> &data,
+                          const std::vector<std::string> names);
+
+  /**
+   * @brief     Optimize the subgraph memory utilization for in-place operations
+   */
+  void inPlaceOptimize();
+
+  /**
+   * @brief     Check if the given node can execute in-place
+   *
+   * @param lnode node to check for in-place execution
+   *
+   * @return the mode of inplace for the layer
+   */
+  InPlaceType canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
+
+  /**
+   * @brief compute optimized backward end. This function calculated the valid
+   * end of the subgraph backward, if memory_optimize is unset, this returns
+   * beginning of the subgraph node.
+   *
+   * @return end of the backward iter;
+   */
+  LayerNode *computeBackwardEnd();
 };
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __NETWORK_GRAPH_H__ */
+#endif /* __SUBGRAPH_BASE_H__ */
