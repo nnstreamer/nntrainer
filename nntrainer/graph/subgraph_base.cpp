@@ -364,14 +364,14 @@ void SubGraphBase::applyGradients(
   }
 }
 
-sharedConstTensors SubGraphBase::forwarding(
-  bool training,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+sharedConstTensors
+SubGraphBase::forwarding(bool training,
+                         std::function<bool(void *userdata)> stop_cb,
+                         void *userdata, bool swap_mode) {
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    forwarding_op(*iter, training);
+    forwarding_op(*iter, training, swap_mode);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
@@ -388,12 +388,11 @@ sharedConstTensors SubGraphBase::forwarding(
 
 sharedConstTensors SubGraphBase::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    forwarding_op(*iter, training);
+    incremental_forwarding_op(*iter, from, to, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
   }
 
@@ -1618,6 +1617,64 @@ void SubGraphBase::resetLossScale(float scale) {
     auto &ln = *iter;
     ln->getRunContext().setLossScale(scale);
   }
+}
+
+void SubGraphBase::forwarding_op(std::shared_ptr<LayerNode> node, bool training,
+                                 bool swap_mode) {
+  PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+  auto f = std::get<0>(node->getExecutionOrder());
+  // temperally remain. when we evaluate all for asynch mode, we weill remove
+  if (training or (!training and !swap_mode)) {
+    tensor_manager->flushCacheExcept(f);
+    node->forwarding(training);
+  } else {
+    /**
+     currently, it supports FSU asynch mode for inference. The prcedure of
+     FSU is below,
+     Prerequests : This function is called node by node at the forwarding
+     function in network graph.
+     Step 1. If the execution order is the first (f==0) then, it will try to
+             load tensors which used at layer 0.
+     Step 2. It check whether these tensors from Step 1, then do the
+             forwarding of the first node.
+     Step 3. Then check the look a head which says how many layer weights need
+             to be loaded before running to hide overehad due to FSU,
+     Step 4. Try to get the tesors by asking tensors for layers which is done
+             by thread pool
+     Step 5. Try to release the weights which has execution order less then f.
+     Step n. repeat next layer starting with checking the tenosrs are loaded,
+             and if it is loaded, then run forwarding. Every time it finishes
+             the forwarding, ask load tensors for next n layers.
+    **/
+    if (f == 0)
+      tensor_manager->LoadTensors(f);
+    if (tensor_manager->checkLoadComplete(f)) {
+      node->forwarding(training);
+      ml_logd("Forwarding is done %d : %s", f, node->getName().c_str());
+      if (lookahead != 0) {
+        if ((f) % (lookahead + 1) == lookahead - 1) {
+          std::cout << "request load tensor : " << f + lookahead + 1
+                    << std::endl;
+          ml_logd("request load tensor for %d", f + 1);
+          tensor_manager->LoadTensors((f / (lookahead + 1) + 1) *
+                                      (lookahead + 1));
+        }
+      } else {
+        tensor_manager->LoadTensors(f);
+      }
+      if (f != 0)
+        tensor_manager->UnloadTensors(f);
+    }
+  }
+}
+
+void SubGraphBase::incremental_forwarding_op(std::shared_ptr<LayerNode> node,
+                                             unsigned int from, unsigned int to,
+                                             bool training) {
+  PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+  auto f = std::get<0>(node->getExecutionOrder());
+  tensor_manager->flushCacheExcept(f);
+  node->incremental_forwarding(from, to, training);
 }
 
 } /* namespace nntrainer */
