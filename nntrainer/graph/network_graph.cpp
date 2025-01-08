@@ -32,19 +32,17 @@ void NetworkGraph::applyGradients(
   SubGraphBase::applyGradients(node, apply_func);
 }
 
-sharedConstTensors NetworkGraph::forwarding(
-  bool training,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  return graph.forwarding(training, forwarding_op, stop_cb, userdata);
+sharedConstTensors
+NetworkGraph::forwarding(bool training,
+                         std::function<bool(void *userdata)> stop_cb,
+                         void *userdata, bool swap_mode) {
+  return graph.forwarding(training, stop_cb, userdata, swap_mode);
 }
 
 sharedConstTensors NetworkGraph::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  return graph.incremental_forwarding(from, to, training, forwarding_op,
-                                      stop_cb, userdata);
+  return graph.incremental_forwarding(from, to, training, stop_cb, userdata);
 }
 
 bool NetworkGraph::backwarding(
