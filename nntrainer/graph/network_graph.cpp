@@ -14,6 +14,7 @@
  */
 
 #include <network_graph.h>
+#include <optimizer_context.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
@@ -27,9 +28,9 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   graph.setBatchSize(batch_size);
 }
 
-void NetworkGraph::applyGradients(
-  LayerNode *node, const std::function<void(Weight &)> &apply_func) {
-  SubGraphBase::applyGradients(node, apply_func);
+void NetworkGraph::applyGradients(LayerNode *node, int iteration,
+                                  std::shared_ptr<OptimizerWrapped> opt) {
+  graph.applyGradients(node, iteration, opt);
 }
 
 sharedConstTensors
@@ -45,14 +46,12 @@ sharedConstTensors NetworkGraph::incremental_forwarding(
   return graph.incremental_forwarding(from, to, training, stop_cb, userdata);
 }
 
-bool NetworkGraph::backwarding(
-  int iteration,
-  std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
-  std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-  std::function<void(Weight &, int)> &lazy_apply_grad_op,
-  std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  return graph.backwarding(iteration, forwarding_op, backwarding_op,
-                           lazy_apply_grad_op, stop_cb, userdata);
+bool NetworkGraph::backwarding(int iteration,
+                               std::function<bool(void *userdata)> stop_cb,
+                               void *user_data, bool is_grad_opt_mode,
+                               std::shared_ptr<OptimizerWrapped> opt) {
+  return graph.backwarding(iteration, stop_cb, user_data, is_grad_opt_mode,
+                           opt);
 }
 
 /**
