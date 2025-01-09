@@ -604,6 +604,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/network_graph.h
 %{_includedir}/nntrainer/graph_core.h
 %{_includedir}/nntrainer/subgraph_base.h
+%{_includedir}/nntrainer/subgraph_cpu.h
 %{_includedir}/nntrainer/manager.h
 %{_includedir}/nntrainer/basic_planner.h
 %{_includedir}/nntrainer/memory_planner.h
