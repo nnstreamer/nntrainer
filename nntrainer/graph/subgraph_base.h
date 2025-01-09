@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <graph_core.h>
+#include <graph_node.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <optimizer_wrapped.h>
@@ -30,13 +31,16 @@
 namespace nntrainer {
 
 using ExecutionMode = ml::train::ExecutionMode;
+using ExecutionOrder = GraphNode::ExecutionOrder;
+using PrintPreset = LayerNode::PrintPreset;
 
 class Connection;
+
 /**
  * @class   NeuralNetwork SubGraph Class
  * @brief   NeuralNetwork SubGraph Class which manage layers
  */
-class SubGraphBase {
+class SubGraphBase : public GraphNode {
 
 public:
   /**
@@ -63,6 +67,69 @@ public:
    *
    */
   ~SubGraphBase() = default;
+
+  /**
+   * @brief     Get the Name of the underlying object
+   *
+   * @return std::string Name of the underlying object
+   * @note name of each node in the graph must be unique
+   */
+  const std::string getName() const noexcept override;
+
+  /**
+   * @brief     Set the Name of the underlying object
+   *
+   * @param[in] std::string Name for the underlying object
+   * @note name of each node in the graph must be unique, and caller must ensure
+   * that
+   */
+  void setName(const std::string &name) override;
+
+  /**
+   * @brief     Get the Type of the underlying object
+   *
+   * @return const std::string type representation
+   */
+  const std::string getType() const override;
+
+  /**
+   * @brief     Get the trainable parameter
+   *
+   * @return bool true / false
+   */
+  bool getTrainable() const override;
+
+  /**
+   * @brief     Get the input connections for this node
+   *
+   * @return list of name of the nodes which form input connections
+   */
+  const std::vector<std::string> getInputConnections() const override;
+
+  /**
+   * @brief     Get the output connections for this node
+   *
+   * @return list of name of the nodes which form output connections
+   */
+  const std::vector<std::string> getOutputConnections() const override;
+
+  /**
+   * @brief     get the execution order/location of this node
+   *
+   * @retval    the execution order/location of this node
+   * @details   The two values represents the value for forward and backward
+   * respectively
+   */
+  ExecutionOrder getExecutionOrder() const override;
+
+  /**
+   * @brief     set the execution order/location of this node
+   *
+   * @param     exec_order the execution order/location of this node
+   * @details   The two values represents the value for forward and backward
+   * respectively
+   */
+  void setExecutionOrder(ExecutionOrder exec_order_) override;
 
   /**
    * @brief     Compile the subgraph
@@ -474,7 +541,47 @@ public:
    */
   bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
 
+  /**
+   * @brief     read subgraph Weight & Bias data from file
+   * @param file input file stream
+   * @param bool read optimizer variables
+   */
+  void read(std::ifstream &file, bool opt_var = false,
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
+
+  /**
+   * @brief     save subgraph Weight & Bias data from file
+   * @param file output file stream
+   * @param bool save optimizer variables
+   */
+  void
+  save(std::ofstream &file, bool opt_var = false,
+       ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
+
+  /**
+   * @brief     get loss for the subgraph
+   * @return    loss of the subgraph
+   */
+  float getLoss() const;
+
+  /**
+   * @brief clear optimizer variable to initial state
+   */
+  void clearOptVar();
+
+  /**
+   * @brief print using PrintPreset
+   *
+   * @param out oustream
+   * @param preset preset to be used
+   */
+  void printPreset(std::ostream &out,
+                   PrintPreset preset = PrintPreset::PRINT_SUMMARY);
+
+  inline static const std::string type = "subgraph";
+
 private:
+  std::string subgraph_name;
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
@@ -519,6 +626,8 @@ private:
   float loss_scale;
   unsigned int nan_count;
   unsigned int lookahead;
+  ExecutionOrder exec_order; /**< order/location of execution for this subgraph
+                                   in forward and backwarding operations */
 
   /**
    * @brief     topological sort

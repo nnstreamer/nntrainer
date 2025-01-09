@@ -2,10 +2,11 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file    network_graph.h
- * @date    19 Oct 2020
+ * @file    subgraph_base.cpp
+ * @date    07 Jan 2025
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Jijoong Moon <jijoong.moon@samsung.com>
+ * @author  Eunju Yang <ej.yang@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This is Network SubGraph Class for Neural Network
  *
@@ -51,6 +52,32 @@
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
 namespace nntrainer {
+
+const std::string SubGraphBase::getName() const noexcept {
+  return subgraph_name;
+}
+
+void SubGraphBase::setName(const std::string &name) { subgraph_name = name; }
+
+const std::string SubGraphBase::getType() const { return SubGraphBase::type; }
+
+bool SubGraphBase::getTrainable() const {
+  return exec_mode == ExecutionMode::TRAIN;
+}
+
+const std::vector<std::string> SubGraphBase::getInputConnections() const {
+  return cbegin()->getInputConnections();
+}
+
+const std::vector<std::string> SubGraphBase::getOutputConnections() const {
+  return crbegin()->getOutputConnections();
+}
+
+ExecutionOrder SubGraphBase::getExecutionOrder() const { return exec_order; }
+
+void SubGraphBase::setExecutionOrder(ExecutionOrder exec_order_) {
+  exec_order = exec_order_;
+}
 
 int SubGraphBase::compile(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
@@ -189,7 +216,7 @@ int SubGraphBase::addLossLayer(const std::string &loss_type_) {
 }
 
 void SubGraphBase::setOutputConnections() {
-  for (auto layer_iter = cbegin(); layer_iter != cend(); layer_iter++) {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
     const auto &node = *layer_iter;
     for (auto i = 0u, num_inode = node->getNumInputConnections(); i < num_inode;
          ++i) {
@@ -1621,6 +1648,41 @@ void SubGraphBase::resetLossScale(float scale) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto &ln = *iter;
     ln->getRunContext().setLossScale(scale);
+  }
+}
+
+void SubGraphBase::read(std::ifstream &file, bool opt_var,
+                        ml::train::ExecutionMode mode) {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
+    (*layer_iter)->read(file, opt_var, mode);
+  }
+}
+
+void SubGraphBase::save(std::ofstream &file, bool opt_var,
+                        ml::train::ExecutionMode mode) const {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
+    (*layer_iter)->save(file, opt_var, mode);
+  }
+}
+
+float SubGraphBase::getLoss() const {
+  auto loss = 0.0f;
+
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
+    loss += (*layer_iter)->getLoss();
+  }
+  return loss;
+}
+
+void SubGraphBase::clearOptVar() {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
+    (*layer_iter)->clearOptVar();
+  }
+}
+
+void SubGraphBase::printPreset(std::ostream &out, PrintPreset preset) {
+  for (auto layer_iter = cbegin(); layer_iter != cend(); ++layer_iter) {
+    (*layer_iter)->printPreset(out, preset);
   }
 }
 

@@ -45,7 +45,7 @@ public:
    */
   NetworkGraph() :
     tensor_manager(std::make_shared<Manager>()),
-    graph(tensor_manager),
+    graph(),
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
@@ -58,6 +58,14 @@ public:
     is_clip_grad(false),
     loss_scale(1.0f) {
     nan_count = 0;
+
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     */
+    auto sg = std::make_shared<SubGraphBase>(tensor_manager);
+    sg->setName("default_subgraph");
+    graph.addNode(sg);
   }
 
   /**
@@ -76,7 +84,7 @@ public:
                const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(std::make_shared<Manager>(
       enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
-    graph(tensor_manager, lookahead),
+    graph(),
     compiled(false),
     batch_size(0),
     graph_exec_end(0),
@@ -89,6 +97,14 @@ public:
     is_clip_grad(false),
     loss_scale(1.0f) {
     nan_count = 0;
+
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     */
+    auto sg = std::make_shared<SubGraphBase>(tensor_manager, lookahead);
+    sg->setName("default_subgraph");
+    graph.addNode(sg);
   }
 
   /**
@@ -124,16 +140,26 @@ public:
                     const std::string &output_layer) const;
 
   /**
-   * @brief getter of number of nodes
-   * @param[out] number of nodes
+   * @brief getter of number of all layer nodes
+   * @param[out] number of layer nodes
    */
-  unsigned int size() const { return graph.size(); }
+  unsigned int size() const {
+    unsigned int size = 0;
+    for (auto it = cbegin(); it != cend(); ++it)
+      size += (*it)->size();
+    return size;
+  }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const { return graph.empty(); }
+  bool empty() const {
+    bool is_empty = true;
+    for (auto it = cbegin(); it != cend(); ++it)
+      is_empty = (is_empty && (*it)->empty());
+    return is_empty;
+  }
 
   /**
    * @brief     Swap function for the class
@@ -151,7 +177,12 @@ public:
    * @ret LayerNode
    */
   std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) const {
-    return graph.getSortedLayerNode(ith);
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     * @todo update the code to consider `ith` as a global layer node index.
+     */
+    return (*cbegin())->getSortedLayerNode(ith);
   }
 
   /**
@@ -160,7 +191,13 @@ public:
    * @retval LayerNode
    */
   std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) const {
-    return graph.getLayerNode(layer_name);
+    std::shared_ptr<LayerNode> ln;
+    for (auto it = cbegin(); it != cend(); ++it) {
+      ln = it->getLayerNode(layer_name);
+      if (ln)
+        return ln;
+    }
+    return ln;
   }
 
   /**
@@ -238,35 +275,39 @@ public:
    * @brief     get begin iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cbegin() const { return graph.cbegin(); }
+  graph_const_iterator<SubGraphBase> cbegin() const {
+    return graph.cbegin<SubGraphBase>();
+  }
 
   /**
    * @brief     get end iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cend() const { return graph.cend(); }
+  graph_const_iterator<SubGraphBase> cend() const {
+    return graph.cend<SubGraphBase>();
+  }
 
   /**
    * @brief     get reverse begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crbegin() const {
-    return graph.crbegin();
+  graph_const_reverse_iterator<SubGraphBase> crbegin() const {
+    return graph.crbegin<SubGraphBase>();
   }
 
   /**
    * @brief     get reverse end iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crend() const {
-    return graph.crend();
+  graph_const_reverse_iterator<SubGraphBase> crend() const {
+    return graph.crend<SubGraphBase>();
   }
 
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingBeginIter() const {
+  graph_const_reverse_iterator<SubGraphBase> getBackwardingBeginIter() const {
     return crbegin();
   }
 
@@ -274,7 +315,7 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingEndIter() const {
+  graph_const_reverse_iterator<SubGraphBase> getBackwardingEndIter() const {
     return crend();
   }
 
@@ -371,7 +412,10 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights(bool init = true) { graph.allocateWeights(init); }
+  void allocateWeights(bool init = true) {
+    for (auto it = cbegin(); it != cend(); ++it)
+      return it->allocateWeights(init);
+  }
 
   /**
    * @brief Deallocate memory for all the weights
@@ -383,7 +427,10 @@ public:
    *
    * @param val true to enable, else false
    */
-  void setMemoryOptimizations(bool val) { graph.setMemoryOptimizations(val); }
+  void setMemoryOptimizations(bool val) {
+    for (auto it = cbegin(); it != cend(); ++it)
+      return it->setMemoryOptimizations(val);
+  }
 
   /**
    * @brief     Create optimizer variable for every weights
@@ -425,7 +472,14 @@ public:
    *
    * @return TensorDim::Format NCHW or NHWC
    */
-  std::array<std::string, 3> getTensorType() { return graph.getTensorType(); };
+  std::array<std::string, 3> getTensorType() {
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. If subgraphs have different
+     * TensorType, then it needs to be update this function.
+     */
+    return (*cbegin())->getTensorType();
+  };
 
   /**
    * @brief Flush data to the device
@@ -510,8 +564,8 @@ private:
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  SubGraphBase graph;          /** core graph object */
-  bool compiled;               /**< if the model graph is compiled */
+  GraphCore graph; /** core graph object consisting with SubGraphBase nodes */
+  bool compiled;   /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
   unsigned int graph_exec_end; /**< Inclusive, last execution order of the
                                   given graph */
