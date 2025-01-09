@@ -1363,28 +1363,30 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     if (compiled) {
       props::GenericShape dim_property;
 
-      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-           iter++) {
-        std::string first_dim;
-        if (iter->getOutputDimensions().empty()) {
-          first_dim = "";
-        } else {
-          dim_property.set(iter->getOutputDimensions()[0]);
-          first_dim = to_string(dim_property);
+      for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+           ++sg_iter) {
+        for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+          std::string first_dim;
+          if (iter->getOutputDimensions().empty()) {
+            first_dim = "";
+          } else {
+            dim_property.set(iter->getOutputDimensions()[0]);
+            first_dim = to_string(dim_property);
+          }
+          const std::vector<std::string> &input_layer_names =
+            iter->getInputConnections();
+          std::string first_input_name =
+            input_layer_names.empty() ? "" : input_layer_names[0];
+          print_graph_layer_info(out, {iter->getName(), iter->getType(),
+                                       first_dim, first_input_name});
+          for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+            dim_property.set(iter->getInputDimensions()[i]);
+            print_graph_layer_info(out, {"", "", "", input_layer_names[i]});
+          }
+          out << std::string(total_col_size,
+                             iter == sg_iter->cend() - 1 ? '=' : '-')
+              << '\n';
         }
-        const std::vector<std::string> &input_layer_names =
-          iter->getInputConnections();
-        std::string first_input_name =
-          input_layer_names.empty() ? "" : input_layer_names[0];
-        print_graph_layer_info(
-          out, {iter->getName(), iter->getType(), first_dim, first_input_name});
-        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
-          dim_property.set(iter->getInputDimensions()[i]);
-          print_graph_layer_info(out, {"", "", "", input_layer_names[i]});
-        }
-        out << std::string(total_col_size,
-                           iter == model_graph.cend() - 1 ? '=' : '-')
-            << '\n';
       }
     } else {
       auto &input_connection =
@@ -1400,27 +1402,30 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
                              });
         };
 
-      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-           iter++) {
-        const std::vector<std::string> &input_layer_names =
-          iter->getInputConnections();
+      for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+           ++sg_iter) {
+        for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+          const std::vector<std::string> &input_layer_names =
+            iter->getInputConnections();
 
-        /// @brief connection information.
-        // Intended comment.
-        // std::string first_input_name =
-        //   input_layer_names.empty()
-        //     ? (is_actually_an_input_node(iter) || iter ==
-        //     model_graph.cbegin()
-        //          ? ""
-        //          : (iter - 1)->getName())
-        //     : input_layer_names[0];
-        print_graph_layer_info(out, {iter->getName(), iter->getType(), "", ""});
-        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
-          print_graph_layer_info(out, {"", "", "", ""});
+          /// @brief connection information.
+          // Intended comment.
+          // std::string first_input_name =
+          //   input_layer_names.empty()
+          //     ? (is_actually_an_input_node(iter) || iter ==
+          //     model_graph.cbegin()
+          //          ? ""
+          //          : (iter - 1)->getName())
+          //     : input_layer_names[0];
+          print_graph_layer_info(out,
+                                 {iter->getName(), iter->getType(), "", ""});
+          for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+            print_graph_layer_info(out, {"", "", "", ""});
+          }
+          out << std::string(total_col_size,
+                             iter == sg_iter->cend() - 1 ? '=' : '-')
+              << '\n';
         }
-        out << std::string(total_col_size,
-                           iter == model_graph.cend() - 1 ? '=' : '-')
-            << '\n';
       }
     }
   }
@@ -1456,10 +1461,13 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 void NeuralNetwork::forEachLayer(
   std::function<void(ml::train::Layer &, RunLayerContext &, void *)> fn,
   void *user_data) {
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
-    fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
-  };
+  for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+       ++sg_iter) {
+    for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+      auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
+      fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
+    }
+  }
 }
 
 void NeuralNetwork::exports(const ml::train::ExportMethods &method,
