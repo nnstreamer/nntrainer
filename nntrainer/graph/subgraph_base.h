@@ -66,7 +66,7 @@ public:
    * @brief   Destructor of the NeuralNetwork SubGraph class
    *
    */
-  ~SubGraphBase() = default;
+  virtual ~SubGraphBase() = default;
 
   /**
    * @brief     Get the Name of the underlying object
@@ -136,7 +136,7 @@ public:
    * @param[in] loss_type loss for the subgraph
    * returns ML_ERROR_NONE on success, error on failure
    */
-  int compile(const std::string &loss_type);
+  virtual int compile(const std::string &loss_type) = 0;
 
   /**
    * @brief Create new LayerNode and add into SubGraph
@@ -209,7 +209,7 @@ public:
    * @brief     set batch size
    * @param[in] batch size
    */
-  void setBatchSize(unsigned int batch_size);
+  virtual void setBatchSize(unsigned int batch_size) = 0;
 
   /**
    * @brief try apply gradient if possible
@@ -221,19 +221,19 @@ public:
    * @param opt shared ptr of the optimizer used for applyGradients (opt is
    * passed from neuralnetwork)
    */
-  void applyGradients(LayerNode *node, int iteration,
-                      std::shared_ptr<OptimizerWrapped> opt);
+  virtual void applyGradients(LayerNode *node, int iteration,
+                              std::shared_ptr<OptimizerWrapped> opt) = 0;
 
   /**
    * @brief     forwarding network subgraph
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(
+  virtual sharedConstTensors forwarding(
     bool training = false,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr, bool swap_mode = false);
+    void *user_data = nullptr, bool swap_mode = false) = 0;
 
   /**
    * @brief     forwarding network subgraph
@@ -242,11 +242,11 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors incremental_forwarding(
+  virtual sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr) = 0;
 
   /**
    * @brief     backwarding the network subgraph
@@ -261,12 +261,12 @@ public:
    *         training. If it is, then we need to control the loss scale factor
    *         and compute again the derivatives.
    */
-  bool backwarding(
+  virtual bool backwarding(
     int iteration,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
     void *user_data = nullptr, bool is_grad_opt_mode = false,
-    std::shared_ptr<OptimizerWrapped> opt = nullptr);
+    std::shared_ptr<OptimizerWrapped> opt = nullptr) = 0;
 
   /**
    * @brief     get begin iterator for the subgraph
@@ -354,9 +354,10 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int initialize(ExecutionMode mode = ExecutionMode::TRAIN,
-                 const std::vector<Connection> &model_input_names = {},
-                 const std::vector<Connection> &model_label_names = {});
+  virtual int
+  initialize(ExecutionMode mode = ExecutionMode::TRAIN,
+             const std::vector<Connection> &model_input_names = {},
+             const std::vector<Connection> &model_label_names = {}) = 0;
 
   /**
    * @brief reinitialize network subgraph
@@ -367,8 +368,9 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int reinitialize(const std::vector<Connection> &model_input_names = {},
-                   const std::vector<Connection> &model_label_names = {});
+  virtual int
+  reinitialize(const std::vector<Connection> &model_input_names = {},
+               const std::vector<Connection> &model_label_names = {}) = 0;
 
   /**
    * @brief Create run layer context from the given init layer context
@@ -376,9 +378,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
+  virtual std::vector<Var_Grad *>
   finalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                  const std::vector<Var_Grad *> &prev_inputs);
+                  const std::vector<Var_Grad *> &prev_inputs) = 0;
 
   /**
    * @brief Recreate run layer context from the given init layer context
@@ -386,52 +388,40 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
+  virtual std::vector<Var_Grad *>
   refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                    const std::vector<Var_Grad *> &prev_inputs);
+                    const std::vector<Var_Grad *> &prev_inputs) = 0;
 
   /** Interface for manager */
 
   /**
-   * @brief Allocate memory for all the managed tensors
+   * @brief Allocate memory for all the managed tensors in the subgraph
    *
    * @param[in] training If true, initialize derivates/gradients, else, do not.
    */
-  void allocateTensors(ExecutionMode exec_mode_);
+  virtual void allocateTensors(ExecutionMode exec_mode_) = 0;
 
   /**
    * @brief Deallocate memory for all the managed tensors
    */
-  void deallocateTensors(bool dealloc_weights = false) {
-    tensor_manager->deallocateTensors(dealloc_weights);
-  }
+  virtual void deallocateTensors(bool dealloc_weights = false) = 0;
 
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights(bool init = true) {
-    unsigned int max_exec_order =
-      std::get<3>(backward_iter_end->getExecutionOrder());
-
-    if (exec_mode == ExecutionMode::INFERENCE)
-      max_exec_order = std::get<0>(forward_iter_end->getExecutionOrder());
-    tensor_manager->allocateWeights(max_exec_order, init);
-  }
+  virtual void allocateWeights(bool init = true) = 0;
 
   /**
    * @brief Deallocate memory for all the weights
    */
-  void deallocateWeights() { tensor_manager->deallocateWeights(); }
+  virtual void deallocateWeights() = 0;
 
   /**
    * @brief     Enable the memory optimizations for the network
    *
    * @param val true to enable, else false
    */
-  void setMemoryOptimizations(bool val) {
-    tensor_manager->setOptimizations(val);
-    optimize_memory = val;
-  }
+  virtual void setMemoryOptimizations(bool val) = 0;
 
   /**
    * @brief     Create optimizer variable for every weights
@@ -439,9 +429,9 @@ public:
    * @param cb  Call back function which will return vector of dimension
    * @param request_only_trainable true when only request trainable weight
    */
-  void requestOptimizerVariable(
+  virtual void requestOptimizerVariable(
     std::function<std::vector<TensorDim>(const TensorDim &)> cb,
-    bool request_only_trainable = true);
+    bool request_only_trainable = true) = 0;
 
   /**
    * @brief Feed inputs and labels to the subgraph
@@ -494,7 +484,7 @@ public:
    * @return std::vector<Tensor> List of output tensors
    * @note this tensor list is analogous to the label list
    */
-  std::vector<Tensor> getOutputTensors() const;
+  virtual std::vector<Tensor> getOutputTensors() const = 0;
 
   /**
    * @brief return model tensor type
@@ -507,45 +497,32 @@ public:
   };
 
   /**
-   * @brief Flush data to the device
-   *
-   */
-  void flushCache();
-
-  /**
-   * @brief Flush data to the device except order
-   *
-   * @param order except execution order
-   */
-  void flushCacheExcept(const unsigned int order);
-
-  /**
    * @brief Load data of order to the device
    *
    * @param order execution order
    */
-  void LoadTensors(const unsigned int order);
+  virtual void LoadTensors(const unsigned int order) = 0;
 
   /**
    * @brief check data of order is loaded
    *
    * @param order execution order
    */
-  bool checkLoadComplete(const unsigned int order);
+  virtual bool checkLoadComplete(const unsigned int order) = 0;
 
   /**
    * @brief check data of order is Unloaded
    *
    * @param order execution order
    */
-  bool checkUnloadComplete(const unsigned int order);
+  virtual bool checkUnloadComplete(const unsigned int order) = 0;
 
   /**
    * @brief Load data of order to the device
    *
    * @param order execution order
    */
-  void UnloadTensors(const unsigned int order);
+  virtual void UnloadTensors(const unsigned int order) = 0;
 
 #ifdef ENABLE_TEST
   /**
@@ -608,7 +585,7 @@ public:
 
   inline static const std::string type = "subgraph";
 
-private:
+protected:
   std::string subgraph_name;
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
@@ -656,15 +633,6 @@ private:
   unsigned int lookahead;
   ExecutionOrder exec_order; /**< order/location of execution for this subgraph
                                    in forward and backwarding operations */
-
-  /**
-   * @brief     topological sort
-   * @param[in] ith index of LayerNode
-   * @param[in] visited temp list
-   * @param[in] stack for Node list to visit.
-   */
-  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
-                           std::stack<std::shared_ptr<LayerNode>> &Stack);
 
   /**
    * @brief     check if subgraph is ready to compile.
@@ -740,8 +708,8 @@ private:
    * @param data External data
    * @param names Names of the tensor to set the data to
    */
-  void setExternalTensors(const std::vector<Tensor> &data,
-                          const std::vector<std::string> names);
+  virtual void setExternalTensors(const std::vector<Tensor> &data,
+                                  const std::vector<std::string> names) = 0;
 
   /**
    * @brief     Optimize the subgraph memory utilization for in-place operations
@@ -765,43 +733,6 @@ private:
    * @return end of the backward iter;
    */
   LayerNode *computeBackwardEnd();
-
-  /**
-   * @brief forwarding_op function
-   */
-  void forwarding_op(std::shared_ptr<LayerNode> node, bool training,
-                     bool swap_mode = false);
-  /**
-   * @brief forwarding_op function
-   */
-  void incremental_forwarding_op(std::shared_ptr<LayerNode> node,
-                                 unsigned int from, unsigned int to,
-                                 bool training);
-  /**
-   * @brief backwarding_op
-   * @param[in] iteration current iteration number
-   * @param[in] stop_cb callback function which return stop condition
-   * @param[in] user_data user data used for backwarding
-   * @param[in] is_grad_opt_mode flag to designate grad_opt_mode (passed from
-   *            neuralnet)
-   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
-   *            passed from neuralnetwork)
-   * @retval ret it is false then the gradient has NaN valude in mixed precision
-   *         training. If it is, then we need to control the loss scale factor
-   *         and compute again the derivatives.
-   */
-  bool backwarding_op(std::shared_ptr<LayerNode> node, int iteration,
-                      std::function<bool(void *userData)> stop_cb,
-                      void *user_data, bool is_grad_opt_mode,
-                      std::shared_ptr<OptimizerWrapped> opt);
-  /**
-   * @brief backwarding_op
-   * @param[in] iteration current iteration number
-   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
-   *            passed from neuralnetwork)
-   */
-  void lazy_apply_grad_op(Weight &w, int iteration,
-                          std::shared_ptr<OptimizerWrapped> opt);
 };
 
 } // namespace nntrainer

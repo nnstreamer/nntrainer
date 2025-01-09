@@ -58,6 +58,7 @@
 /usr/include/nntrainer/network_graph.h
 /usr/include/nntrainer/graph_core.h
 /usr/include/nntrainer/subgraph_base.h
+/usr/include/nntrainer/subgraph_cpu.h
 /usr/include/nntrainer/graph_node.h
 /usr/include/nntrainer/manager.h
 /usr/include/nntrainer/basic_planner.h
