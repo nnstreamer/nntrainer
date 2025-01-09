@@ -17,91 +17,154 @@
 #include <optimizer_context.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
+#define SGNODE(x) std::static_pointer_cast<SubGraphBase>(x)
 
 namespace nntrainer {
 
 int NetworkGraph::compile(const std::string &loss_type) {
-  return graph.compile(loss_type);
+  int status = ML_ERROR_NONE;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    status = (*it)->compile(loss_type);
+    if (status != ML_ERROR_NONE)
+      return status;
+  }
+  return status;
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
-  graph.setBatchSize(batch_size);
+  for (auto it = cbegin(); it != cend(); ++it) {
+    (*it)->setBatchSize(batch_size);
+  }
 }
 
 void NetworkGraph::applyGradients(LayerNode *node, int iteration,
                                   std::shared_ptr<OptimizerWrapped> opt) {
-  graph.applyGradients(node, iteration, opt);
+  for (auto it = cbegin(); it != cend(); ++it) {
+    (*it)->applyGradients(node, iteration, opt);
+  }
 }
 
 sharedConstTensors
 NetworkGraph::forwarding(bool training,
                          std::function<bool(void *userdata)> stop_cb,
                          void *userdata, bool swap_mode) {
-  return graph.forwarding(training, stop_cb, userdata, swap_mode);
+  sharedConstTensors output;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    output = (*it)->forwarding(training, stop_cb, userdata, swap_mode);
+  }
+  return output;
 }
 
 sharedConstTensors NetworkGraph::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  return graph.incremental_forwarding(from, to, training, stop_cb, userdata);
+  sharedConstTensors output;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    output =
+      (*it)->incremental_forwarding(from, to, training, stop_cb, userdata);
+  }
+  return output;
 }
 
 bool NetworkGraph::backwarding(int iteration,
                                std::function<bool(void *userdata)> stop_cb,
                                void *user_data, bool is_grad_opt_mode,
                                std::shared_ptr<OptimizerWrapped> opt) {
-  return graph.backwarding(iteration, stop_cb, user_data, is_grad_opt_mode,
-                           opt);
+  bool status = false;
+  for (auto it = crbegin(); it != crend(); ++it) {
+    status =
+      (*it)->backwarding(iteration, stop_cb, user_data, is_grad_opt_mode, opt);
+  }
+  return status;
 }
 
 /**
  * @brief Allocate memory for all the managed tensors
  */
 void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
-  graph.allocateTensors(exec_mode_);
+  for (auto it = cbegin(); it != cend(); ++it) {
+    (*it)->allocateTensors(exec_mode_);
+  }
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
-  return graph.getInputDimension();
+  return (*cbegin())->getInputDimension();
 }
 
-unsigned int NetworkGraph::getBatchSize() const { return graph.getBatchSize(); }
+unsigned int NetworkGraph::getBatchSize() const {
+  return (*cbegin())->getBatchSize();
+}
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
-  return graph.getOutputDimension();
+  return (*crbegin())->getOutputDimension();
 }
 
 std::vector<std::shared_ptr<LayerNode>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
-  return graph.getUnsortedLayers(input_layer, output_layer);
+  std::vector<std::shared_ptr<LayerNode>> lns;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    auto lns_ = (*it)->getUnsortedLayers(input_layer, output_layer);
+    lns.insert(lns.end(), lns_.begin(), lns_.end());
+  }
+  return lns;
 }
 
 std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
-  return graph.getLayerNodes();
+  std::vector<std::shared_ptr<LayerNode>> lns;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    const auto &sg = (*it);
+    auto lns_ = sg->getLayerNodes();
+    lns.insert(lns.end(), lns_.begin(), lns_.end());
+  }
+  return lns;
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
-  graph.addLayer(layer);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo it needs to verify the name of subgraph and add the layer to the
+   * subgraph
+   */
+  const std::string &graph_name("default_subgraph");
+  SGNODE(graph.getNode(graph_name))->addLayer(layer);
 }
 
 std::vector<Var_Grad *>
 NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                               const std::vector<Var_Grad *> &prev_inputs) {
-  return graph.finalizeContext(lnode, prev_inputs);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo finalizeContext can be implemented at the network_graph not subgraph
+   */
+  return (*cbegin())->finalizeContext(lnode, prev_inputs);
 }
 
 std::vector<Var_Grad *>
 NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
                                 const std::vector<Var_Grad *> &prev_inputs) {
-  return graph.refinalizeContext(lnode, prev_inputs);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo refinalizeContext can be implemented at the network_graph not
+   * subgraph
+   */
+  return (*cbegin())->refinalizeContext(lnode, prev_inputs);
 }
 
 #ifdef ENABLE_TEST
 
 std::map<std::string, std::vector<unsigned int>>
 NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
-  return graph.getLayerExecutionOrders(lnode);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo getLayerExecutionOrders can be implemented at the network_graph not
+   * subgraph
+   */
+  return (*cbegin())->getLayerExecutionOrders(lnode);
 }
 
 #endif // ENABLE_TEST
@@ -110,27 +173,51 @@ int NetworkGraph::initialize(ExecutionMode mode,
                              const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {
 
-  return graph.initialize(mode, model_input_names, model_label_names);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo needs to verify the subgraph which requires external input/output.
+   * Based on the info, the initialize should be updated.
+   */
+  return (*cbegin())->initialize(mode, model_input_names, model_label_names);
 }
 
 int NetworkGraph::reinitialize(
   const std::vector<Connection> &model_input_names,
   const std::vector<Connection> &model_label_names) {
-  return graph.reinitialize(model_input_names, model_label_names);
+  return (*cbegin())->reinitialize(model_input_names, model_label_names);
 }
 
 void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
-  graph.setInputsLabels(inputs, labels);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo needs to verify the subgraph which requires external input/output.
+   * Based on the info, it may be required to call setInputs / setLabels in
+   * separate.
+   */
+  return (*cbegin())->setInputsLabels(inputs, labels);
 }
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
-  graph.setInputsLabels(inputs, labels);
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   * @todo needs to verify the subgraph which requires external input/output.
+   * Based on the info, it may be required to call setInputs / setLabels in
+   * separate.
+   */
+  return (*cbegin())->setInputsLabels(inputs, labels);
 }
 
 std::vector<Tensor> NetworkGraph::getOutputTensors() const {
-  return graph.getOutputTensors();
+  /**
+   * @note This code written based on the assumption that he graph consists
+   * with only one default subgraph node. It needs to be updated.
+   */
+  return (*crbegin())->getOutputTensors();
 }
 
 void NetworkGraph::flushCache() { tensor_manager->flushCache(); }
@@ -158,9 +245,13 @@ void NetworkGraph::UnloadTensors(unsigned int order) {
 void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
   bool request_only_trainable) {
-  graph.requestOptimizerVariable(cb, request_only_trainable);
+  for (auto it = cbegin(); it != cend(); ++it)
+    (*it)->requestOptimizerVariable(cb, request_only_trainable);
 }
 
-void NetworkGraph::resetLossScale(float scale) { graph.resetLossScale(scale); }
+void NetworkGraph::resetLossScale(float scale) {
+  for (auto it = cbegin(); it != cend(); ++it)
+    (*it)->resetLossScale(scale);
+}
 
 } /* namespace nntrainer */
