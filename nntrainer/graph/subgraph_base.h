@@ -461,6 +461,34 @@ public:
   void setInputsLabels(sharedConstTensors &inputs, sharedConstTensors &labels);
 
   /**
+   * @brief Feed inputs to the subgraph
+   *
+   * @param inputs Input data
+   */
+  void setInputs(const std::vector<Tensor> &inputs);
+
+  /**
+   * @brief Feed inputs to the subgraph
+   *
+   * @param inputs Input data
+   */
+  void setInputs(sharedConstTensors &inputs);
+
+  /**
+   * @brief Feed labels to the subgraph
+   *
+   * @param labels Input data
+   */
+  void setLabels(const std::vector<Tensor> &labels);
+
+  /**
+   * @brief Feed labels to the subgraph
+   *
+   * @param labels Input data
+   */
+  void setLabels(sharedConstTensors &labels);
+
+  /**
    * @brief Get the Output Tensors list for the subgraph
    *
    * @return std::vector<Tensor> List of output tensors
