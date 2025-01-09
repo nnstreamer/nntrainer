@@ -26,9 +26,13 @@
 #include <layer_node.h>
 #include <manager.h>
 #include <optimizer_wrapped.h>
+
 #include <subgraph_base.h>
+#include <subgraph_cpu.h>
 
 namespace nntrainer {
+
+#define SGNODE(x) std::static_pointer_cast<SubGraphBase>(x)
 
 using ExecutionMode = ml::train::ExecutionMode;
 
@@ -63,9 +67,9 @@ public:
      * @note This code written based on the assumption that he graph consists
      * with only one default subgraph node. It needs to be updated.
      */
-    auto sg = std::make_shared<SubGraphBase>(tensor_manager);
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
     sg->setName("default_subgraph");
-    graph.addNode(sg);
+    graph.addNode(SGNODE(sg));
   }
 
   /**
@@ -102,9 +106,9 @@ public:
      * @note This code written based on the assumption that he graph consists
      * with only one default subgraph node. It needs to be updated.
      */
-    auto sg = std::make_shared<SubGraphBase>(tensor_manager, lookahead);
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
     sg->setName("default_subgraph");
-    graph.addNode(sg);
+    graph.addNode(SGNODE(sg));
   }
 
   /**
