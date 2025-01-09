@@ -1563,37 +1563,49 @@ void SubGraphBase::setExternalTensors(const std::vector<Tensor> &data,
 
 void SubGraphBase::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
+  setInputs(inputs);
+  setLabels(labels);
+}
 
-  NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
-                std::invalid_argument)
-    << "label size does not match with the network requirements"
-    << " label size: " << labels.size()
-    << " requirements size: " << label_list.size();
+void SubGraphBase::setInputsLabels(sharedConstTensors &inputs,
+                                   sharedConstTensors &labels) {
+  setInputs(inputs);
+  setLabels(labels);
+}
 
+void SubGraphBase::setInputs(const std::vector<Tensor> &inputs) {
   NNTR_THROW_IF(inputs.size() > 1 && inputs.size() != input_list.size(),
                 std::invalid_argument)
     << "input size does not match with the network requirements"
     << " input size: " << inputs.size()
     << " requirements size: " << input_list.size();
-
   setExternalTensors(inputs, input_list);
-  setExternalTensors(labels, label_list);
 }
 
-void SubGraphBase::setInputsLabels(sharedConstTensors &inputs,
-                                   sharedConstTensors &labels) {
-
+void SubGraphBase::setInputs(sharedConstTensors &inputs) {
   std::vector<Tensor> ins;
   std::transform(
     inputs.begin(), inputs.end(), std::back_inserter(ins),
     [](auto const &val) -> const auto & { return *val.get(); });
+  setInputs(ins);
+}
 
+void SubGraphBase::setLabels(const std::vector<Tensor> &labels) {
+  NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
+                std::invalid_argument)
+    << "label size does not match with the network requirements"
+    << " label size: " << labels.size()
+    << " requirements size: " << label_list.size();
+  setExternalTensors(labels, label_list);
+}
+
+void SubGraphBase::setLabels(sharedConstTensors &labels) {
   std::vector<Tensor> labs;
   std::transform(
     labels.begin(), labels.end(), std::back_inserter(labs),
     [](auto const &val) -> const auto & { return *val.get(); });
 
-  setInputsLabels(ins, labs);
+  setLabels(labs);
 }
 
 std::vector<Tensor> SubGraphBase::getOutputTensors() const {

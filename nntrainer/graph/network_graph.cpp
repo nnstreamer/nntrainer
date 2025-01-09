@@ -192,24 +192,22 @@ void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
   /**
    * @note This code written based on the assumption that he graph consists
-   * with only one default subgraph node. It needs to be updated.
-   * @todo needs to verify the subgraph which requires external input/output.
-   * Based on the info, it may be required to call setInputs / setLabels in
-   * separate.
+   * with only one subgraph requiring inputs and one subgraph requiring labels.
+   * This should be updated later.
    */
-  return (*cbegin())->setInputsLabels(inputs, labels);
+  (*cbegin())->setInputs(inputs);
+  (*crbegin())->setLabels(labels);
 }
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
   /**
    * @note This code written based on the assumption that he graph consists
-   * with only one default subgraph node. It needs to be updated.
-   * @todo needs to verify the subgraph which requires external input/output.
-   * Based on the info, it may be required to call setInputs / setLabels in
-   * separate.
+   * with only one subgraph requiring inputs and one subgraph requiring labels.
+   * This should be updated later.
    */
-  return (*cbegin())->setInputsLabels(inputs, labels);
+  (*cbegin())->setInputs(inputs);
+  (*crbegin())->setLabels(labels);
 }
 
 std::vector<Tensor> NetworkGraph::getOutputTensors() const {
