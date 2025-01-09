@@ -2,6 +2,7 @@ graph_sources = [
   'network_graph.cpp',
   'graph_core.cpp',
   'subgraph_base.cpp',
+  'subgraph_cpu.cpp',
   'connection.cpp'
 ]
 
@@ -11,6 +12,7 @@ graph_headers = [
   'network_graph.h',
   'graph_core.h',
   'subgraph_base.h',
+  'subgraph_cpu.h',
   'graph_node.h',
 ]
 

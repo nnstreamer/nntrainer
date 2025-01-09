@@ -17,7 +17,6 @@
 #include <optimizer_context.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
-#define SGNODE(x) std::static_pointer_cast<SubGraphBase>(x)
 
 namespace nntrainer {
 
