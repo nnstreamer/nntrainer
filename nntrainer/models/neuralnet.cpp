@@ -388,31 +388,19 @@ sharedConstTensors NeuralNetwork::forwarding(
                the forwarding, ask load tensors for next n layers.
       **/
 
-      if (f == 0)
-        model_graph.LoadTensors(f);
+      unsigned int lookahead =
+        std::get<props::MemorySwapLookahead>(model_flex_props);
 
-      if (model_graph.checkLoadComplete(f)) {
-        node->forwarding(training);
-        ml_logd("Forwarding is done %d : %s", f, node->getName().c_str());
-
-        unsigned int lookahead =
-          std::get<props::MemorySwapLookahead>(model_flex_props);
-
-        if (lookahead != 0) {
-          if ((f) % (lookahead + 1) == lookahead - 1) {
-            std::cout << "request load tensor : " << f + lookahead + 1
-                      << std::endl;
-            ml_logd("request load tensor for %d", f + 1);
-            model_graph.LoadTensors((f / (lookahead + 1) + 1) *
-                                    (lookahead + 1));
-          }
-        } else {
-          model_graph.LoadTensors(f);
-        }
-
-        if (f != 0)
-          model_graph.UnloadTensors(f);
+      if (!((model_graph.getNumLoadedWeightPoolTensors() + 1) / 2 <
+            lookahead + 1)) {
+        model_graph.checkUnloadComplete(f - 1);
       }
+      model_graph.LoadTensors(
+        f, lookahead - (model_graph.getNumLoadedWeightPoolTensors() + 1) / 2);
+
+      model_graph.checkLoadComplete(f);
+      node->forwarding(training);
+      model_graph.UnloadTensors(f);
     }
   };
 

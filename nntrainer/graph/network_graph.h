@@ -456,7 +456,7 @@ public:
    *
    * @param order execution order
    */
-  void LoadTensors(const unsigned int order);
+  void LoadTensors(const unsigned int order, unsigned int remainder_lookahead = 0);
 
   /**
    * @brief check data of order is loaded
@@ -500,6 +500,9 @@ public:
    * @brief     check if it is mixed precision training
    */
   bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
+
+  unsigned int getNumLoadedWeightPoolTensors();
+  unsigned int getNumLoadedTensorPoolTensors();
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify

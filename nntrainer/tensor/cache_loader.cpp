@@ -124,4 +124,8 @@ int CacheLoader::cancelAsync(int id) {
   return ML_ERROR_NONE;
 }
 
+unsigned int CacheLoader::getNumLoadedTensors() {
+  return pool->getNumLoadedTensors();
+}
+
 } // namespace nntrainer

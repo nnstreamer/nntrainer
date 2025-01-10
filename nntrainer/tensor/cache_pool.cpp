@@ -321,4 +321,8 @@ void CachePool::unloadActives() {
     elem->swapOut();
 }
 
+unsigned int CachePool::getNumLoadedTensors() {
+  return swap_device->getNumLoadedTensors();
+}
+
 } // namespace nntrainer

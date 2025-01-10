@@ -490,4 +490,8 @@ void TensorPool::loadCacheCancel(int id) {
   cache_loader->cancelAsync(id);
 }
 
+unsigned int TensorPool::getNumLoadedTensors() {
+  return cache_loader->getNumLoadedTensors();
+}
+
 } // namespace nntrainer

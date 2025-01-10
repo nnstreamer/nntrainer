@@ -188,6 +188,8 @@ public:
    */
   virtual std::string getName() { return name; }
 
+  virtual unsigned int getNumLoadedTensors();
+
 protected:
   /**
    * @brief validate cache element

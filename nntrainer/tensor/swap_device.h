@@ -48,7 +48,8 @@ public:
    */
   explicit SwapDevice(const std::string &name) :
     dev_path(swap_device_default_path + name),
-    fd(-1) {}
+    fd(-1),
+    num_loaded_tensors(0) {}
 
   /**
    * @brief SwapDevice default constructor
@@ -56,7 +57,8 @@ public:
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
     dev_path(path + "/" + name),
-    fd(-1) {}
+    fd(-1),
+    num_loaded_tensors(0) {}
 
   /**
    * @brief SwapDevice destructor
@@ -114,10 +116,13 @@ public:
    */
   const std::string getDevicePath() const { return dev_path; }
 
+  unsigned int getNumLoadedTensors();
+
 private:
   const std::string dev_path; /**< device path */
   int fd;                     /**< device file description */
 
+  unsigned int num_loaded_tensors;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
