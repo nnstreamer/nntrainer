@@ -753,7 +753,8 @@ public:
    * @param bool read optimizer variables
    */
   void read(std::ifstream &file, bool opt_var = false,
-            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
+            bool swap = false);
 
   /**
    * @brief     save layer Weight & Bias data from file

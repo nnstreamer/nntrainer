@@ -656,6 +656,7 @@ void NeuralNetwork::load(const std::string &file_path,
                          ml::train::ModelFormat format) {
   /// @todo this switch case should be delegating the function call only. It's
   /// not delegating for now as required logics are manageable for now.
+  bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -665,7 +666,7 @@ void NeuralNetwork::load(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ifstream>(
       file_path, std::ios::in | std::ios::binary);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->read(model_file, false, exec_mode);
+      (*iter)->read(model_file, false, exec_mode, swap_mode);
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
