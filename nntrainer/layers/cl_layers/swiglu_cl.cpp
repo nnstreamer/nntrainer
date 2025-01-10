@@ -6,6 +6,7 @@
  * @brief  Implementation of SwiGLU activation function
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Niket Agarwal <niket.a@samsung.com>
+ * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
  *
  */
@@ -63,9 +64,6 @@ void SwiGLULayerCl::incremental_forwarding(RunLayerContext &context,
   swigluProcess(in1, in2, out);
 }
 
-opencl::Kernel SwiGLULayerCl::kernel_swiglu;
-opencl::Kernel SwiGLULayerCl::kernel_swiglu_fp16;
-
 void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
                                   Tensor &result) {
 
@@ -90,6 +88,45 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
   }
 }
 
+bool SwiGLULayerCl::registerClKernels() {
+
+  // check if the kernels are already registered.
+  if (!layer_kernel_ptrs.empty()) {
+    ml_loge("kernels for swiglu_cl are already registered.");
+    return false;
+  }
+
+  do {
+
+    ClContext::SharedPtrClKernel kernel_swiglu_ptr = nullptr;
+
+    kernel_swiglu_ptr =
+      cl_context_ref.registerClKernel(swiglu_cl_kernel_, "swiglu_cl");
+    if (!kernel_swiglu_ptr) {
+      ml_loge("OpenCL Error: Fail to register swiglu_cl kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
+    kernel_swiglu_ptr =
+      cl_context_ref.registerClKernel(swiglu_cl_kernel_fp16_, "swiglu_cl_fp16");
+
+#ifdef ENABLE_FP16
+    if (!kernel_swiglu_ptr) {
+      ml_loge("OpenCL Error: Fail to register swiglu_cl_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
+#endif
+
+    return true;
+  } while (false);
+
+  // clear all registered kernels if any error occurs during registration
+  layer_kernel_ptrs.clear();
+
+  return false;
+}
+
 void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
                               float *vecYdata, unsigned int dim1,
                               unsigned int dim2) {
@@ -97,11 +134,8 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_swiglu_ptr =
-      cl_context_ref.registerClKernel(swiglu_cl_kernel_, "swiglu_cl");
-    if (!kernel_swiglu_ptr) {
-      break;
-    }
+
+    auto kernel_swiglu_ptr = layer_kernel_ptrs[Kernels::SWIGLU_CL];
 
     int dim = int(dim1 * dim2);
     opencl::Buffer inputA(cl_context_ref.context_inst_,
@@ -160,6 +194,7 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
   } while (false);
 }
 
+#ifdef ENABLE_FP16
 void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
                                    const __fp16 *vecXdata, __fp16 *vecYdata,
                                    unsigned int dim1, unsigned int dim2) {
@@ -167,11 +202,8 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
   bool result = false;
 
   do {
-    ClContext::SharedPtrClKernel kernel_swiglu_ptr =
-      cl_context_ref.registerClKernel(swiglu_cl_kernel_fp16_, "swiglu_cl_fp16");
-    if (!kernel_swiglu_ptr) {
-      break;
-    }
+
+    auto kernel_swiglu_ptr = layer_kernel_ptrs[Kernels::SWIGLU_CL_FP16];
 
     int dim = int(dim1 * dim2);
     opencl::Buffer inputA(cl_context_ref.context_inst_,
@@ -229,6 +261,7 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
 
   } while (false);
 }
+#endif
 
 void SwiGLULayerCl::calcDerivative(nntrainer::RunLayerContext &context) {
   std::throw_with_nested(std::runtime_error("Training is not supported yet."));

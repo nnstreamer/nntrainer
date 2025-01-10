@@ -7,6 +7,7 @@
  * @brief  Implementation of SwiGLU activation function
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Niket Agarwal <niket.a@samsung.com>
+ * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
  *
  */
@@ -18,7 +19,7 @@
 #include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <layer_impl.h>
+#include <layer_impl_cl.h>
 #include <node_exporter.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
@@ -30,17 +31,14 @@ namespace nntrainer {
  * @brief A SwiGLU layer
  *
  */
-class SwiGLULayerCl final : public Layer {
-
-private:
-  inline static ClContext cl_context_ref;
+class SwiGLULayerCl final : public LayerImplCl {
 
 public:
   /**
    * @brief Construct a new SwiGLU layer object
    *
    */
-  SwiGLULayerCl() : Layer(), swiglu_props(props::Print()) {}
+  SwiGLULayerCl() : LayerImplCl(), swiglu_props(props::Print()) {}
 
   /**
    * @brief Destroy the SwiGLU layer object
@@ -79,7 +77,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {};
+                const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
@@ -92,12 +90,6 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "swiglu";
-
-  static opencl::Kernel kernel_swiglu;
-  static opencl::Kernel kernel_swiglu_fp16;
-
-  std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
-                                            number of output neurons */
 
   /**
    * @brief Process data and dimensions for swiglu operation
@@ -130,6 +122,20 @@ public:
   void swiglu_cl_fp16(const __fp16 *matAdata, const __fp16 *vecXdata,
                       __fp16 *vecYdata, unsigned int dim1, unsigned int dim2);
 #endif
+
+  /**
+   * @brief     Register OpenCL kernels for SwiGLU layer. This should be called
+   */
+  static bool registerClKernels();
+
+private:
+  std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
+                                            number of output neurons */
+
+  inline static std::vector<ClContext::SharedPtrClKernel>
+    layer_kernel_ptrs; /** kernel list relevant with this layer */
+
+  enum Kernels { SWIGLU_CL, SWIGLU_CL_FP16 }; /** kernels enum */
 };
 
 } // namespace nntrainer
