@@ -44,9 +44,20 @@ class SubGraphBase : public GraphNode {
 
 public:
   /**
-   * @brief     Constructor of NeuralNetwork SubGraph Class
+   * @brief     Constructor of NeuralNetwork Graph Class
+   * @param[in] enable_swap enable memory swap for tensor
+   * @param[in] mode execution mode (default ExecutionMode::TRAIN)
+   * @param[in] lookahead lookahead for swap (default 0)
+   * @param[in] tensor_format define tensor format. One of NCHW and NHWC
+   * (default NCHW)
+   * @param[in] tensor_type It says weight type and activation type (default
+   * FP32-FP32)
    */
-  SubGraphBase(std::shared_ptr<Manager> tm, unsigned int lookahead_ = 0) :
+  SubGraphBase(std::shared_ptr<Manager> &tm,
+               ExecutionMode mode = ExecutionMode::TRAIN,
+               unsigned int lookahead = 0,
+               const std::string &tensor_format_ = "NCHW",
+               const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(tm),
     subgraph(),
     compiled(false),
@@ -55,10 +66,10 @@ public:
     backward_iter_end(nullptr),
     forward_iter_end(nullptr),
     optimize_memory(true),
-    exec_mode(ExecutionMode::TRAIN),
-    tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
-    lookahead(lookahead_) {
+    exec_mode(mode),
+    tensor_format(tensor_format_),
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
+    lookahead(lookahead) {
     nan_count = 0;
   }
 
