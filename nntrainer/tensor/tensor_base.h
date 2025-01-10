@@ -308,11 +308,6 @@ public:
                               const float beta) const;
 
   /**
-   * @copydoc Tensor::add_i(Tensor const &m, float const alpha)
-   */
-  virtual int add_i(Tensor const &m, Tensor &output, float const alpha);
-
-  /**
    * @copydoc Tensor::add_i_partial()
    */
   virtual int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
@@ -328,7 +323,8 @@ public:
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha) const;
+  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1,
+                      float const beta = 1, float const gamma = 0) const;
 
   /**
    * @copydoc Tensor::subtract(float const &value, Tensor &output)

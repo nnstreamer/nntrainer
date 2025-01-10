@@ -421,10 +421,6 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
                 std::invalid_argument)
     << getName() << " is not contiguous, cannot multiply";
 
-  NNTR_THROW_IF(!getContiguous() || !m.getContiguous() ||
-                  !output.getContiguous(),
-                std::invalid_argument)
-    << getName() << " is not contiguous, cannot multiply";
   itensor->multiply(m, output, beta);
   return output;
 }
@@ -523,7 +519,13 @@ Tensor &Tensor::add(float const &value, Tensor &output) const {
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  return itensor->add_i(m, *this, alpha);
+  try {
+    itensor->add(m, *this, 0.F, alpha, 1.F);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return ML_ERROR_NONE;
 }
 
 int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
@@ -535,15 +537,21 @@ int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
   Tensor t("", getFormat(), getDataType());
-  return this->add(m, t, alpha);
+  return this->add(m, t, 1.F, alpha, 0.F);
 }
 
-Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
+Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha,
+                    float const beta, float const gamma) const {
+  NNTR_THROW_IF(m.getFormat() != this->getFormat(), std::invalid_argument)
+    << "Tensor Format of " << getName() << ":"
+    << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
+    << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
+
   NNTR_THROW_IF(!itensor->getContiguous() || !m.getContiguous() ||
                   !output.getContiguous(),
                 std::invalid_argument)
     << getName() << " is not contiguous, cannot add";
-  itensor->add(m, output, alpha);
+  itensor->add(m, output, alpha, beta, gamma);
   return output;
 }
 
@@ -570,7 +578,7 @@ Tensor Tensor::subtract(Tensor const &m) const {
 }
 
 Tensor &Tensor::subtract(Tensor const &m, Tensor &output) const {
-  return add(m, output, -1);
+  return add(m, output, 1.F, -1, 0.F);
 }
 
 /**
