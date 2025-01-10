@@ -282,6 +282,22 @@ public:
 };
 
 /**
+ * @brief Exponent property, this is used for pow operation
+ *
+ */
+class Exponent : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new Exponent object
+   *
+   */
+  Exponent(float value = 1.0f);
+  static constexpr const char *key = "exponent"; /**< unique key to access */
+  using prop_tag = float_prop_tag;               /**< property type */
+};
+
+/**
  * @brief Momentum property, moving average in batch normalization layer
  *
  */
