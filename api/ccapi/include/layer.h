@@ -111,7 +111,8 @@ enum LayerType {
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN      /**< Unknown */
+  LAYER_LM_HEAD = ML_TRAIN_LAYER_TYPE_LM_HEAD,     /**< LM Head Layer */
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN,     /**< Unknown */
 };
 
 /**
@@ -426,6 +427,15 @@ Reshape(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Addition(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_ADDITION, properties);
+}
+
+/**
+ * @brief Helper function to create lm_head layer
+ */
+inline std::unique_ptr<Layer>
+LmHead(const std::vector<std::string> &properties = {},
+       const LayerComputeEngine &compute_engine = LayerComputeEngine::CPU) {
+  return createLayer(LayerType::LAYER_LM_HEAD, properties, compute_engine);
 }
 
 /**

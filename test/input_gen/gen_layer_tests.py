@@ -20,6 +20,7 @@ Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
 @author	Debadri Samaddar <s.debadri@samsung.com>
 @author	Niket Agarwal <niket.a@samsung.com>
 @author	Thummala Pallavi <t.pallavi@samsung.com>
+@author	Yash Singh <yash.singh@samsung.com>
 """
 
 import warnings
@@ -978,3 +979,8 @@ if __name__ == "__main__":
     transpose_layer_axis2 = tf.keras.layers.Lambda(lambda x: transpose_axis2(x, 2, 3, 3, 3))
     record_single(transpose_layer_axis2, (2, 3, 3, 3), "transpose_axis2", input_type="float")
     record_single_fp16(transpose_layer_axis2, (2, 3, 3, 3), "transpose_fp16_axis2", input_type="float")
+    
+    lm_head = K.layers.Dense(5)
+    record_single(lm_head, (3, 1, 1, 10), "lm_head_GPU1")
+    lm_head1616 = K.layers.Dense(5)
+    record_single_fp16(lm_head1616, (3, 1, 1, 10), "lm_head_GPU1_w16a16")
