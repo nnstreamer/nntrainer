@@ -58,7 +58,9 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
+    tensor_dtype_str("FP32-FP32"),
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
+    lookahead(0) {
     nan_count = 0;
 
     /**
@@ -95,14 +97,17 @@ public:
     optimize_memory(true),
     exec_mode(mode),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {
+    tensor_dtype_str(tensor_dtype_),
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
+    lookahead(lookahead) {
     nan_count = 0;
 
     /**
      * @note This code written based on the assumption that he graph consists
      * with only one default subgraph node. It needs to be updated.
      */
-    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager, mode, lookahead,
+                                            tensor_format_, tensor_dtype_);
     sg->setName("default");
     graph.addNode(SGNODE(sg));
   }
@@ -574,6 +579,7 @@ private:
                               currently set or previously set */
 
   std::string tensor_format; /**< Model Tensor Format: NCHW or NHWC */
+  std::string tensor_dtype_str;
 
   std::vector<std::string> tensor_dtype; /**< Model Tensor Type: FP32, FP16 */
 
@@ -585,6 +591,7 @@ private:
   bool is_clip_grad;
   float loss_scale;
   unsigned int nan_count;
+  unsigned int lookahead;
 };
 
 } // namespace nntrainer
