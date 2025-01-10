@@ -49,11 +49,13 @@ public:
 
   /**
    * @brief Tensor Data Type.
-   * Currently support QINT4, QINT8, BCQ, UINT8, UINT16, UINT32, FP16 & FP32
+   * Currently support QINT4, QINT8, QINT16, BCQ, UINT8, UINT16, UINT32, FP16 &
+   * FP32
    */
   enum class DataType {
     QINT4,  /** quantized int 4*/
     QINT8,  /** quantized int 8*/
+    QINT16, /** quantized int 16*/
     BCQ,    /** binary-code-based quantized*/
     UINT8,  /** unsigned int 8 bit */
     UINT16, /** unsigned int 16 bit */
@@ -115,8 +117,8 @@ public:
    * @brief     Creator of TensorDim with Format & DataType
    *
    * @param fm format NCHW | HNWC
-   * @param d_type DataType QINT4 | QINT8 | BCQ | UINT8 | UINT16 | UINT32 | FP16
-   * | FP32
+   * @param d_type DataType QINT4 | QINT8 | QINT16 | BCQ | UINT8 | UINT16 |
+   * UINT32 | FP16 | FP32
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
@@ -219,8 +221,8 @@ public:
    * @param h height
    * @param w width
    * @param fm format NCHW | HNWC
-   * @param d_type DataType QINT4 | QINT8 | BCQ | UINT8 | UINT16 | UINT32 | FP16
-   * | FP32
+   * @param d_type DataType QINT4 | QINT8 | QINT16 | BCQ | UINT8 | UINT16 |
+   * UINT32 | FP16 | FP32
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
@@ -249,8 +251,8 @@ public:
    *
    * @param shape shape of format
    * @param fm format NCHW | HNWC
-   * @param d_type DataType QINT4 | QINT8 | BCQ | UINT8 | UINT16 | UINT32 | FP16
-   * | FP32
+   * @param d_type DataType QINT4 | QINT8 | QINT16 | BCQ | UINT8 | UINT16 |
+   * UINT32 | FP16 | FP32
    * @param order data storage order ROW_MAJOR | COL_MAJOR
    */
   TensorDim(const std::string &shape, TensorDim::Format fm,
