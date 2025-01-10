@@ -161,6 +161,8 @@ uint TensorDim::getDataTypeSize() const {
     return sizeof(uint16_t);
   case TensorDim::DataType::UINT32:
     return sizeof(uint32_t);
+  case TensorDim::DataType::QINT16:
+    return sizeof(int16_t);
   case TensorDim::DataType::QINT8:
     return sizeof(int8_t);
   case TensorDim::DataType::QINT4:
@@ -390,6 +392,8 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "UINT16";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::UINT32) {
     type_ = "UINT32";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT16) {
+    type_ = "QINT16";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT8) {
     type_ = "QINT8";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::QINT4) {
