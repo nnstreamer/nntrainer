@@ -985,6 +985,17 @@ public:
 };
 
 /**
+ * @brief Subgraph name, where the layer belongs to, with a default value
+ * `default_graph`
+ */
+class GraphName : public Name {
+public:
+  GraphName(const std::string &value = "default") : Name(value) {}
+  static constexpr const char *key = "graph_scope";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief HiddenStateActivation Enumeration Information
  *
  */

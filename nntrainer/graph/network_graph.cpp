@@ -13,6 +13,7 @@
  * @todo    Support multi-input graph.
  */
 
+#include <iostream>
 #include <network_graph.h>
 #include <optimizer_context.h>
 
@@ -27,6 +28,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
     if (status != ML_ERROR_NONE)
       return status;
   }
+  compiled = true;
   return status;
 }
 
@@ -120,13 +122,19 @@ std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
-  /**
-   * @note This code written based on the assumption that he graph consists
-   * with only one default subgraph node. It needs to be updated.
-   * @todo it needs to verify the name of subgraph and add the layer to the
-   * subgraph
-   */
-  const std::string &graph_name("default_subgraph");
+
+  if (compiled)
+    throw std::runtime_error("Cannot modify graph after compile");
+
+  const std::string &graph_name = layer->getGraphName();
+  // create the new subgraph with graph_name
+  if (!graph.verifyNode(graph_name)) {
+    /// @todo choose SubGraph type based on the layer compute_engine
+    //        Based on the property, SubGraphNode type should be changed
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
+    sg->setName(graph_name);
+    graph.addNode(SGNODE(sg));
+  }
   SGNODE(graph.getNode(graph_name))->addLayer(layer);
 }
 

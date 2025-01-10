@@ -66,7 +66,7 @@ public:
      * with only one default subgraph node. It needs to be updated.
      */
     auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
-    sg->setName("default_subgraph");
+    sg->setName("default");
     graph.addNode(SGNODE(sg));
   }
 
@@ -103,7 +103,7 @@ public:
      * with only one default subgraph node. It needs to be updated.
      */
     auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
-    sg->setName("default_subgraph");
+    sg->setName("default");
     graph.addNode(SGNODE(sg));
   }
 
