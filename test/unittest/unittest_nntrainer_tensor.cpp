@@ -374,6 +374,51 @@ TEST(nntrainer_Tensor, Tensor_09_n) {
                std::out_of_range);
 }
 
+TEST(nntrainer_Tensor, QTensor_01_p) {
+  int status = ML_ERROR_NONE;
+  int channel = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<int16_t>>> in;
+
+  for (int k = 0; k < channel; ++k) {
+    std::vector<std::vector<int16_t>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<int16_t> tv;
+      for (int j = 0; j < width; ++j) {
+        tv.push_back(k * height * width + i * width + j * j);
+      }
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
+
+  std::vector<float> scales = {1.349f, 3.135f, 6.196f};
+
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, scales, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT16},
+    nntrainer::QScheme::PER_CHANNEL_AFFINE);
+  ASSERT_NE(nullptr, tensor.getData<int16_t>(0));
+
+  // check tensor data with vector data
+  for (int k = 0; k < channel; ++k) {
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+        ASSERT_EQ(in[k][i][j], tensor.getValue<int16_t>(0, k, i, j));
+      }
+    }
+  }
+
+  float *tensor_scales = tensor.getScale<float>();
+
+  // check scale factors
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
@@ -619,6 +664,27 @@ TEST(nntrainer_Tensor, copy_11_p) {
   }
 
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, copy_12_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT16});
+
+  output.copy(input);
+
+  ASSERT_EQ(input, output);
 }
 
 TEST(nntrainer_Tensor, multiply_i_01_p) {
@@ -3493,6 +3559,34 @@ TEST(nntrainer_Tensor, save_read_01_p) {
   EXPECT_EQ(target, readed);
 
   int status = std::remove("save.bin");
+
+  ASSERT_EQ(status, 0);
+}
+
+TEST(nntrainer_Tensor, save_read_02_p) {
+  int batch = 3;
+  int channel = 4;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT16);
+  nntrainer::Tensor readed(3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT16);
+
+  GEN_TEST_INPUT(target, i * (channel * width * height) + j * (height * width) +
+                           k * (width) + l + 1);
+
+  std::ofstream save_file("save_qint16.bin", std::ios::out | std::ios::binary);
+  target.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save_qint16.bin");
+  readed.read(read_file);
+  read_file.close();
+
+  EXPECT_EQ(target, readed);
+
+  int status = std::remove("save_qint16.bin");
 
   ASSERT_EQ(status, 0);
 }

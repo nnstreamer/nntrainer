@@ -371,6 +371,45 @@ public:
            qscheme_){};
 
   /**
+   * @brief     Constructor of CharTensor (QINT16)
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] scales scale factors for the Tensor.
+   * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
+   */
+  Tensor(std::vector<std::vector<std::vector<std::vector<int16_t>>>> const &d,
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
+
+  /**
+   * @brief     Constructor of CharTensor (QINT16)
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor. It needs to set format properly.
+   * @param[in] scales scale factors for the Tensor.
+   * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
+   */
+  Tensor(std::vector<std::vector<std::vector<int16_t>>> const &d,
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
+           qscheme_){};
+
+  /**
+   * @brief     Constructor of CharTensor (QINT16)
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   * @param[in] scales scale factors for the Tensor.
+   * @param[in] t_type Tensor Type
+   * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
+   */
+  Tensor(std::vector<std::vector<int16_t>> const &d,
+         std::vector<float> const &scales,
+         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
+           qscheme_){};
+
+  /**
    *  @brief  Constructor of Tensor by directly assigning TensorBase.
    *  @param[in] rhs shared_ptr of a TensorBase
    *  @note TensorBase is an abstract class so we can't directly instantiate it.
