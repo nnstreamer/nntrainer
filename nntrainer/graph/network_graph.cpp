@@ -131,7 +131,8 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   if (!graph.verifyNode(graph_name)) {
     /// @todo choose SubGraph type based on the layer compute_engine
     //        Based on the property, SubGraphNode type should be changed
-    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
+    auto sg = std::make_shared<SubGraphCpu>(
+      tensor_manager, exec_mode, lookahead, tensor_format, tensor_dtype_str);
     sg->setName(graph_name);
     graph.addNode(SGNODE(sg));
   }
