@@ -12,6 +12,7 @@
 #include <char_tensor.h>
 #include <float_tensor.h>
 #include <lazy_tensor.h>
+#include <short_tensor.h>
 #include <tensor.h>
 #include <uint_tensor.h>
 
@@ -24,6 +25,25 @@
 #endif
 
 namespace nntrainer {
+
+Tensor::Tensor(
+  std::vector<std::vector<std::vector<std::vector<int16_t>>>> const &d,
+  std::vector<float> const &scales, ml::train::TensorDim::TensorType t_type,
+  QScheme qscheme_) {
+  switch (qscheme_) {
+  case QScheme::PER_TENSOR_AFFINE:
+    std::cout << "per tensor\n";
+    break;
+  case QScheme::PER_CHANNEL_AFFINE:
+    std::cout << "per channel\n";
+    break;
+  default:
+    break;
+  }
+  itensor = std::shared_ptr<ShortTensor>(
+    new ShortTensor(d, scales, t_type.format, qscheme_),
+    std::default_delete<ShortTensor>());
+}
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
@@ -84,6 +104,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
   } else if (d_type == Tdatatype::UINT32) {
     itensor = std::shared_ptr<UInt32Tensor>(
       new UInt32Tensor(name_, fm), std::default_delete<UInt32Tensor>());
+  } else if (d_type == Tdatatype::QINT16) {
+    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(name_, fm),
+                                           std::default_delete<ShortTensor>());
   } else if (d_type == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(name_, fm),
                                           std::default_delete<CharTensor>());
@@ -131,6 +154,10 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor =
       std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, alloc_now, init, name),
                                     std::default_delete<UInt32Tensor>());
+  } else if (d.getDataType() == Tdatatype::QINT16) {
+    itensor = std::shared_ptr<ShortTensor>(
+      new ShortTensor(d, alloc_now, init, name, qscheme),
+      std::default_delete<ShortTensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(
       new CharTensor(d, alloc_now, init, name, qscheme),
@@ -174,6 +201,9 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
   } else if (d.getDataType() == Tdatatype::UINT32) {
     itensor = std::shared_ptr<UInt32Tensor>(
       new UInt32Tensor(d, buf), std::default_delete<UInt32Tensor>());
+  } else if (d.getDataType() == Tdatatype::QINT16) {
+    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(d, buf, qscheme),
+                                           std::default_delete<ShortTensor>());
   } else if (d.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf, qscheme),
                                           std::default_delete<CharTensor>());
@@ -213,6 +243,9 @@ Tensor::Tensor(const Tensor &rhs) {
   } else if (rhs.getDataType() == Tdatatype::UINT32) {
     itensor = std::shared_ptr<UInt32Tensor>(
       new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
+  } else if (rhs.getDataType() == Tdatatype::QINT16) {
+    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
+                                           std::default_delete<ShortTensor>());
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
@@ -254,6 +287,9 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
   } else if (rhs.getDataType() == Tdatatype::UINT32) {
     itensor = std::shared_ptr<UInt32Tensor>(
       new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
+  } else if (rhs.getDataType() == Tdatatype::QINT16) {
+    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
+                                           std::default_delete<ShortTensor>());
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
@@ -294,6 +330,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
     } else if (getDataType() == Tdatatype::UINT32) {
       return *std::dynamic_pointer_cast<UInt32Tensor>(itensor) ==
              *std::dynamic_pointer_cast<UInt32Tensor>(rhs.itensor);
+    } else if (getDataType() == Tdatatype::QINT16) {
+      return *std::dynamic_pointer_cast<ShortTensor>(itensor) ==
+             *std::dynamic_pointer_cast<ShortTensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::QINT8) {
       return *std::dynamic_pointer_cast<CharTensor>(itensor) ==
              *std::dynamic_pointer_cast<CharTensor>(rhs.itensor);
