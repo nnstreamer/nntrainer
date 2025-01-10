@@ -196,6 +196,13 @@ public:
   void initialize(Initializer init) override;
 
   /**
+   * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
+   * alpha)
+   */
+  Tensor &add(Tensor const &m, Tensor &output,
+              float const scale) const override;
+
+  /**
    * @copydoc Tensor::copy(const Tensor &from)
    */
   void copy(const Tensor &from) override;
