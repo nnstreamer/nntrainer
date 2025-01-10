@@ -3,13 +3,35 @@ project('nntrainer', 'c', 'cpp',
   license: ['apache-2.0'],
   meson_version: '>=0.50.0',
   default_options: [
-    'werror=true',
+    'werror=false',
     'warning_level=1',
-    'c_std=gnu89',
-    'cpp_std=c++17',
+    'c_std=c17',
+    'cpp_std=c++20',
     'buildtype=release'
-  ]
+  ],
+  subproject_dir: 'third_party'
 )
+
+cmake = import('cmake')
+
+add_project_arguments(['/MT'], language: ['c','cpp'])
+
+# googletest
+googletest_options = cmake.subproject_options()
+googletest_options.append_compile_args(['c','cpp'], '/MT')
+googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
+gmock_dep = googletest_subproject.dependency('gmock')
+gtest_dep = googletest_subproject.dependency('gtest')
+gtest_main_dep = googletest_subproject.dependency('gtest_main')
+
+# iniparser
+iniparser_options = cmake.subproject_options()
+iniparser_options.append_compile_args(['c','cpp'], '/MT')
+iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
+iniparser_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+iniparser_subproject = cmake.subproject('iniparser', options: iniparser_options, required: true)
+iniparser_dep = iniparser_subproject.dependency('iniparser-static')
 
 # Set version info
 nntrainer_version = meson.project_version()
@@ -40,33 +62,33 @@ if get_option('enable_encoder')
   add_project_arguments('-DENABLE_ENCODER=1', language: ['c', 'cpp'])
 endif
 
-warning_flags = [
-  '-Wredundant-decls',
-  '-Wwrite-strings',
-  '-Wformat',
-  '-Wformat-nonliteral',
-  '-Wformat-security',
-  '-Winit-self',
-  '-Waddress',
-  '-Wvla',
-  '-Wpointer-arith',
-  '-Wno-error=varargs',
-  '-Wdefaulted-function-deleted',
-  '-ftree-vectorize',
-  '-Wno-maybe-uninitialized',
-  '-Wno-unused-variable'
-]
+# warning_flags = [
+#   '-Wredundant-decls',
+#   '-Wwrite-strings',
+#   '-Wformat',
+#   '-Wformat-nonliteral',
+#   '-Wformat-security',
+#   '-Winit-self',
+#   '-Waddress',
+#   '-Wvla',
+#   '-Wpointer-arith',
+#   '-Wno-error=varargs',
+#   '-Wdefaulted-function-deleted',
+#   '-ftree-vectorize',
+#   '-Wno-maybe-uninitialized',
+#   '-Wno-unused-variable'
+# ]
 
-warning_c_flags = [
-  '-Wmissing-declarations',
-  '-Wmissing-include-dirs',
-  '-Wmissing-prototypes',
-  '-Wnested-externs',
-  '-Waggregate-return',
-  '-Wold-style-definition',
-  '-Wdeclaration-after-statement',
-  '-Wno-error=varargs'
-]
+# warning_c_flags = [
+#   '-Wmissing-declarations',
+#   '-Wmissing-include-dirs',
+#   '-Wmissing-prototypes',
+#   '-Wnested-externs',
+#   '-Waggregate-return',
+#   '-Wold-style-definition',
+#   '-Wdeclaration-after-statement',
+#   '-Wno-error=varargs'
+# ]
 
 arch = host_machine.cpu_family()
 
@@ -169,20 +191,20 @@ if get_option('enable-biqgemm')
   endif
 endif # end of enable-biqgemm
 
-foreach extra_arg : warning_flags
-  if cc.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'c')
-  endif
-  if cxx.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'cpp')
-  endif
-endforeach
+# foreach extra_arg : warning_flags
+#   if cc.has_argument (extra_arg)
+#     add_project_arguments([extra_arg], language: 'c')
+#   endif
+#   if cxx.has_argument (extra_arg)
+#     add_project_arguments([extra_arg], language: 'cpp')
+#   endif
+# endforeach
 
-foreach extra_arg : warning_c_flags
-  if cc.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'c')
-  endif
-endforeach
+# foreach extra_arg : warning_c_flags
+#   if cc.has_argument (extra_arg)
+#     add_project_arguments([extra_arg], language: 'c')
+#   endif
+# endforeach
 
 # Set install path
 nntrainer_prefix = get_option('prefix')
@@ -217,7 +239,8 @@ endif
 
 # handle resources
 nntrainer_resdir = meson.build_root() / 'res'
-run_command('mkdir', '-p', nntrainer_resdir)
+#run_command('mkdir', '-p', nntrainer_resdir)
+#run_command('md', nntrainer_resdir)
 
 if get_option('install-app')
 # add a script to install resources from installs to application_install_dir
@@ -325,16 +348,16 @@ if get_option('enable-logging')
   extra_defines += '-D__LOGGING__=1'
 endif
 
-gmock_dep = dependency('gmock', static: true, main: false, required: false)
-gtest_dep = dependency('gtest', static: true, main: false, required: false)
-gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
+# gmock_dep = dependency('gmock', static: true, main: false, required: false)
+# gtest_dep = dependency('gtest', static: true, main: false, required: false)
+# gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
 
 if get_option('enable-test') # and get_option('platform') != 'android'
   extra_defines += '-DENABLE_TEST=1'
-  if gtest_dep.version().version_compare('<1.10.0')
-     extra_defines += '-DGTEST_BACKPORT=1'
-  endif
+  # if gtest_dep.version().version_compare('<1.10.0')
+  #    extra_defines += '-DGTEST_BACKPORT=1'
+  # endif
   test_timeout = get_option('test-timeout')
 endif
 
@@ -342,43 +365,50 @@ if get_option('reduce-tolerance')
   extra_defines += '-DREDUCE_TOLERANCE=1'
 endif
 
-libm_dep = cxx.find_library('m') # cmath library
-libdl_dep = cxx.find_library('dl') # DL library
+libm_dep = cxx.find_library('m', required : false) # cmath library
+libdl_dep = cxx.find_library('dl', required : false) # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
-iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
-if get_option('platform') == 'android'
-  message('preparing iniparser')
-  run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
-  iniparser_root = meson.build_root() / 'iniparser'
-  iniparser_dep = declare_dependency(include_directories: [ 'iniparser/src' ])
-endif
+# if host_machine.system() == 'windows'
+# iniparser_inc = meson.project_source_root()/'third_party'/'iniparser'/'src'
+# message(iniparser_inc)
+# _iniparser_dep = declare_dependency(link_with: proj_iniparser.target('iniparser-static'), version: '4.2.4', compile_args: f'-I@iniparser_inc@')
+# meson.override_dependency('iniparser', _iniparser_dep)
+# endif
 
-if not iniparser_dep.found()
-  message('falling back to find libiniparser library and header files')
-  libiniparser_dep = cxx.find_library('iniparser')
-  sysroot = run_command(
-    cxx.cmd_array() + ['-print-sysroot']
-    ).stdout().split('\n')[0]
+# iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
+# if get_option('platform') == 'android'
+#   message('preparing iniparser')
+#   run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
+#   iniparser_root = meson.build_root() / 'iniparser'
+#   iniparser_dep = declare_dependency(include_directories: [ 'iniparser/src' ])
+# endif
 
-  if sysroot.startswith('/')
-    sysroot_inc_cflags_template = '-I@0@/usr/include@1@'
-    sysroot_inc = sysroot_inc_cflags_template.format(sysroot, '')
-    add_project_arguments(sysroot_inc, language: ['c', 'cpp'])
-    sysroot_inc_cflags_iniparser = sysroot_inc_cflags_template.format(sysroot,
-      '/iniparser')
-  else
-    sysroot_inc_cflags_iniparser = '-I/usr/include/iniparser'
-  endif
+# if not iniparser_dep.found()
+#   message('falling back to find libiniparser library and header files')
+#   libiniparser_dep = cxx.find_library('iniparser')
+#   sysroot = run_command(
+#     cxx.cmd_array() + ['-print-sysroot']
+#     ).stdout().split('\n')[0]
 
-  if libiniparser_dep.found() and cxx.has_header('iniparser.h', \
-        args : sysroot_inc_cflags_iniparser)
-    iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
-      compile_args : sysroot_inc_cflags_iniparser)
-  else
-    error('Failed to resolve dependency on iniparser')
-  endif
-endif
+#   if sysroot.startswith('/')
+#     sysroot_inc_cflags_template = '-I@0@/usr/include@1@'
+#     sysroot_inc = sysroot_inc_cflags_template.format(sysroot, '')
+#     add_project_arguments(sysroot_inc, language: ['c', 'cpp'])
+#     sysroot_inc_cflags_iniparser = sysroot_inc_cflags_template.format(sysroot,
+#       '/iniparser')
+#   else
+#     sysroot_inc_cflags_iniparser = '-I/usr/include/iniparser'
+#   endif
+
+#   if libiniparser_dep.found() and cxx.has_header('iniparser.h', \
+#         args : sysroot_inc_cflags_iniparser)
+#     iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
+#       compile_args : sysroot_inc_cflags_iniparser)
+#   else
+#     error('Failed to resolve dependency on iniparser')
+#   endif
+# endif
 
 if get_option('platform') == 'android'
   message('preparing ml api')
@@ -484,22 +514,24 @@ if get_option('enable-app')
   if get_option('platform') == 'android'
     warning('android app is not supported for now, building app skipped')
   else
-    # this is needed for reinforcement application. We can move this to reinforecement app dependency
-    jsoncpp_dep = dependency('jsoncpp') # jsoncpp
-    libcurl_dep = dependency('libcurl')
-    if not tflite_dep.found()
-      error('Tensorflow-Lite dependency not found')
-    endif
+    # # this is needed for reinforcement application. We can move this to reinforecement app dependency
+    # jsoncpp_dep = dependency('jsoncpp') # jsoncpp
+    # libcurl_dep = dependency('libcurl')
+    # if not tflite_dep.found()
+    #   error('Tensorflow-Lite dependency not found')
+    # endif
     subdir('Applications')
   endif
 endif
 
+if false
 if get_option('platform') != 'android'
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')
 else
   warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
+endif
 endif
 
 if get_option('platform') == 'android'

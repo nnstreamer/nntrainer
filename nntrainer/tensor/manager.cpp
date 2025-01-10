@@ -24,9 +24,9 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <vector>
 
 #include <activation_layer.h>
@@ -90,19 +90,20 @@ MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
     buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
 #endif
   } else {
-    buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
-                fd_, 0);
-  }
+    // TODO GK
+//     buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+//                 fd_, 0);
+//   }
 
-  if (buf_ == MAP_FAILED) {
-#ifdef __ANDROID__
-    if (fd_ != -1) {
-      // unlink / close the given fd here
-      close(fd_);
-    }
-#endif
+//   if (buf_ == MAP_FAILED) {
+// #ifdef __ANDROID__
+//     if (fd_ != -1) {
+//       // unlink / close the given fd here
+//       close(fd_);
+//     }
+// #endif
 
-    throw std::runtime_error("[MMapedMemory] mmap failed");
+//     throw std::runtime_error("[MMapedMemory] mmap failed");
   }
 
   fd = fd_;
@@ -118,17 +119,18 @@ MMapedMemory::~MMapedMemory() noexcept {
   assert(buf_size > 0 && fd > 0);
 #endif
 
-  if (fd != -1) {
-    if (close(fd) < 0) {
-      ml_logw("[MMapedMemory] closing fd failed on destruction please check");
-    }
-  }
+  // TODO GK
+  // if (fd != -1) {
+  //   if (close(fd) < 0) {
+  //     ml_logw("[MMapedMemory] closing fd failed on destruction please check");
+  //   }
+  // }
 
-  if (buf != nullptr) {
-    if (munmap(buf, buf_size) < 0) {
-      ml_logw("[MMapedMemory] munmap failed on destruction please check");
-    }
-  }
+  // if (buf != nullptr) {
+  //   if (munmap(buf, buf_size) < 0) {
+  //     ml_logw("[MMapedMemory] munmap failed on destruction please check");
+  //   }
+  // }
 
   /// keeping the invariant although this is not necessary as of now
   fd = -1;

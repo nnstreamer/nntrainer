@@ -160,6 +160,7 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
   } while (false);
 }
 
+#ifdef ENABLE_FP16
 void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
                                    const __fp16 *vecXdata, __fp16 *vecYdata,
                                    unsigned int dim1, unsigned int dim2) {
@@ -229,6 +230,7 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
 
   } while (false);
 }
+#endif
 
 void SwiGLULayerCl::calcDerivative(nntrainer::RunLayerContext &context) {
   std::throw_with_nested(std::runtime_error("Training is not supported yet."));

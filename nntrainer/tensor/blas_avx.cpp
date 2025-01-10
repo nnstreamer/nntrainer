@@ -11,6 +11,8 @@
  *
  */
 
+#include <float.h>
+
 #include <cassert>
 #include <chrono>
 #include <cstdint>

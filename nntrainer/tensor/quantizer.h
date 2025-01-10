@@ -193,7 +193,7 @@ private:
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input, Tdatatype qtype)
    */
-  void calculateQParams(const Tensor &input, Tdatatype qtype) override {}
+  void calculateQParams(const Tensor &input, Tdatatype qtype) override;
 };
 
 /**

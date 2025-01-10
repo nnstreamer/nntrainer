@@ -11,6 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 
 #include <blas_interface.h>
 #include <float_tensor.h>
@@ -910,7 +911,7 @@ void FloatTensor::filter_mask(const Tensor &mask_len, bool reverse) {
 
   for (unsigned int b = 0; b < batch(); b++) {
     float *addr = (float *)getAddress(getIndex(b, 0, 0, 0));
-    const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
+    const unsigned int *mask_len_val = mask_len.getAddress<unsigned int>(b, 0, 0, 0);
     std::fill(addr, addr + (*mask_len_val), en_mask_val);
   }
 }

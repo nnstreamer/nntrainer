@@ -65,10 +65,8 @@ TEST_P(nntrainerModelTest, model_test_save_load_compare) {
       new nntrainer::NeuralNetwork());
     nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
     if (remove(saved_ini_name.c_str())) {
-      const size_t error_buflen = 100;
-      char error_buf[error_buflen];
-      std::cerr << "remove ini " << saved_ini_name << "failed, reason: "
-                << strerror_r(errno, error_buf, error_buflen);
+      std::cerr << "remove ini " << saved_ini_name
+                << "failed, reason: " << strerror(errno);
     }
     return nn;
   };
@@ -97,10 +95,8 @@ TEST_P(nntrainerModelTest, model_test_save_load_verify) {
       new nntrainer::NeuralNetwork());
     nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
     if (remove(saved_ini_name.c_str())) {
-      const size_t error_buflen = 100;
-      char error_buf[error_buflen];
-      std::cerr << "remove ini " << saved_ini_name << "failed, reason: "
-                << strerror_r(errno, error_buf, error_buflen);
+      std::cerr << "remove ini " << saved_ini_name
+                << "failed, reason: " << strerror(errno);
     }
     return nn;
   };

@@ -19,6 +19,8 @@
 
 namespace nntrainer {
 
+#ifdef ENABLE_FP16
+
 HalfTensor::HalfTensor(std::string name_, Tformat fm) :
   TensorBase(name_, fm, Tdatatype::FP16) {}
 
@@ -717,7 +719,7 @@ void HalfTensor::filter_mask(const Tensor &mask_len, bool reverse) {
 
   for (unsigned int b = 0; b < batch(); b++) {
     _FP16 *addr = (_FP16 *)getAddress(getIndex(b, 0, 0, 0));
-    const uint *mask_len_val = mask_len.getAddress<uint>(b, 0, 0, 0);
+    const unsigned int *mask_len_val = mask_len.getAddress<unsigned int>(b, 0, 0, 0);
     std::fill(addr, addr + (*mask_len_val), (_FP16)en_mask_val);
   }
 }
@@ -1179,5 +1181,7 @@ void HalfTensor::apply_broadcast_util(
 bool HalfTensor::isValid() const {
   return is_valid(dim.getDataLen(), Tdatatype::FP16, (_FP16 *)getData());
 }
+
+#endif
 
 } // namespace nntrainer

@@ -12,6 +12,7 @@
  */
 
 #include <random>
+#include <numeric>
 #include <vector>
 
 #include <dynamic_training_optimization.h>

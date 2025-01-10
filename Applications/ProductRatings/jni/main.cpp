@@ -17,6 +17,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <random>
 #include <sstream>
 
@@ -81,8 +82,8 @@ bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
     return false;
 
   std::istringstream buffer(temp);
-  uint *input_int = (uint *)input;
-  uint x;
+  unsigned int *input_int = (unsigned int *)input;
+  unsigned int x;
   for (unsigned int j = 0; j < feature_size; ++j) {
     buffer >> x;
     input_int[j] = x;

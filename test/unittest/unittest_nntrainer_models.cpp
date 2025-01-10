@@ -958,7 +958,7 @@ auto mkResNet18Tc(const unsigned int iteration,
     nntrainer::IniWrapper("ResNet18", layers), nntrainer::TensorDim({batch_size, 1,1, num_class}), iteration, options);
 }
 
-GTEST_PARAMETER_TEST(
+GTEST_PARAMETER_TEST (
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::ValuesIn(
     {
       mkModelIniTc(fc_sigmoid_mse, "3:1:1:10", 10, ModelTestOption::ALL),

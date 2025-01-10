@@ -77,26 +77,29 @@ if get_option('platform') == 'android'
   nntrainer_dep = declare_dependency(include_directories: nntrainer_inc)
 else
   # Build libraries
-  nntrainer_shared = shared_library('nntrainer',
-    nntrainer_sources,
-    dependencies: nntrainer_base_deps,
-    include_directories: nntrainer_inc,
-    install: true,
-    install_dir: nntrainer_libdir
-  )
+  # nntrainer_shared = shared_library('nntrainer',
+  #   nntrainer_sources,
+  #   dependencies: nntrainer_base_deps,
+  #   include_directories: nntrainer_inc,
+  #   install: true,
+  #   install_dir: nntrainer_libdir,
+  #   name_suffix: 'dll'
+  # )
 
   nntrainer_static = static_library('nntrainer',
     nntrainer_sources,
     dependencies: nntrainer_base_deps,
     include_directories: nntrainer_inc,
     install: true,
-    install_dir: nntrainer_libdir
+    install_dir: nntrainer_libdir,
+    name_prefix : '',
+    name_suffix: 'lib'
   )
 
-  nntrainer_lib = nntrainer_shared
-  if get_option('default_library') == 'static'
+  # nntrainer_lib = nntrainer_shared
+  # if get_option('default_library') == 'static'
     nntrainer_lib = nntrainer_static
-  endif
+  # endif
 
   nntrainer_dep = declare_dependency(link_with: nntrainer_lib,
     dependencies: nntrainer_base_deps,

@@ -16,6 +16,9 @@
 #define __ACTI_FUNC_H__
 #ifdef __cplusplus
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <blas_interface.h>
 #include <common_properties.h>
 

@@ -11,8 +11,13 @@
  * @bug	   No known bugs except for NYI items
  *
  */
-#include <dirent.h>
+//#include <dirent.h>
+#ifdef _WIN32
+#include "windows.h"
+#else
 #include <dlfcn.h>
+#endif
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -224,7 +229,7 @@ std::mutex factory_mutex;
  * @brief finalize global context
  *
  */
-static void fini_global_context_nntrainer(void) __attribute__((destructor));
+static void fini_global_context_nntrainer(void);
 
 static void fini_global_context_nntrainer(void) {}
 
@@ -418,14 +423,11 @@ AppContext &AppContext::Global() {
 }
 
 void AppContext::setWorkingDirectory(const std::string &base) {
-  DIR *dir = opendir(base.c_str());
-
-  if (!dir) {
+  if (!std::filesystem::is_directory(base)) {
     std::stringstream ss;
     ss << func_tag << "path is not directory or has no permission: " << base;
     throw std::invalid_argument(ss.str().c_str());
   }
-  closedir(dir);
 
   char *ret = getRealpath(base.c_str(), nullptr);
 
@@ -495,6 +497,21 @@ int AppContext::registerLayer(const std::string &library_path,
                               const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
+#if defined(_WIN32)
+  HMODULE handle = LoadLibraryA(full_path.c_str());
+
+  NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
+    << func_tag << "open plugin failed";
+
+  nntrainer::LayerPluggable *pluggable =
+    reinterpret_cast<nntrainer::LayerPluggable *>(
+      GetProcAddress((HMODULE)handle, "ml_train_layer_pluggable"));
+
+  auto close_dl = [handle] { FreeLibrary((HINSTANCE)handle); };
+
+  NNTR_THROW_IF_CLEANUP(pluggable == nullptr, std::invalid_argument, close_dl)
+    << func_tag << "loading symbol failed";
+#else
   void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
   const char *error_msg = dlerror();
 
@@ -505,11 +522,14 @@ int AppContext::registerLayer(const std::string &library_path,
     reinterpret_cast<nntrainer::LayerPluggable *>(
       dlsym(handle, "ml_train_layer_pluggable"));
 
-  error_msg = dlerror();
   auto close_dl = [handle] { dlclose(handle); };
+
+  error_msg = dlerror();
+
   NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
                         std::invalid_argument, close_dl)
     << func_tag << "loading symbol failed, reason: " << error_msg;
+#endif
 
   auto layer = pluggable->createfunc();
   NNTR_THROW_IF_CLEANUP(layer == nullptr, std::invalid_argument, close_dl)
@@ -534,6 +554,21 @@ int AppContext::registerOptimizer(const std::string &library_path,
                                   const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
+#if defined(_WIN32)
+  HMODULE handle = LoadLibraryA(full_path.c_str());
+
+  NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
+    << func_tag << "open plugin failed";
+
+  nntrainer::OptimizerPluggable *pluggable =
+    reinterpret_cast<nntrainer::OptimizerPluggable *>(
+      GetProcAddress((HMODULE)handle, "ml_train_optimizer_pluggable"));
+
+  auto close_dl = [handle] { FreeLibrary((HINSTANCE)handle); };
+
+  NNTR_THROW_IF_CLEANUP(pluggable == nullptr, std::invalid_argument, close_dl)
+    << func_tag << "loading symbol failed";
+#else
   void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
   const char *error_msg = dlerror();
 
@@ -549,6 +584,7 @@ int AppContext::registerOptimizer(const std::string &library_path,
   NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
                         std::invalid_argument, close_dl)
     << func_tag << "loading symbol failed, reason: " << error_msg;
+#endif
 
   auto optimizer = pluggable->createfunc();
   NNTR_THROW_IF_CLEANUP(optimizer == nullptr, std::invalid_argument, close_dl)
@@ -571,39 +607,36 @@ int AppContext::registerOptimizer(const std::string &library_path,
 
 std::vector<int>
 AppContext::registerPluggableFromDirectory(const std::string &base_path) {
-  DIR *dir = opendir(base_path.c_str());
 
-  NNTR_THROW_IF(dir == nullptr, std::invalid_argument)
+  bool directory_exist = std::filesystem::is_directory(base_path);
+
+  NNTR_THROW_IF(!directory_exist, std::invalid_argument)
     << func_tag << "failed to open the directory: " << base_path;
-
-  struct dirent *entry;
 
   std::vector<int> keys;
 
-  while ((entry = readdir(dir)) != NULL) {
-    if (endswith(entry->d_name, solib_suffix)) {
-      if (endswith(entry->d_name, layerlib_suffix)) {
+  for (auto &entry : std::filesystem::directory_iterator(base_path)) {
+    std::cout << entry.path() << std::endl;
+    std::string entry_name = entry.path().string();
+
+    if (endswith(entry_name, solib_suffix)) {
+      if (endswith(entry_name, layerlib_suffix)) {
         try {
-          int key = registerLayer(entry->d_name, base_path);
+          int key = registerLayer(entry_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
-          closedir(dir);
           throw;
         }
-      } else if (endswith(entry->d_name, optimizerlib_suffix)) {
+      } else if (endswith(entry_name, optimizerlib_suffix)) {
         try {
-          int key = registerOptimizer(entry->d_name, base_path);
+          int key = registerOptimizer(entry_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
-          closedir(dir);
           throw;
         }
       }
     }
   }
-
-  if (dir != NULL)
-    closedir(dir);
 
   return keys;
 }

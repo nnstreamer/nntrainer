@@ -30,7 +30,7 @@
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>
-#include <unistd.h>
+//#include <unistd.h>
 #include <util_func.h>
 
 namespace nntrainer {

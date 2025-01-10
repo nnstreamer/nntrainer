@@ -145,7 +145,7 @@ TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
   return *this;
 }
 
-uint TensorDim::getDataTypeSize() const {
+unsigned int TensorDim::getDataTypeSize() const {
   switch (t_type.data_type) {
   case TensorDim::DataType::FP16:
 #ifdef ENABLE_FP16

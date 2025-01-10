@@ -1,7 +1,8 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 nntr_mnist_resdir = nntr_app_resdir / 'MNIST'
 
-run_command('cp', '-lr', res_path, nntr_mnist_resdir)
+#run_command('cp', '-lr', res_path, nntr_mnist_resdir)
+run_command('cmd.exe',  'xcopy', res_path, nntr_mnist_resdir, '/E/H')
 
 mnist_sources = [
   'main.cpp'

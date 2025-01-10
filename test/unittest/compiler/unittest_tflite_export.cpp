@@ -177,12 +177,9 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
     EXPECT_NEAR(out[i], ans[i], 0.000001f);
 
   if (remove("simple_fc.tflite")) {
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
     std::cerr << "remove tflite "
               << "simple_fc.tflite"
-              << "failed, reason: "
-              << strerror_r(errno, error_buf, error_buflen);
+              << "failed, reason: " << strerror(errno);
   }
 }
 
@@ -234,12 +231,9 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
     EXPECT_NEAR(out[i], ans[i], 0.000001f);
 
   if (remove("flatten_test.tflite")) {
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
     std::cerr << "remove tflite "
               << "flatten_test.tflite"
-              << "failed, reason: "
-              << strerror_r(errno, error_buf, error_buflen);
+              << "failed, reason: " << strerror(errno);
   }
 }
 
@@ -307,12 +301,9 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
     EXPECT_NEAR(out[i], ans[i], 0.000001f);
 
   if (remove("part_of_resnet.tflite")) {
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
     std::cerr << "remove ini "
               << "part_of_resnet.tflite"
-              << "failed, reason: "
-              << strerror_r(errno, error_buf, error_buflen);
+              << "failed, reason: " << strerror(errno);
   }
 }
 
@@ -389,11 +380,8 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
     std::cout << "out : " << out[i] << " ans : " << ans[i] << std::endl;
   }
   if (remove("MNIST_FULL_TEST.tflite")) {
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
     std::cerr << "remove tflite "
               << "MNIST_FULL_TEST.tflite"
-              << "failed, reason: "
-              << strerror_r(errno, error_buf, error_buflen);
+              << "failed, reason: " << strerror(errno);
   }
 }

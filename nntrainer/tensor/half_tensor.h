@@ -23,6 +23,8 @@
 
 namespace nntrainer {
 
+#ifdef ENABLE_FP16
+
 /**
  * @class HalfTensor class
  * @brief HalfTensor class for 16-bit floating point calculation
@@ -504,6 +506,8 @@ private:
    */
   bool isValid() const override;
 };
+
+#endif
 
 } // namespace nntrainer
 

@@ -1,5 +1,7 @@
 nntrainer_test_resdir = nntrainer_resdir / 'test'
-run_command('mkdir', '-p', nntrainer_test_resdir)
+#run_command('mkdir', '-p', nntrainer_test_resdir)
+run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir)
+
 
 nntrainer_test_inc = include_directories('./include')
 

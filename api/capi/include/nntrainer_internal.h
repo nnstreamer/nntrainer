@@ -109,7 +109,7 @@ extern "C" {
  * @note model mutex must be locked before layer lock, if model lock is needed
  */
 typedef struct {
-  uint magic;                              /**< magic number */
+  unsigned int magic;                              /**< magic number */
   std::shared_ptr<ml::train::Layer> layer; /**< layer object */
   bool in_use;                             /**< in_use flag */
   std::mutex m;                            /**< mutex for the optimizer */
@@ -121,7 +121,7 @@ typedef struct {
  * optimizer lock is needed
  */
 typedef struct {
-  uint magic;
+  unsigned int magic;
   std::shared_ptr<ml::train::LearningRateScheduler> lr_scheduler;
   bool in_use;
   std::mutex m;
@@ -133,7 +133,7 @@ typedef struct {
  * needed
  */
 typedef struct {
-  uint magic;
+  unsigned int magic;
   std::shared_ptr<ml::train::Optimizer> optimizer;
   ml_train_lr_scheduler *lr_scheduler;
   bool in_use;
@@ -146,7 +146,7 @@ typedef struct {
  * @note model mutex must be locked before dataset lock, if model lock is needed
  */
 typedef struct {
-  uint magic; /**< magic number */
+  unsigned int magic; /**< magic number */
   std::array<std::shared_ptr<ml::train::Dataset>, 3>
     dataset;    /**< dataset object */
   bool in_use;  /**< in_use flag */
@@ -158,7 +158,7 @@ typedef struct {
  * @since_tizen 6.0
  */
 typedef struct {
-  uint magic;                              /**< magic number */
+  unsigned int magic;                              /**< magic number */
   std::shared_ptr<ml::train::Model> model; /**< model object */
   std::unordered_map<std::string, ml_train_layer *>
     layers_map;                  /**< layers map */

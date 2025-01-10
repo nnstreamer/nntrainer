@@ -16,13 +16,19 @@
 #include <profiler.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <swap_device.h>
+
+#if defined(_WIN32)
+#include <io.h>
+#define O_SYNC 0UL
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 namespace nntrainer {
 
@@ -30,8 +36,8 @@ void SwapDevice::start(size_t size) {
   if (fd > 0)
     return;
 
-  fd =
-    open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, (mode_t)0666);
+  fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -64,11 +70,8 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
 
   char *ptr = static_cast<char *>(
     mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
-  const size_t error_buflen = 100;
-  char error_buf[error_buflen];
   NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-    << "SwapDevice: mmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
+    << "SwapDevice: mmap: " << std::string(strerror(errno));
 
   void *buf = static_cast<void *>(ptr + diff);
   mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
@@ -125,11 +128,8 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   }
 
   ret = munmap(std::get<void *>(info), std::get<size_t>(info));
-  const size_t error_buflen = 100;
-  char error_buf[error_buflen];
   NNTR_THROW_IF(ret == -1, std::runtime_error)
-    << "SwapDevice: munmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
+    << "SwapDevice: munmap: " << std::string(strerror(errno));
 
   mapped.erase(ptr);
 
@@ -159,7 +159,7 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   free(ptr);
   allocated.erase(ptr);
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(_WIN32)
   malloc_trim(0);
 #endif
 

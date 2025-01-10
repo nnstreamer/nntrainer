@@ -16,6 +16,8 @@
 
 namespace nntrainer {
 
+#ifdef ENABLE_FP16
+
 void rotary_emb_cl(__fp16 *in, __fp16 *out,
                    std::vector<std::vector<float>> freqs_cos,
                    std::vector<std::vector<float>> freqs_sin,
@@ -226,4 +228,7 @@ void rotary_emb_cl(__fp16 *in, __fp16 *out,
 
   } while (false);
 }
+
+#endif
+
 } // namespace nntrainer

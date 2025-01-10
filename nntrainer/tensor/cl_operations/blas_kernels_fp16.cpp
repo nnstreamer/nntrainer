@@ -16,6 +16,8 @@
 
 namespace nntrainer {
 
+#ifdef ENABLE_FP16
+
 void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
@@ -524,4 +526,7 @@ void transpose_cl_axis(const __fp16 *in, __fp16 *res,
 
   } while (false);
 }
+
+#endif
+
 } // namespace nntrainer

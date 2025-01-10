@@ -11,7 +11,8 @@
  *
  */
 
-#include <cmath>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include <common_properties.h>
 #include <lr_scheduler_cosine.h>

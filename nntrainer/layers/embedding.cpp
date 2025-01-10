@@ -98,7 +98,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = 0; i < input_.width(); ++i) {
-      uint embed_idx = static_cast<uint>(in_data[i]);
+      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
@@ -140,7 +140,7 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
 
     Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
     for (unsigned int i = from; i < to; ++i) {
-      uint embed_idx = static_cast<uint>(in_data[i]);
+      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
@@ -174,7 +174,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   // This is to calculate gradient with current implementation of optimizer.
   // In order to accelerate, we need to better way like using index to weight.
 
- /// @todo
+  /// @todo
   // Current nntrainer gradient Tensor shape is identical to its
   // weight shape. However, this creates a sparse Tensor since we are only using
   // certain indices of the Tensor that we are interested in. Since we have such
@@ -187,7 +187,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
 
     if (djdw.getDataType() == TensorDim::DataType::FP32) {
       for (unsigned int i = 0; i < input_.width(); ++i) {
-        uint embed_idx = ((float *)(in_data))[i];
+        unsigned int embed_idx = ((float *)(in_data))[i];
         // Assume padding is 0 and index always start from 1.
         // If in_data[i] - 1 < 0, then it skips.
         // if (embed_idx == 0)
@@ -203,7 +203,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
     } else if (djdw.getDataType() == TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       for (unsigned int i = 0; i < input_.width(); ++i) {
-        uint embed_idx = ((float *)(in_data))[i];
+        unsigned int embed_idx = ((float *)(in_data))[i];
         // Assume padding is 0 and index always start from 1.
         // If in_data[i] - 1 < 0, then it skips.
         // if (embed_idx == 0)

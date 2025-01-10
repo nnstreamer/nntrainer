@@ -28,6 +28,7 @@
 #include <layer_node.h>
 #include <multiout_realizer.h>
 #include <nntrainer_error.h>
+#include <numeric>
 #include <random>
 #include <regex>
 #include <tensor.h>

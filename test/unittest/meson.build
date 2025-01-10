@@ -27,11 +27,13 @@ dest_path = nntrainer_test_resdir
 
 foreach target: unzip_target
   _src_path = src_path / target[0]
-  run_command('mkdir', '-p', dest_path / target[1])
+  #run_command('mkdir', '-p', dest_path / target[1])
+  run_command('cmd.exe', '/C', 'mkdir', dest_path / target[1])
   run_command(['tar', 'xzf', _src_path, '-C', dest_path / target[1]])
 endforeach
 
-run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
+#run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
+run_command('cmd.exe', '/C', 'copy', src_path / 'label.dat', dest_path / 'label.dat')
 
 test_target = [
   ['unittest_nntrainer_activations', []],
@@ -39,7 +41,7 @@ test_target = [
   ['unittest_nntrainer_internal', []],
   ['unittest_nntrainer_lazy_tensor', []],
   ['unittest_nntrainer_tensor', []],
-  ['unittest_nntrainer_tensor_nhwc', []],
+  ['unittest_nntrainer_quantizer', []],
   ['unittest_util_func', []],
   ['unittest_nntrainer_modelfile', []],
   ['unittest_nntrainer_models', [

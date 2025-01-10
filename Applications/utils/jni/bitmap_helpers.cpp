@@ -23,7 +23,7 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 
-#include <unistd.h> // NOLINT(build/include_order)
+//#include <unistd.h> // NOLINT(build/include_order)
 
 #include "bitmap_helpers.h"
 

@@ -591,7 +591,7 @@ public:
  * will be zero
  *
  */
-class ZeroIdxMask : public nntrainer::Property<uint> {
+class ZeroIdxMask : public nntrainer::Property<uint32_t> {
 public:
   static constexpr const char *key =
     "zero_idx_mask";              /**< unique key to access */
