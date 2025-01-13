@@ -368,6 +368,51 @@ TEST(nntrainerGraphUnitTest, call_functions) {
   }
 }
 
+TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
+  std::unique_ptr<ml::train::Model> model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+
+  model->addLayer(ml::train::createLayer(
+    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:256")}));
+
+  for (int i = 0; i < 3; ++i) {
+    model->addLayer(ml::train::createLayer(
+      "fully_connected",
+      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
+       withKey("bias_initializer", "zeros")}));
+  }
+  model->addLayer(ml::train::createLayer(
+    "fully_connected",
+    {withKey("unit", 100), withKey("weight_initializer", "xavier_uniform"),
+     withKey("bias_initializer", "zeros")}));
+
+  model->setProperty({withKey("batch_size", 1), withKey("epochs", 1),
+                      withKey("memory_swap", "false"),
+                      withKey("model_tensor_type", "FP32-FP32")});
+
+  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = model->initialize(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float input[256];
+
+  for (unsigned int i = 0; i < 256; ++i) {
+    input[i] = i;
+  }
+
+  std::vector<float *> in;
+  std::vector<float *> ans;
+
+  in.push_back(input);
+
+  ans = model->inference(1, in);
+
+  in.clear();
+  ans.clear();
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 

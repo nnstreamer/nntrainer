@@ -91,7 +91,6 @@ TEST(fsu, simple_fc) {
   uint feature_size = 320;
 
   float input[320];
-  float label[1];
 
   for (uint j = 0; j < feature_size; ++j)
     input[j] = j;
@@ -101,7 +100,6 @@ TEST(fsu, simple_fc) {
   std::vector<float *> answer;
 
   in.push_back(input);
-  l.push_back(label);
 
   answer = model->inference(1, in, l);
 

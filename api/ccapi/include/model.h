@@ -296,9 +296,9 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  virtual std::vector<float *> inference(unsigned int batch,
-                                         const std::vector<float *> &input,
-                                         const std::vector<float *> &label) = 0;
+  virtual std::vector<float *>
+  inference(unsigned int batch, const std::vector<float *> &input,
+            const std::vector<float *> &label = std::vector<float *>()) = 0;
 
   /**
    * @brief     Run the incremental inference of the model
@@ -308,7 +308,8 @@ public:
    * @param[in] init_seq_len initial sequence length
    * @param[in] from current working step index
    * @param[in] to next working step index
-   * @param[in] output_hidden_state return last hidden state if true else return all hidden state
+   * @param[in] output_hidden_state return last hidden state if true else return
+   * all hidden state
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
@@ -316,8 +317,7 @@ public:
   incremental_inference(unsigned int batch, const std::vector<float *> &input,
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
-                        unsigned int to,
-                        bool output_hidden_state = false) = 0;
+                        unsigned int to, bool output_hidden_state = false) = 0;
 
   /**
    * @brief     Summarize the model
