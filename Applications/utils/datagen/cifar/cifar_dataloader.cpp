@@ -137,11 +137,8 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
   /// @note below logic assumes a single input and the fine label is used
 
   auto fill_one_sample = [this](float *input_, float *label_, int index) {
-    const size_t error_buflen = 102;
-    char error_buf[error_buflen];
     NNTR_THROW_IF(!file.good(), std::invalid_argument)
-      << "file is not good, reason: "
-      << strerror_r(errno, error_buf, error_buflen);
+      << "file is not good, reason: " << std::strerror(errno);
     file.seekg(index * Cifar100DataLoader::SampleSize, std::ios_base::beg);
 
     uint8_t current_label;
