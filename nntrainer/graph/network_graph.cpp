@@ -65,14 +65,21 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   graph.realizeInputOutputNode();
 
-  try {
-    /// @todo realize loss beforehand
-    status = addLossLayer(loss_type);
-    NN_RETURN_STATUS();
-  } catch (const std::exception &e) {
-    ml_loge("%s", e.what());
-    status = ML_ERROR_INVALID_PARAMETER;
-    NN_RETURN_STATUS();
+  if (exec_mode != ExecutionMode::INFERENCE) {
+    try {
+      /// @todo realize loss beforehand
+      status = addLossLayer(loss_type);
+      NN_RETURN_STATUS();
+    } catch (const std::exception &e) {
+      ml_loge("%s", e.what());
+      status = ML_ERROR_INVALID_PARAMETER;
+      NN_RETURN_STATUS();
+    }
+  } else {
+    if (!loss_type.empty()) {
+      ml_loge(
+        "Warning : Loss type is given in inference mode. Ignoring loss type.");
+    }
   }
 
   graph.topologicalSort();

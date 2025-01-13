@@ -221,7 +221,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
     } else {
       NNTR_THROW_IF(exec_mode == ExecutionMode::TRAIN, std::invalid_argument)
         << "Execution mode mismatch : trying to train with compiled for "
-           "infence";
+           "inference";
     }
   }
 
