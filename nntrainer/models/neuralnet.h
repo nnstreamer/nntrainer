@@ -365,9 +365,9 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> inference(unsigned int batch,
-                                 const std::vector<float *> &input,
-                                 const std::vector<float *> &label) override;
+  std::vector<float *> inference(
+    unsigned int batch, const std::vector<float *> &input,
+    const std::vector<float *> &label = std::vector<float *>()) override;
 
   /**
    * @brief     Run NeuralNetwork incremental inference
@@ -403,13 +403,12 @@ s   * @retval shared_ptr<const Tensor>
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> incremental_inference(unsigned int batch,
-                                             const std::vector<float *> &input,
-                                             const std::vector<float *> &label,
-                                             unsigned int init_seq_len,
-                                             unsigned int from,
-                                             unsigned int to,
-                                             bool output_hidden_state = false) override;
+  std::vector<float *>
+  incremental_inference(unsigned int batch, const std::vector<float *> &input,
+                        const std::vector<float *> &label,
+                        unsigned int init_seq_len, unsigned int from,
+                        unsigned int to,
+                        bool output_hidden_state = false) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -625,11 +624,12 @@ s   * @retval shared_ptr<const Tensor>
                const std::string file_path) override;
 
 private:
-  using FlexiblePropTypes = std::tuple<
-    props::Epochs, props::TrainingBatchSize, props::SavePath,
-    props::ContinueTrain, props::SaveBestPath, props::MemoryOptimization,
-    props::MemorySwap, props::MemorySwapPath, props::MemorySwapLookahead,
-    props::TensorFormat, props::ModelTensorDataType>;
+  using FlexiblePropTypes =
+    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
+               props::ContinueTrain, props::SaveBestPath,
+               props::MemoryOptimization, props::MemorySwap,
+               props::MemorySwapPath, props::MemorySwapLookahead,
+               props::TensorFormat, props::ModelTensorDataType>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputConnection>,
                std::vector<props::LabelLayer>, props::ClipGradByGlobalNorm,
