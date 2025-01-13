@@ -56,6 +56,9 @@ private:
                           quantizers */
 
 protected:
+  long int quant_min;
+  long int quant_max;
+
   /**
    * @brief Register the user defined quantizer class
    *
@@ -75,11 +78,17 @@ protected:
    * @note This will be used to determine the quantization parameters.
    * QParams must be determined before quantization.
    *
-   * @param input Input tensor
+   * @param input input tensor
    * @param qtype quantized data type
    */
   virtual void calculateQParams(const Tensor &input,
                                 ml::train::TensorDim::DataType qtype) = 0;
+
+  /**
+   * @brief Calculate the minimum & maximum value
+   * @param qtype quantized data type
+   */
+  void calculateMinMaxValue(ml::train::TensorDim::DataType qtype);
 
 public:
   /**
@@ -120,6 +129,16 @@ public:
    */
   virtual Tensor quantize(const Tensor &input,
                           ml::train::TensorDim::DataType qtype) = 0;
+
+  /**
+   * @brief Quantize a tensor into a quantized tensor.
+   * @param[in] input Floating point tensor to quantize
+   * @param[out] output Quantized tensor
+   * @param[in] scales float scale factors
+   * @return Tensor quantized tensor
+   */
+  virtual Tensor &quantize(const Tensor &input, Tensor &output,
+                           float *scales) = 0;
 
   /**
    * @brief Dequantize a quantized tensor into a tensor.
@@ -184,6 +203,12 @@ public:
                   ml::train::TensorDim::DataType qtype) override;
 
   /**
+   * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
+   * *scales)
+   */
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
+
+  /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
   Tensor dequantize(const Tensor &input,
@@ -196,9 +221,6 @@ public:
 
 private:
   float scale;
-  int zero_point;
-  long int quant_min;
-  long int quant_max;
 
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
@@ -234,6 +256,12 @@ public:
    */
   Tensor quantize(const Tensor &input,
                   ml::train::TensorDim::DataType qtype) override;
+
+  /**
+   * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
+   * *scales)
+   */
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
@@ -283,6 +311,12 @@ public:
    */
   Tensor quantize(const Tensor &input,
                   ml::train::TensorDim::DataType qtype) override;
+
+  /**
+   * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
+   * *scales)
+   */
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
