@@ -98,11 +98,7 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
 
   graphEqual(g, new_g);
 
-  const size_t error_buflen = 100;
-  char error_buf[error_buflen];
-
-  EXPECT_EQ(remove(out_file_path.c_str()), 0)
-    << strerror_r(errno, error_buf, error_buflen);
+  EXPECT_EQ(remove(out_file_path.c_str()), 0) << std::strerror(errno);
 }
 
 TEST_P(nntrainerInterpreterTest, deserialize_01_n) {
