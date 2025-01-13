@@ -18,6 +18,9 @@
 #include <quantizer.h>
 #include <tensor.h>
 
+/**
+ * @brief Quantize to FP32 Tensor (negative test)
+ */
 TEST(nntrainer_Quantizer, per_tensor_affine_01_n) {
   nntrainer::Tensor input(3, 2, 4, 5);
   input.setRandNormal(1.235f, 0.04f);
@@ -30,6 +33,9 @@ TEST(nntrainer_Quantizer, per_tensor_affine_01_n) {
                std::invalid_argument);
 }
 
+/**
+ * @brief Dequantize to Quantized Tensor (negative test)
+ */
 TEST(nntrainer_Quantizer, per_tensor_affine_02_n) {
   nntrainer::Tensor input(3, 3, 24, 24);
   input.setRandNormal(3.812f, 0.15f);
@@ -45,7 +51,42 @@ TEST(nntrainer_Quantizer, per_tensor_affine_02_n) {
                std::invalid_argument);
 }
 
-TEST(nntrainer_Quantizer, per_tensor_affine_03_p) {
+/**
+ * @brief Quantize Quantized Tensor (negative test)
+ */
+TEST(nntrainer_Quantizer, per_tensor_affine_03_n) {
+  nntrainer::Tensor input(3, 3, 24, 24, nntrainer::Tformat::NCHW,
+                          nntrainer::Tdatatype::QINT8);
+
+  std::unique_ptr<nntrainer::Quantizer> quantizer =
+    nntrainer::Quantization::createQuantizer(
+      nntrainer::QScheme::PER_TENSOR_AFFINE);
+
+  EXPECT_THROW(quantizer->quantize(input, nntrainer::Tdatatype::QINT4),
+               std::invalid_argument);
+}
+
+/**
+ * @brief Output tensor size not matching (negative test)
+ */
+TEST(nntrainer_Quantizer, per_tensor_affine_04_n) {
+  nntrainer::Tensor input(3, 2, 4, 5);
+  input.setRandNormal(1.235f, 0.04f);
+
+  nntrainer::Tensor output(3, 1, 1, 1, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT8);
+
+  float scale = 0.00235f;
+
+  std::unique_ptr<nntrainer::Quantizer> quantizer =
+    nntrainer::Quantization::createQuantizer(
+      nntrainer::QScheme::PER_TENSOR_AFFINE);
+
+  EXPECT_THROW(quantizer->quantize(input, output, &scale),
+               std::invalid_argument);
+}
+
+TEST(nntrainer_Quantizer, per_tensor_affine_01_p) {
   float input_data[] = {-0.16924214, -0.10338581, 0.31561565,  -0.00533330,
                         0.44809300,  -0.15348488, 0.14003623,  -0.07908171,
                         -0.21415669, -0.35267806, 0.46354777,  -0.35009885,
@@ -79,13 +120,13 @@ TEST(nntrainer_Quantizer, per_tensor_affine_03_p) {
     quantizer->quantize(input, nntrainer::Tdatatype::QINT8);
   ASSERT_EQ(quantized_tensor, quant_answer);
 
-  // Perform Deuantization
+  // Perform Dequantization
   nntrainer::Tensor output =
     quantizer->dequantize(quantized_tensor, nntrainer::Tdatatype::FP32);
   ASSERT_EQ(output, float_answer);
 }
 
-TEST(nntrainer_Quantizer, per_tensor_affine_04_p) {
+TEST(nntrainer_Quantizer, per_tensor_affine_02_p) {
   float input_data[] = {
     -0.29562217, 0.02348283,  0.04334664,  0.03752254,  0.17764580,
     0.04449826,  0.15144463,  -0.15716791, -0.07842141, 0.34517670,
@@ -143,7 +184,49 @@ TEST(nntrainer_Quantizer, per_tensor_affine_04_p) {
     quantizer->quantize(input, nntrainer::Tdatatype::QINT8);
   ASSERT_EQ(quantized_tensor, quant_answer);
 
-  // Perform Deuantization
+  // Perform Dequantization
+  nntrainer::Tensor output =
+    quantizer->dequantize(quantized_tensor, nntrainer::Tdatatype::FP32);
+  ASSERT_EQ(output, float_answer);
+}
+
+TEST(nntrainer_Quantizer, per_tensor_affine_03_p) {
+  float input_data[] = {-0.16924214, -0.10338581, 0.31561565,  -0.00533330,
+                        0.44809300,  -0.15348488, 0.14003623,  -0.07908171,
+                        -0.21415669, -0.35267806, 0.46354777,  -0.35009885,
+                        -0.07760239, -0.28348053, -0.37242615, 0.30941701};
+  nntrainer::Tensor input({1, 1, 4, 4}, input_data);
+
+  std::vector<int16_t> qdata = {-47, -28, 87,  -1,  123, -42, 39,   -22,
+                                -59, -97, 127, -96, -21, -78, -102, 85};
+  float qscale = 0.00363567f;
+  int16_t *scale_array = reinterpret_cast<int16_t *>(&qscale);
+  for (unsigned int i = 0; i < 2; ++i) {
+    qdata.push_back(scale_array[i]);
+  }
+  nntrainer::Tensor quant_answer(
+    {1, 1, 4, 4, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT16},
+    qdata.data());
+
+  nntrainer::Tensor quantized_tensor(1, 1, 4, 4, nntrainer::Tformat::NCHW,
+                                     nntrainer::Tdatatype::QINT16);
+
+  float output_data[] = {-0.17087643, -0.10179872, 0.31630316,  -0.00363567,
+                         0.44718724,  -0.15269808, 0.14179108,  -0.07998471,
+                         -0.21450445, -0.35265985, 0.46172991,  -0.34902418,
+                         -0.07634904, -0.28358215, -0.37083820, 0.30903184};
+  nntrainer::Tensor float_answer({1, 1, 4, 4}, output_data);
+
+  // Per tensor affine quantizer
+  std::unique_ptr<nntrainer::Quantizer> quantizer =
+    nntrainer::Quantization::createQuantizer(
+      nntrainer::QScheme::PER_TENSOR_AFFINE);
+
+  // Perform Quantization
+  quantizer->quantize(input, quantized_tensor, &qscale);
+  ASSERT_EQ(quantized_tensor, quant_answer);
+
+  // Perform Dequantization
   nntrainer::Tensor output =
     quantizer->dequantize(quantized_tensor, nntrainer::Tdatatype::FP32);
   ASSERT_EQ(output, float_answer);
