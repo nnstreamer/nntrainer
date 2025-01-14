@@ -54,6 +54,13 @@ PreviousInputRealizer::realize(const GraphRepresentation &reference) {
       continue;
     }
 
+    /**
+     * @brief Weight layer can't have a previous input
+     *
+     */
+    if (node->getType() == "weight")
+      continue;
+
     NNTR_THROW_IF(iter == processed.begin(), std::invalid_argument)
       << "First node must be identified as an input if it is qualified to be "
          "input, name: "
