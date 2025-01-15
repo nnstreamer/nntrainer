@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <context.h>
+#include <mem_allocator.h>
 
 #include <nntrainer_error.h>
 
@@ -57,6 +58,10 @@ protected:
       throw std::invalid_argument(ss.str().c_str());
     }
     engines.insert(std::make_pair(name, context));
+
+    auto alloc = context->getMemAllocator();
+
+    allocator.insert(std::make_pair(name, alloc));
   }
 
 public:
@@ -100,6 +105,12 @@ public:
       throw std::invalid_argument("not registered");
     }
     return engines.at(name);
+  }
+
+  static std::unordered_map<std::string,
+                            std::shared_ptr<nntrainer::MemAllocator>>
+  getAllocators() {
+    return allocator;
   }
 
   /**
@@ -244,6 +255,10 @@ private:
    *
    */
   static inline std::unordered_map<std::string, nntrainer::Context *> engines;
+
+  static inline std::unordered_map<std::string,
+                                   std::shared_ptr<nntrainer::MemAllocator>>
+    allocator;
 
   std::string working_path_base;
 };
