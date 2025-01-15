@@ -28,6 +28,7 @@
 #include <context.h>
 #include <layer.h>
 #include <layer_devel.h>
+#include <mem_allocator.h>
 #include <optimizer.h>
 #include <optimizer_devel.h>
 
@@ -47,6 +48,13 @@ class ContextData {
 public:
   ContextData() = default;
   virtual ~ContextData() = default;
+
+  std::shared_ptr<MemAllocator> getMemAllocator() { return mem_allocator; }
+
+  void setMemAllocator(std::shared_ptr<MemAllocator> m) { mem_allocator = m; }
+
+private:
+  std::shared_ptr<MemAllocator> mem_allocator = nullptr;
 };
 
 /**
@@ -196,6 +204,10 @@ public:
   virtual std::string getName() = 0;
 
   std::shared_ptr<ContextData> getContextData() { return data; }
+
+  std::shared_ptr<MemAllocator> getMemAllocator() {
+    return getContextData()->getMemAllocator();
+  };
 
 private:
   /**
