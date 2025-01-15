@@ -27,6 +27,10 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
+#include <engine.h>
+#include <iostream>
+#include <mem_allocator.h>
+
 namespace nntrainer {
 
 /**
@@ -40,10 +44,10 @@ public:
    *
    */
   explicit MemoryPool() :
-    mem_pool(nullptr),
-    pool_size(0),
-    min_pool_size(0),
-    n_wgrad(0) {}
+    mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
+
+    allocators = Engine(Engine::Global()).getAllocators();
+  }
 
   /**
    * @brief MemoryPool destructor
@@ -199,6 +203,7 @@ private:
   std::vector<unsigned int> getSortedPermutation();
 
   std::vector<size_t> memory_size; /**< various sizes memory requested */
+  std::vector<void *> memory_ptrs; /**< various sizes memory requested */
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
@@ -215,6 +220,9 @@ private:
   size_t min_pool_size; /**< minimum theoretical memory requirement */
 
   size_t n_wgrad;
+
+  std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
+    allocators;
 };
 
 } // namespace nntrainer

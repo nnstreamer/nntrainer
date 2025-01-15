@@ -95,10 +95,18 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
-  mem_pool = calloc(pool_size, 1);
-  if (mem_pool == nullptr)
-    throw std::runtime_error(
-      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+  allocators.at("qnn")->alloc(&mem_pool, pool_size, 1);
+
+  // for( auto &s : memory_size ){
+  //   void* ptr;
+  //   allocators.at("qnn")->alloc(&ptr, s,1);
+  //   memory_ptrs.push_back(ptr);
+  // }
+
+  // mem_pool = calloc(pool_size, 1);
+  // if (mem_pool == nullptr)
+  //   throw std::runtime_error(
+  //     "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
 
 #ifdef PROFILE
   static long long seq = 0;
@@ -118,6 +126,12 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
     throw std::invalid_argument("Getting memory before allocation");
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  // void *ptr;
+  // allocators.at("qnn")->alloc(ptr, memory_size.at(idx-1), 1);
+  // std::cout << idx << " : "<<std::endl;
+  // if(ptr == nullptr)
+  //   std::cout << "alloc failed"<<std::endl;
+
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
 
   return mem_data;
@@ -129,11 +143,12 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
  */
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
-    free(mem_pool);
+    //    free(mem_pool);
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
+    allocators.at("qnn")->free(mem_pool);
     PROFILE_MEM_DEALLOC(mem_pool);
   }
 
