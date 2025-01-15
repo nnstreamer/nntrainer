@@ -32,6 +32,7 @@
 #include <optimizer_devel.h>
 
 #include <context.h>
+#include <mem_allocator.h>
 #include <nntrainer_error.h>
 
 namespace nntrainer {
@@ -45,11 +46,10 @@ namespace {} // namespace
  */
 class AppContext : public Context {
 public:
-
   /**
    * @brief   Default constructor
    */
-  AppContext() = default;
+  AppContext() : Context(std::make_shared<ContextData>()) {}
 
   /**
    * @brief   Default destructor
@@ -62,7 +62,7 @@ public:
    *
    * @return AppContext&
    */
-  AppContext &Global();
+  AppContext &Global() override;
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set
@@ -292,6 +292,10 @@ public:
   }
 
   std::string getName() override { return "cpu"; }
+
+  void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
+    getContextData()->setMemAllocator(mem);
+  }
 
 private:
   FactoryMap<nntrainer::Optimizer, nntrainer::Layer,

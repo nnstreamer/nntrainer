@@ -398,6 +398,8 @@ static void add_extension_object(AppContext &ac) {
 
 static void registerer(AppContext &ac) noexcept {
   try {
+    ac.setMemAllocator(std::make_shared<MemAllocator>());
+
     add_default_object(ac);
     add_extension_object(ac);
   } catch (std::exception &e) {
