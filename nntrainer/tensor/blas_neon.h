@@ -88,6 +88,15 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y);
  * @param[in] Y int8_t * for Vector Y
  */
 void copy_int8(const unsigned int N, const int8_t *X, int8_t *Y);
+
+/**
+ * @brief     copy function with neon: Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X int16_t * for Vector X
+ * @param[in] Y float * for Vector Y
+ */
+void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
+
 /**
  * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
