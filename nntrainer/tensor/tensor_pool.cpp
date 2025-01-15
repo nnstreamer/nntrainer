@@ -112,7 +112,6 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
  */
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
-  // std::cout << name << " start Tensor Pool finalize"<< std::endl;
   mem_pool->clear();
   unsigned int bytes_requested = 0;
   /** if execution order is PERSIST_END_ORDER, then we think it has another
@@ -149,7 +148,6 @@ void TensorPool::finalize(const MemoryPlanner &planner,
         details->exec_order[idx] = PERSIST_END_ORDER - 1;
       }
     }
-
     unsigned int validity_end = validity_start;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
       if (details->exec_order[idx] == PERSIST_END_ORDER) {
@@ -166,7 +164,6 @@ void TensorPool::finalize(const MemoryPlanner &planner,
         validity_end = std::max(validity_end, details->exec_order[idx]);
       }
     }
-
     /**
      * use lifespan to update the validity.
      * if the validity is long term, the tensor must stay valid for the
@@ -232,7 +229,6 @@ void TensorPool::allocate(bool init) {
     return;
   mem_pool->allocate();
 
-  // std::cout << "syncDependents start" << std::endl;
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
     auto details = std::get_if<SourceDetails>(&spec.details);
