@@ -1597,6 +1597,14 @@ void copy_int8_to_fp32(const unsigned int N, const int8_t *X, float *Y) {
   }
 }
 
+void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
+  /// @todo implement int16_t to fp32
+  unsigned int idx = 0;
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 void copy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
   unsigned int idx = 0;
 

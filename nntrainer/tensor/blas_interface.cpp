@@ -979,6 +979,15 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
   }
 }
 
+void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
+#ifdef USE_NEON
+  nntrainer::neon::copy_s16_fp32(N, X, Y);
+#endif
+  for (unsigned int idx = 0; idx < N; ++idx) {
+    Y[idx] = (float)X[idx];
+  }
+}
+
 float snrm2(const int N, const float *X, const int incX) {
 #ifdef USE_BLAS
 #ifdef BLAS_NUM_THREADS
