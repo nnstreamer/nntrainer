@@ -17,6 +17,7 @@
 #include <memory>
 #include <tuple>
 
+#include <common.h>
 #include <tensor.h>
 
 namespace nntrainer {
