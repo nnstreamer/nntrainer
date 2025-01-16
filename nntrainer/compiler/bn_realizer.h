@@ -46,12 +46,13 @@ public:
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
    * @note bn realizer removes batch normalization layers from
-   * GraphRepresentation
-   * @param reference GraphRepresentation to be realized
+   * GraphLayerNodeRepresentation
+   * @param reference GraphLayerNodeRepresentation to be realized
    * @throw std::invalid_argument if graph is ill formed
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 };
 
 } // namespace nntrainer

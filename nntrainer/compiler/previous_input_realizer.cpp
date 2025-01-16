@@ -28,9 +28,9 @@ PreviousInputRealizer::PreviousInputRealizer(
 
 PreviousInputRealizer::~PreviousInputRealizer() {}
 
-GraphRepresentation
-PreviousInputRealizer::realize(const GraphRepresentation &reference) {
-  GraphRepresentation processed(reference.begin(), reference.end());
+GraphLayerNodeRepresentation
+PreviousInputRealizer::realize(const GraphLayerNodeRepresentation &reference) {
+  GraphLayerNodeRepresentation processed(reference.begin(), reference.end());
 
   /**
    * @brief for node has input connection, below function determines if the node

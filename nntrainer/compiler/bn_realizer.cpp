@@ -24,7 +24,8 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-GraphRepresentation BnRealizer::realize(const GraphRepresentation &reference) {
+GraphLayerNodeRepresentation
+BnRealizer::realize(const GraphLayerNodeRepresentation &reference) {
   std::unordered_map<std::string, LayerNode *> existing_nodes;
   std::vector<LayerNode *> bn_layers;
 
@@ -64,7 +65,7 @@ GraphRepresentation BnRealizer::realize(const GraphRepresentation &reference) {
     }
   }
 
-  GraphRepresentation processed;
+  GraphLayerNodeRepresentation processed;
   for (auto &node : reference) {
     if (!istrequal(node->getType(), "batch_normalization")) {
       processed.push_back(node);

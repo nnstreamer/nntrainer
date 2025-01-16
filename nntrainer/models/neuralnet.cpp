@@ -171,7 +171,7 @@ int NeuralNetwork::compile(ExecutionMode mode) {
   realizers.emplace_back(new ActivationRealizer());
 
   for (auto &realizer : realizers) {
-    graph_representation = realizer->realize(graph_representation);
+    graph_ln_representation = realizer->realize(graph_ln_representation);
   }
 
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
@@ -191,7 +191,7 @@ int NeuralNetwork::compile(ExecutionMode mode) {
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
-  for (auto &node : graph_representation) {
+  for (auto &node : graph_ln_representation) {
     if (auto &prop = std::get<props::ClipGradByGlobalNorm>(model_props);
         !prop.empty()) {
       node->setProperty({"clip_grad_by_norm=" + to_string(prop)});
@@ -602,7 +602,7 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
   wrapper.save_ini(file_path);
 
   IniGraphInterpreter interpreter;
-  interpreter.serialize(graph_representation, file_path);
+  interpreter.serialize(graph_ln_representation, file_path);
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -1105,7 +1105,7 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     swap(lhs.data_buffers, rhs.data_buffers);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);
-    swap(lhs.graph_representation, rhs.graph_representation);
+    swap(lhs.graph_ln_representation, rhs.graph_ln_representation);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
   }
@@ -1120,7 +1120,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
 
   /** Insert the layer to the graph */
   model_graph.addLayer(layer);
-  graph_representation.push_back(layer);
+  graph_ln_representation.push_back(layer);
 
   return status;
 }
@@ -1467,7 +1467,7 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     model_graph.deallocateTensors();
     model_graph.allocateTensors(ExecutionMode::INFERENCE);
     model_graph.setBatchSize(1); // For now, to inference batch size to be 1
-    interpreter.serialize(graph_representation, file_path);
+    interpreter.serialize(graph_ln_representation, file_path);
     model_graph.deallocateTensors();
 #else
     throw std::runtime_error{
