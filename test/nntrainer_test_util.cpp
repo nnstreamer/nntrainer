@@ -236,10 +236,10 @@ getResPath(const std::string &filename,
   return res_path.string();
 }
 
-nntrainer::GraphRepresentation
+nntrainer::GraphLayerNodeRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   static auto &ac = nntrainer::AppContext::Global();
-  nntrainer::GraphRepresentation graph_rep;
+  nntrainer::GraphLayerNodeRepresentation graph_rep;
 
   for (const auto &layer_representation : layer_reps) {
     /// @todo Use unique_ptr here
@@ -252,13 +252,13 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   return graph_rep;
 }
 
-nntrainer::GraphRepresentation makeCompiledGraph(
+nntrainer::GraphLayerNodeRepresentation makeCompiledGraph(
   const std::vector<LayerRepresentation> &layer_reps,
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers,
   const std::string &loss_layer) {
   static auto &ac = nntrainer::AppContext::Global();
 
-  nntrainer::GraphRepresentation graph_rep;
+  nntrainer::GraphLayerNodeRepresentation graph_rep;
   auto model_graph = nntrainer::NetworkGraph();
 
   for (auto &layer_representation : layer_reps) {
