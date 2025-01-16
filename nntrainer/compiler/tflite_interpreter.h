@@ -40,13 +40,13 @@ public:
   /**
    * @copydoc GraphInterpreter::serialize(const std::string &out)
    */
-  void serialize(const GraphRepresentation &representation,
+  void serialize(const GraphLayerNodeRepresentation &representation,
                  const std::string &out) override;
 
   /**
    * @copydoc GraphInterpreter::deserialize(const std::string &in)
    */
-  GraphRepresentation deserialize(const std::string &in) override;
+  GraphLayerNodeRepresentation deserialize(const std::string &in) override;
 
 private:
   AppContext app_context;

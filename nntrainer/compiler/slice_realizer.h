@@ -48,10 +48,12 @@ public:
    * @brief graph realizer creates a new graph based on the reference
    * @note for each layer in start_layers, start dfs, if traversal meets an end
    * layers, node is added to an ordered set.
-   * @throw std::invalid_argument if created GraphRepresentation is empty
+   * @throw std::invalid_argument if created GraphLayerNodeRepresentation is
+   * empty
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 
 private:
   std::vector<std::string> start_layers;

@@ -23,9 +23,9 @@ namespace nntrainer {
 
 ActivationRealizer::~ActivationRealizer() {}
 
-GraphRepresentation
-ActivationRealizer::realize(const GraphRepresentation &reference) {
-  GraphRepresentation processed;
+GraphLayerNodeRepresentation
+ActivationRealizer::realize(const GraphLayerNodeRepresentation &reference) {
+  GraphLayerNodeRepresentation processed;
   processed.reserve(reference.size());
 
   std::unordered_map<std::string /**< layer_name */,
@@ -73,15 +73,13 @@ ActivationRealizer::realize(const GraphRepresentation &reference) {
       if (auto iter = remap_table.find(name); iter != remap_table.end()) {
         name = iter->second;
       }
-    })
-      .realize(processed);
+    }).realize(processed);
   processed =
     RemapRealizer([&recovery_table](std::string &name, unsigned &idx) {
       if (auto iter = recovery_table.find(name); iter != recovery_table.end()) {
         name = iter->second;
       }
-    })
-      .realize(processed);
+    }).realize(processed);
 
   return processed;
 }

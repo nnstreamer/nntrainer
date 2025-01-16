@@ -43,7 +43,7 @@ auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
  */
 class nntrainerInterpreterTest
   : public ::testing::TestWithParam<
-      std::tuple<nntrainer::GraphRepresentation, const char *,
+      std::tuple<nntrainer::GraphLayerNodeRepresentation, const char *,
                  std::shared_ptr<nntrainer::GraphInterpreter>>> {
 
 protected:
@@ -55,7 +55,7 @@ protected:
     interpreter = std::move(std::get<2>(params));
   }
 
-  nntrainer::GraphRepresentation reference;
+  nntrainer::GraphLayerNodeRepresentation reference;
   std::shared_ptr<nntrainer::GraphInterpreter> interpreter;
   std::string file_path;
 };
@@ -123,9 +123,9 @@ auto flatten = LayerRepresentation("flatten", {"name=flat"});
 /**
  * @brief make ini test case from given parameter
  */
-static std::tuple<nntrainer::GraphRepresentation, const char *,
+static std::tuple<nntrainer::GraphLayerNodeRepresentation, const char *,
                   std::shared_ptr<nntrainer::GraphInterpreter>>
-mkTc(nntrainer::GraphRepresentation graph, const char *file,
+mkTc(nntrainer::GraphLayerNodeRepresentation graph, const char *file,
      std::shared_ptr<nntrainer::GraphInterpreter> interpreter) {
   return std::make_tuple(graph, file, interpreter);
 }
