@@ -989,13 +989,18 @@ void scopy_s8_to_float32(const unsigned int N, const int8_t *X, const int incX,
   }
 }
 
+static inline void copy_s16_fp32_fallback(const unsigned int N,
+                                          const int16_t *X, float *Y) {
+  for (unsigned int idx = 0; idx < N; ++idx) {
+    Y[idx] = (float)X[idx];
+  }
+}
+
 void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
 #ifdef USE_NEON
   nntrainer::neon::copy_s16_fp32(N, X, Y);
 #else
-  for (unsigned int idx = 0; idx < N; ++idx) {
-    Y[idx] = (float)X[idx];
-  }
+  copy_s16_fp32_fallback(N, X, Y);
 #endif
 }
 
