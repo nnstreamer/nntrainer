@@ -46,7 +46,8 @@ public:
    * @brief graph realizer creates a new graph based on the reference
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 
 private:
   std::vector<Connection> identified_inputs; /**< inputs are identified */

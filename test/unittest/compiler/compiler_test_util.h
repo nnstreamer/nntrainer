@@ -37,7 +37,7 @@ const std::string compilerPathResolver(const std::string &path);
  * @retval true graph is equal
  * @retval false graph is not equal
  */
-void graphEqual(const nntrainer::GraphRepresentation &lhs,
-                const nntrainer::GraphRepresentation &rhs);
+void graphEqual(const nntrainer::GraphLayerNodeRepresentation &lhs,
+                const nntrainer::GraphLayerNodeRepresentation &rhs);
 
 #endif // __COMPILER_TEST_UTIL_H__
