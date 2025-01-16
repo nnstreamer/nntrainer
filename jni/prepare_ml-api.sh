@@ -13,7 +13,7 @@
 set -e
 TARGET=$1
 # Note: zip name can be nnstreamer-native-*.zip but this file is heavier to download
-FILE_PREFIX=nnstreamer-lite-native-$(date +"%Y-%m-%d")
+FILE_PREFIX=nnstreamer-lite-native
 ZIP_NAME=${FILE_PREFIX}.zip
 URL="https://nnstreamer-release.s3-ap-northeast-2.amazonaws.com/nnstreamer/latest/android/"
 
@@ -26,7 +26,7 @@ pushd ${TARGET}
 function _download_ml_api {
   [ -f $ZIP_NAME ] && echo "${ZIP_NAME} exists, skip downloading" && return 0
   echo "[ml_api] downloading ${ZIP_NAME}\n"
-  if ! wget -r -l1 -nH --cut-dirs=6 ${URL}${ZIP_NAME} -O ${ZIP_NAME} ; then
+  if ! wget -r -l1 -nH --cut-dirs=3 ${URL}${ZIP_NAME} -O ${ZIP_NAME} ; then
     echo "[ml_api] Download failed, please check url\n"
     exit $?
   fi
