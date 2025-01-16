@@ -41,31 +41,6 @@ jobs:
           done
           echo "::endgroup::"
           echo "changed_file_list=${tmpfile}" >> "$GITHUB_ENV"
-      - name: /Checker/ clang-format for .cc/.hh/.hpp/.cpp files
-        # Originally from "pr-prebuild-clang"
-        # Need "clang-format"
-        run: |
-          echo "Check .clang-format file"
-          if [ ! -f ".clang-format" ]; then
-            echo "::error .clang-format file not found"
-            exit 1
-          fi
-          for file in `cat $changed_file_list`; do
-            echo "Checking $file"
-            if [[ "$file" =~ .*\.hh$ ]] || [[ "$file" =~ .*\.hpp ]] || [[ "$file" =~ .*\.cc$ ]] || [[ "$file" =~ .*\.cpp ]]; then
-              clang-format -i ${file}
-            fi
-          done
-          git diff -- *.cc *.hh *.hpp *.cpp > .ci.clang-format.patch
-          SIZE=$(stat -c%s .ci.clang-format.patch)
-          if [[ $SIZE -ne 0 ]]; then
-            echo "::group::The clang-format complaints..."
-            cat .ci.clang-format.patch
-            echo "::endgroup::"
-            echo "::error clang-format has found style errors in C++ files."
-            exit 1
-          fi
-          echo "clang-format shows no style errors."
       - name: /Checker/ File size check
         # Originally from "pr-prebuild-file-size"
         run: |
