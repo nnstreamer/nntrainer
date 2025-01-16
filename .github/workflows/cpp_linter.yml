@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   cpp-linter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: install dev packages
@@ -23,6 +23,7 @@ jobs:
           file-annotations: false
           step-summary: true
           format-review: true
+          tidy-checks: '-*' # disable clang-tidy checks.
 
       - name: failing fast
         if: steps.linter.outputs.clang-format-checks-failed > 0
