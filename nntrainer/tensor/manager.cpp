@@ -179,7 +179,6 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
   }
 
   const auto name = scope + ":" + spec.name;
-
   if (enum_class_or(spec.ls, LS::FORWARD_FUNC_LIFESPAN) == spec.ls) {
     order.push_back(forward);
   }
@@ -225,9 +224,11 @@ Var_Grad *Manager::requestTensor(const VarGradSpecV2 &spec,
     << "Currently, input and tensors group type is not yet implemented, use "
        "requestInputs() requestTensors() instead";
 
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
+
   Tensor *var = requestTensor_(spec.variable_spec, exec_order, scope,
                                tensor_pool, expose_var, false);
-  Tensor *grad = spec.gradient_spec
+  Tensor *grad = (spec.gradient_spec && is_train_mode)
                    ? requestTensor_(*spec.gradient_spec, exec_order, scope,
                                     tensor_pool, expose_grad, false)
                    : nullptr;
@@ -547,6 +548,7 @@ std::vector<Var_Grad *> Manager::requestTensors(
     bool is_dependent = !shared_names.empty();
     Tensor *var = nullptr, *grad = nullptr;
     if (is_dependent) {
+      std::cout << "is_dependent " << std::endl;
       const auto &shared_name = shared_names.at(i);
       var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
                                         t_init);
@@ -557,8 +559,8 @@ std::vector<Var_Grad *> Manager::requestTensors(
       }
     } else {
       var = tensor_pool.request(name, dim, var_exec_order, tspan, t_init);
-
-      if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
+      if (is_train_mode && need_grad &&
+          tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
         grad = tensor_pool.request(name + Var_Grad::grad_suffix, /// name
                                    dim, grad_exec_order, tspan,
                                    Initializer::ZEROS /// tensor initializer
@@ -606,6 +608,7 @@ Manager::requestInputs(const GraphNode &node,
 
   std::vector<Var_Grad *> ret;
   size_t current_size = inputs_v2.size();
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
 
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
     TensorSpecV2 var_spec = var_common_spec, grad_spec = grad_common_spec;
@@ -631,12 +634,13 @@ Manager::requestInputs(const GraphNode &node,
       grad_spec.request_type = RT::PLACEHOLDER;
 #endif
     }
-
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
                      tensor_pool, false, node.getTrainable()),
-      requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
-                     tensor_pool, false, node.getTrainable())));
+      is_train_mode
+        ? requestTensor_(grad_spec, node.getExecutionOrder(), node.getName(),
+                         tensor_pool, false, node.getTrainable())
+        : nullptr));
   }
 
   ret.reserve(inputs_dim.size());
