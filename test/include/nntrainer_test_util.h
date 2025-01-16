@@ -291,9 +291,10 @@ using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
  * @brief make graph of a representation
  *
  * @param layer_reps layer representation (pair of type, properties)
- * @return nntrainer::GraphRepresentation synthesized graph representation
+ * @return nntrainer::GraphLayerNodeRepresentation synthesized graph
+ * representation
  */
-nntrainer::GraphRepresentation
+nntrainer::GraphLayerNodeRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps);
 
 /**
@@ -302,9 +303,10 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps);
  * @param layer_reps layer representation (pair of type, properties)
  * @param realizers GraphRealizers to modify graph before compile
  * @param loss_layer loss layer to compile with
- * @return nntrainer::GraphRepresentation synthesized graph representation
+ * @return nntrainer::GraphLayerNodeRepresentation synthesized graph
+ * representation
  */
-nntrainer::GraphRepresentation makeCompiledGraph(
+nntrainer::GraphLayerNodeRepresentation makeCompiledGraph(
   const std::vector<LayerRepresentation> &layer_reps,
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> &realizers,
   const std::string &loss_layer = "");
