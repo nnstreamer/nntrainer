@@ -37,14 +37,12 @@ SliceRealizer::SliceRealizer(const std::vector<Connection> &start_layers,
 
 SliceRealizer::~SliceRealizer() {}
 
-GraphRepresentation
-SliceRealizer::realize(const GraphRepresentation &reference) {
+GraphLayerNodeRepresentation
+SliceRealizer::realize(const GraphLayerNodeRepresentation &reference) {
   struct NodeInfo {
     NodeInfo() : NodeInfo(nullptr) {}
     NodeInfo(std::shared_ptr<LayerNode> node) :
-      node(node),
-      is_visited(false),
-      to_be_added(false) {}
+      node(node), is_visited(false), to_be_added(false) {}
     std::shared_ptr<LayerNode> node; /**< set this if not visited */
     bool is_visited;                 /**< set this if visited */
     bool to_be_added;                /**< set this if it is to be added */
@@ -148,7 +146,7 @@ SliceRealizer::realize(const GraphRepresentation &reference) {
   }
 
   /** created the subgraph */
-  GraphRepresentation subgraph;
+  GraphLayerNodeRepresentation subgraph;
   /** @note: iterate over reference than over mp to ensure the correct ordering
    * of layers */
   for (auto &node : reference) {

@@ -45,8 +45,8 @@ void TfOpNode::setLayerNode(const LayerNode &layer) {
    *  @note this is workaround because it cannot be guaranteed that a loss layer
    *always has a loss type in its name.
    *
-   *  There are two ways to pass `GraphRepresentation` parameters to `serialize`
-   *method.
+   *  There are two ways to pass `GraphLayerNodeRepresentation` parameters to
+   *`serialize` method.
    *
    *  1. with loss layer at the end of the graph
    *  2. without loss layer but last node has loss layer output connection

@@ -210,7 +210,7 @@ referenced
  * @return std::vector<std::shared_ptr<Layer>> mergeable graph
  */
 // std::vector<std::shared_ptr<LayerNode>>
-// getMergeableGraph(const GraphRepresentation& graph,
+// getMergeableGraph(const GraphLayerNodeRepresentation& graph,
 //                   dictionary *ini, const std::string &sec_name) {
 //   std::string input_layer =
 //     iniparser_getstring(ini, (sec_name + ":InputLayer").c_str(), "");
@@ -263,8 +263,8 @@ referenced
 
 } // namespace
 
-void IniGraphInterpreter::serialize(const GraphRepresentation &representation,
-                                    const std::string &out) {
+void IniGraphInterpreter::serialize(
+  const GraphLayerNodeRepresentation &representation, const std::string &out) {
 
   std::vector<IniSection> sections;
   for (auto iter = representation.cbegin(); iter != representation.cend();
@@ -281,7 +281,8 @@ void IniGraphInterpreter::serialize(const GraphRepresentation &representation,
   ini.save_ini(out);
 }
 
-GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
+GraphLayerNodeRepresentation
+IniGraphInterpreter::deserialize(const std::string &in) {
   NNTR_THROW_IF(in.empty(), std::invalid_argument)
     << FUNC_TAG << "given in file is empty";
 
@@ -298,7 +299,7 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
   NNTR_THROW_IF_CLEANUP(num_ini_sec < 0, std::invalid_argument, freedict)
     << FUNC_TAG << "invalid number of sections.";
 
-  GraphRepresentation graph;
+  GraphLayerNodeRepresentation graph;
 
   try {
     ml_logi("==========================parsing ini...");
