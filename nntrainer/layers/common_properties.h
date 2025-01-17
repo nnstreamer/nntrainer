@@ -986,12 +986,12 @@ public:
 
 /**
  * @brief Subgraph name, where the layer belongs to, with a default value
- * `default_graph`
+ * `default`
  */
-class GraphName : public Name {
+class SubGraphName : public Name {
 public:
-  GraphName(const std::string &value = "default") : Name(value) {}
-  static constexpr const char *key = "graph_scope";
+  SubGraphName(const std::string &value = "default") : Name(value) {}
+  static constexpr const char *key = "subgraph_name";
   using prop_tag = str_prop_tag;
 };
 

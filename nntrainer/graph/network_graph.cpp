@@ -126,17 +126,17 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   if (compiled)
     throw std::runtime_error("Cannot modify graph after compile");
 
-  const std::string &graph_name = layer->getGraphName();
-  // create the new subgraph with graph_name
-  if (!graph.verifyNode(graph_name)) {
+  const std::string &subgraph_name = layer->getSubGraphName();
+  // create the new subgraph with subgraph_name
+  if (!graph.verifyNode(subgraph_name)) {
     /// @todo choose SubGraph type based on the layer compute_engine
     //        Based on the property, SubGraphNode type should be changed
     auto sg = std::make_shared<SubGraphCpu>(
       tensor_manager, exec_mode, lookahead, tensor_format, tensor_dtype_str);
-    sg->setName(graph_name);
+    sg->setName(subgraph_name);
     graph.addNode(SGNODE(sg));
   }
-  SGNODE(graph.getNode(graph_name))->addLayer(layer);
+  SGNODE(graph.getNode(subgraph_name))->addLayer(layer);
 }
 
 std::vector<Var_Grad *>
