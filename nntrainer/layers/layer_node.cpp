@@ -222,7 +222,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer_node_props(new PropsType(
     props::Name(), props::Distribute(), props::Trainable(), {}, {},
     props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed(),
-    props::LossScaleForMixed(), props::ComputeEngine(), props::GraphName())),
+    props::LossScaleForMixed(), props::ComputeEngine(), props::SubGraphName())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -317,8 +317,8 @@ const std::string LayerNode::getName() const noexcept {
   return name.empty() ? "" : name.get();
 }
 
-const std::string LayerNode::getGraphName() const noexcept {
-  auto &graph_name = std::get<props::GraphName>(*layer_node_props);
+const std::string LayerNode::getSubGraphName() const noexcept {
+  auto &graph_name = std::get<props::SubGraphName>(*layer_node_props);
   return graph_name.empty() ? std::string("default") : graph_name.get();
 }
 
