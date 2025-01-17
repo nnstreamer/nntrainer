@@ -11,7 +11,8 @@
  * @bug	   No known bugs except for NYI items
  *
  */
-#include <dirent.h>
+
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -421,14 +422,11 @@ AppContext &AppContext::Global() {
 }
 
 void AppContext::setWorkingDirectory(const std::string &base) {
-  DIR *dir = opendir(base.c_str());
-
-  if (!dir) {
+  if (!std::filesystem::is_directory(base)) {
     std::stringstream ss;
     ss << func_tag << "path is not directory or has no permission: " << base;
     throw std::invalid_argument(ss.str().c_str());
   }
-  closedir(dir);
 
   char *ret = getRealpath(base.c_str(), nullptr);
 
@@ -576,39 +574,34 @@ int AppContext::registerOptimizer(const std::string &library_path,
 
 std::vector<int>
 AppContext::registerPluggableFromDirectory(const std::string &base_path) {
-  DIR *dir = opendir(base_path.c_str());
+  const auto directory_exist = std::filesystem::is_directory(base_path);
 
-  NNTR_THROW_IF(dir == nullptr, std::invalid_argument)
+  NNTR_THROW_IF(!directory_exist, std::invalid_argument)
     << func_tag << "failed to open the directory: " << base_path;
 
-  struct dirent *entry;
+  std::vector<int> keys = {};
 
-  std::vector<int> keys;
+  for (const auto &entry : std::filesystem::directory_iterator(base_path)) {
+    const auto &entry_name = entry.path().string();
 
-  while ((entry = readdir(dir)) != NULL) {
-    if (endswith(entry->d_name, solib_suffix)) {
-      if (endswith(entry->d_name, layerlib_suffix)) {
+    if (endswith(entry_name, solib_suffix)) {
+      if (endswith(entry_name, layerlib_suffix)) {
         try {
-          int key = registerLayer(entry->d_name, base_path);
+          int key = registerLayer(entry_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
-          closedir(dir);
           throw;
         }
-      } else if (endswith(entry->d_name, optimizerlib_suffix)) {
+      } else if (endswith(entry_name, optimizerlib_suffix)) {
         try {
-          int key = registerOptimizer(entry->d_name, base_path);
+          int key = registerOptimizer(entry_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
-          closedir(dir);
           throw;
         }
       }
     }
   }
-
-  if (dir != NULL)
-    closedir(dir);
 
   return keys;
 }
