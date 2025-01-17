@@ -54,7 +54,7 @@ class ClipGradByGlobalNorm;
 class Packed;
 class LossScaleForMixed;
 class ComputeEngine;
-class GraphName;
+class SubGraphName;
 } // namespace props
 
 /**
@@ -124,7 +124,7 @@ public:
   /**
    * @brief getter of graph name, where the layer node belongs to
    */
-  const std::string getGraphName() const noexcept;
+  const std::string getSubGraphName() const noexcept;
 
   /**
    * @brief     set weight and activation data type of layer
@@ -1018,7 +1018,7 @@ properties in the context/graph unless intended. */
     props::Name, props::Distribute, props::Trainable,
     std::vector<props::InputConnection>, std::vector<props::InputShape>,
     props::SharedFrom, props::ClipGradByGlobalNorm, props::Packed,
-    props::LossScaleForMixed, props::ComputeEngine, props::GraphName>;
+    props::LossScaleForMixed, props::ComputeEngine, props::SubGraphName>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence
