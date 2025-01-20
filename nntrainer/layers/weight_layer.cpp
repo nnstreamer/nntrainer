@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <tensor_wrap_specs.h>
 #include <util_func.h>
 #include <weight_layer.h>
 
@@ -25,13 +26,12 @@
 
 namespace nntrainer {
 
-static constexpr size_t SINGLE_INOUT_IDX = 0;
-
-WeightLayer::WeightLayer() : LayerImpl() {
-  weight_idx.fill(std::numeric_limits<unsigned>::max());
-}
+WeightLayer::WeightLayer() : LayerImpl(), weight_props({}, {}, {}) {}
 
 void WeightLayer::finalize(InitLayerContext &context) {
+  auto &dims = std::get<std::vector<props::TensorDimension>>(weight_props);
+  std::vector<TensorDim> t_dims(dims.begin(), dims.end());
+
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =
@@ -40,20 +40,41 @@ void WeightLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightInitializer>(*layer_impl_props);
   auto &weight_decay = std::get<props::WeightDecay>(*layer_impl_props);
 
-  const auto &weight_dim = std::get<props::TensorDimension>(weight_props).get();
+  auto &t_dtype = std::get<std::vector<props::TensorDataType>>(weight_props);
+  auto &t_name = std::get<std::vector<props::WeightName>>(weight_props);
 
-  std::vector<TensorDim> output_dims(1);
+  NNTR_THROW_IF(!t_dims.size(), std::invalid_argument)
+    << "Weight dimension is not provided.";
+  n_weight = t_dims.size();
 
-  output_dims[0] = weight_dim;
+  if (!t_dtype.size()) {
 
-  output_dims[0].setTensorType(
-    {context.getFormat(), context.getActivationDataType()});
+    ml_logi("Set Weight Data Type provided by network");
+    t_dtype.reserve(t_dims.size());
+    for (auto t : t_dims)
+      t_dtype.push_back(context.getWeightDataType());
+  }
+  auto engine = context.getComputeEngineType();
 
-  context.setOutputDimensions(output_dims);
+  NNTR_THROW_IF(t_dims.size() != t_dtype.size(), std::invalid_argument)
+    << "Size of Dimension, Types must be same!";
 
-  weight_idx[0] = context.requestWeight(
-    weight_dim, weight_initializer, weight_regularizer,
-    weight_regularizer_constant, weight_decay, "weight", true);
+  weight_idx.reserve(t_dims.size());
+
+  for (unsigned int i = 0; i < t_dims.size(); ++i) {
+    t_dims[i].setFormat(context.getFormat());
+    t_dims[i].setDataType(t_dtype[i]);
+    std::string name = context.getName() + "_w" + std::to_string(i);
+
+    if (!t_name.empty())
+      name = t_name[i];
+
+    weight_idx.push_back(context.requestWeight(
+      t_dims[i], weight_initializer, weight_regularizer,
+      weight_regularizer_constant, weight_decay, name, true));
+  }
+
+  context.setOutputDimensions(t_dims);
 }
 
 void WeightLayer::exportTo(Exporter &exporter,
@@ -68,9 +89,13 @@ void WeightLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void WeightLayer::forwarding(RunLayerContext &context, bool training) {
-  Tensor &weight = context.getWeight(weight_idx[0]);
-  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  output.copy(weight);
+  if (!context.getInPlace()) {
+    for (unsigned int i = 0; i < n_weight; ++i) {
+      Tensor &input_ = context.getWeight(i);
+      Tensor &output_ = context.getOutput(i);
+      output_.copy(input_);
+    }
+  }
 }
 
 void WeightLayer::calcDerivative(RunLayerContext &context) {
@@ -79,9 +104,11 @@ void WeightLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void WeightLayer::calcGradient(RunLayerContext &context) {
-  Tensor &djdw = context.getWeightGrad(weight_idx[0]);
-  const Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  djdw.copy(derivative_);
+  for (unsigned int i = 0; i < n_weight; ++i) {
+    Tensor &djdw = context.getWeightGrad(i);
+    const Tensor &derivative_ = context.getIncomingDerivative(i);
+    djdw.copy(derivative_);
+  }
 }
 
 } /* namespace nntrainer */
