@@ -982,10 +982,21 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
 void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
 #ifdef USE_NEON
   nntrainer::neon::copy_s16_fp32(N, X, Y);
-#endif
+#else
   for (unsigned int idx = 0; idx < N; ++idx) {
     Y[idx] = (float)X[idx];
   }
+#endif
+}
+
+void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
+#ifdef USE_NEON
+  nntrainer::neon::copy_s16(N, X, Y);
+#else
+  for (unsigned int idx = 0; idx < N; ++idx) {
+    Y[idx] = X[idx];
+  }
+#endif
 }
 
 float snrm2(const int N, const float *X, const int incX) {
