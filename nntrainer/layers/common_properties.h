@@ -1586,6 +1586,65 @@ public:
   using prop_tag = ptr_prop_tag;
 };
 
+/**
+ * @brief Enumeration of Tensor Life Spacn
+ */
+struct TensorLifeInfo {
+  using Enum = nntrainer::TensorLifespan;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::UNMANAGED,
+    Enum::FORWARD_FUNC_LIFESPAN,
+    Enum::CALC_DERIV_LIFESPAN,
+    Enum::CALC_GRAD_LIFESPAN,
+    Enum::CALC_AGRAD_LIFESPAN,
+    Enum::CALC_GRAD_DERIV_LIFESPAN,
+    Enum::CALC_GRAD_DERIV_AGRAD_LIFESPAN,
+    Enum::FORWARD_GRAD_LIFESPAN,
+    Enum::FORWARD_GRAD_AGRAD_LIFESPAN,
+    Enum::FORWARD_DERIV_LIFESPAN,
+    Enum::BACKWARD_FUNC_LIFESPAN,
+    Enum::CALC_GRAD_DERIV_AGRAD_LIFESPAN,
+    Enum::ITERATION_LIFESPAN,
+    Enum::EPOCH_LIFESPAN,
+    Enum::FORWARD_INFER_LIFESPAN,
+    Enum::MAX_LIFESPAN};
+
+  static constexpr const char *EnumStr[] = {"unmanaged",
+                                            "forward",
+                                            "deriv",
+                                            "grad",
+                                            "agrad",
+                                            "grad_deriv",
+                                            "grad_deriv_agrad",
+                                            "forward_grad",
+                                            "forward_grad_agrad",
+                                            "forward_deriv",
+                                            "backward",
+                                            "grad_deriv_agrad",
+                                            "iteration",
+                                            "epoch",
+                                            "forward_infer",
+                                            "max"};
+};
+
+/**
+ * @brief TensorLifeSpacn, return TensorLifespan
+ *
+ */
+class TensorLife : public EnumProperty<TensorLifeInfo> {
+public:
+  static constexpr const char *key = "tensor_life"; /**< unique key to access */
+  using prop_tag = enum_class_prop_tag;             /**< property type */
+
+  /**
+   * @brief Construct a new ReturnAttentionWeight object
+   *
+   */
+  TensorLife(TensorLifeInfo::Enum value = TensorLifeInfo::Enum::MAX_LIFESPAN) {
+    set(value);
+  };
+};
+
 } // namespace props
 } // namespace nntrainer
 
