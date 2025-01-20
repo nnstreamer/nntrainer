@@ -13,15 +13,15 @@
 
 #include "opencl_loader.h"
 
-#include <dlfcn.h>
-
+#include <dynamic_library_loader.h>
 #include <nntrainer_log.h>
 #include <string>
 
 namespace nntrainer::opencl {
 
-#define LoadFunction(function) \
-  function = reinterpret_cast<PFN_##function>(dlsym(libopencl, #function));
+#define LoadFunction(function)                 \
+  function = reinterpret_cast<PFN_##function>( \
+    DynamicLibraryLoader::loadSymbol(libopencl, #function));
 
 /**
  * @brief Declaration of loading function for OpenCL APIs
@@ -46,7 +46,8 @@ bool LoadOpenCL() {
   void *libopencl = nullptr;
   static const char *kClLibName = "libOpenCL.so";
 
-  libopencl = dlopen(kClLibName, RTLD_NOW | RTLD_LOCAL);
+  libopencl =
+    DynamicLibraryLoader::loadLibrary(kClLibName, RTLD_NOW | RTLD_LOCAL);
   if (libopencl) {
     LoadOpenCLFunctions(libopencl);
     open_cl_initialized = true;
@@ -54,7 +55,7 @@ bool LoadOpenCL() {
   }
 
   // record error
-  std::string error(dlerror());
+  std::string error(DynamicLibraryLoader::getLastError());
   ml_loge("Can not open OpenCL library on this device - %s", error.c_str());
   return false;
 }

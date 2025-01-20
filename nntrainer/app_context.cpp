@@ -12,7 +12,6 @@
  *
  */
 #include <dirent.h>
-#include <dlfcn.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -46,6 +45,7 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <divide_layer.h>
 #include <dropout.h>
+#include <dynamic_library_loader.h>
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
@@ -495,18 +495,19 @@ int AppContext::registerLayer(const std::string &library_path,
                               const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
-  void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
-  const char *error_msg = dlerror();
+  void *handle = DynamicLibraryLoader::loadLibrary(full_path.c_str(),
+                                                   RTLD_LAZY | RTLD_LOCAL);
+  const char *error_msg = DynamicLibraryLoader::getLastError();
 
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
 
   nntrainer::LayerPluggable *pluggable =
     reinterpret_cast<nntrainer::LayerPluggable *>(
-      dlsym(handle, "ml_train_layer_pluggable"));
+      DynamicLibraryLoader::loadSymbol(handle, "ml_train_layer_pluggable"));
 
-  error_msg = dlerror();
-  auto close_dl = [handle] { dlclose(handle); };
+  error_msg = DynamicLibraryLoader::getLastError();
+  auto close_dl = [handle] { DynamicLibraryLoader::freeLibrary(handle); };
   NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
                         std::invalid_argument, close_dl)
     << func_tag << "loading symbol failed, reason: " << error_msg;
@@ -534,18 +535,19 @@ int AppContext::registerOptimizer(const std::string &library_path,
                                   const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
-  void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
-  const char *error_msg = dlerror();
+  void *handle = DynamicLibraryLoader::loadLibrary(full_path.c_str(),
+                                                   RTLD_LAZY | RTLD_LOCAL);
+  const char *error_msg = DynamicLibraryLoader::getLastError();
 
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
 
   nntrainer::OptimizerPluggable *pluggable =
     reinterpret_cast<nntrainer::OptimizerPluggable *>(
-      dlsym(handle, "ml_train_optimizer_pluggable"));
+      DynamicLibraryLoader::loadSymbol(handle, "ml_train_optimizer_pluggable"));
 
-  error_msg = dlerror();
-  auto close_dl = [handle] { dlclose(handle); };
+  error_msg = DynamicLibraryLoader::getLastError();
+  auto close_dl = [handle] { DynamicLibraryLoader::freeLibrary(handle); };
   NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
                         std::invalid_argument, close_dl)
     << func_tag << "loading symbol failed, reason: " << error_msg;
