@@ -139,8 +139,8 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
 
   nntrainer::TfliteInterpreter interpreter;
 
-  ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+  ModelHandle nn_model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   nn_model->addLayer(createLayer(
     "input", {withKey("name", "in0"), withKey("input_shape", "1:1:1:1")}));
@@ -149,10 +149,10 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   nn_model->addLayer(createLayer("fully_connected",
                                  {withKey("name", "fc1"), withKey("unit", 1)}));
 
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->compile(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
 
   data_clear();
   unsigned int data_size = 1 * 1 * 1 * 1;
@@ -166,7 +166,7 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   }
 
   in_f.push_back(nntr_input);
-  auto answer_f = nn_model->inference(1, in_f, l_f);
+  auto answer_f = nn_model->inference(1, in_f);
   for (auto element : answer_f) {
     ans.push_back(*element);
   }
@@ -273,17 +273,17 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
 
   nntrainer::NetworkGraph ng;
 
-  ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+  ModelHandle nn_model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   for (auto &node : g) {
     nn_model->addLayer(node);
   }
 
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->compile(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
 
   data_clear();
   unsigned int data_size = 1 * 1 * 1 * 1;
@@ -297,7 +297,7 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
   }
   in_f.push_back(nntr_input);
 
-  auto answer_f = nn_model->inference(1, in_f, l_f);
+  auto answer_f = nn_model->inference(1, in_f);
   for (auto element : answer_f) {
     ans.push_back(*element);
   }
@@ -327,8 +327,8 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
 
   nntrainer::TfliteInterpreter interpreter;
 
-  ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+  ModelHandle nn_model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   nn_model->setProperty({withKey("memory_optimization", "false")});
 
   nn_model->addLayer(createLayer(
@@ -363,10 +363,10 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
   nn_model->addLayer(createLayer(
     "fully_connected", {withKey("name", "fc0"), withKey("unit", 10)}));
 
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
-  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->compile(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(ml::train::ExecutionMode::INFERENCE),
+            ML_ERROR_NONE);
 
   data_clear();
   unsigned int data_size = 1 * 1 * 28 * 28;
@@ -380,7 +380,7 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
   }
 
   in_f.push_back(nntr_input);
-  auto answer_f = nn_model->inference(1, in_f, l_f);
+  auto answer_f = nn_model->inference(1, in_f);
   std::cout << "answer_length" << answer_f.size() << "\n";
   for (auto element : answer_f) {
     ans.push_back(*element);

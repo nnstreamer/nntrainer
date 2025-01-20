@@ -861,6 +861,10 @@ NeuralNetwork::inference(unsigned int batch_size,
   }
 
   if (!label.empty()) {
+    /// @note If label is not empty, whether the model is a inference mode or
+    /// not, it should have a loss layer.
+    NNTR_THROW_IF(std::get<props::LossType>(model_props).empty(),
+                  std::invalid_argument);
     sharedConstTensors label_tensors;
     auto label_dim = getOutputDimension();
     label_tensors.reserve(label.size());
@@ -872,6 +876,10 @@ NeuralNetwork::inference(unsigned int batch_size,
     }
     output_tensors = inference(input_tensors, label_tensors, false);
   } else {
+    /// @note When label is empty, it is expected to ran as a pure inference
+    /// without loss. This if it has a loss layer, it will throw an error.
+    NNTR_THROW_IF(!std::get<props::LossType>(model_props).empty(),
+                  std::invalid_argument);
     output_tensors = inference(input_tensors, false);
   }
 

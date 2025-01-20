@@ -368,6 +368,11 @@ TEST(nntrainerGraphUnitTest, call_functions) {
   }
 }
 
+/**
+ * @brief Without label, it is not necessary to have a loss layer when the model
+ * is executed in inference mode.
+ *
+ */
 TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
   std::unique_ptr<ml::train::Model> model =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET);
@@ -408,6 +413,61 @@ TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
   in.push_back(input);
 
   ans = model->inference(1, in);
+
+  in.clear();
+  ans.clear();
+}
+
+/**
+ * @brief Although it is not necessary to have a loss layer in inference mode,
+ * there might be cases s.t. user might want to have a loss layer in order to
+ * evaluate them. This test case checks that the model can still run even in
+ * inference mode with loss layer, when the label is given.
+ *
+ */
+TEST(nntrainerGraphUnitTest, LossLayerWhenInferenceModeWithLabel) {
+  std::unique_ptr<ml::train::Model> model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+
+  model->addLayer(ml::train::createLayer(
+    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:256")}));
+
+  for (int i = 0; i < 3; ++i) {
+    model->addLayer(ml::train::createLayer(
+      "fully_connected",
+      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
+       withKey("bias_initializer", "zeros")}));
+  }
+  model->addLayer(ml::train::createLayer(
+    "fully_connected",
+    {withKey("unit", 100), withKey("weight_initializer", "xavier_uniform"),
+     withKey("bias_initializer", "zeros")}));
+
+  model->setProperty({withKey("batch_size", 1), withKey("epochs", 1),
+                      withKey("memory_swap", "false"),
+                      withKey("model_tensor_type", "FP32-FP32")});
+
+  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = model->initialize(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float input[256];
+  float label[1];
+
+  for (unsigned int i = 0; i < 256; ++i) {
+    input[i] = i;
+  }
+
+  std::vector<float *> in;
+  std::vector<float *> ans;
+  std::vector<float *> l;
+
+  in.push_back(input);
+  l.push_back(label);
+
+  ans = model->inference(1, in, l);
 
   in.clear();
   ans.clear();

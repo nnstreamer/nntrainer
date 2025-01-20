@@ -65,7 +65,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   graph.realizeInputOutputNode();
 
-  if (exec_mode != ExecutionMode::INFERENCE) {
+  if (!loss_type.empty()) {
     try {
       /// @todo realize loss beforehand
       status = addLossLayer(loss_type);
@@ -74,11 +74,6 @@ int NetworkGraph::compile(const std::string &loss_type) {
       ml_loge("%s", e.what());
       status = ML_ERROR_INVALID_PARAMETER;
       NN_RETURN_STATUS();
-    }
-  } else {
-    if (!loss_type.empty()) {
-      ml_loge(
-        "Warning : Loss type is given in inference mode. Ignoring loss type.");
     }
   }
 
