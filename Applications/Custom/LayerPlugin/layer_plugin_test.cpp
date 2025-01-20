@@ -12,7 +12,6 @@
  */
 #include <gtest/gtest.h>
 
-#include <dlfcn.h>
 #include <fstream>
 #include <iostream>
 #include <string>

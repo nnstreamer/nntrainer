@@ -47,6 +47,7 @@
 /usr/include/nntrainer/util_func.h
 /usr/include/nntrainer/fp16.h
 /usr/include/nntrainer/util_simd.h
+/usr/include/nntrainer/dynamic_library_loader.h
 # model
 /usr/include/nntrainer/neuralnet.h
 ## neuralnet.h : forwarding() / backwarding() support
