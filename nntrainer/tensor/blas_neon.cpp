@@ -1605,6 +1605,14 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
   }
 }
 
+void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
+  /// @todo implement int16_t to int16_t
+  unsigned int idx = 0;
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 void copy_fp16_to_fp32(const unsigned int N, const __fp16 *X, float *Y) {
   unsigned int idx = 0;
 

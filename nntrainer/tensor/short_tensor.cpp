@@ -427,10 +427,7 @@ void ShortTensor::copy(const void *buf) {
     return;
   }
 
-  /// @todo need to optimize
-  for (unsigned int i = 0; i < size(); ++i) {
-    ((int16_t *)getData())[i] = ((int16_t *)buf)[i];
-  }
+  copy_s16(size(), (int16_t *)buf, (int16_t *)getData());
 
   float *scales = (float *)(((int16_t *)buf) + size());
   scopy(scale_size(), scales, 1, (float *)getScale(), 1);
