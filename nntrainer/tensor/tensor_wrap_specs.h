@@ -87,7 +87,7 @@ typedef std::tuple<TensorDim, TensorDim, Initializer, WeightRegularizer, float,
  * the name, and lifespan of the Var_Grad object.
  */
 typedef std::tuple<TensorDim, Initializer, bool, const std::string,
-                   TensorLifespan>
+                   TensorLifespan, ml::train::LayerComputeEngine>
   VarGradSpec;
 
 /**

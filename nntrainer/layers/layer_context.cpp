@@ -43,7 +43,8 @@ InitLayerContext::InitLayerContext(
   const std::vector<TensorDim> &dim, const std::vector<bool> &req_out_connected,
   bool is_inplace_, const std::string &n, const std::string &prefix_,
   const float max_norm, std::array<std::string, 3> tensor_type_,
-  const float loss_scale_, ml::train::ExecutionMode mode_) :
+  const float loss_scale_, ml::train::ExecutionMode mode_,
+  ml::train::LayerComputeEngine engine_) :
   input_dim(dim),
   is_inplace(is_inplace_),
   clip_by_global_norm(max_norm),
@@ -53,7 +54,8 @@ InitLayerContext::InitLayerContext(
   prefix(prefix_),
   tensor_type(tensor_type_),
   loss_scale(loss_scale_),
-  mode(mode_) {
+  mode(mode_),
+  engine(engine_) {
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();
