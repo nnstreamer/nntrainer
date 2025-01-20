@@ -43,9 +43,11 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
+#include <tensor_layer.h>
 #include <time_dist.h>
 #include <tracer.h>
 #include <util_func.h>
+#include <weight_layer.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
@@ -777,6 +779,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   if (lnode->getInPlaceType() != InPlaceType::NONE && lnode->supportInPlace()) {
     setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
+
     for (unsigned int i = 0; i < out_specs.size(); ++i) {
       auto &s = out_specs.at(i);
       if (shared_var) {
@@ -788,6 +791,15 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
         } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
           s.variable_spec.reference_name = inputs[1]->getName();
           s.variable_spec.dim.setFormat(inputs[1]->getDim().getFormat());
+        } else if (lnode->getType() == WeightLayer::type) {
+          WeightSpec w_spec = init_context.getWeightsSpec()[i];
+          s.variable_spec.reference_name = std::get<8>(w_spec);
+          s.variable_spec.dim.setFormat(std::get<0>(w_spec).getFormat());
+        } else if (lnode->getType() == TensorLayer::type) {
+          InitLayerContext::TensorSpec t_spec =
+            init_context.getTensorsSpec()[i];
+          s.variable_spec.reference_name = std::get<3>(t_spec);
+          s.variable_spec.dim.setFormat(std::get<0>(t_spec).getFormat());
         } else {
           s.variable_spec.reference_name = inputs[0]->getName();
           s.variable_spec.dim.setFormat(inputs[0]->getDim().getFormat());
@@ -802,6 +814,17 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
         } else if (lnode->getInPlaceDirection() == InPlaceDirection::RIGHT) {
           s.gradient_spec->reference_name = inputs[1]->getGradientName();
           s.gradient_spec->dim.setFormat(inputs[1]->getDim().getFormat());
+        } else if (lnode->getType() == WeightLayer::type) {
+          WeightSpec w_spec = init_context.getWeightsSpec()[i];
+          s.gradient_spec->reference_name =
+            std::get<8>(w_spec) + Var_Grad::grad_suffix;
+          s.gradient_spec->dim.setFormat(std::get<0>(w_spec).getFormat());
+        } else if (lnode->getType() == TensorLayer::type) {
+          InitLayerContext::TensorSpec t_spec =
+            init_context.getTensorsSpec()[i];
+          s.gradient_spec->reference_name =
+            std::get<3>(t_spec) + Var_Grad::grad_suffix;
+          s.gradient_spec->dim.setFormat(std::get<0>(t_spec).getFormat());
         } else {
           s.gradient_spec->reference_name = inputs[0]->getGradientName();
           s.gradient_spec->dim.setFormat(inputs[0]->getDim().getFormat());
