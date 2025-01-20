@@ -515,7 +515,8 @@ std::vector<Var_Grad *> Manager::requestTensors(
   bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
 
   for (unsigned int i = 0; i < tensors_spec.size(); ++i) {
-    auto const &[dim, t_init, need_grad, name, tspan] = tensors_spec.at(i);
+    auto const &[dim, t_init, need_grad, name, tspan, t_engine] =
+      tensors_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     std::vector<unsigned int> grad_exec_order;
