@@ -1,4 +1,7 @@
 schema_sources = []
+schema_headers = [
+  'onnx_interpreter.h'
+]
 
 nntrainer_schema_dir = meson.build_root() / 'nntrainer' / 'schema'
 
@@ -68,4 +71,8 @@ endif
 
 foreach s : schema_sources
   nntrainer_sources += meson.current_source_dir() / s
+endforeach
+
+foreach h : schema_headers
+  nntrainer_headers += meson.current_source_dir() / h
 endforeach

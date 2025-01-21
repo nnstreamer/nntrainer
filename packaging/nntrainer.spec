@@ -538,6 +538,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/common_properties.h
 %{_includedir}/nntrainer/base_properties.h
 %{_includedir}/nntrainer/node_exporter.h
+%{_includedir}/nntrainer/onnx.h
+%{_includedir}/nntrainer/onnx_interpreter.h
 %{_includedir}/nntrainer/nntr_threads.h
 %{_includedir}/nntrainer/profiler.h
 # tensor headers
