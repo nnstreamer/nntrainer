@@ -1113,5 +1113,13 @@ std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
                 const std::vector<std::string> &properties);
 
+/**
+ * @brief get the compute engine property from property string vector
+ *  : default is CPU
+ * @return LayerComputeEngine Enum : CPU, GPU, QNN
+ */
+ml::train::LayerComputeEngine
+getComputeEngine(const std::vector<std::string> &props);
+
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__
