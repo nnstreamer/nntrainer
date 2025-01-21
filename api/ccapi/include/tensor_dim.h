@@ -280,7 +280,7 @@ public:
   /**
    * @brief  get data type size
    */
-  uint getDataTypeSize() const;
+  unsigned int getDataTypeSize() const;
 
   /**
    * @brief Set the Dim Flag to retrieve effective dimension

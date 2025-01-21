@@ -30,7 +30,7 @@ std::vector<float> rec_norm_ch_std{0.277183853, 0.267750409, 0.284490412};
 
 // Hard-coded class indices from coco128
 // 16 - dog class
-// std::vector<uint> class_indices_of_interest {16};
+// std::vector<unsigned int> class_indices_of_interest {16};
 std::map<int, std::string> macro_class_names{
   {0, "pen"},   {1, "mug"},   {2, "bottle"},   {3, "book"},  {4, "glasses"},
   {5, "watch"}, {6, "mouse"}, {7, "keyboard"}, {8, "fruit"}, {9, "snack"}};
@@ -216,7 +216,7 @@ void train_prototypes(int argc, char *argv[], ml::train::Model *det_model_,
     rec_norm_ch_std));
 
   if (use_detection_for_train_prototypes) {
-    std::vector<uint> class_indices_of_interest;
+    std::vector<unsigned int> class_indices_of_interest;
     for (unsigned int i = 0; i < det_output_dim - 4; i++) {
       class_indices_of_interest.push_back(i);
     }
@@ -295,7 +295,7 @@ std::string test_prototypes(int argc, char *argv[],
     rec_norm_ch_std));
 
   if (use_detection_for_test_prototypes) {
-    std::vector<uint> class_indices_of_interest;
+    std::vector<unsigned int> class_indices_of_interest;
     for (unsigned int i = 0; i < det_output_dim - 4; i++) {
       class_indices_of_interest.push_back(i);
     }
@@ -402,7 +402,7 @@ std::string run_detector(int argc, char *argv[], ml::train::Model *det_model_) {
   UserDataType run_det_data(new nntrainer::simpleshot::DirDataLoader(
     detect_data_path.c_str(), 0, 0, rec_norm_ch_mean, rec_norm_ch_std));
 
-  std::vector<uint> class_indices_of_interest;
+  std::vector<unsigned int> class_indices_of_interest;
   for (unsigned int i = 0; i < det_output_dim - 4; i++) {
     class_indices_of_interest.push_back(i);
   }

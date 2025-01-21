@@ -81,8 +81,8 @@ bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
     return false;
 
   std::istringstream buffer(temp);
-  uint *input_int = (uint *)input;
-  uint x;
+  unsigned int *input_int = (unsigned int *)input;
+  unsigned int x;
   for (unsigned int j = 0; j < feature_size; ++j) {
     buffer >> x;
     input_int[j] = x;
@@ -246,10 +246,10 @@ int main(int argc, char *argv[]) {
       getData(dataFile, o.data(), l.data(), j);
 
       try {
-        float answer =
-          NN.inference({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
-	  ->apply<float>(stepFunction)
-            .getValue(0, 0, 0, 0);
+        float answer = NN.inference({MAKE_SHARED_TENSOR(
+          nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
+                         ->apply<float>(stepFunction)
+                         .getValue(0, 0, 0, 0);
 
         std::cout << answer << " : " << l[0] << std::endl;
         cn += answer == l[0];

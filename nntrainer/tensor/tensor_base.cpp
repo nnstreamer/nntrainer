@@ -186,7 +186,7 @@ TensorBase::computeBroadcastInfo(const Tensor &m) const {
   BroadcastInfo e;
   e.tensor_type = getTensorType();
 
-  uint continuity[4] = {0, 1, 2, 3};
+  unsigned int continuity[4] = {0, 1, 2, 3};
   if (getFormat() == Tformat::NHWC) {
     continuity[1] = 2;
     continuity[2] = 3;

@@ -144,7 +144,8 @@ getComputeEngine(const std::vector<std::string> &props) {
     if (nntrainer::istrequal(key, "engine")) {
       constexpr const auto data =
         std::data(props::ComputeEngineTypeInfo::EnumList);
-      for (uint i = 0; i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
+      for (unsigned int i = 0;
+           i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
         if (nntrainer::istrequal(value.c_str(),
                                  props::ComputeEngineTypeInfo::EnumStr[i])) {
           return data[i];

@@ -35,8 +35,8 @@
  * @param     width width
  * @param     height height
  */
-static void readImage(const std::string path, float *input, uint width,
-                      uint height) {
+static void readImage(const std::string path, float *input, unsigned int width,
+                      unsigned int height) {
   FILE *f = fopen(path.c_str(), "rb");
 
   if (f == nullptr)
@@ -50,12 +50,12 @@ static void readImage(const std::string path, float *input, uint width,
   size_t row_padded = (width * 3 + 3) & (~3);
   unsigned char *data = new unsigned char[row_padded];
 
-  for (uint i = 0; i < height; i++) {
+  for (unsigned int i = 0; i < height; i++) {
     result = fread(data, sizeof(unsigned char), row_padded, f);
     NNTR_THROW_IF(result != row_padded, std::invalid_argument)
       << "Cannot read bmp pixel data";
 
-    for (uint j = 0; j < width; j++) {
+    for (unsigned int j = 0; j < width; j++) {
 
       input[height * i + j] = (float)data[j * 3 + 2];
 

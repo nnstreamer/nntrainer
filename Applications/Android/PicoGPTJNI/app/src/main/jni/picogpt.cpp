@@ -13,8 +13,8 @@
  *
  */
 
-#include "encoder.hpp"
 #include "picogpt.h"
+#include "encoder.hpp"
 #include "tensor_dim.h"
 #include <ctime>
 #include <sstream>
@@ -340,11 +340,11 @@ std::string inferModel(std::string path, std::string sentence,
   init_input_seq_len = init_input.size();
 
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
-    ((uint *)(wte_input))[i] = init_input[i];
+    ((unsigned int *)(wte_input))[i] = init_input[i];
   }
 
   for (unsigned int i = 0; i < init_input_seq_len; ++i) {
-    ((uint *)(wpe_input))[i] = i;
+    ((unsigned int *)(wpe_input))[i] = i;
   }
 
   std::shared_ptr<ml::train::Layer> wte_embedding_layer;
@@ -368,8 +368,8 @@ std::string inferModel(std::string path, std::string sentence,
 
     std::vector<unsigned int> ids = next.argmax();
 
-    ((uint *)(wte_input))[i] = ids[0];
-    ((uint *)(wpe_input))[i] = i;
+    ((unsigned int *)(wte_input))[i] = ids[0];
+    ((unsigned int *)(wpe_input))[i] = i;
 
     std::vector<int64_t> token_ids;
     for (auto element : ids) {

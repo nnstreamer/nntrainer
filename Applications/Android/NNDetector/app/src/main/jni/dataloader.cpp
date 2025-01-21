@@ -42,8 +42,8 @@ namespace simpleshot {
  * @param input_h height of input
  * @param new_dim dimension
  */
-void resize_input(float *input, float *resized_input, uint &input_w,
-                  uint &input_h, uint &new_dim) {
+void resize_input(float *input, float *resized_input, unsigned int &input_w,
+                  unsigned int &input_h, unsigned int &new_dim) {
 
   int old_j, old_i;
 
@@ -97,8 +97,8 @@ void resize_input(float *input, float *resized_input, uint &input_w,
  * @param ch_mean mean
  * @param ch_std standard deviation
  */
-void normalize_input(float *input, uint &input_dim, std::vector<float> ch_mean,
-                     std::vector<float> ch_std) {
+void normalize_input(float *input, unsigned int &input_dim,
+                     std::vector<float> ch_mean, std::vector<float> ch_std) {
 
   int fs = input_dim * input_dim;
   for (unsigned int i = 0; i < input_dim; i++) {
@@ -120,14 +120,14 @@ void normalize_input(float *input, uint &input_dim, std::vector<float> ch_mean,
  * @param old_dim dimension of input
  */
 void crop_input(float *input, float *cropped_input, std::vector<int> xyxy,
-                uint &old_dim) {
+                unsigned int &old_dim) {
   int x1 = std::max(xyxy[0], (int)(0));
   int y1 = std::max(xyxy[1], (int)(0));
   int x2 = std::min(xyxy[2], (int)(old_dim));
   int y2 = std::min(xyxy[3], (int)(old_dim));
 
-  uint crop_width = x2 - x1;
-  uint crop_height = y2 - y1;
+  unsigned int crop_width = x2 - x1;
+  unsigned int crop_height = y2 - y1;
   int crop_fs = crop_width * crop_height;
   int old_fs = old_dim * old_dim;
 
@@ -150,14 +150,14 @@ void crop_input(float *input, float *cropped_input, std::vector<int> xyxy,
  * @param new_img_dim dimension of image
  */
 void read_image_from_path(const std::string path, float *input,
-                          uint &new_img_dim) {
+                          unsigned int &new_img_dim) {
 
   std::unique_ptr<Image> image = nullptr;
 
   int fd = open(path.c_str(), O_RDONLY);
   image = ImageFactory::FromFd(fd);
-  uint cur_height = image->height();
-  uint cur_width = image->width();
+  unsigned int cur_height = image->height();
+  unsigned int cur_width = image->width();
 
   float *tmp_input = new float[3 * cur_height * cur_width];
   for (unsigned int i = 0; i < cur_height; i++) {
@@ -180,10 +180,10 @@ void read_image_from_path(const std::string path, float *input,
  *
  * @param vec vector of values
  * @param num_class number of class
- * @return uint index of maximum value
+ * @return unsigned int index of maximum value
  */
-uint argmax(float *vec, unsigned int num_class) {
-  uint ret = 0;
+unsigned int argmax(float *vec, unsigned int num_class) {
+  unsigned int ret = 0;
   float val = vec[0];
   for (unsigned int i = 1; i < num_class; i++) {
     if (val < vec[i]) {
@@ -200,10 +200,11 @@ uint argmax(float *vec, unsigned int num_class) {
  * @param vec vector of values
  * @param num_class number of class
  * @param candidate_inds candicated index of vector
- * @return uint index of maximum value
+ * @return unsigned int index of maximum value
  */
-uint argmax(float *vec, unsigned int num_class, std::set<uint> candidate_inds) {
-  uint ret;
+unsigned int argmax(float *vec, unsigned int num_class,
+                    std::set<unsigned int> candidate_inds) {
+  unsigned int ret;
   float val;
   bool set_val = false;
   for (const auto &i : candidate_inds) {
@@ -230,8 +231,9 @@ uint argmax(float *vec, unsigned int num_class, std::set<uint> candidate_inds) {
  * @return std::vector vector of bounding box
  */
 std::vector<boundingBoxInfo>
-detect_objects(float *input, ml::train::Model *det_model, uint &input_img_dim,
-               uint &anchor_num, std::vector<uint> &labels, float &score_thr,
+detect_objects(float *input, ml::train::Model *det_model,
+               unsigned int &input_img_dim, unsigned int &anchor_num,
+               std::vector<unsigned int> &labels, float &score_thr,
                float &iou_thr, int &max_bb_num) {
   std::vector<boundingBoxInfo> bounding_boxes;
 
@@ -241,7 +243,8 @@ detect_objects(float *input, ml::train::Model *det_model, uint &input_img_dim,
   in.push_back(input);
   result = det_model->inference(1, in, label);
 
-  auto get_xyxy = [result, anchor_num, input_img_dim](const uint &anchor_ind_) {
+  auto get_xyxy = [result, anchor_num,
+                   input_img_dim](const unsigned int &anchor_ind_) {
     std::vector<float> xywh(4);
     for (unsigned int i = 0; i < 4; i++)
       xywh[i] = result[0][i * anchor_num + anchor_ind_];
@@ -273,14 +276,15 @@ detect_objects(float *input, ml::train::Model *det_model, uint &input_img_dim,
     std::vector<std::vector<int>> bbs_for_label;
     float *label_scores = result[0] + anchor_num * (label_ind + 4);
 
-    std::set<uint> candidate_inds;
+    std::set<unsigned int> candidate_inds;
     for (unsigned int i = 0; i < anchor_num; i++) {
       if (label_scores[i] >= score_thr) {
         candidate_inds.insert(i);
       }
     }
     while (!candidate_inds.empty() && bb_count < max_bb_num) {
-      uint best_anchor_ind = argmax(label_scores, anchor_num, candidate_inds);
+      unsigned int best_anchor_ind =
+        argmax(label_scores, anchor_num, candidate_inds);
       std::vector<int> xyxy = get_xyxy(best_anchor_ind);
 
       boundingBoxInfo ibb = {
@@ -298,8 +302,8 @@ detect_objects(float *input, ml::train::Model *det_model, uint &input_img_dim,
 
       // Update mask for non-maximum supression
       bool non_zero_mask = false;
-      std::vector<uint> inds_to_erase;
-      for (const uint &cand_i : candidate_inds) {
+      std::vector<unsigned int> inds_to_erase;
+      for (const unsigned int &cand_i : candidate_inds) {
         std::vector<int> cand_xyxy = get_xyxy(cand_i);
         float iou = bb_iou(xyxy, cand_xyxy);
 
@@ -307,7 +311,7 @@ detect_objects(float *input, ml::train::Model *det_model, uint &input_img_dim,
           inds_to_erase.push_back(cand_i);
         }
       }
-      for (const uint &cand_i : inds_to_erase) {
+      for (const unsigned int &cand_i : inds_to_erase) {
         candidate_inds.erase(cand_i);
       }
     }
@@ -379,9 +383,10 @@ DirDataLoader::DirDataLoader(const char *directory_, int label_len_,
  * @param det_max_bb_num maxium number of detection bounding box
  */
 void DirDataLoader::runDetector(ml::train::Model *det_model,
-                                uint &det_input_img_dim_, uint &det_output_dim,
-                                uint &det_anchor_num,
-                                std::vector<uint> &det_labels,
+                                unsigned int &det_input_img_dim_,
+                                unsigned int &det_output_dim,
+                                unsigned int &det_anchor_num,
+                                std::vector<unsigned int> &det_labels,
                                 float &det_score_thr, float &det_iou_thr,
                                 int &det_max_bb_num) {
 
@@ -439,8 +444,8 @@ void DirDataLoader::next(float **input, float **label, bool *last) {
       float *tmp_input = new float[det_input_img_dim * det_input_img_dim * 3];
       read_image_from_path(file_name, tmp_input, det_input_img_dim);
 
-      uint crop_width = xyxy[2] - xyxy[0];
-      uint crop_height = xyxy[3] - xyxy[1];
+      unsigned int crop_width = xyxy[2] - xyxy[0];
+      unsigned int crop_height = xyxy[3] - xyxy[1];
       float *cropped_input = new float[crop_height * crop_width * 3]; // HWC
       crop_input(tmp_input, cropped_input, xyxy, det_input_img_dim);
 
