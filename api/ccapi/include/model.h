@@ -90,7 +90,8 @@ for inference and training without any configurations*/
     ML_TRAIN_MODEL_FORMAT_INI_WITH_BIN, /**< ini file with save_path defined
                                            where the binary will be saved */
   MODEL_FORMAT_FLATBUFFER =
-    ML_TRAIN_MODEL_FORMAT_FLATBUFFER, /**< flatbuffer file */
+    ML_TRAIN_MODEL_FORMAT_FLATBUFFER,             /**< flatbuffer file */
+  MODEL_FORMAT_ONNX = ML_TRAIN_MODEL_FORMAT_ONNX, /**< ONNX file */
 };
 
 /**

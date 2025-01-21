@@ -22,6 +22,7 @@
  */
 
 #include "layer_context.h"
+#include "model.h"
 #include "model_common_properties.h"
 #include <cmath>
 #include <cstring>
@@ -622,7 +623,6 @@ void NeuralNetwork::save(const std::string &file_path,
   case ml::train::ModelFormat::MODEL_FORMAT_INI:
     saveModelIni(file_path);
     break;
-
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
     auto old_save_path = std::get<props::SavePath>(model_flex_props);
     auto bin_file_name =
@@ -632,6 +632,11 @@ void NeuralNetwork::save(const std::string &file_path,
     save(file_path, ml::train::ModelFormat::MODEL_FORMAT_INI);
     save(bin_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     std::get<props::SavePath>(model_flex_props) = old_save_path;
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {
+    throw nntrainer::exception::not_supported(
+      "saving with ONNX format is not supported yet.");
     break;
   }
   default:
@@ -700,6 +705,11 @@ void NeuralNetwork::load(const std::string &file_path,
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_FLATBUFFER: {
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {
+    int ret = loadFromConfig(file_path);
+    throw_status(ret);
     break;
   }
   default:
