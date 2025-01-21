@@ -13,12 +13,16 @@
 #define __COMPILER_FWD_H__
 
 #include <memory>
+#include <subgraph_base.h>
 #include <vector>
 
 namespace nntrainer {
 class LayerNode;
 class NetworkGraph;
+class SubGraphBase;
 
+using SubGraphNode = std::shared_ptr<SubGraphBase>;
+using GraphRepresentation = std::vector<SubGraphNode>;
 using GraphLayerNodeRepresentation = std::vector<std::shared_ptr<LayerNode>>;
 using ExecutableGraph = NetworkGraph;
 
