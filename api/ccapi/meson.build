@@ -17,6 +17,7 @@ ccapi_headers += meson.current_source_dir() / 'include' / 'model.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'optimizer.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'tensor_dim.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'tensor_api.h'
+ccapi_headers += meson.current_source_dir() / 'include' / 'onnx.h'
 ccapi_headers += meson.current_source_dir() / '..' / 'nntrainer-api-common.h'
 
 ccapi_deps = [

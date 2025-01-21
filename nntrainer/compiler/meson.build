@@ -16,6 +16,12 @@ compiler_headers = [
   'compiler_fwd.h'
 ]
 
+if get_option('enable-onnx-interpreter')
+  compiler_headers += [
+    'onnx_interpreter.h',
+  ]
+endif
+
 if get_option('enable-tflite-interpreter')
   compiler_sources += [
     'tflite_interpreter.cpp',
