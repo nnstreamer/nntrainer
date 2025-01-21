@@ -35,8 +35,7 @@ public:
    * @brief     Constructor of the model loader
    */
   ModelLoader(const AppContext &app_context_ = AppContext::Global()) :
-    app_context(app_context_),
-    model_file_context(nullptr) {}
+    app_context(app_context_), model_file_context(nullptr) {}
 
   /**
    * @brief     Destructor of the model loader
@@ -72,6 +71,13 @@ private:
    * @param[in/out] model model to be loaded
    */
   int loadFromIni(std::string ini_file, NeuralNetwork &model, bool bare_layers);
+
+  /**
+   * @brief     load model from ONNX file
+   * @param[in] onnx_file onnx config file path
+   * @param[in/out] model model to be loaded
+   */
+  int loadFromONNX(std::string onnx_file, NeuralNetwork &model);
 
   /**
    * @brief     load dataset config from ini
@@ -115,14 +121,21 @@ private:
    * @param[in] filename full name of the file
    * @retval true if ini, else false
    */
-  static bool fileIni(const std::string &filename);
+  static bool isIniFile(const std::string &filename);
 
   /**
    * @brief     Check if the file extension is tflite
    * @param[in] filename full name of the file
    * @retval true if tflite, else false
    */
-  static bool fileTfLite(const std::string &filename);
+  static bool isTfLiteFile(const std::string &filename);
+
+  /**
+   * @brief Check if the file extension is ONNX
+   * @param[in] filename full name of the ONNX file
+   * @retval true if ONNX, else false
+   */
+  static bool isONNXFile(const std::string &filename);
 
   /**
    * @brief resolvePath to absolute path written in a model description

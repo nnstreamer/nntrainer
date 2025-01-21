@@ -33,12 +33,16 @@
 #include <tflite_layer.h>
 #endif
 
-#define NN_INI_RETURN_STATUS()     \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      iniparser_freedict(ini);     \
-      return status;               \
-    }                              \
+#ifdef ENABLE_ONNX_INTERPRETER
+#include <onnx_interpreter.h>
+#endif
+
+#define NN_INI_RETURN_STATUS()                                                 \
+  do {                                                                         \
+    if (status != ML_ERROR_NONE) {                                             \
+      iniparser_freedict(ini);                                                 \
+      return status;                                                           \
+    }                                                                          \
   } while (0)
 
 namespace nntrainer {
@@ -447,6 +451,49 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
 }
 
 /**
+ * @brief load model from ONNX file
+ */
+int ModelLoader::loadFromONNX(std::string onnx_file, NeuralNetwork &model) {
+#ifdef ENABLE_ONNX_INTERPRETER
+  int status = ML_ERROR_NONE;
+
+  if (onnx_file.empty()) {
+    ml_loge("Error: configuration file is not defined");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!isFileExist(onnx_file)) {
+    ml_loge("Cannot open onnx model configuration file, filename : %s",
+            onnx_file.c_str());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  try {
+    std::unique_ptr<GraphInterpreter> onnx_interpreter =
+      std::make_unique<nntrainer::ONNXInterpreter>();
+
+    auto graph_representation = onnx_interpreter->deserialize(onnx_file);
+
+    for (auto &node : graph_representation) {
+      model.addLayer(node);
+    };
+
+    if (model.empty()) {
+      ml_loge("there is no layer section in the ini file");
+      status = ML_ERROR_INVALID_PARAMETER;
+    }
+  } catch (std::exception &e) {
+    ml_loge("failed to load graph, reason: %s ", e.what());
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
+#else
+  throw std::runtime_error{"enable-onnx-interpreter option is not enabled"};
+#endif
+}
+
+/**
  * @brief     load all properties from context
  */
 int ModelLoader::loadFromContext(NeuralNetwork &model) {
@@ -498,8 +545,12 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model,
                                 bool bare_layers) {
-  if (fileIni(config)) {
+  if (isIniFile(config)) {
     return loadFromIni(config, model, bare_layers);
+  }
+
+  if (isONNXFile(config)) {
+    return loadFromONNX(config, model);
   }
 
   return ML_ERROR_INVALID_PARAMETER;
@@ -517,12 +568,16 @@ bool ModelLoader::fileExt(const std::string &filename, const std::string &ext) {
   return false;
 }
 
-bool ModelLoader::fileIni(const std::string &filename) {
+bool ModelLoader::isIniFile(const std::string &filename) {
   return fileExt(filename, "ini");
 }
 
-bool ModelLoader::fileTfLite(const std::string &filename) {
+bool ModelLoader::isTfLiteFile(const std::string &filename) {
   return fileExt(filename, "tflite");
+}
+
+bool ModelLoader::isONNXFile(const std::string &filename) {
+  return fileExt(filename, "onnx");
 }
 
 } // namespace nntrainer
