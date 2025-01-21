@@ -958,8 +958,8 @@ void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
 #endif
 }
 
-void scopy_u8_to_float32(const unsigned int N, const uint8_t *X,
-                           const int incX, float *Y, const int incY) {
+void scopy_u8_to_float32(const unsigned int N, const uint8_t *X, const int incX,
+                         float *Y, const int incY) {
   unsigned int inc_x = abs(incX);
   unsigned int inc_y = abs(incY);
 
@@ -974,8 +974,8 @@ void scopy_u8_to_float32(const unsigned int N, const uint8_t *X,
   }
 }
 
-void scopy_s8_to_float32(const unsigned int N, const int8_t *X,
-                           const int incX, float *Y, const int incY) {
+void scopy_s8_to_float32(const unsigned int N, const int8_t *X, const int incX,
+                         float *Y, const int incY) {
   unsigned int inc_x = abs(incX);
   unsigned int inc_y = abs(incY);
 
@@ -1008,6 +1008,15 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
     Y[idx] = X[idx];
   }
 #endif
+}
+
+void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
+#ifdef USE_NEON
+  nntrainer::neon::copy_s16(N, X, Y);
+#endif
+  for (unsigned int idx = 0; idx < N; ++idx) {
+    Y[idx] = X[idx];
+  }
 }
 
 float snrm2(const int N, const float *X, const int incX) {

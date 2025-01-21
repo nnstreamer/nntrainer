@@ -740,6 +740,18 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
   }
 }
 
+void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y) {
+  unsigned int idx = 0;
+  for (; (N - idx) >= 8; ++idx) {
+    vst1q_s16(&Y[idx],
+              vcombine_s16(vqmovn_s32(vcvtq_s32_f32(vld1q_f32(&X[idx]))),
+                           vqmovn_s32(vcvtq_s32_f32(vld1q_f32(&X[idx + 4])))));
+  }
+  for (; (N - idx) >= 1; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 #ifdef ENABLE_FP16
 
 void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
