@@ -45,6 +45,36 @@ class SubGraphBase : public GraphNode {
 public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
+   * @param[in] mode execution mode (default ExecutionMode::TRAIN)
+   * @param[in] lookahead lookahead for swap (default 0)
+   * @param[in] tensor_format define tensor format. One of NCHW and NHWC
+   * (default NCHW)
+   * @param[in] tensor_type It says weight type and activation type (default
+   * FP32-FP32)
+   */
+  SubGraphBase(ExecutionMode mode = ExecutionMode::TRAIN,
+               unsigned int lookahead = 0,
+               const std::string &tensor_format_ = "NCHW",
+               const std::string &tensor_dtype_ = "FP32-FP32") :
+    subgraph_props(
+      new SubGraphPropsType(props::SubGraphName(), props::ComputeEngine())),
+    tensor_manager(),
+    subgraph(),
+    compiled(false),
+    batch_size(0),
+    graph_exec_end(0),
+    backward_iter_end(nullptr),
+    forward_iter_end(nullptr),
+    optimize_memory(true),
+    exec_mode(mode),
+    tensor_format(tensor_format_),
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
+    lookahead(lookahead) {
+    nan_count = 0;
+  }
+
+  /**
+   * @brief     Constructor of NeuralNetwork Graph Class
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] mode execution mode (default ExecutionMode::TRAIN)
    * @param[in] lookahead lookahead for swap (default 0)
@@ -58,6 +88,8 @@ public:
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
+    subgraph_props(
+      new SubGraphPropsType(props::SubGraphName(), props::ComputeEngine())),
     tensor_manager(tm),
     subgraph(),
     compiled(false),
@@ -78,6 +110,16 @@ public:
    *
    */
   virtual ~SubGraphBase() = default;
+
+  /**
+   * @brief set Property
+   */
+  void setProperty(const std::vector<std::string> &properties);
+
+  /**
+   * @brief finalize the SubGraph's property
+   */
+  void finalize();
 
   /**
    * @brief     Get the Name of the underlying object
@@ -597,6 +639,10 @@ public:
   inline static const std::string type = "subgraph";
 
 protected:
+  using SubGraphPropsType =
+    std::tuple<props::SubGraphName, props::ComputeEngine>;
+
+  std::unique_ptr<SubGraphPropsType> subgraph_props;
   std::string subgraph_name;
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */

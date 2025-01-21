@@ -34,6 +34,21 @@ class SubGraphCpu : public SubGraphBase {
 public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
+   * @param[in] mode execution mode (default ExecutionMode::TRAIN)
+   * @param[in] lookahead lookahead for swap (default 0)
+   * @param[in] tensor_format define tensor format. One of NCHW and NHWC
+   * (default NCHW)
+   * @param[in] tensor_type It says weight type and activation type (default
+   * FP32-FP32)
+   */
+  SubGraphCpu(ExecutionMode mode = ExecutionMode::TRAIN,
+              unsigned int lookahead = 0,
+              const std::string &tensor_format_ = "NCHW",
+              const std::string &tensor_dtype_ = "FP32-FP32") :
+    SubGraphBase(mode, lookahead, tensor_format_, tensor_dtype_) {}
+
+  /**
+   * @brief     Constructor of NeuralNetwork Graph Class
    * @param[in] enable_swap enable memory swap for tensor
    * @param[in] mode execution mode (default ExecutionMode::TRAIN)
    * @param[in] lookahead lookahead for swap (default 0)
