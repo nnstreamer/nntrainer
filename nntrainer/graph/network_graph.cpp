@@ -21,6 +21,23 @@
 
 namespace nntrainer {
 
+void NetworkGraph::realize(
+  const ModelPropsType &model_props, GraphRepresentation &graph_representation,
+  GraphLayerNodeRepresentation &graph_ln_representation) {
+
+  /** apply realizers for graph_representation */
+  ///@todo
+
+  /** add realized-SubGraphs to graph */
+  for (auto sg : graph_representation) {
+    addSubGraph(sg);
+  }
+
+  /** realize SubGraphs */
+  for (auto it = cbegin(); it != cend(); ++it)
+    (*it)->realize(model_props, graph_ln_representation);
+}
+
 int NetworkGraph::compile(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
   for (auto it = cbegin(); it != cend(); ++it) {
@@ -30,6 +47,14 @@ int NetworkGraph::compile(const std::string &loss_type) {
   }
   compiled = true;
   return status;
+}
+
+void NetworkGraph::addSubGraph(const std::shared_ptr<SubGraphBase> subgraph) {
+  if (compiled)
+    throw std::runtime_error("Cannot modify graph after compilation");
+  subgraph->setSubGraphInfo(tensor_manager, exec_mode, lookahead, tensor_format,
+                            tensor_dtype_str);
+  graph.addNode(subgraph);
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
