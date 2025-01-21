@@ -49,6 +49,7 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
+#include <subgraph.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -155,56 +156,28 @@ int NeuralNetwork::compile(ExecutionMode mode) {
                             ? std::string()
                             : std::get<props::LossType>(model_props);
 
-  auto &input_conn = std::get<std::vector<props::InputConnection>>(model_props);
-  /// @note label layer might need to be treated in the similar way as well
-
-  /// @todo make NetworkGraph compiled at the construction instead of having
-  /// graph.compile(), neuralnetwork have ownership of list of layer nodes,
-  /// which will be passed at compile time.
-
-  std::vector<std::unique_ptr<GraphRealizer>> realizers;
-
-  realizers.emplace_back(new PreviousInputRealizer(
-    std::vector<Connection>(input_conn.begin(), input_conn.end())));
-  realizers.emplace_back(new MultioutRealizer());
-  realizers.emplace_back(new FlattenRealizer());
-  realizers.emplace_back(new ActivationRealizer());
-
-  for (auto &realizer : realizers) {
-    graph_ln_representation = realizer->realize(graph_ln_representation);
-  }
-
   bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
   const std::string memory_swap_path =
     std::get<props::MemorySwapPath>(model_flex_props);
   unsigned int lookahead =
     std::get<props::MemorySwapLookahead>(model_flex_props);
-
   const std::string tensor_format =
     to_string(std::get<props::TensorFormat>(model_flex_props));
-
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, mode, memory_swap_path, lookahead,
-                             tensor_format, tensor_type);
+  /** rebuild a network graph with model properties and graph representation */
+  model_graph = NetworkGraph(memory_swap, model_props, graph_representation,
+                             graph_ln_representation, mode, memory_swap_path,
+                             lookahead, tensor_format, tensor_type);
 
+  /** set memory optimization */
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
-  for (auto &node : graph_ln_representation) {
-    if (auto &prop = std::get<props::ClipGradByGlobalNorm>(model_props);
-        !prop.empty()) {
-      node->setProperty({"clip_grad_by_norm=" + to_string(prop)});
-    }
-    if (auto &prop = std::get<props::LossScale>(model_props); !prop.empty()) {
-      node->setProperty({"loss_scale=" + to_string(prop)});
-    }
-    model_graph.addLayer(node);
-  }
 
+  /** compile model_graph */
   int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
-
   compiled = true;
 
   return status;
@@ -1105,6 +1078,8 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     swap(lhs.data_buffers, rhs.data_buffers);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);
+    swap(lhs.graph_representation, rhs.graph_representation);
+    swap(lhs.graph_map, rhs.graph_map);
     swap(lhs.graph_ln_representation, rhs.graph_ln_representation);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
@@ -1118,9 +1093,19 @@ int NeuralNetwork::addLayer(NodeType layer) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
+  /** Check the subgraph exists and create a new subgraph if not */
+  const auto &subgraph_name = layer->getSubGraphName();
+  if (graph_map.find(subgraph_name) == graph_map.end()) {
+    const auto &sg = createSubGraph();
+    sg->setName(subgraph_name);
+    graph_representation.push_back(sg);
+    graph_map[subgraph_name] = sg;
+  }
+
   /** Insert the layer to the graph */
   model_graph.addLayer(layer);
   graph_ln_representation.push_back(layer);
+  graph_map[subgraph_name]->addLayer(layer);
 
   return status;
 }
