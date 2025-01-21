@@ -5,5 +5,7 @@
 /usr/include/nntrainer/dataset.h
 /usr/include/nntrainer/tensor_dim.h
 /usr/include/nntrainer/tensor_api.h
+/usr/include/nntrainer/onnx.h
+/usr/include/nntrainer/onnx_interpreter.h
 /usr/lib/*/pkgconfig/ccapi-ml-training.pc
 /usr/lib/*/libccapi-*.a
