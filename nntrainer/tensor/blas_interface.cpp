@@ -958,14 +958,14 @@ void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
 #endif
 }
 
-void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
+void scopy_u8_to_float32(const unsigned int N, const uint8_t *X,
                            const int incX, float *Y, const int incY) {
   unsigned int inc_x = abs(incX);
   unsigned int inc_y = abs(incY);
 
 #ifdef USE_NEON
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::copy_int8_to_fp32(N, X, Y);
+    nntrainer::neon::copy_u8_to_fp32(N, X, Y);
     return;
   }
 #endif
@@ -974,14 +974,14 @@ void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
   }
 }
 
-void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
+void scopy_s8_to_float32(const unsigned int N, const int8_t *X,
                            const int incX, float *Y, const int incY) {
   unsigned int inc_x = abs(incX);
   unsigned int inc_y = abs(incY);
 
 #ifdef USE_NEON
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::copy_int8_to_fp32(N, X, Y);
+    nntrainer::neon::copy_s8_to_fp32(N, X, Y);
     return;
   }
 #endif
