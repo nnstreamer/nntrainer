@@ -17,6 +17,7 @@
 #include <hgemm.h>
 #include <memory>
 #include <nntrainer_error.h>
+#include <iostream>
 
 namespace nntrainer::neon {
 
@@ -622,6 +623,28 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
 #endif
   }
   for (unsigned int i = N4; i < N; ++i) {
+    Y[i] = X[i];
+  }
+}
+
+static inline void __copy_s16_kernel(const int16_t *X, int16_t *Y) {
+  vst1q_s16(Y, vld1q_s16(X));
+}
+
+void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
+  unsigned int N8 = (N >> 3) << 3;
+  for (unsigned int i = 0; i < N8; i += 8) {
+#ifdef __aarch64__
+    __asm__ __volatile__("ld1 {v0.8h}, [%1]\n\t"
+                         "st1 {v0.8h}, [%0]\n\t"
+                         :
+                         : "r"(&Y[i]), "r"(&X[i])
+                         : "v0", "memory");
+#else
+    __copy_s16_kernel(X + i, Y + i);
+#endif
+  }
+  for (unsigned int i = N8; i < N; ++i) {
     Y[i] = X[i];
   }
 }
@@ -1599,14 +1622,6 @@ void copy_int8_to_fp32(const unsigned int N, const int8_t *X, float *Y) {
 
 void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
   /// @todo implement int16_t to fp32
-  unsigned int idx = 0;
-  for (; (N - idx) >= 1; ++idx) {
-    Y[idx] = X[idx];
-  }
-}
-
-void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
-  /// @todo implement int16_t to int16_t
   unsigned int idx = 0;
   for (; (N - idx) >= 1; ++idx) {
     Y[idx] = X[idx];
