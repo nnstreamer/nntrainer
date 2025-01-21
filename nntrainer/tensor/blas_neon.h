@@ -100,6 +100,14 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
  * @param[in] X int16_t * for Vector X
  * @param[in] Y int16_t * for Vector Y
  */
