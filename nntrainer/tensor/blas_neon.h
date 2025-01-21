@@ -63,7 +63,7 @@ void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
+void copy_u8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 
 /**
  * @brief     copy function with neon: Y = X
@@ -71,7 +71,7 @@ void copy_int8_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
  * @param[in] X int8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void copy_int8_to_fp32(const unsigned int N, const int8_t *X, float *Y);
+void copy_s8_to_fp32(const unsigned int N, const int8_t *X, float *Y);
 
 /**
  * @brief     copy function with neon: Y = X

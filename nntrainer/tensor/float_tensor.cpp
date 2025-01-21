@@ -767,8 +767,8 @@ void FloatTensor::copyData(const Tensor &from) {
     copy_s16_fp32(from.size(), from.getData<int16_t>(), (float *)getData());
     break;
   case ml::train::TensorDim::DataType::QINT8:
-    scopy_int8_to_float32(from.size(), from.getData<int8_t>(), 1,
-                          (float *)getData(), 1);
+    scopy_s8_to_float32(from.size(), from.getData<int8_t>(), 1,
+                        (float *)getData(), 1);
     break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");

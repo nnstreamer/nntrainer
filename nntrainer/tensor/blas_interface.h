@@ -321,17 +321,17 @@ void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
-                           const int incX, float *Y, const int incY);
+void scopy_u8_to_float32(const unsigned int N, const uint8_t *X, const int incX,
+                         float *Y, const int incY);
 
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
- * @param[in] X uint8_t * for Vector X
+ * @param[in] X int8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
-                           const int incX, float *Y, const int intY);
+void scopy_s8_to_float32(const unsigned int N, const int8_t *X, const int incX,
+                         float *Y, const int intY);
 
 /**
  * @brief     copy function : Y = X
