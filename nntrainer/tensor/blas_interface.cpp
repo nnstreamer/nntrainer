@@ -180,7 +180,8 @@ static void scopy_FP16(const unsigned int N, const _FP16 *X, const int incX,
 
 #if (defined USE__FP16 && USE_NEON)
   if (incX == 1 && incY == 1) {
-    nntrainer::neon::hcopy(N, X, Y);
+    // nntrainer::neon::hcopy(N, X, Y);
+    memcpy(Y, X, N * sizeof(_FP16));
   } else {
     for (unsigned int i = 0; i < N; ++i)
       Y[i * incy] = X[i * incx];
