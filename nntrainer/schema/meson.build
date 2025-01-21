@@ -40,13 +40,6 @@ if get_option('enable-tflite-interpreter')
   flat_header_dep = declare_dependency(sources : flat_header)
 
   nntrainer_base_deps += flat_header_dep
-<<<<<<< HEAD
-=======
-  schema_sources += [
-    'tflite_interpreter.cpp',
-    'tflite_opnode.cpp'
-  ]
->>>>>>> [Schema] add schema directory
 
 if not flatc_prog.found()
   error('flatc executable not found')
@@ -62,16 +55,5 @@ endif
   flat_header2_dep = declare_dependency(sources : flat_header2)
 
   nntrainer_base_deps += flat_header2_dep
-<<<<<<< HEAD
 
 endif
-=======
-  schema_sources += [
-    'flatbuffer_interpreter.cpp'
-  ]
-endif
-
-foreach s : schema_sources
-  nntrainer_sources += meson.current_source_dir() / s
-endforeach
->>>>>>> [Schema] add schema directory
