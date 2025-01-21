@@ -22,17 +22,16 @@
 #include <stack>
 #include <vector>
 
+#include <common_properties.h>
+#include <compiler_fwd.h>
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
+#include <model_common_properties.h>
 #include <optimizer_wrapped.h>
-
-#include <subgraph_base.h>
-#include <subgraph_cpu.h>
+#include <subgraph.h>
 
 namespace nntrainer {
-
-#define SGNODE(x) std::static_pointer_cast<SubGraphBase>(x)
 
 using ExecutionMode = ml::train::ExecutionMode;
 
@@ -64,8 +63,10 @@ public:
     nan_count = 0;
 
     /**
-     * @note This code written based on the assumption that he graph consists
-     * with only one default subgraph node. It needs to be updated.
+     * @note NetworkGraph constructor without any parameters.
+     * This constructor creates a `default_graph` to handle general scenarios.
+     * If the default subgraph is not utilized, it will be discarded at the
+     * compilation time
      */
     auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
     sg->setName("default");
@@ -73,16 +74,29 @@ public:
   }
 
   /**
-   * @brief     Constructor of NeuralNetwork Graph Class
+   * @brief     Constructor of NeuralNetwork Graph Class, which is invoked at
+   * compile time.
+   * The `NetworkGraph` class constructor initializes the object using the
+   * provided graph representation. It integrates both inter-subgraph and
+   * intra-subgraph representation. Finally, it returns the constructed
+   * layer-node level representation to `graph_ln_representation`.
    * @param[in] enable_swap enable memory swap for tensor
+   * @param[in] model_props model property fixed at the compile time
+   * @param[in] graph_representation graph representation to initialize
+   * NetworkGraph
+   * @param[in] graph_ln_representation graph layer node representation to be
+   * updated by this constructor.
    * @param[in] mode execution mode (default ExecutionMode::TRAIN)
    * @param[in] swap_path memory swap file path when the swap is enabled
    * @param[in] tensor_format define tensor format. One of NCHW and NHWC
    * (default NCHW)
-   * @param[in] tensor_type It says weight type and activation type (default
+   * @param[in] tensor_dtype_ It says weight type and activation type (default
    * FP32-FP32)
    */
-  NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
+  NetworkGraph(bool enable_swap, const ModelPropsType &model_props,
+               GraphRepresentation &graph_representation,
+               GraphLayerNodeRepresentation &graph_ln_representation,
+               ExecutionMode mode = ExecutionMode::TRAIN,
                const std::string &swap_path = "", unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
@@ -101,15 +115,23 @@ public:
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
     lookahead(lookahead) {
     nan_count = 0;
+    graph_ln_representation.clear();
 
     /**
-     * @note This code written based on the assumption that he graph consists
-     * with only one default subgraph node. It needs to be updated.
+     * @note If no layers are added. Create a default graph for dummy
+     * otherwise, the subgraphs are created based on the graph_representaiton
+     * info.
      */
-    auto sg = std::make_shared<SubGraphCpu>(tensor_manager, mode, lookahead,
-                                            tensor_format_, tensor_dtype_);
-    sg->setName("default");
-    graph.addNode(SGNODE(sg));
+    if (!graph_representation.size()) {
+      auto sg = std::make_shared<SubGraphCpu>(tensor_manager, mode, lookahead,
+                                              tensor_format_, tensor_dtype_);
+      sg->setName("default");
+      graph.addNode(SGNODE(sg));
+      graph_representation.push_back(sg);
+      return;
+    }
+
+    realize(model_props, graph_representation, graph_ln_representation);
   }
 
   /**
@@ -119,11 +141,25 @@ public:
   ~NetworkGraph() = default;
 
   /**
+   * @brief     Realize the network's internal layers
+   */
+  void realize(const ModelPropsType &model_props,
+               GraphRepresentation &graph_representation,
+               GraphLayerNodeRepresentation &graph_ln_representation);
+
+  /**
    * @brief     Compile the graph
    * @param[in] loss_type loss for the graph
    * returns ML_ERROR_NONE on success, error on failure
    */
   int compile(const std::string &loss_type);
+
+  /**
+   * @brief Add a subgraph to `NetworkGraph`, setting the network graph
+   * information within the subgraph.
+   * @param[in] subgraph shared_ptr of SubGraph
+   */
+  void addSubGraph(const SubGraphNode subgraph);
 
   /**
    * @brief Create new LayerNode and add into Graph
