@@ -62,6 +62,7 @@
 /usr/include/nntrainer/model_common_properties.h
 /usr/include/nntrainer/network_graph.h
 /usr/include/nntrainer/graph_core.h
+/usr/include/nntrainer/subgraph.h
 /usr/include/nntrainer/subgraph_base.h
 /usr/include/nntrainer/subgraph_cpu.h
 /usr/include/nntrainer/graph_node.h
