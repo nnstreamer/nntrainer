@@ -88,11 +88,11 @@ TEST(fsu, simple_fc) {
               ml::train::ModelFormat::MODEL_FORMAT_BIN);
   model->load("./simplefc_weight_fp16_fp16_100.bin");
 
-  uint feature_size = 320;
+  unsigned int feature_size = 320;
 
   float input[320];
 
-  for (uint j = 0; j < feature_size; ++j)
+  for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = j;
 
   std::vector<float *> in;

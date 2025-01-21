@@ -167,12 +167,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
-  uint feature_size = 320;
+  unsigned int feature_size = 320;
 
   float input[320];
   float label[1];
 
-  for (uint j = 0; j < feature_size; ++j)
+  for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = j;
 
   std::vector<float *> in;
@@ -229,9 +229,9 @@ int main(int argc, char *argv[]) {
 #endif
 
   std::string data_dir = "fake";
-  uint batch_size = 1;
-  uint data_split = 1;
-  uint epoch = 1;
+  unsigned int batch_size = 1;
+  unsigned int data_split = 1;
+  unsigned int epoch = 1;
 
   std::array<UserDataType, 2> user_datas;
 

@@ -28,8 +28,8 @@ typedef std::pair<int, int> ImageIdx;
  * @brief read image
  *
  */
-void read_image(const std::string path, float *input, uint &width,
-                uint &height);
+void read_image(const std::string path, float *input, unsigned int &width,
+                unsigned int &height);
 
 /**
  * @brief user data object

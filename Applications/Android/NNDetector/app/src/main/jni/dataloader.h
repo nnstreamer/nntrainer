@@ -50,35 +50,35 @@ struct boundingBoxInfo {
  * @brief resize input
  *
  */
-void resize_input(float *input, float *resized_input, uint &input_w,
-                  uint &input_h, uint &new_dim);
+void resize_input(float *input, float *resized_input, unsigned int &input_w,
+                  unsigned int &input_h, unsigned int &new_dim);
 
 /**
  * @brief normalize input
  *
  */
-void normalize_input(float *input, uint &input_dim, std::vector<float> ch_mean,
-                     std::vector<float> ch_std);
+void normalize_input(float *input, unsigned int &input_dim,
+                     std::vector<float> ch_mean, std::vector<float> ch_std);
 
 /**
  * @brief crop input
  *
  */
 void crop_input(float *input, float *cropped_input, std::vector<int> xyxy,
-                uint &old_dim);
+                unsigned int &old_dim);
 
 /**
  * @brief read image
  *
  */
 void read_image_from_path(const std::string path, float *input,
-                          uint &new_img_dim);
+                          unsigned int &new_img_dim);
 
 /**
  * @brief argmax helper function
  *
  */
-uint argmax(float *vec, unsigned int num_class);
+unsigned int argmax(float *vec, unsigned int num_class);
 
 /**
  * @brief user data object
@@ -112,9 +112,10 @@ public:
   /**
    * @brief set detector for the data loader
    */
-  void runDetector(ml::train::Model *det_model, uint &det_input_img_dim_,
-                   uint &det_output_dim, uint &det_anchor_num,
-                   std::vector<uint> &det_labels, float &det_score_thr,
+  void runDetector(ml::train::Model *det_model,
+                   unsigned int &det_input_img_dim_,
+                   unsigned int &det_output_dim, unsigned int &det_anchor_num,
+                   std::vector<unsigned int> &det_labels, float &det_score_thr,
                    float &det_iou_thr, int &det_max_bb_num);
 
   /**

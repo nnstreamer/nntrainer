@@ -43,7 +43,7 @@ void PreprocessL2NormLayer::forwarding(RunLayerContext &context,
 
   auto &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  for (uint b = 0; b < input_.batch(); ++b) {
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
     auto input_slice = input_.getBatchSlice(b, 1);
     auto hidden_slice = hidden_.getBatchSlice(b, 1);
     input_slice.multiply(1 / input_slice.l2norm(), hidden_slice);

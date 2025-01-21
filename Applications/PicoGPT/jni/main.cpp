@@ -336,8 +336,8 @@ int main(int argc, char *argv[]) {
 #endif
     init_input_seq_len = init_input.size();
 
-    ((uint *)(wte_input))[0] = init_input[0];
-    ((uint *)(wpe_input))[0] = 0;
+    ((unsigned int *)(wte_input))[0] = init_input[0];
+    ((unsigned int *)(wpe_input))[0] = 0;
 
     std::vector<float *> output_bufs;
     std::shared_ptr<ml::train::Layer> wte_embedding_layer;
@@ -368,12 +368,12 @@ int main(int argc, char *argv[]) {
       std::vector<unsigned int> ids = next.argmax();
 
       if (i < init_input_seq_len) {
-        ((uint *)(wte_input))[0] = init_input[i];
+        ((unsigned int *)(wte_input))[0] = init_input[i];
       } else {
-        ((uint *)(wte_input))[0] = ids[0];
+        ((unsigned int *)(wte_input))[0] = ids[0];
       }
 
-      ((uint *)(wpe_input))[0] = i;
+      ((unsigned int *)(wpe_input))[0] = i;
 
 #if defined(ENABLE_ENCODER)
       std::vector<int64_t> token_ids;

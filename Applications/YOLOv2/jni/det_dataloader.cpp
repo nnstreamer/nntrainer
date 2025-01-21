@@ -71,8 +71,8 @@ DirDataLoader::DirDataLoader(const char *directory_, unsigned int max_num_label,
   count = 0;
 }
 
-void read_image(const std::string path, float *input, uint &width,
-                uint &height) {
+void read_image(const std::string path, float *input, unsigned int &width,
+                unsigned int &height) {
   FILE *f = fopen(path.c_str(), "rb");
 
   if (f == nullptr)
@@ -93,9 +93,9 @@ void read_image(const std::string path, float *input, uint &width,
   int row_padded = (width * 3 + 3) & (~3);
   unsigned char *data = new unsigned char[row_padded];
 
-  for (uint i = 0; i < height; i++) {
+  for (unsigned int i = 0; i < height; i++) {
     s = fread(data, sizeof(unsigned char), row_padded, f);
-    for (uint j = 0; j < width; j++) {
+    for (unsigned int j = 0; j < width; j++) {
       input[height * (height - i - 1) + j] = (float)data[j * 3 + 2] / 255;
       input[(height * width) + height * (height - i - 1) + j] =
         (float)data[j * 3 + 1] / 255;
