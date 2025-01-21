@@ -27,6 +27,7 @@
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <optimizer_context.h>
 #include <profiler.h>
 #include <util_func.h>
@@ -37,11 +38,24 @@
 
 namespace nntrainer {
 
-const std::string SubGraphBase::getName() const noexcept {
-  return subgraph_name;
+void SubGraphBase::setProperty(const std::vector<std::string> &properties) {
+  auto left_properties = loadProperties(properties, *subgraph_props);
 }
 
-void SubGraphBase::setName(const std::string &name) { subgraph_name = name; }
+const std::string SubGraphBase::getName() const noexcept {
+  auto &name = std::get<props::SubGraphName>(*subgraph_props);
+  return name.empty() ? "default" : name.get();
+}
+
+void SubGraphBase::setName(const std::string &name) {
+  setProperty({"subgraph_name=" + name});
+}
+
+void SubGraphBase::finalize() {
+
+  /** finalize properties */
+  subgraph_name = getName();
+}
 
 const std::string SubGraphBase::getType() const { return SubGraphBase::type; }
 
