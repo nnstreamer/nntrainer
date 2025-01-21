@@ -69,6 +69,8 @@ endif
   ]
 endif
 
+nntrainer_headers += meson.current_source_dir() / 'onnx_interpreter.h'
+
 foreach s : schema_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach
