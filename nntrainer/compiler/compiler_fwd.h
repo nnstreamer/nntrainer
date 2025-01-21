@@ -13,7 +13,6 @@
 #define __COMPILER_FWD_H__
 
 #include <memory>
-#include <subgraph_base.h>
 #include <vector>
 
 namespace nntrainer {
