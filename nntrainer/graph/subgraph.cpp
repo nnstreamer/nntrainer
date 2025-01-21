@@ -3,6 +3,7 @@
  * Copyright (C) 2025 Eunju Yang <ej.yang@samsung.com>
  *
  * @file    subgraph.cpp
+ * @brief   implementation for the common interfaces for subgraph
  * @date    07 Jan 2025
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Eunju Yang <ej.yang@samsung.com>
