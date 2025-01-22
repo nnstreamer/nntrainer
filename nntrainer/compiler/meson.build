@@ -16,6 +16,27 @@ compiler_headers = [
   'compiler_fwd.h'
 ]
 
+if get_option('enable-onnx-interpreter')
+  protobuf_dep = dependency('protobuf', required: true)
+  nntrainer_base_deps += protobuf_dep
+
+  protoc = find_program('protoc', required: true)  
+  onnx_proto = custom_target('onnx_proto',
+                              input: 'onnx.proto',
+                              output: ['@BASENAME@.pb.cc', '@BASENAME@.pb.h'],
+                              command: [
+                                protoc,
+                                '--cpp_out=' + meson.build_root() + '/nntrainer/compiler',
+                                '-I=' + meson.current_source_dir(),
+                                meson.current_source_dir() + '/onnx.proto'
+                              ])
+
+  nntrainer_inc_abs += meson.current_build_dir()
+  nntrainer_inc += include_directories('.')
+  onnx_proto_dep = declare_dependency(sources : onnx_proto)
+  nntrainer_base_deps += onnx_proto_dep
+endif
+
 if get_option('enable-tflite-interpreter')
   if not tflite_dep.found()
     error('Tensorflow2-Lite dependency not found')
