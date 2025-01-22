@@ -20,6 +20,7 @@
 
 /// @todo Migrate this to api
 #include <app_context.h>
+#include <engine.h>
 
 #include <mae_loss.h>
 #include <pow.h>
@@ -195,13 +196,15 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    auto &app_context = nntrainer::AppContext::Global();
+    auto &ct_engine = nntrainer::Engine::Global();
+    auto app_context = static_cast<nntrainer::AppContext *>(
+      ct_engine.getRegisteredContext("cpu"));
     /// registering custom layer here
     /// registerFactory excepts a function that returns unique_ptr<Layer> from
     /// std::vector<std::string> ml::train::createLayer<T> is a templated
     /// function for generic usage
-    app_context.registerFactory(nntrainer::createLayer<custom::PowLayer>);
-    app_context.registerFactory(nntrainer::createLayer<custom::MaeLossLayer>);
+    app_context->registerFactory(nntrainer::createLayer<custom::PowLayer>);
+    app_context->registerFactory(nntrainer::createLayer<custom::MaeLossLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;

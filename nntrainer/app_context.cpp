@@ -80,6 +80,7 @@
 #include <rnncell.h>
 #include <split_layer.h>
 #include <subtract_layer.h>
+#include <tensor_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
@@ -409,12 +410,8 @@ static void registerer(AppContext &ac) noexcept {
 };
 
 AppContext &AppContext::Global() {
-  static AppContext instance;
-  /// in g++ there is a bug that hangs up if caller throws,
-  /// so registerer is noexcept although it'd better not
-  /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
-  std::call_once(global_app_context_init_flag, registerer, std::ref(instance));
-  return instance;
+  registerer(*this);
+  return *this;
 }
 
 void AppContext::setWorkingDirectory(const std::string &base) {

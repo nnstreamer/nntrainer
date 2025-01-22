@@ -19,11 +19,12 @@
 #include <utility>
 
 #include <activation_layer.h>
-#include <app_context.h>
 #include <base_properties.h>
 #include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
+#include <context.h>
+#include <engine.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -162,19 +163,8 @@ getComputeEngine(const std::vector<std::string> &props) {
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -183,19 +173,8 @@ createLayerNode(const ml::train::LayerType &type,
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -722,7 +701,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   auto context = InitLayerContext(
     actual_input_dims, out_info, getInPlaceType() != InPlaceType::NONE,
-    getName(), scope, max_norm, tensor_type, loss_scale, mode);
+    getName(), scope, max_norm, tensor_type, loss_scale, mode, compute_engine);
 
   layer->finalize(context);
 
@@ -993,10 +972,11 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
                                     const std::vector<Var_Grad *> &tensors,
-                                    float loss_scale) {
+                                    float loss_scale,
+                                    std::shared_ptr<ContextData> ct_data) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, getInPlaceType() != InPlaceType::NONE,
-    loss_scale, false, weights, inputs, outputs, tensors);
+    loss_scale, ct_data, false, weights, inputs, outputs, tensors);
 }
 
 /**
