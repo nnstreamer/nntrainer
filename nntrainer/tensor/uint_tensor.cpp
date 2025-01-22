@@ -350,9 +350,13 @@ template <typename T> void UIntTensor<T>::copy(const void *buf) {
     return;
   }
 
-  /// @todo need to optimize
-  for (unsigned int i = 0; i < size(); ++i) {
-    ((T *)getData())[i] = ((T *)buf)[i];
+  if (std::is_same<T, uint16_t>::value) {
+    const uint16_t *data = (const uint16_t *)buf;
+    uint16_t *rdata = (uint16_t *)getData();
+    copy_u16((const unsigned int)size(), data, rdata);
+  } else {
+    /// @todo need to optimize
+    memcpy(getData(), buf, size() * (sizeof(T)));
   }
 }
 
