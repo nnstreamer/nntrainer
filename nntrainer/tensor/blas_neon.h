@@ -114,6 +114,14 @@ void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
 void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 
 /**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X int16_t * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
+
+/**
  * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
