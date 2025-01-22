@@ -643,7 +643,9 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
     Y += 8;
   }
   for (; i < N; ++i) {
-    Y[i] = X[i];
+    *Y = *X;
+    X++;
+    Y++;
   }
 }
 
@@ -664,7 +666,9 @@ void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y) {
     Y += 8;
   }
   for (; i < N; ++i) {
-    Y[i] = X[i];
+    *Y = *X;
+    X++;
+    Y++;
   }
 }
 
