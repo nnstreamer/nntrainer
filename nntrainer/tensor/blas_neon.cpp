@@ -15,7 +15,6 @@
 #include <blas_neon.h>
 #include <blas_neon_setting.h>
 #include <hgemm.h>
-#include <iostream>
 #include <memory>
 #include <nntrainer_error.h>
 
@@ -640,6 +639,27 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
   for (; i < N8; i += 8) {
     int16x8_t vec = vld1q_s16(X);
     vst1q_s16(Y, vec);
+    X += 8;
+    Y += 8;
+  }
+  for (; i < N; ++i) {
+    Y[i] = X[i];
+  }
+}
+
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y) {
+  unsigned int i = 0;
+  unsigned int N8 = (N >> 3) << 3;
+  unsigned int N16 = (N >> 4) << 4;
+  for (; i < N16; i += 16) {
+    uint16x8x2_t vec = vld1q_u16_x2(X);
+    vst1q_u16_x2(Y, vec);
+    X += 16;
+    Y += 16;
+  }
+  for (; i < N8; i += 8) {
+    uint16x8_t vec = vld1q_u16(X);
+    vst1q_u16(Y, vec);
     X += 8;
     Y += 8;
   }

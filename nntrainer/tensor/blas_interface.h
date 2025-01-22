@@ -350,6 +350,14 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
 void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 
 /**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint16_t * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
+
+/**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
  * @param[in] X float * for Vector X
