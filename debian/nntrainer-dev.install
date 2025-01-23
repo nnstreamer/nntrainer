@@ -10,6 +10,7 @@
 /usr/include/nntrainer/memory_data.h
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_base.h
+/usr/include/nntrainer/int4_tensor.h
 /usr/include/nntrainer/char_tensor.h
 /usr/include/nntrainer/short_tensor.h
 /usr/include/nntrainer/uint_tensor.h

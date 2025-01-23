@@ -13,6 +13,7 @@
 
 #include <char_tensor.h>
 #include <float_tensor.h>
+#include <int4_tensor.h>
 #include <lazy_tensor.h>
 #include <short_tensor.h>
 #include <tensor.h>
@@ -51,9 +52,19 @@ Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
   std::vector<float> const &scales, ml::train::TensorDim::TensorType t_type,
   QScheme qscheme_) {
-  itensor = std::shared_ptr<CharTensor>(
-    new CharTensor(d, scales, t_type.format, qscheme_),
-    std::default_delete<CharTensor>());
+  if (t_type.data_type == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(
+      new Int4QTensor(d, scales, t_type.format, qscheme_),
+      std::default_delete<Int4QTensor>());
+  } else if (t_type.data_type == Tdatatype::QINT8) {
+    itensor = std::shared_ptr<CharTensor>(
+      new CharTensor(d, scales, t_type.format, qscheme_),
+      std::default_delete<CharTensor>());
+  } else {
+    throw std::invalid_argument(
+      "Error: Tensor cannot be constructed because the given data type is "
+      "incorrect. The supported d_types are: QINT4, QINT8");
+  }
 }
 
 Tensor::Tensor(
@@ -112,6 +123,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
   } else if (d_type == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(name_, fm),
                                           std::default_delete<CharTensor>());
+  } else if (d_type == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(name_, fm),
+                                           std::default_delete<Int4QTensor>());
   } else if (d_type == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor = std::shared_ptr<BCQTensor>(new BCQTensor(name_, fm),
@@ -164,6 +178,10 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor = std::shared_ptr<CharTensor>(
       new CharTensor(d, alloc_now, init, name, qscheme),
       std::default_delete<CharTensor>());
+  } else if (d.getDataType() == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(
+      new Int4QTensor(d, alloc_now, init, name, qscheme),
+      std::default_delete<Int4QTensor>());
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor =
@@ -209,6 +227,9 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
   } else if (d.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf, qscheme),
                                           std::default_delete<CharTensor>());
+  } else if (d.getDataType() == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(d, buf),
+                                           std::default_delete<Int4QTensor>());
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor = std::shared_ptr<BCQTensor>(new BCQTensor(d, buf),
@@ -251,6 +272,9 @@ Tensor::Tensor(const Tensor &rhs) {
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
+  } else if (rhs.getDataType() == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(*rhs.itensor),
+                                           std::default_delete<Int4QTensor>());
   } else if (rhs.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor = std::shared_ptr<BCQTensor>(new BCQTensor(*rhs.itensor),
@@ -295,6 +319,9 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
     itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
                                           std::default_delete<CharTensor>());
+  } else if (rhs.getDataType() == Tdatatype::QINT4) {
+    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(*rhs.itensor),
+                                           std::default_delete<Int4QTensor>());
   } else if (rhs.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor = std::shared_ptr<BCQTensor>(new BCQTensor(*rhs.itensor),
@@ -338,6 +365,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
     } else if (getDataType() == Tdatatype::QINT8) {
       return *std::dynamic_pointer_cast<CharTensor>(itensor) ==
              *std::dynamic_pointer_cast<CharTensor>(rhs.itensor);
+    } else if (getDataType() == Tdatatype::QINT4) {
+      return *std::dynamic_pointer_cast<Int4QTensor>(itensor) ==
+             *std::dynamic_pointer_cast<Int4QTensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
       return *std::dynamic_pointer_cast<BCQTensor>(itensor) ==
