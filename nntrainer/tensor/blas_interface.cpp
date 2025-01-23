@@ -15,9 +15,11 @@
 #include "blas_interface.h"
 #include <nntrainer_error.h>
 
-#if (defined USE__FP16 && defined USE_NEON)
-#include "blas_neon.h"
+#ifdef USE_NEON
 #include "matrix_transpose_neon/matrix_transpose_neon.h"
+#ifdef USE__FP16
+#include <blas_neon.h>
+#endif
 #endif
 
 #if USE_AVX
