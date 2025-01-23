@@ -1571,6 +1571,38 @@ TEST(nntrainer_Tensor, inv_sqrt_i_p) {
   EXPECT_EQ(flag, true);
 }
 
+/**
+ * @brief (A*B).T = (B.T * A.T)
+ *
+ */
+TEST(nntrainer_Tensor, transpose_check_with_gemm_fp16) {
+  int batch = 1;
+  int channel = 1;
+  int height = 768;
+  int width = 512;
+
+  int height_b = 512;
+  int width_b = 768;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::Tensor A(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor B(batch, channel, height_b, width_b, t_type_nchw_fp16);
+
+  GEN_TEST_INPUT_RAND(A, 0, 1);
+  GEN_TEST_INPUT_RAND_B(B, 0, 1);
+
+  nntrainer::Tensor A_T = A.transpose("0:2:1");
+  nntrainer::Tensor B_T = B.transpose("0:2:1");
+  nntrainer::Tensor C_T = B_T.dot(A_T);
+
+  nntrainer::Tensor C = A.dot(B);
+  nntrainer::Tensor C_transposed = C.transpose("0:2:1");
+
+  EXPECT_EQ(C_T, C_transposed);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 
