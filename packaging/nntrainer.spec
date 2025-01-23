@@ -582,11 +582,13 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/dynamic_library_loader.h
 %{_includedir}/nntrainer/loss_layer.h
 %ifarch aarch64
+%{_includedir}/nntrainer/matrix_transpose_neon.h
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/util_simd_neon.h
 %{_includedir}/nntrainer/blas_neon.h
 %{_includedir}/nntrainer/hgemm.h
 %{_includedir}/nntrainer/hgemm_util.h
+%{_includedir}/nntrainer/matrix_transpose_kernels_neon.h
 %endif
 %endif
 %{_includedir}/nntrainer/acti_func.h
