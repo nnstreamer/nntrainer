@@ -153,7 +153,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
 
   // setting the first GPU ID and platform (ARM)
   device_id_ = devices[0];
-  platform_id_ = platform_id_;
+  this->platform_id_ = platform_id_;
 
 #ifdef ENABLE_FP16
   // check for fp16 (half) support available on device
