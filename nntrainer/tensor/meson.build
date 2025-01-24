@@ -52,9 +52,10 @@ tensor_headers = [
 
 arch = host_machine.cpu_family()
 
-if get_option('enable-avx') and get_option('platform') != 'android'
-    tensor_sources += 'blas_avx.cpp'
-    tensor_headers += 'blas_avx.h'
+
+if avx_enabled == true
+  tensor_sources += 'blas_avx.cpp'
+  tensor_headers += 'blas_avx.h'
 endif
 
 if get_option('enable-fp16') 

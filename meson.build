@@ -72,15 +72,20 @@ arch = host_machine.cpu_family()
 
 target = target_machine.cpu_family()
 
+avx_enabled = false
 if get_option('enable-avx')
-   if get_option('platform') != 'android'
-      if target == 'x86_64' or target == 'x86'
-         extra_defines += '-DUSE_AVX=1'
-	 add_project_arguments(['-march=native'], language: ['c','cpp'])
-	 add_project_arguments(['-mavx2'], language: ['c','cpp'])
-         message('-march=native added for AVX hardware acceleration.')
-      endif
-      message('This arch does not support avx2')
+  if get_option('platform') != 'android'
+    if target == 'x86_64' or target == 'x86'
+      extra_defines += '-DUSE_AVX=1'
+      add_project_arguments(['-march=native'], language: ['c','cpp'])
+      add_project_arguments(['-mavx2'], language: ['c','cpp'])
+      message('-march=native added for AVX hardware acceleration.')
+      avx_enabled = true
+    else
+      warning('The target arch, ' + target + ', does not support AVX. enable-avx=true is ignored.')
+    endif
+  else
+    warning('Android build does not support AVX. enable-avx=true is ignored.')
   endif
 endif
 
