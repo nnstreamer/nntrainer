@@ -747,10 +747,8 @@ std::vector<Tensor> HalfTensor::split(std::vector<size_t> sizes, int axis) {
     << "given sum of sizes did not match with origin tensor dim, tensor dim: "
     << dim.getTensorDim(axis) << " total size: " << total_size;
 
-  std::vector<TensorDim> ret_dims;
-  ret_dims.reserve(num_size);
+  std::vector<TensorDim> ret_dims(num_size, dim);
   for (unsigned int i = 0; i < num_size; ++i) {
-    ret_dims[i] = dim;
     ret_dims[i].setTensorDim(axis, sizes[i]);
   }
 
@@ -774,8 +772,6 @@ std::vector<Tensor> HalfTensor::split(std::vector<size_t> sizes, int axis) {
     return value;
   };
 
-  ret.reserve(num_size);
-
   unsigned int accumulated_size = 0;
   for (unsigned int i = 0; i < num_size; ++i) {
     std::array<size_t, 4> loc = {0, 0, 0, 0};
@@ -792,7 +788,7 @@ std::vector<Tensor> HalfTensor::split(std::vector<size_t> sizes, int axis) {
       }
     }
 
-    ret.emplace_back(ret_dims[i]);
+    ret.push_back(Tensor(ret_dims[i]));
     auto &ret_t = ret.back();
 
     std::array<size_t, 4> end_loc;

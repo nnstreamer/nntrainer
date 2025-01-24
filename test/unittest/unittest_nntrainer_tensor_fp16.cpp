@@ -5108,24 +5108,24 @@ TEST(nntrainer_Tensor, split_01_p) {
                              10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
                              20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
                              30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
-      answer.emplace_back(ml::train::TensorDim{1, 2, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 2, 4, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
                              50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
                              60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
                              70, 71, 72, 73, 74, 75, 76, 77, 78, 79};
-      answer.emplace_back(ml::train::TensorDim{1, 2, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 2, 4, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {80,  81,  82,  83,  84,  85,  86,  87,  88,  89,
                              90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{1, 2, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 2, 4, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split(3, 0), answer);
   }
@@ -5141,8 +5141,8 @@ TEST(nntrainer_Tensor, split_01_p) {
                              44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
                              56, 57, 58, 59, 80, 81, 82, 83, 84, 85, 86, 87,
                              88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99};
-      answer.emplace_back(ml::train::TensorDim{3, 1, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 1, 4, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
@@ -5151,8 +5151,8 @@ TEST(nntrainer_Tensor, split_01_p) {
                              70,  71,  72,  73,  74,  75,  76,  77,  78,  79,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 1, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 1, 4, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split(2, 1), answer);
   }
@@ -5168,8 +5168,8 @@ TEST(nntrainer_Tensor, split_01_p) {
         25, 26, 27, 28, 29, 40,  41,  42,  43,  44,  45,  46,  47,  48,  49,
         60, 61, 62, 63, 64, 65,  66,  67,  68,  69,  80,  81,  82,  83,  84,
         85, 86, 87, 88, 89, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 2, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 2, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {
@@ -5177,8 +5177,8 @@ TEST(nntrainer_Tensor, split_01_p) {
         35, 36, 37, 38, 39, 50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
         70, 71, 72, 73, 74, 75,  76,  77,  78,  79,  90,  91,  92,  93,  94,
         95, 96, 97, 98, 99, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 2, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 2, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split(2, 2), answer);
   }
@@ -5192,36 +5192,36 @@ TEST(nntrainer_Tensor, split_01_p) {
       _FP16 answer_data[] = {0,  5,  10, 15, 20,  25,  30,  35,
                              40, 45, 50, 55, 60,  65,  70,  75,
                              80, 85, 90, 95, 100, 105, 110, 115};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {1,  6,  11, 16, 21,  26,  31,  36,
                              41, 46, 51, 56, 61,  66,  71,  76,
                              81, 86, 91, 96, 101, 106, 111, 116};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {2,  7,  12, 17, 22,  27,  32,  37,
                              42, 47, 52, 57, 62,  67,  72,  77,
                              82, 87, 92, 97, 102, 107, 112, 117};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {3,  8,  13, 18, 23,  28,  33,  38,
                              43, 48, 53, 58, 63,  68,  73,  78,
                              83, 88, 93, 98, 103, 108, 113, 118};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     EXPECT_EQ(t.split(5, 3), answer);
   }
@@ -5233,13 +5233,13 @@ TEST(nntrainer_Tensor, split_01_p) {
     answer.reserve(2);
     {
       _FP16 answer_data[] = {0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20};
-      answer.emplace_back(ml::train::TensorDim{1, 1, 4, 3, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 1, 4, 3, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {3, 4, 5, 9, 10, 11, 15, 16, 17, 21, 22, 23};
-      answer.emplace_back(ml::train::TensorDim{1, 1, 4, 3, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 1, 4, 3, t_type}, answer_data));
     }
     EXPECT_EQ(t.split(2, 3), answer);
   }
@@ -5280,16 +5280,16 @@ TEST(nntrainer_Tensor, split_04_p) {
         32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
         48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
         64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79};
-      answer.emplace_back(ml::train::TensorDim{2, 2, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{2, 2, 4, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {80,  81,  82,  83,  84,  85,  86,  87,  88,  89,
                              90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{1, 2, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 2, 4, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({2, 1}, 0), answer);
   }
@@ -5305,8 +5305,8 @@ TEST(nntrainer_Tensor, split_04_p) {
                              44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
                              56, 57, 58, 59, 80, 81, 82, 83, 84, 85, 86, 87,
                              88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99};
-      answer.emplace_back(ml::train::TensorDim{3, 1, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 1, 4, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {20,  21,  22,  23,  24,  25,  26,  27,  28,  29,
@@ -5315,8 +5315,8 @@ TEST(nntrainer_Tensor, split_04_p) {
                              70,  71,  72,  73,  74,  75,  76,  77,  78,  79,
                              100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
                              110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 1, 4, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 1, 4, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({1, 1}, 1), answer);
   }
@@ -5332,8 +5332,8 @@ TEST(nntrainer_Tensor, split_04_p) {
         25, 26, 27, 28, 29, 40,  41,  42,  43,  44,  45,  46,  47,  48,  49,
         60, 61, 62, 63, 64, 65,  66,  67,  68,  69,  80,  81,  82,  83,  84,
         85, 86, 87, 88, 89, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 2, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 2, 5, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {
@@ -5341,8 +5341,8 @@ TEST(nntrainer_Tensor, split_04_p) {
         35, 36, 37, 38, 39, 50,  51,  52,  53,  54,  55,  56,  57,  58,  59,
         70, 71, 72, 73, 74, 75,  76,  77,  78,  79,  90,  91,  92,  93,  94,
         95, 96, 97, 98, 99, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 2, 5, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 2, 5, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({2, 2}, 2), answer);
   }
@@ -5356,8 +5356,8 @@ TEST(nntrainer_Tensor, split_04_p) {
       _FP16 answer_data[] = {0,  5,  10, 15, 20,  25,  30,  35,
                              40, 45, 50, 55, 60,  65,  70,  75,
                              80, 85, 90, 95, 100, 105, 110, 115};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {
@@ -5366,15 +5366,15 @@ TEST(nntrainer_Tensor, split_04_p) {
         51,  52,  53,  56,  57,  58,  61,  62,  63,  66,  67,  68, 71, 72, 73,
         76,  77,  78,  81,  82,  83,  86,  87,  88,  91,  92,  93, 96, 97, 98,
         101, 102, 103, 106, 107, 108, 111, 112, 113, 116, 117, 118};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 3, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 3, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({1, 3, 1}, 3), answer);
   }
@@ -5389,23 +5389,23 @@ TEST(nntrainer_Tensor, split_04_p) {
         0,  1,  5,  6,  10, 11, 15, 16, 20,  21,  25,  26,  30,  31,  35,  36,
         40, 41, 45, 46, 50, 51, 55, 56, 60,  61,  65,  66,  70,  71,  75,  76,
         80, 81, 85, 86, 90, 91, 95, 96, 100, 101, 105, 106, 110, 111, 115, 116};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 2, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 2, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {
         2,  3,  7,  8,  12, 13, 17, 18, 22,  23,  27,  28,  32,  33,  37,  38,
         42, 43, 47, 48, 52, 53, 57, 58, 62,  63,  67,  68,  72,  73,  77,  78,
         82, 83, 87, 88, 92, 93, 97, 98, 102, 103, 107, 108, 112, 113, 117, 118};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 2, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 2, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {4,  9,  14, 19, 24,  29,  34,  39,
                              44, 49, 54, 59, 64,  69,  74,  79,
                              84, 89, 94, 99, 104, 109, 114, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 1, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({2, 2, 1}, 3), answer);
   }
@@ -5420,8 +5420,8 @@ TEST(nntrainer_Tensor, split_04_p) {
         0,  1,  5,  6,  10, 11, 15, 16, 20,  21,  25,  26,  30,  31,  35,  36,
         40, 41, 45, 46, 50, 51, 55, 56, 60,  61,  65,  66,  70,  71,  75,  76,
         80, 81, 85, 86, 90, 91, 95, 96, 100, 101, 105, 106, 110, 111, 115, 116};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 2, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 2, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {
@@ -5430,8 +5430,8 @@ TEST(nntrainer_Tensor, split_04_p) {
         52,  53,  54,  57,  58,  59,  62,  63,  64,  67,  68,  69, 72, 73, 74,
         77,  78,  79,  82,  83,  84,  87,  88,  89,  92,  93,  94, 97, 98, 99,
         102, 103, 104, 107, 108, 109, 112, 113, 114, 117, 118, 119};
-      answer.emplace_back(ml::train::TensorDim{3, 2, 4, 3, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{3, 2, 4, 3, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({2, 3}, 3), answer);
   }
@@ -5443,18 +5443,18 @@ TEST(nntrainer_Tensor, split_04_p) {
     answer.reserve(3);
     {
       _FP16 answer_data[] = {0, 6, 12, 18};
-      answer.emplace_back(ml::train::TensorDim{1, 1, 4, 1, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 1, 4, 1, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {1, 2, 3, 7, 8, 9, 13, 14, 15, 19, 20, 21};
-      answer.emplace_back(ml::train::TensorDim{1, 1, 4, 3, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 1, 4, 3, t_type}, answer_data));
     }
     {
       _FP16 answer_data[] = {4, 5, 10, 11, 16, 17, 22, 23};
-      answer.emplace_back(ml::train::TensorDim{1, 1, 4, 2, t_type},
-                          answer_data);
+      answer.emplace_back(nntrainer::Tensor(
+        ml::train::TensorDim{1, 1, 4, 2, t_type}, answer_data));
     }
     EXPECT_EQ(t.split({1, 3, 2}, 3), answer);
   }
