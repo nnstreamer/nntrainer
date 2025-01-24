@@ -2,7 +2,7 @@
 %define         use_cblas 1
 %define         nnstreamer_filter 1
 %define         nnstreamer_trainer 1
-%define         nnstreamer_subplugin_path /usr/lib/nnstreamer
+%define         nnstreamer_subplugin_path %{_prefix}/lib/nnstreamer
 %define         use_gym 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
@@ -413,8 +413,8 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
-      --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
-      --includedir=%{_includedir} %{install_app} %{platform} \
+      --libdir=%{_lib} --bindir=%{nntrainerapplicationdir} \
+      --includedir=include %{install_app} %{platform} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_nnstreamer_tensor_trainer} \
       %{enable_profile} %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
