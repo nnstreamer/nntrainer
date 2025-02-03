@@ -75,18 +75,14 @@ std::vector<LayerHandle> createGraph() {
 
   layers.push_back(
     createLayer("input", {withKey("name", "input0"),
-                          withKey("input_shape", "1:1024:1440")}));
+                          withKey("input_shape", "1:1:1024")}));
 
-  for (int i = 0; i < 30; i++) {
+  for (int i = 0; i < 28; i++) {
     layers.push_back(createLayer(
       "fully_connected",
-      {withKey("unit", 10000), withKey("weight_initializer", "xavier_uniform"),
+      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
        withKey("bias_initializer", "zeros")}));
   }
-  layers.push_back(createLayer("fully_connected",
-                               {withKey("unit", 1),
-                                withKey("weight_initializer", "xavier_uniform"),
-                                withKey("bias_initializer", "zeros")}));
 
   return layers;
 }
@@ -132,20 +128,17 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  uint feature_size = 1 * 1024 * 1440;
+  uint feature_size = 1 * 1 *1024 ;
 
-  float input[1 * 1024 * 1440];
-  float label[1];
+  float input[1 * 1024];
 
   for (uint j = 0; j < feature_size; ++j)
     input[j] = (j / feature_size);
 
   std::vector<float *> in;
-  std::vector<float *> l;
   std::vector<float *> answer;
 
   in.push_back(input);
-  l.push_back(label);
 
   auto start = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(start);
@@ -166,7 +159,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     model->load(filePath);
   }
 
-  answer = model->inference(1, in, l);
+  answer = model->inference(1, in);
   std::cout << answer[0][0] << std::endl;
   auto end = std::chrono::system_clock::now();
 
@@ -176,7 +169,6 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
   in.clear();
-  l.clear();
 
   std::cout << "done" << std::endl;
 }
