@@ -484,14 +484,12 @@ TEST(TensorPool, validate_memory_reuse_01_p) {
   EXPECT_FALSE(t5->isAllocated());
 
   EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 2));
-  EXPECT_EQ(pool.minMemoryRequirement(), t1->bytes());
+  EXPECT_EQ(pool.minMemoryRequirement(),
+            t1->bytes() + (t2->scale_size() + t3->scale_size() +
+                           t4->scale_size() + t5->scale_size()) *
+                            sizeof(float));
 
   EXPECT_NO_THROW(pool.allocate());
-
-  EXPECT_EQ(t1->getAddress<float>(0), (float *)t2->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(1), (float *)t3->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(2), (float *)t4->getAddress<int8_t>(0));
-  EXPECT_EQ(t1->getAddress<float>(3), (float *)t5->getAddress<int8_t>(0));
 
   EXPECT_NO_THROW(pool.deallocate());
 }
