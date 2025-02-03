@@ -54,18 +54,14 @@ public:
    *
    */
   explicit SwapDevice(const std::string &name) :
-    dev_path(swap_device_default_path + name),
-    fd(-1),
-    num_loaded_tensors(0) {}
+    dev_path(swap_device_default_path + name), fd(-1), num_loaded_tensors(0) {}
 
   /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
-    dev_path(path + "/" + name),
-    fd(-1),
-    num_loaded_tensors(0) {}
+    dev_path(path + "/" + name), fd(-1), num_loaded_tensors(0) {}
 
   /**
    * @brief SwapDevice destructor
