@@ -793,7 +793,8 @@ bool Manager::checkUnloadComplete(unsigned int order) {
   return true;
 }
 
-void Manager::LoadTensors(unsigned int order, unsigned int remainder_lookahead) {
+void Manager::LoadTensors(unsigned int order,
+                          unsigned int remainder_lookahead) {
   auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
     return pool.loadCacheExecAsync(
       order, [&](int id, TaskExecutor::CompleteStatus status) {

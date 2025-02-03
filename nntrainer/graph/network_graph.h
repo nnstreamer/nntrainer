@@ -456,7 +456,8 @@ public:
    *
    * @param order execution order
    */
-  void LoadTensors(const unsigned int order, unsigned int remainder_lookahead = 0);
+  void LoadTensors(const unsigned int order,
+                   unsigned int remainder_lookahead = 0);
 
   /**
    * @brief check data of order is loaded
