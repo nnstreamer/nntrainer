@@ -11,6 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 
 #include <blas_interface.h>
 #include <float_tensor.h>

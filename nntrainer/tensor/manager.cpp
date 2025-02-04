@@ -24,10 +24,13 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
+
+#if !defined(_WIN32)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 #include <activation_layer.h>
 #include <basic_planner.h>
@@ -51,6 +54,8 @@
 #include <var_grad.h>
 
 namespace nntrainer {
+
+#if !defined(_WIN32)
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
   fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
@@ -136,6 +141,7 @@ MMapedMemory::~MMapedMemory() noexcept {
   buf_size = 0;
   ml_logd("[MMapedMemory] buf released");
 }
+#endif
 
 void Manager::reinitialize() {
   inputs_v2.clear();

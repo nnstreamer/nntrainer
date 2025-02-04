@@ -9,6 +9,8 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <numeric>
+
 #include <char_tensor.h>
 #include <float_tensor.h>
 #include <lazy_tensor.h>
