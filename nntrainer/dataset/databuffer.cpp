@@ -33,6 +33,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
@@ -61,9 +62,7 @@ public:
 constexpr char USER_DATA[] = "user_data";
 
 DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
-  producer(std::move(producer_)),
-  db_props(new Props()),
-  user_data(nullptr) {
+  producer(std::move(producer_)), db_props(new Props()), user_data(nullptr) {
   rng.seed(0);
 }
 

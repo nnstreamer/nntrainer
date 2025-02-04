@@ -19,6 +19,11 @@
 #include <blas_interface.h>
 #include <common_properties.h>
 
+#if defined(_WIN32)
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
+
 namespace nntrainer {
 
 class Tensor;

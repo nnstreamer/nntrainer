@@ -704,7 +704,7 @@ public:
    */
   virtual bool isValid() const = 0;
 
-  static constexpr float epsilon = 1e-5;
+  static constexpr float epsilon = 1e-5f;
 
 protected:
   TensorDim dim;

@@ -16,9 +16,7 @@
 #include <malloc.h>
 #include <profiler.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -30,8 +28,7 @@ void SwapDevice::start(size_t size) {
   if (fd > 0)
     return;
 
-  fd =
-    open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, (mode_t)0666);
+  fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -153,7 +150,7 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   free(ptr);
   allocated.erase(ptr);
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(_WIN32)
   malloc_trim(0);
 #endif
 

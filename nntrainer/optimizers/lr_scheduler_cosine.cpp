@@ -11,7 +11,12 @@
  *
  */
 
+#if defined(_WIN32)
+#define _USE_MATH_DEFINES
+#include <math.h>
+#else
 #include <cmath>
+#endif
 
 #include <common_properties.h>
 #include <lr_scheduler_cosine.h>

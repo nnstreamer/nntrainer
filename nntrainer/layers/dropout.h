@@ -29,8 +29,8 @@ public:
   /**
    * @brief     Constructor of DropOut Layer
    */
-  DropOutLayer(float dropout = 0.0) :
-    Layer(), dropout_rate(props::DropOutRate(dropout)), epsilon(1e-3) {}
+  DropOutLayer(float dropout = 0.0f) :
+    Layer(), dropout_rate(props::DropOutRate(dropout)), epsilon(1e-3f) {}
 
   /**
    * @brief     Destructor of DropOut Layer

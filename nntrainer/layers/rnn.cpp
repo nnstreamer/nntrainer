@@ -44,7 +44,7 @@ RNNLayer::RNNLayer() :
     props::Unit(), props::HiddenStateActivation() = ActivationType::ACT_TANH,
     props::ReturnSequences(), props::DropOutRate(), props::IntegrateBias()),
   acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {
+  epsilon(1e-3f) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 

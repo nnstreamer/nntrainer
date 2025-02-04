@@ -22,7 +22,6 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <unistd.h>
 
 #include <task.h>
 

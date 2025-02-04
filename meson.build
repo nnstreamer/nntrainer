@@ -134,6 +134,11 @@ if get_option('enable-fp16')
    endif  
 endif
 
+if get_option('enable-mmap')
+  message ('MMAP enabled')
+  extra_defines += '-DUSE_MMAP=1'
+endif
+
 if get_option('enable-opencl')
   message ('OpenCL build is enabled. Will work only if OpenCL supported GPU is available.')
   extra_defines += '-DENABLE_OPENCL=1'

@@ -364,9 +364,9 @@ public:
   const float getLossScale() { return loss_scale; };
 
 private:
-  static constexpr float epsilon = 1e-6; /**< epsilon for zero comparison */
+  static constexpr float epsilon = 1e-6f; /**< epsilon for zero comparison */
   static constexpr float epsilon_decay =
-    1e-8; /**< epsilon for zero comparison */
+    1e-8f; /**< epsilon for zero comparison */
 
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */

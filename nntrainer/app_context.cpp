@@ -222,14 +222,6 @@ const std::string getFullPath(const std::string &path,
 
 std::mutex factory_mutex;
 
-/**
- * @brief finalize global context
- *
- */
-static void fini_global_context_nntrainer(void) __attribute__((destructor));
-
-static void fini_global_context_nntrainer(void) {}
-
 std::once_flag global_app_context_init_flag;
 
 static void add_default_object(AppContext &ac) {

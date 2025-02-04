@@ -1745,7 +1745,7 @@ public:
    */
   bool isValid() const { return itensor->isValid(); };
 
-  static constexpr float epsilon = 1e-5;
+  static constexpr float epsilon = 1e-5f;
 
 private:
   std::shared_ptr<TensorBase> itensor;

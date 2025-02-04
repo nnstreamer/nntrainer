@@ -11,6 +11,7 @@
  *
  */
 
+#include <numeric>
 #include <random>
 #include <vector>
 

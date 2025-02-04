@@ -18,15 +18,22 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
-#include <unistd.h>
 #include <utility>
 
-/* Uncomment this to use mmap for swap data */
-#define USE_MMAP
+#if defined(_WIN32)
+#include <io.h>
+#define O_SYNC 0UL
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
+#if defined(_WIN32)
+using ssize_t = std::make_signed_t<size_t>;
+#endif
 
 namespace nntrainer {
 
@@ -47,16 +54,14 @@ public:
    *
    */
   explicit SwapDevice(const std::string &name) :
-    dev_path(swap_device_default_path + name),
-    fd(-1) {}
+    dev_path(swap_device_default_path + name), fd(-1) {}
 
   /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
-    dev_path(path + "/" + name),
-    fd(-1) {}
+    dev_path(path + "/" + name), fd(-1) {}
 
   /**
    * @brief SwapDevice destructor
