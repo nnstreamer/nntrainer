@@ -309,6 +309,26 @@ tm *getLocaltime(tm *tp);
  */
 std::regex getRegex(const std::string &str);
 
+/**
+ * @brief  Convert a floating-point number into its fixed-point component (the
+ * mantissa) and its exponent component.
+ *
+ * @param[in] input floating point to convert
+ * @param[out] fixedpoint fixed-point
+ * @param[out] exponent exponent
+ */
+void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
+
+/**
+ * @brief Convert a fixed-point number and an exponent into a floating-point
+ * number.
+ *
+ * @param[in] fixedpoint fixed-point
+ * @param[in] exponent exponent
+ * @return floating point result
+ */
+float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
