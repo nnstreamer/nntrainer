@@ -12,16 +12,16 @@
  *
  */
 
-#include <blas_interface.h>
+#include "blas_interface.h"
 #include <nntrainer_error.h>
 
 #if (defined USE__FP16 && defined USE_NEON)
-#include <blas_neon.h>
-#include <matrix_transpose_neon.h>
+#include "blas_neon.h"
+#include "matrix_transpose_neon/matrix_transpose_neon.h"
 #endif
 
 #if USE_AVX
-#include <blas_avx.h>
+#include "blas_avx.h"
 #endif
 
 #ifdef USE_BLAS
