@@ -1,14 +1,15 @@
 project('nntrainer', 'c', 'cpp',
   version: '0.6.0',
   license: ['apache-2.0'],
-  meson_version: '>=0.50.0',
+  meson_version: '>=0.55.0',
   default_options: [
     'werror=true',
     'warning_level=1',
     'c_std=gnu89',
     'cpp_std=c++17',
     'buildtype=release'
-  ]
+  ],
+  subproject_dir: 'third_party'
 )
 
 # Set version info
@@ -351,37 +352,24 @@ libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
-iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
 if get_option('platform') == 'android'
-  message('preparing iniparser')
-  run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
-  iniparser_root = meson.build_root() / 'iniparser'
-  iniparser_dep = declare_dependency(include_directories: [ 'iniparser/src' ])
-endif
+  iniparser_root = meson.source_root() / 'third_party' / 'iniparser'
+  iniparser_dep = declare_dependency()
+else
+  iniparser_dep = dependency('iniparser', required : false, version : '>=3.2') # iniparser
 
-if not iniparser_dep.found()
-  message('falling back to find libiniparser library and header files')
-  libiniparser_dep = cxx.find_library('iniparser')
-  sysroot = run_command(
-    cxx.cmd_array() + ['-print-sysroot']
-    ).stdout().split('\n')[0]
+  if not iniparser_dep.found()
+    # CMake module
+    cmake = import('cmake')
 
-  if sysroot.startswith('/')
-    sysroot_inc_cflags_template = '-I@0@/usr/include@1@'
-    sysroot_inc = sysroot_inc_cflags_template.format(sysroot, '')
-    add_project_arguments(sysroot_inc, language: ['c', 'cpp'])
-    sysroot_inc_cflags_iniparser = sysroot_inc_cflags_template.format(sysroot,
-      '/iniparser')
-  else
-    sysroot_inc_cflags_iniparser = '-I/usr/include/iniparser'
-  endif
-
-  if libiniparser_dep.found() and cxx.has_header('iniparser.h', \
-        args : sysroot_inc_cflags_iniparser)
-    iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
-      compile_args : sysroot_inc_cflags_iniparser)
-  else
-    error('Failed to resolve dependency on iniparser')
+    # iniparser
+    iniparser_options = cmake.subproject_options()
+    iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
+    iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
+    iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
+    iniparser_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+    iniparser_subproject = cmake.subproject('iniparser', options: iniparser_options, required: true)
+    iniparser_dep = iniparser_subproject.dependency('iniparser-static')
   endif
 endif
 
