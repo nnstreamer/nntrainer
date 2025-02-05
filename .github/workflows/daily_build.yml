@@ -37,6 +37,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 1000 
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 1000
           sudo update-alternatives --set gcc /usr/bin/gcc-13
+      - name: Install submodules
+        run: git submodule sync && git submodule update --init --depth 1
       - name: install build systems
         run: sudo apt install meson ninja-build
       - run: |
