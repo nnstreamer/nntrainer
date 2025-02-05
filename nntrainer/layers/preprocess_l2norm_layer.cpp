@@ -39,6 +39,7 @@ void PreprocessL2NormLayer::finalize(InitLayerContext &context) {
 
 void PreprocessL2NormLayer::forwarding(RunLayerContext &context,
                                        bool training) {
+  const float epsilon = std::get<props::Epsilon>(l2norm_props);
   auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   auto &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -46,7 +47,7 @@ void PreprocessL2NormLayer::forwarding(RunLayerContext &context,
   for (uint b = 0; b < input_.batch(); ++b) {
     auto input_slice = input_.getBatchSlice(b, 1);
     auto hidden_slice = hidden_.getBatchSlice(b, 1);
-    input_slice.multiply(1 / input_slice.l2norm(), hidden_slice);
+    input_slice.multiply(1 / (input_slice.l2norm() + epsilon), hidden_slice);
   }
 }
 
@@ -57,11 +58,10 @@ void PreprocessL2NormLayer::calcDerivative(RunLayerContext &context) {
 
 void PreprocessL2NormLayer::setProperty(
   const std::vector<std::string> &values) {
-  if (!values.empty()) {
-    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
-                      std::to_string(values.size());
-    throw exception::not_supported(msg);
-  }
+  auto remain_props = loadProperties(values, l2norm_props);
+  NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+    << "[PreprocessL2Norm Layer] Unknown Layer Properties count " +
+         std::to_string(remain_props.size());
 }
 
 } // namespace nntrainer
