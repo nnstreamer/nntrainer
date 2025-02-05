@@ -411,6 +411,9 @@ ln -sf %{_includedir}/nnstreamer/nnstreamer.h %{_includedir}/nnstreamer/ml-api-c
 ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-common.pc
 %endif
 
+# Setup Ruy
+tar -xf packaging/ruy.tar.gz -C third_party
+
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_lib} --bindir=%{nntrainerapplicationdir} \

@@ -55,7 +55,8 @@ warning_flags = [
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
   '-Wno-maybe-uninitialized',
-  '-Wno-unused-variable'
+  '-Wno-unused-variable',
+  '-Wno-comment'
 ]
 
 warning_c_flags = [
