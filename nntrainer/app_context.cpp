@@ -529,7 +529,7 @@ int AppContext::registerLayer(const std::string &library_path,
       return layer;
     };
 
-  return registerFactory<nntrainer::Layer>(factory_func, type);
+  return registerFactory<nntrainer::Layer>(std::move(factory_func), type);
 }
 
 int AppContext::registerOptimizer(const std::string &library_path,
@@ -569,7 +569,7 @@ int AppContext::registerOptimizer(const std::string &library_path,
       return optimizer;
     };
 
-  return registerFactory<nntrainer::Optimizer>(factory_func, type);
+  return registerFactory<nntrainer::Optimizer>(std::move(factory_func), type);
 }
 
 std::vector<int>
