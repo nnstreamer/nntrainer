@@ -153,10 +153,11 @@ void IterationQueue::notifyEndOfRequestEmpty() {
 }
 
 void IterationQueue::markFilled(MarkableIteration *iteration) {
-  std::unique_lock lg(empty_mutex);
-  num_being_filled--;
-  filled_q.push(iteration);
-  lg.unlock();
+  {
+    std::lock_guard lg(empty_mutex);
+    --num_being_filled;
+    filled_q.push(iteration);
+  }
   notify_emptied_cv.notify_all();
 }
 
