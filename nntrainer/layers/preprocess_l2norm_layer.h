@@ -31,7 +31,7 @@ public:
    * @brief Construct a new L2norm Layer object
    * that normalizes given feature with l2norm
    */
-  PreprocessL2NormLayer() : Layer() {}
+  PreprocessL2NormLayer() : Layer(), l2norm_props(props::Epsilon()) {}
 
   /**
    *  @brief  Move constructor.
@@ -91,6 +91,9 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "preprocess_l2norm";
+
+private:
+  std::tuple<props::Epsilon> l2norm_props;
 };
 } // namespace nntrainer
 
