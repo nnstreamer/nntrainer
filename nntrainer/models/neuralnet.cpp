@@ -81,7 +81,7 @@ NeuralNetwork::NeuralNetwork() :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN) {
-  app_context = AppContext(AppContext::Global());
+  app_context = AppContext::Global();
 }
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :
