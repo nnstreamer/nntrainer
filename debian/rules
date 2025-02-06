@@ -31,7 +31,7 @@ override_dh_auto_clean:
 	rm -rf build
 
 override_dh_auto_configure:
-	tar -xf packaging/ruy.tar.gz -C third_party
+	tar -xf packaging/ruy.tar.gz -C subprojects
 	mkdir -p build
 	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc \
 		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
@@ -45,7 +45,7 @@ override_dh_auto_configure:
                 -Dcapi-ml-common-actual=capi-ml-common \
                 -Dcapi-ml-inference-actual=capi-ml-inference \
                 -Denable-capi=enabled \
-		build
+		build --wrap-mode=nodownload
 
 override_dh_auto_build:
 	ninja -C build
@@ -58,6 +58,11 @@ override_dh_auto_install:
 
 override_dh_install:
 	dh_install --sourcedir=debian/tmp
+	if [ "$(DEB_HOST_ARCH)" = "amd64" ]; then \
+		dh_install /usr/bin/cpuid_dump; \
+	else \
+		echo "Skipping cpuid_dump on non-x86_64 architecture"; \
+	fi
 
 override_dh_missing:
 	dh_missing --fail-missing
