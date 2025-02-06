@@ -63,7 +63,8 @@ ShortTensor::ShortTensor(
   MemoryData *mem_data =
     new MemoryData((void *)(new uint16_t[dim.getDataLen()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<uint16_t>();
+    delete[] mem_data->getAddr<int16_t>();
+    delete mem_data;
   });
 
   offset = 0;
