@@ -385,7 +385,14 @@ AppContext &AppContext::Global() {
   /// in g++ there is a bug that hangs up if caller throws,
   /// so registerer is noexcept although it'd better not
   /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
-  std::call_once(global_app_context_init_flag, registerer, std::ref(instance));
+  try {
+    std::call_once(global_app_context_init_flag, registerer,
+                   std::ref(instance));
+  } catch (std::exception &e) {
+    ml_loge("AppContext::Global() failed, reason: %s", e.what());
+  } catch (...) {
+    ml_loge("AppContext::Global() failed due to unknown reason");
+  }
   return instance;
 }
 

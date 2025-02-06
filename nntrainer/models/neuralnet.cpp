@@ -80,7 +80,7 @@ NeuralNetwork::NeuralNetwork() :
   initialized(false),
   compiled(false),
   loadedFromConfig(false) {
-  app_context = AppContext(AppContext::Global());
+  app_context = AppContext::Global();
 }
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_) :

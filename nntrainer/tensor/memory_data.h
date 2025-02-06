@@ -89,7 +89,8 @@ public:
   void validate() {
     if (valid)
       return;
-    validate_cb(id);
+    if (validate_cb != nullptr)
+      validate_cb(id);
   }
 
   /**
@@ -98,7 +99,8 @@ public:
   void invalidate() {
     if (!valid)
       return;
-    invalidate_cb(id);
+    if (invalidate_cb != nullptr)
+      invalidate_cb(id);
   }
 
   /**
