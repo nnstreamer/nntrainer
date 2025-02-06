@@ -87,6 +87,7 @@ public:
       new MemoryData((void *)(new _FP16[dim.getDataLen()]()));
     data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
       delete[] mem_data->getAddr<_FP16>();
+      delete mem_data;
     });
 
     offset = 0;
