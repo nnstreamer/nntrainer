@@ -207,11 +207,18 @@ int main(int argc, char *argv[]) {
       std::string out_file = "/sdcard/Transfer-Learning/";
       out_file += total_label[i] + std::to_string(j + 1) + ".txt";
       printf("%s\n", out_file.c_str());
-      std::ofstream writeFile(out_file.data());
-      if (writeFile.is_open()) {
-        for (int k = 0; k < 128; k++)
-          writeFile << out[i][j][k] << std::endl;
-        writeFile.close();
+      try {
+        std::ofstream writeFile(out_file.data());
+        if (writeFile.is_open()) {
+          for (int k = 0; k < 128; k++)
+            writeFile << out[i][j][k] << std::endl;
+          writeFile.close();
+        } else {
+          throw std::runtime_error("Failed to open file : " + out_file);
+        }
+      } catch (const std::exception &e) {
+        std::cerr << "Exception caught while writing to file : " << e.what()
+                  << std::endl;
       }
     }
   }
