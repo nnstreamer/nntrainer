@@ -393,7 +393,12 @@ int main(int argc, char *argv[]) {
      */
     std::string filename = data_path + "trainingSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
-    ExtractFeatures(data_path, inputVector, outputVector, "training", f);
+    try {
+      ExtractFeatures(data_path, inputVector, outputVector, "training", f);
+    } catch (...) {
+      std::cerr << "Error during open file: " << filename << std::endl;
+      return 1;
+    }
     f.close();
   }
 
@@ -403,7 +408,12 @@ int main(int argc, char *argv[]) {
      */
     std::string filename = data_path + "valSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
-    ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
+    try {
+      ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
+    } catch (...) {
+      std::cerr << "Error during open file: " << filename << std::endl;
+      return 1;
+    }
     f.close();
   }
 
@@ -413,7 +423,12 @@ int main(int argc, char *argv[]) {
      */
     std::string filename = data_path + "testSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
-    ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
+    try {
+      ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
+    } catch (...) {
+      std::cerr << "Error during open file: " << filename << std::endl;
+      return 1;
+    }
     f.close();
   }
 

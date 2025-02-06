@@ -189,7 +189,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  virtual const std::string getName() const noexcept = 0;
+  virtual const std::string getName() const = 0;
 
   /**
    * @brief Get the Weight object name
