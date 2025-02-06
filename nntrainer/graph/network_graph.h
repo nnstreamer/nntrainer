@@ -520,6 +520,10 @@ public:
    */
   unsigned int getNumLoadedTensorPoolTensors();
 
+  void setMemorySwapPath(std::string path) {
+    tensor_manager->setMemorySwapPath(path);
+  }
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */

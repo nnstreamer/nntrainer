@@ -137,12 +137,20 @@ public:
 
   std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
   void *getMemoryPoolAddress() { return mem_pool; }
+  virtual void setMemorySwapPath(std::string path) {};
+
+protected:
   /**
    * @brief  Get memory offset
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
 
 protected:
+  /**
+   * @brief  Get file offset
+   */
+  std::vector<size_t> &getFileOffset() { return file_offset; }
+
   /**
    * @brief  Get memory size
    */
@@ -201,6 +209,7 @@ private:
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
+  std::vector<size_t> file_offset; /**< offsets for the bin file */
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 

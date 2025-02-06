@@ -76,7 +76,7 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
   if (min_pool_size == 0)
     min_pool_size = calcMinMemoryRequirement();
 
-  pool_size = planner.planLayout(memory_size, memory_validity, memory_offset,
+  pool_size = planner.planLayout(memory_size, memory_validity, memory_offset, file_offset,
                                  memory_is_wgrad, n_wgrad);
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
@@ -164,6 +164,9 @@ size_t MemoryPool::minMemoryRequirement() {
  * overlap interval has overlapping memories
  */
 bool MemoryPool::validateLayout() {
+  if (memory_offset.size() != file_offset.size())
+    return false;
+
   if (memory_offset.size() != memory_size.size())
     return false;
 
@@ -327,6 +330,7 @@ void MemoryPool::clear() {
   memory_size.clear();
   memory_validity.clear();
   memory_offset.clear();
+  file_offset.clear();
   memory_is_wgrad.clear();
 
   pool_size = 0;

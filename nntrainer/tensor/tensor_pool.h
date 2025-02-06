@@ -311,6 +311,12 @@ public:
    */
   unsigned int getNumLoadedTensors();
 
+  void setMemorySwapPath(std::string path) {
+    if (mem_pool) {
+      mem_pool->setMemorySwapPath(path);
+    }
+  }
+
 private:
   /**
    * @brief Source tensor detailed specification

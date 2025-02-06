@@ -89,6 +89,7 @@ public:
    */
   void *getBuffer(off_t offset, size_t size, void *memory_ptr,
                   bool alloc_only = false);
+  // void *getBuffer(off_t file_offset, off_t offset, size_t size, bool alloc_only = false);
 
   /**
    * @brief Deallocate and put data
@@ -140,8 +141,12 @@ public:
    */
   unsigned int getNumLoadedTensors();
 
+  void setMemorySwapPath(std::string path) {
+    dev_path = path;
+  }
+
 private:
-  const std::string dev_path; /**< device path */
+  std::string dev_path; /**< device path */
   int fd;                     /**< device file description */
 
   unsigned int num_loaded_tensors;

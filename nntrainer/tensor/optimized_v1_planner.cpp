@@ -128,7 +128,7 @@ struct MemoryRequest {
 size_t OptimizedV1Planner::planLayout(
   const std::vector<size_t> &memory_size,
   const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-  std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
+  std::vector<size_t> &memory_offset, std::vector<size_t> &file_offset, std::vector<bool> &memory_is_wgrad,
   size_t n_wgrad) const {
 
   /** create memory requests structure array for easier management */
@@ -160,6 +160,13 @@ size_t OptimizedV1Planner::planLayout(
   /** iterate over the sorted requests and start allocation of the requests */
   memory_offset.resize(memory_size.size());
   size_t memory_req = 0;
+
+  file_offset.resize(memory_size.size());
+  size_t offset = 0;
+  for (size_t i = 0; i < requests.size(); ++i) {
+    offset += requests[i].size;
+    file_offset[i] = offset;
+  }
 
   for (auto &req : requests) {
     /** remove expired memories and update offset */

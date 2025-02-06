@@ -27,8 +27,9 @@ namespace nntrainer {
 void SwapDevice::start(size_t size) {
   if (fd > 0)
     return;
-  fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
 
+  fd =
+    open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, (mode_t)0666);
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -186,6 +187,7 @@ void SwapDevice::finish() {
   for (auto &[ptr, info] : mapped)
     free(ptr);
   mapped.clear();
+  is_unmapped.clear();
 #else
   for (auto &alloc : allocated)
     free(alloc.first);

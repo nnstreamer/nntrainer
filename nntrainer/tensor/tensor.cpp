@@ -27,6 +27,8 @@
 #include <bcq_tensor.h>
 #endif
 
+#include <iostream>
+
 namespace nntrainer {
 
 Tensor::Tensor(
@@ -1194,6 +1196,8 @@ void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "save size: " << tensor_bytes
     << " is too big. It cannot be represented by std::streamsize";
+
+  std::cerr << getData<_FP16>()[0] << "\n";
 
   checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
   putData();

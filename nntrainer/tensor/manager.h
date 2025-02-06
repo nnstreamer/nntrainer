@@ -554,6 +554,10 @@ public:
    */
   unsigned int getNumLoadedTensorPoolTensors();
 
+  void setMemorySwapPath(std::string path) {
+    weight_pool.setMemorySwapPath(path);
+  }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers
