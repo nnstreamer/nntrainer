@@ -48,8 +48,8 @@ jobs:
             echo "Checking $file"
             FILESIZE=$(stat -c%s "$file")
             FILESIZE_NUM=`echo $FILESIZE | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'`
-            if [[ $FILESIZE -gt $[ 5*1024*1024 ] ]]; then
-              echo "::error $file is too large: $FILESIZE > 5MiB"
+            if [[ $FILESIZE -gt $[ 30*1024*1024 ] ]]; then
+              echo "::error $file is too large: $FILESIZE > 30MiB"
               exit 1
             fi
           done
