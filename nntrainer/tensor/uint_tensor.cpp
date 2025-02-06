@@ -61,8 +61,10 @@ UIntTensor<T>::UIntTensor(
   initializer = Initializer::NONE;
 
   MemoryData *mem_data = new MemoryData((void *)(new T[dim.getDataLen()]()));
-  data = std::shared_ptr<MemoryData>(
-    mem_data, [](MemoryData *mem_data) { delete[] mem_data->getAddr<T>(); });
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
+    delete[] mem_data->getAddr<T>();
+    delete mem_data;
+  });
 
   offset = 0;
 

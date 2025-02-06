@@ -67,6 +67,7 @@ ShortTensor::ShortTensor(
                          sizeof(float) / sizeof(int16_t) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<int16_t>();
+    delete mem_data;
   });
 
   offset = 0;
