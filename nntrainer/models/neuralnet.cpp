@@ -1008,9 +1008,14 @@ int NeuralNetwork::allocate(ExecutionMode mode) {
 }
 
 int NeuralNetwork::deallocate() {
-  model_graph.deallocateTensors(true);
-
-  return ML_ERROR_NONE;
+  try {
+    model_graph.deallocateTensors(true);
+    return ML_ERROR_NONE;
+  } catch (const std::exception &e) {
+    std::cerr << "Error occurred during deallocation of NeuralNetwork: "
+              << e.what() << std::endl;
+    return ML_ERROR_UNKNOWN;
+  }
 }
 
 int NeuralNetwork::train(const std::vector<std::string> &values,
