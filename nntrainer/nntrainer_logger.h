@@ -86,7 +86,10 @@ protected:
    * @brief     Log file name
    */
   static const char *const logfile_name;
-
+  /**
+   * @brief     Log file directory path.
+   */
+  static const char *const logfile_dir;
   /**
    * @brief     output stream
    */
