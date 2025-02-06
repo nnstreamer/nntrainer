@@ -23,6 +23,7 @@
 
 #include <cstring>
 #include <ctime>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -38,7 +39,7 @@ namespace nntrainer {
  * @brief     logfile name
  */
 const char *const Logger::logfile_name = "log_nntrainer_";
-
+const char *const Logger::logfile_dir = "./logs/";
 /**
  * @brief     instance for single logger
  */
@@ -81,7 +82,10 @@ Logger::Logger() : ts_type(NNTRAINER_LOG_TIMESTAMP_SEC) {
      << now.tm_mday << std::setfill('0') << std::setw(2) << now.tm_hour
      << std::setfill('0') << std::setw(2) << now.tm_min << std::setfill('0')
      << std::setw(2) << now.tm_sec << ".out";
-  outputstream.open(ss.str(), std::ios_base::app);
+  if (!std::filesystem::exists(logfile_dir)) {
+    std::filesystem::create_directories(logfile_dir);
+  }
+  outputstream.open(logfile_dir + ss.str(), std::ios_base::app);
   if (!outputstream.good()) {
     char buf[256] = {
       0,
