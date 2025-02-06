@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/google/ruy
+directory = ruy
+revision = HEAD

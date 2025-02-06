@@ -26,6 +26,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
+	$(NNTRAINER_ROOT)/subprojects/ruy \
 	${ML_API_COMMON_INCLUDES}
 
 LOCAL_MODULE := nntrainer
