@@ -52,7 +52,7 @@ void SwapDevice::start(size_t size) {
     << "SwapDevice: seek file: " << dev_path;
 }
 
-void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
+void *SwapDevice::getBuffer(off_t file_offset, off_t offset, size_t size, bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 

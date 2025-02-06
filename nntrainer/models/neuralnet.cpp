@@ -645,6 +645,10 @@ void NeuralNetwork::load(const std::string &file_path,
   /// @todo this switch case should be delegating the function call only. It's
   /// not delegating for now as required logics are manageable for now.
   bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+  if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
+    model_graph.setMemorySwapPath(file_path);
+  }
+
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)

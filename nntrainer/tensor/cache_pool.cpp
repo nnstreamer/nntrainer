@@ -176,6 +176,7 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     << "Allocate memory before allocation";
 
   off_t offset = getMemoryOffset().at(id - 1);
+  off_t file_offset = getFileOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
@@ -183,7 +184,7 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
   auto elem =
-    std::make_shared<CacheElem>(swap_device, id, offset, len, mem_data, policy);
+    std::make_shared<CacheElem>(swap_device, id, offset, file_offset, len, mem_data, policy);
   elems[id] = elem;
 
   std::string ords;

@@ -75,12 +75,12 @@ std::vector<LayerHandle> createGraph() {
 
   layers.push_back(
     createLayer("input", {withKey("name", "input0"),
-                          withKey("input_shape", "1:1:1024")}));
+                          withKey("input_shape", "1:1:1")}));
 
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 4; i++) {
     layers.push_back(createLayer(
       "fully_connected",
-      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
+      {withKey("unit", 1), withKey("weight_initializer", "ones"),
        withKey("bias_initializer", "zeros")}));
   }
 

@@ -212,6 +212,10 @@ protected:
    */
   std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
+  void setMemorySwapPath(std::string path) override {
+    swap_device->setMemorySwapPath(path);
+  }
+
 private:
   std::string name;                        /**< pool name */
   std::shared_ptr<SwapDevice> swap_device; /**< swap device */

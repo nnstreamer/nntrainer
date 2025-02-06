@@ -61,13 +61,14 @@ public:
    *
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
-                     size_t off, size_t len, std::shared_ptr<MemoryData> data,
+                     size_t off, size_t file_off, size_t len, std::shared_ptr<MemoryData> data,
                      CachePolicy pol = CachePolicy::ALWAYS_SYNCED) :
     initial_opt(Options::FIRST_ACCESS_WRITE),
     device(dev),
     active(false),
     id(mem_id),
     offset(off),
+    file_offset(file_off),
     length(len),
     policy(pol),
     mem_data(data) {}
@@ -129,6 +130,7 @@ private:
   bool active;                          /**< element is loaded */
   unsigned int id;                      /**< memory id */
   size_t offset;                        /**< element offset from swap device */
+  size_t file_offset;                   /**< offset from bin file */
   size_t length;                        /**< element size */
   CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
