@@ -38,7 +38,6 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       task_cv.wait(lk, [&] { return !task_queue.empty() || stop_all; });
       if (stop_all && task_queue.empty())
         return;
-
       auto &task_info = task_queue.front();
 
       const auto &id = std::get<int>(task_info);
@@ -48,7 +47,6 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       callback(id, status);
 
       task_queue.pop_front();
-      lk.unlock();
     }
     ml_logd("Task Thread(%s): finish thread", name.c_str());
   });
