@@ -65,7 +65,13 @@ Logger::Cleanup::~Cleanup() {
   Logger::ainstance = nullptr;
 }
 
-Logger::~Logger() { outputstream.close(); }
+Logger::~Logger() {
+  try {
+    outputstream.close();
+  } catch(...) {
+    std::cerr << "Error closing the log file\n";
+  }
+}
 
 Logger::Logger() : ts_type(NNTRAINER_LOG_TIMESTAMP_SEC) {
   struct tm now;
