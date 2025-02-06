@@ -105,7 +105,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const noexcept override;
+  const std::string getName() const override;
 
   /**
    * Support all the interface requirements by nntrainer::GraphNode

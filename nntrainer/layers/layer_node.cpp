@@ -313,7 +313,7 @@ void LayerNode::setComputeEngine(
   this->compute_engine = compute_engine;
 }
 
-const std::string LayerNode::getName() const noexcept {
+const std::string LayerNode::getName() const {
   auto &name = std::get<props::Name>(*layer_node_props);
   return name.empty() ? "" : name.get();
 }
