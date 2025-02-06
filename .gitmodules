@@ -1,7 +1,7 @@
-[submodule "third_party/iniparser"]
-	path = third_party/iniparser
+[submodule "subprojects/iniparser"]
+	path = subprojects/iniparser
 	url = https://github.com/ndevilla/iniparser.git
 
-[submodule "third_party/ruy"]
-	path = third_party/ruy
+[submodule "subprojects/ruy"]
+	path = subprojects/ruy
 	url = https://github.com/google/ruy

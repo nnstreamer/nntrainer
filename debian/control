@@ -92,3 +92,9 @@ Depends: nnstreamer-nntrainer-trainer, ${shlibs:Depends}, ${misc:Depends}
 Description: Development package for nntrainer tensor trainer
  This is a developement package of nntrainer's tensor trainer.
 
+Package: ruy
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Ruy package
+ This is a ruy package for NNTrainer.

@@ -30,6 +30,7 @@ else
   nntrainer_base_deps=[
     blas_dep,
     iniparser_dep,
+    ruy_dep,
     ml_api_common_dep,
     libm_dep,
     libdl_dep,
@@ -64,19 +65,12 @@ foreach elem : nntrainer_elements
   nntrainer_inc_abs += meson.current_source_dir() / elem
 endforeach
 
-# add third party to include path
-fs = import('fs')
-if fs.is_dir('../third_party/ruy') 
-  nntrainer_inc += include_directories('../third_party/ruy')
-  nntrainer_inc_abs += meson.source_root() / 'third_party' / 'ruy'
-else
-  error('The git submodules of the nntrainer repository have not been checked out.\n Try: git submodule update --init')
-endif
-
 nntrainer_common_sources = [
   'nntrainer_logger.cpp',
   'app_context.cpp'
 ]
+
+nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ruy'
 
 if get_option('enable-opencl')
   nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
