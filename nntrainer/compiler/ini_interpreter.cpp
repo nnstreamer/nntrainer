@@ -333,6 +333,9 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
       const char *backbone_path =
         iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), UNKNOWN_STR);
 
+      NNTR_THROW_IF(backbone_path == nullptr, std::invalid_argument)
+        << FUNC_TAG << "backbone path is null";
+
       const std::string &backbone = pathResolver(backbone_path);
       if (graphSupported(backbone)) {
         /// @todo: this will be changed to a general way to add a graph
