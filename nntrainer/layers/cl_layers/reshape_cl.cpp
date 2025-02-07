@@ -163,6 +163,7 @@ void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
   }
 }
 
+#ifdef ENABLE_FP16
 void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
                                   unsigned int input_batch_size,
                                   unsigned int input_channels,
@@ -241,6 +242,7 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
 
   } while (false);
 }
+#endif
 
 void ReshapeLayerCl::copy_cl(const float *input, float *res,
                              unsigned int input_batch_size,
