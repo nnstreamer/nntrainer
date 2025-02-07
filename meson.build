@@ -26,6 +26,9 @@ extra_defines = ['-DMIN_CPP_VERSION=201703L']
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 
+# Older libc++ has <filesystem> in seperate library
+opt_stdcpp_fs_dep = cxx.find_library('stdc++fs', required: false)
+
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
   add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])

@@ -11,10 +11,48 @@
  */
 #include <base_properties.h>
 
+#include <cerrno>
 #include <regex>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <vector>
+
+#if !defined(_WIN32)
+#include <unistd.h>
+#endif
+
+namespace fs = std::filesystem;
+
+namespace {
+
+/**
+ * @brief constructs system error_code from POSIX errno
+ */
+[[maybe_unused]] auto make_system_error_code() {
+  return std::error_code{errno, std::system_category()};
+}
+
+bool isFileReadAccessisble(fs::path p, std::error_code &ec) {
+#if defined(_POSIX_VERSION)
+  // Check if we have read permissions to path pointing this file
+  auto r = ::access(p.c_str(), R_OK);
+  if (r == 0) {
+    ec = std::error_code{};
+    return true;
+  }
+
+  ec = make_system_error_code();
+
+  return false;
+#else
+  ec = std::error_code{};
+  // Unless it is POSIX, best bet is to try it
+  std::ifstream file(p, std::ios::binary | std::ios::ate);
+  return file.good();
+#endif
+}
+} // namespace
 
 namespace nntrainer {
 bool PositiveIntegerProperty::isValid(const unsigned int &value) const {
@@ -31,6 +69,18 @@ template <>
 std::string str_converter<str_prop_tag, std::string>::from_string(
   const std::string &value) {
   return value;
+}
+
+template <>
+std::string
+str_converter<path_prop_tag, fs::path>::to_string(const fs::path &value) {
+  return value;
+}
+
+template <>
+fs::path
+str_converter<path_prop_tag, fs::path>::from_string(const std::string &value) {
+  return fs::path{value};
 }
 
 template <>
@@ -142,6 +192,46 @@ TensorDim str_converter<dimension_prop_tag, TensorDim>::from_string(
   }
 
   return target;
+}
+
+PathProperty::~PathProperty() = default;
+
+bool PathProperty::isRegularFile(const fs::path &v) noexcept {
+  // Reject empty and non-existing paths
+  {
+    std::error_code ec;
+    if (v.empty() || !exists(v, ec))
+      return false;
+
+    if (ec)
+      return false;
+  }
+
+  // Check if it is a path to regular file
+  {
+    std::error_code ec;
+    auto real_path = is_symlink(v)? read_symlink(v, ec) : v;
+
+    if (ec)
+      return false;
+
+    if (!is_regular_file(real_path, ec))
+      return false;
+
+    if (ec)
+      return false;
+  }
+
+  return true;
+}
+
+bool PathProperty::isReadAccessible(const fs::path &v) noexcept {
+  std::error_code ec;
+
+  if (!isFileReadAccessisble(v, ec))
+    return false;
+
+  return !ec;
 }
 
 } // namespace nntrainer
