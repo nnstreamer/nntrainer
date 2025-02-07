@@ -28,6 +28,7 @@
 #include <cstring>
 #include <regex>
 #include <sstream>
+#include <system_error>
 
 #include <nntrainer_error.h>
 #include <random>

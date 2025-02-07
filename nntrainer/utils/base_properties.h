@@ -13,6 +13,7 @@
 #define __BASE_PROPERTIES_H__
 
 #include <array>
+#include <filesystem>
 #include <memory>
 #include <regex>
 #include <sstream>
@@ -115,6 +116,12 @@ struct double_prop_tag {};
  *
  */
 struct str_prop_tag {};
+
+/**
+ * @brief property is treated as a path
+ *
+ */
+struct path_prop_tag {};
 
 /**
  * @brief property is treated as boolean
@@ -264,6 +271,29 @@ public:
 
 private:
   std::unique_ptr<T> value; /**< underlying data */
+};
+
+/**
+ * @brief The filesystem path property
+ */
+struct PathProperty : Property<std::filesystem::path> {
+  using base = Property<std::filesystem::path>;
+
+  using base::base;
+
+  using prop_tag = path_prop_tag;
+
+  explicit PathProperty(const std::string &str) : base(str) {}
+
+  virtual bool isValid(const std::filesystem::path &value) const override {
+    return true;
+  };
+
+  virtual ~PathProperty() override;
+
+protected:
+  static bool isRegularFile(const std::filesystem::path &) noexcept;
+  static bool isReadAccessible(const std::filesystem::path &) noexcept;
 };
 
 /**
@@ -460,6 +490,21 @@ str_converter<str_prop_tag, std::string>::to_string(const std::string &value);
 template <>
 std::string
 str_converter<str_prop_tag, std::string>::from_string(const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string str_converter<path_prop_tag, std::filesystem::path>::to_string(
+  const std::filesystem::path &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::filesystem::path
+str_converter<path_prop_tag, std::filesystem::path>::from_string(
+  const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
