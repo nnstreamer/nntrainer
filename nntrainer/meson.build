@@ -20,15 +20,23 @@ nntrainer_headers = [
 ]
 
 # Dependencies
-nntrainer_base_deps=[
-  blas_dep,
-  iniparser_dep,
-  ml_api_common_dep,
-  libm_dep,
-  libdl_dep,
-  thread_dep,
-  openmp_dep
-]
+if host_machine.system() == 'windows'
+  nntrainer_base_deps=[
+    iniparser_dep,
+    thread_dep,
+    openmp_dep
+  ]
+else
+  nntrainer_base_deps=[
+    blas_dep,
+    iniparser_dep,
+    ml_api_common_dep,
+    libm_dep,
+    libdl_dep,
+    thread_dep,
+    openmp_dep
+  ]
+endif
 
 if get_option('platform') == 'tizen'
   nntrainer_base_deps += dependency('dlog')
@@ -101,9 +109,13 @@ else
     install_dir: nntrainer_libdir
   )
 
-  nntrainer_lib = nntrainer_shared
-  if get_option('default_library') == 'static'
+  if host_machine.system() == 'windows'
     nntrainer_lib = nntrainer_static
+  else
+    nntrainer_lib = nntrainer_shared
+    if get_option('default_library') == 'static'
+      nntrainer_lib = nntrainer_static
+    endif
   endif
 
   nntrainer_dep = declare_dependency(link_with: nntrainer_lib,

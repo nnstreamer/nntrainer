@@ -181,20 +181,22 @@ if get_option('enable-biqgemm')
   endif
 endif # end of enable-biqgemm
 
-foreach extra_arg : warning_flags
-  if cc.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'c')
-  endif
-  if cxx.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'cpp')
-  endif
-endforeach
+if host_machine.system() != 'windows'
+  foreach extra_arg : warning_flags
+    if cc.has_argument (extra_arg)
+      add_project_arguments([extra_arg], language: 'c')
+    endif
+    if cxx.has_argument (extra_arg)
+      add_project_arguments([extra_arg], language: 'cpp')
+    endif
+  endforeach
 
-foreach extra_arg : warning_c_flags
-  if cc.has_argument (extra_arg)
-    add_project_arguments([extra_arg], language: 'c')
-  endif
-endforeach
+  foreach extra_arg : warning_c_flags
+    if cc.has_argument (extra_arg)
+      add_project_arguments([extra_arg], language: 'c')
+    endif
+  endforeach
+endif
 
 # Set install path
 nntrainer_prefix = get_option('prefix')
@@ -229,7 +231,13 @@ endif
 
 # handle resources
 nntrainer_resdir = meson.build_root() / 'res'
-run_command('mkdir', '-p', nntrainer_resdir)
+
+if host_machine.system() == 'windows'
+  nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
+  run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+else
+  run_command('mkdir', '-p', nntrainer_resdir)
+endif
 
 if get_option('install-app')
 # add a script to install resources from installs to application_install_dir
@@ -354,8 +362,11 @@ if get_option('reduce-tolerance')
   extra_defines += '-DREDUCE_TOLERANCE=1'
 endif
 
-libm_dep = cxx.find_library('m') # cmath library
-libdl_dep = cxx.find_library('dl') # DL library
+if host_machine.system() != 'windows'
+  libm_dep = cxx.find_library('m') # cmath library
+  libdl_dep = cxx.find_library('dl') # DL library
+endif
+
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
 if get_option('platform') == 'android'
@@ -493,7 +504,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android'
+if get_option('platform') != 'android' and host_machine.system() != 'windows'
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')

@@ -16,6 +16,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "opencl_loader.h"
 
@@ -70,10 +71,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
   cl_int error_code = CL_SUCCESS;
 
   // Read the binary size
-  size_t binaries_size[num_devices];
-  error_code =
-    clGetProgramInfo(program_, CL_PROGRAM_BINARY_SIZES,
-                     sizeof(size_t) * num_devices, binaries_size, nullptr);
+  std::vector<size_t> binaries_size(num_devices);
+  error_code = clGetProgramInfo(program_, CL_PROGRAM_BINARY_SIZES,
+                                sizeof(size_t) * num_devices,
+                                binaries_size.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program binary size. OpenCL error code: %d. %s",
@@ -95,9 +96,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
   }
 
   // getting the kernel names
-  char kernel_names[kernel_names_size];
-  error_code = clGetProgramInfo(program_, CL_PROGRAM_KERNEL_NAMES,
-                                kernel_names_size, kernel_names, nullptr);
+  std::vector<char> kernel_names(kernel_names_size);
+  error_code =
+    clGetProgramInfo(program_, CL_PROGRAM_KERNEL_NAMES, kernel_names_size,
+                     kernel_names.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program kernel names. OpenCL error code: %d. %s",
@@ -105,19 +107,21 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
             (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
     return false;
   } else {
-    ml_logi("Saving kernel binary for: %s", std::string(kernel_names).c_str());
+    ml_logi("Saving kernel binary for: %s",
+            std::string(kernel_names.data()).c_str());
   }
 
   // Read the binary
   size_t binaries_ptr_alloc_size = sizeof(unsigned char *) * num_devices;
-  unsigned char *binaries_ptr[num_devices];
+  std::vector<unsigned char *> binaries_ptr(num_devices);
 
   for (unsigned int i = 0; i < num_devices; ++i) {
     binaries_ptr[i] = new unsigned char[binaries_size[i]];
   }
 
-  error_code = clGetProgramInfo(program_, CL_PROGRAM_BINARIES,
-                                binaries_ptr_alloc_size, binaries_ptr, nullptr);
+  error_code =
+    clGetProgramInfo(program_, CL_PROGRAM_BINARIES, binaries_ptr_alloc_size,
+                     binaries_ptr.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to get program binary data. OpenCL error code: %d. %s",
@@ -135,7 +139,7 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
   // All kernels in the program will be saved in the binary file
   for (unsigned int i = 0; i < num_devices; ++i) {
     std::ofstream fs(Program::DEFAULT_KERNEL_PATH + "/" +
-                       std::string(kernel_names) + "_kernel.bin",
+                       std::string(kernel_names.data()) + "_kernel.bin",
                      std::ios::out | std::ios::binary | std::ios::app);
     if (!fs) {
       ml_loge(
