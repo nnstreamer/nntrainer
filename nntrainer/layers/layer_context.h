@@ -28,6 +28,7 @@
 namespace nntrainer {
 
 class Var_Grad;
+class ContextData;
 
 /**
  * @class   Layer Context class for all layers
@@ -478,7 +479,8 @@ public:
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool is_inplace_, float loss_scale_, bool restoreData_,
+                  bool is_inplace_, float loss_scale_,
+                  std::shared_ptr<ContextData> ct_data, bool restoreData_,
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
@@ -856,6 +858,8 @@ public:
     return loss_;
   }
 
+  std::shared_ptr<ContextData> getContextData() { return ct_data; }
+
   /**
    * @brief   get name by the layer
    *
@@ -933,7 +937,8 @@ public:
 
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
-  float loss;                                      /**< loss of the layer */
+  std::shared_ptr<ContextData> ct_data;
+  float loss;       /**< loss of the layer */
   bool is_inplace;  /**< if the layer is expected to run in-place */
   float loss_scale; /**< loss_scale of the layer */
   bool restoreData; /**< reset output for mixed precsion */

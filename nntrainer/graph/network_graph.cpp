@@ -26,6 +26,7 @@
 #include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <engine.h>
 #include <flatten_layer.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -748,6 +749,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** finalize the layer and get the final context */
   auto init_context = lnode->finalize(input_dims, getTensorType(), exec_mode);
+  auto ct_engine = nntrainer::Engine::Global();
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
@@ -891,6 +893,11 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   bool trainable = lnode->getTrainable();
   if (exec_mode == ExecutionMode::INFERENCE)
     trainable = false;
+
+  auto context = ct_engine.getRegisteredContext(lnode->getComputeEngineType());
+
+  auto ct_data = context->getContextData();
+
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
@@ -898,7 +905,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    trainable, shared_tensor_names),
-    init_context.getLossScale());
+    init_context.getLossScale(), ct_data);
 
   return outputs;
 }
@@ -915,6 +922,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** refinalize the layer and get the final context */
   auto init_context = lnode->refinalize(input_dims);
+  auto ct_engine = nntrainer::Engine::Global();
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
@@ -1051,12 +1059,17 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
   }
 
   auto weights = lnode->getRunContext().getWeights();
+
+  auto context = ct_engine.getRegisteredContext(lnode->getComputeEngineType());
+
+  auto ct_data = context->getContextData();
+
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     weights, inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
                                    lnode->getTrainable(), shared_tensor_names),
-    init_context.getLossScale());
+    init_context.getLossScale(), ct_data);
 
   return outputs;
 }

@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include <app_context.h>
+#include <engine.h>
 #include <iniparser.h>
 #include <neuralnet.h>
 
@@ -34,9 +34,8 @@ public:
   /**
    * @brief     Constructor of the model loader
    */
-  ModelLoader(const AppContext &app_context_ = AppContext::Global()) :
-    app_context(app_context_),
-    model_file_context(nullptr) {}
+  ModelLoader(const Engine &ct_eng_ = Engine::Global()) :
+    ct_engine(ct_eng_), model_file_engine(nullptr) {}
 
   /**
    * @brief     Destructor of the model loader
@@ -135,8 +134,8 @@ private:
    * @return const std::string resolved path.
    */
   const std::string resolvePath(const std::string &path) {
-    auto app_context_resolved_path = app_context.getWorkingPath(path);
-    return model_file_context->getWorkingPath(app_context_resolved_path);
+    auto path_ = ct_engine.getWorkingPath(path);
+    return model_file_engine->getWorkingPath(path_);
   }
 
   /**
@@ -152,11 +151,11 @@ private:
   const char *unknown = "Unknown";
   const char *none = "none";
 
-  AppContext app_context;
-  std::unique_ptr<AppContext>
-    model_file_context; /**< model_file specific context which is
-           referred to as if app_context cannot
-           resolve some given configuration */
+  Engine ct_engine;
+  std::unique_ptr<Engine> model_file_engine;
+  /**< model_file specific context which is
+  //          referred to as if app_context cannot
+  //          resolve some given configuration */
 };
 
 } /* namespace nntrainer */
