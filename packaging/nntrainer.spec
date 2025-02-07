@@ -90,7 +90,7 @@ Source2003:	testset.tar.gz
 Source2004:	label.dat
 Source2005:	unittest_layers.tar.gz
 
-BuildRequires:	meson >= 0.50.0
+BuildRequires:	meson >= 0.55.0
 BuildRequires:	openblas-devel
 BuildRequires:	iniparser-devel >= 4.1
 BuildRequires:	gtest-devel

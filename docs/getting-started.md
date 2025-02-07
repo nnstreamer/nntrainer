@@ -9,7 +9,7 @@ title: Getting Started
 The following dependencies are needed to compile/build/run.
 
 * gcc/g++ >= 7 ( std=c++17 is used )
-* meson >= 0.50
+* meson >= 0.55.0
 * libopenblas-dev and base
 * tensorflow-lite >= 2.3.0
 * libiniparser
