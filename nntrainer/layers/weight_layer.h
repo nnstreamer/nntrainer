@@ -21,14 +21,6 @@
 
 namespace nntrainer {
 
-namespace props {
-class WeightName : public Name {
-public:
-  static constexpr const char *key = "weight_name";
-  using prop_tag = str_prop_tag;
-};
-} // namespace props
-
 /**
  * @class   Weight Layer
  * @brief   A layer that simply stores a weight tensor
