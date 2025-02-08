@@ -109,6 +109,8 @@ if get_option('enable-fp16')
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
      extra_defines += '-DENABLE_FP16=1'
      extra_defines += '-DUSE__FP16=1'
+     extra_defines += '-DUSE_NEON=1'
+     extra_defines += '-DENABLE_QNN=1'
    elif arch == 'aarch64'
      ## About FP16 in GCC (from GCC-9.1 manual)
      # https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html
