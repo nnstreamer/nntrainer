@@ -12,6 +12,12 @@
 
 #include <cstdlib>
 #include <limits>
+
+#include <numeric>
+#include <vector>
+
+#include <map>
+
 #include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -95,18 +101,28 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
-  allocators.at("qnn")->alloc(&mem_pool, pool_size, 1);
+#ifdef ENABLE_QNN
+  std::map<size_t, void *> offset_ptr;
 
-  // for( auto &s : memory_size ){
-  //   void* ptr;
-  //   allocators.at("qnn")->alloc(&ptr, s,1);
-  //   memory_ptrs.push_back(ptr);
-  // }
+  int i = 0;
+  for (auto &s : memory_offset) {
+    auto it = offset_ptr.find(s);
+    if (it == offset_ptr.end()) {
+      void *ptr;
+      allocators.at("qnn")->alloc(&ptr, memory_size.at(i), 1);
+      memory_ptrs.push_back(ptr);
+      offset_ptr.insert(std::make_pair(s, ptr));
+    } else {
+      memory_ptrs.push_back(it->second);
+    }
+    i++;
+  }
 
-  // mem_pool = calloc(pool_size, 1);
-  // if (mem_pool == nullptr)
-  //   throw std::runtime_error(
-  //     "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+  // temp change for isAllocate() true
+  mem_pool = calloc(1, 1);
+#else
+  mem_pool = calloc(pool_size, 1);
+#endif
 
 #ifdef PROFILE
   static long long seq = 0;
@@ -142,18 +158,23 @@ void MemoryPool::allocateFSU() {
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
+  // if (mem_pool == nullptr)
+  //   throw std::invalid_argument("Getting memory before allocation");
+
+  // char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  // void *ptr;
+  // allocators.at("qnn")->alloc(ptr, memory_size.at(idx-1), 1);
+
+#ifdef ENABLE_QNN
+  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+#else
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  // void *ptr;
-  // allocators.at("qnn")->alloc(ptr, memory_size.at(idx-1), 1);
-  // std::cout << idx << " : "<<std::endl;
-  // if(ptr == nullptr)
-  //   std::cout << "alloc failed"<<std::endl;
-
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
-  memory_ptrs.emplace_back(ptr);
+#endif
+
   return mem_data;
 }
 
@@ -162,20 +183,29 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
  *
  */
 void MemoryPool::deallocate() {
+#ifdef ENABLE_QNN
   if (mem_pool != nullptr) {
-    //    free(mem_pool);
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
 
-    allocators.at("qnn")->free(mem_pool);
-
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
 #endif
+    
     memory_ptrs.clear();
+    free(mem_pool);
+
+    int i = 0;
+    for (auto &s : memory_ptrs) {
+      if (s)
+        allocators.at("qnn")->free(s);
+    }
   }
+#else
+  free(mem_pool);
+#endif
 
   mem_pool = nullptr;
 }
