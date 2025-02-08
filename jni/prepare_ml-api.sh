@@ -26,7 +26,7 @@ pushd ${TARGET}
 function _download_ml_api {
   [ -f $ZIP_NAME ] && echo "${ZIP_NAME} exists, skip downloading" && return 0
   echo "[ml_api] downloading ${ZIP_NAME}\n"
-  if ! wget -r -l1 -nH --cut-dirs=3 ${URL}${ZIP_NAME} -O ${ZIP_NAME} ; then
+  if ! wget -r -l1 -nH --cut-dirs=3 ${URL}${ZIP_NAME} -O ${ZIP_NAME} --no-check-certificate ; then
     echo "[ml_api] Download failed, please check url\n"
     exit $?
   fi
