@@ -1645,6 +1645,18 @@ public:
   };
 };
 
+class WeightName : public Name {
+public:
+  static constexpr const char *key = "weight_name";
+  using prop_tag = str_prop_tag;
+};
+
+class TensorName : public Name {
+public:
+  static constexpr const char *key = "tensor_name";
+  using prop_tag = str_prop_tag;
+};
+
 } // namespace props
 } // namespace nntrainer
 
