@@ -280,7 +280,7 @@ private:
     allocators;
   std::vector<void *> memory_ptrs; /**< memory ptr vector */
 };
-};
+
 } // namespace nntrainer
 
 #endif /** __MEMORY_POOL_H__ */
