@@ -20,14 +20,6 @@
 
 namespace nntrainer {
 
-namespace props {
-class TensorName : public Name {
-public:
-  static constexpr const char *key = "tensor_name";
-  using prop_tag = str_prop_tag;
-};
-} // namespace props
-
 /**
  * @class   Input Layer
  * @note    input layers requires to be only single input, consider making the
