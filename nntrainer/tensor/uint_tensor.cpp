@@ -15,20 +15,21 @@
 #ifdef __UINT_TENSOR_H__
 
 template <typename T>
-UIntTensor<T>::UIntTensor(std::string name_, Tformat fm) :
-  TensorBase(name_, fm, checkTensorDataType()) {}
+UIntTensor<T>::UIntTensor(std::string name_, Tformat fm, QScheme qscheme_) :
+  TensorBase(name_, fm, checkTensorDataType()), qscheme(qscheme_) {}
 
 template <typename T>
 UIntTensor<T>::UIntTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                          std::string name) :
-  TensorBase(d, alloc_now, init, name) {
+                          std::string name, QScheme qscheme_) :
+  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
   if (alloc_now)
     allocate();
 }
 
 template <typename T>
-UIntTensor<T>::UIntTensor(const TensorDim &d, const void *buf) :
-  UIntTensor(d, true) {
+UIntTensor<T>::UIntTensor(const TensorDim &d, const void *buf,
+                          QScheme qscheme_) :
+  UIntTensor(d, true, Initializer::NONE, "", qscheme_) {
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
@@ -37,7 +38,9 @@ UIntTensor<T>::UIntTensor(const TensorDim &d, const void *buf) :
 
 template <typename T>
 UIntTensor<T>::UIntTensor(
-  std::vector<std::vector<std::vector<std::vector<T>>>> const &d, Tformat fm) {
+  std::vector<std::vector<std::vector<std::vector<T>>>> const &d,
+  std::vector<float> const &scales, unsigned int zero_point, Tformat fm,
+  QScheme qscheme_) {
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize UIntTensor from empty vector");
@@ -60,7 +63,9 @@ UIntTensor<T>::UIntTensor(
   contiguous = true;
   initializer = Initializer::NONE;
 
-  MemoryData *mem_data = new MemoryData((void *)(new T[dim.getDataLen()]()));
+  MemoryData *mem_data =
+    new MemoryData((void *)(new T[dim.getDataLen() +
+                                  sizeof(float) / sizeof(T) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<T>();
     delete mem_data;
@@ -110,7 +115,9 @@ template <typename T> void UIntTensor<T>::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-    mem_data = new MemoryData((void *)(new T[dim.getDataLen()]{}));
+    mem_data = new MemoryData(
+      (void *)(new T[dim.getDataLen() +
+                     sizeof(float) / sizeof(T) * scale_size()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<T>();
       delete mem_data;
@@ -139,6 +146,25 @@ template <typename T> void *UIntTensor<T>::getData(size_t idx) const {
 
   data->validate();
   return data->getAddr<T>() + offset + idx;
+}
+
+template <typename T> void *UIntTensor<T>::getScale() const {
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return ((T *)getData()) + size();
+}
+
+template <typename T> void *UIntTensor<T>::getScale(size_t idx) const {
+  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
+    << "Tensor::getScale() index is not valid";
+
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return (float *)((T *)getData() + size()) + idx;
 }
 
 template <typename T> void *UIntTensor<T>::getAddress(unsigned int i) {
@@ -342,6 +368,34 @@ template <typename T> void UIntTensor<T>::print(std::ostream &out) const {
     }
     out.copyfmt(init);
   }
+}
+
+template <typename T>
+void UIntTensor<T>::save_quantization_info(std::ostream &file) {
+  checkedWrite(file, (char *)&qscheme, sizeof(uint8_t),
+               "[CharTensor::save] failed to write quantization information");
+}
+
+template <typename T>
+void UIntTensor<T>::read_quantization_info(std::ifstream &file) {
+  checkedRead(file, (char *)&qscheme, sizeof(uint8_t),
+              "[CharTensor::read] failed to read quantization information");
+}
+
+template <typename T> size_t UIntTensor<T>::scale_size() const {
+  switch (qscheme) {
+  case QScheme::PER_TENSOR_AFFINE:
+    return 1;
+  case QScheme::PER_CHANNEL_AFFINE:
+    return width();
+  default:
+    break;
+  }
+  return 0;
+}
+
+template <typename T> QScheme UIntTensor<T>::q_scheme() const {
+  return qscheme;
 }
 
 template <typename T> void UIntTensor<T>::copy(const void *buf) {

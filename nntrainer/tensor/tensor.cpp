@@ -76,23 +76,29 @@ Tensor::Tensor(
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, t_type.format),
-                                         std::default_delete<UInt8Tensor>());
+  std::vector<float> const &scales, unsigned int zero_point,
+  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
+  itensor = std::shared_ptr<UInt8Tensor>(
+    new UInt8Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    std::default_delete<UInt8Tensor>());
 }
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<UInt16Tensor>(new UInt16Tensor(d, t_type.format),
-                                          std::default_delete<UInt16Tensor>());
+  std::vector<float> const &scales, unsigned int zero_point,
+  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
+  itensor = std::shared_ptr<UInt16Tensor>(
+    new UInt16Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    std::default_delete<UInt16Tensor>());
 }
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
-  ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, t_type.format),
-                                          std::default_delete<UInt32Tensor>());
+  std::vector<float> const &scales, unsigned int zero_point,
+  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
+  itensor = std::shared_ptr<UInt32Tensor>(
+    new UInt32Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    std::default_delete<UInt32Tensor>());
 }
 
 Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {

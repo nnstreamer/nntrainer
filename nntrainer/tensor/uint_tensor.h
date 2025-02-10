@@ -31,7 +31,8 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  UIntTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
+  UIntTensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new UIntTensor object
@@ -42,7 +43,8 @@ public:
    * @param name Name of the tensor
    */
   UIntTensor(const TensorDim &d, bool alloc_now,
-             Initializer init = Initializer::NONE, std::string name = "");
+             Initializer init = Initializer::NONE, std::string name = "",
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new UIntTensor object
@@ -50,7 +52,8 @@ public:
    * @param d Tensor dim for this tensor
    * @param buf buffer
    */
-  UIntTensor(const TensorDim &d, const void *buf = nullptr);
+  UIntTensor(const TensorDim &d, const void *buf = nullptr,
+             QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief Construct a new UIntTensor object
@@ -59,7 +62,8 @@ public:
    * @param fm format for the Tensor
    */
   UIntTensor(std::vector<std::vector<std::vector<std::vector<T>>>> const &d,
-             Tformat fm);
+             std::vector<float> const &scales, unsigned int zero_point,
+             Tformat fm, QScheme qscheme_);
 
   /**
    * @brief Construct a new UIntTensor object
@@ -105,6 +109,16 @@ public:
    * @copydoc Tensor::getData(size_t idx)
    */
   void *getData(size_t idx) const override;
+
+  /**
+   * @copydoc Tensor::getScale()
+   */
+  void *getScale() const override;
+
+  /**
+   * @copydoc Tensor::getScale(size_t idx)
+   */
+  void *getScale(size_t idx) const override;
 
   /**
    * @brief     i data index
@@ -221,7 +235,32 @@ public:
    */
   void print(std::ostream &out) const override;
 
+  /**
+   * @copydoc TensorBase::save_quantization_info()
+   */
+  void save_quantization_info(std::ostream &file) override;
+
+  /**
+   * @copydoc TensorBase::read_quantization_info()
+   */
+  void read_quantization_info(std::ifstream &file) override;
+
+  /**
+   * @copydoc Tensor::scale_size()
+   */
+  size_t scale_size() const override;
+
+  /**
+   * @copydoc Tensor::q_scheme()
+   */
+  QScheme q_scheme() const;
+
 private:
+  /**
+   * @brief quantization scheme
+   */
+  QScheme qscheme;
+
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
    * initialized otherwise undefined behavior
