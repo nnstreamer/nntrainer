@@ -183,7 +183,6 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
  * @return int
  */
 int main(int argc, char **argv) {
-  auto &app_context = nntrainer::AppContext::Global();
 
   if (argc != 6 && argc != 5) {
     std::cout
@@ -221,8 +220,12 @@ int main(int argc, char **argv) {
   std::string val_path = app_path + "/tasks/" + argv[4];
 
   try {
+    auto &app_context = nntrainer::AppContext::Global();
     app_context.registerFactory(
       nntrainer::createLayer<simpleshot::layers::CenteringLayer>);
+  } catch (std::system_error &e) {
+    std::cerr << "registering factory failed: " << e.what();
+    return 1;
   } catch (std::exception &e) {
     std::cerr << "registering factory failed: " << e.what();
     return 1;
