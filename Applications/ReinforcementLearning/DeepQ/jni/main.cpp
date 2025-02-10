@@ -433,8 +433,14 @@ int main(int argc, char **argv) {
            * @brief     Generate Lable with next state
            */
           for (unsigned int i = 0; i < in_Exp.size(); i++) {
-            STATE state = in_Exp[i].state;
-            STATE next_state = in_Exp[i].next_state;
+            STATE state, next_state;
+            try {
+              state = in_Exp[i].state;
+              next_state = in_Exp[i].next_state;
+            } catch (std::bad_array_new_length &e) {
+              std::cerr << "Error during state assignment" << std::endl;
+              return -1;
+            }
             std::vector<float> in(state.observation.begin(),
                                   state.observation.end());
             inbatch.push_back({{in}});
