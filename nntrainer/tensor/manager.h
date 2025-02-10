@@ -540,8 +540,18 @@ public:
    */
   bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
 
+  /**
+   * @brief Get Number of Loaded WeightPool Tensor
+   *
+   * @return Number of Loaded WeightPool Tensor
+   */
   unsigned int getNumLoadedWeightPoolTensors();
 
+  /**
+   * @brief Get Number of Loaded TensorPool Tensor
+   *
+   * @return Number of Loaded TensorPool Tensor
+   */
   unsigned int getNumLoadedTensorPoolTensors();
 
 private:

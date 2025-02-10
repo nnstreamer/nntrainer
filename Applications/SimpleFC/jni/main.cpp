@@ -131,8 +131,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   float input[1 * 1024];
 
-  for (uint j = 0; j < feature_size; ++j)
-    input[j] = (j / feature_size);
+  for (unsigned int j = 0; j < feature_size; ++j)
+    input[j] = (j / (float)feature_size);
 
   std::vector<float *> in;
   std::vector<float *> answer;
@@ -183,8 +183,8 @@ int main(int argc, char *argv[]) {
   std::cout << "swap_on : " << swap_on << std::endl;
   std::cout << "look_ahead : " << look_ahead << std::endl;
 
-  uint batch_size = 1;
-  uint epoch = 1;
+  unsigned int batch_size = 1;
+  unsigned int epoch = 1;
 
   try {
     createAndRun(epoch, batch_size, swap_on, look_ahead);

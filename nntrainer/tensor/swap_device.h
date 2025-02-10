@@ -119,6 +119,11 @@ public:
    */
   const std::string getDevicePath() const { return dev_path; }
 
+  /**
+   * @brief Get number of loaded tensors
+   *
+   * @return number of loaded tensors
+   */
   unsigned int getNumLoadedTensors();
 
 private:

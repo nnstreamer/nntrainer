@@ -750,7 +750,9 @@ public:
   /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
-   * @param bool read optimizer variables
+   * @param swap swap type
+   * @param mode Execution mode
+   * @param opt_var read optimizer variables
    */
   void read(std::ifstream &file, bool opt_var = false,
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
