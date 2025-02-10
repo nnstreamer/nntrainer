@@ -477,7 +477,13 @@ int main(int argc, char **argv) {
             std::cerr << "Error during forwarding target network" << std::endl;
             return -1;
           }
-          const float *nqa = NQ->getData();
+          const float *nqa = nullptr;
+          try {
+            nqa = NQ->getData();
+          } catch (std::bad_function_call &e) {
+            std::cerr << "Error during get data" << std::endl;
+            return -1;
+          }
 
           /**
            * @brief     Update Q values & udpate mainNetwork
