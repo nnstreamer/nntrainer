@@ -127,7 +127,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  uint feature_size = 1 * 1 * 1024;
+  unsigned int feature_size = 1 * 1 * 1024;
 
   float input[1 * 1024];
 
@@ -148,28 +148,19 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::string filePath = "./simplefc_weight_fp16_fp16_100.bin";
   if (access(filePath.c_str(), F_OK) == 0) {
     model->load(filePath);
-    auto load_end = std::chrono::system_clock::now();
-    std::chrono::duration<double> load_elapsed_seconds = load_end - start;
-    std::time_t load_end_time = std::chrono::system_clock::to_time_t(load_end);
-    std::cout << "Load finished computation at " << std::ctime(&load_end_time)
-              << "elapsed time: " << load_elapsed_seconds.count() << "s\n";
   } else {
     model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     model->load(filePath);
   }
 
   answer = model->inference(1, in);
-  std::cout << answer[0][0] << std::endl;
-  auto end = std::chrono::system_clock::now();
 
+  auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
   std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
   in.clear();
-
-  std::cout << "done" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
