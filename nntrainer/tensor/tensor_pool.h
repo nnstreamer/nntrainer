@@ -304,6 +304,11 @@ public:
    */
   void loadCacheCancel(int id);
 
+  /**
+   * @brief Get number of loaded tensors
+   *
+   * @return number of loaded tensors
+   */
   unsigned int getNumLoadedTensors();
 
 private:

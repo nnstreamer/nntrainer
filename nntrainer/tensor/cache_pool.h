@@ -188,6 +188,11 @@ public:
    */
   virtual std::string getName() { return name; }
 
+  /**
+   * @brief Get number of loaded tensors
+   *
+   * @return number of loaded tensors
+   */
   virtual unsigned int getNumLoadedTensors();
 
 protected:
