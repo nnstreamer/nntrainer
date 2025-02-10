@@ -130,6 +130,10 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
     free(mem_pool);
+    memory_size.clear();
+    memory_validity.clear();
+    memory_exec_order.clear();
+    memory_is_wgrad.clear();
     PROFILE_MEM_DEALLOC(mem_pool);
   }
 
