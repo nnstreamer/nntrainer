@@ -226,9 +226,11 @@ TEST(nntrainer_Tensor, Tensor_05_p) {
                                                         {{4, 5}, {6, 7}},
                                                         {{8, 9}, {10, 11}},
                                                         {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {3.915f};
 
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+    nntrainer::QScheme::PER_TENSOR_AFFINE);
   ASSERT_NE(nullptr, tensor.getData<uint16_t>(0));
 
   for (size_t b = 0; b < tensor.batch(); ++b) {
@@ -249,9 +251,11 @@ TEST(nntrainer_Tensor, Tensor_06_p) {
                                                        {{4, 5}, {6, 7}},
                                                        {{8, 9}, {10, 11}},
                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {1.204f};
 
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8});
+    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8},
+    nntrainer::QScheme::PER_TENSOR_AFFINE);
   ASSERT_NE(nullptr, tensor.getData<uint8_t>());
 
   for (size_t b = 0; b < tensor.batch(); ++b) {
@@ -272,9 +276,11 @@ TEST(nntrainer_Tensor, Tensor_07_p) {
                                                         {{4, 5}, {6, 7}},
                                                         {{8, 9}, {10, 11}},
                                                         {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {8.125f};
 
   nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32});
+    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32},
+    nntrainer::QScheme::PER_TENSOR_AFFINE);
   ASSERT_NE(nullptr, tensor.getData<uint32_t>());
 
   for (size_t b = 0; b < tensor.batch(); ++b) {
@@ -369,9 +375,11 @@ TEST(nntrainer_Tensor, Tensor_09_n) {
     in.push_back(ttv);
   }
 
-  EXPECT_THROW(nntrainer::Tensor(
-                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}),
-               std::out_of_range);
+  EXPECT_THROW(
+    nntrainer::Tensor(in, {1.24f}, 125,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE),
+    std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, QTensor_01_p) {
