@@ -12,12 +12,15 @@
 #ifndef __BASE_PROPERTIES_H__
 #define __BASE_PROPERTIES_H__
 
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <memory>
 #include <regex>
+#include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <nntrainer_error.h>
@@ -763,6 +766,125 @@ public:
   TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
     set(value);
   };
+};
+
+/**
+ * @class ICaseLexOrder
+ *
+ * @brief The Lexicograpthic order strings disregarding case of the characters.
+ */
+struct ICaseLexOrder final {
+  /**
+   * @brief case insensitive character compare
+   *
+   * @return true if @param l is less than @param l
+   */
+  constexpr static bool compare(unsigned char l, unsigned char r) noexcept {
+    return std::less<unsigned char>{}(std::tolower(l), std::tolower(r));
+  }
+
+  /**
+   * @brief case insensitive character compare
+   *
+   * @return true if @param l is less than @param l
+   */
+  constexpr bool operator()(unsigned char l, unsigned char r) const noexcept {
+    return ICaseLexOrder::compare(l, r);
+  }
+
+  /**
+   * @brief case insensitive character compare
+   *
+   * @return true if @param l is less than @param l
+   */
+  static bool compare(std::string_view l, std::string_view r) noexcept {
+    return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end(),
+                                        ICaseLexOrder{});
+  }
+
+  /**
+   * @brief case insensitive character compare
+   *
+   * @return true if @param l is less than @param l
+   */
+  bool operator()(std::string_view l, std::string_view r) const noexcept {
+    return ICaseLexOrder::compare(l, r);
+  }
+};
+
+/**
+ * @brief case-insensitive set of string views
+ */
+using ICaseStringSet = std::set<std::string_view, ICaseLexOrder>;
+
+/**
+ * @brief Declares allowed model format extensions
+ *
+ * To specify allowed file extensions it is required to specialize:
+ *
+ * @code{.cpp}
+ * struct my_model_tag {};
+ *
+ * template <> AllowedModelFormatExtSet<my_model_tag>::extensions = {
+ *   "file_ext1"sv, "file_ext2"sv, // etc...
+ * };
+ *
+ * // Those asserts should hold, given files:
+ * // - 'file.fILe_eXT1'
+ * // - '/bananas/file.FILE_ext2'
+ * // exist in the file-system and read-accessible regular files or symlinks
+ * // to thereof.
+ * {
+ *   assert(ModelPathProperty<my_model_tag>{}.isValid("file.fILe_eXT1"));
+ *   assert(ModelPathProperty<my_model_tag>{}.isValid("/bananas/file.FILE_ext2"));
+ * }
+ *
+ * @endcode
+ */
+template <typename ModelTag_> class AllowedModelFormatExtSet {
+
+  static const ICaseStringSet extensions;
+
+public:
+  /**
+   * @brief check if the file extension (case-insensetive) is in the set
+   */
+  constexpr static bool has(std::string_view ext) noexcept {
+    return extensions.find(ext) != extensions.end(); // c++20 std::set::contains
+  }
+};
+
+/**
+ * @brief Trait returing if model file extension is is allowed/supported.
+ */
+template <typename ModelTag> struct model_extension_traits {
+  constexpr static bool isFileExtAllowed(std::string_view file_ext) noexcept {
+    return AllowedModelFormatExtSet<ModelTag>::has(file_ext);
+  }
+};
+
+template <typename ModelTag> class ModelPathProperty : public PathProperty {
+
+public:
+  using prop_tag = path_prop_tag;
+
+  bool isValid(const std::filesystem::path &v) const override {
+
+    if (!PathProperty::isRegularFile(v))
+      return false;
+
+    // Checked if file has allowed supported file extension
+    std::string ext = v.extension();
+
+    if (!model_extension_traits<ModelTag>::isFileExtAllowed(ext))
+      return false;
+
+    // Reject path we don't have read access permission
+    if (!PathProperty::isReadAccessible(v))
+      return false;
+
+    return true;
+  }
 };
 
 // /**
