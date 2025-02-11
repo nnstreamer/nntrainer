@@ -109,8 +109,8 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
   //   << " Given file does not align with the given sample size, sample size: "
   //   << sample_size << " file_size: " << file_size;
 
-  return static_cast<unsigned int>(file_size) /
-         (sample_size * RawFileDataProducer::pixel_size);
+  return static_cast<unsigned int>(
+    file_size / (sample_size * RawFileDataProducer::pixel_size));
 }
 
 void RawFileDataProducer::exportTo(
