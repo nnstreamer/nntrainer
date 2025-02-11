@@ -24,6 +24,8 @@
 #include <utility>
 #include <vector>
 
+namespace fs = std::filesystem;
+
 namespace nntrainer {
 namespace props {
 
@@ -56,18 +58,18 @@ void RandomTranslate::set(const float &value) {
   Property<float>::set(std::abs(value));
 }
 
-bool FilePath::isValid(const std::string &v) const {
-  std::ifstream file(v, std::ios::binary | std::ios::ate);
-  return file.good();
+bool FilePath::isValid(const fs::path &v) const {
+  const bool regular = PathProperty::isRegularFile(v);
+  const bool is_readable = PathProperty::isReadAccessible(v);
+  return regular && is_readable;
 }
 
-void FilePath::set(const std::string &v) {
-  Property<std::string>::set(v);
-  std::ifstream file(v, std::ios::binary | std::ios::ate);
-  cached_pos_size = file.tellg();
+void FilePath::set(const fs::path &v) {
+  PathProperty::set(v);
+  cached_pos_size = fs::file_size(v);
 }
 
-std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
+std::uintmax_t FilePath::file_size() const { return cached_pos_size; }
 
 bool LossScaleForMixed::isValid(const float &value) const {
   return (value != 0);

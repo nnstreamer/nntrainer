@@ -664,21 +664,22 @@ public:
  * @brief Props containing file path value
  *
  */
-class FilePath : public Property<std::string> {
+class FilePath : public PathProperty {
 public:
   /**
    * @brief Construct a new File Path object
    */
-  FilePath() : Property<std::string>() {}
+  FilePath() : PathProperty() {}
 
   /**
    * @brief Construct a new File Path object
    *
    * @param path path to set
    */
-  FilePath(const std::string &path) { set(path); }
+  explicit FilePath(const std::string &path) { set(path); }
+  FilePath(const std::filesystem::path &path) { set(path); }
   static constexpr const char *key = "path"; /**< unique key to access */
-  using prop_tag = str_prop_tag;             /**< property type */
+  using prop_tag = path_prop_tag;            /**< property type */
 
   /**
    * @brief check if given value is valid
@@ -686,24 +687,24 @@ public:
    * @param v value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &v) const override;
+  bool isValid(const std::filesystem::path &v) const override;
 
   /**
    * @brief setter
    *
    * @param v value to set
    */
-  void set(const std::string &v) override;
+  void set(const std::filesystem::path &v) override;
 
   /**
    * @brief return file size
    *
-   * @return std::ifstream::pos_type size of the file
+   * @return std::uintmax_t size of the file
    */
-  std::ifstream::pos_type file_size();
+  std::uintmax_t file_size() const;
 
 private:
-  std::ifstream::pos_type cached_pos_size;
+  std::uintmax_t cached_pos_size;
 };
 
 /**
