@@ -21,6 +21,10 @@ add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language:
 add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language: ['c', 'cpp'])
 
+if get_option('enable-test')# and get_option('enable-openvino-backbone').enabled()
+  gtest_proj = subproject('gtest')
+endif
+
 extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
@@ -496,7 +500,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android'
+if get_option('platform') != 'android' and get_option('enable-nnstreamer-backbone')
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')
