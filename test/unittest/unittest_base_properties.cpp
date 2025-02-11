@@ -24,6 +24,8 @@
 
 namespace { /**< define a property for testing */
 
+namespace fs = std::filesystem;
+
 /**
  * @brief banana property tag for example
  *
@@ -58,6 +60,28 @@ public:
     /// assuming quality of banana property must ends with word "good";
     return nntrainer::endswith(v, "good");
   }
+};
+
+/**
+ * @brief PathToNowhere property for example, for non-existing file path
+ */
+struct PathToNowhere : public nntrainer::PathProperty {
+  PathToNowhere() = default;
+  PathToNowhere(const fs::path &path);
+  static constexpr const char *key = "path_to_nowhere";
+
+  bool isValid(const fs::path &v) const override { return !exists(v); }
+};
+
+/**
+ * @brief PathToBananaFarm property for example, for existing file path
+ */
+struct PathToBananaFarm : public nntrainer::PathProperty {
+  PathToBananaFarm() = default;
+  PathToBananaFarm(const fs::path &path);
+  static constexpr const char *key = "path_to_farm";
+
+  bool isValid(const fs::path &v) const override { return exists(v); }
 };
 
 /**
@@ -269,6 +293,24 @@ TEST(BasicProperty, valid_p) {
     FreshnessOfBanana q;
     q.set(1.3245f);
     EXPECT_FLOAT_EQ(q.get(), 1.3245f);
+  }
+
+  { /** set -> get / from_string, fs::path (doesn't exist) */
+    const auto pth_banana = fs::path("/golden-BANANA-farm");
+
+    EXPECT_FALSE(exists(pth_banana));
+    PathToNowhere p;
+    nntrainer::from_string("/golden-BANANA-farm", p);
+    EXPECT_EQ(pth_banana, p.get());
+  }
+
+  { /** set -> get / from_string, fs::path (path exists) */
+    const auto cwd =
+      fs::current_path(); // We can be certain that process has cwd
+    EXPECT_TRUE(exists(cwd));
+    PathToBananaFarm p;
+    p.set(cwd);
+    EXPECT_EQ(nntrainer::to_string(p), fs::current_path());
   }
 
   { /**< enum type test from_string -> get */
