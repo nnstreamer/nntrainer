@@ -347,76 +347,8 @@ NeuralNetwork::~NeuralNetwork() {
  */
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
-
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
-    (void)this;
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
-
-    auto f = std::get<0>(node->getExecutionOrder());
-    bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
-    // temperally remain. when we evaluate all for asynch mode, we weill remove
-    if (exec_mode == ExecutionMode::TRAIN or
-        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
-      model_graph.flushCacheExcept(f);
-      node->forwarding(training);
-    } else {
-      /**
-       currently, it supports FSU asynch mode for inference. The prcedure of
-       FSU is below,
-
-       Prerequests : This function is called node by node at the forwarding
-       function in network graph.
-
-       Step 1. If the execution order is the first (f==0) then, it will try to
-               load tensors which used at layer 0.
-
-       Step 2. It check whether these tensors from Step 1, then do the
-               forwarding of the first node.
-
-       Step 3. Then check the look a head which says how many layer weights need
-               to be loaded before running to hide overehad due to FSU,
-
-       Step 4. Try to get the tesors by asking tensors for layers which is done
-               by thread pool
-
-       Step 5. Try to release the weights which has execution order less then f.
-
-       Step n. repeat next layer starting with checking the tenosrs are loaded,
-               and if it is loaded, then run forwarding. Every time it finishes
-               the forwarding, ask load tensors for next n layers.
-      **/
-
-      if (f == 0)
-        model_graph.LoadTensors(f);
-
-      if (model_graph.checkLoadComplete(f)) {
-        node->forwarding(training);
-        ml_logd("Forwarding is done %d : %s", f, node->getName().c_str());
-
-        unsigned int lookahead =
-          std::get<props::MemorySwapLookahead>(model_flex_props);
-
-        if (lookahead != 0) {
-          if ((f) % (lookahead + 1) == lookahead - 1) {
-            std::cout << "request load tensor : " << f + lookahead + 1
-                      << std::endl;
-            ml_logd("request load tensor for %d", f + 1);
-            model_graph.LoadTensors((f / (lookahead + 1) + 1) *
-                                    (lookahead + 1));
-          }
-        } else {
-          model_graph.LoadTensors(f);
-        }
-
-        if (f != 0)
-          model_graph.UnloadTensors(f);
-      }
-    }
-  };
-
-  return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+  return model_graph.forwarding(training, stop_cb, userdata,
+                                std::get<props::MemorySwap>(model_flex_props));
 }
 
 /**
@@ -447,19 +379,8 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                                        bool training) -> void {
-    (void)this;
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
-
-    auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
-    node->incremental_forwarding(from, to, training);
-  };
-
-  return model_graph.incremental_forwarding(from, to, training, forwarding_op,
-                                            stop_cb, userdata);
+  return model_graph.incremental_forwarding(from, to, training, stop_cb,
+                                            userdata);
 }
 
 sharedConstTensors
@@ -493,111 +414,12 @@ void NeuralNetwork::backwarding(int iteration,
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
-    (void)this;
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
-
-    auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
-
-    node->forwarding(training);
-  };
-
-  std::function<bool(std::shared_ptr<LayerNode>, int)> backwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              int iteration) -> bool {
-    /**
-     * Do not change this order:
-     * 1. calcGradient
-     * 2. calcDerivative
-     * 3. applyGradient
-     * 4. gradientClippingOnLastAccess
-     */
-
-    model_graph.flushCacheExcept(std::get<1>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("CalcGradient: " + node->getName());
-
-    bool apply_gradient = true;
-    if (node->getTrainable()) {
-      /** If gradient optimization mode, then calculate gradient first */
-      if (dynamic_training_opt.isGradientMode())
-        node->calcGradient();
-
-      /**
-       * If optimization off, or gradient must be applied, then this will be
-       * true
-       * @todo This apply gradient should be passed to the each weight and later
-       * be queried when updating gradient at once. (after moving apply_gradient
-       * out of this function)
-       *
-       */
-      // auto &layer = node->getObject();
-      // apply_gradient = dynamic_training_opt.checkIfApply(
-      //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0],
-      //   opt, iteration);
-
-      /** If gradient must be applied and its not gradient mode, calculate
-       * gradient
-       */
-      if (!dynamic_training_opt.isGradientMode() && apply_gradient) {
-        node->calcGradient();
-
-        RunLayerContext &rc = node->getRunContext();
-        if (model_graph.isMixedPrecision()) {
-          for (auto w : rc.getWeights()) {
-            if (w->hasGradient())
-              if (!w->getGradientRef().isValid())
-                return false;
-          }
-        }
-      }
-    }
-
-    model_graph.flushCacheExcept(std::get<2>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("CalcDerivative: " + node->getName());
-
-    if (stop_cb(userdata)) {
-      return true;
-    }
-
-    if (node->needsCalcDerivative()) {
-      node->calcDerivative();
-    }
-
-    model_graph.flushCacheExcept(std::get<3>(node->getExecutionOrder()));
-    PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
-
-    if (apply_gradient) {
-      /// Apply gradient only at the end of the last shared weight access
-      model_graph.applyGradients(
-        node.get(), [iteration, opt_ = opt.get()](Weight &w) {
-          w.calcRegularizationGradient();
-          w.calcWeightDecayGradient();
-          RunOptimizerContext opt_context(&w, iteration,
-                                          opt_->getLearningRate(iteration));
-          opt_->applyGradient(opt_context);
-        });
-    }
-    return true;
-  };
-
-  std::function<void(Weight &, int)> lazy_apply_grad_op =
-    [opt_ = opt.get()](Weight &w, int iteration) -> void {
-    w.calcRegularizationGradient();
-    w.calcWeightDecayGradient();
-    RunOptimizerContext opt_context(&w, iteration,
-                                    opt_->getLearningRate(iteration));
-    opt_->applyGradient(opt_context);
-  };
-
   // return false if the gradient is not valid
   bool ret = false;
 
   while (!ret) {
-    ret = model_graph.backwarding(iteration, forwarding_op, backwarding_op,
-                                  lazy_apply_grad_op, stop_cb, userdata);
+    ret = model_graph.backwarding(iteration, stop_cb, userdata,
+                                  dynamic_training_opt.isGradientMode(), opt);
   }
 }
 
@@ -1530,28 +1352,30 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     if (compiled) {
       props::GenericShape dim_property;
 
-      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-           iter++) {
-        std::string first_dim;
-        if (iter->getOutputDimensions().empty()) {
-          first_dim = "";
-        } else {
-          dim_property.set(iter->getOutputDimensions()[0]);
-          first_dim = to_string(dim_property);
+      for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+           ++sg_iter) {
+        for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+          std::string first_dim;
+          if (iter->getOutputDimensions().empty()) {
+            first_dim = "";
+          } else {
+            dim_property.set(iter->getOutputDimensions()[0]);
+            first_dim = to_string(dim_property);
+          }
+          const std::vector<std::string> &input_layer_names =
+            iter->getInputConnections();
+          std::string first_input_name =
+            input_layer_names.empty() ? "" : input_layer_names[0];
+          print_graph_layer_info(out, {iter->getName(), iter->getType(),
+                                       first_dim, first_input_name});
+          for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+            dim_property.set(iter->getInputDimensions()[i]);
+            print_graph_layer_info(out, {"", "", "", input_layer_names[i]});
+          }
+          out << std::string(total_col_size,
+                             iter == sg_iter->cend() - 1 ? '=' : '-')
+              << '\n';
         }
-        const std::vector<std::string> &input_layer_names =
-          iter->getInputConnections();
-        std::string first_input_name =
-          input_layer_names.empty() ? "" : input_layer_names[0];
-        print_graph_layer_info(
-          out, {iter->getName(), iter->getType(), first_dim, first_input_name});
-        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
-          dim_property.set(iter->getInputDimensions()[i]);
-          print_graph_layer_info(out, {"", "", "", input_layer_names[i]});
-        }
-        out << std::string(total_col_size,
-                           iter == model_graph.cend() - 1 ? '=' : '-')
-            << '\n';
       }
     } else {
       auto &input_connection =
@@ -1567,27 +1391,30 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
                              });
         };
 
-      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-           iter++) {
-        const std::vector<std::string> &input_layer_names =
-          iter->getInputConnections();
+      for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+           ++sg_iter) {
+        for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+          const std::vector<std::string> &input_layer_names =
+            iter->getInputConnections();
 
-        /// @brief connection information.
-        // Intended comment.
-        // std::string first_input_name =
-        //   input_layer_names.empty()
-        //     ? (is_actually_an_input_node(iter) || iter ==
-        //     model_graph.cbegin()
-        //          ? ""
-        //          : (iter - 1)->getName())
-        //     : input_layer_names[0];
-        print_graph_layer_info(out, {iter->getName(), iter->getType(), "", ""});
-        for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
-          print_graph_layer_info(out, {"", "", "", ""});
+          /// @brief connection information.
+          // Intended comment.
+          // std::string first_input_name =
+          //   input_layer_names.empty()
+          //     ? (is_actually_an_input_node(iter) || iter ==
+          //     model_graph.cbegin()
+          //          ? ""
+          //          : (iter - 1)->getName())
+          //     : input_layer_names[0];
+          print_graph_layer_info(out,
+                                 {iter->getName(), iter->getType(), "", ""});
+          for (unsigned int i = 1; i < input_layer_names.size(); ++i) {
+            print_graph_layer_info(out, {"", "", "", ""});
+          }
+          out << std::string(total_col_size,
+                             iter == sg_iter->cend() - 1 ? '=' : '-')
+              << '\n';
         }
-        out << std::string(total_col_size,
-                           iter == model_graph.cend() - 1 ? '=' : '-')
-            << '\n';
       }
     }
   }
@@ -1623,10 +1450,13 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 void NeuralNetwork::forEachLayer(
   std::function<void(ml::train::Layer &, RunLayerContext &, void *)> fn,
   void *user_data) {
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
-    fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
-  };
+  for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
+       ++sg_iter) {
+    for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
+      auto ln = std::static_pointer_cast<LayerNode>(*iter).get();
+      fn(*ln, std::forward<RunLayerContext &>(ln->getRunContext()), user_data);
+    }
+  }
 }
 
 void NeuralNetwork::exports(const ml::train::ExportMethods &method,
