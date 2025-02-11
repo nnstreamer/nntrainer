@@ -314,9 +314,15 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
       d_weight_ih.add_i(p_d_weight_ih);
       d_weight_hh.add_i(p_d_weight_hh);
-      d_bias_ih.add_i(p_d_bias_ih);
-      d_bias_hh.add_i(p_d_bias_hh);
-      d_bias_h.add_i(p_d_bias_h);
+
+      if (!disable_bias) {
+        if (integrate_bias) {
+          d_bias_h.add_i(p_d_bias_h);
+        } else {
+          d_bias_ih.add_i(p_d_bias_ih);
+          d_bias_hh.add_i(p_d_bias_hh);
+        }
+      }
     }
 
   } else {
