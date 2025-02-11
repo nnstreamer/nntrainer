@@ -4,8 +4,8 @@
  *
  * @file interpreter.h
  * @date 01 April 2021
- * @brief NNTrainer interpreter that reads and generates a graphRepresentation
- from a file
+ * @brief NNTrainer interpreter that reads and generates a
+ GraphLayerNodeRepresentation from a file
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
@@ -15,7 +15,7 @@
  interpreter
  * For example, if istream would be from a a.tflite file,
  *
- * GraphRepresentation g;
+ * GraphLayerNodeRepresentation g;
  * GraphInterpreter * interpreter = new TfliteInterpreter;
  *
  * std::ifstream f = std::open("a.tflite");
@@ -32,7 +32,7 @@
  *            |  | deserialize()
  *            |  v
  *    +-------+--+--------+
- *    |GraphRepresentation|
+ *    |GraphLayerNodeRepresentation|
  *    +-------+-----------+
  *
  */
@@ -60,7 +60,7 @@ public:
    * @param representation graph representation
    * @param out output file name
    */
-  virtual void serialize(const GraphRepresentation &representation,
+  virtual void serialize(const GraphLayerNodeRepresentation &representation,
                          const std::string &out) = 0;
 
   /**
@@ -86,9 +86,9 @@ public:
    * @brief deserialize graph from a stream
    *
    * @param in input file name
-   * @return GraphRepresentation graph representation
+   * @return GraphLayerNodeRepresentation graph representation
    */
-  virtual GraphRepresentation deserialize(const std::string &in) = 0;
+  virtual GraphLayerNodeRepresentation deserialize(const std::string &in) = 0;
 };
 
 } // namespace nntrainer
