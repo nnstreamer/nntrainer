@@ -15,6 +15,7 @@ nntrainer_testutil_dep = declare_dependency(
   link_with: nntrainer_testutil_lib,
   include_directories: nntrainer_test_inc
 )
+gtest_subproj_main_dep = dependency('gtest_main', required: false)
 
 nntrainer_test_deps = [
   gmock_dep,
@@ -27,6 +28,7 @@ nntrainer_test_deps = [
 nntrainer_test_main_deps = [
   gmock_dep,
   gtest_main_dep,
+  gtest_subproj_main_dep,
   nntrainer_dep,
   nntrainer_testutil_dep
 ]
