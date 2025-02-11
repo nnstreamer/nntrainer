@@ -702,9 +702,6 @@ public:
    * @return std::uintmax_t size of the file
    */
   std::uintmax_t file_size() const;
-
-private:
-  std::uintmax_t cached_pos_size;
 };
 
 /**

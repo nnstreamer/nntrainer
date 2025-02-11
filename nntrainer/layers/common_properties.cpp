@@ -66,10 +66,9 @@ bool FilePath::isValid(const fs::path &v) const {
 
 void FilePath::set(const fs::path &v) {
   PathProperty::set(v);
-  cached_pos_size = fs::file_size(v);
 }
 
-std::uintmax_t FilePath::file_size() const { return cached_pos_size; }
+std::uintmax_t FilePath::file_size() const { return fs::file_size(*this); }
 
 bool LossScaleForMixed::isValid(const float &value) const {
   return (value != 0);
