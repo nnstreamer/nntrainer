@@ -310,7 +310,7 @@ private:
   std::vector<const Tensor *> tensors;
 };
 
-TfOpNodes buildOpNodes(const GraphRepresentation &representation,
+TfOpNodes buildOpNodes(const GraphLayerNodeRepresentation &representation,
                        flatbuffers::FlatBufferBuilder &fbb) {
   TfOpNodes nodes;
   /// @todo TfOpNode needs to have LayerNode pointer
@@ -802,12 +802,12 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
   return realized_nodes;
 }
 
-void TfliteInterpreter::serialize(const GraphRepresentation &representation,
-                                  const std::string &out) {
+void TfliteInterpreter::serialize(
+  const GraphLayerNodeRepresentation &representation, const std::string &out) {
 
-  /// 1. remove loss layer in GraphRepresentation
+  /// 1. remove loss layer in GraphLayerNodeRepresentation
   LossRealizer loss_realizer({});
-  GraphRepresentation graph = loss_realizer.realize(representation);
+  GraphLayerNodeRepresentation graph = loss_realizer.realize(representation);
 
   /// 2. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;
@@ -833,7 +833,8 @@ void TfliteInterpreter::serialize(const GraphRepresentation &representation,
   builder2file(fbb, out);
 }
 
-GraphRepresentation TfliteInterpreter::deserialize(const std::string &in) {
+GraphLayerNodeRepresentation
+TfliteInterpreter::deserialize(const std::string &in) {
   /// ======== list of things to consider ========
   /// we need to reconstruct some properties from the shape
   /// eg) units are not saved as a property

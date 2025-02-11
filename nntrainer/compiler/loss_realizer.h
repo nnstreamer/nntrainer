@@ -39,11 +39,12 @@ public:
 
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
-   * @note loss realizer removes loss layers from GraphRepresentation
-   * @param reference GraphRepresentation to be realized
+   * @note loss realizer removes loss layers from GraphLayerNodeRepresentation
+   * @param reference GraphLayerNodeRepresentation to be realized
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 };
 
 } // namespace nntrainer

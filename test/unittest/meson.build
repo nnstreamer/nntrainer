@@ -52,6 +52,7 @@ test_target = [
   ['unittest_nntrainer_tensor_pool', []],
   ['unittest_nntrainer_lr_scheduler', []],
   ['unittest_nntrainer_task', []],
+  ['unittest_nntrainer_subgraph', []],
 ]
 
 if get_option('enable-fp16')
