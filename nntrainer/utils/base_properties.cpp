@@ -52,6 +52,39 @@ bool isFileReadAccessisble(fs::path p, std::error_code &ec) {
   return file.good();
 #endif
 }
+
+/**
+ * @brief Helper for testing path kind looking behind symlinks.
+ */
+template <typename FileCheckFn_>
+bool isPathKindHelper(const fs::path v, FileCheckFn_ &&file_check_fn) noexcept {
+  // Reject empty and non-existing paths
+  {
+    std::error_code ec;
+    if (v.empty() || !exists(v, ec))
+      return false;
+
+    if (ec)
+      return false;
+  }
+
+  // Check if it is a path is of file_check_fn kind
+  {
+    std::error_code ec;
+    auto real_path = is_symlink(v) ? read_symlink(v, ec) : v;
+
+    if (ec)
+      return false;
+
+    if (!file_check_fn(real_path, ec))
+      return false;
+
+    if (ec)
+      return false;
+  }
+
+  return true;
+}
 } // namespace
 
 namespace nntrainer {
@@ -197,32 +230,13 @@ TensorDim str_converter<dimension_prop_tag, TensorDim>::from_string(
 PathProperty::~PathProperty() = default;
 
 bool PathProperty::isRegularFile(const fs::path &v) noexcept {
-  // Reject empty and non-existing paths
-  {
-    std::error_code ec;
-    if (v.empty() || !exists(v, ec))
-      return false;
+  return isPathKindHelper(
+    v, [](const auto &v, auto ec) { return fs::is_regular_file(v, ec); });
+}
 
-    if (ec)
-      return false;
-  }
-
-  // Check if it is a path to regular file
-  {
-    std::error_code ec;
-    auto real_path = is_symlink(v)? read_symlink(v, ec) : v;
-
-    if (ec)
-      return false;
-
-    if (!is_regular_file(real_path, ec))
-      return false;
-
-    if (ec)
-      return false;
-  }
-
-  return true;
+bool PathProperty::isDirectory(const fs::path &v) noexcept {
+  return isPathKindHelper(
+    v, [](const auto &v, auto ec) { return fs::is_directory(v, ec); });
 }
 
 bool PathProperty::isReadAccessible(const fs::path &v) noexcept {

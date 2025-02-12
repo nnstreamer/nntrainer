@@ -301,6 +301,7 @@ struct PathProperty : Property<std::filesystem::path> {
 
 protected:
   static bool isRegularFile(const std::filesystem::path &) noexcept;
+  static bool isDirectory(const std::filesystem::path &) noexcept;
   static bool isReadAccessible(const std::filesystem::path &) noexcept;
 };
 

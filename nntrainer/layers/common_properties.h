@@ -669,15 +669,21 @@ public:
   /**
    * @brief Construct a new File Path object
    */
-  FilePath() : PathProperty() {}
+  FilePath() = default;
 
   /**
    * @brief Construct a new File Path object
    *
    * @param path path to set
    */
-  explicit FilePath(const std::string &path) { set(path); }
-  FilePath(const std::filesystem::path &path) { set(path); }
+  explicit FilePath(const std::string &path) : PathProperty{} { set(path); }
+
+  /**
+   * @brief Construct a new File Path object
+   *
+   * @param path path to set
+   */
+  explicit FilePath(const std::filesystem::path &path) : PathProperty{} { set(path); }
   static constexpr const char *key = "path"; /**< unique key to access */
   using prop_tag = path_prop_tag;            /**< property type */
 
@@ -688,13 +694,6 @@ public:
    * @return bool true if valid
    */
   bool isValid(const std::filesystem::path &v) const override;
-
-  /**
-   * @brief setter
-   *
-   * @param v value to set
-   */
-  void set(const std::filesystem::path &v) override;
 
   /**
    * @brief return file size
@@ -708,21 +707,28 @@ public:
  * @brief Props containing directory path value
  *
  */
-class DirPath : public Property<std::string> {
+class DirPath : public PathProperty {
 public:
   /**
    * @brief Construct a new Dir Path object
    */
-  DirPath() : Property<std::string>() {}
+  DirPath() = default;
 
   /**
    * @brief Construct a new Dir Path object
    *
    * @param path path to set
    */
-  DirPath(const std::string &path) { set(path); }
+  explicit DirPath(const std::string &path) : PathProperty{} { set(path); }
+
+  /**
+   * @brief Construct a new Dir Path object
+   *
+   * @param path path to set
+   */
+  explicit DirPath(const std::filesystem::path &path) : PathProperty{} { set(path); }
   static constexpr const char *key = "dir_path"; /**< unique key to access */
-  using prop_tag = str_prop_tag;                 /**< property type */
+  using prop_tag = path_prop_tag;                /**< property type */
 
   /**
    * @brief check if given value is valid
@@ -730,14 +736,7 @@ public:
    * @param v value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &v) const override;
-
-  /**
-   * @brief setter
-   *
-   * @param v value to set
-   */
-  void set(const std::string &v) override;
+  bool isValid(const std::filesystem::path &v) const override;
 };
 
 /**
