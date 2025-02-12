@@ -51,7 +51,9 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
-    tensor_dtype(split("FP32-FP32", getRegex("\\-"))) {
+    tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
+    is_clip_grad(false),
+    loss_scale(1.0f) {
     nan_count = 0;
   }
 
@@ -80,7 +82,9 @@ public:
     optimize_memory(true),
     exec_mode(mode),
     tensor_format(tensor_format_),
-    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))) {
+    tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
+    is_clip_grad(false),
+    loss_scale(1.0f) {
     nan_count = 0;
   }
 

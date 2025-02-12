@@ -69,7 +69,8 @@ public:
    * @brief Construct a new UIntTensor object
    * @param rhs TensorBase object to copy
    */
-  UIntTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  UIntTensor(TensorBase &rhs) :
+    TensorBase(rhs), qscheme(QScheme::PER_TENSOR_AFFINE) {}
 
   /**
    * @brief Basic Destructor

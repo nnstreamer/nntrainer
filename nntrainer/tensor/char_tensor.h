@@ -68,7 +68,8 @@ public:
    * @brief Construct a new CharTensor object
    * @param rhs TensorBase object to copy
    */
-  CharTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  CharTensor(TensorBase &rhs) :
+    TensorBase(rhs), qscheme(QScheme::PER_TENSOR_AFFINE) {}
 
   /**
    * @brief Basic Destructor

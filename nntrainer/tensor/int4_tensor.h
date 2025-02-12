@@ -74,7 +74,8 @@ public:
    * @brief Construct a new Int4QTensor object
    * @param rhs TensorBase object to copy
    */
-  Int4QTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  Int4QTensor(TensorBase &rhs) :
+    TensorBase(rhs), qscheme(QScheme::PER_TENSOR_AFFINE) {}
 
   /**
    * @brief Basic Destructor

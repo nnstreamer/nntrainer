@@ -244,7 +244,12 @@ public:
   /**
    * @brief Basic Constructor of a PerChannelAffineQuantizer
    */
-  PerChannelAffineQuantizer() : UniformQuantizer() {}
+  PerChannelAffineQuantizer() :
+    UniformQuantizer(),
+    scales(nullptr),
+    zero_points(nullptr),
+    quant_min(0),
+    quant_max(0) {}
 
   /**
    * @copydoc Quantizer::create()
