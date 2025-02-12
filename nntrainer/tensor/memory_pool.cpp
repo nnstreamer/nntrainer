@@ -117,6 +117,13 @@ void MemoryPool::allocate() {
   mem_pool = calloc(1, 1);
 #else
   mem_pool = calloc(pool_size, 1);
+
+  unsigned int idx = 1;
+  for (auto &s : memory_offset) {
+    char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+    memory_ptrs.push_back(ptr);
+    idx++;
+  }
 #endif
 
 #ifdef PROFILE
@@ -174,7 +181,8 @@ void MemoryPool::deallocate() {
     }
   }
 #else
-  free(mem_pool);
+  if(mem_pool != nullptr)
+    free(mem_pool);
 #endif
 
   mem_pool = nullptr;

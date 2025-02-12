@@ -401,7 +401,7 @@ sharedConstTensors NeuralNetwork::forwarding(
 
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
-      model_graph.UnloadTensors(f);
+      // model_graph.UnloadTensors(f);
     }
   };
 
