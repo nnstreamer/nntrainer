@@ -528,8 +528,10 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
 
-  getLayer()->read(file, *run_context, opt_var, mode, getTrainable(),
-                   getWeightDataType());
+  if (!swap) {
+    getLayer()->read(file, *run_context, opt_var, mode, getTrainable(),
+                     getWeightDataType());
+  }
 }
 
 void LayerNode::save(std::ofstream &file, bool opt_var,
