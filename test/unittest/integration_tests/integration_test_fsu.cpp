@@ -59,12 +59,14 @@ TEST(fsu, simple_fc) {
 
   model->addLayer(ml::train::createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "1:1:320")}));
+
   for (int i = 0; i < 6; i++) {
     model->addLayer(ml::train::createLayer(
       "fully_connected",
       {withKey("unit", 1000), withKey("weight_initializer", "xavier_uniform"),
        withKey("bias_initializer", "zeros")}));
   }
+
   model->addLayer(ml::train::createLayer(
     "fully_connected",
     {withKey("unit", 100), withKey("weight_initializer", "xavier_uniform"),
@@ -74,9 +76,6 @@ TEST(fsu, simple_fc) {
                       withKey("memory_swap", "true"),
                       withKey("memory_swap_lookahead", "1"),
                       withKey("model_tensor_type", "FP16-FP16")});
-
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  model->setOptimizer(std::move(optimizer));
 
   int status = model->compile(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -89,20 +88,17 @@ TEST(fsu, simple_fc) {
   model->load("./simplefc_weight_fp16_fp16_100.bin");
 
   unsigned int feature_size = 320;
-
   float input[320];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = j;
 
   std::vector<float *> in;
-  std::vector<float *> l;
   std::vector<float *> answer;
 
   in.push_back(input);
 
-  answer = model->inference(1, in, l);
+  answer = model->inference(1, in);
 
   in.clear();
-  l.clear();
 }
