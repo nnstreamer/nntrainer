@@ -288,6 +288,11 @@ struct PathProperty : Property<std::filesystem::path> {
 
   explicit PathProperty(const std::string &str) : base(str) {}
 
+  /**
+   * @brief conversion operator to string
+   */
+  operator typename std::filesystem::path::string_type() const { return get(); }
+
   virtual bool isValid(const std::filesystem::path &value) const override {
     return true;
   };
