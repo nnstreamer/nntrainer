@@ -39,9 +39,11 @@ UIntTensor<T>::UIntTensor(const TensorDim &d, const void *buf,
 template <typename T>
 UIntTensor<T>::UIntTensor(
   std::vector<std::vector<std::vector<std::vector<T>>>> const &d,
-  std::vector<float> const &scales, unsigned int zero_point, Tformat fm,
-  QScheme qscheme_) {
-  if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
+  std::vector<float> const &scales,
+  std::vector<unsigned int> const &zero_points, Tformat fm, QScheme qscheme_) :
+  qscheme(qscheme_) {
+  if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty() ||
+      scales.empty() || zero_points.empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize UIntTensor from empty vector");
   }
@@ -59,13 +61,19 @@ UIntTensor<T>::UIntTensor(
 
   dim.setTensorType({fm, checkTensorDataType()});
 
+  if (scale_size() != scales.size() || scale_size() != zero_points.size()) {
+    throw std::invalid_argument("[Tensor] Scales vector or zero point vector "
+                                "size is invalid. scale size: " +
+                                std::to_string(scale_size()));
+  }
+
   strides = dim.computeStrides();
   contiguous = true;
   initializer = Initializer::NONE;
 
-  MemoryData *mem_data =
-    new MemoryData((void *)(new T[dim.getDataLen() +
-                                  sizeof(float) / sizeof(T) * scale_size()]()));
+  MemoryData *mem_data = new MemoryData(
+    (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
+                                        sizeof(T) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<T>();
     delete mem_data;
@@ -89,14 +97,44 @@ UIntTensor<T>::UIntTensor(
           for (unsigned int l = 0; l < channel(); ++l)
             this->setValue(i, l, j, k, d[i][j][k][l]);
   }
+
+  // copy scale factors
+  scopy(scale_size(), scales.data(), 1, (float *)getScale(), 1);
+
+  unsigned int *zps = getZeroPoint();
+
+  // copy zero points
+  for (size_t i = 0; i < zero_points.size(); ++i) {
+    zps[i] = zero_points[i];
+  }
 }
 
 template <typename T>
 bool UIntTensor<T>::operator==(const UIntTensor<T> &rhs) const {
+  if (qscheme != rhs.qscheme)
+    return false;
+
+  // compare quantized data
   const T *_data = (T *)getData();
   const T *_rdata = (T *)rhs.getData();
   for (size_t i = 0; i < size(); ++i) {
     if (_data[i] != _rdata[i])
+      return false;
+  }
+
+  // compare scale factors
+  const float *_scales = (float *)getScale();
+  const float *_rscales = (float *)rhs.getScale();
+  for (size_t i = 0; i < scale_size(); ++i) {
+    if (std::fabs(_scales[i] - _rscales[i]) > 1e-5)
+      return false;
+  }
+
+  // compare zero points
+  const unsigned int *_zps = getZeroPoint();
+  const unsigned int *_rzps = rhs.getZeroPoint();
+  for (size_t i = 0; i < scale_size(); ++i) {
+    if (_zps[i] != _rzps[i])
       return false;
   }
 
@@ -116,8 +154,8 @@ template <typename T> void UIntTensor<T>::allocate() {
     MemoryData *mem_data;
 
     mem_data = new MemoryData(
-      (void *)(new T[dim.getDataLen() +
-                     sizeof(float) / sizeof(T) * scale_size()]{}));
+      (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
+                                          sizeof(T) * scale_size()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<T>();
       delete mem_data;
@@ -165,6 +203,28 @@ template <typename T> void *UIntTensor<T>::getScale(size_t idx) const {
 
   data->validate();
   return (float *)((T *)getData() + size()) + idx;
+}
+
+template <typename T> unsigned int *UIntTensor<T>::getZeroPoint() const {
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return ((unsigned int *)((float *)((T *)getData() + size()))) + scale_size();
+}
+
+template <typename T>
+unsigned int *UIntTensor<T>::getZeroPoint(size_t idx) const {
+  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
+    << "Tensor::getZeroPoint() index is not valid";
+
+  if (!data)
+    return nullptr;
+
+  data->validate();
+  return (((unsigned int *)((float *)((T *)getData() + size()))) +
+          scale_size()) +
+         idx;
 }
 
 template <typename T> void *UIntTensor<T>::getAddress(unsigned int i) {
@@ -368,6 +428,34 @@ template <typename T> void UIntTensor<T>::print(std::ostream &out) const {
     }
     out.copyfmt(init);
   }
+
+  /// print quantization information
+  const float *q_scales = (float *)getScale();
+  const unsigned int *q_zero_points = getZeroPoint();
+
+  if (scale_size() > 50) {
+    out << "Scale factors: [" << q_scales[0] << ' ' << q_scales[1] << ' '
+        << q_scales[2] << " ... " << q_scales[len - 3] << ' '
+        << q_scales[len - 2] << ' ' << q_scales[len - 1] << ']' << std::endl;
+
+    out << "Zero points: [" << q_zero_points[0] << ' ' << q_zero_points[1]
+        << ' ' << q_zero_points[2] << " ... " << q_zero_points[len - 3] << ' '
+        << q_zero_points[len - 2] << ' ' << q_zero_points[len - 1] << ']'
+        << std::endl;
+    return;
+  }
+
+  out << "Scale factors: ";
+  for (unsigned i = 0; i < scale_size(); ++i) {
+    out << q_scales[i] << " ";
+  }
+  out << std::endl;
+
+  out << "Zero points: ";
+  for (unsigned i = 0; i < scale_size(); ++i) {
+    out << q_zero_points[i] << " ";
+  }
+  out << std::endl;
 }
 
 template <typename T>
@@ -414,6 +502,16 @@ template <typename T> void UIntTensor<T>::copy(const void *buf) {
     /// @todo need to optimize
     memcpy(getData(), buf, size() * (sizeof(T)));
   }
+
+  // copy scale factors
+  float *scales = (float *)(((T *)buf) + size());
+  scopy(scale_size(), scales, 1, (float *)getScale(), 1);
+
+  // copy zero points
+  unsigned int *zps =
+    (unsigned int *)((float *)(((T *)buf) + size()) + scale_size());
+
+  memcpy(getZeroPoint(), zps, scale_size() * sizeof(unsigned int));
 }
 
 #endif
