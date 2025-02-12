@@ -25,6 +25,7 @@ Refer <https://github.com/nnstreamer/nntrainer/blob/master/docs/getting-started.
 Install related packages before building nntrainer and examples.
 
 1. gcc/g++ >= 7 ( std=c++17 is used )
+    - (note) >= 13 is recommended to enable fp16 support
 2. meson >= 0.55.0
 3. libopenblas-dev and base
 4. tensorflow-lite >=1.14.0
