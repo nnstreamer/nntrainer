@@ -37,8 +37,6 @@ jobs:
         include:
           - distroname: jammy
             os: ubuntu-22.04
-        #  - distroname: focal
-        #    os: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v4
