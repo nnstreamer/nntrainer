@@ -197,6 +197,7 @@ protected:
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
 
+protected:
   /**
    * @brief  Get file offset
    */

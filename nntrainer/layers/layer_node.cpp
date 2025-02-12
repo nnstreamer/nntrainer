@@ -529,8 +529,10 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
     << __func__ << " layer needs to be finalized first!";
 
   if (!swap) {
-    getLayer()->read(file, *run_context, opt_var, mode, getTrainable(),
-                     getWeightDataType());
+    getLayer()->read(
+      file, *run_context, opt_var, mode,
+      (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+      getWeightDataType());
   }
 }
 

@@ -65,9 +65,29 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
     auto len_offset = weight_offset.at(offset_index);
 
-    // size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-    // size_t diff = offset - off;
-    // size_t len = size + diff;
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+
+#ifdef ENABLE_QNN
+  void *ptr = mmap(memory_ptr, len, PROT_READ | PROT_WRITE,
+                   MAP_SHARED | MAP_FIXED, fd, off);
+
+  NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+    << "SwapDevice: mmap: "
+    << std::string(strerror_r(errno, error_buf, error_buflen));
+
+  mapped[memory_ptr] = std::make_tuple(memory_ptr, len, offset, (ssize_t)size);
+
+  ++num_loaded_tensors;
+
+  return memory_ptr;
+#else
+  char *ptr = static_cast<char *>(
+    mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+
+  NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+    << "SwapDevice: mmap: "
+    << std::string(strerror_r(errno, error_buf, error_buflen));
 
     // if (len_offset.second % sysconf(_SC_PAGE_SIZE) != 0) {
     // std::cerr << "weight & bias is not page aligned!" << std::endl;
@@ -82,31 +102,9 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
 
-    NNTR_THROW_IF(ptr != memory_ptr, std::runtime_error)
-      << "SwapDevice: mmap: ptr!= memory_ptr";
+  return buf;
+#endif
 
-    ++offset_index;
-    ++num_loaded_tensors;
-    return ptr;
-  } else {
-    size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-    size_t diff = offset - off;
-    size_t len = size + diff;
-
-    char *ptr = static_cast<char *>(
-      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
-
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
-    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-      << "SwapDevice: mmap: "
-      << std::string(strerror_r(errno, error_buf, error_buflen));
-    void *buf = static_cast<void *>(ptr + diff);
-    mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
-
-    ++num_loaded_tensors;
-    return buf;
-  }
 #else
   off_t off;
   ssize_t len;

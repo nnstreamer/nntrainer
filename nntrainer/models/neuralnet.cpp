@@ -391,6 +391,7 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(f);
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
+
     }
   };
 
