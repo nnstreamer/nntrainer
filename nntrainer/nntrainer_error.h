@@ -24,6 +24,7 @@
 #endif
 
 #include <functional>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -103,7 +104,11 @@ public:
    */
   ~ErrorNotification() noexcept(false) {
     if (cleanup_func) {
-      cleanup_func();
+      try {
+        cleanup_func();
+      } catch (const std::exception &e) {
+        std::cerr << "Exception during cleanup: " << e.what() << '\n';
+      }
     }
     throw Err(ss.str().c_str());
   }

@@ -205,8 +205,14 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
-    NN.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
+    try {
+      NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+      NN.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
+    } catch (std::exception &e) {
+      std::cerr << "Unexpected error during setting dataset " << e.what()
+                << std::endl;
+    }
+
     try {
       NN.train({"batch_size=" + std::to_string(batch_size)});
     } catch (std::exception &e) {
