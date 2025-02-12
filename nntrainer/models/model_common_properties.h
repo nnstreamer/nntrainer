@@ -56,21 +56,19 @@ public:
  * @brief model save path property
  *
  */
-class SavePath : public Property<std::string> {
+class SavePath : public PathProperty {
 public:
   static constexpr const char *key = "save_path"; /**< unique key to access */
-  using prop_tag = str_prop_tag;                  /**< property type */
 };
 
 /**
  * @brief model save path property
  *
  */
-class SaveBestPath : public Property<std::string> {
+class SaveBestPath : public PathProperty {
 public:
   static constexpr const char *key =
-    "save_best_path";            /**< unique key to access */
-  using prop_tag = str_prop_tag; /**< property type */
+    "save_best_path"; /**< unique key to access */
 };
 
 /**
