@@ -68,7 +68,7 @@ public:
 class SaveBestPath : public PathProperty {
 public:
   static constexpr const char *key =
-    "save_best_path";            /**< unique key to access */
+    "save_best_path"; /**< unique key to access */
 };
 
 /**
