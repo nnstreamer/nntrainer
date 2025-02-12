@@ -168,6 +168,7 @@ private:
     allocated; /**< <pointer, <offset, size>> */
 #endif
 };
+
 } // namespace nntrainer
 
 #endif /** __SWAP_DEVICE_H__ */
