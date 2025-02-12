@@ -142,12 +142,14 @@ public:
    */
   virtual bool isAllocated() const;
 
-protected:
+  std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
+
   /**
    * @brief  Get memory offset
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
 
+protected:
   /**
    * @brief  Get memory size
    */

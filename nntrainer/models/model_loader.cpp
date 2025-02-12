@@ -533,7 +533,6 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
   auto base_path =
     std::filesystem::path(config_realpath).parent_path().string();
 
-  auto base_path = config_realpath.substr(0, pos);
   model_file_engine->setWorkingDirectory(base_path);
 
   ml_logd("for the current model working directory is set to %s",

@@ -87,7 +87,7 @@ public:
    * @return The pointer of the swap space
    *
    */
-  void *getBuffer(off_t offset, size_t size, bool alloc_only = false);
+  void *getBuffer(off_t offset, size_t size, void* memory_ptr, bool alloc_only = false);
 
   /**
    * @brief Deallocate and put data
