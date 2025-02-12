@@ -20,7 +20,6 @@
 
 #include <regex>
 #include <sstream>
-#include <sys/stat.h>
 #include <utility>
 #include <vector>
 
@@ -64,22 +63,15 @@ bool FilePath::isValid(const fs::path &v) const {
   return regular && is_readable;
 }
 
-void FilePath::set(const fs::path &v) {
-  PathProperty::set(v);
-}
-
 std::uintmax_t FilePath::file_size() const { return fs::file_size(*this); }
 
 bool LossScaleForMixed::isValid(const float &value) const {
   return (value != 0);
 }
 
-bool DirPath::isValid(const std::string &v) const {
-  struct stat dir;
-  return (stat(v.c_str(), &dir) == 0);
+bool DirPath::isValid(const fs::path &v) const {
+  return PathProperty::isDirectory(v);
 }
-
-void DirPath::set(const std::string &v) { Property<std::string>::set(v); }
 
 ReturnSequences::ReturnSequences(bool value) { set(value); }
 
