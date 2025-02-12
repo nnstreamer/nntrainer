@@ -284,6 +284,7 @@ void ShortTensor::copyData(const Tensor &from) {
   switch (from.getDataType()) {
   case ml::train::TensorDim::DataType::QINT16:
     copy(from.getData());
+    break;
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;
