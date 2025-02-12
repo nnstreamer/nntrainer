@@ -18,7 +18,7 @@
 namespace nntrainer {
 
 CharTensor::CharTensor(std::string name_, Tformat fm, QScheme qscheme_) :
-  TensorBase(name_, fm, Tdatatype::QINT8) {}
+  TensorBase(name_, fm, Tdatatype::QINT8), qscheme(qscheme_) {}
 
 CharTensor::CharTensor(const TensorDim &d, bool alloc_now, Initializer init,
                        std::string name, QScheme qscheme_) :

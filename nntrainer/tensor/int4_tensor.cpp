@@ -18,7 +18,7 @@
 namespace nntrainer {
 
 Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_) :
-  TensorBase(name_, fm, Tdatatype::QINT4) {}
+  TensorBase(name_, fm, Tdatatype::QINT4), qscheme(qscheme_) {}
 
 Int4QTensor::Int4QTensor(const TensorDim &d, bool alloc_now, Initializer init,
                          std::string name, QScheme qscheme_) :
@@ -339,7 +339,7 @@ std::vector<unsigned int> Int4QTensor::argmax() const {
 
   for (unsigned int b = 0; b < batch_size; ++b) {
     int8_t curr_val, max_val = -8;
-    unsigned int max_element_idx;
+    unsigned int max_element_idx = 0;
     for (unsigned int idx = 0; idx < feature_len; ++idx) {
       curr_val = getValue(idx + b * feature_len);
 

@@ -61,7 +61,8 @@ public:
    * @brief Construct a new ShortTensor object
    * @param rhs TensorBase object to copy
    */
-  ShortTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  ShortTensor(TensorBase &rhs) :
+    TensorBase(rhs), qscheme(QScheme::PER_TENSOR_AFFINE) {}
 
   /**
    * @brief Basic Destructor
