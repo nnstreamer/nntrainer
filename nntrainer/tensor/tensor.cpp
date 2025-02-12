@@ -35,10 +35,8 @@ Tensor::Tensor(
   QScheme qscheme_) {
   switch (qscheme_) {
   case QScheme::PER_TENSOR_AFFINE:
-    std::cout << "per tensor\n";
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    std::cout << "per channel\n";
     break;
   default:
     break;
@@ -76,28 +74,31 @@ Tensor::Tensor(
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
-  std::vector<float> const &scales, unsigned int zero_point,
+  std::vector<float> const &scales,
+  std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
   itensor = std::shared_ptr<UInt8Tensor>(
-    new UInt8Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    new UInt8Tensor(d, scales, zero_points, t_type.format, qscheme_),
     std::default_delete<UInt8Tensor>());
 }
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-  std::vector<float> const &scales, unsigned int zero_point,
+  std::vector<float> const &scales,
+  std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
   itensor = std::shared_ptr<UInt16Tensor>(
-    new UInt16Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    new UInt16Tensor(d, scales, zero_points, t_type.format, qscheme_),
     std::default_delete<UInt16Tensor>());
 }
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
-  std::vector<float> const &scales, unsigned int zero_point,
+  std::vector<float> const &scales,
+  std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
   itensor = std::shared_ptr<UInt32Tensor>(
-    new UInt32Tensor(d, scales, zero_point, t_type.format, qscheme_),
+    new UInt32Tensor(d, scales, zero_points, t_type.format, qscheme_),
     std::default_delete<UInt32Tensor>());
 }
 
@@ -1182,10 +1183,16 @@ void Tensor::save(std::ostream &file) {
   itensor->save_quantization_info(file);
 
   /// @note Scale factors are temporary fixed to float for now
-  std::streamsize sz =
-    static_cast<std::streamsize>(bytes() + scale_size() * sizeof(float));
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  if (getDataType() == Tdatatype::UINT8 || getDataType() == Tdatatype::UINT16 ||
+      getDataType() == Tdatatype::UINT32) {
+    tensor_bytes += scale_size() * sizeof(unsigned int);
+  }
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "save size: " << bytes() + scale_size() * sizeof(float)
+    << "save size: " << tensor_bytes
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
@@ -1200,11 +1207,17 @@ void Tensor::read(std::ifstream &file) {
   itensor->read_quantization_info(file);
 
   /// @note Scale factors are temporary fixed to float for now
-  std::streamsize sz =
-    static_cast<std::streamsize>(bytes() + scale_size() * sizeof(float));
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  if (getDataType() == Tdatatype::UINT8 || getDataType() == Tdatatype::UINT16 ||
+      getDataType() == Tdatatype::UINT32) {
+    tensor_bytes += scale_size() * sizeof(unsigned int);
+  }
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << bytes() + scale_size() * sizeof(float)
+    << "read size: " << tensor_bytes
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedRead(file, getData<char>(), sz, "[Tensor::read] operation failed");

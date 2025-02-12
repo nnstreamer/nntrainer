@@ -220,81 +220,6 @@ TEST(nntrainer_Tensor, Tensor_04_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST(nntrainer_Tensor, Tensor_05_p) {
-  int status = ML_ERROR_NONE;
-  std::vector<std::vector<std::vector<uint16_t>>> in = {{{0, 1}, {2, 3}},
-                                                        {{4, 5}, {6, 7}},
-                                                        {{8, 9}, {10, 11}},
-                                                        {{12, 13}, {14, 15}}};
-  std::vector<float> scales = {3.915f};
-
-  nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
-    nntrainer::QScheme::PER_TENSOR_AFFINE);
-  ASSERT_NE(nullptr, tensor.getData<uint16_t>(0));
-
-  for (size_t b = 0; b < tensor.batch(); ++b) {
-    for (size_t c = 0; c < tensor.channel(); ++c) {
-      for (size_t h = 0; h < tensor.height(); ++h) {
-        for (size_t w = 0; w < tensor.width(); ++w) {
-          size_t idx = tensor.getIndex(b, c, h, w);
-          ASSERT_EQ(idx, tensor.getValue<uint16_t>(idx));
-        }
-      }
-    }
-  }
-}
-
-TEST(nntrainer_Tensor, Tensor_06_p) {
-  int status = ML_ERROR_NONE;
-  std::vector<std::vector<std::vector<uint8_t>>> in = {{{0, 1}, {2, 3}},
-                                                       {{4, 5}, {6, 7}},
-                                                       {{8, 9}, {10, 11}},
-                                                       {{12, 13}, {14, 15}}};
-  std::vector<float> scales = {1.204f};
-
-  nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8},
-    nntrainer::QScheme::PER_TENSOR_AFFINE);
-  ASSERT_NE(nullptr, tensor.getData<uint8_t>());
-
-  for (size_t b = 0; b < tensor.batch(); ++b) {
-    for (size_t c = 0; c < tensor.channel(); ++c) {
-      for (size_t h = 0; h < tensor.height(); ++h) {
-        for (size_t w = 0; w < tensor.width(); ++w) {
-          size_t idx = tensor.getIndex(b, c, h, w);
-          ASSERT_EQ(idx, tensor.getValue<uint8_t>(idx));
-        }
-      }
-    }
-  }
-}
-
-TEST(nntrainer_Tensor, Tensor_07_p) {
-  int status = ML_ERROR_NONE;
-  std::vector<std::vector<std::vector<uint32_t>>> in = {{{0, 1}, {2, 3}},
-                                                        {{4, 5}, {6, 7}},
-                                                        {{8, 9}, {10, 11}},
-                                                        {{12, 13}, {14, 15}}};
-  std::vector<float> scales = {8.125f};
-
-  nntrainer::Tensor tensor = nntrainer::Tensor(
-    in, scales, 7, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32},
-    nntrainer::QScheme::PER_TENSOR_AFFINE);
-  ASSERT_NE(nullptr, tensor.getData<uint32_t>());
-
-  for (size_t b = 0; b < tensor.batch(); ++b) {
-    for (size_t c = 0; c < tensor.channel(); ++c) {
-      for (size_t h = 0; h < tensor.height(); ++h) {
-        for (size_t w = 0; w < tensor.width(); ++w) {
-          size_t idx = tensor.getIndex(b, c, h, w);
-          ASSERT_EQ(idx, tensor.getValue<uint32_t>(idx));
-        }
-      }
-    }
-  }
-}
-
 TEST(nntrainer_Tensor, Tensor_07_n) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -356,7 +281,7 @@ TEST(nntrainer_Tensor, Tensor_09_n) {
   }
 
   EXPECT_THROW(
-    nntrainer::Tensor(in, {1.24f}, 125,
+    nntrainer::Tensor(in, {1.24f}, {125},
                       {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
                       nntrainer::QScheme::PER_TENSOR_AFFINE),
     std::out_of_range);
@@ -487,6 +412,212 @@ TEST(nntrainer_Tensor, QTensor_04_n) {
                       {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4},
                       nntrainer::QScheme::PER_CHANNEL_AFFINE),
     std::invalid_argument);
+}
+
+/**
+ * @brief Per Tensor Quantized Tensor (unsigned 32-bit integer)
+ */
+TEST(nntrainer_Tensor, QTensor_05_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint32_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {8.125f};
+  std::vector<unsigned int> zero_points = {7};
+
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT32},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE);
+  ASSERT_NE(nullptr, tensor.getData<uint32_t>());
+
+  // compare quantized data
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint32_t>(idx));
+        }
+      }
+    }
+  }
+
+  // compare scale factors
+  float *tensor_scales = tensor.getScale<float>();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
+  }
+
+  // compare zero points
+  unsigned int *tensor_zero_points = tensor.getZeroPoint();
+
+  for (unsigned int idx = 0; idx < zero_points.size(); ++idx) {
+    ASSERT_EQ(tensor_zero_points[idx], zero_points[idx]);
+  }
+}
+
+/**
+ * @brief Per Tensor Quantized Tensor (unsigned 16-bit integer)
+ */
+TEST(nntrainer_Tensor, QTensor_06_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint16_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {3.915f};
+  std::vector<unsigned int> zero_points = {7};
+
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE);
+  ASSERT_NE(nullptr, tensor.getData<uint16_t>(0));
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint16_t>(idx));
+        }
+      }
+    }
+  }
+
+  float *tensor_scales = tensor.getScale<float>();
+  unsigned int *tensor_zero_points = tensor.getZeroPoint();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
+  }
+
+  for (unsigned int idx = 0; idx < zero_points.size(); ++idx) {
+    ASSERT_EQ(tensor_zero_points[idx], zero_points[idx]);
+  }
+}
+
+/**
+ * @brief Per Tensor Quantized Tensor (unsigned 8-bit integer)
+ */
+TEST(nntrainer_Tensor, QTensor_07_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint8_t>>> in = {{{0, 1}, {2, 3}},
+                                                       {{4, 5}, {6, 7}},
+                                                       {{8, 9}, {10, 11}},
+                                                       {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {1.204f};
+  std::vector<unsigned int> zero_points = {7};
+
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE);
+  ASSERT_NE(nullptr, tensor.getData<uint8_t>());
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint8_t>(idx));
+        }
+      }
+    }
+  }
+
+  float *tensor_scales = tensor.getScale<float>();
+  unsigned int *tensor_zero_points = tensor.getZeroPoint();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
+  }
+
+  for (unsigned int idx = 0; idx < zero_points.size(); ++idx) {
+    ASSERT_EQ(tensor_zero_points[idx], zero_points[idx]);
+  }
+}
+
+/**
+ * @brief Per Channel Quantized Tensor (unsigned 16-bit integer)
+ */
+TEST(nntrainer_Tensor, QTensor_08_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint16_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {2.19458f, 6.10203f};
+  std::vector<unsigned int> zero_points = {7, 5};
+
+  nntrainer::Tensor tensor =
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+                      nntrainer::QScheme::PER_CHANNEL_AFFINE);
+  ASSERT_NE(nullptr, tensor.getData<uint16_t>(0));
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(idx, tensor.getValue<uint16_t>(idx));
+        }
+      }
+    }
+  }
+
+  float *tensor_scales = tensor.getScale<float>();
+  unsigned int *tensor_zero_points = tensor.getZeroPoint();
+
+  for (unsigned int idx = 0; idx < scales.size(); ++idx) {
+    ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
+  }
+
+  for (unsigned int idx = 0; idx < zero_points.size(); ++idx) {
+    ASSERT_EQ(tensor_zero_points[idx], zero_points[idx]);
+  }
+}
+
+/**
+ * @brief The scale size and the zero point size do not match.
+ */
+TEST(nntrainer_Tensor, QTensor_09_n) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint16_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales = {2.19458f, 6.10203f};
+  std::vector<unsigned int> zero_points = {7};
+
+  EXPECT_THROW(
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE),
+    std::invalid_argument);
+}
+
+/**
+ * @brief Initialize with the empty scales vector
+ */
+TEST(nntrainer_Tensor, QTensor_10_n) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<uint16_t>>> in = {{{0, 1}, {2, 3}},
+                                                        {{4, 5}, {6, 7}},
+                                                        {{8, 9}, {10, 11}},
+                                                        {{12, 13}, {14, 15}}};
+  std::vector<float> scales;
+  std::vector<unsigned int> zero_points = {7};
+
+  EXPECT_THROW(
+    nntrainer::Tensor(in, scales, zero_points,
+                      {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16},
+                      nntrainer::QScheme::PER_TENSOR_AFFINE),
+    std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, copy_01_n) {
@@ -769,6 +900,30 @@ TEST(nntrainer_Tensor, copy_13_p) {
 
   nntrainer::Tensor output(
     1, 1, 5, 5, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4});
+
+  output.copy(input);
+
+  ASSERT_EQ(input, output);
+}
+
+TEST(nntrainer_Tensor, copy_14_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  *input.getScale<float>() = 1.536f;
+  *input.getZeroPoint() = 12;
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
 
   output.copy(input);
 
@@ -3679,6 +3834,37 @@ TEST(nntrainer_Tensor, save_read_02_p) {
   ASSERT_EQ(status, 0);
 }
 
+TEST(nntrainer_Tensor, save_read_03_p) {
+  int batch = 3;
+  int channel = 4;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::UINT16);
+  nntrainer::Tensor readed(3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::UINT16);
+
+  GEN_TEST_INPUT(target, i * (channel * width * height) + j * (height * width) +
+                           k * (width) + l + 1);
+
+  *target.getScale<float>() = 1.536f;
+  *target.getZeroPoint() = 12;
+
+  std::ofstream save_file("save_quint16.bin", std::ios::out | std::ios::binary);
+  target.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save_quint16.bin");
+  readed.read(read_file);
+  read_file.close();
+
+  EXPECT_EQ(target, readed);
+
+  int status = std::remove("save_quint16.bin");
+
+  ASSERT_EQ(status, 0);
+}
+
 TEST(nntrainer_Tensor, save_read_01_n) {
   int batch = 3;
   int channel = 4;
@@ -4089,30 +4275,6 @@ TEST(nntrainer_Tensor, print_small_size_02) {
   EXPECT_EQ(ss.str(), expected.str());
 }
 
-TEST(nntrainer_Tensor, print_small_size_03) {
-  nntrainer::Tensor target = constant(1.0, 2, 1, 3, 3, nntrainer::Tformat::NCHW,
-                                      nntrainer::Tdatatype::UINT16);
-
-  std::stringstream ss, expected;
-  ss << target;
-
-  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
-           << "data addr: " << target.getData() << '\n'
-           << "Shape: 2:1:3:3 [ UINT16 : NCHW ]\n"
-           << "         1          1          1 \n"
-           << "         1          1          1 \n"
-           << "         1          1          1 \n"
-           << "\n"
-           << "-------\n"
-           << "         1          1          1 \n"
-           << "         1          1          1 \n"
-           << "         1          1          1 \n"
-           << "\n"
-           << "-------\n";
-
-  EXPECT_EQ(ss.str(), expected.str());
-}
-
 TEST(nntrainer_Tensor, print_large_size_01) {
   nntrainer::Tensor target = constant(1.2, 3, 10, 10, 10);
 
@@ -4137,22 +4299,6 @@ TEST(nntrainer_Tensor, print_large_size_02) {
            << "data addr: " << target.getData() << '\n'
            << "Shape: 3:3:256:256 [ QINT8 : NCHW ]\n"
            << "[7 7 7 ... 7 7 7]\n";
-  ss << target;
-
-  EXPECT_EQ(ss.str(), expected.str());
-}
-
-TEST(nntrainer_Tensor, print_large_size_03) {
-  nntrainer::Tensor target =
-    constant(165, 1, 3, 128, 512, nntrainer::Tformat::NCHW,
-             nntrainer::Tdatatype::UINT16);
-
-  std::stringstream ss, expected;
-
-  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
-           << "data addr: " << target.getData() << '\n'
-           << "Shape: 1:3:128:512 [ UINT16 : NCHW ]\n"
-           << "[165 165 165 ... 165 165 165]\n";
   ss << target;
 
   EXPECT_EQ(ss.str(), expected.str());

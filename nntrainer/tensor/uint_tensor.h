@@ -41,6 +41,7 @@ public:
    * @param alloc_now Allocate memory to this tensor or not
    * @param init Initializer for the tensor
    * @param name Name of the tensor
+   * @param qscheme_ quantization scheme
    */
   UIntTensor(const TensorDim &d, bool alloc_now,
              Initializer init = Initializer::NONE, std::string name = "",
@@ -51,6 +52,7 @@ public:
    *
    * @param d Tensor dim for this tensor
    * @param buf buffer
+   * @param qscheme_ quantization scheme
    */
   UIntTensor(const TensorDim &d, const void *buf = nullptr,
              QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
@@ -59,11 +61,15 @@ public:
    * @brief Construct a new UIntTensor object
    *
    * @param d data for the Tensor
+   * @param scales scale factors for the Tensor
+   * @param zero_points zero_points for the Tensor
    * @param fm format for the Tensor
+   * @param qscheme_ quantization scheme
    */
   UIntTensor(std::vector<std::vector<std::vector<std::vector<T>>>> const &d,
-             std::vector<float> const &scales, unsigned int zero_point,
-             Tformat fm, QScheme qscheme_);
+             std::vector<float> const &scales,
+             std::vector<unsigned int> const &zero_points, Tformat fm,
+             QScheme qscheme_);
 
   /**
    * @brief Construct a new UIntTensor object
@@ -80,14 +86,12 @@ public:
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
-   * @note      Only compares Tensor data
    */
   bool operator==(const UIntTensor &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
-   * @note      Only compares Tensor data
    */
   bool operator!=(const UIntTensor &rhs) const { return !(*this == rhs); }
 
@@ -120,6 +124,16 @@ public:
    * @copydoc Tensor::getScale(size_t idx)
    */
   void *getScale(size_t idx) const override;
+
+  /**
+   * @copydoc Tensor::getZeroPoint()
+   */
+  unsigned int *getZeroPoint() const override;
+
+  /**
+   * @copydoc Tensor::getZeroPoint(size_t idx)
+   */
+  unsigned int *getZeroPoint(size_t idx) const override;
 
   /**
    * @brief     i data index

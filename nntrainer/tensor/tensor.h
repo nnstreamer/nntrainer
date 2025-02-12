@@ -253,7 +253,8 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
 
   /**
@@ -263,9 +264,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<uint8_t>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -275,9 +277,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<uint8_t>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -286,7 +289,8 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
 
   /**
@@ -296,9 +300,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<uint16_t>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -308,9 +313,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<uint16_t>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -319,7 +325,8 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
 
   /**
@@ -329,9 +336,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<std::vector<uint32_t>>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -341,9 +349,10 @@ public:
    * @param[in] t_type Tensor Type
    */
   Tensor(std::vector<std::vector<uint32_t>> const &d,
-         std::vector<float> const &scales, unsigned int zero_point,
+         std::vector<float> const &scales,
+         std::vector<unsigned int> const &zero_points,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
-    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_point,
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
   /**
@@ -549,6 +558,20 @@ public:
    */
   template <typename T = float> T *getScale(size_t idx) const {
     return (T *)itensor->getScale(idx);
+  }
+
+  /**
+   * @brief     return zero point pointer of Tensor
+   * @retval    unsigned int pointer
+   */
+  unsigned int *getZeroPoint() const { return itensor->getZeroPoint(); }
+
+  /**
+   * @brief     return zero point pointer of Tensor
+   * @retval    unsigned int pointer
+   */
+  unsigned int *getZeroPoint(size_t idx) const {
+    return itensor->getZeroPoint(idx);
   }
 
   /**

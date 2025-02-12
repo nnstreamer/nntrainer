@@ -210,6 +210,24 @@ public:
   }
 
   /**
+   * @copydoc Tensor::getZeroPoint()
+   */
+  virtual unsigned int *getZeroPoint() const {
+    throw std::invalid_argument(
+      "Tensor::getZeroPoint() is not supported in tensor data type " +
+      getStringDataType());
+  }
+
+  /**
+   * @copydoc Tensor::getZeroPoint(size_t idx)
+   */
+  virtual unsigned int *getZeroPoint(size_t idx) const {
+    throw std::invalid_argument(
+      "Tensor::getZeroPoint() is not supported in tensor data type " +
+      getStringDataType());
+  }
+
+  /**
    * @brief     i data index
    * @retval    address of ith data
    */
