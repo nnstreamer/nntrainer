@@ -69,6 +69,10 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
   nntrainer::neon::copy_s16_fp32(N, X, Y);
 }
 
+void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
+  nntrainer::neon::copy_u16_fp32(N, X, Y);
+}
+
 void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
   nntrainer::neon::copy_s16(N, X, Y);
 }

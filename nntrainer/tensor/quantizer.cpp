@@ -30,9 +30,9 @@ template <typename T> T clip(const T &val, const T &lower, const T &upper) {
 void Quantizer::calculateMinMaxValue(Tdatatype qtype) {
   unsigned int N;
 
-  if (qtype == Tdatatype::QINT16) {
+  if (qtype == Tdatatype::QINT16 || qtype == Tdatatype::UINT16) {
     N = 16;
-  } else if (qtype == Tdatatype::QINT8) {
+  } else if (qtype == Tdatatype::QINT8 || qtype == Tdatatype::UINT8) {
     N = 8;
   } else if (qtype == Tdatatype::QINT4) {
     N = 4;
@@ -40,8 +40,13 @@ void Quantizer::calculateMinMaxValue(Tdatatype qtype) {
     throw std::invalid_argument("[Quantizer] Unsupported data type error.");
   }
 
-  quant_max = std::pow(2, N - 1) - 1;
-  quant_min = -std::pow(2, N - 1);
+  // define minimum and maximum valude representable by the type
+  quant_max = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8)
+                ? std::pow(2, N) - 1
+                : std::pow(2, N - 1) - 1;
+  quant_min = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8)
+                ? 0
+                : -std::pow(2, N - 1);
 }
 
 /**
@@ -57,6 +62,14 @@ void PerTensorAffineQuantizer::calculateQParams(const Tensor &input,
   float max_val = input.max_abs();
   scale = max_val / ((quant_max - quant_min) / 2.0f);
   scale = std::max(scale, std::numeric_limits<float>::epsilon());
+
+  if (qtype == Tdatatype::UINT8) {
+    zero_point = std::round(scale * input.minValue()) + std::pow(2, 7);
+  } else if (qtype == Tdatatype::UINT16) {
+    zero_point = std::round(scale * input.minValue()) + std::pow(2, 15);
+  } else {
+    zero_point = 0;
+  }
 }
 
 Tensor PerTensorAffineQuantizer::quantize(const Tensor &input,
@@ -71,13 +84,14 @@ Tensor PerTensorAffineQuantizer::quantize(const Tensor &input,
   Tensor output(dim);
 
   // 3. perform quantization
-  quantize(input, output, &scale);
+  quantize(input, output, &scale, &zero_point);
 
   return output;
 }
 
 Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
-                                           float *scales) {
+                                           float *scales,
+                                           unsigned int *zero_points) {
   // Currently only full precision floating point is supported. FP16 is NYI
   NNTR_THROW_IF(input.getDataType() != Tdatatype::FP32, std::invalid_argument)
     << "[Quantizer::quantize] Tensor data type is not floating point.";
@@ -97,22 +111,39 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
   NNTR_THROW_IF(input.size() != output.size(), std::invalid_argument)
     << "[Quantizer::quantize] Tensor size does not match.";
 
+  if (output.getDataType() == Tdatatype::UINT8 ||
+      output.getDataType() == Tdatatype::UINT16) {
+    NNTR_THROW_IF(zero_points == nullptr, std::invalid_argument)
+      << "[Quantizer::quantize] Output zero point is invalid.";
+  }
+
   calculateMinMaxValue(output.getDataType());
+
+  long int val;
 
   /// @todo this is a naive impl. need optimization
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
       for (unsigned int h = 0; h < output.height(); ++h) {
         for (unsigned int w = 0; w < output.width(); ++w) {
-          output.setValue(
-            b, c, h, w,
-            clip(std::lround(input.getValue(b, c, h, w) / *scales), quant_min,
-                 quant_max));
+          val = std::lround(input.getValue(b, c, h, w) / *scales);
+
+          if (output.getDataType() == Tdatatype::UINT8 ||
+              output.getDataType() == Tdatatype::UINT16) {
+            val += *zero_points;
+          }
+
+          output.setValue(b, c, h, w, clip(val, quant_min, quant_max));
         }
       }
     }
   }
   *output.getScale<float>() = *scales;
+
+  if (output.getDataType() == Tdatatype::UINT8 ||
+      output.getDataType() == Tdatatype::UINT16) {
+    *output.getZeroPoint() = *zero_points;
+  }
 
   return output;
 }
@@ -120,7 +151,13 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
 Tensor PerTensorAffineQuantizer::dequantize(const Tensor &input,
                                             Tdatatype dtype) {
   Tensor output = input.clone(dtype);
+  if (input.getDataType() == Tdatatype::UINT8 ||
+      input.getDataType() == Tdatatype::UINT16) {
+    output.subtract_i(*input.getZeroPoint());
+  }
+
   output.multiply_i(*input.getScale<float>());
+
   return output;
 }
 
@@ -142,7 +179,8 @@ Tensor PerChannelAffineQuantizer::quantize(const Tensor &input,
 }
 
 Tensor &PerChannelAffineQuantizer::quantize(const Tensor &input, Tensor &output,
-                                            float *scales) {
+                                            float *scales,
+                                            unsigned int *zero_points) {
   /// @todo NYI
   return output;
 }
@@ -171,7 +209,8 @@ Tensor BinaryCodeBasedQuantizer::quantize(const Tensor &input,
 }
 
 Tensor &BinaryCodeBasedQuantizer::quantize(const Tensor &input, Tensor &output,
-                                           float *scales) {
+                                           float *scales,
+                                           unsigned int *zero_points) {
   /// @todo NYI
   return output;
 }
