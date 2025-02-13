@@ -95,6 +95,7 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
+
   mem_pool = calloc(pool_size, 1);
   if (mem_pool == nullptr)
     throw std::runtime_error(
@@ -119,7 +120,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
-
+  memory_ptrs.emplace_back(ptr);
   return mem_data;
 }
 
@@ -135,6 +136,7 @@ void MemoryPool::deallocate() {
     memory_exec_order.clear();
     memory_is_wgrad.clear();
     PROFILE_MEM_DEALLOC(mem_pool);
+    memory_ptrs.clear();
   }
 
   mem_pool = nullptr;

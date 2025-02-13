@@ -10,6 +10,7 @@
  * @bug    No known bugs except for NYI items
  */
 #include <array>
+#include <base_properties.h>
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -21,10 +22,6 @@
 #include <model.h>
 #include <optimizer.h>
 #include <unistd.h>
-
-#ifdef PROFILE
-#include <profiler.h>
-#endif
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
@@ -73,10 +70,11 @@ std::vector<LayerHandle> createGraph() {
 
   std::vector<LayerHandle> layers;
 
-  layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:1024")}));
+  layers.push_back(
+    createLayer("input", {withKey("name", "input0"),
+                          withKey("input_shape", "1:1024:1024")}));
 
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 56; i++) {
     layers.push_back(createLayer(
       "fully_connected",
       {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
@@ -97,8 +95,8 @@ ModelHandle create() {
   return model;
 }
 
-void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  std::string swap_on_off, std::string look_ahaed) {
+double createAndRun(unsigned int epochs, unsigned int batch_size,
+                    std::string swap_on_off, std::string look_ahaed) {
 
   // setup model
   ModelHandle model = create();
@@ -106,8 +104,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                       withKey("epochs", epochs),
                       withKey("model_tensor_type", "FP16-FP16")});
 
-  model->setProperty({withKey("memory_swap", swap_on_off)});
   if (swap_on_off == "true") {
+    model->setProperty({withKey("memory_swap", swap_on_off)});
     model->setProperty({withKey("memory_swap_lookahead", look_ahaed)});
   }
 
@@ -121,9 +119,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  unsigned int feature_size = 1 * 1 * 1024;
+  unsigned int feature_size = 1 * 1024 * 1024;
 
-  float input[1 * 1024];
+  float input[1024 * 1024];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = (j / (float)feature_size);
@@ -134,37 +132,23 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   in.push_back(input);
 
   auto start = std::chrono::system_clock::now();
-  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
-  std::cout << "started computation at " << std::ctime(&start_time)
-            << std::endl;
 
   // to test asynch fsu, we do need save the model weight data in file
   std::string filePath = "./simplefc_weight_fp16_fp16_100.bin";
-  if (access(filePath.c_str(), F_OK) == 0) {
-    model->load(filePath);
-  } else {
-    model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    model->load(filePath);
-  }
-  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+
+  model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  model->load(filePath);
 
   answer = model->inference(1, in);
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
-  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-  std::cout << "finished computation at " << std::ctime(&end_time)
-            << "elapsed time: " << elapsed_seconds.count() << "s\n";
+
   in.clear();
+  return elapsed_seconds.count();
 }
 
 int main(int argc, char *argv[]) {
-
-#ifdef PROFILE
-  auto listener =
-    std::make_shared<nntrainer::profile::GenericProfileListener>();
-  nntrainer::profile::Profiler::Global().subscribe(listener);
-#endif
 
   std::string swap_on = "true";
   std::string look_ahead = "1";
@@ -175,23 +159,22 @@ int main(int argc, char *argv[]) {
   swap_on = argv[1];    // true or false
   look_ahead = argv[2]; // int
 
-  std::cout << "swap_on : " << swap_on << std::endl;
-  std::cout << "look_ahead : " << look_ahead << std::endl;
-
   unsigned int batch_size = 1;
   unsigned int epoch = 1;
 
+  swap_on = "true";
+  look_ahead = "2";
+
   try {
-    createAndRun(epoch, batch_size, swap_on, look_ahead);
+
+    auto ret = createAndRun(epoch, batch_size, swap_on, look_ahead);
+    std::cout << "swap : " << swap_on << " look ahead : " << look_ahead << " "
+              << ret << std::endl;
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;
     return EXIT_FAILURE;
   }
-
-#ifdef PROFILE
-  std::cout << *listener;
-#endif
 
   int status = EXIT_SUCCESS;
   return status;

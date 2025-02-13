@@ -50,6 +50,7 @@
 #include <remap_realizer.h>
 #include <slice_realizer.h>
 #include <util_func.h>
+#include <sys/resource.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -342,6 +343,12 @@ NeuralNetwork::~NeuralNetwork() {
   }
 }
 
+void printMemoryUsage() {
+  struct rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+  std::cout << "Max Resident Set Size: " << usage.ru_maxrss << " KB" << std::endl;
+}
+
 /**
  * @brief     forward propagation using layers object which has layer
  */
@@ -390,6 +397,7 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(now_exec_order);
       model_graph.checkLoadComplete(now_exec_order);
       node->forwarding(training);
+
     }
   };
 

@@ -27,8 +27,8 @@ namespace nntrainer {
 void SwapDevice::start(size_t size) {
   if (fd > 0)
     return;
-
   fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -49,7 +49,8 @@ void SwapDevice::start(size_t size) {
     << "SwapDevice: seek file: " << dev_path;
 }
 
-void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
+void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
+                            bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
@@ -67,12 +68,15 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
     << "SwapDevice: mmap: "
     << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  void *buf = static_cast<void *>(ptr + diff);
-  mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+  std::memcpy(memory_ptr, ptr, size);
+  munmap(ptr, len);
+
+  mapped[memory_ptr] = std::make_tuple(memory_ptr, len, offset, (ssize_t)size);
+  is_unmapped.insert(std::make_pair(memory_ptr, false));
 
   ++num_loaded_tensors;
+  return memory_ptr;
 
-  return buf;
 #else
   off_t off;
   ssize_t len;
