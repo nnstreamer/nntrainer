@@ -269,9 +269,9 @@ void Manager::allocateTensors(unsigned int max_exec_order_) {
  * @brief Deallocate memory for all the managed tensors
  */
 void Manager::deallocateTensors(bool dealloc_weights) {
-  if (dealloc_weights)
+  if (dealloc_weights) {
     deallocateWeights();
-
+  }
   tensor_pool.deallocate();
 }
 
@@ -463,6 +463,17 @@ std::vector<Weight *> Manager::requestWeights(
       }
     } else {
       /** case requesting fresh weights */
+
+      if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
+        for (unsigned int i = 0; i < swap_lookahead; ++i) {
+          int lah_order = (forwarding_order - (swap_lookahead - i));
+          if (lah_order < 0) {
+            var_exec_order.push_back(0);
+          } else {
+            var_exec_order.push_back(lah_order);
+          }
+        }
+      }
       var =
         weight_pool.request(name, dim_v, var_exec_order, var_ls, t_initializer);
 
@@ -899,7 +910,7 @@ void Manager::flushCacheExcept(unsigned int order) {
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations)
-    pool.finalize(OptimizedV1Planner(), start, end);
+    pool.finalize(OptimizedV3Planner(), start, end);
   else
     pool.finalize(BasicPlanner(), start, end);
 }
