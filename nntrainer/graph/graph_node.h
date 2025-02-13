@@ -194,6 +194,19 @@ public:
   }
 
   /**
+   * @brief <= comparison operator override
+   *
+   * @param lhs iterator lhs
+   * @param rhs iterator rhs
+   * @retval true if mismatch
+   * @retval false if match
+   */
+  friend bool operator<=(GraphNodeIterator const &lhs,
+                         GraphNodeIterator const &rhs) {
+    return lhs.p <= rhs.p;
+  }
+
+  /**
    * @brief override for ++ operator
    *
    * @return GraphNodeIterator&
