@@ -111,13 +111,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     model->setProperty({withKey("memory_swap_lookahead", look_ahaed)});
   }
 
-  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  int status = model->setOptimizer(std::move(optimizer));
-  if (status) {
-    throw std::invalid_argument("failed to set optimizer!");
-  }
-
-  status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
   if (status) {
     throw std::invalid_argument("model compilation failed!");
   }
@@ -152,6 +146,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     model->load(filePath);
   }
+  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 
   answer = model->inference(1, in);
 
