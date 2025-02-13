@@ -354,12 +354,12 @@ sharedConstTensors NeuralNetwork::forwarding(
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
-    auto f = std::get<0>(node->getExecutionOrder());
+    auto now_exec_order = std::get<0>(node->getExecutionOrder());
     bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
     // temperally remain. when we evaluate all for asynch mode, we weill remove
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
-      model_graph.flushCacheExcept(f);
+      model_graph.flushCacheExcept(now_exec_order);
       node->forwarding(training);
     } else {
       /**
@@ -387,20 +387,9 @@ sharedConstTensors NeuralNetwork::forwarding(
                and if it is loaded, then run forwarding. Every time it finishes
                the forwarding, ask load tensors for next n layers.
       **/
-
-      unsigned int lookahead =
-        std::get<props::MemorySwapLookahead>(model_flex_props);
-
-      if (!((model_graph.getNumLoadedWeightPoolTensors() + 1) / 2 <
-            lookahead + 1)) {
-        model_graph.checkUnloadComplete(f - 1);
-      }
-      model_graph.LoadTensors(
-        f, lookahead - (model_graph.getNumLoadedWeightPoolTensors() + 1) / 2);
-
-      model_graph.checkLoadComplete(f);
+      model_graph.LoadTensors(now_exec_order);
+      model_graph.checkLoadComplete(now_exec_order);
       node->forwarding(training);
-      model_graph.UnloadTensors(f);
     }
   };
 
