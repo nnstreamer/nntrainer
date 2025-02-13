@@ -42,6 +42,10 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
   __fallback_copy_s16_fp32(N, X, Y);
 }
 
+void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
+  __fallback_copy_u16_fp32(N, X, Y);
+}
+
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY) {

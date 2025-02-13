@@ -135,10 +135,11 @@ public:
    * @param[in] input Floating point tensor to quantize
    * @param[out] output Quantized tensor
    * @param[in] scales float scale factors
+   * @param[in] zero_points unsigned int zero points
    * @return Tensor quantized tensor
    */
-  virtual Tensor &quantize(const Tensor &input, Tensor &output,
-                           float *scales) = 0;
+  virtual Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                           unsigned int *zero_points = nullptr) = 0;
 
   /**
    * @brief Dequantize a quantized tensor into a tensor.
@@ -204,9 +205,10 @@ public:
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
-   * *scales)
+   * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                   unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
@@ -221,6 +223,7 @@ public:
 
 private:
   float scale;
+  unsigned int zero_point = 0;
 
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
@@ -264,9 +267,10 @@ public:
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
-   * *scales)
+   * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                   unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
@@ -319,9 +323,10 @@ public:
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
-   * *scales)
+   * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales) override;
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                   unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
