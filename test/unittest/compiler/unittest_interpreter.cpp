@@ -21,6 +21,7 @@
 #include <layer.h>
 #include <layer_node.h>
 #include <network_graph.h>
+#include <nntrainer_error.h>
 
 #include <app_context.h>
 #include <compiler_test_util.h>
@@ -98,7 +99,10 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
 
   graphEqual(g, new_g);
 
-  EXPECT_EQ(remove(out_file_path.c_str()), 0) << std::strerror(errno);
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+  EXPECT_EQ(remove(out_file_path.c_str()), 0)
+    << SAFE_STRERROR(errno, error_buf, error_buflen);
 }
 
 TEST_P(nntrainerInterpreterTest, deserialize_01_n) {

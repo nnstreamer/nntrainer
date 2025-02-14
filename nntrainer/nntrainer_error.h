@@ -23,6 +23,7 @@
 #define ML_ERROR_RESULT_OUT_OF_RANGE (-ERANGE)
 #endif
 
+#include <cstring>
 #include <functional>
 #include <sstream>
 #include <stdexcept>
@@ -34,6 +35,12 @@
 #define NNTR_THROW_IF_CLEANUP(pred, err, cleanup_func) \
   if ((pred))                                          \
     nntrainer::exception::ErrorNotification<err> { cleanup_func }
+
+#ifdef _WIN32
+#define SAFE_STRERROR(errnum, buffer, size) strerror_s(buffer, size, errnum)
+#else
+#define SAFE_STRERROR(errnum, buffer, size) strerror_r(errnum, buffer, size)
+#endif
 
 #if ML_API_COMMON
 #include <ml-api-common.h>
