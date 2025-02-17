@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 #include <ini_wrapper.h>
 #include <neuralnet.h>
+#include <util_func.h>
 
 #include "nntrainer_test_util.h"
 
@@ -20,40 +21,6 @@ using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using ml::train::createLayer;
-
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
 
 namespace initest {
 typedef enum {
@@ -305,7 +272,7 @@ TEST(nntrainerGraphUnitTest, cross_with_relu) {
   nntrainer::NetworkGraph ng;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "cross")});
 
   for (auto &node : g) {
     EXPECT_NO_THROW(nn_model->addLayer(node));
@@ -325,7 +292,7 @@ TEST(nntrainerGraphUnitTest, compile_twice) {
   nntrainer::NetworkGraph ng;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "cross")});
 
   for (auto &node : g) {
     EXPECT_NO_THROW(nn_model->addLayer(node));
@@ -352,7 +319,7 @@ TEST(nntrainerGraphUnitTest, call_functions) {
   nntrainer::NetworkGraph ng;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "cross")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "cross")});
 
   for (auto &node : g) {
     EXPECT_NO_THROW(nn_model->addLayer(node));
@@ -373,22 +340,26 @@ TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
     ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   model->addLayer(ml::train::createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:256")}));
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape", "1:1:256")}));
 
   for (int i = 0; i < 3; ++i) {
     model->addLayer(ml::train::createLayer(
       "fully_connected",
-      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
-       withKey("bias_initializer", "zeros")}));
+      {nntrainer::withKey("unit", 1024),
+       nntrainer::withKey("weight_initializer", "xavier_uniform"),
+       nntrainer::withKey("bias_initializer", "zeros")}));
   }
   model->addLayer(ml::train::createLayer(
     "fully_connected",
-    {withKey("unit", 100), withKey("weight_initializer", "xavier_uniform"),
-     withKey("bias_initializer", "zeros")}));
+    {nntrainer::withKey("unit", 100),
+     nntrainer::withKey("weight_initializer", "xavier_uniform"),
+     nntrainer::withKey("bias_initializer", "zeros")}));
 
-  model->setProperty({withKey("batch_size", 1), withKey("epochs", 1),
-                      withKey("memory_swap", "false"),
-                      withKey("model_tensor_type", "FP32-FP32")});
+  model->setProperty({nntrainer::withKey("batch_size", 1),
+                      nntrainer::withKey("epochs", 1),
+                      nntrainer::withKey("memory_swap", "false"),
+                      nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
   int status = model->compile(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
