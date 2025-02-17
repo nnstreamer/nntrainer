@@ -16,6 +16,7 @@
 
 #include <app_context.h>
 #include <interpreter.h>
+#include <iostream>
 #include <layer.h>
 #include <layer_node.h>
 #include <model.h>
