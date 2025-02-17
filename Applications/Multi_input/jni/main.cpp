@@ -21,6 +21,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <util_func.h>
 
 #include <multi_loader.h>
 
@@ -28,55 +29,34 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
 
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
-
 ModelHandle createMultiInputModel() {
   using ml::train::createLayer;
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "mse")});
+  ModelHandle model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
   std::vector<LayerHandle> layers;
 
+  layers.push_back(
+    createLayer("input", {nntrainer::withKey("name", "input0"),
+                          nntrainer::withKey("input_shape", "1:2:2")}));
+  layers.push_back(
+    createLayer("input", {nntrainer::withKey("name", "input1"),
+                          nntrainer::withKey("input_shape", "1:4:2")}));
+  layers.push_back(
+    createLayer("input", {nntrainer::withKey("name", "input2"),
+                          nntrainer::withKey("input_shape", "1:8:2")}));
+
   layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:2:2")}));
-  layers.push_back(createLayer(
-    "input", {withKey("name", "input1"), withKey("input_shape", "1:4:2")}));
-  layers.push_back(createLayer(
-    "input", {withKey("name", "input2"), withKey("input_shape", "1:8:2")}));
+    "concat",
+    {nntrainer::withKey("name", "concat0"), nntrainer::withKey("axis", "2"),
+     nntrainer::withKey("input_layers", "input0, input1, input2")}));
 
   layers.push_back(
-    createLayer("concat", {withKey("name", "concat0"), withKey("axis", "2"),
-                           withKey("input_layers", "input0, input1, input2")}));
+    createLayer("flatten", {nntrainer::withKey("name", "flatten0"),
+                            nntrainer::withKey("input_layers", "concat0")}));
 
-  layers.push_back(
-    createLayer("flatten", {withKey("name", "flatten0"),
-                            withKey("input_layers", "concat0")}));
-
-  layers.push_back(createLayer(
-    "fully_connected", {withKey("unit", 5), withKey("activation", "softmax")}));
+  layers.push_back(createLayer("fully_connected",
+                               {nntrainer::withKey("unit", 5),
+                                nntrainer::withKey("activation", "softmax")}));
 
   for (auto &layer : layers) {
     model->addLayer(layer);
@@ -96,9 +76,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   ModelHandle model = createMultiInputModel();
 
-  model->setProperty({withKey("batch_size", batch_size),
-                      withKey("epochs", epochs),
-                      withKey("save_path", "resnet_full.bin")});
+  model->setProperty({nntrainer::withKey("batch_size", batch_size),
+                      nntrainer::withKey("epochs", epochs),
+                      nntrainer::withKey("save_path", "resnet_full.bin")});
 
   auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   int status = model->setOptimizer(std::move(optimizer));

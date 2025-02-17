@@ -24,6 +24,7 @@
 #include <optimizer.h>
 #include <realizer.h>
 #include <stdlib.h>
+#include <util_func.h>
 
 #include <nntrainer_test_util.h>
 
@@ -45,40 +46,6 @@ std::vector<float *> in_f;
 std::vector<float *> l_f;
 
 unsigned int seed = 0;
-
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
 
 /**
  * @brief Run TF Lite model with given input_vector's data
@@ -140,14 +107,17 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   nntrainer::TfliteInterpreter interpreter;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
 
-  nn_model->addLayer(createLayer(
-    "input", {withKey("name", "in0"), withKey("input_shape", "1:1:1:1")}));
-  nn_model->addLayer(createLayer("fully_connected",
-                                 {withKey("name", "fc0"), withKey("unit", 2)}));
-  nn_model->addLayer(createLayer("fully_connected",
-                                 {withKey("name", "fc1"), withKey("unit", 1)}));
+  nn_model->addLayer(
+    createLayer("input", {nntrainer::withKey("name", "in0"),
+                          nntrainer::withKey("input_shape", "1:1:1:1")}));
+  nn_model->addLayer(
+    createLayer("fully_connected", {nntrainer::withKey("name", "fc0"),
+                                    nntrainer::withKey("unit", 2)}));
+  nn_model->addLayer(
+    createLayer("fully_connected", {nntrainer::withKey("name", "fc1"),
+                                    nntrainer::withKey("unit", 1)}));
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
@@ -275,7 +245,7 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
   nntrainer::NetworkGraph ng;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
 
   for (auto &node : g) {
     nn_model->addLayer(node);
@@ -330,40 +300,52 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
   nntrainer::TfliteInterpreter interpreter;
 
   ModelHandle nn_model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
-  nn_model->setProperty({withKey("memory_optimization", "false")});
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
+  nn_model->setProperty({nntrainer::withKey("memory_optimization", "false")});
+
+  nn_model->addLayer(
+    createLayer("input", {nntrainer::withKey("name", "in0"),
+                          nntrainer::withKey("input_shape", "1:1:28:28")}));
 
   nn_model->addLayer(createLayer(
-    "input", {withKey("name", "in0"), withKey("input_shape", "1:1:28:28")}));
+    "conv2d",
+    {nntrainer::withKey("name", "conv0"), nntrainer::withKey("filters", 6),
+     nntrainer::withKey("kernel_size", {5, 5}),
+     nntrainer::withKey("stride", {1, 1}),
+     nntrainer::withKey("padding", "same"),
+     nntrainer::withKey("bias_initializer", "zeros"),
+     nntrainer::withKey("weight_initializer", "xavier_uniform"),
+     nntrainer::withKey("activation", "relu")}));
+
+  nn_model->addLayer(
+    createLayer("pooling2d", {nntrainer::withKey("name", "pooling2d_p1"),
+                              nntrainer::withKey("pooling", "average"),
+                              nntrainer::withKey("pool_size", {2, 2}),
+                              nntrainer::withKey("stride", {2, 2}),
+                              nntrainer::withKey("padding", "same")}));
 
   nn_model->addLayer(createLayer(
-    "conv2d", {withKey("name", "conv0"), withKey("filters", 6),
-               withKey("kernel_size", {5, 5}), withKey("stride", {1, 1}),
-               withKey("padding", "same"), withKey("bias_initializer", "zeros"),
-               withKey("weight_initializer", "xavier_uniform"),
-               withKey("activation", "relu")}));
+    "conv2d",
+    {nntrainer::withKey("name", "conv0"), nntrainer::withKey("filters", 12),
+     nntrainer::withKey("kernel_size", {5, 5}),
+     nntrainer::withKey("stride", {1, 1}),
+     nntrainer::withKey("padding", "same"),
+     nntrainer::withKey("bias_initializer", "zeros"),
+     nntrainer::withKey("weight_initializer", "xavier_uniform"),
+     nntrainer::withKey("activation", "relu")}));
 
-  nn_model->addLayer(createLayer(
-    "pooling2d", {withKey("name", "pooling2d_p1"),
-                  withKey("pooling", "average"), withKey("pool_size", {2, 2}),
-                  withKey("stride", {2, 2}), withKey("padding", "same")}));
-
-  nn_model->addLayer(createLayer(
-    "conv2d", {withKey("name", "conv0"), withKey("filters", 12),
-               withKey("kernel_size", {5, 5}), withKey("stride", {1, 1}),
-               withKey("padding", "same"), withKey("bias_initializer", "zeros"),
-               withKey("weight_initializer", "xavier_uniform"),
-               withKey("activation", "relu")}));
-
-  nn_model->addLayer(createLayer(
-    "pooling2d", {withKey("name", "pooling2d_p1"),
-                  withKey("pooling", "average"), withKey("pool_size", {2, 2}),
-                  withKey("stride", {2, 2}), withKey("padding", "same")}));
+  nn_model->addLayer(
+    createLayer("pooling2d", {nntrainer::withKey("name", "pooling2d_p1"),
+                              nntrainer::withKey("pooling", "average"),
+                              nntrainer::withKey("pool_size", {2, 2}),
+                              nntrainer::withKey("stride", {2, 2}),
+                              nntrainer::withKey("padding", "same")}));
 
   nn_model->addLayer(createLayer("flatten"));
 
-  nn_model->addLayer(createLayer(
-    "fully_connected", {withKey("name", "fc0"), withKey("unit", 10)}));
+  nn_model->addLayer(
+    createLayer("fully_connected", {nntrainer::withKey("name", "fc0"),
+                                    nntrainer::withKey("unit", 10)}));
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);

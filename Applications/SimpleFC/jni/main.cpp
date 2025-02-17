@@ -21,6 +21,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <util_func.h>
 
 #ifdef PROFILE
 #include <profiler.h>
@@ -28,40 +29,6 @@
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
-
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
 
 /**
  * @brief Create network
@@ -73,22 +40,24 @@ std::vector<LayerHandle> createGraph() {
 
   std::vector<LayerHandle> layers;
 
-  layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:1024")}));
+  layers.push_back(
+    createLayer("input", {nntrainer::withKey("name", "input0"),
+                          nntrainer::withKey("input_shape", "1:1:1024")}));
 
   for (int i = 0; i < 28; i++) {
-    layers.push_back(createLayer(
-      "fully_connected",
-      {withKey("unit", 1024), withKey("weight_initializer", "xavier_uniform"),
-       withKey("bias_initializer", "zeros")}));
+    layers.push_back(
+      createLayer("fully_connected",
+                  {nntrainer::withKey("unit", 1024),
+                   nntrainer::withKey("weight_initializer", "xavier_uniform"),
+                   nntrainer::withKey("bias_initializer", "zeros")}));
   }
 
   return layers;
 }
 
 ModelHandle create() {
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "mse")});
+  ModelHandle model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
 
   for (auto &layer : createGraph()) {
     model->addLayer(layer);
@@ -102,13 +71,14 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   // setup model
   ModelHandle model = create();
-  model->setProperty({withKey("batch_size", batch_size),
-                      withKey("epochs", epochs),
-                      withKey("model_tensor_type", "FP16-FP16")});
+  model->setProperty({nntrainer::withKey("batch_size", batch_size),
+                      nntrainer::withKey("epochs", epochs),
+                      nntrainer::withKey("model_tensor_type", "FP16-FP16")});
 
-  model->setProperty({withKey("memory_swap", swap_on_off)});
+  model->setProperty({nntrainer::withKey("memory_swap", swap_on_off)});
   if (swap_on_off == "true") {
-    model->setProperty({withKey("memory_swap_lookahead", look_ahaed)});
+    model->setProperty(
+      {nntrainer::withKey("memory_swap_lookahead", look_ahaed)});
   }
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
