@@ -16,51 +16,14 @@
 
 #include <app_context.h>
 #include <interpreter.h>
+#include <iostream>
 #include <layer.h>
 #include <layer_node.h>
 #include <model.h>
 #include <nntrainer-api-common.h>
 #include <onnx.pb.h>
 #include <string>
-
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-/**
- * @brief make "key=value1,value2,...valueN" from key and multiple values
- *
- * @tparam T type of a value
- * @param key key
- * @param value list of values
- * @return std::string with "key=value1,value2,...valueN"
- */
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-  std::stringstream ss;
-  ss << key << "=";
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-  return ss.str();
-}
+#include <util_func.h>
 
 namespace nntrainer {
 /**
@@ -107,8 +70,9 @@ public:
 
       // weight layer should be modified not to use input_shape as a parameter
       layers.push_back(ml::train::createLayer(
-        "weight", {withKey("name", cleanName(initializer.name())),
-                   withKey("dim", dim), withKey("input_shape", dim)}));
+        "weight", {nntrainer::withKey("name", cleanName(initializer.name())),
+                   nntrainer::withKey("dim", dim),
+                   nntrainer::withKey("input_shape", dim)}));
     }
 
     // Create input & constant tensor layer
@@ -124,8 +88,8 @@ public:
       if (input.name().find("input") !=
           std::string::npos) { // Create input layer
         layers.push_back(ml::train::createLayer(
-          "input", {withKey("name", cleanName(input.name())),
-                    withKey("input_shape", dim)}));
+          "input", {nntrainer::withKey("name", cleanName(input.name())),
+                    nntrainer::withKey("input_shape", dim)}));
       } else { // Create constant tensor layer
         throw std::runtime_error("Constant tensors are not supported yet.");
       }
@@ -156,9 +120,9 @@ public:
           {cleanName(node.output()[0]), cleanName(node.name())});
 
         layers.push_back(ml::train::createLayer(
-          "add",
-          {"name=" + cleanName(node.name()),
-           withKey("input_layers", inputNames[0] + "," + inputNames[1])}));
+          "add", {"name=" + cleanName(node.name()),
+                  nntrainer::withKey("input_layers",
+                                     inputNames[0] + "," + inputNames[1])}));
       } else {
         throw std::runtime_error("Unsupported operation type: " +
                                  node.op_type());
