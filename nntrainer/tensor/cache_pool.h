@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <cache_elem.h>
+#include <common.h>
 #include <memory_pool.h>
 #include <swap_device.h>
 
@@ -50,6 +51,9 @@ public:
    */
   explicit CachePool(const std::string &path, const std::string &name);
 
+  explicit CachePool(
+    const std::string &path, const std::string &name,
+    ml::train::ExecutionMode exec_mode = ml::train::ExecutionMode::TRAIN);
   /**
    * @brief MemoryPool destructor
    *
@@ -219,13 +223,23 @@ protected:
 
   void setMemorySwapPath(std::string path) override {
     swap_device->setMemorySwapPath(path);
+    swap_device->finish();
+    if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+      swap_device->start(size(), false);
+    } else {
+      swap_device->start(size(), true);
+    }
+  }
+
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
+    swap_device->setWeightOffset(offsets);
   }
 
 private:
   std::string name;                        /**< pool name */
   std::shared_ptr<SwapDevice> swap_device; /**< swap device */
   CacheElems elems;                        /**< cache elements */
-
+  ml::train::ExecutionMode execution_mode_;
   std::list<std::shared_ptr<CacheElem>> actives;
   std::vector<CachePolicy> policies;
   std::map<unsigned int, ExecIds> exec_ids;

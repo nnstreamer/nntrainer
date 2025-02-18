@@ -165,10 +165,11 @@ TEST_P(MemoryPlannerValidate, full_overlap) {
   std::vector<std::pair<unsigned int, unsigned int>> memory_validity(MEM_QUANT,
                                                                      {1, 2});
   std::vector<size_t> memory_offset;
+  std::vector<size_t> file_offset;
 
   std::vector<bool> memory_is_wgrad;
   size_t pool_size = planner->planLayout(memory_size, memory_validity,
-                                         memory_offset, memory_is_wgrad, 0);
+                                         memory_offset, file_offset, memory_is_wgrad, 0);
 
   EXPECT_EQ(pool_size,
             std::accumulate(memory_size.begin(), memory_size.end(), 0u));
@@ -194,9 +195,10 @@ TEST_P(MemoryPlannerValidate, none_overlap) {
   }
 
   std::vector<size_t> memory_offset;
+  std::vector<size_t> file_offset;
   std::vector<bool> memory_is_wgrad;
   size_t pool_size = planner->planLayout(memory_size, memory_validity,
-                                         memory_offset, memory_is_wgrad, 0);
+                                         memory_offset, file_offset, memory_is_wgrad, 0);
 
   EXPECT_TRUE(validateOverflow(memory_size, memory_offset, pool_size));
   if (planner->getType() == nntrainer::BasicPlanner::type) {
@@ -231,9 +233,10 @@ TEST_P(MemoryPlannerValidate, partial_overlap) {
                std::default_random_engine(0));
 
   std::vector<size_t> memory_offset;
+  std::vector<size_t> file_offset;
   std::vector<bool> memory_is_wgrad;
   size_t pool_size = planner->planLayout(memory_size, memory_validity,
-                                         memory_offset, memory_is_wgrad, 0);
+                                         memory_offset, file_offset, memory_is_wgrad, 0);
 
   EXPECT_TRUE(validateOverflow(memory_size, memory_offset, pool_size));
   if (planner->getType() == nntrainer::BasicPlanner::type) {

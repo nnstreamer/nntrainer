@@ -14,6 +14,7 @@
 
 #ifndef __TENSOR_POOL_H__
 #define __TENSOR_POOL_H__
+#include <common.h>
 #ifdef __cplusplus
 
 #include <functional>
@@ -49,9 +50,9 @@ public:
    * @brief     Constructor of TensorPool
    */
   TensorPool(bool enable_swap, const std::string &swap_path = "",
-             const std::string &swap_name = "") {
+             const std::string &swap_name = "", ml::train::ExecutionMode exec_mode_ = ml::train::ExecutionMode::TRAIN) {
     if (enable_swap) {
-      auto cache_pool = std::make_shared<CachePool>(swap_path, swap_name);
+      auto cache_pool = std::make_shared<CachePool>(swap_path, swap_name, exec_mode_);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
     } else {
@@ -313,10 +314,14 @@ public:
 
   void setMemorySwapPath(std::string path) {
     if (mem_pool) {
-      mem_pool->setMemorySwapPath(path);
+      mem_pool->setMemorySwapPath ( path);
     }
   }
-
+  void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {
+    if (mem_pool) {
+      mem_pool->setWeightOffset(offsets);
+    }
+  }
 private:
   /**
    * @brief Source tensor detailed specification

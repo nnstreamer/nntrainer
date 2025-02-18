@@ -138,6 +138,7 @@ public:
   std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
   void *getMemoryPoolAddress() { return mem_pool; }
   virtual void setMemorySwapPath(std::string path) {};
+  virtual void setWeightOffset(std::vector<std::pair<size_t,size_t>>) {};
 
 protected:
   /**

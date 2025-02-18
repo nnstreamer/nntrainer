@@ -523,6 +523,9 @@ public:
   void setMemorySwapPath(std::string path) {
     tensor_manager->setMemorySwapPath(path);
   }
+  void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {
+    tensor_manager->setWeightOffset(offsets);
+  }
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify

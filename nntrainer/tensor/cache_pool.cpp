@@ -109,6 +109,18 @@ CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
                                            "_" + std::to_string(pool_id++));
 }
 
+CachePool::CachePool(const std::string &path, const std::string &name_, ml::train::ExecutionMode exec_mode_) :
+name(name_), execution_mode_(exec_mode_) {
+  if (path.empty())
+    swap_device = std::make_shared<SwapDevice>(
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
+  else
+    swap_device =
+      std::make_shared<SwapDevice>(path, name_ + "_" + std::to_string(getpid()) +
+                                           "_" + std::to_string(pool_id++));
+}
+
+
 CachePool::~CachePool() {
   try {
     deallocate();
@@ -126,8 +138,11 @@ void CachePool::allocate() {
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
   MemoryPool::allocate();
-
-  swap_device->start(pool_size);
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    swap_device->start(size(), false);
+  } else {
+    swap_device->start(size(), true);
+  }
 }
 
 void CachePool::deallocate() {
@@ -177,7 +192,7 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     << "Allocate memory before allocation";
 
   off_t offset = getMemoryOffset().at(id - 1);
-  off_t file_offset = getFileOffset().at(id - 1);
+  // off_t file_offset = getFileOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
@@ -188,10 +203,8 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
 
   auto mem_pool_address = getMemoryPoolAddress();
   void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
-  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
+  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, offset, len,
                                           mem_data, policy, memory_ptr);
-  //auto elem =
-  // std::make_shared<CacheElem>(swap_device, id, offset, file_offset, len, mem_data, policy);
   elems[id] = elem;
 
   std::string ords;
@@ -332,5 +345,6 @@ void CachePool::unloadActives() {
 unsigned int CachePool::getNumLoadedTensors() {
   return swap_device->getNumLoadedTensors();
 }
+
 
 } // namespace nntrainer

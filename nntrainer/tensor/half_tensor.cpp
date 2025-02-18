@@ -883,7 +883,7 @@ void HalfTensor::print(std::ostream &out) const {
   out << "data addr: " << data << '\n';
   out << dim;
 
-  if (len > 100) {
+  if (len > 10000) {
     out << '[' << (float)data[0] << ' ' << (float)data[1] << ' '
         << (float)data[2] << " ... " << (float)data[len - 3] << ' '
         << (float)data[len - 2] << ' ' << (float)data[len - 1] << ']'

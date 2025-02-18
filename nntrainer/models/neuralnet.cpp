@@ -49,8 +49,8 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
-#include <util_func.h>
 #include <sys/resource.h>
+#include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -343,12 +343,6 @@ NeuralNetwork::~NeuralNetwork() {
   }
 }
 
-void printMemoryUsage() {
-  struct rusage usage;
-  getrusage(RUSAGE_SELF, &usage);
-  std::cout << "Max Resident Set Size: " << usage.ru_maxrss << " KB" << std::endl;
-}
-
 /**
  * @brief     forward propagation using layers object which has layer
  */
@@ -397,7 +391,6 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(now_exec_order);
       model_graph.checkLoadComplete(now_exec_order);
       node->forwarding(training);
-
     }
   };
 
@@ -599,8 +592,9 @@ void NeuralNetwork::save(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ofstream>(
       file_path, std::ios::out | std::ios::binary | std::ios::trunc);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->save(model_file);
+      (*iter)->save(model_file, false, exec_mode);
     }
+
     if (opt && istrequal(opt->getType(), "adam")) {
       std::string adam = "adam";
       model_file.write(adam.c_str(), 4);
@@ -644,6 +638,19 @@ void NeuralNetwork::load(const std::string &file_path,
   bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
   if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
     model_graph.setMemorySwapPath(file_path);
+
+    std::vector<std::pair<size_t,size_t>> file_offset;
+    size_t start_from = 0;
+    for (auto node : model_graph.getLayerNodes()) {
+        auto weights = node->getRunContext().getWeights();
+        for (auto weight : weights) {
+          auto dim = weight->getDim();
+          size_t size = dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+          file_offset.emplace_back(std::make_pair(start_from, size));
+          start_from += size;
+        }
+    }
+    model_graph.setWeightOffset(file_offset);
   }
 
   switch (format) {
@@ -832,7 +839,6 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
 
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});
-
   return out;
 }
 
@@ -867,12 +873,10 @@ NeuralNetwork::inference(unsigned int batch_size,
 
   std::vector<float *> output;
   output.reserve(output_tensors.size());
-
   for (auto &out : output_tensors) {
     auto out_t = *out.get();
     output.push_back(out_t.getData());
   }
-
   return output;
 }
 

@@ -48,7 +48,6 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
     hidden_.copyData(input_);
   }
-
   if (std::get<props::Normalization>(input_props))
     hidden_.normalization_i();
   if (std::get<props::Standardization>(input_props))
