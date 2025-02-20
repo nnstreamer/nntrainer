@@ -242,16 +242,16 @@ int main(int argc, char *argv[]) {
     }
     std::ifstream dataFile(data_file);
     int cn = 0;
-    for (unsigned int j = 0; j < total_val_data_size; ++j) {
-      nntrainer::Tensor d;
-      std::vector<float> o;
-      std::vector<float> l;
-      o.resize(feature_size);
-      l.resize(1);
+    try {
+      for (unsigned int j = 0; j < total_val_data_size; ++j) {
+        nntrainer::Tensor d;
+        std::vector<float> o;
+        std::vector<float> l;
+        o.resize(feature_size);
+        l.resize(1);
 
-      getData(dataFile, o.data(), l.data(), j);
+        getData(dataFile, o.data(), l.data(), j);
 
-      try {
         float answer = NN.inference({MAKE_SHARED_TENSOR(
           nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
                          ->apply<float>(stepFunction)
@@ -259,10 +259,10 @@ int main(int argc, char *argv[]) {
 
         std::cout << answer << " : " << l[0] << std::endl;
         cn += answer == l[0];
-      } catch (...) {
-        std::cerr << "Error during forwarding the model" << std::endl;
-        return 1;
       }
+    } catch (...) {
+      std::cerr << "Error during forwarding the model" << std::endl;
+      return 1;
     }
     std::cout << "[ Accuracy ] : "
               << ((float)(cn) / total_val_data_size) * 100.0 << "%"
