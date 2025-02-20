@@ -122,7 +122,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "batch_normalization";
+  static constexpr const char *type = "batch_normalization";
 
 private:
   float divider; /**< size of the axes of the reduced */

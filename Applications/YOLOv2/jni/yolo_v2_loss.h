@@ -136,7 +136,7 @@ public:
    */
   const std::string getType() const override { return YoloV2LossLayer::type; };
 
-  inline static const std::string type = "yolo_v2_loss";
+  static constexpr const char *type = "yolo_v2_loss";
 
 private:
   static constexpr unsigned int NUM_ANCHOR = 5;

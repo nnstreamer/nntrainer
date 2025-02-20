@@ -88,7 +88,7 @@ public:
    */
   bool requireLabel() const { return true; }
 
-  inline static const std::string type = "mae_loss";
+  static constexpr const char *type = "mae_loss";
 };
 
 } // namespace custom

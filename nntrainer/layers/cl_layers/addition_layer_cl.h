@@ -102,7 +102,7 @@ public:
    */
   static bool registerClKernels() { return true; };
 
-  inline static const std::string type = "addition";
+  static constexpr const char *type = "addition";
 
 private:
   std::tuple<props::Print>

@@ -105,7 +105,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "input";
+  static constexpr const char *type = "input";
 
 private:
   std::tuple<props::Normalization, props::Standardization> input_props;

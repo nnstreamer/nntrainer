@@ -74,7 +74,7 @@ public:
     return StepLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "step";
+  static constexpr const char *type = "step";
 
 private:
   std::tuple<std::vector<props::LearningRate>, std::vector<props::Iteration>>

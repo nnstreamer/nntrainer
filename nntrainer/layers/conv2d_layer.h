@@ -106,7 +106,7 @@ public:
   /*   unknown = 3, */
   /* }; */
 
-  inline static const std::string type = "conv2d";
+  static constexpr const char *type = "conv2d";
 
 private:
   std::array<unsigned int, CONV2D_DIM * 2> padding;

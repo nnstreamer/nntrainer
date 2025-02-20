@@ -69,7 +69,7 @@ public:
     return ExponentialLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "exponential";
+  static constexpr const char *type = "exponential";
 
 private:
   std::tuple<props::DecayRate, props::DecaySteps> lr_props;

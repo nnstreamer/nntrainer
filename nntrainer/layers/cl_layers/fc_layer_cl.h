@@ -103,7 +103,7 @@ public:
 
   static bool registerClKernels() { return true; };
 
-  inline static const std::string type = "fully_connected";
+  static constexpr const char *type = "fully_connected";
 
 private:
   std::tuple<props::Unit>

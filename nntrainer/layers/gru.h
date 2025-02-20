@@ -97,7 +97,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "gru";
+  static constexpr const char *type = "gru";
 
 private:
   static constexpr unsigned int NUM_GATE = 3;

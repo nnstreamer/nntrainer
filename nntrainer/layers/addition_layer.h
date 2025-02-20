@@ -95,7 +95,7 @@ public:
   std::tuple<props::Print>
     add_props; /**< fc layer properties : unit - number of output neurons */
 
-  inline static const std::string type = "addition";
+  static constexpr const char *type = "addition";
 };
 
 } // namespace nntrainer

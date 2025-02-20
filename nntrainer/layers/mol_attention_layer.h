@@ -97,7 +97,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "mol_attention";
+  static constexpr const char *type = "mol_attention";
 
 private:
   std::tuple<props::Unit, props::MoL_K>

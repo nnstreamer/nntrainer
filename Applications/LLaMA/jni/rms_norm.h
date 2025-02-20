@@ -118,7 +118,7 @@ public:
            std::to_string(values.size());
   };
 
-  inline static const std::string type = "rms_norm";
+  static constexpr const char *type = "rms_norm";
 
 private:
   std::array<unsigned int, 1> wt_idx;

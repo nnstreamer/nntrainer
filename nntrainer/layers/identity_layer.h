@@ -88,7 +88,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "identity";
+  static constexpr const char *type = "identity";
 };
 } // namespace nntrainer
 

@@ -67,7 +67,7 @@ public:
     return CosineAnnealingLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "cosine";
+  static constexpr const char *type = "cosine";
 
 private:
   std::tuple<props::MaxLearningRate, props::MinLearningRate, props::DecaySteps>

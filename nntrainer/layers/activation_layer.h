@@ -81,7 +81,7 @@ public:
    */
   bool supportInPlace() const override { return acti_func.supportInPlace(); }
 
-  inline static const std::string type = "activation";
+  static constexpr const char *type = "activation";
 
 private:
   using PropTypes = std::tuple<props::Activation>;

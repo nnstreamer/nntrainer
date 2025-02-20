@@ -76,7 +76,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override{};
 
-  inline static const std::string type = "transpose";
+  static constexpr const char *type = "transpose";
 };
 } // namespace custom
 

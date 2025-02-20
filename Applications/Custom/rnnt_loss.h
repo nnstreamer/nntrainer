@@ -79,7 +79,7 @@ public:
    */
   const std::string getType() const override { return RNNTLossLayer::type; }
 
-  inline static const std::string type = "rnnt_loss";
+  static constexpr const char *type = "rnnt_loss";
 };
 
 } // namespace custom
