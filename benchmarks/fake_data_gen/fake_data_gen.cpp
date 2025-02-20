@@ -16,6 +16,7 @@
 #include <cstring>
 #include <iostream>
 #include <nntrainer_error.h>
+#include <numeric>
 #include <random>
 
 namespace nntrainer::util {

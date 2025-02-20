@@ -18,6 +18,7 @@
 #include <memory_planner.h>
 #include <memory_pool.h>
 #include <nntrainer_test_util.h>
+#include <numeric>
 #include <optimized_v1_planner.h>
 
 constexpr unsigned int MEM_BYTES = 128;

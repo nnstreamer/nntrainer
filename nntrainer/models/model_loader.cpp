@@ -15,6 +15,7 @@
 
 #include <adam.h>
 #include <databuffer_factory.h>
+#include <filesystem>
 #include <ini_interpreter.h>
 #include <model_loader.h>
 #include <neuralnet.h>
@@ -481,14 +482,8 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
   std::string config_realpath(config_realpath_char);
   free(config_realpath_char);
 
-  auto pos = config_realpath.find_last_of("/");
-  if (pos == std::string::npos) {
-    ml_loge("resolved model path does not contain any path separator. %s",
-            config_realpath.c_str());
-    return ML_ERROR_UNKNOWN;
-  }
-
-  auto base_path = config_realpath.substr(0, pos);
+  auto base_path =
+    std::filesystem::path(config_realpath).parent_path().string();
   model_file_context->setWorkingDirectory(base_path);
   ml_logd("for the current model working directory is set to %s",
           base_path.c_str());

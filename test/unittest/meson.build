@@ -27,11 +27,28 @@ dest_path = nntrainer_test_resdir
 
 foreach target: unzip_target
   _src_path = src_path / target[0]
-  run_command('mkdir', '-p', dest_path / target[1])
-  run_command(['tar', 'xzf', _src_path, '-C', dest_path / target[1]])
+  _dest_path = dest_path / target[1]
+
+  if host_machine.system() == 'windows'
+    _src_path_win = _src_path.replace('/', '\\')
+    _dest_path_win = _dest_path.replace('/', '\\')
+    run_command('cmd.exe', '/C', 'mkdir', _dest_path_win)
+    run_command('cmd.exe', '/C', 'tar', 'xzf', _src_path_win, '-C', _dest_path_win)
+  else
+    run_command('mkdir', '-p', _dest_path)
+    run_command(['tar', 'xzf', _src_path, '-C', _dest_path])
+  endif
 endforeach
 
-run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
+src_path_label = src_path / 'label.dat'
+dest_path_label = dest_path / 'label.dat'
+if host_machine.system() == 'windows'
+  src_path_label_win = src_path_label.replace('/', '\\')
+  dest_path_label_win = dest_path_label.replace('/', '\\')
+  run_command('cmd.exe', '/C', 'copy', src_path_label_win, dest_path_label_win)
+else
+  run_command(['cp', '-l', src_path_label, dest_path_label])
+endif
 
 test_target = [
   ['unittest_nntrainer_activations', []],

@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <nntrainer_error.h>
+#include <numeric>
 #include <random>
 
 namespace nntrainer::util {

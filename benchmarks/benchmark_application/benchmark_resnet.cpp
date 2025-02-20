@@ -27,6 +27,7 @@ using ModelHandle = std::unique_ptr<ml::train::Model>;
 using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
 
 uint64_t get_cpu_freq() {
+#if not defined(_WIN32)
   unsigned int freq = 0;
   char cur_cpu_name[512];
   int cpu = sched_getcpu();
@@ -41,6 +42,7 @@ uint64_t get_cpu_freq() {
     }
     fclose(f);
   }
+#endif
   return 0;
 }
 

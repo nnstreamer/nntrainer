@@ -1,5 +1,15 @@
-res_path = meson.current_source_dir() / '..' / 'res'
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'ProductRatings')
+fs = import('fs')
+app_res_dir = fs.parent(meson.current_source_dir()) / 'res'
+build_app_res_dir = nntr_app_resdir / 'ProductRatings'
+
+if host_machine.system() == 'windows'
+  app_res_dir_win = app_res_dir.replace('/', '\\')
+  build_app_res_dir_win = build_app_res_dir.replace('/', '\\')
+  run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
+  run_command('cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win)
+else
+  run_command('cp', '-lr', app_res_dir, build_app_res_dir)
+endif
 
 e = executable('nntrainer_product_ratings',
   'main.cpp',
@@ -10,6 +20,6 @@ e = executable('nntrainer_product_ratings',
 
 # test split example
 test('app_product_ratings', e, args: ['train',
-  nntr_app_resdir / 'ProductRatings' / 'product_ratings_model.ini',
-  nntr_app_resdir / 'ProductRatings' / 'sample_product_ratings.txt']
+  build_app_res_dir / 'product_ratings_model.ini',
+  build_app_res_dir / 'sample_product_ratings.txt']
 )

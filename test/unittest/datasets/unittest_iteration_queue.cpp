@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <future>
 #include <nntrainer_test_util.h>
+#include <numeric>
 #include <thread>
 #include <tuple>
 #include <vector>

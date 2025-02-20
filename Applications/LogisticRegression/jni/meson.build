@@ -1,5 +1,15 @@
-res_path = meson.current_source_dir() / '..' / 'res'
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'LogisticRegression')
+fs = import('fs')
+app_res_dir = fs.parent(meson.current_source_dir()) / 'res'
+build_app_res_dir = nntr_app_resdir / 'LogisticRegression'
+
+if host_machine.system() == 'windows'
+  app_res_dir_win = app_res_dir.replace('/', '\\')
+  build_app_res_dir_win = build_app_res_dir.replace('/', '\\')
+  run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
+  run_command('cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win)
+else
+  run_command('cp', '-lr', app_res_dir, build_app_res_dir)
+endif
 
 e = executable('nntrainer_logistic',
   'main.cpp',
@@ -9,6 +19,6 @@ e = executable('nntrainer_logistic',
 )
 
 test('app_logistic', e, args: ['train',
-  nntr_app_resdir / 'LogisticRegression' / 'LogisticRegression.ini',
-  nntr_app_resdir / 'LogisticRegression' / 'dataset1.txt']
+  build_app_res_dir / 'LogisticRegression.ini',
+  build_app_res_dir / 'dataset1.txt']
 )
