@@ -94,7 +94,7 @@ public:
    */
   const std::string getType() const override { return ReshapeLayer::type; };
 
-  inline static const std::string type = "reshape";
+  static constexpr const char *type = "reshape";
 
 protected:
   std::tuple<props::TargetShape>

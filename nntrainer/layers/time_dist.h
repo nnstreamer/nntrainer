@@ -136,7 +136,7 @@ public:
    */
   const Layer *getDistLayer() const { return dist_layer.get(); };
 
-  inline static const std::string type = "time_dist";
+  static constexpr const char *type = "time_dist";
 
 private:
   /**

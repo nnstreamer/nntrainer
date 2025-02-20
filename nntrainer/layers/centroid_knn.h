@@ -91,7 +91,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "centroid_knn";
+  static constexpr const char *type = "centroid_knn";
 
 private:
   std::tuple<props::NumClass> centroid_knn_props;

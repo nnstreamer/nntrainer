@@ -51,7 +51,7 @@ public:
    */
   ~DirDataProducer();
 
-  inline static const std::string type = "dir";
+  static constexpr const char *type = "dir";
 
   /**
    * @copydoc DataProducer::getType()

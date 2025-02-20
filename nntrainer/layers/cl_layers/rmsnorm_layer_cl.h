@@ -130,7 +130,7 @@ public:
    */
   static bool registerClKernels();
 
-  inline static const std::string type = "rmsnorm";
+  static constexpr const char *type = "rmsnorm";
 
 private:
   std::array<unsigned int, 1> wt_idx;

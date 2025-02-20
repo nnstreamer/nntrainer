@@ -99,7 +99,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "attention";
+  static constexpr const char *type = "attention";
 
 protected:
   /**

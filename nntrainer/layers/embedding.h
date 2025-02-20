@@ -101,7 +101,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "embedding";
+  static constexpr const char *type = "embedding";
 
 private:
   std::tuple<props::InDim, props::OutDim> embedding_props;

@@ -115,7 +115,7 @@ public:
   std::tuple<props::Print, props::InPlaceProp, props::Exponent> pow_props;
   bool support_backwarding; /**< support backwarding */
 
-  inline static const std::string type = "pow";
+  static constexpr const char *type = "pow";
 };
 
 } // namespace nntrainer

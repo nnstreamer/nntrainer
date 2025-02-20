@@ -44,7 +44,7 @@ public:
    */
   ~RandomDataOneHotProducer();
 
-  inline static const std::string type = "random_data_one_hot";
+  static constexpr const char *type = "random_data_one_hot";
 
   /**
    * @copydoc DataProducer::getType()

@@ -69,7 +69,7 @@ public:
     return ConstantLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "constant";
+  static constexpr const char *type = "constant";
 
 private:
   std::tuple<props::LearningRate> lr_props;

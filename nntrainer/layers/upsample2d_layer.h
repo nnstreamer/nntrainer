@@ -78,7 +78,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "upsample2d";
+  static constexpr const char *type = "upsample2d";
 
 private:
   std::tuple<props::UpsampleMode, std::array<props::KernelSize, UPSAMPLE2D_DIM>>

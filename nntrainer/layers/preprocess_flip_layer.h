@@ -89,7 +89,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "preprocess_flip";
+  static constexpr const char *type = "preprocess_flip";
 
 private:
   std::mt19937 rng; /**< random number generator */

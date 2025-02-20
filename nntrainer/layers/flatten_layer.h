@@ -71,7 +71,7 @@ public:
    */
   const std::string getType() const override { return FlattenLayer::type; };
 
-  inline static const std::string type = "flatten";
+  static constexpr const char *type = "flatten";
 
   std::tuple<props::StartDimension, props::EndDimension> flatten_props;
 };

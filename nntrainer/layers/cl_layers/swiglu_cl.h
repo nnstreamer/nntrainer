@@ -89,7 +89,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "swiglu";
+  static constexpr const char *type = "swiglu";
 
   /**
    * @brief Process data and dimensions for swiglu operation

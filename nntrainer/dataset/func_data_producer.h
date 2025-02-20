@@ -47,7 +47,7 @@ public:
    */
   ~FuncDataProducer();
 
-  inline static const std::string type = "callback";
+  static constexpr const char *type = "callback";
 
   /**
    * @copydoc DataProducer::getType()

@@ -91,7 +91,7 @@ public:
     return PositionalEncodingLayer::type;
   };
 
-  inline static const std::string type = "positional_encoding";
+  static constexpr const char *type = "positional_encoding";
 
 private:
   bool isPEcalculated; // bool value to check positional encoding is already
