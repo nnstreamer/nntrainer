@@ -616,7 +616,7 @@ private:
 
   ExecutionMode exec_mode;
 
-  unsigned int max_exec_order;
+  unsigned int max_exec_order = 0;
 
   /**
    * @brief Finalize the given tensor pool

@@ -274,7 +274,7 @@ private:
   /**
    * @brief quantization scheme
    */
-  QScheme qscheme;
+  QScheme qscheme = QScheme::PER_TENSOR_AFFINE;
 
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is

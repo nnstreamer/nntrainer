@@ -56,8 +56,8 @@ private:
                           quantizers */
 
 protected:
-  long int quant_min;
-  long int quant_max;
+  long int quant_min = 0;
+  long int quant_max = 0;
 
   /**
    * @brief Register the user defined quantizer class
@@ -189,7 +189,7 @@ public:
   /**
    * @brief Basic Constructor of a PerTensorAffineQuantizer
    */
-  PerTensorAffineQuantizer() : UniformQuantizer() {}
+  PerTensorAffineQuantizer() : UniformQuantizer(), scale(1) {}
 
   /**
    * @copydoc Quantizer::create()
@@ -282,8 +282,8 @@ public:
 private:
   float *scales;
   int *zero_points;
-  long int quant_min;
-  long int quant_max;
+  long int quant_min = 0;
+  long int quant_max = 0;
 
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,

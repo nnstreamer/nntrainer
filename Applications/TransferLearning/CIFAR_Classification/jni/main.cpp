@@ -387,49 +387,55 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;
 
-  if (!read(inputVector, outputVector, "training")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "trainingSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
-    try {
+  try {
+    if (!read(inputVector, outputVector, "training")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "trainingSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+
       ExtractFeatures(data_path, inputVector, outputVector, "training", f);
-    } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
-      return 1;
+
+      f.close();
     }
-    f.close();
+  } catch (...) {
+    std::cerr << "Error during open file: " << std::endl;
+    return 1;
   }
 
-  if (!read(inputValVector, outputValVector, "val")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "valSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
-    try {
+  try {
+    if (!read(inputValVector, outputValVector, "val")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "valSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+
       ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
-    } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
-      return 1;
+
+      f.close();
     }
-    f.close();
+  } catch (...) {
+    std::cerr << "Error during open file: " << std::endl;
+    return 1;
   }
 
-  if (!read(inputTestVector, outputTestVector, "test")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "testSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
-    try {
+  try {
+    if (!read(inputTestVector, outputTestVector, "test")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "testSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+
       ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
-    } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
-      return 1;
+
+      f.close();
     }
-    f.close();
+  } catch (...) {
+    std::cerr << "Error during open file: " << std::endl;
+    return 1;
   }
 
   /**
@@ -460,21 +466,22 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (!TRAINING) {
-    std::string img = data_path;
-    std::vector<float> featureVector, resultVector;
-    featureVector.resize(feature_size);
-    getFeature(img, featureVector);
+  try {
+    if (!TRAINING) {
+      std::string img = data_path;
+      std::vector<float> featureVector, resultVector;
+      featureVector.resize(feature_size);
+      getFeature(img, featureVector);
 
-    nntrainer::Tensor X;
-    try {
+      nntrainer::Tensor X;
+
       X = nntrainer::Tensor({featureVector}, {nntrainer::Tformat::NCHW,
                                               nntrainer::Tdatatype::FP32});
       NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply<float>(stepFunction);
-    } catch (...) {
-      std::cerr << "Error while forwarding the model" << std::endl;
-      return 1;
     }
+  } catch (...) {
+    std::cerr << "Error while forwarding the model" << std::endl;
+    return 1;
   }
 
   return 0;
