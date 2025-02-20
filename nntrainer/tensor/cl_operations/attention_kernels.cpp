@@ -46,24 +46,6 @@ void rotary_emb_cl(float *in, float *out,
       sizeof(float) * freqs_cos_dim * dim; // max_timestep * dim
     size_t dim6_size = sizeof(float) * freqs_sin_dim * dim;
 
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
-
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim2_size, true,
-                            nullptr);
-
-    opencl::Buffer cosBuf(cl_context_ref.context_inst_, dim3_size, true,
-                          nullptr);
-
-    opencl::Buffer sinBuf(cl_context_ref.context_inst_, dim4_size, true,
-                          nullptr);
-
-    opencl::Buffer freqs_cosBuf(cl_context_ref.context_inst_, dim5_size, true,
-                                nullptr);
-
-    opencl::Buffer freqs_sinBuf(cl_context_ref.context_inst_, dim6_size, true,
-                                nullptr);
-
     std::vector<float> freqs_cos_flat;
     std::vector<float> freqs_sin_flat;
     for (const auto &row : freqs_cos) {
@@ -73,81 +55,86 @@ void rotary_emb_cl(float *in, float *out,
       freqs_sin_flat.insert(freqs_sin_flat.end(), row.begin(), row.end());
     }
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, in);
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim1_size, in);
     if (!result) {
       printf("Failed to write input data\n");
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, out);
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim2_size, out);
     if (!result) {
       printf("Failed to write output data\n");
       break;
     }
 
-    result = freqs_cosBuf.WriteData(cl_context_ref.command_queue_inst_,
-                                    freqs_cos_flat.data());
+    result = clbuffInstance.getInBufferB()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim5_size, freqs_cos_flat.data());
     if (!result) {
       printf("Failed to write freqs cos data\n");
       break;
     }
 
-    result = freqs_sinBuf.WriteData(cl_context_ref.command_queue_inst_,
-                                    freqs_sin_flat.data());
+    result = clbuffInstance.getInBufferB()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim6_size, freqs_sin_flat.data(), 0,
+      dim5_size);
     if (!result) {
       printf("Failed to write freqs sin data\n");
       break;
     }
 
-    result = cosBuf.WriteData(cl_context_ref.command_queue_inst_, cos_.data());
+    result = clbuffInstance.getInBufferC()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim3_size, cos_.data());
     if (!result) {
       printf("Failed to write cos data\n");
       break;
     }
 
-    result = sinBuf.WriteData(cl_context_ref.command_queue_inst_, sin_.data());
+    result = clbuffInstance.getInBufferC()->WriteDataRegion(
+      cl_context_ref.command_queue_inst_, dim4_size, sin_.data(), 0, dim3_size);
     if (!result) {
       printf("Failed to write sin data\n");
       break;
     }
 
-    result =
-      kernel_rotaryEmb_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inputA argument\n");
       break;
     }
 
-    result =
-      kernel_rotaryEmb_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inOutRes argument\n");
       break;
     }
 
-    result = kernel_rotaryEmb_ptr->SetKernelArguments(2, &freqs_cosBuf,
-                                                      sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_cosBuf argument\n");
       break;
     }
 
-    result = kernel_rotaryEmb_ptr->SetKernelArguments(3, &freqs_sinBuf,
-                                                      sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      3, clbuffInstance.getInBufferB(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_sinBuf argument\n");
       break;
     }
 
-    result =
-      kernel_rotaryEmb_ptr->SetKernelArguments(4, &cosBuf, sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      4, clbuffInstance.getInBufferC(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set cosBuf argument\n");
       break;
     }
 
-    result =
-      kernel_rotaryEmb_ptr->SetKernelArguments(5, &sinBuf, sizeof(cl_mem));
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(
+      5, clbuffInstance.getInBufferC(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set sinBuf argument\n");
       break;
@@ -202,6 +189,22 @@ void rotary_emb_cl(float *in, float *out,
       break;
     }
 
+    unsigned int offsetFreqsSin = freqs_cos_dim * dim;
+    result = kernel_rotaryEmb_ptr->SetKernelArguments(14, &offsetFreqsSin,
+                                                      sizeof(int));
+    if (!result) {
+      printf("Failed to set offsetFreqsSin argument\n");
+      break;
+    }
+
+    unsigned int offsetSin = cos_dim;
+    result =
+      kernel_rotaryEmb_ptr->SetKernelArguments(15, &offsetSin, sizeof(int));
+    if (!result) {
+      printf("Failed to set offsetSin argument\n");
+      break;
+    }
+
     const int work_groups_count[3] = {(int)batch, (int)channel, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
     result = cl_context_ref.command_queue_inst_.DispatchCommand(
@@ -211,12 +214,12 @@ void rotary_emb_cl(float *in, float *out,
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, out);
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      cl_context_ref.command_queue_inst_, dim2_size, out);
     if (!result) {
       printf("Failed to read data\n");
       break;
     }
-
   } while (false);
 }
 } // namespace nntrainer

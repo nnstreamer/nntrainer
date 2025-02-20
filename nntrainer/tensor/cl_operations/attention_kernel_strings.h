@@ -15,7 +15,8 @@
 #define __ATTENTION_KERNEL_STRINGS_H__
 
 #include <string>
-
+// unsigned int offsetFeqsSin,
+//                                       unsigned int offsetSin
 namespace nntrainer {
 static const std::string rotary_emb_cl_kernel_ = R"(
 
@@ -34,10 +35,11 @@ __kernel void rotary_emb_cl(__global float *input,
                                       unsigned int dim,
                                       unsigned int half_,
                                       unsigned int max_timestep,
-                                      unsigned int from) {
+                                      unsigned int from,
+                                      unsigned int offsetFreqsSin,
+                                      unsigned int offsetSin) {
     __global float *cos_ptr = cos_;
     __global float *sin_ptr = sin_;
-
     float value = 0.0f;
     float transformed_value = 0.0f;
 
@@ -50,7 +52,7 @@ __kernel void rotary_emb_cl(__global float *input,
           unsigned idx = (from + h)*dim;
           for(unsigned int i = idx; i < idx + dim; i++){
             cos_ptr[i - idx] = freqs_cos[i];
-            sin_ptr[i - idx] = freqs_sin[i];
+            sin_ptr[i - idx + offsetSin] = freqs_sin[i + offsetFreqsSin];
           }
         }
 
@@ -63,7 +65,7 @@ __kernel void rotary_emb_cl(__global float *input,
             } else {
               transformed_value = input[b * channel * height * width + c * height * width + h * width + span - half_];
             }
-            value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
+            value = value * cos_ptr[k] + transformed_value * sin_ptr[k + offsetSin];
             output[b * channel * height * width + c * height * width + h * width + span] = value;
           }
         }
@@ -90,7 +92,9 @@ __kernel void rotary_emb_cl_fp16(__global half *input,
                                       unsigned int dim,
                                       unsigned int half_,
                                       unsigned int max_timestep,
-                                      unsigned int from) {
+                                      unsigned int from,
+                                      unsigned int offsetFreqsSin,
+                                      unsigned int offsetSin) {
     __global float *cos_ptr = cos_;
     __global float *sin_ptr = sin_;
 
@@ -106,7 +110,7 @@ __kernel void rotary_emb_cl_fp16(__global half *input,
           unsigned idx = (from + h)*dim;
           for(int i = idx; i < idx + dim; i++ ){
             cos_ptr[i - idx] = freqs_cos[i];
-            sin_ptr[i - idx] = freqs_sin[i];
+            sin_ptr[i - idx + offsetSin] = freqs_sin[i + offsetFreqsSin];
           }
         }
 
@@ -119,7 +123,7 @@ __kernel void rotary_emb_cl_fp16(__global half *input,
             } else {
               transformed_value = (float)input[b * channel * height * width + c * height * width + h * width + span - half_];
             }
-            value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
+            value = value * cos_ptr[k] + transformed_value * sin_ptr[k + offsetSin];
             output[b * channel * height * width + c * height * width + h * width + span] = (half)value;
           }
         }
