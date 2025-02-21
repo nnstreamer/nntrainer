@@ -26,6 +26,10 @@ extra_defines = ['-DMIN_CPP_VERSION=201703L']
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 
+# Obtains number of cores
+nproc_prog = find_program('nproc',
+                          required: (get_option('platform') == 'android') and (build_machine.system() != 'windows'))
+
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
   add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])
