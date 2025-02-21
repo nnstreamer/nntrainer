@@ -198,8 +198,8 @@ public:
    *
    * @param lhs iterator lhs
    * @param rhs iterator rhs
-   * @retval true if mismatch
-   * @retval false if match
+   * @retval true if left is less than or equal to the right value
+   * @retval false if left is greater than the right value
    */
   friend bool operator<=(GraphNodeIterator const &lhs,
                          GraphNodeIterator const &rhs) {
