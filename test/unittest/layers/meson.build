@@ -108,5 +108,6 @@ exe = executable(
 # @todo delete v2 once migration is done
 test('unittest_layers', exe,
   args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_layers'),
-  timeout: test_timeout
+  timeout: test_timeout,
+  suite: 'unittests'
 )

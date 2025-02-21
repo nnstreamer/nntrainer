@@ -35,7 +35,8 @@ if get_option('enable-fp16')
 
   test(mixed_test_name, mixed_exe,
     args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), mixed_test_name),
-    timeout: test_timeout
+    timeout: test_timeout,
+    suite: 'unittests'
   )
 endif
 
@@ -53,5 +54,6 @@ exe = executable(
 
 test(test_name, exe,
   args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
-  timeout: test_timeout
+  timeout: test_timeout,
+  suite: 'unittests'
 )

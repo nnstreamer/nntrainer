@@ -30,5 +30,6 @@ exe = executable(
 
 test('unittest_memory', exe,
   args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_memory'),
-  timeout: test_timeout
+  timeout: test_timeout,
+  suite: 'unittests'
 )

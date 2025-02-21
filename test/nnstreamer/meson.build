@@ -24,7 +24,8 @@ else
 
   test(test_name, exe,
       args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
-      env: nntrainer_filter_env
+      env: nntrainer_filter_env,
+      suite: 'unittests'
   )
 
 
