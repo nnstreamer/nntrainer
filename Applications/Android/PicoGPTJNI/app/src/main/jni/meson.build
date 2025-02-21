@@ -1,6 +1,6 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 nntr_pico_gpt_resdir = nntr_app_resdir / 'PicoGPT'
-run_command('cp', '-lr', res_path, nntr_pico_gpt_resdir)
+run_command(['cp', '-lr', res_path, nntr_pico_gpt_resdir], check: true)
 
 pico_gpt_sources = [
   'main.cpp',
