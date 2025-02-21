@@ -24,6 +24,7 @@ exe = executable(
   install_dir: application_install_dir
 )
 
+
 test(test_name, exe,
   args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
   timeout: test_timeout

@@ -104,4 +104,6 @@ subdir('compiler')
 subdir('layers')
 subdir('datasets')
 subdir('models')
-subdir('integration_tests')
+if get_option('enable-tflite-interpreter')
+  subdir('integration_tests')
+endif
