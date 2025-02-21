@@ -5,10 +5,10 @@ build_app_res_dir = nntr_app_resdir / 'LayerClient'
 if host_machine.system() == 'windows'
   app_res_dir_win = app_res_dir.replace('/', '\\')
   build_app_res_dir_win = build_app_res_dir.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
-  run_command('cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win)
+  run_command(['cmd.exe', '/C', 'mkdir', build_app_res_dir_win], check:true)
+  run_command(['cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win], check: true)
 else
-  run_command('cp', '-lr', app_res_dir, build_app_res_dir)
+  run_command(['cp', '-lr', app_res_dir, build_app_res_dir], check: true)
 endif
 
 layer_client_sources = [

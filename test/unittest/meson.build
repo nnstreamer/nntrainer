@@ -32,11 +32,11 @@ foreach target: unzip_target
   if host_machine.system() == 'windows'
     _src_path_win = _src_path.replace('/', '\\')
     _dest_path_win = _dest_path.replace('/', '\\')
-    run_command('cmd.exe', '/C', 'mkdir', _dest_path_win)
-    run_command('cmd.exe', '/C', 'tar', 'xzf', _src_path_win, '-C', _dest_path_win)
+    run_command(['cmd.exe', '/C', 'mkdir', _dest_path_win], check: true)
+    run_command(['cmd.exe', '/C', 'tar', 'xzf', _src_path_win, '-C', _dest_path_win], check: true)
   else
-    run_command('mkdir', '-p', _dest_path)
-    run_command(['tar', 'xzf', _src_path, '-C', _dest_path])
+    run_command(['mkdir', '-p', _dest_path], check: true)
+    run_command(['tar', 'xzf', _src_path, '-C', _dest_path], check: true)
   endif
 endforeach
 
@@ -45,9 +45,9 @@ dest_path_label = dest_path / 'label.dat'
 if host_machine.system() == 'windows'
   src_path_label_win = src_path_label.replace('/', '\\')
   dest_path_label_win = dest_path_label.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'copy', src_path_label_win, dest_path_label_win)
+  run_command(['cmd.exe', '/C', 'copy', src_path_label_win, dest_path_label_win], check: true)
 else
-  run_command(['cp', '-l', src_path_label, dest_path_label])
+  run_command(['cp', '-l', src_path_label, dest_path_label], check: true)
 endif
 
 test_target = [
