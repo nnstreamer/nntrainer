@@ -98,7 +98,9 @@ foreach target: test_target
   )
   test(target[0], exe,
     args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])],
-    timeout: test_timeout)
+    timeout: test_timeout,
+    suite: 'unittests'
+  )
 endforeach
 
 unittest_inc = include_directories('.')
