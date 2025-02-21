@@ -13,7 +13,7 @@ transpose_dep = declare_dependency(
 )
 
 if get_option('platform') != 'tizen'
-   run_command(meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2' ,check: true)
+   run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
 endif
 
 rms_norm_src = files('rms_norm.cpp')
