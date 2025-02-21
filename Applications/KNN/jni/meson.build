@@ -1,6 +1,6 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'KNN')
+run_command(['cp', '-lr', res_path, nntr_app_resdir / 'KNN'], check: true)
 
 knn_sources = [
   'main.cpp'

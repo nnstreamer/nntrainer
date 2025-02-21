@@ -27,11 +27,11 @@ dest_path = nntrainer_test_resdir
 
 foreach target: unzip_target
   _src_path = src_path / target[0]
-  run_command('mkdir', '-p', dest_path / target[1])
-  run_command(['tar', 'xzf', _src_path, '-C', dest_path / target[1]])
+  run_command(['mkdir', '-p', dest_path / target[1]], check: true)
+  run_command(['tar', 'xzf', _src_path, '-C', dest_path / target[1]], check: true)
 endforeach
 
-run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
+run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'], check: true)
 
 test_target = [
   ['unittest_nntrainer_activations', []],
