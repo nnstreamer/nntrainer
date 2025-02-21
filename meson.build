@@ -404,8 +404,13 @@ if get_option('platform') == 'android'
   ml_api_common_dep = declare_dependency(include_directories: ['ml-api-inference/include'])
 endif
 
-if get_option('enable-nnstreamer-backbone') and get_option('platform') != 'android'
+if get_option('enable-nnstreamer-backbone') and host_machine.system() != 'windows' and get_option('platform') != 'android'
   extra_defines += '-DENABLE_NNSTREAMER_BACKBONE=1'
+  nnstreamer_dep = dependency('nnstreamer')
+  message('building nnstreamer')
+  subdir('nnstreamer')
+else
+  warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
 endif
 
 tflite_dep = dummy_dep
@@ -502,14 +507,6 @@ if get_option('enable-app')
     endif
     subdir('Applications')
   endif
-endif
-
-if get_option('platform') != 'android' and host_machine.system() != 'windows'
-  nnstreamer_dep = dependency('nnstreamer')
-  message('building nnstreamer')
-  subdir('nnstreamer')
-else
-  warning('android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped')
 endif
 
 if get_option('platform') == 'android'
