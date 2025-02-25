@@ -163,6 +163,7 @@ private:
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
+  std::map<void *, bool> is_unmapped;
 #else
   std::map<void *, std::pair<off_t, ssize_t>>
     allocated; /**< <pointer, <offset, size>> */

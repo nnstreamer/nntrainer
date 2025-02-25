@@ -1161,6 +1161,7 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
 int NetworkGraph::initialize(ExecutionMode mode,
                              const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {
+
   exec_mode = mode;
   tensor_manager->setExecutionMode(mode);
   /**
@@ -1558,6 +1559,7 @@ int NetworkGraph::reinitialize(
 
 void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
                                       const std::vector<std::string> names) {
+
   /// feed or clear label
   for (unsigned int idx = 0; idx < names.size(); idx++) {
     if (data.empty())
@@ -1571,6 +1573,7 @@ void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
 
 void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
+
   NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
                 std::invalid_argument)
     << "label size does not match with the network requirements"
@@ -1589,6 +1592,7 @@ void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
+
   std::vector<Tensor> ins;
   std::transform(
     inputs.begin(), inputs.end(), std::back_inserter(ins),
