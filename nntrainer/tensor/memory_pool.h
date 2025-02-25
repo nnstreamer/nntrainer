@@ -40,10 +40,7 @@ public:
    *
    */
   explicit MemoryPool() :
-    mem_pool(nullptr),
-    pool_size(0),
-    min_pool_size(0),
-    n_wgrad(0) {}
+    mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {}
 
   /**
    * @brief MemoryPool destructor
@@ -138,6 +135,20 @@ public:
    */
   virtual bool isAllocated() const;
 
+  /**
+   *  @brief Get memory ptrs vector from memory pool class.
+   *
+   * @return memory ptrs vector
+   */
+  std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
+
+  /**
+   * @brief Get the memory pool address.
+   *
+   * @return MemoryPool address.
+   */
+  void *getMemoryPoolAddress() { return mem_pool; }
+
 protected:
   /**
    * @brief  Get memory offset
@@ -215,6 +226,8 @@ private:
   size_t min_pool_size; /**< minimum theoretical memory requirement */
 
   size_t n_wgrad;
+
+  std::vector<void *> memory_ptrs; /**< memory ptr vector */
 };
 
 } // namespace nntrainer
