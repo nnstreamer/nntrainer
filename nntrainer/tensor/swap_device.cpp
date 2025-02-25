@@ -85,12 +85,12 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     << "SwapDevice: mmap: "
     << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  void *buf = static_cast<void *>(ptr + diff);
-  mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+  mapped[ptr] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+  is_unmapped.insert(std::make_pair(ptr, false));
 
   ++num_loaded_tensors;
 
-  return buf;
+  return ptr;
 #endif
 
 #else
@@ -202,6 +202,7 @@ void SwapDevice::finish() {
   for (auto &[ptr, info] : mapped)
     free(ptr);
   mapped.clear();
+  is_unmapped.clear();
 #else
   for (auto &alloc : allocated)
     free(alloc.first);

@@ -134,7 +134,7 @@ private:
   size_t length;                        /**< element size */
   CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
-  void *memory_ptr;
+  void *memory_ptr;                     /** memory ptr to store read data*/
 };
 
 } // namespace nntrainer
