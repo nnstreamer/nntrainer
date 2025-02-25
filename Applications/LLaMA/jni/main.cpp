@@ -23,6 +23,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <util_func.h>
 
 #include <app_context.h>
 #include <custom_multi_head_attention_layer.h>
@@ -67,40 +68,6 @@ float validation_loss = 0.0;
 bool swap = false;
 
 bool optimize = false;
-
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
 
 /**
  * @brief Apply temperature & top-k & top-p to logits
@@ -278,32 +245,35 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
   if (optimize) {
     // linear transformation of q
     for (int i = 0; i < n_heads; i++) {
-      layers.push_back(
-        createLayer("fully_connected",
-                    {withKey("name", "layer" + std::to_string(layer_id) +
-                                       "_wq_" + std::to_string(i)),
-                     withKey("unit", head_dim), withKey("disable_bias", "true"),
-                     withKey("input_layers", query_name)}));
+      layers.push_back(createLayer(
+        "fully_connected",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_wq_" + std::to_string(i)),
+         nntrainer::withKey("unit", head_dim),
+         nntrainer::withKey("disable_bias", "true"),
+         nntrainer::withKey("input_layers", query_name)}));
     }
 
     // linear transformation of k
     for (int i = 0; i < n_heads; i++) {
-      layers.push_back(
-        createLayer("fully_connected",
-                    {withKey("name", "layer" + std::to_string(layer_id) +
-                                       "_wk_" + std::to_string(i)),
-                     withKey("unit", head_dim), withKey("disable_bias", "true"),
-                     withKey("input_layers", key_name)}));
+      layers.push_back(createLayer(
+        "fully_connected",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_wk_" + std::to_string(i)),
+         nntrainer::withKey("unit", head_dim),
+         nntrainer::withKey("disable_bias", "true"),
+         nntrainer::withKey("input_layers", key_name)}));
     }
 
     // linear transformation of v
     for (int i = 0; i < n_heads; i++) {
-      layers.push_back(
-        createLayer("fully_connected",
-                    {withKey("name", "layer" + std::to_string(layer_id) +
-                                       "_wv_" + std::to_string(i)),
-                     withKey("unit", head_dim), withKey("disable_bias", "true"),
-                     withKey("input_layers", value_name)}));
+      layers.push_back(createLayer(
+        "fully_connected",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_wv_" + std::to_string(i)),
+         nntrainer::withKey("unit", head_dim),
+         nntrainer::withKey("disable_bias", "true"),
+         nntrainer::withKey("input_layers", value_name)}));
     }
 
     std::string concat_input = "";
@@ -311,43 +281,48 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
     for (int i = 0; i < n_heads; i++) {
       // reshape q, k, v (apply num_heads)
       layers.push_back(createLayer(
-        "reshape", {withKey("name", "layer" + std::to_string(layer_id) +
+        "reshape",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
                                       "_q_reshape_" + std::to_string(i)),
-                    withKey("target_shape", "1:" + std::to_string(seq_len) +
+         nntrainer::withKey("target_shape", "1:" + std::to_string(seq_len) +
                                               ":" + std::to_string(head_dim)),
-                    withKey("input_layers", "layer" + std::to_string(layer_id) +
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
                                               "_wq_" + std::to_string(i))}));
 
       layers.push_back(createLayer(
-        "reshape", {withKey("name", "layer" + std::to_string(layer_id) +
+        "reshape",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
                                       "_k_reshape_" + std::to_string(i)),
-                    withKey("target_shape", "1:" + std::to_string(seq_len) +
+         nntrainer::withKey("target_shape", "1:" + std::to_string(seq_len) +
                                               ":" + std::to_string(head_dim)),
-                    withKey("input_layers", "layer" + std::to_string(layer_id) +
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
                                               "_wk_" + std::to_string(i))}));
 
       layers.push_back(createLayer(
-        "reshape", {withKey("name", "layer" + std::to_string(layer_id) +
+        "reshape",
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
                                       "_v_reshape_" + std::to_string(i)),
-                    withKey("target_shape", "1:" + std::to_string(seq_len) +
+         nntrainer::withKey("target_shape", "1:" + std::to_string(seq_len) +
                                               ":" + std::to_string(head_dim)),
-                    withKey("input_layers", "layer" + std::to_string(layer_id) +
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
                                               "_wv_" + std::to_string(i))}));
 
       // apply rotary embedding to q, k
       layers.push_back(createLayer(
         "rotary_embedding",
-        {withKey("name", "layer" + std::to_string(layer_id) + "_q_rotary_" +
-                           std::to_string(i)),
-         withKey("input_layers", "layer" + std::to_string(layer_id) +
-                                   "_q_reshape_" + std::to_string(i))}));
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_q_rotary_" + std::to_string(i)),
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
+                                              "_q_reshape_" +
+                                              std::to_string(i))}));
 
       layers.push_back(createLayer(
         "rotary_embedding",
-        {withKey("name", "layer" + std::to_string(layer_id) + "_k_rotary_" +
-                           std::to_string(i)),
-         withKey("input_layers", "layer" + std::to_string(layer_id) +
-                                   "_k_reshape_" + std::to_string(i))}));
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_k_rotary_" + std::to_string(i)),
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
+                                              "_k_reshape_" +
+                                              std::to_string(i))}));
 
       // apply scaled-dot product attention
       layers.push_back(ml::train::layer::Attention(
@@ -361,12 +336,13 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
 
       layers.push_back(createLayer(
         "reshape",
-        {withKey("name", "layer" + std::to_string(layer_id) +
-                           "_attention_output_" + std::to_string(i)),
-         withKey("target_shape", "1:" + std::to_string(seq_len) + ":" +
-                                   std::to_string(head_dim)),
-         withKey("input_layers", "layer" + std::to_string(layer_id) +
-                                   "_attention_" + std::to_string(i))}));
+        {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                      "_attention_output_" + std::to_string(i)),
+         nntrainer::withKey("target_shape", "1:" + std::to_string(seq_len) +
+                                              ":" + std::to_string(head_dim)),
+         nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
+                                              "_attention_" +
+                                              std::to_string(i))}));
 
       concat_input += "layer" + std::to_string(layer_id) +
                       "_attention_output_" + std::to_string(i);
@@ -378,34 +354,40 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
 
     // concat attention output
     layers.push_back(createLayer(
-      "concat", {withKey("name", "layer" + std::to_string(layer_id) +
-                                   "_attention_concat"),
-                 withKey("axis", 3), withKey("input_layers", concat_input)}));
+      "concat", {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                              "_attention_concat"),
+                 nntrainer::withKey("axis", 3),
+                 nntrainer::withKey("input_layers", concat_input)}));
 
     // reshape for flatten
     layers.push_back(createLayer(
-      "reshape", {withKey("name", "layer" + std::to_string(layer_id) +
+      "reshape",
+      {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
                                     "_attention_flatten"),
-                  withKey("target_shape", "1:" + std::to_string(seq_len) + ":" +
+       nntrainer::withKey("target_shape", "1:" + std::to_string(seq_len) + ":" +
                                             std::to_string(n_heads * head_dim)),
-                  withKey("input_layers", "layer" + std::to_string(layer_id) +
+       nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
                                             "_attention_concat")}));
 
     // linear transformation of attention output
     layers.push_back(createLayer(
       "fully_connected",
-      {withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
-       withKey("unit", head_dim * n_heads), withKey("disable_bias", "true"),
-       withKey("input_layers",
-               "layer" + std::to_string(layer_id) + "_attention_flatten")}));
+      {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                    "_attention_out"),
+       nntrainer::withKey("unit", head_dim * n_heads),
+       nntrainer::withKey("disable_bias", "true"),
+       nntrainer::withKey("input_layers", "layer" + std::to_string(layer_id) +
+                                            "_attention_flatten")}));
   } else {
     layers.push_back(createLayer(
       "multi_head_attention",
-      {withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
-       withKey("num_heads", std::to_string(NUM_HEADS)),
-       withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
-       withKey("disable_bias", "true"),
-       withKey("input_layers", {query_name, key_name, value_name})}));
+      {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                    "_attention_out"),
+       nntrainer::withKey("num_heads", std::to_string(NUM_HEADS)),
+       nntrainer::withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
+       nntrainer::withKey("disable_bias", "true"),
+       nntrainer::withKey("input_layers",
+                          {query_name, key_name, value_name})}));
   }
 
   return layers;
@@ -424,30 +406,35 @@ std::vector<LayerHandle> createFeedForwardLayer(const int layer_id, int dim,
   hidden_dim = 2 * multiplier * hidden_dim / 3;
   hidden_dim = MULTIPLE_OF * ((hidden_dim + MULTIPLE_OF - 1) / MULTIPLE_OF);
 
-  layers.push_back(
-    createLayer("fully_connected",
-                {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_1"),
-                 withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-                 withKey("input_layers", input_name)}));
-  layers.push_back(
-    createLayer("fully_connected",
-                {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_2"),
-                 withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-                 withKey("input_layers", input_name)}));
+  layers.push_back(createLayer(
+    "fully_connected",
+    {nntrainer::withKey("name", "layer" + std::to_string(layer_id) + "_ffn_1"),
+     nntrainer::withKey("unit", hidden_dim),
+     nntrainer::withKey("disable_bias", "true"),
+     nntrainer::withKey("input_layers", input_name)}));
+  layers.push_back(createLayer(
+    "fully_connected",
+    {nntrainer::withKey("name", "layer" + std::to_string(layer_id) + "_ffn_2"),
+     nntrainer::withKey("unit", hidden_dim),
+     nntrainer::withKey("disable_bias", "true"),
+     nntrainer::withKey("input_layers", input_name)}));
 
   layers.push_back(createLayer(
     "swiglu",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
-     withKey("input_layers", "layer" + std::to_string(layer_id) + "_ffn_1," +
-                               "layer" + std::to_string(layer_id) +
-                               "_ffn_2")}));
+    {nntrainer::withKey("name",
+                        "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
+     nntrainer::withKey("input_layers",
+                        "layer" + std::to_string(layer_id) + "_ffn_1," +
+                          "layer" + std::to_string(layer_id) + "_ffn_2")}));
 
   layers.push_back(createLayer(
     "fully_connected",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_output"),
-     withKey("unit", dim), withKey("disable_bias", "true"),
-     withKey("input_layers",
-             "layer" + std::to_string(layer_id) + "_ffn_swiglu")}));
+    {nntrainer::withKey("name",
+                        "layer" + std::to_string(layer_id) + "_ffn_output"),
+     nntrainer::withKey("unit", dim),
+     nntrainer::withKey("disable_bias", "true"),
+     nntrainer::withKey("input_layers",
+                        "layer" + std::to_string(layer_id) + "_ffn_swiglu")}));
 
   return layers;
 }
@@ -461,11 +448,11 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "rms_norm",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
-     withKey("input_layers", input_name),
-     withKey("epsilon", std::to_string(NORM_EPS)),
-     withKey("packed", "false")}));
+    "rms_norm", {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                              "_attention_norm"),
+                 nntrainer::withKey("input_layers", input_name),
+                 nntrainer::withKey("epsilon", std::to_string(NORM_EPS)),
+                 nntrainer::withKey("packed", "false")}));
 
   auto att_layer = createAttentionLayer(
     layer_id, INIT_SEQ_LEN, NUM_HEADS, DIM / NUM_HEADS,
@@ -475,29 +462,32 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
   layers.insert(layers.end(), att_layer.begin(), att_layer.end());
 
   layers.push_back(createLayer(
-    "addition",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("input_layers", input_name + ",layer" + std::to_string(layer_id) +
-                               "_attention_out")}));
+    "addition", {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                              "_decoder_add"),
+                 nntrainer::withKey("input_layers", input_name + ",layer" +
+                                                      std::to_string(layer_id) +
+                                                      "_attention_out")}));
 
   layers.push_back(createLayer(
     "rms_norm",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
-     withKey("input_layers",
-             "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("epsilon", std::to_string(NORM_EPS)),
-     withKey("packed", "false")}));
+    {nntrainer::withKey("name",
+                        "layer" + std::to_string(layer_id) + "_ffn_norm"),
+     nntrainer::withKey("input_layers",
+                        "layer" + std::to_string(layer_id) + "_decoder_add"),
+     nntrainer::withKey("epsilon", std::to_string(NORM_EPS)),
+     nntrainer::withKey("packed", "false")}));
 
   auto ffn_layer = createFeedForwardLayer(
     layer_id, DIM, 4 * DIM, "layer" + std::to_string(layer_id) + "_ffn_norm");
   layers.insert(layers.end(), ffn_layer.begin(), ffn_layer.end());
 
   layers.push_back(createLayer(
-    "addition",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output"),
-     withKey("input_layers", "layer" + std::to_string(layer_id) +
-                               "_decoder_add,layer" + std::to_string(layer_id) +
-                               "_ffn_output")}));
+    "addition", {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
+                                              "_decoder_output"),
+                 nntrainer::withKey(
+                   "input_layers",
+                   "layer" + std::to_string(layer_id) + "_decoder_add,layer" +
+                     std::to_string(layer_id) + "_ffn_output")}));
 
   return layers;
 }
@@ -513,8 +503,9 @@ ModelHandle createLLaMA() {
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "input", {withKey("name", "input0"),
-              withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape",
+                                 "1:1:" + std::to_string(INIT_SEQ_LEN))}));
 
   layers.push_back(ml::train::layer::Embedding(
     {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB), "packed=false",
@@ -533,17 +524,19 @@ ModelHandle createLLaMA() {
   int last_layer = NUM_LAYERS - 1;
 
   layers.push_back(createLayer(
-    "rms_norm", {withKey("name", "output_norm"),
-                 withKey("epsilon", std::to_string(NORM_EPS)),
-                 withKey("input_layers", "layer" + std::to_string(last_layer) +
-                                           "_decoder_output"),
-                 withKey("packed", "false")}));
+    "rms_norm",
+    {nntrainer::withKey("name", "output_norm"),
+     nntrainer::withKey("epsilon", std::to_string(NORM_EPS)),
+     nntrainer::withKey("input_layers", "layer" + std::to_string(last_layer) +
+                                          "_decoder_output"),
+     nntrainer::withKey("packed", "false")}));
 
   layers.push_back(createLayer(
-    "fully_connected",
-    {withKey("name", "output_of_llama"), withKey("unit", NUM_VOCAB),
-     withKey("disable_bias", "true"), withKey("input_layers", "output_norm"),
-     withKey("packed", "false")}));
+    "fully_connected", {nntrainer::withKey("name", "output_of_llama"),
+                        nntrainer::withKey("unit", NUM_VOCAB),
+                        nntrainer::withKey("disable_bias", "true"),
+                        nntrainer::withKey("input_layers", "output_norm"),
+                        nntrainer::withKey("packed", "false")}));
 
   for (auto &layer : layers) {
     model->addLayer(layer);
@@ -660,12 +653,12 @@ void run(std::string text, bool apply_temperature) {
 void createAndRun(unsigned int epochs, unsigned int batch_size) {
   // setup model
   g_model = createLLaMA();
-  g_model->setProperty({withKey("batch_size", batch_size),
-                        withKey("epochs", epochs),
+  g_model->setProperty({nntrainer::withKey("batch_size", batch_size),
+                        nntrainer::withKey("epochs", epochs),
                         // #ifdef ENABLE_FP16
-                        withKey("model_tensor_type", "FP16-FP16"),
+                        nntrainer::withKey("model_tensor_type", "FP16-FP16"),
                         // #endif
-                        withKey("save_path", "test_model.bin")});
+                        nntrainer::withKey("save_path", "test_model.bin")});
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = g_model->setOptimizer(std::move(optimizer));
