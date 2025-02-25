@@ -149,9 +149,9 @@ public:
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
           const std::string tensor_dtype_ = "FP32-FP32",
           ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
-    weight_pool(enable_swap_, swap_path, "weight_pool"),
+    weight_pool(enable_swap_, swap_path, "weight_pool", exec_mode_),
     tensor_pool(enable_swap_ && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
-                "tensor_pool"),
+                "tensor_pool", exec_mode_),
     enable_swap(enable_swap_),
     enable_optimizations(true),
     swap_lookahead(lookahead),
@@ -553,6 +553,24 @@ public:
    * @return Number of Loaded TensorPool Tensor
    */
   unsigned int getNumLoadedTensorPoolTensors();
+
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  void setFsuWeightPath(std::string path) {
+    weight_pool.setFsuWeightPath(path);
+  }
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+    weight_pool.setWeightOffset(offsets);
+  }
 
 private:
   /** @todo: merge this list to one */
