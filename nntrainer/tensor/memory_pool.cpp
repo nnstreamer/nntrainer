@@ -326,6 +326,7 @@ void MemoryPool::clear() {
   memory_size.clear();
   memory_validity.clear();
   memory_offset.clear();
+  file_offset.clear();
   memory_is_wgrad.clear();
 
   pool_size = 0;

@@ -25,6 +25,7 @@
 
 #include <cache_loader.h>
 #include <cache_pool.h>
+#include <common.h>
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
@@ -48,10 +49,13 @@ public:
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool(bool enable_swap, const std::string &swap_path = "",
-             const std::string &swap_name = "") {
+  TensorPool(
+    bool enable_swap, const std::string &swap_path = "",
+    const std::string &swap_name = "",
+    ml::train::ExecutionMode execution_mode = ml::train::ExecutionMode::TRAIN) {
     if (enable_swap) {
-      auto cache_pool = std::make_shared<CachePool>(swap_path, swap_name);
+      auto cache_pool =
+        std::make_shared<CachePool>(swap_path, swap_name, exec_mode_);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
     } else {
@@ -310,6 +314,28 @@ public:
    * @return number of loaded tensors
    */
   unsigned int getNumLoadedTensors();
+
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  void setFsuWeightPath(std::string path) {
+    if (mem_pool) {
+      mem_pool->setFsuWeightPath(path);
+    }
+  }
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+    if (mem_pool) {
+      mem_pool->setWeightOffset(offsets);
+    }
+  }
 
 private:
   /**
