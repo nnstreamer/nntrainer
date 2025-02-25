@@ -468,7 +468,7 @@ std::vector<Weight *> Manager::requestWeights(
       if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
         for (unsigned int i = 0; i < swap_lookahead; ++i) {
           int lah_order = (forwarding_order - (swap_lookahead - i));
-          if (lah_order < 0) {
+          if (lah_order <= 0) {
             var_exec_order.push_back(0);
           } else {
             var_exec_order.push_back(lah_order);
@@ -560,7 +560,6 @@ std::vector<Var_Grad *> Manager::requestTensors(
     bool is_dependent = !shared_names.empty();
     Tensor *var = nullptr, *grad = nullptr;
     if (is_dependent) {
-      std::cout << "is_dependent " << std::endl;
       const auto &shared_name = shared_names.at(i);
       var = tensor_pool.requestOrExtend(shared_name, dim, var_exec_order, tspan,
                                         t_init);
