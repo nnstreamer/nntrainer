@@ -49,7 +49,8 @@ void SwapDevice::start(size_t size) {
     << "SwapDevice: seek file: " << dev_path;
 }
 
-void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
+void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
+                            bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
@@ -67,12 +68,12 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
     << "SwapDevice: mmap: "
     << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  void *buf = static_cast<void *>(ptr + diff);
-  mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+  mapped[ptr] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+  is_unmapped.insert(std::make_pair(ptr, false));
 
   ++num_loaded_tensors;
 
-  return buf;
+  return ptr;
 #else
   off_t off;
   ssize_t len;
@@ -182,6 +183,7 @@ void SwapDevice::finish() {
   for (auto &[ptr, info] : mapped)
     free(ptr);
   mapped.clear();
+  is_unmapped.clear();
 #else
   for (auto &alloc : allocated)
     free(alloc.first);
