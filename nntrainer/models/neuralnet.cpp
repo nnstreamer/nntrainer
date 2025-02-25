@@ -593,7 +593,7 @@ void NeuralNetwork::save(const std::string &file_path,
     auto model_file = checkedOpenStream<std::ofstream>(
       file_path, std::ios::out | std::ios::binary | std::ios::trunc);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->save(model_file);
+      (*iter)->save(model_file, false, exec_mode);
     }
     if (opt && istrequal(opt->getType(), "adam")) {
       std::string adam = "adam";
@@ -640,6 +640,23 @@ void NeuralNetwork::load(const std::string &file_path,
   /// @todo this switch case should be delegating the function call only. It's
   /// not delegating for now as required logics are manageable for now.
   bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+  if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
+    model_graph.setFsuWeightPath(file_path);
+
+    std::vector<std::pair<size_t,size_t>> file_offset;
+    size_t start_from = 0;
+    for (auto node : model_graph.getLayerNodes()) {
+      auto weights = node->getRunContext().getWeights();
+      for (auto weight : weights) {
+        auto dim = weight->getDim();
+        size_t size = dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+        file_offset.emplace_back(std::make_pair(start_from, size));
+        start_from += size;
+      }
+    }
+    model_graph.setWeightOffset(file_offset);
+  }
+
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)

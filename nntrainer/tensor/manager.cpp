@@ -911,13 +911,15 @@ void Manager::flushCacheExcept(unsigned int order) {
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations) {
-    pool.finalize(OptimizedV1Planner(), start, end);
     if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
       pool.finalize(OptimizedV3Planner(), start, end);
+    } else {
+      pool.finalize(OptimizedV1Planner(), start, end);
     }
   }
-  else
+  else {
     pool.finalize(BasicPlanner(), start, end);
+  }
 }
 
 unsigned int Manager::getNumLoadedWeightPoolTensors() {
