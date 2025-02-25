@@ -109,6 +109,18 @@ CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
                                            "_" + std::to_string(pool_id++));
 }
 
+CachePool::CachePool(const std::string &path, const std::string &name_,
+                     ml::train::ExecutionMode exec_mode_) :
+  name(name_), execution_mode_(exec_mode_) {
+  if (path.empty())
+    swap_device = std::make_shared<SwapDevice>(
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
+  else
+    swap_device = std::make_shared<SwapDevice>(
+      path,
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
+}
+
 CachePool::~CachePool() {
   try {
     deallocate();
@@ -126,7 +138,11 @@ void CachePool::allocate() {
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
   MemoryPool::allocate();
-  swap_device->start(pool_size);
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    swap_device->start(size(), false);
+  } else {
+    swap_device->start(size(), true);
+  }
 }
 
 void CachePool::deallocate() {

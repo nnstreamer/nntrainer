@@ -168,7 +168,7 @@ public:
    *
    * @param offsets weight file offset
    */
-  virtual void setWeightOffset(std::vector<std::pair<size_t,size_t>>) {};
+  virtual void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {};
 
 protected:
   /**

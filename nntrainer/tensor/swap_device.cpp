@@ -33,6 +33,7 @@ void SwapDevice::start(size_t size, bool writeable) {
       open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, (mode_t)0666);
   } else {
     fd = open(dev_path.c_str(), O_RDWR | O_CREAT, (mode_t)0666);
+    execution_mode = ml::train::ExecutionMode::INFERENCE;
   }
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
@@ -62,42 +63,68 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
 #ifdef USE_MMAP
   // page aligned
-  size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-  size_t diff = offset - off;
-  size_t len = size + diff;
+  if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
+    auto len_offset = weight_offset.at(offset_index);
 
-  const size_t error_buflen = 100;
-  char error_buf[error_buflen];
+    if (len_offset.second % sysconf(_SC_PAGE_SIZE) != 0) {
+      std::cerr << "weight & bias is not page aligned!" << std::endl;
+    }
 
+    void *ptr =
+      mmap(NULL, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
+           MAP_SHARED, fd, len_offset.first);
+
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
+
+    std::memcpy(memory_ptr, ptr, len_offset.second);
+    munmap(ptr, len_offset.second);
+
+    mapped[memory_ptr] =
+      std::make_tuple(memory_ptr, len_offset.second, len_offset.first,
+                      (ssize_t)len_offset.second);
+    is_unmapped.insert(std::make_pair(memory_ptr, true));
+
+    ++offset_index;
+    ++num_loaded_tensors;
+    return memory_ptr;
+  } else {
+    size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t diff = offset - off;
+    size_t len = size + diff;
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
 #ifdef ENABLE_QNN
-  void *ptr = mmap(memory_ptr, len, PROT_READ | PROT_WRITE,
-                   MAP_SHARED | MAP_FIXED, fd, off);
+    void *ptr = mmap(memory_ptr, len, PROT_READ | PROT_WRITE,
+                     MAP_SHARED | MAP_FIXED, fd, off);
 
-  NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-    << "SwapDevice: mmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  mapped[memory_ptr] = std::make_tuple(memory_ptr, len, offset, (ssize_t)size);
+    mapped[memory_ptr] = std::make_tuple(memory_ptr, len, offset, (ssize_t)size);
 
-  ++num_loaded_tensors;
+    ++num_loaded_tensors;
 
-  return memory_ptr;
+    return memory_ptr;
 #else
-  char *ptr = static_cast<char *>(
-    mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+    char *ptr = static_cast<char *>(
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
 
-  NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-    << "SwapDevice: mmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  mapped[ptr] = std::make_tuple(ptr, len, offset, (ssize_t)size);
-  is_unmapped.insert(std::make_pair(ptr, false));
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
+    void *buf = static_cast<void *>(ptr + diff);
+    mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+    is_unmapped.insert(std::make_pair(ptr, false));
 
-  ++num_loaded_tensors;
-
-  return ptr;
-#endif
-
+    ++num_loaded_tensors;
+    return buf;
+  }
 #else
   off_t off;
   ssize_t len;
@@ -216,10 +243,11 @@ void SwapDevice::finish() {
 
   close(fd);
   fd = -1;
-  int status = std::remove(dev_path.c_str());
-
-  NNTR_THROW_IF(status, std::runtime_error)
-    << "SwapDevice: Couldn't remove " << dev_path.c_str();
+  if (execution_mode == ml::train::ExecutionMode::TRAIN) {
+    int status = std::remove(dev_path.c_str());
+    NNTR_THROW_IF(status, std::runtime_error)
+      << "SwapDevice: Couldn't remove " << dev_path.c_str();
+  }
 }
 
 } // namespace nntrainer
