@@ -389,16 +389,7 @@ sharedConstTensors NeuralNetwork::forwarding(
                the forwarding, ask load tensors for next n layers.
       **/
 
-      unsigned int lookahead =
-        std::get<props::MemorySwapLookahead>(model_flex_props);
-
-      if (!((model_graph.getNumLoadedWeightPoolTensors() + 1) / 2 <
-            lookahead + 1)) {
-        model_graph.checkUnloadComplete(f - 1);
-      }
-      model_graph.LoadTensors(
-        f, lookahead - (model_graph.getNumLoadedWeightPoolTensors() + 1) / 2);
-
+      model_graph.LoadTensors(f);
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
       // model_graph.UnloadTensors(f);
