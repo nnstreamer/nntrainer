@@ -24,11 +24,16 @@
 
 namespace nntrainer {
 
-void SwapDevice::start(size_t size) {
+void SwapDevice::start(size_t size, bool writeable) {
   if (fd > 0)
     return;
 
-  fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+  if (writeable) {
+    fd =
+      open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, (mode_t)0666);
+  } else {
+    fd = open(dev_path.c_str(), O_RDWR | O_CREAT, (mode_t)0666);
+  }
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -39,11 +44,12 @@ void SwapDevice::start(size_t size) {
   NNTR_THROW_IF(off < 0, std::runtime_error)
     << "SwapDevice: seek file: " << dev_path;
 
-  ssize_t len;
-  len = write(fd, "", 1);
-  NNTR_THROW_IF(len != 1, std::runtime_error)
-    << "SwapDevice: write file: " << dev_path;
-
+  if (writeable) {
+    ssize_t len;
+    len = write(fd, "", 1);
+    NNTR_THROW_IF(len != 1, std::runtime_error)
+      << "SwapDevice: write file: " << dev_path;
+  }
   off = lseek(fd, 0, SEEK_SET);
   NNTR_THROW_IF(off < 0, std::runtime_error)
     << "SwapDevice: seek file: " << dev_path;
@@ -62,6 +68,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
   char *ptr = static_cast<char *>(
     mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+
   const size_t error_buflen = 100;
   char error_buf[error_buflen];
   NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
