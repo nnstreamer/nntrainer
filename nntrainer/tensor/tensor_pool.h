@@ -55,7 +55,7 @@ public:
     ml::train::ExecutionMode execution_mode = ml::train::ExecutionMode::TRAIN) {
     if (enable_swap) {
       auto cache_pool =
-        std::make_shared<CachePool>(swap_path, swap_name, exec_mode_);
+        std::make_shared<CachePool>(swap_path, swap_name, execution_mode);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
     } else {
