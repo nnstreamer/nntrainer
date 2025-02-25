@@ -645,6 +645,7 @@ Manager::requestInputs(const GraphNode &node,
       grad_spec.request_type = RT::PLACEHOLDER;
 #endif
     }
+
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
                      tensor_pool, false, node.getTrainable()),

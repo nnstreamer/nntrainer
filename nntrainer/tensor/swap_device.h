@@ -18,12 +18,14 @@
 #include <fcntl.h>
 #include <map>
 #include <memory>
+#include <network_graph.h>
 #include <nntrainer_error.h>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
 #include <utility>
+
 #if defined(_WIN32)
 #include <io.h>
 #define O_SYNC 0UL
