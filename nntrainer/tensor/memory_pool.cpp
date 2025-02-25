@@ -119,7 +119,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
-
+  memory_ptrs.emplace_back(ptr);
   return mem_data;
 }
 
@@ -135,6 +135,7 @@ void MemoryPool::deallocate() {
     memory_exec_order.clear();
     memory_is_wgrad.clear();
     PROFILE_MEM_DEALLOC(mem_pool);
+    memory_ptrs.clear();
   }
 
   mem_pool = nullptr;
