@@ -75,7 +75,10 @@ void CacheElem::swapOut(Options opt) {
   void *buf = (void *)mem_data->getAddr();
 
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_WRITE);
-  device->putBuffer(buf, dealloc_only);
+  if (!device->address_unmapped(buf)) {
+    device->putBuffer(buf, dealloc_only);
+    device->set_unmapped(buf);
+  }
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);
   active = false;
