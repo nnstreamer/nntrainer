@@ -17,13 +17,14 @@
 #include <fcntl.h>
 #include <map>
 #include <memory>
+#include <network_graph.h>
 #include <nntrainer_error.h>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
 #include <utility>
-
+#include <common.h>
 #if defined(_WIN32)
 #include <io.h>
 #define O_SYNC 0UL
@@ -58,7 +59,8 @@ public:
     dev_path(swap_device_default_path + name),
     fd(-1),
     num_loaded_tensors(0),
-    offset_index(0) {}
+    offset_index(0),
+    execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
   /**
    * @brief SwapDevice default constructor
@@ -68,7 +70,8 @@ public:
     dev_path(path + "/" + name),
     fd(-1),
     num_loaded_tensors(0),
-    offset_index(0) {}
+    offset_index(0),
+    execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
   /**
    * @brief SwapDevice destructor
@@ -182,6 +185,7 @@ private:
   std::vector<std::pair<size_t, size_t>> weight_offset;
   unsigned int num_loaded_tensors;
   int offset_index;
+  ml::train::ExecutionMode execution_mode;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
