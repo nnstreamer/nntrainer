@@ -148,6 +148,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
 #endif
+  memory_ptrs.emplace_back(ptr);
   return mem_data;
 }
 
@@ -158,14 +159,14 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
 #ifdef ENABLE_QNN
   if (mem_pool != nullptr) {
+    free(mem_pool);
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
 
     PROFILE_MEM_DEALLOC(mem_pool);
-    free(mem_pool);
-
+    memory_ptrs.clear();
     int i = 0;
     for (auto &s : memory_ptrs) {
       if (s)
@@ -173,6 +174,13 @@ void MemoryPool::deallocate() {
     }
   }
 #else
+  free(mem_pool);
+  memory_size.clear();
+  memory_validity.clear();
+  memory_exec_order.clear();
+  memory_is_wgrad.clear();
+  PROFILE_MEM_DEALLOC(mem_pool);
+  memory_ptrs.clear();
   if (mem_pool != nullptr)
     free(mem_pool);
 #endif

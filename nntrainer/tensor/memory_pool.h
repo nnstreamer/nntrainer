@@ -142,14 +142,26 @@ public:
    */
   virtual bool isAllocated() const;
 
+  /**
+   *  @brief Get memory ptrs vector from memory pool class.
+   *
+   * @return memory ptrs vector
+   */
   std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
 
+  /**
+   * @brief Get the memory pool address.
+   *
+   * @return MemoryPool address.
+   */
+  void *getMemoryPoolAddress() { return mem_pool; }
+
+protected:
   /**
    * @brief  Get memory offset
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
 
-protected:
   /**
    * @brief  Get memory size
    */
@@ -225,6 +237,7 @@ private:
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
+
 };
 
 } // namespace nntrainer

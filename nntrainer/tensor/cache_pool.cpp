@@ -126,7 +126,6 @@ void CachePool::allocate() {
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
   MemoryPool::allocate();
-
   swap_device->start(pool_size);
 }
 
@@ -177,8 +176,6 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   NNTR_THROW_IF(!swap_device->isOperating(), std::invalid_argument)
     << "Allocate memory before allocation";
 
-  void *memory_ptr = getMemoryPtrs().at(id - 1);
-
   off_t offset = getMemoryOffset().at(id - 1);
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
@@ -186,6 +183,8 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
+  auto mem_pool_address = getMemoryPoolAddress();
+  void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
   elems[id] = elem;

@@ -270,9 +270,8 @@ void Manager::allocateTensors(unsigned int max_exec_order_) {
  * @brief Deallocate memory for all the managed tensors
  */
 void Manager::deallocateTensors(bool dealloc_weights) {
-  if (dealloc_weights) {
+  if (dealloc_weights)
     deallocateWeights();
-  }
 
   tensor_pool.deallocate();
 }
@@ -477,7 +476,6 @@ std::vector<Weight *> Manager::requestWeights(
       }
       var =
         weight_pool.request(name, dim_v, var_exec_order, var_ls, t_initializer);
-      // }
 
       if (trainable && need_gradient) {
         /** is_wgrad is the index which is true when it is the gradient tensor
@@ -645,6 +643,7 @@ Manager::requestInputs(const GraphNode &node,
       grad_spec.request_type = RT::PLACEHOLDER;
 #endif
     }
+
     inputs_v2.emplace_back(std::make_unique<Var_Grad>(
       requestTensor_(var_spec, node.getExecutionOrder(), node.getName(),
                      tensor_pool, false, node.getTrainable()),
@@ -914,8 +913,12 @@ void Manager::flushCacheExcept(unsigned int order) {
 
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
-  if (enable_optimizations)
-    pool.finalize(OptimizedV3Planner(), start, end);
+  if (enable_optimizations) {
+    pool.finalize(OptimizedV1Planner(), start, end);
+    if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
+      pool.finalize(OptimizedV3Planner(), start, end);
+    }
+  }
   else
     pool.finalize(BasicPlanner(), start, end);
 }
