@@ -214,6 +214,12 @@ public:
    */
   Tensor &multiply(Tensor const &m, Tensor &output,
                    const float scale = 0.0) const override;
+  /**
+   * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
+   * alpha)
+   */
+  Tensor &add(Tensor const &m, Tensor &output,
+              float const scale) const override;
 
   /**
    * @copydoc Tensor::copy(const Tensor &from)

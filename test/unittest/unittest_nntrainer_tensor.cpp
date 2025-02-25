@@ -2405,6 +2405,83 @@ TEST(nntrainer_Tensor, add_08_n) {
   EXPECT_THROW(input.add(test, output), std::invalid_argument);
 }
 
+/**
+ * @brief Test elementwise addition of qint8
+ * @note Compare quantized int 8 addition result with float addition
+ */
+TEST(nntrainer_Quantizer, add_09_p) {
+  size_t batch = 1;
+  size_t channel = 1;
+  size_t height = 4;
+  size_t width = 4;
+
+  // float tensor A and B (original data)
+  float dataA[] = {0.29764187,  0.03480661, 0.23380315,  -0.12472117,
+                   -0.31381518, 0.17460883, 0.22656035,  0.40918356,
+                   -0.18949383, 0.13317966, -0.18087250, -0.28150725,
+                   -0.37915850, 0.45573741, -0.31624895, -0.36885685};
+  nntrainer::Tensor A({batch, channel, height, width}, dataA);
+
+  float dataB[] = {0.35672212,  -0.03879440, -0.29017872, -0.29774767,
+                   -0.03309470, -0.42983186, 0.05469221,  -0.08551443,
+                   0.29058170,  -0.13359779, -0.06470931, -0.44647706,
+                   0.20454758,  0.47189242,  0.26254445,  0.10401177};
+  nntrainer::Tensor B({batch, channel, height, width}, dataB);
+
+  // quantized tensor qA and qB (quantized data - per tensor affine)
+  std::vector<int8_t> qdataA = {83,  10, 65,  -35, -88,  49,  63,  114,
+                                -53, 37, -51, -79, -106, 127, -88, -103};
+  float scaleA = 0.00357441115193f;
+  int8_t *arrayA = reinterpret_cast<int8_t *>(&scaleA);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdataA.push_back(arrayA[i]);
+  }
+  nntrainer::Tensor qA({batch, channel, height, width, nntrainer::Tformat::NCHW,
+                        nntrainer::Tdatatype::QINT8},
+                       qdataA.data());
+
+  std::vector<int8_t> qdataB = {96, -10, -78, -80,  -9, -116, 15, -23,
+                                79, -36, -17, -121, 55, 127,  71, 28};
+  float scaleB = 0.0037011168897152f;
+  int8_t *arrayB = reinterpret_cast<int8_t *>(&scaleB);
+  for (unsigned int i = 0; i < 4; ++i) {
+    qdataB.push_back(arrayB[i]);
+  }
+  nntrainer::Tensor qB({batch, channel, height, width, nntrainer::Tformat::NCHW,
+                        nntrainer::Tdatatype::QINT8},
+                       qdataB.data());
+
+  // output tensors to store result
+  nntrainer::Tensor C(batch, channel, height, width);
+  nntrainer::Tensor qC(batch, channel, height, width, nntrainer::Tformat::NCHW,
+                       nntrainer::Tdatatype::QINT8);
+
+  float output_scale = 0.00828241f;
+
+  // perform addition
+  EXPECT_NO_THROW(A.add(B, C));
+  EXPECT_NO_THROW(qA.add(qB, qC, output_scale));
+
+  // compare addition result
+  nntrainer::Tensor dequantizedC = qC.clone(nntrainer::Tdatatype::FP32);
+
+  // dequantize
+  dequantizedC.multiply_i(output_scale);
+
+  const float eps = 1e-2;
+
+  for (unsigned int b = 0; b < batch; b++) {
+    for (unsigned c = 0; c < channel; c++) {
+      for (unsigned h = 0; h < height; h++) {
+        for (unsigned w = 0; w < width; w++) {
+          EXPECT_NEAR(C.getValue(b, c, h, w), dequantizedC.getValue(b, c, h, w),
+                      eps);
+        }
+      }
+    }
+  }
+}
+
 TEST(nntrainer_Tensor, pow_01_p) {
   nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5);
 
