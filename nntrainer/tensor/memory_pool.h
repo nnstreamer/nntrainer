@@ -156,11 +156,30 @@ public:
    */
   void *getMemoryPoolAddress() { return mem_pool; }
 
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  virtual void setFsuWeightPath(std::string path) {};
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  virtual void setWeightOffset(std::vector<std::pair<size_t,size_t>>) {};
+
 protected:
   /**
    * @brief  Get memory offset
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
+
+  /**
+   * @brief  Get file offset
+   */
+  std::vector<size_t> &getFileOffset() { return file_offset; }
 
   /**
    * @brief  Get memory size
@@ -221,6 +240,7 @@ private:
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
+  std::vector<size_t> file_offset; /**< offsets for the bin file */
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 

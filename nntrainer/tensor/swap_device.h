@@ -55,14 +55,20 @@ public:
    *
    */
   explicit SwapDevice(const std::string &name) :
-    dev_path(swap_device_default_path + name), fd(-1), num_loaded_tensors(0) {}
+    dev_path(swap_device_default_path + name),
+    fd(-1),
+    num_loaded_tensors(0),
+    offset_index(0) {}
 
   /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
-    dev_path(path + "/" + name), fd(-1), num_loaded_tensors(0) {}
+    dev_path(path + "/" + name),
+    fd(-1),
+    num_loaded_tensors(0),
+    offset_index(0) {}
 
   /**
    * @brief SwapDevice destructor
@@ -74,9 +80,10 @@ public:
    * @brief Start device
    *
    * @param size The size of requested swap device space
+   * @param writeable Writeable flag
    *
    */
-  void start(size_t size);
+  void start(size_t size, bool writeable = true);
 
   /**
    * @brief Allocate and get data
@@ -153,11 +160,28 @@ public:
     is_unmapped[address] = true;
   }
 
-private:
-  const std::string dev_path; /**< device path */
-  int fd;                     /**< device file description */
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  void setFsuWeightPath(std::string file_path) { dev_path = file_path; }
 
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+    weight_offset = offsets;
+  }
+
+private:
+  std::string dev_path; /**< device path */
+  int fd;               /**< device file description */
+  std::vector<std::pair<size_t, size_t>> weight_offset;
   unsigned int num_loaded_tensors;
+  int offset_index;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */

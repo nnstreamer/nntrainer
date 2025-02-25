@@ -520,6 +520,24 @@ public:
    */
   unsigned int getNumLoadedTensorPoolTensors();
 
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  void setFsuWeightPath(std::string path) {
+    tensor_manager->setFsuWeightPath(path);
+  }
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {
+    tensor_manager->setWeightOffset(offsets);
+  }
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
