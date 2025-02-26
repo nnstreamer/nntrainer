@@ -83,10 +83,10 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     std::memcpy(memory_ptr, ptr, len_offset.second);
     munmap(ptr, len_offset.second);
 
-    mapped[memory_ptr] =
-      std::make_tuple(memory_ptr, len_offset.second, len_offset.first,
-                      (ssize_t)len_offset.second);
-    is_unmapped.insert(std::make_pair(memory_ptr, true));
+    // mapped[memory_ptr] =
+    //   std::make_tuple(memory_ptr, len_offset.second, len_offset.first,
+    //                   (ssize_t)len_offset.second);
+    // is_unmapped.insert(std::make_pair(memory_ptr, true));
 
     ++offset_index;
     ++num_loaded_tensors;
@@ -142,6 +142,9 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 #ifdef USE_MMAP
+  if (mapped.size() == 0) {
+    return;
+  }
   int ret;
 
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)

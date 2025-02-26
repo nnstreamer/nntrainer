@@ -34,18 +34,18 @@ TEST(fsu, simple_fc) {
 
   model->addLayer(ml::train::createLayer(
     "input", {nntrainer::withKey("name", "input0"),
-              nntrainer::withKey("input_shape", "1:1:320")}));
+              nntrainer::withKey("input_shape", "1:1:2048")}));
   for (int i = 0; i < 6; i++) {
     model->addLayer(ml::train::createLayer(
       "fully_connected",
-      {nntrainer::withKey("unit", 1000),
+      {nntrainer::withKey("unit", 2048),
        nntrainer::withKey("weight_initializer", "xavier_uniform"),
        nntrainer::withKey("bias_initializer", "zeros")}));
   }
 
   model->addLayer(ml::train::createLayer(
     "fully_connected",
-    {nntrainer::withKey("unit", 100),
+    {nntrainer::withKey("unit", 2048),
      nntrainer::withKey("weight_initializer", "xavier_uniform"),
      nntrainer::withKey("bias_initializer", "zeros")}));
 
@@ -65,8 +65,8 @@ TEST(fsu, simple_fc) {
               ml::train::ModelFormat::MODEL_FORMAT_BIN);
   model->load("./simplefc_weight_fp16_fp16_100.bin");
 
-  unsigned int feature_size = 320;
-  float input[320];
+  unsigned int feature_size = 2048;
+  float input[2048];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = j;
