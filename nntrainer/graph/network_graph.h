@@ -534,7 +534,7 @@ public:
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
     tensor_manager->setWeightOffset(offsets);
   }
 
