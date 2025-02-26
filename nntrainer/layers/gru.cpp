@@ -425,7 +425,7 @@ void GRULayer::calcGradient(RunLayerContext &context) {
       context.getTensor(wt_idx[GRUParams::dropout_mask]));
   }
 
-  Tensor dh_nx = Tensor({unit});
+  Tensor dh_nx = Tensor(unit);
 
   for (unsigned int b = 0; b < batch_size; ++b) {
     Tensor deriv_t = hidden_state_derivative.getBatchSlice(b, 1);
@@ -450,7 +450,7 @@ void GRULayer::calcGradient(RunLayerContext &context) {
         zrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
       if (t == 0) {
-        prev_hs = Tensor({unit});
+        prev_hs = Tensor(unit);
         prev_hs.setZero();
       } else {
         prev_hs = hs_t.getSharedDataTensor({unit}, (t - 1) * unit);
@@ -486,7 +486,7 @@ void GRULayer::calcGradient(RunLayerContext &context) {
       wzr_hh.copy_with_stride(
         weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
 
-      Tensor temp = Tensor({unit});
+      Tensor temp = Tensor(unit);
 
       if (reset_after) {
         prev_hs.dot(wg_hh, temp);
