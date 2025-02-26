@@ -11,15 +11,16 @@
  */
 
 #include <app_context.h>
+#include <gtest/gtest.h>
+#include <layer.h>
+#include <model.h>
+#include <optimizer.h>
+
 #include <array>
 #include <chrono>
 #include <ctime>
-#include <gtest/gtest.h>
 #include <iostream>
-#include <layer.h>
 #include <memory>
-#include <model.h>
-#include <optimizer.h>
 #include <sstream>
 #include <vector>
 
@@ -53,28 +54,32 @@ static std::string withKey(const std::string &key,
 }
 
 TEST(fsu, simple_fc) {
+  std::ofstream outFile("./simple_fc_test.bin", std::ios::binary);
+  size_t size = (4096 * 4096 * 2 + 8192) * 3;
+  char *random_data = static_cast<char *>(calloc(size, 1));
+  for (size_t i = 0; i < size; i++) {
+    random_data[i] = 0xAA;
+  }
+  outFile.write(reinterpret_cast<const char *>(random_data), size);
+  free(random_data);
+  outFile.close();
 
   std::unique_ptr<ml::train::Model> model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
 
   model->addLayer(ml::train::createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:320")}));
+    "input", {withKey("name", "input0"), withKey("input_shape", "1:1:4096")}));
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 3; i++) {
     model->addLayer(ml::train::createLayer(
       "fully_connected",
-      {withKey("unit", 1000), withKey("weight_initializer", "xavier_uniform"),
+      {withKey("unit", 4096), withKey("weight_initializer", "xavier_uniform"),
        withKey("bias_initializer", "zeros")}));
   }
 
-  model->addLayer(ml::train::createLayer(
-    "fully_connected",
-    {withKey("unit", 100), withKey("weight_initializer", "xavier_uniform"),
-     withKey("bias_initializer", "zeros")}));
-
   model->setProperty({withKey("batch_size", 1), withKey("epochs", 1),
                       withKey("memory_swap", "true"),
-                      withKey("memory_swap_lookahead", "1"),
+                      withKey("memory_swap_lookahead", "3"),
                       withKey("model_tensor_type", "FP16-FP16")});
 
   int status = model->compile(ml::train::ExecutionMode::INFERENCE);
@@ -83,12 +88,10 @@ TEST(fsu, simple_fc) {
   status = model->initialize(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  model->save("simplefc_weight_fp16_fp16_100.bin",
-              ml::train::ModelFormat::MODEL_FORMAT_BIN);
-  model->load("./simplefc_weight_fp16_fp16_100.bin");
+  model->load("./simple_fc_test.bin");
 
-  unsigned int feature_size = 320;
-  float input[320];
+  unsigned int feature_size = 4096;
+  float input[4096];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = j;
@@ -101,4 +104,5 @@ TEST(fsu, simple_fc) {
   answer = model->inference(1, in);
 
   in.clear();
+  remove("./simple_fc_test.bin");
 }
