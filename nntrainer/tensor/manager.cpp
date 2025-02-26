@@ -916,8 +916,7 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
     } else {
       pool.finalize(OptimizedV1Planner(), start, end);
     }
-  }
-  else {
+  } else {
     pool.finalize(BasicPlanner(), start, end);
   }
 }
