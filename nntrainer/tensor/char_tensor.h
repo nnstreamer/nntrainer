@@ -279,7 +279,7 @@ public:
   /**
    * @copydoc Tensor::scale_size()
    */
-  QScheme q_scheme() const;
+  QScheme q_scheme() const override;
 
 private:
   /**
