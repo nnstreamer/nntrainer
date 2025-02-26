@@ -643,13 +643,14 @@ void NeuralNetwork::load(const std::string &file_path,
   if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
     model_graph.setFsuWeightPath(file_path);
 
-    std::vector<std::pair<size_t,size_t>> file_offset;
+    std::vector<std::pair<size_t, size_t>> file_offset;
     size_t start_from = 0;
     for (auto node : model_graph.getLayerNodes()) {
       auto weights = node->getRunContext().getWeights();
       for (auto weight : weights) {
         auto dim = weight->getDim();
-        size_t size = dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+        size_t size =
+          dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
         file_offset.emplace_back(std::make_pair(start_from, size));
         start_from += size;
       }
