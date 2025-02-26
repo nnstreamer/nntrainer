@@ -96,10 +96,12 @@ std::atomic_int pool_id = 0;
 
 CachePool::CachePool(const std::string &n) :
   name(n),
+  execution_mode_(ml::train::ExecutionMode::TRAIN),
   swap_device(std::make_shared<SwapDevice>(n + "_" + std::to_string(getpid()) +
                                            "_" + std::to_string(pool_id++))) {}
 
-CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
+CachePool::CachePool(const std::string &path, const std::string &n) :
+  name(n), execution_mode_(ml::train::ExecutionMode::TRAIN) {
   if (path.empty())
     swap_device = std::make_shared<SwapDevice>(
       n + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
@@ -137,8 +139,8 @@ void CachePool::allocate() {
 
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
-  MemoryPool::allocate();
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    MemoryPool::allocate();
     swap_device->start(size(), false);
   } else {
     swap_device->start(size(), true);

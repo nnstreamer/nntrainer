@@ -253,9 +253,9 @@ protected:
 
 private:
   std::string name;                         /**< pool name */
+  ml::train::ExecutionMode execution_mode_; /**< execution mode */
   std::shared_ptr<SwapDevice> swap_device;  /**< swap device */
   CacheElems elems;                         /**< cache elements */
-  ml::train::ExecutionMode execution_mode_; /**< execution mode */
   std::list<std::shared_ptr<CacheElem>> actives;
   std::vector<CachePolicy> policies;
   std::map<unsigned int, ExecIds> exec_ids;
