@@ -49,7 +49,6 @@
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
 namespace nntrainer {
-
 int NetworkGraph::compile(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
 
@@ -112,8 +111,10 @@ void NetworkGraph::setExecutionOrder() {
       backward_order++;
     auto apply_gradient_order = backward_order++;
 
-    node->setExecutionOrder({forward_order, calc_gradient_order,
-                             calc_derivative_order, apply_gradient_order});
+    node->setExecutionOrder({
+      forward_order, calc_gradient_order,
+      calc_derivative_order, apply_gradient_order
+    });
   }
 
   /**
@@ -330,7 +331,6 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
 void NetworkGraph::applyGradients(
   LayerNode *node, const std::function<void(Weight &)> &apply_func) {
-
   if (!node->getTrainable())
     return;
 
@@ -607,7 +607,7 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   return label_dims;
 }
 
-std::vector<std::shared_ptr<LayerNode> >
+std::vector<std::shared_ptr<LayerNode>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
   /// @fixme: this won't work if input, output layers are not in order
@@ -641,7 +641,7 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   }
 
   /** copy the graph and return */
-  std::vector<std::shared_ptr<LayerNode> > ret;
+  std::vector<std::shared_ptr<LayerNode>> ret;
   std::transform(graph.cbegin() + num_layers_remove_start,
                  graph.cend() - num_layers_remove_end, std::back_inserter(ret),
                  [](auto const &elem) { return LNODE(elem); });
@@ -649,8 +649,8 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   return ret;
 }
 
-std::vector<std::shared_ptr<LayerNode> > NetworkGraph::getLayerNodes() const {
-  return std::vector<std::shared_ptr<LayerNode> >(cbegin(), cend());
+std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
+  return std::vector<std::shared_ptr<LayerNode>>(cbegin(), cend());
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
@@ -1066,14 +1066,14 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
 #ifdef ENABLE_TEST
 
-std::map<std::string, std::vector<unsigned int> >
+std::map<std::string, std::vector<unsigned int>>
 NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
   const auto &init_context = lnode->getInitContext();
   auto out_specs = init_context.getOutSpecs();
   auto weight_specs = init_context.getWeightsSpec();
   auto tensor_specs = init_context.getTensorsSpec();
 
-  std::map<std::string, std::vector<unsigned int> > exec_orders;
+  std::map<std::string, std::vector<unsigned int>> exec_orders;
 
   for (auto &spec : out_specs) {
     const auto &name = lnode->getName() + ":" + spec.variable_spec.name;
@@ -1125,14 +1125,13 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
 int NetworkGraph::initialize(ExecutionMode mode,
                              const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {
-
   exec_mode = mode;
   tensor_manager->setExecutionMode(mode);
   /**
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
    */
-  std::unordered_map<std::string, std::vector<Var_Grad *> > input_map;
+  std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
 
   /** check if the given config of node is of input node */
   auto is_input_node = [](const LayerNode *node) -> bool {
@@ -1344,7 +1343,7 @@ int NetworkGraph::reinitialize(
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
    */
-  std::unordered_map<std::string, std::vector<Var_Grad *> > input_map;
+  std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
 
   /** check if the given config of node is of input node */
   auto is_input_node = [](const LayerNode *node) -> bool {
@@ -1523,7 +1522,6 @@ int NetworkGraph::reinitialize(
 
 void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
                                       const std::vector<std::string> names) {
-
   /// feed or clear label
   for (unsigned int idx = 0; idx < names.size(); idx++) {
     if (data.empty())
@@ -1537,7 +1535,6 @@ void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
 
 void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
-
   NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
                 std::invalid_argument)
     << "label size does not match with the network requirements"
@@ -1556,7 +1553,6 @@ void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
-
   std::vector<Tensor> ins;
   std::transform(inputs.begin(), inputs.end(), std::back_inserter(ins),
                  [](auto const &val) -> const auto &{ return *val.get(); });
@@ -1631,5 +1627,4 @@ unsigned int NetworkGraph::getNumLoadedWeightPoolTensors() {
 unsigned int NetworkGraph::getNumLoadedTensorPoolTensors() {
   return tensor_manager->getNumLoadedWeightPoolTensors();
 }
-
 } /* namespace nntrainer */

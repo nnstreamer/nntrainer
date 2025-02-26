@@ -27,18 +27,21 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
-namespace nntrainer {
+namespace nntrainer
+{
   /**
    * @class   MemoryPool
    * @brief   Memory Pool provides a common pool for all the tensor memory
    */
-  class MemoryPool {
+  class MemoryPool
+  {
   public:
     /**
      * @brief MemoryPool default constructor
      *
      */
-    explicit MemoryPool() : mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
+    explicit MemoryPool() : mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0)
+    {
     }
 
     /**
@@ -82,7 +85,7 @@ namespace nntrainer {
      * any allocation but rather just plans the layout and stores the layout.
      * Subsequent call to this function will overwrite any existing layout.
      */
-    double planLayout(const MemoryPlanner &planner);
+    double planLayout(const MemoryPlanner& planner);
 
     /**
      * @brief Do the allocation of memory
@@ -139,21 +142,22 @@ namespace nntrainer {
      *
      * @return memory ptrs vector
      */
-    std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
+    std::vector<void*> getMemoryPtrs() { return memory_ptrs; }
 
     /**
      * @brief Get the memory pool address.
      *
      * @return MemoryPool address.
      */
-    void *getMemoryPoolAddress() { return mem_pool; }
+    void* getMemoryPoolAddress() { return mem_pool; }
 
     /**
      * @brief set FSU weight path
      *
      * @param path FSU weight file path
      */
-    virtual void setFsuWeightPath(std::string path) {
+    virtual void setFsuWeightPath(std::string path)
+    {
     };
 
     /**
@@ -161,29 +165,31 @@ namespace nntrainer {
      *
      * @param offsets weight file offset
      */
-    virtual void setWeightOffset(std::vector<std::pair<size_t, size_t> > offsets) {
+    virtual void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets)
+    {
     };
 
   protected:
     /**
      * @brief  Get memory offset
      */
-    std::vector<size_t> &getMemoryOffset() { return memory_offset; }
+    std::vector<size_t>& getMemoryOffset() { return memory_offset; }
 
     /**
      * @brief  Get file offset
      */
-    std::vector<size_t> &getFileOffset() { return file_offset; }
+    std::vector<size_t>& getFileOffset() { return file_offset; }
 
     /**
      * @brief  Get memory size
      */
-    std::vector<size_t> &getMemorySize() { return memory_size; }
+    std::vector<size_t>& getMemorySize() { return memory_size; }
 
     /**
      * @brief  Get memory execution order
      */
-    std::vector<std::vector<unsigned int> > &getMemoryExecOrder() {
+    std::vector<std::vector<unsigned int>>& getMemoryExecOrder()
+    {
       return memory_exec_order;
     }
 
@@ -230,17 +236,17 @@ namespace nntrainer {
     std::vector<unsigned int> getSortedPermutation();
 
     std::vector<size_t> memory_size; /**< various sizes memory requested */
-    std::vector<std::pair<unsigned int, unsigned int> >
+    std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
     std::vector<size_t> memory_offset; /**< offsets for the memory requested */
     std::vector<size_t> file_offset; /**< offsets for the bin file */
-    std::vector<std::vector<unsigned int> >
+    std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 
     std::vector<bool>
     memory_is_wgrad; /**< index for identification of weight gradient */
 
-    void *mem_pool; /**< memory pool allocated at once */
+    void* mem_pool; /**< memory pool allocated at once */
 
     size_t pool_size; /**< memory requirement for this pool */
 
@@ -248,7 +254,7 @@ namespace nntrainer {
 
     size_t n_wgrad;
 
-    std::vector<void *> memory_ptrs; /**< memory ptr vector */
+    std::vector<void*> memory_ptrs; /**< memory ptr vector */
   };
 } // namespace nntrainer
 
