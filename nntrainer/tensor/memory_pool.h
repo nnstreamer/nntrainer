@@ -19,13 +19,13 @@
 #ifndef __MEMORY_POOL_H__
 #define __MEMORY_POOL_H__
 
-#include <functional>
-#include <memory>
-#include <vector>
-
 #include <memory_data.h>
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
+
+#include <functional>
+#include <memory>
+#include <vector>
 
 #include <engine.h>
 #include <iostream>
@@ -49,71 +49,71 @@ public:
     allocators = Engine(Engine::Global()).getAllocators();
   }
 
-    /**
-     * @brief MemoryPool destructor
-     *
-     */
-    virtual ~MemoryPool() { deallocate(); }
+  /**
+   * @brief MemoryPool destructor
+   *
+   */
+  virtual ~MemoryPool() { deallocate(); }
 
-    /**
-     * @brief Request Memory from memory pool
-     *
-     * @param bytes The size of the memory requested in bytes
-     * @param start_time The start of the validity interval of this memory
-     * @param end_time The end of the validity interval of this memory
-     * @param exec_order execution orders of this memory
-     * @param lifespan lifespan of memory
-     * @param is_wgrad check if the tensor is weight gradient
-     *
-     * @return The token to get the pointer for this memory after allocation
-     * @note start_time is inclusive, but end_time is exclusive
-     * @note The value of the return token starts from 1.
-     */
-    virtual unsigned int requestMemory(
-      size_t bytes, unsigned int start_time, unsigned int end_time,
-      std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
-      TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
-      bool is_wgrad = false);
+  /**
+   * @brief Request Memory from memory pool
+   *
+   * @param bytes The size of the memory requested in bytes
+   * @param start_time The start of the validity interval of this memory
+   * @param end_time The end of the validity interval of this memory
+   * @param exec_order execution orders of this memory
+   * @param lifespan lifespan of memory
+   * @param is_wgrad check if the tensor is weight gradient
+   *
+   * @return The token to get the pointer for this memory after allocation
+   * @note start_time is inclusive, but end_time is exclusive
+   * @note The value of the return token starts from 1.
+   */
+  virtual unsigned int requestMemory(
+    size_t bytes, unsigned int start_time, unsigned int end_time,
+    std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
+    TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
+    bool is_wgrad = false);
 
-    /**
-     * @brief Plan the layout with memory planner
-     *
-     * @param planner The memory planner to be used for finalizing the layout
-     *
-     * @return The efficiency of the memory layer with the given memory planner
-     *
-     * @details The efficiency of the planner is calculated as the ratio of the
-     * theoretical minimum memory requirement divided by the memory requirement
-     * given by the memory planner.
-     *
-     * @details planLayout can be called multiple times as this does not perform
-     * any allocation but rather just plans the layout and stores the layout.
-     * Subsequent call to this function will overwrite any existing layout.
-     */
-    double planLayout(const MemoryPlanner &planner);
+  /**
+   * @brief Plan the layout with memory planner
+   *
+   * @param planner The memory planner to be used for finalizing the layout
+   *
+   * @return The efficiency of the memory layer with the given memory planner
+   *
+   * @details The efficiency of the planner is calculated as the ratio of the
+   * theoretical minimum memory requirement divided by the memory requirement
+   * given by the memory planner.
+   *
+   * @details planLayout can be called multiple times as this does not perform
+   * any allocation but rather just plans the layout and stores the layout.
+   * Subsequent call to this function will overwrite any existing layout.
+   */
+  double planLayout(const MemoryPlanner &planner);
 
-    /**
-     * @brief Do the allocation of memory
-     *
-     */
-    virtual void allocate();
+  /**
+   * @brief Do the allocation of memory
+   *
+   */
+  virtual void allocate();
 
-    /**
-     * @brief Get the allocated memory
-     *
-     * @param token The token received from the requestMemory
-     *
-     * @return The pointer of the memory
-     *
-     * @details This function will throw if called before allocation.
-     */
-    virtual std::shared_ptr<MemoryData> getMemory(unsigned int idx);
+  /**
+   * @brief Get the allocated memory
+   *
+   * @param token The token received from the requestMemory
+   *
+   * @return The pointer of the memory
+   *
+   * @details This function will throw if called before allocation.
+   */
+  virtual std::shared_ptr<MemoryData> getMemory(unsigned int idx);
 
-    /**
-     * @brief Free all the allocated memory
-     *
-     */
-    virtual void deallocate();
+  /**
+   * @brief Free all the allocated memory
+   *
+   */
+  virtual void deallocate();
 
   /**
    * @brief Get the maximum real memory requirement
@@ -161,14 +161,15 @@ public:
    *
    * @param path FSU weight file path
    */
-  virtual void setFsuWeightPath(std::string path) {};
+  virtual void setFsuWeightPath(std::string path){};
 
   /**
    * @brief set weight file offset for FSU loading
    *
    * @param offsets weight file offset
    */
-  virtual void setWeightOffset(std::vector<std::pair<size_t,size_t>> offsets) {};
+  virtual void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets){};
 
 protected:
   /**
@@ -239,7 +240,7 @@ private:
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
-  std::vector<size_t> file_offset; /**< offsets for the bin file */
+  std::vector<size_t> file_offset;   /**< offsets for the bin file */
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 
@@ -254,9 +255,9 @@ private:
 
   size_t n_wgrad;
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
-    allocators;
-    std::vector<void *> memory_ptrs; /**< memory ptr vector */
-  };
+      allocators;
+  std::vector<void *> memory_ptrs; /**< memory ptr vector */
+};
 } // namespace nntrainer
 
 #endif /** __MEMORY_POOL_H__ */

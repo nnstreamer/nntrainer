@@ -685,10 +685,12 @@ void NeuralNetwork::load(const std::string &file_path,
         }
       }
 
-      checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
-                  "[NeuralNetwork::readModel] failed to read epoch_idx");
-      checkedRead(model_file, (char *)&iter, sizeof(iter),
-                  "[NeuralNetwork::readModel] failed to read iteration");
+      if (!swap_mode) {
+        checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
+                    "[NeuralNetwork::readModel] failed to read epoch_idx");
+        checkedRead(model_file, (char *)&iter, sizeof(iter),
+                    "[NeuralNetwork::readModel] failed to read iteration");
+      }
     } catch (...) {
       std::cerr << "failed to read additional data like optimizer variable, "
                    "iteration, proceeding with default\n";
