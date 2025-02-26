@@ -275,7 +275,6 @@ private:
   size_t min_pool_size; /**< minimum theoretical memory requirement */
 
   size_t n_wgrad;
-
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
   std::vector<void *> memory_ptrs; /**< memory ptr vector */

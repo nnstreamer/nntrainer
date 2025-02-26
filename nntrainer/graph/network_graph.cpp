@@ -256,7 +256,7 @@ void NetworkGraph::markNodesForBackwarding() {
     auto lnode = (*iter);
     if (lnode->getTrainable() ||
         must_support_backwarding.find(lnode->getName()) !=
-          must_support_backwarding.end()) {
+        must_support_backwarding.end()) {
       if (lnode->getTrainable()) {
         lnode->needsCalcGradient(true);
       }
@@ -573,11 +573,11 @@ LayerNode *NetworkGraph::computeBackwardEnd() {
 void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
   exec_mode = exec_mode_;
   if (exec_mode == ExecutionMode::INFERENCE)
-    /**
-     * get the order of execution/usage order for the forwarding of the last
-     * layer and pass that as the max_exec_order ensuring that all tensors
-     * with usage less than the max_exec_order are allocated.
-     */
+  /**
+   * get the order of execution/usage order for the forwarding of the last
+   * layer and pass that as the max_exec_order ensuring that all tensors
+   * with usage less than the max_exec_order are allocated.
+   */
     tensor_manager->allocateTensors(
       std::get<0>((*(cend() - 1))->getExecutionOrder()));
   else {
@@ -610,7 +610,7 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   return label_dims;
 }
 
-std::vector<std::shared_ptr<LayerNode>>
+std::vector<std::shared_ptr<LayerNode> >
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
   /// @fixme: this won't work if input, output layers are not in order
@@ -644,7 +644,7 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   }
 
   /** copy the graph and return */
-  std::vector<std::shared_ptr<LayerNode>> ret;
+  std::vector<std::shared_ptr<LayerNode> > ret;
   std::transform(graph.cbegin() + num_layers_remove_start,
                  graph.cend() - num_layers_remove_end, std::back_inserter(ret),
                  [](auto const &elem) { return LNODE(elem); });
@@ -652,8 +652,8 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   return ret;
 }
 
-std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
-  return std::vector<std::shared_ptr<LayerNode>>(cbegin(), cend());
+std::vector<std::shared_ptr<LayerNode> > NetworkGraph::getLayerNodes() const {
+  return std::vector<std::shared_ptr<LayerNode> >(cbegin(), cend());
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
@@ -763,9 +763,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
-  std::transform(
-    prev_inputs.begin(), prev_inputs.end(), std::back_inserter(input_names),
-    [](auto const &vg) -> const auto & { return vg->getName(); });
+  std::transform(prev_inputs.begin(), prev_inputs.end(),
+                 std::back_inserter(input_names),
+                 [](auto const &vg) -> const auto &{ return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
@@ -957,9 +957,9 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
    */
   std::vector<std::string> input_names;
   input_names.reserve(prev_inputs.size());
-  std::transform(
-    prev_inputs.begin(), prev_inputs.end(), std::back_inserter(input_names),
-    [](auto const &vg) -> const auto & { return vg->getName(); });
+  std::transform(prev_inputs.begin(), prev_inputs.end(),
+                 std::back_inserter(input_names),
+                 [](auto const &vg) -> const auto &{ return vg->getName(); });
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
@@ -1102,14 +1102,14 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
 #ifdef ENABLE_TEST
 
-std::map<std::string, std::vector<unsigned int>>
+std::map<std::string, std::vector<unsigned int> >
 NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
   const auto &init_context = lnode->getInitContext();
   auto out_specs = init_context.getOutSpecs();
   auto weight_specs = init_context.getWeightsSpec();
   auto tensor_specs = init_context.getTensorsSpec();
 
-  std::map<std::string, std::vector<unsigned int>> exec_orders;
+  std::map<std::string, std::vector<unsigned int> > exec_orders;
 
   for (auto &spec : out_specs) {
     const auto &name = lnode->getName() + ":" + spec.variable_spec.name;
@@ -1168,7 +1168,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
    */
-  std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
+  std::unordered_map<std::string, std::vector<Var_Grad *> > input_map;
 
   /** check if the given config of node is of input node */
   auto is_input_node = [](const LayerNode *node) -> bool {
@@ -1218,7 +1218,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
         input_map.try_emplace({sink_node->getName(), {}});
 
       NNTR_THROW_IF(sink_node->getInputConnectionName(conn->getIndex()) !=
-                      lnode->getName(),
+                    lnode->getName(),
                     std::invalid_argument)
         << "node pair does not match between " << lnode->getName() << ' '
         << sink_node->getName();
@@ -1239,8 +1239,8 @@ int NetworkGraph::initialize(ExecutionMode mode,
         /// @todo this is duck taping that MUST BE REMOVED. We will need to
         /// have, is weight first access kind of concept.
         if (tensor_manager->isFirstAccess(
-              rc.getWeight(i).getName(),
-              std::get<0>(lnode->getExecutionOrder()), true)) {
+          rc.getWeight(i).getName(),
+          std::get<0>(lnode->getExecutionOrder()), true)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
         }
         if (tensor_manager->isLastAccess(rc.getWeight(i).getName(),
@@ -1380,7 +1380,7 @@ int NetworkGraph::reinitialize(
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
    */
-  std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
+  std::unordered_map<std::string, std::vector<Var_Grad *> > input_map;
 
   /** check if the given config of node is of input node */
   auto is_input_node = [](const LayerNode *node) -> bool {
@@ -1431,7 +1431,7 @@ int NetworkGraph::reinitialize(
         input_map.try_emplace({sink_node->getName(), {}});
 
       NNTR_THROW_IF(sink_node->getInputConnectionName(conn->getIndex()) !=
-                      lnode->getName(),
+                    lnode->getName(),
                     std::invalid_argument)
         << "node pair does not match between " << lnode->getName() << ' '
         << sink_node->getName();
@@ -1452,8 +1452,8 @@ int NetworkGraph::reinitialize(
         /// @todo this is duck taping that MUST BE REMOVED. We will need to
         /// have, is weight first access kind of concept.
         if (tensor_manager->isFirstAccess(
-              rc.getWeight(i).getName(),
-              std::get<0>(lnode->getExecutionOrder()), true)) {
+          rc.getWeight(i).getName(),
+          std::get<0>(lnode->getExecutionOrder()), true)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
         }
         if (tensor_manager->isLastAccess(rc.getWeight(i).getName(),
@@ -1594,14 +1594,12 @@ void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
 
   std::vector<Tensor> ins;
-  std::transform(
-    inputs.begin(), inputs.end(), std::back_inserter(ins),
-    [](auto const &val) -> const auto & { return *val.get(); });
+  std::transform(inputs.begin(), inputs.end(), std::back_inserter(ins),
+                 [](auto const &val) -> const auto &{ return *val.get(); });
 
   std::vector<Tensor> labs;
-  std::transform(
-    labels.begin(), labels.end(), std::back_inserter(labs),
-    [](auto const &val) -> const auto & { return *val.get(); });
+  std::transform(labels.begin(), labels.end(), std::back_inserter(labs),
+                 [](auto const &val) -> const auto &{ return *val.get(); });
 
   setInputsLabels(ins, labs);
 }
