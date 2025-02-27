@@ -1016,6 +1016,13 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
 #endif
 }
 
+void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
+  /// @todo need accelerate
+  for (unsigned int idx = 0; idx < N; ++idx) {
+    Y[idx] = X[idx];
+  }
+}
+
 void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y) {
 #ifdef USE_NEON
   nntrainer::neon::copy_u16(N, X, Y);
