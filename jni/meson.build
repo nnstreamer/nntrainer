@@ -37,6 +37,10 @@ if iniparser_dep.found()
   and_conf.set('MESON_INIPARSER_ROOT', iniparser_root)
 endif
 
+if ruy_dep.found()
+  and_conf.set('MESON_RUY_ROOT', ruy_root)
+endif
+
 if tflite_dep.found()
   and_conf.set('MESON_HAS_TFLITE', 1)
   and_conf.set('MESON_TFLITE_ROOT', tflite_root)

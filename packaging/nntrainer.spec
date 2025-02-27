@@ -97,6 +97,7 @@ BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
 BuildRequires:	flatbuffers-devel
+BuildRequires:  cmake
 
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
@@ -325,6 +326,10 @@ Requires:	nnstreamer-nntrainer-trainer = %{version}-%{release}
 NNSteamer tensor trainer static package for nntrainer to support inference.
 %endif #nnstreamer_trainer
 
+%package -n ruy
+Summary: Ruy support in NNTrainer
+%description -n ruy
+
 %endif #tizen
 
 ## Define build options
@@ -412,7 +417,7 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 %endif
 
 # Setup Ruy
-tar -xf packaging/ruy.tar.gz -C third_party
+tar -xf packaging/ruy.tar.gz -C subprojects
 
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
@@ -425,7 +430,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      %{fp16_support} %{neon_support} %{avx_support} build
+      %{fp16_support} %{neon_support} %{avx_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
 
@@ -689,6 +694,21 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %license LICENSE
 %{_libdir}/libnnstreamer_trainer_nntrainer.a
 %endif #nnstreamer_trainer
+
+# Ruy
+%files -n ruy
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/libruy*.a
+%{_libdir}/libclog.a
+%{_libdir}/libcpuinfo.a
+%{_bindir}/cache_info
+%{_bindir}/cpu_info
+%{_bindir}/isa_info
+%ifarch x86_64
+%{_bindir}/cpuid_dump
+%endif #x86_64
 
 %endif #tizen
 

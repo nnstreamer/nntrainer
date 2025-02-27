@@ -85,7 +85,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 1000
         sudo update-alternatives --set gcc /usr/bin/gcc-13
         pip install meson ninja
-        git submodule sync && git submodule update --init --depth 1
+        git submodule sync && git submodule update --init --recursive
         meson setup \
           --buildtype=plain \
           --prefix=/usr \

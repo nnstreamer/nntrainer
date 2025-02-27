@@ -54,6 +54,35 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE        := ruy
+LOCAL_SRC_FILES     := @MESON_RUY_ROOT@/ruy/ctx.cc \
+                       @MESON_RUY_ROOT@/ruy/context.cc \
+                       @MESON_RUY_ROOT@/ruy/denormal.cc \
+                       @MESON_RUY_ROOT@/ruy/kernel_arm32.cc \
+                       @MESON_RUY_ROOT@/ruy/trmul.cc \
+                       @MESON_RUY_ROOT@/ruy/tune.cc \
+                       @MESON_RUY_ROOT@/ruy/kernel_arm64.cc \
+                       @MESON_RUY_ROOT@/ruy/pack_arm.cc \
+                       @MESON_RUY_ROOT@/ruy/thread_pool.cc \
+                       @MESON_RUY_ROOT@/ruy/prepare_packed_matrices.cc \
+                       @MESON_RUY_ROOT@/ruy/frontend.cc \
+                       @MESON_RUY_ROOT@/ruy/prepacked_cache.cc \
+                       @MESON_RUY_ROOT@/ruy/apply_multiplier.cc \
+                       @MESON_RUY_ROOT@/ruy/blocking_counter.cc \
+                       @MESON_RUY_ROOT@/ruy/wait.cc \
+                       @MESON_RUY_ROOT@/ruy/pmu.cc \
+                       @MESON_RUY_ROOT@/ruy/allocator.cc \
+                       @MESON_RUY_ROOT@/ruy/block_map.cc \
+                       @MESON_RUY_ROOT@/ruy/context_get_ctx.cc \
+                       @MESON_RUY_ROOT@/ruy/cpuinfo.cc \
+                       @MESON_RUY_ROOT@/ruy/system_aligned_alloc.cc
+LOCAL_C_INCLUDES    := @MESON_RUY_ROOT@
+LOCAL_EXPORT_C_INCLUDES  := $(LOCAL_C_INCLUDES)
+
+include $(BUILD_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := @MESON_NNTRAINER_SRCS@
 # @todo ML_API_COMMON_ROOT should be included by exporting ml-api-common lib later
@@ -68,7 +97,7 @@ LOCAL_MODULE_TAGS   := optional
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 LOCAL_LDFLAGS 	    += "-Wl,-z,max-page-size=16384"
 
-LOCAL_STATIC_LIBRARIES += iniparser openblas
+LOCAL_STATIC_LIBRARIES += iniparser openblas ruy
 
 ifeq ($(MESON_HAS_TFLITE), 1)
   LOCAL_STATIC_LIBRARIES += tensorflow-lite
