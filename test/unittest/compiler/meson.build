@@ -4,9 +4,12 @@ test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
   'unittest_interpreter.cpp',
-  'unittest_tflite_export.cpp',
   'unittest_realizer.cpp',
 ]
+
+if get_option('enable-tflite-interpreter')
+  test_target += ['unittest_tflite_export.cpp']
+endif
 
 exe = executable(
   test_name,

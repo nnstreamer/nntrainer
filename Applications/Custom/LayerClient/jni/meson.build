@@ -1,12 +1,21 @@
-res_path = meson.current_source_dir() / '..' / 'res'
+fs = import('fs')
+app_res_dir = fs.parent(meson.current_source_dir()) / 'res'
+build_app_res_dir = nntr_app_resdir / 'LayerClient'
+
+if host_machine.system() == 'windows'
+  app_res_dir_win = app_res_dir.replace('/', '\\')
+  build_app_res_dir_win = build_app_res_dir.replace('/', '\\')
+  run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
+  run_command('cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win)
+else
+  run_command('cp', '-lr', app_res_dir, build_app_res_dir)
+endif
 
 layer_client_sources = [
   'main.cpp',
   layer_example_pow_src,
   layer_example_mae_src
 ]
-
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'LayerClient')
 
 exe = executable('layer_client',
   layer_client_sources,
@@ -17,4 +26,4 @@ exe = executable('layer_client',
 )
 
 test('app_layer_client_api', exe, args: 'model')
-test('app_layer_client_ini', exe, args: res_path / 'custom_layer_client.ini')
+test('app_layer_client_ini', exe, args: build_app_res_dir / 'custom_layer_client.ini')

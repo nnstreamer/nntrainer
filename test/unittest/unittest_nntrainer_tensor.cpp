@@ -3878,7 +3878,7 @@ TEST(nntrainer_Tensor, save_read_01_p) {
   target.save(save_file);
   save_file.close();
 
-  std::ifstream read_file("save.bin");
+  std::ifstream read_file("save.bin", std::ios::in | std::ios::binary);
   readed.read(read_file);
   read_file.close();
 
@@ -3906,7 +3906,7 @@ TEST(nntrainer_Tensor, save_read_02_p) {
   target.save(save_file);
   save_file.close();
 
-  std::ifstream read_file("save_qint16.bin");
+  std::ifstream read_file("save_qint16.bin", std::ios::in | std::ios::binary);
   readed.read(read_file);
   read_file.close();
 
@@ -3937,7 +3937,7 @@ TEST(nntrainer_Tensor, save_read_03_p) {
   target.save(save_file);
   save_file.close();
 
-  std::ifstream read_file("save_quint16.bin");
+  std::ifstream read_file("save_quint16.bin", std::ios::in | std::ios::binary);
   readed.read(read_file);
   read_file.close();
 
@@ -3963,7 +3963,7 @@ TEST(nntrainer_Tensor, save_read_01_n) {
   target.save(save_file);
   save_file.close();
 
-  std::ifstream read_file("save.bin");
+  std::ifstream read_file("save.bin", std::ios::in | std::ios::binary);
   readed.read(read_file);
   read_file.close();
 
