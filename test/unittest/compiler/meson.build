@@ -4,9 +4,12 @@ test_target = [
   'compiler_test_util.cpp',
   'unittest_compiler.cpp',
   'unittest_interpreter.cpp',
-  'unittest_tflite_export.cpp',
   'unittest_realizer.cpp',
 ]
+
+if get_option('enable-tflite-interpreter')
+  test_target += 'unittest_tflite_export.cpp'
+endif
 
 exe = executable(
   test_name,
@@ -20,6 +23,7 @@ exe = executable(
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
+
 
 test(test_name, exe,
   args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), test_name),
