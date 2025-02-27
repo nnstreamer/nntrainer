@@ -6,7 +6,7 @@ layer_client_sources = [
   layer_example_mae_src
 ]
 
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'LayerClient')
+run_command(['cp', '-lr', res_path, nntr_app_resdir / 'LayerClient'], check: true)
 
 exe = executable('layer_client',
   layer_client_sources,

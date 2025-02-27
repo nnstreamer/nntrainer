@@ -1,5 +1,5 @@
 res_path = meson.current_source_dir() / '..' / 'res'
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'LogisticRegression')
+run_command(['cp', '-lr', res_path, nntr_app_resdir / 'LogisticRegression'], check: true)
 
 e = executable('nntrainer_logistic',
   'main.cpp',

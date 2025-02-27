@@ -2,7 +2,7 @@ build_root = meson.build_root()
 res_path = meson.current_source_dir() / '..' / 'res'
 
 nntr_alex_resdir = nntr_app_resdir / 'AlexNet'
-run_command('cp', '-lr', res_path, nntr_alex_resdir)
+run_command(['cp', '-lr', res_path, nntr_alex_resdir], check: true)
 
 alex_sources = [
   'main.cpp',

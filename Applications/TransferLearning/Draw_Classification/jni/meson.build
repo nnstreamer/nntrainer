@@ -1,7 +1,7 @@
 build_root = meson.build_root()
 res_path = meson.current_source_dir() / '..' / 'res'
 nntr_draw_resdir = nntr_app_resdir / 'Draw_Classification'
-run_command('cp', '-lr', res_path, nntr_draw_resdir)
+run_command(['cp', '-lr', res_path, nntr_draw_resdir], check: true)
 
 gst_api_version = '1.0'
 glib_dep = dependency('glib-2.0')

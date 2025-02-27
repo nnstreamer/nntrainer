@@ -234,9 +234,9 @@ nntrainer_resdir = meson.build_root() / 'res'
 
 if host_machine.system() == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+  run_command(['cmd.exe', '/C', 'mkdir', nntrainer_resdir_win], check: true)
 else
-  run_command('mkdir', '-p', nntrainer_resdir)
+  run_command(['mkdir', '-p', nntrainer_resdir], check: true)
 endif
 
 if get_option('install-app')
@@ -297,7 +297,7 @@ if get_option('enable-blas')
 
   if get_option('platform') == 'android'
     message('preparing blas')
-    run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
+    run_command([meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root()], check: true)
     blas_root = meson.build_root() / 'openblas'
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
@@ -392,7 +392,7 @@ endif
 
 if get_option('platform') == 'android'
   message('preparing ml api')
-  run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
+  run_command([meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference'], check: true)
   ml_api_common_root = meson.build_root() / 'ml-api-inference'
   ml_api_inc = ml_api_common_root / 'include'
   meson.add_install_script(
@@ -415,7 +415,7 @@ if get_option('platform') != 'android'
 else
   if get_option('enable-tflite-backbone') or get_option('enable-tflite-interpreter')
     message('preparing tflite, because either tflite backbone or interpreter is enabled')
-    run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
+    run_command([meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root()], check: true)
     tflite_root = meson.build_root() / 'tensorflow-2.3.0' / 'tensorflow-lite'
     tflite_dep = declare_dependency(include_directories: [ 'tensorflow-2.3.0/tensorflow-lite/include' ])
   endif
@@ -504,7 +504,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android' and host_machine.system() != 'windows'
+if get_option('platform') != 'android' and host_machine.system() != 'windows' and get_option('enable-nnstreamer-backbone')
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')

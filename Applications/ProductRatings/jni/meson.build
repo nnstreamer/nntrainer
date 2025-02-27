@@ -1,5 +1,5 @@
 res_path = meson.current_source_dir() / '..' / 'res'
-run_command('cp', '-lr', res_path, nntr_app_resdir / 'ProductRatings')
+run_command(['cp', '-lr', res_path, nntr_app_resdir / 'ProductRatings'], check: true)
 
 e = executable('nntrainer_product_ratings',
   'main.cpp',
