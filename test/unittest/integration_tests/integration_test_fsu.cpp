@@ -54,8 +54,8 @@ static std::string withKey(const std::string &key,
 
 TEST(fsu, simple_fc) {
 
-  std::unique_ptr<ml::train::Model> model = ml::train::createModel(
-    ml::train::ModelType::NEURAL_NET, {withKey("loss", "mse")});
+  std::unique_ptr<ml::train::Model> model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   model->addLayer(ml::train::createLayer(
     "input", {withKey("name", "input0"), withKey("input_shape", "1:1:320")}));
