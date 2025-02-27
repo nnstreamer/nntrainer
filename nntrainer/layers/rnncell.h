@@ -97,7 +97,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "rnncell";
+  static constexpr const char *type = "rnncell";
 
 private:
   enum INOUT_INDEX {

@@ -90,7 +90,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "preprocess_l2norm";
+  static constexpr const char *type = "preprocess_l2norm";
 
 private:
   std::tuple<props::Epsilon> l2norm_props;

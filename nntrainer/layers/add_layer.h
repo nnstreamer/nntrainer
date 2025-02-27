@@ -130,7 +130,7 @@ public:
   std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
     add_props;
 
-  inline static const std::string type = "add";
+  static constexpr const char *type = "add";
 };
 
 } // namespace nntrainer

@@ -75,7 +75,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override{};
 
-  inline static const std::string type = "upsample";
+  static constexpr const char *type = "upsample";
 };
 
 } // namespace custom

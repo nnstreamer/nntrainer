@@ -77,7 +77,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "backbone_tflite";
+  static constexpr const char *type = "backbone_tflite";
 
 private:
   using PropsType = std::tuple<PropsTflModelPath>;

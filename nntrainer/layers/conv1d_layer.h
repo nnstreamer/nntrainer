@@ -96,7 +96,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "conv1d";
+  static constexpr const char *type = "conv1d";
 
 private:
   std::tuple<props::FilterSize, props::KernelSize, props::Stride,

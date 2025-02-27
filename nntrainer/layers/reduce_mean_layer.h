@@ -88,7 +88,7 @@ public:
    */
   const std::string getType() const override { return ReduceMeanLayer::type; };
 
-  inline static const std::string type = "reduce_mean";
+  static constexpr const char *type = "reduce_mean";
 
 private:
   /** TODO: support scalar multiplier to simulate reduce_sum */

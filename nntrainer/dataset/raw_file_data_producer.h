@@ -57,7 +57,7 @@ public:
    */
   ~RawFileDataProducer();
 
-  inline static const std::string type = "file";
+  static constexpr const char *type = "file";
 
   /**
    * @copydoc DataProducer::getType()

@@ -91,7 +91,7 @@ public:
    */
   static bool registerClKernels() { return true; };
 
-  inline static const std::string type = "transpose";
+  static constexpr const char *type = "transpose";
 
 private:
   std::tuple<props::Print> transpose_props; /**< transpose layer properties :

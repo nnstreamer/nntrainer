@@ -108,7 +108,7 @@ public:
   void exportTo(Exporter &exporter,
                 const ml::train::ExportMethods &method) const override;
 
-  inline static const std::string type = "adam";
+  static constexpr const char *type = "adam";
 
   /**
    * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)

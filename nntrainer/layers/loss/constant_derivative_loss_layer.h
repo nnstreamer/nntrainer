@@ -57,7 +57,7 @@ public:
     return ConstantDerivativeLossLayer::type;
   };
 
-  inline static const std::string type = "constant_derivative";
+  static constexpr const char *type = "constant_derivative";
 };
 } // namespace nntrainer
 

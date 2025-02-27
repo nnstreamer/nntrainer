@@ -96,7 +96,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "centering";
+  static constexpr const char *type = "centering";
 
 private:
   std::string feature_path;

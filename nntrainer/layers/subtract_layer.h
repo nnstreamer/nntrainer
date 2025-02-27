@@ -131,7 +131,7 @@ public:
   std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
     subtract_props;
 
-  inline static const std::string type = "subtract";
+  static constexpr const char *type = "subtract";
 };
 
 } // namespace nntrainer

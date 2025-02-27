@@ -67,9 +67,9 @@ public:
    * @copydoc MemoryPlanner::getType() const
    *
    */
-  const std::string &getType() const { return type; }
+  const std::string getType() const { return type; }
 
-  inline static const std::string type = "optimized_v1_planner";
+  static constexpr const char *type = "optimized_v1_planner";
 };
 
 } // namespace nntrainer

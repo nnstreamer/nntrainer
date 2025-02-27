@@ -100,7 +100,7 @@ public:
     setBatch(batch);
   }
 
-  inline static const std::string type = "concat";
+  static constexpr const char *type = "concat";
 
 private:
   unsigned int leading_helper_dim; /**< batch dimension of helper dimension not

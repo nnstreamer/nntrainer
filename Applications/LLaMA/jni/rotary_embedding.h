@@ -86,7 +86,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override{};
 
-  inline static const std::string type = "rotary_embedding";
+  static constexpr const char *type = "rotary_embedding";
 
 private:
   std::vector<std::vector<std::complex<float>>> *freqs_cis;

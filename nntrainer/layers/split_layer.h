@@ -88,7 +88,7 @@ public:
    */
   const std::string getType() const override { return SplitLayer::type; };
 
-  inline static const std::string type = "split";
+  static constexpr const char *type = "split";
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)

@@ -29,7 +29,7 @@ class MockLayer final : public LayerImpl {
 public:
   ~MockLayer() = default;
 
-  inline static const std::string type = "mock_";
+  static constexpr const char *type = "mock_";
   const std::string getType() const override { return type; }
   void finalize(InitLayerContext &context) override {
     context.setOutputDimensions(context.getInputDimensions());

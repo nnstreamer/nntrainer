@@ -97,7 +97,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "rnn";
+  static constexpr const char *type = "rnn";
 
 private:
   /**

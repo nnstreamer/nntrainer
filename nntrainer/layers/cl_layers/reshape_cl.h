@@ -105,7 +105,7 @@ public:
    */
   const std::string getType() const override { return ReshapeLayerCl::type; };
 
-  inline static const std::string type = "reshape";
+  static constexpr const char *type = "reshape";
 
   /**
    * @brief Process data and dimensions for reshape operation

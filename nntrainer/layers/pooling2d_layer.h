@@ -103,7 +103,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "pooling2d";
+  static constexpr const char *type = "pooling2d";
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)

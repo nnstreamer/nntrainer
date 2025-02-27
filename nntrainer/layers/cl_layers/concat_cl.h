@@ -106,7 +106,7 @@ public:
    */
   static bool registerClKernels();
 
-  inline static const std::string type = "concat";
+  static constexpr const char *type = "concat";
 
   /**
    * @brief Process data and dimensions for concat

@@ -117,7 +117,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "multi_head_attention";
+  static constexpr const char *type = "multi_head_attention";
 
 private:
   std::tuple<props::NumHeads, props::ProjectedKeyDim, props::ProjectedValueDim,

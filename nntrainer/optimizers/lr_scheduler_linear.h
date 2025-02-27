@@ -64,7 +64,7 @@ public:
     return LinearLearningRateScheduler::type;
   }
 
-  inline static const std::string type = "linear";
+  static constexpr const char *type = "linear";
 
 private:
   std::tuple<props::MaxLearningRate, props::MinLearningRate, props::DecaySteps>

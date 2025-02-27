@@ -92,7 +92,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "weight";
+  static constexpr const char *type = "weight";
 
 private:
   std::tuple<props::TensorDimension> weight_props;

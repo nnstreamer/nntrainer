@@ -99,7 +99,7 @@ public:
    */
   const std::string getType() const override { return MultiOutLayer::type; };
 
-  inline static const std::string type = "multiout";
+  static constexpr const char *type = "multiout";
 };
 
 } // namespace nntrainer

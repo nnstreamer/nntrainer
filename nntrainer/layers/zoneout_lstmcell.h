@@ -165,7 +165,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "zoneout_lstmcell";
+  static constexpr const char *type = "zoneout_lstmcell";
 
 private:
   static constexpr unsigned int NUM_GATE = 4;

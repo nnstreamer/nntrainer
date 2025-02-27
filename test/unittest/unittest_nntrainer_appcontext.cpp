@@ -141,7 +141,7 @@ public:
  */
 class CustomLayer : public nntrainer::Layer {
 public:
-  inline static const std::string type = "identity_layer";
+  static constexpr const char *type = "identity_layer";
 
   void setProperty(const std::vector<std::string> &values) override {}
 

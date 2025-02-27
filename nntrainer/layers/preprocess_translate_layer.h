@@ -93,7 +93,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "preprocess_translate";
+  static constexpr const char *type = "preprocess_translate";
 
 private:
   float epsilon;

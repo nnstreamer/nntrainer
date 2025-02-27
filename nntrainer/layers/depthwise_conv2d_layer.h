@@ -108,7 +108,7 @@ public:
   /*   unknown = 3, */
   /* }; */
 
-  inline static const std::string type = "depthwiseconv2d";
+  static constexpr const char *type = "depthwiseconv2d";
 
 private:
   std::array<unsigned int, DEPTHWISE_CONV2D_DIM * 2> padding;

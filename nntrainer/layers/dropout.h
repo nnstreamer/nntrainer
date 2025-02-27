@@ -87,7 +87,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "dropout";
+  static constexpr const char *type = "dropout";
 
 private:
   std::tuple<props::DropOutRate> dropout_rate;

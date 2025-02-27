@@ -109,7 +109,7 @@ public:
   void setBatch(nntrainer::RunLayerContext &context,
                 unsigned int batch) override;
 
-  inline static const std::string type = "fully_connected";
+  static constexpr const char *type = "fully_connected";
 
 private:
   float lora_scaling;

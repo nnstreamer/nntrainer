@@ -135,7 +135,7 @@ public:
     divide_props;
   bool support_backwarding; /**< support backwarding */
 
-  inline static const std::string type = "divide";
+  static constexpr const char *type = "divide";
 };
 
 } // namespace nntrainer

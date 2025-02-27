@@ -120,7 +120,7 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;
 
-  inline static const std::string type = "layer_normalization";
+  static constexpr const char *type = "layer_normalization";
 
 private:
   std::vector<unsigned int> normalize_axes; /**< normalize axes */

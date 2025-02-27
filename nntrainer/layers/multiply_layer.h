@@ -136,7 +136,7 @@ public:
     multiply_props;
   bool support_backwarding; /**< support backwarding */
 
-  inline static const std::string type = "multiply";
+  static constexpr const char *type = "multiply";
 };
 
 } // namespace nntrainer

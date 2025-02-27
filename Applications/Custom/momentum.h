@@ -78,7 +78,7 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "momentum";
+  static constexpr const char *type = "momentum";
 
 private:
   std::tuple<PropsM> momentum_props; /** momentum for grad */

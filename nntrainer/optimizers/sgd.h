@@ -54,7 +54,7 @@ public:
     return {};
   }
 
-  inline static const std::string type = "sgd";
+  static constexpr const char *type = "sgd";
 };
 } /* namespace nntrainer */
 

@@ -52,7 +52,7 @@ public:
    */
   const std::string getType() const override { return KLDLossLayer::type; }
 
-  inline static const std::string type = "kld";
+  static constexpr const char *type = "kld";
 };
 } // namespace nntrainer
 

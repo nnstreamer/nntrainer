@@ -310,7 +310,7 @@ public:
    */
   float getGradientNorm() const { return grad->l2norm(); }
 
-  inline static const std::string grad_suffix = ":grad";
+  static constexpr const char *grad_suffix = ":grad";
 
 protected:
   bool is_dependent; /**< check if the weight tensor is burrowed from somewhere
