@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include <bcq_tensor.h>
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <tensor.h>
 #include <util_func.h>
 

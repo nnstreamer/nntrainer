@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include <blas_interface.h>
+#include <cpu_backend.h>
 #include <short_tensor.h>
 #include <tensor.h>
 

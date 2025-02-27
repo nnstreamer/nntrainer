@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2023 Donghyeon Jeong <dhyeon.jeong@samsung.com>
+ *
+ * @file   avx2_impl.h
+ * @date   20 Feb 2024
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Donghyeon Jeong <dhyeon.jeong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is a header for AVX implementation
+ *
+ */
+
+#ifndef __AVX2_IMPL_H_
+#define __AVX2_IMPL_H_
+#ifdef __cplusplus
+
+namespace nntrainer::avx2 {
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Converts half-precision floating point values to single-precision
+ * floating point values.
+ *
+ * @param[in]  N number of elements in input vector
+ * @param[in]  input vector containing 16-bit floating point values
+ * @param[out] output vector containing single-precision floating point values.
+ */
+void vcvt_f16_f32(unsigned int N, const _Float16 *input, float *output);
+
+/**
+ * @brief  Converts single-precision floating point values to half-precision
+ * floating point values.
+ *
+ * @param[in]  N number of elements in input vector
+ * @param[in]  input vector containing single-precision floating point values
+ * @param[out] output vector containing 16-bit floating point values
+ */
+void vcvt_f32_f16(unsigned int N, const float *input, _Float16 *output);
+
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare (x!=x || x == inf)
+ * @param[in] N  length of the vector
+ * @param[in] X half-precision * for Vector X
+ * @param[out] false if it has NaN or inf
+ */
+bool is_valid(const unsigned int N, const _Float16 *X);
+#endif
+
+/**
+ * @brief     check if the X has NaN value
+ * @note it compare (x!=x || x == inf)
+ * @param[in] N  length of the vector
+ * @param[in] X float * for Vector X
+ * @param[out] false if it has NaN or inf
+ */
+bool is_valid(const unsigned int N, const float *X);
+
+/**
+ * @brief cblas_scopy occasionally emits SIGSEGV, so implement a custom version.
+ *
+ * @param N length of the vector
+ * @param X float * for Vector X (input)
+ * @param Y float * for Vector Y (output)
+ */
+void custom_scopy(const unsigned int N, const float *X, const int incX,
+                  float *Y, const int incY);
+
+} // namespace nntrainer::avx2
+
+#endif /* __cplusplus */
+#endif /* __BLAS_AVX_H_ */

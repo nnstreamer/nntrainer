@@ -9,7 +9,20 @@ endif
 
 NNTRAINER_ROOT := ../nntrainer
 
-NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/include/
+ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+	$(NNTRAINER_ROOT)/nntrainer/dataset \
+	$(NNTRAINER_ROOT)/nntrainer/models \
+	$(NNTRAINER_ROOT)/nntrainer/layers \
+	$(NNTRAINER_ROOT)/nntrainer/compiler \
+	$(NNTRAINER_ROOT)/nntrainer/graph \
+	$(NNTRAINER_ROOT)/nntrainer/optimizers \
+	$(NNTRAINER_ROOT)/nntrainer/tensor \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend \
+	$(NNTRAINER_ROOT)/nntrainer/utils \
+	$(NNTRAINER_ROOT)/api \
+	$(NNTRAINER_ROOT)/api/ccapi/include \
+	${ML_API_COMMON_INCLUDES}
 
 LOCAL_MODULE := nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/lib/$(TARGET_ARCH_ABI)/libnntrainer.so

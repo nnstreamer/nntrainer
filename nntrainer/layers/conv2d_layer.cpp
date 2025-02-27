@@ -16,8 +16,8 @@
 #include <limits>
 #include <string>
 
-#include <blas_interface.h>
 #include <conv2d_layer.h>
+#include <cpu_backend.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
 #include <nntr_threads.h>

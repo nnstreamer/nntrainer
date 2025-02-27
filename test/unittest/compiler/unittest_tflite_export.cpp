@@ -186,6 +186,7 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
               << "failed, reason: "
               << SAFE_STRERROR(errno, error_buf, error_buflen);
   }
+  delete[] nntr_input;
 }
 
 /**
@@ -318,6 +319,7 @@ TEST(nntrainerInterpreterTflite, part_of_resnet_0) {
               << "failed, reason: "
               << SAFE_STRERROR(errno, error_buf, error_buflen);
   }
+  delete[] nntr_input;
 }
 
 /**
