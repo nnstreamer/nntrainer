@@ -21,6 +21,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <util_func.h>
 
 #include <cifar_dataloader.h>
 
@@ -32,73 +33,47 @@ using UserDataType = std::unique_ptr<nntrainer::util::DataLoader>;
 float training_loss = 0.0;
 float validation_loss = 0.0;
 
-/**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
-
 std::vector<LayerHandle> createGraph() {
   using ml::train::createLayer;
 
   std::vector<LayerHandle> layers;
-  layers.push_back(createLayer(
-    "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")}));
-
-  layers.push_back(createLayer(
-    "conv2d", {withKey("name", "conv0"), withKey("filters", 64),
-               withKey("kernel_size", {3, 3}), withKey("stride", {1, 1}),
-               withKey("padding", "same"), withKey("bias_initializer", "zeros"),
-               withKey("weight_initializer", "xavier_uniform")}));
-
-  layers.push_back(createLayer(
-    "batch_normalization",
-    {withKey("name", "first_bn_relu"), withKey("activation", "relu"),
-     withKey("momentum", "0.9"), withKey("epsilon", "0.00001")}));
-
-  layers.push_back(createLayer(
-    "pooling2d", {withKey("name", "last_p1"), withKey("pooling", "average"),
-                  withKey("pool_size", {4, 4}), withKey("stride", "4,4")}));
-
-  layers.push_back(createLayer("flatten", {withKey("name", "last_f1")}));
   layers.push_back(
-    createLayer("fully_connected",
-                {withKey("unit", 100), withKey("activation", "softmax")}));
+    createLayer("input", {nntrainer::withKey("name", "input0"),
+                          nntrainer::withKey("input_shape", "3:32:32")}));
+
+  layers.push_back(createLayer(
+    "conv2d",
+    {nntrainer::withKey("name", "conv0"), nntrainer::withKey("filters", 64),
+     nntrainer::withKey("kernel_size", {3, 3}),
+     nntrainer::withKey("stride", {1, 1}),
+     nntrainer::withKey("padding", "same"),
+     nntrainer::withKey("bias_initializer", "zeros"),
+     nntrainer::withKey("weight_initializer", "xavier_uniform")}));
+
+  layers.push_back(createLayer("batch_normalization",
+                               {nntrainer::withKey("name", "first_bn_relu"),
+                                nntrainer::withKey("activation", "relu"),
+                                nntrainer::withKey("momentum", "0.9"),
+                                nntrainer::withKey("epsilon", "0.00001")}));
+
+  layers.push_back(
+    createLayer("pooling2d", {nntrainer::withKey("name", "last_p1"),
+                              nntrainer::withKey("pooling", "average"),
+                              nntrainer::withKey("pool_size", {4, 4}),
+                              nntrainer::withKey("stride", "4,4")}));
+
+  layers.push_back(
+    createLayer("flatten", {nntrainer::withKey("name", "last_f1")}));
+  layers.push_back(createLayer("fully_connected",
+                               {nntrainer::withKey("unit", 100),
+                                nntrainer::withKey("activation", "softmax")}));
 
   return layers;
 }
 
 ModelHandle createModel() {
-  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                             {withKey("loss", "mse")});
+  ModelHandle model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
   for (auto &layer : createGraph()) {
     model->addLayer(layer);
   }
@@ -124,9 +99,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &valid_user_data) {
   // setup model
   ModelHandle model = createModel();
-  model->setProperty({withKey("batch_size", batch_size),
-                      withKey("epochs", epochs),
-                      withKey("save_path", "mixed_model.bin")});
+  model->setProperty({nntrainer::withKey("batch_size", batch_size),
+                      nntrainer::withKey("epochs", epochs),
+                      nntrainer::withKey("save_path", "mixed_model.bin")});
 
 #ifdef ENABLE_FP16
   model->setProperty({"model_tensor_type=FP16-FP16"});

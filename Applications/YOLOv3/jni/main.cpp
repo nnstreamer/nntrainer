@@ -23,6 +23,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <util_func.h>
 
 #include <upsample_layer.h>
 #include <yolo_v3_loss.h>
@@ -72,40 +73,6 @@ std::array<UserDataType, 1> createDetDataGenerator(const char *train_dir,
 }
 
 /**
- * @brief make "key=value" from key and value
- *
- * @tparam T type of a value
- * @param key key
- * @param value value
- * @return std::string with "key=value"
- */
-template <typename T>
-static std::string withKey(const std::string &key, const T &value) {
-  std::stringstream ss;
-  ss << key << "=" << value;
-  return ss.str();
-}
-
-template <typename T>
-static std::string withKey(const std::string &key,
-                           std::initializer_list<T> value) {
-  if (std::empty(value)) {
-    throw std::invalid_argument("empty data cannot be converted");
-  }
-
-  std::stringstream ss;
-  ss << key << "=";
-
-  auto iter = value.begin();
-  for (; iter != value.end() - 1; ++iter) {
-    ss << *iter << ',';
-  }
-  ss << *iter;
-
-  return ss.str();
-}
-
-/**
  * @brief Convolution block
  *
  * @param block_name name of the block
@@ -127,28 +94,28 @@ std::vector<LayerHandle> convBlock(const std::string &block_name,
   };
 
   auto with_name = [&scoped_name](const std::string &layer_name) {
-    return withKey("name", scoped_name(layer_name));
+    return nntrainer::withKey("name", scoped_name(layer_name));
   };
 
   auto createConv = [&with_name, &kernel_size, &num_filters, &stride, &padding](
                       const std::string &name, const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
-      withKey("kernel_size", {kernel_size, kernel_size}),
-      withKey("filters", num_filters),
-      withKey("stride", {stride, stride}),
-      withKey("padding", padding),
-      withKey("disable_bias", "true"),
-      withKey("input_layers", input_layer)};
+      nntrainer::withKey("kernel_size", {kernel_size, kernel_size}),
+      nntrainer::withKey("filters", num_filters),
+      nntrainer::withKey("stride", {stride, stride}),
+      nntrainer::withKey("padding", padding),
+      nntrainer::withKey("disable_bias", "true"),
+      nntrainer::withKey("input_layers", input_layer)};
 
     return createLayer("conv2d", props);
   };
 
   LayerHandle conv = createConv("conv", input_layer);
-  LayerHandle bn_act =
-    createLayer("batch_normalization",
-                {withKey("name", block_name), withKey("momentum", "0.9"),
-                 withKey("activation", "leaky_relu")});
+  LayerHandle bn_act = createLayer(
+    "batch_normalization", {nntrainer::withKey("name", block_name),
+                            nntrainer::withKey("momentum", "0.9"),
+                            nntrainer::withKey("activation", "leaky_relu")});
   return {conv, bn_act};
 }
 
@@ -180,8 +147,9 @@ std::vector<LayerHandle> darknetBlock(const std::string &block_name,
     output_layer_name = (repeat - 1 != i) ? scoped_name("res", i) : block_name;
     blocks.push_back({createLayer(
       "addition",
-      {withKey("name", output_layer_name),
-       withKey("input_layers", input_layer + ", " + scoped_name("c2", i))})});
+      {nntrainer::withKey("name", output_layer_name),
+       nntrainer::withKey("input_layers",
+                          input_layer + ", " + scoped_name("c2", i))})});
     input_layer = scoped_name("res", i);
   }
 
@@ -204,10 +172,10 @@ std::vector<LayerHandle> Darknet53() {
   std::vector<LayerHandle> layers;
 
   layers.push_back(createLayer(
-    "input",
-    {withKey("name", "input0"),
-     withKey("input_shape", "3:" + std::to_string(IMAGE_HEIGHT_SIZE) + ":" +
-                              std::to_string(IMAGE_WIDTH_SIZE))}));
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape",
+                                 "3:" + std::to_string(IMAGE_HEIGHT_SIZE) +
+                                   ":" + std::to_string(IMAGE_WIDTH_SIZE))}));
 
   std::vector<std::vector<LayerHandle>> blocks;
   blocks.push_back(convBlock("conv1", "input0", 3, 32, 1, 1));
@@ -256,19 +224,19 @@ ModelHandle YOLOv3() {
 
   // connection for medium object
   neck3_2.push_back(convBlock("neck3_2_1", "fp3", 1, 256, 1, 0));
-  neck3_2.push_back(
-    {createLayer("upsample", {withKey("name", "neck3_2"),
-                              withKey("input_layers", "neck3_2_1")})});
+  neck3_2.push_back({createLayer(
+    "upsample", {nntrainer::withKey("name", "neck3_2"),
+                 nntrainer::withKey("input_layers", "neck3_2_1")})});
 
   for (auto &block : neck3_2) {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
   // feature pyramid for medium object
-  fp2.push_back(
-    {createLayer("concat", {withKey("name", "fp2_1"),
-                            withKey("input_layers", "neck3_2, block4"),
-                            withKey("axis", "1")})});
+  fp2.push_back({createLayer(
+    "concat", {nntrainer::withKey("name", "fp2_1"),
+               nntrainer::withKey("input_layers", "neck3_2, block4"),
+               nntrainer::withKey("axis", "1")})});
   fp2.push_back(convBlock("fp2_2", "fp2_1", 1, 256, 1, 0));
   fp2.push_back(convBlock("fp2_3", "fp2_2", 3, 512, 1, 1));
   fp2.push_back(convBlock("fp2_4", "fp2_3", 1, 256, 1, 0));
@@ -281,19 +249,19 @@ ModelHandle YOLOv3() {
 
   // connection for small object
   neck2_1.push_back(convBlock("neck2_1_1", "fp2", 1, 128, 1, 0));
-  neck2_1.push_back(
-    {createLayer("upsample", {withKey("name", "neck2_1"),
-                              withKey("input_layers", "neck2_1_1")})});
+  neck2_1.push_back({createLayer(
+    "upsample", {nntrainer::withKey("name", "neck2_1"),
+                 nntrainer::withKey("input_layers", "neck2_1_1")})});
 
   for (auto &block : neck2_1) {
     layers.insert(layers.end(), block.begin(), block.end());
   }
 
   // feature pyramid for small object
-  fp1.push_back(
-    {createLayer("concat", {withKey("name", "fp1_1"),
-                            withKey("input_layers", "neck2_1, block3"),
-                            withKey("axis", "1")})});
+  fp1.push_back({createLayer(
+    "concat", {nntrainer::withKey("name", "fp1_1"),
+               nntrainer::withKey("input_layers", "neck2_1, block3"),
+               nntrainer::withKey("axis", "1")})});
   fp1.push_back(convBlock("fp1_2", "fp1_1", 1, 128, 1, 0));
   fp1.push_back(convBlock("fp1_3", "fp1_2", 3, 256, 1, 1));
   fp1.push_back(convBlock("fp1_4", "fp1_3", 1, 128, 1, 0));
@@ -308,23 +276,26 @@ ModelHandle YOLOv3() {
   head3.push_back(convBlock("head3_1", "fp3", 3, 1024, 1, 1));
   head3.push_back(
     convBlock("head3", "head3_1", 1, 3 * (5 + CLASS_NUMBER), 1, 0));
-  head3.push_back({createLayer("permute", {
-                                            withKey("name", "h3_permute"),
-                                            withKey("direction", {2, 3, 1}),
-                                          })});
+  head3.push_back(
+    {createLayer("permute", {
+                              nntrainer::withKey("name", "h3_permute"),
+                              nntrainer::withKey("direction", {2, 3, 1}),
+                            })});
   head3.push_back({createLayer(
-    "reshape", {
-                 withKey("name", "h3_reshape"),
-                 withKey("target_shape", // grid : anchor : 5 + num_classes
+    "reshape",
+    {
+      nntrainer::withKey("name", "h3_reshape"),
+      nntrainer::withKey("target_shape", // grid : anchor : 5 + num_classes
                          std::to_string(13 * 13) + ":" + std::to_string(3) +
                            ":" + std::to_string(5 + CLASS_NUMBER)),
-               })});
+    })});
   head3.push_back({createLayer(
-    "yolo_v3_loss",
-    {withKey("name", "loss_for_large"),
-     withKey("max_object_number", MAX_OBJECT_NUMBER),
-     withKey("class_number", CLASS_NUMBER), withKey("grid_height_number", 13),
-     withKey("grid_width_number", 13), withKey("scale", 1)})});
+    "yolo_v3_loss", {nntrainer::withKey("name", "loss_for_large"),
+                     nntrainer::withKey("max_object_number", MAX_OBJECT_NUMBER),
+                     nntrainer::withKey("class_number", CLASS_NUMBER),
+                     nntrainer::withKey("grid_height_number", 13),
+                     nntrainer::withKey("grid_width_number", 13),
+                     nntrainer::withKey("scale", 1)})});
 
   for (auto &block : head3) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -334,23 +305,26 @@ ModelHandle YOLOv3() {
   head2.push_back(convBlock("head2_1", "fp2", 3, 512, 1, 1));
   head2.push_back(
     convBlock("head2", "head2_1", 1, 3 * (5 + CLASS_NUMBER), 1, 0));
-  head2.push_back({createLayer("permute", {
-                                            withKey("name", "h2_permute"),
-                                            withKey("direction", {2, 3, 1}),
-                                          })});
+  head2.push_back(
+    {createLayer("permute", {
+                              nntrainer::withKey("name", "h2_permute"),
+                              nntrainer::withKey("direction", {2, 3, 1}),
+                            })});
   head2.push_back({createLayer(
-    "reshape", {
-                 withKey("name", "h2_reshape"),
-                 withKey("target_shape", // grid : anchor : 5 + num_classes
+    "reshape",
+    {
+      nntrainer::withKey("name", "h2_reshape"),
+      nntrainer::withKey("target_shape", // grid : anchor : 5 + num_classes
                          std::to_string(26 * 26) + ":" + std::to_string(3) +
                            ":" + std::to_string(5 + CLASS_NUMBER)),
-               })});
+    })});
   head2.push_back({createLayer(
-    "yolo_v3_loss",
-    {withKey("name", "loss_for_medium"),
-     withKey("max_object_number", MAX_OBJECT_NUMBER),
-     withKey("class_number", CLASS_NUMBER), withKey("grid_height_number", 26),
-     withKey("grid_width_number", 26), withKey("scale", 2)})});
+    "yolo_v3_loss", {nntrainer::withKey("name", "loss_for_medium"),
+                     nntrainer::withKey("max_object_number", MAX_OBJECT_NUMBER),
+                     nntrainer::withKey("class_number", CLASS_NUMBER),
+                     nntrainer::withKey("grid_height_number", 26),
+                     nntrainer::withKey("grid_width_number", 26),
+                     nntrainer::withKey("scale", 2)})});
 
   for (auto &block : head2) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -360,23 +334,26 @@ ModelHandle YOLOv3() {
   head1.push_back(convBlock("head1_1", "fp1", 3, 256, 1, 1));
   head1.push_back(
     convBlock("head1", "head1_1", 1, 3 * (5 + CLASS_NUMBER), 1, 0));
-  head1.push_back({createLayer("permute", {
-                                            withKey("name", "h1_permute"),
-                                            withKey("direction", {2, 3, 1}),
-                                          })});
+  head1.push_back(
+    {createLayer("permute", {
+                              nntrainer::withKey("name", "h1_permute"),
+                              nntrainer::withKey("direction", {2, 3, 1}),
+                            })});
   head1.push_back({createLayer(
-    "reshape", {
-                 withKey("name", "h1_reshape"),
-                 withKey("target_shape", // grid : anchor : 5 + num_classes
+    "reshape",
+    {
+      nntrainer::withKey("name", "h1_reshape"),
+      nntrainer::withKey("target_shape", // grid : anchor : 5 + num_classes
                          std::to_string(52 * 52) + ":" + std::to_string(3) +
                            ":" + std::to_string(5 + CLASS_NUMBER)),
-               })});
+    })});
   head1.push_back({createLayer(
-    "yolo_v3_loss",
-    {withKey("name", "loss_for_small"),
-     withKey("max_object_number", MAX_OBJECT_NUMBER),
-     withKey("class_number", CLASS_NUMBER), withKey("grid_height_number", 52),
-     withKey("grid_width_number", 52), withKey("scale", 3)})});
+    "yolo_v3_loss", {nntrainer::withKey("name", "loss_for_small"),
+                     nntrainer::withKey("max_object_number", MAX_OBJECT_NUMBER),
+                     nntrainer::withKey("class_number", CLASS_NUMBER),
+                     nntrainer::withKey("grid_height_number", 52),
+                     nntrainer::withKey("grid_width_number", 52),
+                     nntrainer::withKey("scale", 3)})});
 
   for (auto &block : head1) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -423,9 +400,9 @@ int main(int argc, char *argv[]) {
   try {
     // create YOLOv3 model
     ModelHandle model = YOLOv3();
-    model->setProperty({withKey("batch_size", BATCH_SIZE),
-                        withKey("epochs", EPOCHS),
-                        withKey("save_path", "darknet53.bin")});
+    model->setProperty({nntrainer::withKey("batch_size", BATCH_SIZE),
+                        nntrainer::withKey("epochs", EPOCHS),
+                        nntrainer::withKey("save_path", "darknet53.bin")});
 
     // create optimizer
     auto optimizer = ml::train::createOptimizer(
