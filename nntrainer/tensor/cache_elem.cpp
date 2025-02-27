@@ -54,7 +54,7 @@ void CacheElem::swapIn(Options opt) {
 
   opt = static_cast<Options>(opt | initial_opt);
   bool alloc_only = checkAllocOnly(policy, opt);
-  void *buf = device->getBuffer(offset, length, alloc_only);
+  void *buf = device->getBuffer(offset, length, memory_ptr, alloc_only);
 
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_ACCESS);
   mem_data->setAddr((void *)buf);
@@ -75,6 +75,11 @@ void CacheElem::swapOut(Options opt) {
   void *buf = (void *)mem_data->getAddr();
 
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_WRITE);
+  // auto is_unmapped = device->address_unmapped(buf);
+  // if (is_unmapped == false) {
+  //   device->putBuffer(buf, dealloc_only);
+  //   device->set_unmapped(buf);
+  // }
   device->putBuffer(buf, dealloc_only);
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);

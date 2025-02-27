@@ -96,10 +96,12 @@ std::atomic_int pool_id = 0;
 
 CachePool::CachePool(const std::string &n) :
   name(n),
+  execution_mode_(ml::train::ExecutionMode::TRAIN),
   swap_device(std::make_shared<SwapDevice>(n + "_" + std::to_string(getpid()) +
                                            "_" + std::to_string(pool_id++))) {}
 
-CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
+CachePool::CachePool(const std::string &path, const std::string &n) :
+  name(n), execution_mode_(ml::train::ExecutionMode::TRAIN) {
   if (path.empty())
     swap_device = std::make_shared<SwapDevice>(
       n + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
@@ -107,6 +109,18 @@ CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
     swap_device =
       std::make_shared<SwapDevice>(path, n + "_" + std::to_string(getpid()) +
                                            "_" + std::to_string(pool_id++));
+}
+
+CachePool::CachePool(const std::string &path, const std::string &name_,
+                     ml::train::ExecutionMode exec_mode_) :
+  name(name_), execution_mode_(exec_mode_) {
+  if (path.empty())
+    swap_device = std::make_shared<SwapDevice>(
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
+  else
+    swap_device = std::make_shared<SwapDevice>(
+      path,
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
 }
 
 CachePool::~CachePool() {
@@ -125,8 +139,12 @@ void CachePool::allocate() {
 
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
-
-  swap_device->start(pool_size);
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    MemoryPool::allocate();
+    swap_device->start(size(), false);
+  } else {
+    swap_device->start(size(), true);
+  }
 }
 
 void CachePool::deallocate() {
@@ -182,8 +200,10 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
-  auto elem =
-    std::make_shared<CacheElem>(swap_device, id, offset, len, mem_data, policy);
+  auto mem_pool_address = getMemoryPoolAddress();
+  void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
+  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
+                                          mem_data, policy, memory_ptr);
   elems[id] = elem;
 
   std::string ords;
