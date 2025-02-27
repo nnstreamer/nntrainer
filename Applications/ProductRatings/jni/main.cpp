@@ -148,125 +148,129 @@ int main(int argc, char *argv[]) {
   }
 
   std::string weight_path = "product_ratings_model.bin";
-
-  const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string config = args[1];
-  data_file = args[2];
-
-  if (!args[0].compare("train"))
-    training = true;
-
-  train_idxes.resize(total_train_data_size);
-  std::iota(train_idxes.begin(), train_idxes.end(), 0);
-  rng.seed(SEED);
-
-  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
-    dataset_train =
-      createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
-    dataset_val =
-      createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
-  } catch (std::exception &e) {
-    std::cerr << "Error creating dataset " << e.what() << std::endl;
-    return 1;
-  }
+    const std::vector<std::string> args(argv + 1, argv + argc);
+    std::string config = args[1];
+    data_file = args[2];
 
-  /**
-   * @brief     Create NN
-   */
-  nntrainer::NeuralNetwork NN;
-  /**
-   * @brief     Initialize NN with configuration file path
-   */
+    if (!args[0].compare("train"))
+      training = true;
 
-  try {
-    auto status = NN.loadFromConfig(config);
-    if (status != 0) {
-      std::cerr << "Error during loading" << std::endl;
-      return 1;
-    }
+    train_idxes.resize(total_train_data_size);
+    std::iota(train_idxes.begin(), train_idxes.end(), 0);
+    rng.seed(SEED);
 
-    status = NN.compile();
-    if (status != 0) {
-      std::cerr << "Error during compile" << std::endl;
-      return 1;
-    }
-    status = NN.initialize();
-    if (status != 0) {
-      std::cerr << "Error during initialize" << std::endl;
-      return 1;
-    }
-
-    std::cout << "Input dimension: " << NN.getInputDimension()[0];
-
-  } catch (std::exception &e) {
-    std::cerr << "Unexpected Error during init " << e.what() << std::endl;
-    return 1;
-  }
-
-  if (training) {
+    std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
     try {
-      NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
-      NN.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
+      dataset_train =
+        createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
+      dataset_val =
+        createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
     } catch (std::exception &e) {
-      std::cerr << "Unexpected error during setting dataset " << e.what()
+      std::cerr << "Error creating dataset " << e.what() << std::endl;
+      return 1;
+    }
+
+    /**
+     * @brief     Create NN
+     */
+    nntrainer::NeuralNetwork NN;
+    /**
+     * @brief     Initialize NN with configuration file path
+     */
+
+    try {
+      auto status = NN.loadFromConfig(config);
+      if (status != 0) {
+        std::cerr << "Error during loading" << std::endl;
+        return 1;
+      }
+
+      status = NN.compile();
+      if (status != 0) {
+        std::cerr << "Error during compile" << std::endl;
+        return 1;
+      }
+      status = NN.initialize();
+      if (status != 0) {
+        std::cerr << "Error during initialize" << std::endl;
+        return 1;
+      }
+
+      std::cout << "Input dimension: " << NN.getInputDimension()[0];
+
+    } catch (std::exception &e) {
+      std::cerr << "Unexpected Error during init " << e.what() << std::endl;
+      return 1;
+    }
+
+    if (training) {
+      try {
+        NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+        NN.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
+      } catch (std::exception &e) {
+        std::cerr << "Unexpected error during setting dataset " << e.what()
+                  << std::endl;
+      }
+
+      try {
+        NN.train({"batch_size=" + std::to_string(batch_size)});
+      } catch (std::exception &e) {
+        std::cerr << "Error during train " << e.what() << std::endl;
+        return 1;
+      }
+
+      try {
+        /****** testing with a golden data if any ********/
+        nntrainer::Tensor golden(1, 1, 15, 8);
+
+        loadFile("embedding_weight_golden.out", golden);
+        golden.print(std::cout);
+
+        nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
+        loadFile("fc_weight_golden.out", weight_out_fc);
+        weight_out_fc.print(std::cout);
+      } catch (...) {
+        std::cerr << "Warning: during loading golden data\n";
+      }
+    } else {
+      try {
+        NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+      } catch (std::exception &e) {
+        std::cerr << "Error during loading weights: " << e.what() << "\n";
+        return 1;
+      }
+      std::ifstream dataFile(data_file);
+      int cn = 0;
+      try {
+        for (unsigned int j = 0; j < total_val_data_size; ++j) {
+          nntrainer::Tensor d;
+          std::vector<float> o;
+          std::vector<float> l;
+          o.resize(feature_size);
+          l.resize(1);
+
+          getData(dataFile, o.data(), l.data(), j);
+
+          float answer = NN.inference({MAKE_SHARED_TENSOR(
+            nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
+                           ->apply<float>(stepFunction)
+                           .getValue(0, 0, 0, 0);
+
+          std::cout << answer << " : " << l[0] << std::endl;
+          cn += answer == l[0];
+        }
+      } catch (...) {
+        std::cerr << "Error during forwarding the model" << std::endl;
+        return 1;
+      }
+      std::cout << "[ Accuracy ] : "
+                << ((float)(cn) / total_val_data_size) * 100.0 << "%"
                 << std::endl;
     }
-
-    try {
-      NN.train({"batch_size=" + std::to_string(batch_size)});
-    } catch (std::exception &e) {
-      std::cerr << "Error during train " << e.what() << std::endl;
-      return 1;
-    }
-
-    try {
-      /****** testing with a golden data if any ********/
-      nntrainer::Tensor golden(1, 1, 15, 8);
-
-      loadFile("embedding_weight_golden.out", golden);
-      golden.print(std::cout);
-
-      nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
-      loadFile("fc_weight_golden.out", weight_out_fc);
-      weight_out_fc.print(std::cout);
-    } catch (...) {
-      std::cerr << "Warning: during loading golden data\n";
-    }
-  } else {
-    try {
-      NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    } catch (std::exception &e) {
-      std::cerr << "Error during loading weights: " << e.what() << "\n";
-      return 1;
-    }
-    std::ifstream dataFile(data_file);
-    int cn = 0;
-    try {
-      for (unsigned int j = 0; j < total_val_data_size; ++j) {
-        nntrainer::Tensor d;
-        std::vector<float> o;
-        std::vector<float> l;
-        o.resize(feature_size);
-        l.resize(1);
-
-        getData(dataFile, o.data(), l.data(), j);
-
-        float answer = NN.inference({MAKE_SHARED_TENSOR(
-          nntrainer::Tensor({o}, nntrainer::TensorDim::TensorType()))})[0]
-                         ->apply<float>(stepFunction)
-                         .getValue(0, 0, 0, 0);
-
-        std::cout << answer << " : " << l[0] << std::endl;
-        cn += answer == l[0];
-      }
-    } catch (...) {
-      std::cerr << "Error during forwarding the model" << std::endl;
-      return 1;
-    }
-    std::cout << "[ Accuracy ] : "
-              << ((float)(cn) / total_val_data_size) * 100.0 << "%"
-              << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Unpected error occured, detailed: " << e.what() << std::endl;
+    return 1;
   }
 
   /**
