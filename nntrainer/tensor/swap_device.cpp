@@ -55,8 +55,8 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
 
 #ifdef USE_MMAP
   // page aligned
-  off_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-  int diff = offset - off;
+  size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+  size_t diff = offset - off;
   size_t len = size + diff;
 
   char *ptr = static_cast<char *>(
