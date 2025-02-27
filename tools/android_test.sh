@@ -6,21 +6,22 @@
 ./tools/package_android.sh
 
 # You can modify test/jni/Android.mk to choose module that you wish to build
-cd test/jni
+pushd test/jni
 
 if [ ! -d $ANDROID_NDK ]; then
   echo "Error: ANDROID_NDK not found."
   exit 1
 fi
 
-ndk-build
+ndk-build -j$(nproc)
 
 if [ $? != 0 ]; then
   echo "ndk-build failed"
   exit 1
 fi
 
-cd ../libs/arm64-v8a
+popd
+pushd test/libs/arm64-v8a
 
 adb root
 
@@ -44,7 +45,7 @@ fi
 
 # $ meson build [flags...]
 # meson build will unzip golden data for the unit tests
-cd ../../../
+popd
 if [ ! -d build ]; then
   meson build -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Denable-neon=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false
 else
