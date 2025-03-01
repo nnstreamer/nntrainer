@@ -376,20 +376,17 @@ void ConcatLayerCl::incremental_forwarding(RunLayerContext &context,
 
 void ConcatLayerCl::ConcatProcess(Tensor const &in1, Tensor const &in2,
                                   Tensor &result) {
-
-  unsigned int input1_batch_size, input1_height, input1_width, input1_channels,
-    input2_batch_size, input2_height, input2_width, input2_channels;
-
   auto dim1 = in1.getDim();
   auto dim2 = in2.getDim();
-  input1_batch_size = dim1.batch();
-  input1_height = dim1.height();
-  input1_channels = dim1.channel();
-  input1_width = dim1.width();
-  input2_batch_size = dim2.batch();
-  input2_height = dim2.height();
-  input2_channels = dim2.channel();
-  input2_width = dim2.width();
+
+  unsigned int input1_batch_size = dim1.batch();
+  unsigned int input1_height = dim1.height();
+  unsigned int input1_channels = dim1.channel();
+  unsigned int input1_width = dim1.width();
+  unsigned int input2_batch_size = dim2.batch();
+  unsigned int input2_height = dim2.height();
+  unsigned int input2_channels = dim2.channel();
+  unsigned int input2_width = dim2.width();
 
   if (in1.getDataType() == ml::train::TensorDim::DataType::FP32) {
     const float *data1 = in1.getData();
