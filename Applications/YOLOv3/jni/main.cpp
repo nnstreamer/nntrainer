@@ -391,77 +391,83 @@ ModelHandle YOLOv3() {
 }
 
 int main(int argc, char *argv[]) {
-  // print start time
-  auto start = std::chrono::system_clock::now();
-  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
-  std::cout << "started computation at " << std::ctime(&start_time)
-            << std::endl;
-
-  // set training config and print it
-  std::cout << "batch_size: " << BATCH_SIZE << " epochs: " << EPOCHS
-            << std::endl;
-
   try {
-    auto &app_context = nntrainer::AppContext::Global();
-    app_context.registerFactory(nntrainer::createLayer<custom::UpsampleLayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register factory, reason: " << e.what()
+    // print start time
+    auto start = std::chrono::system_clock::now();
+    std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+    std::cout << "started computation at " << std::ctime(&start_time)
               << std::endl;
-    return 1;
-  }
 
-  try {
-    auto &app_context = nntrainer::AppContext::Global();
-    app_context.registerFactory(
-      nntrainer::createLayer<custom::YoloV3LossLayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register yolov3 loss, reason: " << e.what()
+    // set training config and print it
+    std::cout << "batch_size: " << BATCH_SIZE << " epochs: " << EPOCHS
               << std::endl;
-    return 1;
-  }
 
-  try {
-    // create YOLOv3 model
-    ModelHandle model = YOLOv3();
-    model->setProperty({withKey("batch_size", BATCH_SIZE),
-                        withKey("epochs", EPOCHS),
-                        withKey("save_path", "darknet53.bin")});
+    try {
+      auto &app_context = nntrainer::AppContext::Global();
+      app_context.registerFactory(
+        nntrainer::createLayer<custom::UpsampleLayer>);
+    } catch (std::exception &e) {
+      std::cerr << "failed to register factory, reason: " << e.what()
+                << std::endl;
+      return 1;
+    }
 
-    // create optimizer
-    auto optimizer = ml::train::createOptimizer(
-      "adam", {"learning_rate=0.000001", "epsilon=1e-8", "torch_ref=true"});
-    model->setOptimizer(std::move(optimizer));
+    try {
+      auto &app_context = nntrainer::AppContext::Global();
+      app_context.registerFactory(
+        nntrainer::createLayer<custom::YoloV3LossLayer>);
+    } catch (std::exception &e) {
+      std::cerr << "failed to register yolov3 loss, reason: " << e.what()
+                << std::endl;
+      return 1;
+    }
 
-    // compile and initialize model
-    model->compile();
-    model->initialize();
+    try {
+      // create YOLOv3 model
+      ModelHandle model = YOLOv3();
+      model->setProperty({withKey("batch_size", BATCH_SIZE),
+                          withKey("epochs", EPOCHS),
+                          withKey("save_path", "darknet53.bin")});
 
-    model->summarize(std::cout,
-                     ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
+      // create optimizer
+      auto optimizer = ml::train::createOptimizer(
+        "adam", {"learning_rate=0.000001", "epsilon=1e-8", "torch_ref=true"});
+      model->setOptimizer(std::move(optimizer));
 
-    // create train and validation data
-    std::array<UserDataType, 1> user_datas;
-    user_datas = createDetDataGenerator(TRAIN_DIR_PATH, MAX_OBJECT_NUMBER, 3,
-                                        IMAGE_HEIGHT_SIZE, IMAGE_WIDTH_SIZE);
-    auto &[train_user_data] = user_datas;
+      // compile and initialize model
+      model->compile();
+      model->initialize();
 
-    auto dataset_train = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+      model->summarize(std::cout,
+                       ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
 
-    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
-                      std::move(dataset_train));
+      // create train and validation data
+      std::array<UserDataType, 1> user_datas;
+      user_datas = createDetDataGenerator(TRAIN_DIR_PATH, MAX_OBJECT_NUMBER, 3,
+                                          IMAGE_HEIGHT_SIZE, IMAGE_WIDTH_SIZE);
+      auto &[train_user_data] = user_datas;
 
-    model->train();
+      auto dataset_train = ml::train::createDataset(
+        ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+
+      model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
+                        std::move(dataset_train));
+
+      model->train();
+    } catch (const std::exception &e) {
+      std::cerr << "uncaught error while running! details: " << e.what()
+                << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    // print end time and duration
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    std::cout << "finished computation at " << std::ctime(&end_time)
+              << "elapsed time: " << elapsed_seconds.count() << "s\n";
   } catch (const std::exception &e) {
-    std::cerr << "uncaught error while running! details: " << e.what()
-              << std::endl;
-    return EXIT_FAILURE;
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
+    return 1;
   }
-
-  // print end time and duration
-  auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-  std::cout << "finished computation at " << std::ctime(&end_time)
-            << "elapsed time: " << elapsed_seconds.count() << "s\n";
 }

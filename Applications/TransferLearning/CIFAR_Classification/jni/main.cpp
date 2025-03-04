@@ -365,117 +365,123 @@ bool read(std::vector<std::vector<float>> &inVec,
  * @param[in]  arg 2 : resource path
  */
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    std::cout << "./nntrainer_classification Config.ini resources\n";
-    exit(0);
-  }
-  const vector<string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-  data_path = args[1] + '/';
-
-  /// @todo add api version of this
   try {
-    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "setting data_path failed, pwd is used instead";
-  }
+    if (argc < 3) {
+      std::cout << "./nntrainer_classification Config.ini resources\n";
+      exit(0);
+    }
+    const vector<string> args(argv + 1, argv + argc);
+    std::string config = args[0];
+    data_path = args[1] + '/';
 
-  seed = time(NULL);
-  srand(seed);
-
-  std::vector<std::vector<float>> inputVector, outputVector;
-  std::vector<std::vector<float>> inputValVector, outputValVector;
-  std::vector<std::vector<float>> inputTestVector, outputTestVector;
-
-  if (!read(inputVector, outputVector, "training")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "trainingSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
+    /// @todo add api version of this
     try {
-      ExtractFeatures(data_path, inputVector, outputVector, "training", f);
+      nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+    } catch (std::invalid_argument &e) {
+      std::cerr << "setting data_path failed, pwd is used instead";
+    }
+
+    seed = time(NULL);
+    srand(seed);
+
+    std::vector<std::vector<float>> inputVector, outputVector;
+    std::vector<std::vector<float>> inputValVector, outputValVector;
+    std::vector<std::vector<float>> inputTestVector, outputTestVector;
+
+    if (!read(inputVector, outputVector, "training")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "trainingSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+      try {
+        ExtractFeatures(data_path, inputVector, outputVector, "training", f);
+      } catch (...) {
+        std::cerr << "Error during open file: " << filename << std::endl;
+        return 1;
+      }
+      f.close();
+    }
+
+    if (!read(inputValVector, outputValVector, "val")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "valSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+      try {
+        ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
+      } catch (...) {
+        std::cerr << "Error during open file: " << filename << std::endl;
+        return 1;
+      }
+      f.close();
+    }
+
+    if (!read(inputTestVector, outputTestVector, "test")) {
+      /**
+       * @brief     Extract Feature
+       */
+      std::string filename = data_path + "testSet.dat";
+      std::ofstream f(filename, std::ios::out | std::ios::binary);
+      try {
+        ExtractFeatures(data_path, inputTestVector, outputTestVector, "test",
+                        f);
+      } catch (...) {
+        std::cerr << "Error during open file: " << filename << std::endl;
+        return 1;
+      }
+      f.close();
+    }
+
+    /**
+     * @brief     Neural Network Create & Initialization
+     */
+    nntrainer::NeuralNetwork NN;
+    int status = ML_ERROR_NONE;
+    try {
+      NN.load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
+      // NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+
+      status = NN.compile();
+      if (status != ML_ERROR_NONE)
+        return status;
+
+      status = NN.initialize();
+      if (status != ML_ERROR_NONE)
+        return status;
     } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
+      std::cerr << "Error during init" << std::endl;
       return 1;
     }
-    f.close();
-  }
 
-  if (!read(inputValVector, outputValVector, "val")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "valSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
     try {
-      ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
+      NN.train();
     } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
+      std::cerr << "Error during train" << std::endl;
       return 1;
     }
-    f.close();
-  }
 
-  if (!read(inputTestVector, outputTestVector, "test")) {
-    /**
-     * @brief     Extract Feature
-     */
-    std::string filename = data_path + "testSet.dat";
-    std::ofstream f(filename, std::ios::out | std::ios::binary);
-    try {
-      ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
-    } catch (...) {
-      std::cerr << "Error during open file: " << filename << std::endl;
-      return 1;
+    if (!TRAINING) {
+      std::string img = data_path;
+      std::vector<float> featureVector, resultVector;
+      featureVector.resize(feature_size);
+      getFeature(img, featureVector);
+
+      nntrainer::Tensor X;
+      try {
+        X = nntrainer::Tensor({featureVector}, {nntrainer::Tformat::NCHW,
+                                                nntrainer::Tdatatype::FP32});
+        NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply<float>(stepFunction);
+      } catch (...) {
+        std::cerr << "Error while forwarding the model" << std::endl;
+        return 1;
+      }
     }
-    f.close();
-  }
 
-  /**
-   * @brief     Neural Network Create & Initialization
-   */
-  nntrainer::NeuralNetwork NN;
-  int status = ML_ERROR_NONE;
-  try {
-    NN.load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
-    // NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-
-    status = NN.compile();
-    if (status != ML_ERROR_NONE)
-      return status;
-
-    status = NN.initialize();
-    if (status != ML_ERROR_NONE)
-      return status;
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
+    return 0;
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
     return 1;
   }
-
-  try {
-    NN.train();
-  } catch (...) {
-    std::cerr << "Error during train" << std::endl;
-    return 1;
-  }
-
-  if (!TRAINING) {
-    std::string img = data_path;
-    std::vector<float> featureVector, resultVector;
-    featureVector.resize(feature_size);
-    getFeature(img, featureVector);
-
-    nntrainer::Tensor X;
-    try {
-      X = nntrainer::Tensor({featureVector}, {nntrainer::Tformat::NCHW,
-                                              nntrainer::Tdatatype::FP32});
-      NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply<float>(stepFunction);
-    } catch (...) {
-      std::cerr << "Error while forwarding the model" << std::endl;
-      return 1;
-    }
-  }
-
-  return 0;
 }

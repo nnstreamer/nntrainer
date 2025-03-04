@@ -710,52 +710,57 @@ std::wstring decodeUnicodeEscape(const std::wstring &input) {
 }
 #endif
 int main(int argc, char *argv[]) {
-  // Setting locale
-  std::locale::global(std::locale("ko_KR.UTF-8"));
+  try {
+    // Setting locale
+    std::locale::global(std::locale("ko_KR.UTF-8"));
 
 #if defined(ENABLE_ENCODER)
-  // Getting arguments From terminal
-  std::wstring input;
-  std::getline(std::wcin, input);
-  std::wstring test = decodeUnicodeEscape(input);
-  std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
-  std::string text = converter.to_bytes(test);
+    // Getting arguments From terminal
+    std::wstring input;
+    std::getline(std::wcin, input);
+    std::wstring test = decodeUnicodeEscape(input);
+    std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
+    std::string text = converter.to_bytes(test);
 #else
-  std::string text = "This is smaple input for LLaMA.";
+    std::string text = "This is sample input for LLaMA.";
 #endif
 
-  auto &app_context = nntrainer::AppContext::Global();
-  try {
-    app_context.registerFactory(nntrainer::createLayer<custom::SwiGLULayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register factory, reason: " << e.what()
-              << std::endl;
-    return 1;
-  }
+    auto &app_context = nntrainer::AppContext::Global();
+    try {
+      app_context.registerFactory(nntrainer::createLayer<custom::SwiGLULayer>);
+    } catch (std::exception &e) {
+      std::cerr << "failed to register factory, reason: " << e.what()
+                << std::endl;
+      return 1;
+    }
 
-  try {
-    app_context.registerFactory(nntrainer::createLayer<custom::RMSNormLayer>);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "failed to register factory, reason: " << e.what()
-              << std::endl;
-    return 1;
-  }
+    try {
+      app_context.registerFactory(nntrainer::createLayer<custom::RMSNormLayer>);
+    } catch (std::exception &e) {
+      std::cerr << "failed to register factory, reason: " << e.what()
+                << std::endl;
+      return 1;
+    }
 
-  try {
-    const std::vector<std::string> args(argv + 1, argv + argc);
+    try {
+      const std::vector<std::string> args(argv + 1, argv + argc);
 
-    bool apply_temp = (strcasecmp("true", args[1].c_str()) == 0);
+      bool apply_temp = (strcasecmp("true", args[1].c_str()) == 0);
 
-    createAndRun(epoch, batch_size);
+      createAndRun(epoch, batch_size);
 
-    run(text, apply_temp);
+      run(text, apply_temp);
 
+    } catch (const std::exception &e) {
+      std::cerr << "uncaught error while running! details: " << e.what()
+                << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    int status = EXIT_SUCCESS;
+    return status;
   } catch (const std::exception &e) {
-    std::cerr << "uncaught error while running! details: " << e.what()
-              << std::endl;
-    return EXIT_FAILURE;
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
+    return 1;
   }
-
-  int status = EXIT_SUCCESS;
-  return status;
 }

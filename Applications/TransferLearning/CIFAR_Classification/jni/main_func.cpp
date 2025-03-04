@@ -244,78 +244,86 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
  * @param[in]  arg 2 : resource path
  */
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    std::cout << "./nntrainer_classification Config.ini resources\n";
-    exit(0);
-  }
-  const vector<string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-  data_path = args[1] + "/";
-
-  /// @todo add api version of this
   try {
-    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
-  } catch (std::invalid_argument &e) {
-    std::cerr << "setting data_path failed, pwd is used instead";
-  }
+    if (argc < 3) {
+      std::cout << "./nntrainer_classification Config.ini resources\n";
+      exit(0);
+    }
+    const vector<string> args(argv + 1, argv + argc);
+    std::string config = args[0];
+    data_path = args[1] + "/";
 
-  srand(SEED);
-  std::vector<std::vector<float>> inputVector, outputVector;
-  std::vector<std::vector<float>> inputValVector, outputValVector;
-  std::vector<std::vector<float>> inputTestVector, outputTestVector;
+    /// @todo add api version of this
+    try {
+      nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+    } catch (std::exception &e) {
+      std::cerr << "setting data_path failed, pwd is used instead. details: "
+                << e.what() << "\n";
+      return 1;
+    }
 
-  /* This is to check duplication of data */
-  memset(duplicate, 0, sizeof(bool) * total_label_size * total_train_data_size);
-  memset(valduplicate, 0,
-         sizeof(bool) * total_label_size * total_val_data_size);
+    srand(SEED);
+    std::vector<std::vector<float>> inputVector, outputVector;
+    std::vector<std::vector<float>> inputValVector, outputValVector;
+    std::vector<std::vector<float>> inputTestVector, outputTestVector;
 
-  /**
-   * @brief     Data buffer Create & Initialization
-   */
-  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
-  try {
-    dataset_train =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
-    dataset_val =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_val);
-  } catch (...) {
-    std::cerr << "Error creating dataset" << std::endl;
+    /* This is to check duplication of data */
+    memset(duplicate, 0,
+           sizeof(bool) * total_label_size * total_train_data_size);
+    memset(valduplicate, 0,
+           sizeof(bool) * total_label_size * total_val_data_size);
+
+    /**
+     * @brief     Data buffer Create & Initialization
+     */
+    std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
+    try {
+      dataset_train =
+        createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+      dataset_val =
+        createDataset(ml::train::DatasetType::GENERATOR, getBatch_val);
+    } catch (...) {
+      std::cerr << "Error creating dataset" << std::endl;
+      return 1;
+    }
+
+    std::unique_ptr<ml::train::Model> model;
+    /**
+     * @brief     Neural Network Create & Initialization
+     */
+    try {
+      model = createModel(ml::train::ModelType::NEURAL_NET);
+      model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
+    } catch (...) {
+      std::cerr << "Error during loadFromConfig" << std::endl;
+      return 1;
+    }
+    try {
+      model->compile();
+      model->initialize();
+    } catch (...) {
+      std::cerr << "Error during init" << std::endl;
+      return 1;
+    }
+    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+    model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
+
+    /**
+     * @brief     Neural Network Train & validation
+     */
+    try {
+      model->train();
+    } catch (...) {
+      std::cerr << "Error during train" << std::endl;
+      return 1;
+    }
+
+    /**
+     * @brief     Finalize NN
+     */
+    return 0;
+  } catch (const std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what() << "\n";
     return 1;
   }
-
-  std::unique_ptr<ml::train::Model> model;
-  /**
-   * @brief     Neural Network Create & Initialization
-   */
-  try {
-    model = createModel(ml::train::ModelType::NEURAL_NET);
-    model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
-  } catch (...) {
-    std::cerr << "Error during loadFromConfig" << std::endl;
-    return 1;
-  }
-  try {
-    model->compile();
-    model->initialize();
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
-    return 1;
-  }
-  model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
-  model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
-
-  /**
-   * @brief     Neural Network Train & validation
-   */
-  try {
-    model->train();
-  } catch (...) {
-    std::cerr << "Error during train" << std::endl;
-    return 1;
-  }
-
-  /**
-   * @brief     Finalize NN
-   */
-  return 0;
 }

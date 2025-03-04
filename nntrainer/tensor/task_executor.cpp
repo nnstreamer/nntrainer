@@ -18,6 +18,7 @@
 #include <chrono>
 #include <exception>
 #include <future>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <tuple>
@@ -54,8 +55,13 @@ TaskExecutor::TaskExecutor(const std::string &n) :
 
 TaskExecutor::~TaskExecutor() {
   run_thread = false;
-
-  task_thread.join();
+  try {
+    task_thread.join();
+  } catch (const std::exception &e) {
+    std::cerr << "An unexpected exception occurred in destructor of "
+                 "TaskExecutor. details: "
+              << e.what() << "\n";
+  }
 }
 
 int TaskExecutor::run(std::shared_ptr<Task> task) {
