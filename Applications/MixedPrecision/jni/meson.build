@@ -2,7 +2,7 @@ build_root = meson.build_root()
 res_path = meson.current_source_dir() / '..' / 'res'
 
 nntr_mixed_resdir = nntr_app_resdir / 'MixedPrecision'
-run_command('cp', '-lr', res_path, nntr_mixed_resdir)
+run_command(['cp', '-lr', res_path, nntr_mixed_resdir], check: true)
 
 mixed_sources = [
   'main.cpp',

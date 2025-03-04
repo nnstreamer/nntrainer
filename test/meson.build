@@ -1,5 +1,5 @@
 nntrainer_test_resdir = nntrainer_resdir / 'test'
-run_command('mkdir', '-p', nntrainer_test_resdir)
+run_command(['mkdir', '-p', nntrainer_test_resdir], check: true)
 
 nntrainer_test_inc = include_directories('./include')
 
@@ -48,8 +48,9 @@ if get_option('enable-nnstreamer-tensor-filter').enabled() and nnstreamer_test_d
 endif
 
 if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter').enabled()
-  run_command('cp','-lr',
+  run_command(['cp','-lr',
     meson.current_source_dir() / 'test_models/',
-    nntrainer_test_resdir
+    nntrainer_test_resdir],
+    check: true
   )
 endif

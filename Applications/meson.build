@@ -1,5 +1,5 @@
 nntr_app_resdir = nntrainer_resdir / 'app'
-run_command('mkdir', '-p', nntr_app_resdir)
+run_command(['mkdir', '-p', nntr_app_resdir], check: true)
 
 subdir('utils')
 subdir('KNN/jni')
