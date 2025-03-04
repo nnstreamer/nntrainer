@@ -21,10 +21,17 @@ add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language:
 add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language: ['c', 'cpp'])
 
+if get_option('enable-test')# and get_option('enable-openvino-backbone').enabled()
+  gtest_proj = subproject('gtest')
+endif
+
 extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
+
+# Older libc++ has <filesystem> in seperate library
+opt_stdcpp_fs_dep = cxx.find_library('stdc++fs', required: false)
 
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
@@ -505,7 +512,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android' and host_machine.system() != 'windows'
+if get_option('platform') != 'android' and host_machine.system() != 'windows' and get_option('enable-nnstreamer-backbone')
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')
