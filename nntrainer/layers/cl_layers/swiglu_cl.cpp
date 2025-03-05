@@ -195,9 +195,9 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
 }
 
 #ifdef ENABLE_FP16
-void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
-                                   const __fp16 *vecXdata, __fp16 *vecYdata,
-                                   unsigned int dim1, unsigned int dim2) {
+void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                                   _FP16 *vecYdata, unsigned int dim1,
+                                   unsigned int dim2) {
 
   bool result = false;
 
@@ -207,13 +207,13 @@ void SwiGLULayerCl::swiglu_cl_fp16(const __fp16 *matAdata,
 
     int dim = int(dim1 * dim2);
     opencl::Buffer inputA(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
+                          sizeof(_FP16) * dim1 * dim2, true, nullptr);
 
     opencl::Buffer inputX(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
+                          sizeof(_FP16) * dim1 * dim2, true, nullptr);
 
     opencl::Buffer inOutY(cl_context_ref.context_inst_,
-                          sizeof(__fp16) * dim1 * dim2, true, nullptr);
+                          sizeof(_FP16) * dim1 * dim2, true, nullptr);
 
     result = inputA.WriteData(cl_context_ref.command_queue_inst_, matAdata);
     if (!result) {

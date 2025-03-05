@@ -16,7 +16,7 @@
 
 namespace nntrainer {
 
-void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
 
@@ -37,11 +37,11 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
       break;
     }
 
-    size_t dim1_size = sizeof(__fp16) * dim1;
-    size_t dim2_size = sizeof(__fp16) * dim2;
+    size_t dim1_size = sizeof(_FP16) * dim1;
+    size_t dim2_size = sizeof(_FP16) * dim2;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * dim2 * sizeof(__fp16),
+      cl_context_ref.command_queue_inst_, dim1 * dim2 * sizeof(_FP16),
       matAdata);
     if (!result) {
       break;
@@ -105,12 +105,11 @@ void sgemv_cl(const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
   } while (false);
 }
 
-__fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
-              unsigned int dim1) {
+_FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
 
   bool result = false;
 
-  __fp16 cl_ret = 0;
+  _FP16 cl_ret = 0;
 
   do {
     ClContext::SharedPtrClKernel kernel_dot_fp16_ptr =
@@ -120,7 +119,7 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
       break;
     }
 
-    size_t dim1_size = sizeof(__fp16) * dim1;
+    size_t dim1_size = sizeof(_FP16) * dim1;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, dim1_size, vecAdata);
@@ -167,7 +166,7 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, sizeof(__fp16), &cl_ret);
+      cl_context_ref.command_queue_inst_, sizeof(_FP16), &cl_ret);
     if (!result) {
       break;
     }
@@ -177,8 +176,8 @@ __fp16 dot_cl(const __fp16 *vecAdata, const __fp16 *vecXdata,
   return cl_ret;
 }
 
-void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
-              __fp16 *C, unsigned int M, unsigned int N, unsigned int K,
+void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
+              _FP16 *C, unsigned int M, unsigned int N, unsigned int K,
               unsigned int lda, unsigned int ldb, unsigned int ldc) {
 
   std::string kernel_func_;
@@ -208,9 +207,9 @@ void sgemm_cl(bool TransA, bool TransB, const __fp16 *A, const __fp16 *B,
     }
 
     // sizes will be same for transpose
-    size_t m_k_size = M * K * sizeof(__fp16);
-    size_t k_n_size = K * N * sizeof(__fp16);
-    size_t m_n_size = M * N * sizeof(__fp16);
+    size_t m_k_size = M * K * sizeof(_FP16);
+    size_t k_n_size = K * N * sizeof(_FP16);
+    size_t m_n_size = M * N * sizeof(_FP16);
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, m_k_size, A);
@@ -299,8 +298,8 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
       break;
     }
 
-    size_t dim1_size = sizeof(__fp16) * size_input;
-    size_t dim2_size = sizeof(__fp16) * size_res;
+    size_t dim1_size = sizeof(_FP16) * size_input;
+    size_t dim2_size = sizeof(_FP16) * size_res;
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
                           nullptr);
 
@@ -357,7 +356,7 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
   } while (false);
 }
 
-void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
+void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
   bool result = false;
 
   do {
@@ -368,7 +367,7 @@ void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
       break;
     }
 
-    size_t x_size = N * sizeof(__fp16);
+    size_t x_size = N * sizeof(_FP16);
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, x_size, X);
@@ -406,7 +405,7 @@ void sscal_cl(__fp16 *X, const unsigned int N, const float alpha) {
   } while (false);
 }
 
-void transpose_cl_axis(const __fp16 *in, __fp16 *res,
+void transpose_cl_axis(const _FP16 *in, _FP16 *res,
                        unsigned int input_batch_size,
                        unsigned int input_channels, unsigned int input_height,
                        unsigned int input_width, unsigned int axis) {
@@ -436,7 +435,7 @@ void transpose_cl_axis(const __fp16 *in, __fp16 *res,
       break;
     }
 
-    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
+    size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(

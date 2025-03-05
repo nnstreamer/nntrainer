@@ -16,7 +16,7 @@
 
 namespace nntrainer {
 
-void rotary_emb_cl(__fp16 *in, __fp16 *out,
+void rotary_emb_cl(_FP16 *in, _FP16 *out,
                    std::vector<std::vector<float>> freqs_cos,
                    std::vector<std::vector<float>> freqs_sin,
                    std::vector<float> cos_, std::vector<float> sin_,
