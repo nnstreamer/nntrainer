@@ -24,10 +24,12 @@
 #include "nntrainer_test_util.h"
 #include <app_context.h>
 #include <climits>
+#include <filesystem>
 #include <iostream>
 #include <layer_node.h>
 #include <multiout_realizer.h>
 #include <nntrainer_error.h>
+#include <numeric>
 #include <random>
 #include <regex>
 #include <tensor.h>
@@ -217,22 +219,21 @@ const std::string
 getResPath(const std::string &filename,
            const std::initializer_list<const char *> fallback_base) {
   static const char *prefix = std::getenv("NNTRAINER_RESOURCE_PATH");
-  static const char *fallback_prefix = "./res";
+  auto fallback_prefix = std::filesystem::current_path().append("res").string();
 
-  std::stringstream ss;
   if (prefix != nullptr) {
-    ss << prefix << '/' << filename;
-    return ss.str();
+    return std::filesystem::path(prefix).append(filename).string();
   }
 
-  ss << fallback_prefix;
+  auto res_path = std::filesystem::path(fallback_prefix);
+
   for (auto &folder : fallback_base) {
-    ss << '/' << folder;
+    res_path.append(folder);
   }
 
-  ss << '/' << filename;
+  res_path.append(filename);
 
-  return ss.str();
+  return res_path.string();
 }
 
 nntrainer::GraphRepresentation

@@ -1002,9 +1002,6 @@ GTEST_PARAMETER_TEST(
       mkModelIniTc(mnist_conv_cross_one_input, "1:1:1:10", 10, ModelTestOption::ALL),
 
       /**< augmentation layer */
-  #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
-      mkModelIniTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
-  #endif
       mkModelIniTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
 
       mkModelIniTc(preprocess_l2norm_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
@@ -1051,6 +1048,15 @@ GTEST_PARAMETER_TEST(
  return std::get<1>(info.param);
 });
 // clang-format on
+
+#if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
+GTEST_PARAMETER_TEST(
+  nntrainerModelAutoTestsAugmentationCV, nntrainerModelTest,
+  ::testing::ValuesIn({mkModelIniTc(preprocess_translate, "3:1:1:10", 10,
+                                    ModelTestOption::NO_THROW_RUN)}),
+  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
+    -> const auto & { return std::get<1>(info.param); });
+#endif
 
 /**
  * @brief Read or save the model before initialize

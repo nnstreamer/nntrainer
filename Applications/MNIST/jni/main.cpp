@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <sstream>
 #include <vector>

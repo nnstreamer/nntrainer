@@ -30,6 +30,7 @@
 #include <iostream>
 #include <layer.h>
 #include <model.h>
+#include <numeric>
 #include <optimizer.h>
 #include <random>
 #include <sstream>

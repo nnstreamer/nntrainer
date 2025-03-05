@@ -19,23 +19,19 @@ nntrainer_headers = [
    meson.current_source_dir() / 'app_context.h',
 ]
 
-# Dependencies
-if host_machine.system() == 'windows'
-  nntrainer_base_deps=[
-    iniparser_dep,
-    thread_dep,
-    openmp_dep
-  ]
-else
-  nntrainer_base_deps=[
-    blas_dep,
-    iniparser_dep,
-    ruy_dep,
-    ml_api_common_dep,
+nntrainer_base_deps=[
+  blas_dep,
+  iniparser_dep,
+  ruy_dep,
+  ml_api_common_dep,
+  thread_dep,
+  openmp_dep
+]
+
+if host_machine.system() != 'windows'
+  nntrainer_base_deps += [
     libm_dep,
-    libdl_dep,
-    thread_dep,
-    openmp_dep
+    libdl_dep
   ]
 endif
 

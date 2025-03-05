@@ -23,8 +23,6 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 
-#include <unistd.h> // NOLINT(build/include_order)
-
 #include "bitmap_helpers.h"
 
 #define LOG(x) std::cerr

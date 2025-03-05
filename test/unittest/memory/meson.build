@@ -11,13 +11,19 @@ test_target = [
   'unittest_cache_pool.cpp'
 ]
 
+if host_machine.system() == 'windows'
+  cpp_args_str = ''
+else
+  cpp_args_str = '-Wno-maybe-uninitialized'
+endif
+
 # memory unittests
 exe = executable(
   'unittest_memory', test_target,
   dependencies: [
     nntrainer_test_main_deps
   ],
-  cpp_args : '-Wno-maybe-uninitialized',
+  cpp_args : cpp_args_str,
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )

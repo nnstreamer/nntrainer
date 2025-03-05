@@ -14,10 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <typeinfo>
-#include <unistd.h>
 
 #include <optimizer_devel.h>
 #include <weight.h>
@@ -34,10 +34,11 @@ class nntrainerAppContextDirectory : public ::testing::Test {
 
 protected:
   void SetUp() override {
-    int status = mkdir("testdir", 0777);
-    ASSERT_EQ(status, 0);
+    auto status = std::filesystem::create_directory("testdir");
+    ASSERT_EQ(status, true);
 
-    std::ofstream file("testdir/testfile.txt");
+    std::ofstream file(
+      std::filesystem::path("testdir").append("testfile.txt").string());
     ASSERT_EQ(file.fail(), false);
 
     file << "testdata";
@@ -52,7 +53,8 @@ protected:
   }
 
   void TearDown() override {
-    int status = remove("testdir/testfile.txt");
+    int status = remove(
+      std::filesystem::path("testdir").append("testfile.txt").string().c_str());
     ASSERT_EQ(status, 0);
 
     status = rmdir("testdir");
@@ -71,7 +73,9 @@ TEST_F(nntrainerAppContextDirectory, readFromGetPath_p) {
   ac.setWorkingDirectory("testdir");
 
   path = ac.getWorkingPath("testfile.txt");
-  EXPECT_EQ(path, current_directory + "/testdir/testfile.txt");
+  EXPECT_EQ(path, std::filesystem::path(current_directory)
+                    .append("testdir")
+                    .append("testfile.txt"));
 
   std::ifstream file(path);
   std::string s;
@@ -80,11 +84,12 @@ TEST_F(nntrainerAppContextDirectory, readFromGetPath_p) {
 
   file.close();
 
-  path = ac.getWorkingPath("/absolute/path");
-  EXPECT_EQ(path, "/absolute/path");
+  const auto current_path_absolute = std::filesystem::current_path().string();
+  path = ac.getWorkingPath(current_path_absolute);
+  EXPECT_EQ(path, current_path_absolute);
 
   path = ac.getWorkingPath("");
-  EXPECT_EQ(path, current_directory + "/testdir");
+  EXPECT_EQ(path, std::filesystem::path(current_directory).append("testdir"));
 }
 
 TEST_F(nntrainerAppContextDirectory, notExisitingSetDirectory_n) {
