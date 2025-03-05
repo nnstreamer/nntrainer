@@ -157,6 +157,9 @@ void CachePool::deallocate() {
 
   actives.clear();
   swap_device->finish();
+
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
+    MemoryPool::deallocate();
 }
 
 void CachePool::validate(unsigned int id) {
