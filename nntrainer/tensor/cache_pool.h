@@ -198,33 +198,18 @@ public:
   virtual std::string getName() { return name; }
 
   /**
+   * @brief Get ExecutionMode
+   *
+   * @return ml::train::ExecutionMode
+   */
+  ml::train::ExecutionMode getExecMode() const { return execution_mode_; }
+
+  /**
    * @brief Get number of loaded tensors
    *
    * @return number of loaded tensors
    */
   virtual unsigned int getNumLoadedTensors();
-
-protected:
-  /**
-   * @brief validate cache element
-   *
-   * @param cache element id
-   */
-  virtual void validate(unsigned int id);
-
-  /**
-   * @brief invalidate cache element
-   *
-   * @param cache element id
-   */
-  virtual void invalidate(unsigned int id);
-
-  /**
-   * @brief Get cache policies
-   *
-   * @return Cache polices
-   */
-  std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
   /**
    * @brief set FSU weight path
@@ -250,6 +235,28 @@ protected:
   setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
     swap_device->setWeightOffset(offsets);
   }
+
+protected:
+  /**
+   * @brief validate cache element
+   *
+   * @param cache element id
+   */
+  virtual void validate(unsigned int id);
+
+  /**
+   * @brief invalidate cache element
+   *
+   * @param cache element id
+   */
+  virtual void invalidate(unsigned int id);
+
+  /**
+   * @brief Get cache policies
+   *
+   * @return Cache polices
+   */
+  std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
 private:
   std::string name;                         /**< pool name */
