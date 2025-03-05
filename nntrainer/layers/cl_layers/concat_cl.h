@@ -114,7 +114,8 @@ public:
    * @param[in] input2 Tensor
    * @param[in] result Tensor
    */
-  void ConcatProcess(Tensor const &in1, Tensor const &in2, Tensor &result);
+  void ConcatProcess(Tensor const &input1, Tensor const &input2,
+                     Tensor &result);
 
   /**
    * @brief     concat computation for axis 3
