@@ -12,6 +12,7 @@
 #include <array>
 #include <chrono>
 #include <ctime>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -20,7 +21,6 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
-#include <unistd.h>
 
 #ifdef PROFILE
 #include <profiler.h>
@@ -145,8 +145,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
             << std::endl;
 
   // to test asynch fsu, we do need save the model weight data in file
-  std::string filePath = "./simplefc_weight_fp16_fp16_100.bin";
-  if (access(filePath.c_str(), F_OK) == 0) {
+  std::string filePath = "simplefc_weight_fp16_fp16_100.bin";
+  if (std::filesystem::exists(filePath)) {
     model->load(filePath);
   } else {
     model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);

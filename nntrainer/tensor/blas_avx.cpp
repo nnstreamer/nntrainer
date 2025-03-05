@@ -278,11 +278,16 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
                   float *Y, const int incY) {
   unsigned int N8 = (N >> 3) << 3;
   for (unsigned int i = 0; i < N8; i += 8) {
+#if defined(_WIN32)
+    __m256 temp = _mm256_loadu_ps(&X[i]);
+    _mm256_storeu_ps(&Y[i], temp);
+#else
     __asm__ __volatile__("vmovups (%1), %%ymm0\n\t"
                          "vmovups %%ymm0, (%0)\n\t"
                          :
                          : "r"(&Y[i]), "r"(&X[i])
                          : "ymm0", "memory");
+#endif
   }
   for (unsigned int i = N8; i < N; ++i) {
     Y[i] = X[i];

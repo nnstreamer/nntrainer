@@ -293,7 +293,7 @@ TEST(BasicProperty, valid_p) {
 
   { /**< from_string -> get / to_string, uint vector prop */
     std::vector<NumBanana> bananas;
-    EXPECT_EQ(nntrainer::getPropKey(bananas), "num_banana");
+    EXPECT_STREQ(nntrainer::getPropKey(bananas), "num_banana");
     nntrainer::from_string("1, 2,3, 4, 5", bananas);
     auto expected = std::vector<NumBanana>({1, 2, 3, 4, 5});
     EXPECT_EQ(bananas, expected);
@@ -302,7 +302,7 @@ TEST(BasicProperty, valid_p) {
 
   { /**< from_string -> get / to_string, uint array prop */
     std::array<NumBanana, 4> bananas;
-    EXPECT_EQ(nntrainer::getPropKey(bananas), "num_banana");
+    EXPECT_STREQ(nntrainer::getPropKey(bananas), "num_banana");
     nntrainer::from_string("1, 2,3, 4", bananas);
     auto expected = std::array<NumBanana, 4>({1, 2, 3, 4});
     EXPECT_EQ(bananas, expected);

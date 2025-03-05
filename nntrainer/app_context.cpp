@@ -207,7 +207,7 @@ std::vector<std::string> getPluginPaths() {
 const std::string getFullPath(const std::string &path,
                               const std::string &base) {
   /// if path is absolute, return path
-  if (path[0] == '/') {
+  if (std::filesystem::path(path).is_absolute()) {
     return path;
   }
 
@@ -215,7 +215,9 @@ const std::string getFullPath(const std::string &path,
     return path == std::string() ? "." : path;
   }
 
-  return path == std::string() ? base : base + "/" + path;
+  return path == std::string()
+           ? base
+           : std::filesystem::path(base).append(path).string();
 }
 
 } // namespace

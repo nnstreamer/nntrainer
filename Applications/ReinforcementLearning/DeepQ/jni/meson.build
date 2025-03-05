@@ -6,6 +6,9 @@ run_command('cp', '-lr', res_path, nntr_deepq_resdir)
 
 env_dir='../../Environment'
 
+jsoncpp_dep = dependency('jsoncpp')
+libcurl_dep = dependency('libcurl')
+
 deepq_sources = [
   'main.cpp',
   env_dir / 'CartPole/cartpole.cpp'

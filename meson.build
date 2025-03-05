@@ -8,12 +8,20 @@ project('nntrainer', 'c', 'cpp',
     'c_std=gnu89',
     'cpp_std=c++17',
     'buildtype=release'
-  ],
+  ]
 )
 
 # Set version info
 nntrainer_version = meson.project_version()
 nntrainer_version_split = nntrainer_version.split('.')
+
+# CMake module
+cmake = import('cmake')
+
+if host_machine.system() == 'windows'
+  windows_compile_args = ['/MT']
+  add_project_arguments(windows_compile_args, language: ['c','cpp'])
+endif
 
 add_project_arguments('-DVERSION="' + nntrainer_version + '"', language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language: ['c', 'cpp'])
@@ -82,9 +90,13 @@ if get_option('enable-avx')
   if get_option('platform') != 'android'
     if target == 'x86_64' or target == 'x86'
       extra_defines += '-DUSE_AVX=1'
-      add_project_arguments(['-march=native'], language: ['c','cpp'])
-      add_project_arguments(['-mavx2'], language: ['c','cpp'])
-      message('-march=native added for AVX hardware acceleration.')
+      if host_machine.system() == 'windows'
+        add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
+      else
+        add_project_arguments(['-march=native'], language: ['c','cpp'])
+        add_project_arguments(['-mavx2'], language: ['c','cpp'])
+        message('-march=native added for AVX hardware acceleration.')
+      endif
       avx_enabled = true
     else
       warning('The target arch, ' + target + ', does not support AVX. enable-avx=true is ignored.')
@@ -304,7 +316,21 @@ if get_option('enable-blas')
     blas_root = meson.build_root() / 'openblas'
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
-    blas_dep = dependency('openblas')
+    blas_dep = dependency('openblas', required : false)
+  
+    if not blas_dep.found()
+      blas_options = cmake.subproject_options()
+      if host_machine.system() == 'windows'
+        blas_options.append_compile_args('c', windows_compile_args)
+        blas_options.append_compile_args('cpp', windows_compile_args)
+      endif
+      blas_options.add_cmake_defines({'BUILD_TESTING': false})
+      blas_options.add_cmake_defines({'BUILD_BENCHMARKS': false})
+      blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+      blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
+      blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
+      blas_dep = blas_subproject.dependency('openblas_static')    
+    endif
   endif
 
   if blas_dep.found()
@@ -348,10 +374,38 @@ if get_option('enable-logging')
   extra_defines += '-D__LOGGING__=1'
 endif
 
+if get_option('enable-benchmarks')
+  benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
+  if not benchmark_dep.found()
+    benchmark_options = cmake.subproject_options()
+    if host_machine.system() == 'windows'
+      benchmark_options.append_compile_args('c', windows_compile_args)
+      benchmark_options.append_compile_args('cpp', windows_compile_args)
+    endif
+    benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
+    benchmark_subproject = cmake.subproject('benchmark', options: benchmark_options, required: true)
+    benchmark_dep = benchmark_subproject.dependency('benchmark')
+    message('benchmar targets')
+    message(benchmark_subproject.target_list())
+  endif
+endif
+
 gmock_dep = dependency('gmock', static: true, main: false, required: false)
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
 gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
-benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
+
+if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
+  googletest_options = cmake.subproject_options()
+  if host_machine.system() == 'windows'
+    googletest_options.append_compile_args('c', windows_compile_args)
+    googletest_options.append_compile_args('cpp', windows_compile_args)
+  endif
+  googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
+  gmock_dep = googletest_subproject.dependency('gmock')
+  gtest_dep = googletest_subproject.dependency('gtest')
+  gtest_main_dep = googletest_subproject.dependency('gtest_main')
+endif
 
 if get_option('enable-test') # and get_option('platform') != 'android'
   extra_defines += '-DENABLE_TEST=1'
@@ -379,11 +433,11 @@ else
   iniparser_dep = dependency('iniparser', required : false, version : '>=3.2') # iniparser
 
   if not iniparser_dep.found()
-    # CMake module
-    cmake = import('cmake')
-
-    # iniparser
     iniparser_options = cmake.subproject_options()
+    if host_machine.system() == 'windows'
+      iniparser_options.append_compile_args('c', windows_compile_args)
+      iniparser_options.append_compile_args('cpp', windows_compile_args)
+    endif
     iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
     iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
     iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
@@ -398,21 +452,24 @@ if get_option('platform') == 'android'
   ruy_root = meson.source_root() / 'subprojects' / 'ruy'
   ruy_dep = declare_dependency()
 else
-  cmake = import('cmake')
-
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
-  ruy_flags = [
-    '-Wno-error=unused-result',
-    '-Wno-error=comment',
-    '-Wno-error=maybe-uninitialized',
-    '-Wno-error=unknown-pragmas',
-    '-Wno-error=unused-function',
-    '-Wno-error=stringop-overread',
-    '-Wno-error=array-parameter'
-    ]
-  ruy_options.append_compile_args('c', ruy_flags)
-  ruy_options.append_compile_args('cpp', ruy_flags)
+  if host_machine.system() == 'windows'
+    ruy_options.append_compile_args('c', windows_compile_args)
+    ruy_options.append_compile_args('cpp', windows_compile_args)
+  else
+    ruy_flags = [
+      '-Wno-error=unused-result',
+      '-Wno-error=comment',
+      '-Wno-error=maybe-uninitialized',
+      '-Wno-error=unknown-pragmas',
+      '-Wno-error=unused-function',
+      '-Wno-error=stringop-overread',
+      '-Wno-error=array-parameter'
+      ]
+    ruy_options.append_compile_args('c', ruy_flags)
+    ruy_options.append_compile_args('cpp', ruy_flags)
+  endif
   ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
   ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
 endif
@@ -522,11 +579,10 @@ if get_option('enable-app')
   if get_option('platform') == 'android'
     warning('android app is not supported for now, building app skipped')
   else
-    # this is needed for reinforcement application. We can move this to reinforecement app dependency
-    jsoncpp_dep = dependency('jsoncpp') # jsoncpp
-    libcurl_dep = dependency('libcurl')
-    if not tflite_dep.found()
-      error('Tensorflow-Lite dependency not found')
+    if host_machine.system() != 'windows'
+      if not tflite_dep.found()
+        error('Tensorflow-Lite dependency not found')
+      endif
     endif
     subdir('Applications')
   endif
