@@ -765,7 +765,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
 
 #ifdef ENABLE_FP16
 void ConcatLayerCl::concat_cl_axis3_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_channels,
   unsigned int input1_height, unsigned int input1_width,
   unsigned int input2_width) {
@@ -782,7 +782,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
     if (!result) {
@@ -791,7 +791,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input2_width,
       vecXdata);
     if (!result) {
@@ -800,7 +800,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
     if (!result) {
@@ -866,7 +866,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
     if (!result) {
@@ -877,7 +877,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(
 }
 
 void ConcatLayerCl::concat_cl_axis2_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_channels,
   unsigned int input1_width, unsigned int input1_height,
   unsigned int input2_height) {
@@ -893,7 +893,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
     if (!result) {
@@ -902,7 +902,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input2_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input2_height *
         input1_width,
       vecXdata);
     if (!result) {
@@ -911,7 +911,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels *
+      sizeof(_FP16) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
     if (!result) {
@@ -976,7 +976,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels *
+      sizeof(_FP16) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
     if (!result) {
@@ -987,7 +987,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(
 }
 
 void ConcatLayerCl::concat_cl_axis1_fp16(
-  const __fp16 *matAdata, const __fp16 *vecXdata, __fp16 *vecYdata,
+  const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
   unsigned int input1_batch_size, unsigned int input1_height,
   unsigned int input1_width, unsigned int input1_channels,
   unsigned int input2_channels) {
@@ -1004,7 +1004,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
     if (!result) {
@@ -1013,7 +1013,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input2_channels * input1_height *
+      sizeof(_FP16) * input1_batch_size * input2_channels * input1_height *
         input1_width,
       vecXdata);
     if (!result) {
@@ -1022,7 +1022,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_width * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);
     if (!result) {
@@ -1088,7 +1088,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
       cl_context_ref.command_queue_inst_,
-      sizeof(__fp16) * input1_batch_size * input1_width * input1_height *
+      sizeof(_FP16) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);
     if (!result) {

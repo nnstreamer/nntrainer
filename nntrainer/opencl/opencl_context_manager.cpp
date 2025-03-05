@@ -166,15 +166,15 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  char extensions[extension_size];
+  std::vector<char> extensions(extension_size);
   status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
-                           extensions, NULL);
+                           extensions.data(), NULL);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceInfo returned %d", status);
     return false;
   }
 
-  if (std::string(extensions).find("cl_khr_fp16") == std::string::npos) {
+  if (std::string(extensions.data()).find("cl_khr_fp16") == std::string::npos) {
     ml_loge("fp16 (half) is not supported by device");
     return false;
   }

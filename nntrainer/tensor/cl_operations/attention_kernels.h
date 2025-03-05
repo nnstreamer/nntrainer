@@ -26,8 +26,8 @@ static ClContext cl_context_ref;
 
 /**
  * @brief     Rotary Embedding process
- * @param[in] in __fp16 * input
- * @param[in] out __fp16 * output
+ * @param[in] in _FP16 * input
+ * @param[in] out _FP16 * output
  * @param[out] freqs_cos cosine of the frequencies
  * @param[out] freqs_sin sine of the frequencies
  * @param[in] cos_ vector of cos values
@@ -55,8 +55,8 @@ void rotary_emb_cl(float *in, float *out,
 
 /**
  * @brief     Rotary Embedding process
- * @param[in] in __fp16 * input
- * @param[in] out __fp16 * output
+ * @param[in] in _FP16 * input
+ * @param[in] out _FP16 * output
  * @param[out] freqs_cos cosine of the frequencies
  * @param[out] freqs_sin sine of the frequencies
  * @param[in] cos_ vector of cos values
@@ -71,7 +71,7 @@ void rotary_emb_cl(float *in, float *out,
  * @param[in] in_size size of input
  * @param[in] out_size size of output
  */
-void rotary_emb_cl(__fp16 *in, __fp16 *out,
+void rotary_emb_cl(_FP16 *in, _FP16 *out,
                    std::vector<std::vector<float>> freqs_cos,
                    std::vector<std::vector<float>> freqs_sin,
                    std::vector<float> cos_, std::vector<float> sin_,
