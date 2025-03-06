@@ -15,7 +15,6 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
-BreakTemplateDeclarations: Leave
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
