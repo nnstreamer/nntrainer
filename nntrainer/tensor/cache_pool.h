@@ -32,8 +32,8 @@ namespace nntrainer {
 class CachePool : public MemoryPool {
 public:
   using CacheElems =
-    std::map<unsigned int,
-             std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
+    std::unordered_map<unsigned int,
+                       std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
   using ExecIds = std::vector<unsigned int>;
   using ExecIdsIter = ExecIds::iterator;
@@ -143,34 +143,6 @@ public:
    *
    * @param order execution order
    */
-  virtual void initCacheElemIter(CacheElemsIter &iter);
-
-  /**
-   * @brief Check iterator is last element
-   *
-   * @param order execution order
-   */
-  virtual bool isLastCacheElemIter(const CacheElemsIter &iter);
-
-  /**
-   * @brief Load cache data by execution order
-   *
-   * @param order execution order
-   */
-  virtual void initExecIdsIter(unsigned int order, ExecIdsIter &iter);
-
-  /**
-   * @brief Check iterator is last element
-   *
-   * @param order execution order
-   */
-  virtual bool isLastExecIdsIter(unsigned int order, const ExecIdsIter &iter);
-
-  /**
-   * @brief Load cache data by execution order
-   *
-   * @param order execution order
-   */
   virtual bool loadExecOnce(unsigned int order, ExecIdsIter &iter);
 
   /**
@@ -265,7 +237,7 @@ private:
   CacheElems elems;                         /**< cache elements */
   std::list<std::shared_ptr<CacheElem>> actives;
   std::vector<CachePolicy> policies;
-  std::map<unsigned int, ExecIds> exec_ids;
+  std::unordered_map<unsigned int, ExecIds> exec_ids;
 
   std::mutex mod_mutex;
 };
