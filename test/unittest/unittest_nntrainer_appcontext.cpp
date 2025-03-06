@@ -63,14 +63,14 @@ protected:
 };
 
 TEST_F(nntrainerAppContextDirectory, readFromGetPath_p) {
-  nntrainer::AppContext ac = nntrainer::AppContext::Global();
+  nntrainer::Engine eg = nntrainer::Engine::Global();
 
-  std::string path = ac.getWorkingPath("testfile.txt");
+  std::string path = eg.getWorkingPath("testfile.txt");
   EXPECT_EQ(path, "testfile.txt");
 
-  ac.setWorkingDirectory("testdir");
+  eg.setWorkingDirectory("testdir");
 
-  path = ac.getWorkingPath("testfile.txt");
+  path = eg.getWorkingPath("testfile.txt");
   EXPECT_EQ(path, current_directory + "/testdir/testfile.txt");
 
   std::ifstream file(path);
@@ -80,17 +80,17 @@ TEST_F(nntrainerAppContextDirectory, readFromGetPath_p) {
 
   file.close();
 
-  path = ac.getWorkingPath("/absolute/path");
+  path = eg.getWorkingPath("/absolute/path");
   EXPECT_EQ(path, "/absolute/path");
 
-  path = ac.getWorkingPath("");
+  path = eg.getWorkingPath("");
   EXPECT_EQ(path, current_directory + "/testdir");
 }
 
 TEST_F(nntrainerAppContextDirectory, notExisitingSetDirectory_n) {
-  nntrainer::AppContext ac = nntrainer::AppContext::Global();
+  nntrainer::Engine eg = nntrainer::Engine::Global();
 
-  EXPECT_THROW(ac.setWorkingDirectory("testdir_does_not_exist"),
+  EXPECT_THROW(eg.setWorkingDirectory("testdir_does_not_exist"),
                std::invalid_argument);
 }
 
