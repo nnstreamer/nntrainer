@@ -20,16 +20,16 @@
 #include <stdexcept>
 #include <tensor_dim.h>
 
-#define sgemv_loop(ci, cj, cM, cN)           \
-  do {                                       \
-    float y0;                                \
-    unsigned int i, j;                       \
-    for (ci = 0; ci != cM; ci++) {           \
-      y0 = Y[ci * incY] * beta;              \
-      for (cj = 0; cj != cN; cj++)           \
-        y0 += A[i + j * lda] * X[cj * incX]; \
-      Y[ci * incY] = y0;                     \
-    }                                        \
+#define sgemv_loop(ci, cj, cM, cN)                                             \
+  do {                                                                         \
+    float y0;                                                                  \
+    unsigned int i, j;                                                         \
+    for (ci = 0; ci != cM; ci++) {                                             \
+      y0 = Y[ci * incY] * beta;                                                \
+      for (cj = 0; cj != cN; cj++)                                             \
+        y0 += A[i + j * lda] * X[cj * incX];                                   \
+      Y[ci * incY] = y0;                                                       \
+    }                                                                          \
   } while (0);
 namespace nntrainer {
 
