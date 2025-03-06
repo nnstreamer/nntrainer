@@ -322,6 +322,7 @@ if get_option('enable-blas')
       blas_options.add_cmake_defines({'BUILD_BENCHMARKS': false})
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
       blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
+      blas_options.add_cmake_defines({'NOFORTRAN': true})
       blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
       blas_dep = blas_subproject.dependency('openblas_static')    
     endif
