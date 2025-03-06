@@ -21,42 +21,42 @@
 #include <stdexcept>
 #include <tensor_dim.h>
 
-#define hgemv_loop(ci, cj, cM, cN)                                      \
-  do {                                                                  \
-    float y0;                                                           \
-    unsigned int i, j;                                                  \
-    for (ci = 0; ci != cM; ci++) {                                      \
-      y0 = static_cast<float>(Y[ci * incY] * static_cast<_FP16>(beta)); \
-      for (cj = 0; cj != cN; cj++)                                      \
-        y0 += static_cast<float>(A[i + j * lda] * X[cj * incX]);        \
-      Y[ci * incY] = static_cast<_FP16>(y0);                            \
-    }                                                                   \
+#define hgemv_loop(ci, cj, cM, cN)                                             \
+  do {                                                                         \
+    float y0;                                                                  \
+    unsigned int i, j;                                                         \
+    for (ci = 0; ci != cM; ci++) {                                             \
+      y0 = static_cast<float>(Y[ci * incY] * static_cast<_FP16>(beta));        \
+      for (cj = 0; cj != cN; cj++)                                             \
+        y0 += static_cast<float>(A[i + j * lda] * X[cj * incX]);               \
+      Y[ci * incY] = static_cast<_FP16>(y0);                                   \
+    }                                                                          \
   } while (0);
 
-#define hgemm_loop()                                          \
-  do {                                                        \
-    for (unsigned int m = 0; m < M; ++m) {                    \
-      for (unsigned int n = 0; n < N; ++n) {                  \
-        float c = 0;                                          \
-        _FP16 c_old = C[m * ldc + n];                         \
-        for (unsigned int k = 0; k < K; ++k) {                \
-          _FP16 a, b;                                         \
-          a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);   \
-          b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);   \
-          c += static_cast<float>(a * b);                     \
-        }                                                     \
-        C[m * ldc + n] = static_cast<_FP16>(alpha * c);       \
-        if (beta != 0.0)                                      \
-          C[m * ldc + n] += static_cast<_FP16>(beta) * c_old; \
-      }                                                       \
-    }                                                         \
+#define hgemm_loop()                                                           \
+  do {                                                                         \
+    for (unsigned int m = 0; m < M; ++m) {                                     \
+      for (unsigned int n = 0; n < N; ++n) {                                   \
+        float c = 0;                                                           \
+        _FP16 c_old = C[m * ldc + n];                                          \
+        for (unsigned int k = 0; k < K; ++k) {                                 \
+          _FP16 a, b;                                                          \
+          a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);                    \
+          b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);                    \
+          c += static_cast<float>(a * b);                                      \
+        }                                                                      \
+        C[m * ldc + n] = static_cast<_FP16>(alpha * c);                        \
+        if (beta != 0.0)                                                       \
+          C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;                  \
+      }                                                                        \
+    }                                                                          \
   } while (0);
 
-#define haxpy_loop()                                                       \
-  do {                                                                     \
-    unsigned int i;                                                        \
-    for (i = 0; i < N; ++i)                                                \
-      Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX]; \
+#define haxpy_loop()                                                           \
+  do {                                                                         \
+    unsigned int i;                                                            \
+    for (i = 0; i < N; ++i)                                                    \
+      Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX];     \
   } while (0);
 
 namespace nntrainer {
