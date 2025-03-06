@@ -295,22 +295,6 @@ void CachePool::loadExec(unsigned int order) {
     validate(id);
 }
 
-void CachePool::initCacheElemIter(CacheElemsIter &iter) {
-  iter = elems.begin();
-}
-
-bool CachePool::isLastCacheElemIter(const CacheElemsIter &iter) {
-  return iter == elems.end();
-}
-
-void CachePool::initExecIdsIter(unsigned int order, ExecIdsIter &iter) {
-  iter = exec_ids[order].begin();
-}
-
-bool CachePool::isLastExecIdsIter(unsigned int order, const ExecIdsIter &iter) {
-  return iter == exec_ids[order].end();
-}
-
 bool CachePool::loadExecOnce(unsigned int order, ExecIdsIter &iter) {
   if (iter == exec_ids[order].end())
     return true;
