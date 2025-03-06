@@ -12,24 +12,20 @@
  *
  */
 
-#ifndef __MULTI_HEAD_ATTENTION_LAYER_H__
-#define __MULTI_HEAD_ATTENTION_LAYER_H__
-#ifdef __cplusplus
-
 #include <acti_func.h>
 #include <complex>
 #include <layer_impl.h>
 #include <util_simd.h>
 #include <utility>
 
-namespace nntrainer {
+namespace custom {
 
 /**
  * @class   Multi Head Attention Layer
  * @brief   Implementation of multi head attention which is described in paper
  * "Attention is all you need"
  */
-class MultiHeadAttentionLayer : public LayerImpl {
+class MultiHeadAttentionLayer : public nntrainer::LayerImpl {
 public:
   /**
    * @brief     Constructor of MultiHeadAttention Layer
@@ -54,51 +50,46 @@ public:
   MultiHeadAttentionLayer &operator=(MultiHeadAttentionLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::finalize(InitLayerContext &context)
+   * @copydoc Layer::finalize(nntrainer::InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
+   * @copydoc Layer::forwarding(nntrainer::RunLayerContext &context, bool
+   * training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
-   * int from, unsigned int to, bool training)
+   * @copydoc Layer::incremental_forwarding(nntrainer::RunLayerContext &context,
+   * unsigned int from, unsigned int to, bool training)
    */
-  void initial_incremental_forwarding(RunLayerContext &context,
+  void initial_incremental_forwarding(nntrainer::RunLayerContext &context,
                                       unsigned int from, unsigned int to,
                                       bool training);
 
   /**
-   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
-   * int from, unsigned int to, bool training)
+   * @copydoc Layer::incremental_forwarding(nntrainer::RunLayerContext &context,
+   * unsigned int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  void incremental_forwarding(nntrainer::RunLayerContext &context,
+                              unsigned int from, unsigned int to,
+                              bool training) override;
 
   /**
-   * @copydoc Layer::calcDerivative(RunLayerContext &context)
+   * @copydoc Layer::calcDerivative(nntrainer::RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcGradient(RunLayerContext &context)
+   * @copydoc Layer::calcGradient(nntrainer::RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  void calcGradient(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return true; };
-
-  /**
-   * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
-   * method)
-   */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
@@ -113,20 +104,23 @@ public:
   };
 
   /**
-   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   * @copydoc Layer::setBatch(nntrainer::RunLayerContext &context, unsigned int
+   * batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  void setBatch(nntrainer::RunLayerContext &context,
+                unsigned int batch) override;
 
   static constexpr const char *type = "multi_head_attention";
 
 private:
-  std::tuple<props::NumHeads, props::ProjectedKeyDim, props::ProjectedValueDim,
-             props::OutputShape, props::DropOutRate,
-             props::ReturnAttentionWeight, props::AverageAttentionWeight,
-             props::MaxTimestep>
+  std::tuple<
+    nntrainer::props::NumHeads, nntrainer::props::ProjectedKeyDim,
+    nntrainer::props::ProjectedValueDim, nntrainer::props::OutputShape,
+    nntrainer::props::DropOutRate, nntrainer::props::ReturnAttentionWeight,
+    nntrainer::props::AverageAttentionWeight, nntrainer::props::MaxTimestep>
     multi_head_attention_props; /**< multi_head_attention layer properties */
 
-  ActiFunc sm; /** softmax activation operation */
+  nntrainer::ActiFunc sm; /** softmax activation operation */
   std::array<unsigned int, 16>
     weight_idx; /**< indices of the weights and tensors */
 
@@ -189,14 +183,14 @@ private:
    * @param[in] dim hidden dim size
    * @param[in] from sequence order
    */
-  void apply_rotary_emb_tensor(Tensor &in, unsigned int dim,
+  void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
                                unsigned int from) {
-    Tensor out(in.getDim());
+    nntrainer::Tensor out(in.getDim());
     float value = 0;
     float transformed_value = 0.0;
     unsigned int half_ = dim / 2;
     unsigned int max_timestep =
-      std::get<props::MaxTimestep>(multi_head_attention_props).get();
+      std::get<nntrainer::props::MaxTimestep>(multi_head_attention_props).get();
 
     std::vector<float> *cos_;
     std::vector<float> *sin_;
@@ -300,10 +294,7 @@ private:
    * @brief calculate common derivative
    * @param context Context of the layer
    */
-  void calcCommonDerivative(RunLayerContext &context);
+  void calcCommonDerivative(nntrainer::RunLayerContext &context);
 };
 
-} // namespace nntrainer
-
-#endif /* __cplusplus */
-#endif /* __MULTI_HEAD_ATTENTION_LAYER_H__ */
+} // namespace custom
