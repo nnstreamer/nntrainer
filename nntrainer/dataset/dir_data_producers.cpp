@@ -142,7 +142,7 @@ DirDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   return [sz, input_dims, this](unsigned int idx, std::vector<Tensor> &inputs,
                                 std::vector<Tensor> &labels) {
-    NNTR_THROW_IF((idx < 0) || (idx >= sz), std::range_error)
+    NNTR_THROW_IF(idx >= sz, std::range_error)
       << "given index is out of bound, index: " << idx << " size: " << sz;
 
     std::string file_name = data_list[idx].second;

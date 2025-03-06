@@ -124,8 +124,8 @@ public:
   std::shared_ptr<Layer> getSrcLayer() { return src_layer; }
 
 private:
-  std::shared_ptr<Layer>
-    src_layer; /**< source layer which create this Tensor */
+  std::shared_ptr<Layer> src_layer =
+    nullptr; /**< source layer which create this Tensor */
 };
 
 } // namespace train
