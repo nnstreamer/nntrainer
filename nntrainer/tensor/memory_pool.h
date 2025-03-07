@@ -19,16 +19,15 @@
 #ifndef __MEMORY_POOL_H__
 #define __MEMORY_POOL_H__
 
-#include <functional>
-#include <memory>
-#include <vector>
-
 #include <memory_data.h>
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
-namespace nntrainer {
+#include <functional>
+#include <memory>
+#include <vector>
 
+namespace nntrainer {
 /**
  * @class   MemoryPool
  * @brief   Memory Pool provides a common pool for all the tensor memory
@@ -40,10 +39,7 @@ public:
    *
    */
   explicit MemoryPool() :
-    mem_pool(nullptr),
-    pool_size(0),
-    min_pool_size(0),
-    n_wgrad(0) {}
+    mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {}
 
   /**
    * @brief MemoryPool destructor
@@ -138,11 +134,45 @@ public:
    */
   virtual bool isAllocated() const;
 
+  /**
+   *  @brief Get memory ptrs vector from memory pool class.
+   *
+   * @return memory ptrs vector
+   */
+  std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
+
+  /**
+   * @brief Get the memory pool address.
+   *
+   * @return MemoryPool address.
+   */
+  void *getMemoryPoolAddress() { return mem_pool; }
+
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  virtual void setFsuWeightPath(std::string path){};
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  virtual void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets){};
+
 protected:
   /**
    * @brief  Get memory offset
    */
   std::vector<size_t> &getMemoryOffset() { return memory_offset; }
+
+  /**
+   * @brief  Get file offset
+   */
+  std::vector<size_t> &getFileOffset() { return file_offset; }
 
   /**
    * @brief  Get memory size
@@ -202,6 +232,7 @@ private:
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
+  std::vector<size_t> file_offset;   /**< offsets for the bin file */
   std::vector<std::vector<unsigned int>>
     memory_exec_order; /**< execution order for the requested memory */
 
@@ -215,8 +246,9 @@ private:
   size_t min_pool_size; /**< minimum theoretical memory requirement */
 
   size_t n_wgrad;
-};
 
+  std::vector<void *> memory_ptrs; /**< memory ptr vector */
+};
 } // namespace nntrainer
 
 #endif /** __MEMORY_POOL_H__ */
