@@ -69,6 +69,7 @@ void MakeWightFile(size_t size) {
     random_data[i] = 0xAA;
   }
   outFile.write(reinterpret_cast<const char *>(random_data), size);
+  free(random_data);
   outFile.close();
 }
 
