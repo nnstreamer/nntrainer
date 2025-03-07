@@ -12,12 +12,6 @@
  * @todo    Support multi-input graph.
  */
 
-#include "graph_node.h"
-#include "tensor.h"
-#include <cmath>
-#include <stdexcept>
-#include <string>
-
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
@@ -30,7 +24,6 @@
 #include <grucell.h>
 #include <identity_layer.h>
 #include <input_layer.h>
-#include <iostream>
 #include <layer_node.h>
 #include <layer_normalization_layer.h>
 #include <lstmcell.h>
@@ -46,10 +39,17 @@
 #include <tracer.h>
 #include <util_func.h>
 
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+
+#include "graph_node.h"
+#include "tensor.h"
+
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
 namespace nntrainer {
-
 int NetworkGraph::compile(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
 
@@ -77,8 +77,8 @@ int NetworkGraph::compile(const std::string &loss_type) {
     }
   } else {
     if (!loss_type.empty()) {
-      ml_loge(
-        "Warning : Loss type is given in inference mode. Ignoring loss type.");
+      ml_loge("Warning : Loss type is given in inference mode. Ignoring loss "
+              "type.");
     }
   }
 
@@ -330,7 +330,6 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
 void NetworkGraph::applyGradients(
   LayerNode *node, const std::function<void(Weight &)> &apply_func) {
-
   if (!node->getTrainable())
     return;
 
@@ -382,6 +381,8 @@ sharedConstTensors NetworkGraph::forwarding(
   for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
     auto const &output_layer_node = LNODE(graph.getOutputNode(i));
     for (unsigned int j = 0; j < output_layer_node->getNumOutputs(); ++j) {
+      // @todo we should determine what type to return
+      // out.push_back(MAKE_SHARED_TENSOR(output_layer_node->getOutput(j).clone(TensorDim::DataType::FP32)));
       out.push_back(MAKE_SHARED_TENSOR(output_layer_node->getOutput(j)));
     }
   }
@@ -690,7 +691,8 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
   }
   /** A case where it cannot operate in-place if there is a multi-out type
    * input connection. */
-  else { /** condition: NON_RESTRICTING */
+  else {
+    /** condition: NON_RESTRICTING */
     for (size_t i = 0, num_node = lnode->getNumInputConnections(); i < num_node;
          ++i) {
       const std::string &input_name = lnode->getInputConnectionName(i);
@@ -1122,7 +1124,6 @@ NetworkGraph::getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode) {
 int NetworkGraph::initialize(ExecutionMode mode,
                              const std::vector<Connection> &model_input_names,
                              const std::vector<Connection> &model_label_names) {
-
   exec_mode = mode;
   tensor_manager->setExecutionMode(mode);
   /**
@@ -1520,7 +1521,6 @@ int NetworkGraph::reinitialize(
 
 void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
                                       const std::vector<std::string> names) {
-
   /// feed or clear label
   for (unsigned int idx = 0; idx < names.size(); idx++) {
     if (data.empty())
@@ -1534,7 +1534,6 @@ void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
 
 void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
                                    const std::vector<Tensor> &labels) {
-
   NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
                 std::invalid_argument)
     << "label size does not match with the network requirements"
@@ -1553,7 +1552,6 @@ void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
 
 void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                                    sharedConstTensors &labels) {
-
   std::vector<Tensor> ins;
   std::transform(
     inputs.begin(), inputs.end(), std::back_inserter(ins),
