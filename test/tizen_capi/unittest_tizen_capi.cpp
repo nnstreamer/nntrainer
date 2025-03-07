@@ -164,7 +164,7 @@ TEST(nntrainer_capi_nnmodel, compile_02_n) {
 TEST(nntrainer_capi_nnmodel, compile_03_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_layer_h get_layer;
   ml_train_optimizer_h optimizer;
