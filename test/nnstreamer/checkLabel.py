@@ -35,6 +35,9 @@ def readlabel (filename):
 bytearr = readbyte(sys.argv[1])
 softmax = []
 for i in range(10):
+    print("checklabel")
+    print(i)
+    print(softmax)
     byte = b''
     byte += convert_to_bytes(bytearr[i * 4])
     byte += convert_to_bytes(bytearr[i * 4 + 1])
