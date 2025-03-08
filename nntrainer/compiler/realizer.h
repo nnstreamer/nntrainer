@@ -34,9 +34,10 @@ public:
 
   /**
    * @brief graph realizer creates a new graph based on the reference
-   * @todo consider void GraphRepresentation &
+   * @todo consider void GraphLayerNodeRepresentation &
    */
-  virtual GraphRepresentation realize(const GraphRepresentation &reference) = 0;
+  virtual GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) = 0;
 };
 
 } // namespace nntrainer

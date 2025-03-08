@@ -6,6 +6,7 @@
  * @date    19 Oct 2020
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Jijoong Moon <jijoong.moon@samsung.com>
+ * @author  Eunju Yang <ej.yang@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   This is Network Graph Class for Neural Network
  *
@@ -24,8 +25,14 @@
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
+#include <optimizer_wrapped.h>
+
+#include <subgraph_base.h>
+#include <subgraph_cpu.h>
 
 namespace nntrainer {
+
+#define SGNODE(x) std::static_pointer_cast<SubGraphBase>(x)
 
 using ExecutionMode = ml::train::ExecutionMode;
 
@@ -51,10 +58,20 @@ public:
     optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN),
     tensor_format("NCHW"),
+    tensor_dtype_str("FP32-FP32"),
     tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
     is_clip_grad(false),
-    loss_scale(1.0f) {
+    loss_scale(1.0f),
+    lookahead(0) {
     nan_count = 0;
+
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     */
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
+    sg->setName("default");
+    graph.addNode(SGNODE(sg));
   }
 
   /**
@@ -82,10 +99,21 @@ public:
     optimize_memory(true),
     exec_mode(mode),
     tensor_format(tensor_format_),
+    tensor_dtype_str(tensor_dtype_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
     is_clip_grad(false),
-    loss_scale(1.0f) {
+    loss_scale(1.0f),
+    lookahead(lookahead) {
     nan_count = 0;
+
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     */
+    auto sg = std::make_shared<SubGraphCpu>(tensor_manager, mode, lookahead,
+                                            tensor_format_, tensor_dtype_);
+    sg->setName("default");
+    graph.addNode(SGNODE(sg));
   }
 
   /**
@@ -121,16 +149,26 @@ public:
                     const std::string &output_layer) const;
 
   /**
-   * @brief getter of number of nodes
-   * @param[out] number of nodes
+   * @brief getter of number of all layer nodes
+   * @param[out] number of layer nodes
    */
-  unsigned int size() const { return graph.size(); }
+  unsigned int size() const {
+    unsigned int size = 0;
+    for (auto it = cbegin(); it != cend(); ++it)
+      size += (*it)->size();
+    return size;
+  }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const { return graph.empty(); }
+  bool empty() const {
+    bool is_empty = true;
+    for (auto it = cbegin(); it != cend(); ++it)
+      is_empty = (is_empty && (*it)->empty());
+    return is_empty;
+  }
 
   /**
    * @brief     Swap function for the class
@@ -148,7 +186,12 @@ public:
    * @ret LayerNode
    */
   std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) const {
-    return std::static_pointer_cast<LayerNode>(graph.getSortedNode(ith));
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. It needs to be updated.
+     * @todo update the code to consider `ith` as a global layer node index.
+     */
+    return (*cbegin())->getSortedLayerNode(ith);
   }
 
   /**
@@ -157,7 +200,13 @@ public:
    * @retval LayerNode
    */
   std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) const {
-    return std::static_pointer_cast<LayerNode>(graph.getNode(layer_name));
+    std::shared_ptr<LayerNode> ln;
+    for (auto it = cbegin(); it != cend(); ++it) {
+      ln = it->getLayerNode(layer_name);
+      if (ln)
+        return ln;
+    }
+    return ln;
   }
 
   /**
@@ -180,10 +229,12 @@ public:
    * @note if the gradient is to be clipped by norm, this is noop
    *
    * @param node node to try apply gradient
-   * @param apply_func apply function
+   * @param iteration iteration where the applyGradients is called
+   * @param opt shared ptr of the optimizer used for applyGradients (opt is
+   * passed from neuralnetwork)
    */
-  static void applyGradients(LayerNode *node,
-                             const std::function<void(Weight &)> &apply_func);
+  void applyGradients(LayerNode *node, int iteration,
+                      std::shared_ptr<OptimizerWrapped> opt);
 
   /**
    * @brief     forwarding network graph
@@ -192,11 +243,9 @@ public:
    */
   sharedConstTensors forwarding(
     bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr, bool swap_mode = false);
 
   /**
    * @brief     forwarding network graph
@@ -207,8 +256,6 @@ public:
    */
   sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-      [](std::shared_ptr<LayerNode>, bool) {},
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
     void *user_data = nullptr);
@@ -216,59 +263,60 @@ public:
   /**
    * @brief     backwarding the network graph
    * @param[in] iteration current iteration number
-   * @param[in] forwarding_op operation for the forwarding
-   * @param[in] backwarding_op operation for the backwarding
-   * @param[in] lazy_apply_grad_op operation for applying the lazy gradients
+   * @param[in] stop_cb callback function which return stop condition
+   * @param[in] user_data user data used for backwarding
+   * @param[in] is_grad_opt_mode flag to designate grad_opt_mode (passed from
+   *            neuralnet)
+   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
+   *            passed from neuralnetwork)
    * @retval ret it is false then the gradient has NaN valude in mixed precision
-   * training. If it is, then we need to control the loss scale factor and
-   * compute again the derivatives.
+   *         training. If it is, then we need to control the loss scale factor
+   *         and compute again the derivatives.
    */
   bool backwarding(
     int iteration,
-    std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
-    std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
-    std::function<void(Weight &, int)> &lazy_apply_grad_op,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr);
+    void *user_data = nullptr, bool is_grad_opt_mode = false,
+    std::shared_ptr<OptimizerWrapped> opt = nullptr);
 
   /**
    * @brief     get begin iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cbegin() const {
-    return graph.cbegin<LayerNode>();
+  graph_const_iterator<SubGraphBase> cbegin() const {
+    return graph.cbegin<SubGraphBase>();
   }
 
   /**
    * @brief     get end iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cend() const {
-    return graph.cend<LayerNode>();
+  graph_const_iterator<SubGraphBase> cend() const {
+    return graph.cend<SubGraphBase>();
   }
 
   /**
    * @brief     get reverse begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crbegin() const {
-    return graph.crbegin<LayerNode>();
+  graph_const_reverse_iterator<SubGraphBase> crbegin() const {
+    return graph.crbegin<SubGraphBase>();
   }
 
   /**
    * @brief     get reverse end iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crend() const {
-    return graph.crend<LayerNode>();
+  graph_const_reverse_iterator<SubGraphBase> crend() const {
+    return graph.crend<SubGraphBase>();
   }
 
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingBeginIter() const {
+  graph_const_reverse_iterator<SubGraphBase> getBackwardingBeginIter() const {
     return crbegin();
   }
 
@@ -276,7 +324,7 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingEndIter() const {
+  graph_const_reverse_iterator<SubGraphBase> getBackwardingEndIter() const {
     return crend();
   }
 
@@ -374,12 +422,8 @@ public:
    * @brief Allocate memory for all the managed weights
    */
   void allocateWeights(bool init = true) {
-    unsigned int max_exec_order =
-      std::get<3>(backward_iter_end->getExecutionOrder());
-
-    if (exec_mode == ExecutionMode::INFERENCE)
-      max_exec_order = std::get<0>(forward_iter_end->getExecutionOrder());
-    tensor_manager->allocateWeights(max_exec_order, init);
+    for (auto it = cbegin(); it != cend(); ++it)
+      return it->allocateWeights(init);
   }
 
   /**
@@ -393,8 +437,8 @@ public:
    * @param val true to enable, else false
    */
   void setMemoryOptimizations(bool val) {
-    tensor_manager->setOptimizations(val);
-    optimize_memory = val;
+    for (auto it = cbegin(); it != cend(); ++it)
+      return it->setMemoryOptimizations(val);
   }
 
   /**
@@ -438,8 +482,12 @@ public:
    * @return TensorDim::Format NCHW or NHWC
    */
   std::array<std::string, 3> getTensorType() {
-
-    return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
+    /**
+     * @note This code written based on the assumption that he graph consists
+     * with only one default subgraph node. If subgraphs have different
+     * TensorType, then it needs to be update this function.
+     */
+    return (*cbegin())->getTensorType();
   };
 
   /**
@@ -525,8 +573,8 @@ private:
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  GraphCore graph;             /** core graph object */
-  bool compiled;               /**< if the model graph is compiled */
+  GraphCore graph; /** core graph object consisting with SubGraphBase nodes */
+  bool compiled;   /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
   unsigned int graph_exec_end; /**< Inclusive, last execution order of the
                                   given graph */
@@ -550,6 +598,7 @@ private:
                               currently set or previously set */
 
   std::string tensor_format; /**< Model Tensor Format: NCHW or NHWC */
+  std::string tensor_dtype_str;
 
   std::vector<std::string> tensor_dtype; /**< Model Tensor Type: FP32, FP16 */
 
@@ -561,115 +610,7 @@ private:
   bool is_clip_grad;
   float loss_scale;
   unsigned int nan_count;
-
-  /**
-   * @brief     topological sort
-   * @param[in] ith index of LayerNode
-   * @param[in] visited temp list
-   * @param[in] stack for Node list to visit.
-   */
-  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
-                           std::stack<std::shared_ptr<LayerNode>> &Stack);
-
-  /**
-   * @brief     check if graph is ready to compile.
-   * @retval #ML_ERROR_NONE graph is ready to compile
-   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
-   */
-  int isCompilable();
-
-  /**
-   * @brief     check if the compiled graph is of correct form.
-   * @retval #ML_ERROR_NONE graph is compiled correctly
-   * @retval #ML_ERROR_INVALID_PARAMETER did not compile correctly
-   */
-  int checkCompiledGraph();
-
-  /**
-   * @brief     mark nodes required for backwarding.
-   */
-  void markNodesForBackwarding();
-
-  /**
-   * @brief     adding loss layer at last position
-   * @param[in] loss_type loss type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int addLossLayer(const std::string &loss_type);
-
-  /**
-   * @brief     set output connections for all the layers
-   */
-  void setOutputConnections();
-
-  /**
-   * @brief     Ensure that layer has a name.
-   * @param[in] layer Layer whose name is to be ensured to be valid
-   * @param[in] prefix Prefix to be attached to the layer name
-   * @param[in] postfix Postfix to be attached to the layer name
-   * @param[in] force_rename If the layer must be forcefully rename
-   * @details   Ensures that the layer has a unique and a valid name. A valid
-   * name pre-assigned to the layer can be changed if force_rename is enabled.
-   */
-  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
-                  const std::string &postfix = "", bool force_rename = false);
-
-  /**
-   * @brief Create new LayerNode and add into Graph
-   * @param[in] layer shared_ptr of Layer
-   */
-  void addLayerNode(std::unique_ptr<Layer> layer);
-
-  /**
-   * @brief finalize already added loss layers
-   *
-   * @details This involves verify if the requirements of the added loss layers
-   * match and merging loss layers with activation layers if needed.
-   */
-  void finalizeLossLayer();
-
-  /**
-   * @brief Set the order of execution for all the nodes in the graph
-   *
-   * @details This sets the order of execution using the order from the
-   * topological sort. The order of forwarding matches the topological sort. The
-   * order for backwarding is in the exact reverse order. The calcDerivative()
-   * is expected to be called right after calcGradient().
-   */
-  void setExecutionOrder();
-
-  /**
-   * @brief Set external data to the given tensors with name
-   *
-   * @param data External data
-   * @param names Names of the tensor to set the data to
-   */
-  void setExternalTensors(const std::vector<Tensor> &data,
-                          const std::vector<std::string> names);
-
-  /**
-   * @brief     Optimize the graph memory utilization for in-place operations
-   */
-  void inPlaceOptimize();
-
-  /**
-   * @brief     Check if the given node can execute in-place
-   *
-   * @param lnode node to check for in-place execution
-   *
-   * @return the mode of inplace for the layer
-   */
-  InPlaceType canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
-
-  /**
-   * @brief compute optimized backward end. This function calculated the valid
-   * end of the graph backward, if memory_optimize is unset, this returns
-   * beginning of the graph node.
-   *
-   * @return end of the backward iter;
-   */
-  LayerNode *computeBackwardEnd();
+  unsigned int lookahead;
 };
 
 } // namespace nntrainer
