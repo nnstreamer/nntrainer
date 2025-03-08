@@ -164,7 +164,7 @@ void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
 }
 
 #ifdef ENABLE_FP16
-void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
+void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
                                   unsigned int input_batch_size,
                                   unsigned int input_channels,
                                   unsigned int input_height,
@@ -175,7 +175,7 @@ void ReshapeLayerCl::copy_cl_fp16(const __fp16 *input, __fp16 *res,
   do {
     const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
 
-    size_t dim_size = sizeof(__fp16) * input_batch_size * input_height *
+    size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
     opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
