@@ -289,6 +289,9 @@ public:
    */
   InitLayerContext refinalize(const std::vector<TensorDim> &input_dims = {});
 
+
+  void initialize() override { layer->initialize(*run_context); }
+
   /**
    * @brief     Forward Propagation of a layer
    * @param     training true if training, false if inference
