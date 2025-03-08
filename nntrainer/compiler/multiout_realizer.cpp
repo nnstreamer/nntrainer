@@ -25,9 +25,9 @@
 namespace nntrainer {
 MultioutRealizer::~MultioutRealizer() {}
 
-GraphRepresentation
-MultioutRealizer::realize(const GraphRepresentation &reference) {
-  GraphRepresentation processed(reference.begin(), reference.end());
+GraphLayerNodeRepresentation
+MultioutRealizer::realize(const GraphLayerNodeRepresentation &reference) {
+  GraphLayerNodeRepresentation processed(reference.begin(), reference.end());
 
   std::unordered_map<Connection, unsigned> freq_map;
   std::unordered_set<std::string> node_names;
@@ -97,7 +97,7 @@ MultioutRealizer::realize(const GraphRepresentation &reference) {
 
   /// 3. insert multiout_nodes close to the original node to make the
   /// realization more sensible
-  GraphRepresentation ret;
+  GraphLayerNodeRepresentation ret;
   ret.reserve(processed.size());
   for (auto &node : processed) {
     ret.push_back(node);
