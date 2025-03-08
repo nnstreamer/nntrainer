@@ -22,6 +22,7 @@
 #include <model.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
+#include <onnx_interpreter.h>
 #include <optimizer.h>
 #include <optimizer_wrapped.h>
 
@@ -139,6 +140,16 @@ createLearningRateScheduler(const std::string &type,
                             const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
   return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+}
+
+std::unique_ptr<ml::train::Model> loadONNX(const std::string &path) {
+#ifdef ENABLE_ONNX_INTERPRETER
+  nntrainer::ONNXInterpreter onnx = nntrainer::ONNXInterpreter();
+  std::unique_ptr<Model> model = onnx.load(path);
+  return model;
+#else
+  throw std::runtime_error("enable-onnx-interpreter is not enabled");
+#endif
 }
 
 std::string getVersion() {
