@@ -50,16 +50,19 @@ void exportToFile(std::string name, nntrainer::NeuralNetwork &model) {
   std::ofstream file(file_name);
 
   auto graph = model.getNetworkGraph();
-  for (unsigned int i = 0; i < graph.size(); ++i) {
-    auto layer = graph.getSortedLayerNode(i);
-    auto orders = graph.getLayerExecutionOrders(layer);
-    for (auto &[name, ords] : orders) {
-      file << name;
-      std::set<unsigned int> set_ords(ords.begin(), ords.end());
-      for (auto &o : set_ords) {
-        file << ", " << o;
+  int layer_idx = 0;
+  for (auto sg_itr = graph.cbegin(); sg_itr != graph.cend(); ++sg_itr) {
+    for (auto itr = sg_itr->cbegin(); itr != sg_itr->cend(); ++itr) {
+      auto layer = graph.getSortedLayerNode(layer_idx++);
+      auto orders = graph.getLayerExecutionOrders(layer);
+      for (auto &[name, ords] : orders) {
+        file << name;
+        std::set<unsigned int> set_ords(ords.begin(), ords.end());
+        for (auto &o : set_ords) {
+          file << ", " << o;
+        }
+        file << std::endl;
       }
-      file << std::endl;
     }
   }
 
