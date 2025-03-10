@@ -60,6 +60,13 @@ void __fallback_copy_s16_fp32(const unsigned int N, const int16_t *X,
   }
 }
 
+void __fallback_copy_u16_fp32(const unsigned int N, const uint16_t *X,
+                              float *Y) {
+  for (unsigned int i = 0; i < N; ++i) {
+    Y[i] = X[i];
+  }
+}
+
 void __fallback_copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
     Y[i] = X[i];
