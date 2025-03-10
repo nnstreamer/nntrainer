@@ -13,25 +13,25 @@
  * appropriate compiler and interpreter
  * For example, if istream would be from a a.tflite file,
  *
- * GraphRepresentation g;
+ * GraphLayerNodeRepresentation g;
  * GraphCompiler * compiler = new NNTrainerCPUCompiler;
  *
  * ExecutableGraph eg = compiler->compile(g);
  *
  *
- *    +-------+--+--------+
- *    |GraphRepresentation|
- *    +-------+-----------+
- *            |  ^
- *  compile() |  |
- *            |  |
- *         (Compiler)
- *            |  |
- *            |  | decompile()
- *            v  |
- *      +--------+------+
- *      |ExecutableGraph|
- *      +---------------+
+ *    +-----------+---+------------+
+ *    |GraphLayerNodeRepresentation|
+ *    +-------+--------------------+
+ *                 |  ^
+ *       compile() |  |
+ *                 |  |
+ *              (Compiler)
+ *                 |  |
+ *                 |  | decompile()
+ *                 v  |
+ *           +--------+------+
+ *           |ExecutableGraph|
+ *           +---------------+
  *
  */
 #ifndef __COMPILER_H__
@@ -59,16 +59,16 @@ public:
    * @param representation graph representation
    * @param file ifstream to serialize graph
    */
-  virtual std::shared_ptr<ExecutableGraph>
-  compile(std::shared_ptr<const GraphRepresentation> representation) = 0;
+  virtual std::shared_ptr<ExecutableGraph> compile(
+    std::shared_ptr<const GraphLayerNodeRepresentation> representation) = 0;
 
   /**
    * @brief deserialize graph from a file stream
    *
    * @param executable executable graph
-   * @return GraphRepresentation graph representation
+   * @return GraphLayerNodeRepresentation graph representation
    */
-  virtual std::shared_ptr<GraphRepresentation>
+  virtual std::shared_ptr<GraphLayerNodeRepresentation>
   decompile(std::shared_ptr<ExecutableGraph> executable) = 0;
 };
 

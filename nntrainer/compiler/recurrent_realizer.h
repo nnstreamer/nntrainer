@@ -83,9 +83,10 @@ public:
    * @brief realized graph
    *
    * @param reference reference to realize graph
-   * @return GraphRepresentation realized graph
+   * @return GraphLayerNodeRepresentation realized graph
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 
 private:
   using PropTypes =
