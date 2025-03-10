@@ -53,7 +53,8 @@ public:
    * @throw std::invalid_argument if graph is ill formed
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  GraphLayerNodeRepresentation
+  realize(const GraphLayerNodeRepresentation &reference) override;
 
 private:
   std::vector<Connection> start_conns;
