@@ -394,12 +394,17 @@ if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
   if host_machine.system() == 'windows'
     googletest_options.append_compile_args('c', windows_compile_args)
     googletest_options.append_compile_args('cpp', windows_compile_args)
+  else
+    googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
   endif
   googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
   gmock_dep = googletest_subproject.dependency('gmock')
   gtest_dep = googletest_subproject.dependency('gtest')
-  gtest_main_dep = googletest_subproject.dependency('gtest_main')
+  gtest_main_dep = [googletest_subproject.dependency('gtest_main')]
+  # meson provided dependency gtest_main_dep is sum of [gtest_dep, gtest_main_dep]
+  # This difference between cmake and meson dependency is exposed on linux
+  gtest_main_dep += gtest_dep
 endif
 
 if get_option('enable-test') # and get_option('platform') != 'android'
