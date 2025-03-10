@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <profiler.h>
+#include <unistd.h>
 
 namespace nntrainer {
 
@@ -109,6 +110,19 @@ void MemoryPool::allocate() {
 #endif
 }
 
+void MemoryPool::allocateFSU() {
+  if (pool_size == 0)
+    throw std::runtime_error("Allocating memory pool with size 0");
+
+  if (mem_pool != nullptr)
+    throw std::runtime_error("Memory pool is already allocated");
+
+  mem_pool = aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+  if (mem_pool == nullptr)
+    throw std::runtime_error(
+      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+}
+
 /**
  * @brief Get the allocated memory
  *
@@ -134,7 +148,9 @@ void MemoryPool::deallocate() {
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
+#ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
+#endif
     memory_ptrs.clear();
   }
 

@@ -42,12 +42,12 @@ std::vector<LayerHandle> createGraph() {
 
   layers.push_back(
     createLayer("input", {nntrainer::withKey("name", "input0"),
-                          nntrainer::withKey("input_shape", "1:1:1024")}));
+                          nntrainer::withKey("input_shape", "1:1:2048")}));
 
   for (int i = 0; i < 28; i++) {
     layers.push_back(
       createLayer("fully_connected",
-                  {nntrainer::withKey("unit", 1024),
+                  {nntrainer::withKey("unit", 2048),
                    nntrainer::withKey("weight_initializer", "xavier_uniform"),
                    nntrainer::withKey("bias_initializer", "zeros")}));
   }
@@ -66,9 +66,33 @@ ModelHandle create() {
   return model;
 }
 
+void saveBin(unsigned int epochs, unsigned int batch_size) {
+  ModelHandle model = create();
+  model->setProperty({nntrainer::withKey("batch_size", batch_size),
+                      nntrainer::withKey("epochs", epochs),
+                      nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  int status = model->setOptimizer(std::move(optimizer));
+  if (status) {
+    throw std::invalid_argument("failed to set optimizer!");
+  }
+
+  status = model->compile();
+  if (status) {
+    throw std::invalid_argument("model compilation failed!");
+  }
+
+  status = model->initialize();
+  if (status) {
+    throw std::invalid_argument("model initialization failed!");
+  }
+  std::string filePath = "FSU_WEIGHT.bin";
+  model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+}
+
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   std::string swap_on_off, std::string look_ahaed) {
-
+  saveBin(epochs, batch_size);
   // setup model
   ModelHandle model = create();
   model->setProperty({nntrainer::withKey("batch_size", batch_size),
@@ -97,9 +121,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  unsigned int feature_size = 1 * 1 * 1024;
+  unsigned int feature_size = 1 * 1 * 2048;
 
-  float input[1 * 1024];
+  float input[1 * 2048];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = (j / (float)feature_size);
@@ -115,13 +139,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
             << std::endl;
 
   // to test asynch fsu, we do need save the model weight data in file
-  std::string filePath = "simplefc_weight_fp16_fp16_100.bin";
-  if (std::filesystem::exists(filePath)) {
-    model->load(filePath);
-  } else {
-    model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    model->load(filePath);
-  }
+  std::string filePath = "FSU_WEIGHT.bin";
+  model->load(filePath);
 
   answer = model->inference(1, in);
 

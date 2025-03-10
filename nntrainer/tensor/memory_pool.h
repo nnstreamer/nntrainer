@@ -91,6 +91,12 @@ public:
   virtual void allocate();
 
   /**
+   * @brief Do the allocation of memory for FSU
+   *
+   */
+  virtual void allocateFSU();
+
+  /**
    * @brief Get the allocated memory
    *
    * @param token The token received from the requestMemory
