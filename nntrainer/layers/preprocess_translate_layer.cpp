@@ -29,7 +29,7 @@
 namespace nntrainer {
 PreprocessTranslateLayer::PreprocessTranslateLayer() :
   Layer(),
-  epsilon(1e-5),
+  epsilon(1e-5f),
   preprocess_translate_props(props::RandomTranslate()) {}
 
 void PreprocessTranslateLayer::finalize(InitLayerContext &context) {

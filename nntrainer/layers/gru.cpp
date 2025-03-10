@@ -59,7 +59,7 @@ GRULayer::GRULayer() :
             props::IntegrateBias(), props::ResetAfter()),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {
+  epsilon(1e-3f) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 

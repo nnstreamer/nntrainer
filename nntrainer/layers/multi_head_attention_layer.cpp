@@ -28,7 +28,7 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
     props::OutputShape(), props::DropOutRate(), props::ReturnAttentionWeight(),
     props::AverageAttentionWeight()),
   sm(ActivationType::ACT_SOFTMAX),
-  epsilon(1e-3) {
+  epsilon(1e-3f) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
