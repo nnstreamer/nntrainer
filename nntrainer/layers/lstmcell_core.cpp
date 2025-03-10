@@ -24,7 +24,7 @@ LSTMCore::LSTMCore() :
                  props::RecurrentActivation() = ActivationType::ACT_SIGMOID),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
-  epsilon(1e-3) {}
+  epsilon(1e-3f) {}
 
 void LSTMCore::forwardLSTM(const unsigned int batch_size,
                            const unsigned int unit, const bool disable_bias,

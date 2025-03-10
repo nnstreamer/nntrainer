@@ -22,11 +22,11 @@
 #include <weight.h>
 
 namespace nntrainer {
-DynamicTrainingOptimization::DynamicTrainingOptimization(int threshold_,
+DynamicTrainingOptimization::DynamicTrainingOptimization(float threshold_,
                                                          int skip_n_iter) :
   threshold(threshold_),
   enabled(false),
-  epsilon(1e-7),
+  epsilon(1e-7f),
   skip_n_iterations(skip_n_iter) {
   reduce_op = reduceByNorm;
   calc_ratio_op = ratioUsingDerivative;

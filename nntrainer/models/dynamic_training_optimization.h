@@ -57,7 +57,7 @@ public:
   /**
    * @brief     Constructor of DynamicFineTuning Optimization
    */
-  DynamicTrainingOptimization(int threshold_ = 1, int skip_n_iter = 1);
+  DynamicTrainingOptimization(float threshold_ = 1.0f, int skip_n_iter = 1);
 
   /**
    * @brief     Set threshold for optimization
