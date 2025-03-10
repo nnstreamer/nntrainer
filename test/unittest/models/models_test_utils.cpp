@@ -141,23 +141,26 @@ public:
     expected_outputs = std::vector<Tensor>(out_dims.begin(), out_dims.end());
 
     NetworkGraphType model_graph = nn->getNetworkGraph();
-    for (auto it = model_graph.cbegin(); it != model_graph.cend(); ++it) {
-      auto const &lnode = *it;
-      auto &rc = lnode->getRunContext();
-      for (unsigned int i = 0; i < rc.getNumWeights(); ++i) {
-        if (!rc.isGradientLastAccess(i)) {
-          continue;
+    for (auto sg_it = model_graph.cbegin(); sg_it != model_graph.cend();
+         ++sg_it) {
+      for (auto it = sg_it->cbegin(); it != sg_it->cend(); ++it) {
+        auto const &lnode = *it;
+        auto &rc = lnode->getRunContext();
+        for (unsigned int i = 0; i < rc.getNumWeights(); ++i) {
+          if (!rc.isGradientLastAccess(i)) {
+            continue;
+          }
+
+          Tensor &t = rc.getWeight(i);
+
+          if (t.getDataType() != ml::train::TensorDim::DataType::FP32) {
+            Tensor &t32 = rc.getWeightFP32(i);
+            weights32.push_back(t32);
+          }
+
+          weights.push_back(t);
+          expected_weights.push_back(t.clone());
         }
-
-        Tensor &t = rc.getWeight(i);
-
-        if (t.getDataType() != ml::train::TensorDim::DataType::FP32) {
-          Tensor &t32 = rc.getWeightFP32(i);
-          weights32.push_back(t32);
-        }
-
-        weights.push_back(t);
-        expected_weights.push_back(t.clone());
       }
     }
   }
@@ -378,13 +381,16 @@ void GraphWatcher::initialize() {
 
   NetworkGraphType model_graph = nn->getNetworkGraph();
 
-  for (auto it = model_graph.cbegin(); it != model_graph.cend(); ++it) {
-    auto const &lnode = *it;
-    if (it->requireLabel()) {
-      loss_nodes.push_back(NodeWatcher(lnode));
-      expected_losses.push_back(0);
-    } else {
-      nodes.push_back(NodeWatcher(lnode));
+  for (auto sg_it = model_graph.cbegin(); sg_it != model_graph.cend();
+       ++sg_it) {
+    for (auto it = sg_it->cbegin(); it != sg_it->cend(); ++it) {
+      auto const &lnode = *it;
+      if (it->requireLabel()) {
+        loss_nodes.push_back(NodeWatcher(lnode));
+        expected_losses.push_back(0);
+      } else {
+        nodes.push_back(NodeWatcher(lnode));
+      }
     }
   }
 }

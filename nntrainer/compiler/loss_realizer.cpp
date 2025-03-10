@@ -25,8 +25,8 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_IN_IDX = 0;
 
-GraphRepresentation
-LossRealizer::realize(const GraphRepresentation &reference) {
+GraphLayerNodeRepresentation
+LossRealizer::realize(const GraphLayerNodeRepresentation &reference) {
   /// @todo support more loss layers
   /// @note Some layers need to consider not removing all semantics.
   /// For example, When CrossEntropySigmoidLossLayer needs to be removed,
@@ -61,7 +61,7 @@ LossRealizer::realize(const GraphRepresentation &reference) {
     }
   }
 
-  GraphRepresentation processed;
+  GraphLayerNodeRepresentation processed;
   for (auto &node : reference) {
     if (loss_type.find(node->getType()) == loss_type.end()) {
       processed.push_back(node);

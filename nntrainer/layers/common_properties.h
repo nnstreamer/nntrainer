@@ -1001,6 +1001,17 @@ public:
 };
 
 /**
+ * @brief Subgraph name, where the layer belongs to, with a default value
+ * `default`
+ */
+class SubGraphName : public Name {
+public:
+  SubGraphName(const std::string &value = "default") : Name(value) {}
+  static constexpr const char *key = "subgraph_name";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief HiddenStateActivation Enumeration Information
  *
  */
