@@ -85,8 +85,7 @@ ndk_build = find_program('ndk-build', required : true)
 ndk_args = {
   'NDK_LIBS_OUT': meson.current_build_dir(),
 }
-num_threads = run_command(nproc_prog).stdout().strip()
-message('num processor are: ' + num_threads)
+num_threads = run_command(nproc_prog, check: true).stdout().strip()
 
 thread_opt_flag = '-j' + num_threads
 

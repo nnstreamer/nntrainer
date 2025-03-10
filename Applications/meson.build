@@ -2,9 +2,9 @@ nntr_app_resdir = nntrainer_resdir / 'app'
 
 if host_machine.system() == 'windows'
   nntr_app_resdir_win = nntr_app_resdir.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', nntr_app_resdir_win)
+  run_command(['cmd.exe', '/C', 'mkdir', nntr_app_resdir_win], check: true)
 else
-  run_command('mkdir', '-p', nntr_app_resdir)
+  run_command(['mkdir', '-p', nntr_app_resdir], check: true)
 endif
 
 subdir('utils')
