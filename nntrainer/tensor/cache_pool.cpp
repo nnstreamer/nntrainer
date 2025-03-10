@@ -140,7 +140,7 @@ void CachePool::allocate() {
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
-    MemoryPool::allocate();
+    MemoryPool::allocateFSU();
     swap_device->start(size(), false);
   } else {
     swap_device->start(size(), true);
@@ -152,14 +152,14 @@ void CachePool::deallocate() {
   if (!swap_device->isOperating())
     return;
 
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
+    MemoryPool::deallocate();
+
   for (auto &[id, elem] : elems)
     invalidate(id);
 
   actives.clear();
   swap_device->finish();
-
-  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
-    MemoryPool::deallocate();
 }
 
 void CachePool::validate(unsigned int id) {

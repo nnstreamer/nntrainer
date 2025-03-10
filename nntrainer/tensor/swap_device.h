@@ -138,31 +138,6 @@ public:
   unsigned int getNumLoadedTensors();
 
   /**
-   * @brief Check if address is unmapped or not.
-   *
-   * @param address
-   * @return bool true if address is unmapped, otherwise false.
-   */
-  bool address_unmapped(void *address) {
-    NNTR_THROW_IF(is_unmapped.find(address) == is_unmapped.end(),
-                  std::runtime_error)
-      << "Couldn't find address";
-    return is_unmapped[address];
-  }
-
-  /**
-   * @brief Set address as unmapped.
-   *
-   * @param address
-   */
-  void set_unmapped(void *address) {
-    NNTR_THROW_IF(is_unmapped.find(address) == is_unmapped.end(),
-                  std::runtime_error)
-      << "Couldn't find address";
-    is_unmapped[address] = true;
-  }
-
-  /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
@@ -188,7 +163,6 @@ private:
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
-  std::map<void *, bool> is_unmapped;
 #else
   std::map<void *, std::pair<off_t, ssize_t>>
     allocated; /**< <pointer, <offset, size>> */

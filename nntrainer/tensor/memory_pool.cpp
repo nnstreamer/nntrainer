@@ -19,6 +19,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <profiler.h>
+#include <unistd.h>
 
 namespace nntrainer {
 
@@ -133,6 +134,19 @@ void MemoryPool::allocate() {
   msg.append(std::to_string(seq++));
   PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
 #endif
+}
+
+void MemoryPool::allocateFSU() {
+  if (pool_size == 0)
+    throw std::runtime_error("Allocating memory pool with size 0");
+
+  if (mem_pool != nullptr)
+    throw std::runtime_error("Memory pool is already allocated");
+
+  mem_pool = aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+  if (mem_pool == nullptr)
+    throw std::runtime_error(
+      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
 }
 
 /**

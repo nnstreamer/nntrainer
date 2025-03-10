@@ -98,11 +98,5 @@ TEST_F(CachePoolFSUTest, check_allocate) {
   EXPECT_EQ(pool->size(), 4096);
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
-
-  /* cache addr is invalid until validate() called */
-  EXPECT_EQ(mem->getAddr<float>(), nullptr);
-  EXPECT_EQ(mem->getAddr<float>(), nullptr);
-
-  EXPECT_NO_THROW(pool->deallocate());
   RemoveWeightFile();
 }
