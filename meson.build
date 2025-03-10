@@ -583,7 +583,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android' and host_machine.system() != 'windows'
+if get_option('platform') != 'android' and host_machine.system() != 'windows' and get_option('enable-nnstreamer-backbone')
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')
