@@ -227,9 +227,9 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   do {
     auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL_FP16];
 
-    const __fp16 *data = input.getData<__fp16>();
-    __fp16 *rdata = result.getData<__fp16>();
-    const __fp16 *gdata = gamma.getData<__fp16>();
+    const _FP16 *data = input.getData<_FP16>();
+    _FP16 *rdata = result.getData<_FP16>();
+    const _FP16 *gdata = gamma.getData<_FP16>();
 
     ret = clbuffInstance.getInBufferA()->WriteDataRegion(
       cl_context_ref.command_queue_inst_, dim1 * sizeof(cl_half), data);
