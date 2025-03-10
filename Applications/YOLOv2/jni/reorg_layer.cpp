@@ -102,12 +102,10 @@ void ReorgLayer::calcDerivative(nntrainer::RunLayerContext &context) {
 
 nntrainer::Layer *create_reorg_layer() {
   auto layer = new ReorgLayer();
-  std::cout << "reorg created\n";
   return layer;
 }
 
 void destroy_reorg_layer(nntrainer::Layer *layer) {
-  std::cout << "reorg deleted\n";
   delete layer;
 }
 
