@@ -678,8 +678,14 @@ private:
 
   AppContext app_context; /** Configurations bound to current app */
 
-  NetworkGraph model_graph;                 /** Network Model Graph */
-  GraphRepresentation graph_representation; /** Unsorted graph representation */
+  NetworkGraph model_graph; /** Network Model Graph */
+  GraphRepresentation
+    graph_representation; /** Unsorted subgraph representation */
+  std::unordered_map<std::string, SubGraphNode>
+    graph_map; /** hashmap for the graph */
+  GraphLayerNodeRepresentation
+    graph_ln_representation; /** Unsorted graph representation with successive
+                                layer nodes */
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */

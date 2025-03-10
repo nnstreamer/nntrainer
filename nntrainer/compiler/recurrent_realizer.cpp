@@ -222,8 +222,8 @@ RecurrentRealizer::RecurrentRealizer(
 
 RecurrentRealizer::~RecurrentRealizer() {}
 
-GraphRepresentation
-RecurrentRealizer::realize(const GraphRepresentation &reference) {
+GraphLayerNodeRepresentation
+RecurrentRealizer::realize(const GraphLayerNodeRepresentation &reference) {
 
   auto step0_verify_and_prepare = []() {
     /// empty intended
@@ -235,7 +235,8 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto step1_connect_external_input =
-    [this](const GraphRepresentation &reference_, unsigned max_time_idx) {
+    [this](const GraphLayerNodeRepresentation &reference_,
+           unsigned max_time_idx) {
       RemapRealizer input_mapper([this](std::string &id) {
         if (input_layers.count(id) == 0) {
           id += "/0";
@@ -258,9 +259,9 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @brief Create a single time step. Used inside step2_unroll.
    *
    */
-  auto create_step = [this](const GraphRepresentation &reference_,
+  auto create_step = [this](const GraphLayerNodeRepresentation &reference_,
                             unsigned time_idx, unsigned max_time_idx) {
-    GraphRepresentation step;
+    GraphLayerNodeRepresentation step;
     step.reserve(reference_.size());
 
     auto replace_time_idx = [](std::string &name, unsigned time_idx) {
@@ -305,28 +306,31 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    * @brief unroll the graph by calling create_step()
    *
    */
-  auto step2_unroll = [create_step](const GraphRepresentation &reference_,
-                                    unsigned unroll_for_) {
-    GraphRepresentation processed(reference_.begin(), reference_.end());
-    processed.reserve(reference_.size() * unroll_for_);
+  auto step2_unroll =
+    [create_step](const GraphLayerNodeRepresentation &reference_,
+                  unsigned unroll_for_) {
+      GraphLayerNodeRepresentation processed(reference_.begin(),
+                                             reference_.end());
+      processed.reserve(reference_.size() * unroll_for_);
 
-    for (unsigned int i = 1; i < unroll_for_; ++i) {
-      auto step = create_step(reference_, i, unroll_for_);
-      processed.insert(processed.end(), step.begin(), step.end());
-    }
+      for (unsigned int i = 1; i < unroll_for_; ++i) {
+        auto step = create_step(reference_, i, unroll_for_);
+        processed.insert(processed.end(), step.begin(), step.end());
+      }
 
-    return processed;
-  };
+      return processed;
+    };
 
   /**
    * @brief case when return sequence is true, concat layer is added to
    * aggregate all the output
    *
    */
-  auto concat_output = [](const GraphRepresentation &reference_,
+  auto concat_output = [](const GraphLayerNodeRepresentation &reference_,
                           const Connection &con, unsigned unroll_for,
                           const std::string &new_layer_name) {
-    GraphRepresentation processed(reference_.begin(), reference_.end());
+    GraphLayerNodeRepresentation processed(reference_.begin(),
+                                           reference_.end());
 
     std::vector<props::RecurrentInput> conns;
     for (unsigned int i = 0; i < unroll_for; ++i) {
@@ -363,7 +367,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto step3_connect_output = [this, concat_output](
-                                const GraphRepresentation &reference_,
+                                const GraphLayerNodeRepresentation &reference_,
                                 unsigned unroll_for) {
     /// @note below is inefficient way of processing nodes. consider optimize
     /// below as needed by calling remap realizer only once
