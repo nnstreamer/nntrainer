@@ -227,10 +227,9 @@ int main(int argc, char *argv[]) {
       float input[feature_size];
       float label[1];
 
-      if (!getData(dataFile, input, label, j))
-        std::cout << "error dring read file " << std::endl;
-
       try {
+        if (!getData(dataFile, input, label, j))
+          std::cout << "error dring read file " << std::endl;
 
         std::vector<float *> answer;
 
