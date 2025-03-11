@@ -14,6 +14,7 @@
 #include <array>
 #include <chrono>
 #include <ctime>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -289,7 +290,7 @@ int main(int argc, char *argv[]) {
     app_context.registerFactory(nntrainer::createLayer<custom::ReorgLayer>);
     app_context.registerFactory(
       nntrainer::createLayer<custom::YoloV2LossLayer>);
-  } catch (std::invalid_argument &e) {
+  } catch (std::exception &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
     return 1;
