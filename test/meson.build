@@ -1,11 +1,16 @@
+fs = import('fs')
 nntrainer_test_resdir = nntrainer_resdir / 'test'
 
 if host_machine.system() == 'windows'
   nntrainer_test_resdir_win = nntrainer_test_resdir.replace('/', '\\')
   nntrainer_test_resdir_models_win = (nntrainer_test_resdir / 'test_models/').replace('/', '\\')
   test_models_dir_win = (meson.current_source_dir() / 'test_models/').replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_win)
-  run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_models_win)
+  if not fs.exists (nntrainer_test_resdir_win)
+    run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_win)
+  endif
+  if not fs.exists (nntrainer_test_resdir_models_win)
+    run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_models_win)
+  endif
   run_command('cmd.exe', '/C', 'xcopy',test_models_dir_win, nntrainer_test_resdir_models_win, '/i', '/s', '/y')
 else
   run_command('mkdir', '-p', nntrainer_test_resdir)

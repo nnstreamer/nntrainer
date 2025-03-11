@@ -5,7 +5,9 @@ build_app_res_dir = nntr_app_resdir / 'AlexNet'
 if host_machine.system() == 'windows'
   app_res_dir_win = app_res_dir.replace('/', '\\')
   build_app_res_dir_win = build_app_res_dir.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
+  if not fs.exists (build_app_res_dir_win)
+    run_command('cmd.exe', '/C', 'mkdir', build_app_res_dir_win)
+  endif
   run_command('cmd.exe', '/C', 'xcopy',app_res_dir_win, build_app_res_dir_win)
 else
   run_command('cp', '-lr', app_res_dir, build_app_res_dir)

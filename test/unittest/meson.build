@@ -1,3 +1,5 @@
+fs = import('fs')
+
 unittest_nntrainer_deps = [
   nntrainer_test_deps,
   nntrainer_ccapi_dep
@@ -32,7 +34,9 @@ foreach target: unzip_target
   if host_machine.system() == 'windows'
     _src_path_win = _src_path.replace('/', '\\')
     _dest_path_win = _dest_path.replace('/', '\\')
-    run_command('cmd.exe', '/C', 'mkdir', _dest_path_win)
+    if not fs.exists (_dest_path_win)
+      run_command('cmd.exe', '/C', 'mkdir', _dest_path_win)
+    endif
     run_command('cmd.exe', '/C', 'tar', 'xzf', _src_path_win, '-C', _dest_path_win)
   else
     run_command('mkdir', '-p', _dest_path)

@@ -17,6 +17,7 @@ nntrainer_version_split = nntrainer_version.split('.')
 
 # CMake module
 cmake = import('cmake')
+fs = import('fs')
 
 if host_machine.system() == 'windows'
   windows_compile_args = ['/MT']
@@ -179,7 +180,6 @@ if get_option('enable-biqgemm')
       # relative path from biqgemm is assumed
       biqgemm_path = get_option('biqgemm-path')
       message('[lib:biqgemm] fallback: finding biqgemm from user-path :' + biqgemm_path)
-      fs = import('fs')
       if fs.is_dir(biqgemm_path) 
         message('[lib:biqgemm] biqgemm header is found successfully')
         extra_defines += '-DENABLE_BIQGEMM=1'
@@ -243,7 +243,9 @@ nntrainer_resdir = meson.build_root() / 'res'
 
 if host_machine.system() == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
-  run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+  if not fs.exists (nntrainer_resdir_win)
+    run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+  endif
 else
   run_command('mkdir', '-p', nntrainer_resdir)
 endif
