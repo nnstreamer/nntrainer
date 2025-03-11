@@ -22,37 +22,42 @@
 
 namespace nntrainer::neon {
 bool is_valid(const unsigned int N, const __fp16 *input) {
-  bool temp = 0;
-  size_t i = 0;
-  __fp16 inf_s = std::numeric_limits<float>::infinity();
-  float16x8_t inf = vdupq_n_f16(inf_s);
-  uint16x8_t zero = vdupq_n_f16(0);
+  const uint16_t inf_bits = 0x7C00;
+  const uint16_t n_inf_bits = 0xFC00;
+  const uint16x8_t inf_v = vdupq_n_u16(inf_bits);
+  const uint16x8_t neg_inf_v = vdupq_n_u16(n_inf_bits);
 
+  size_t i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t vec = vld1q_f16(&input[i]);
-
-    uint16x8_t vcmp = vceqq_f16(vec, vec);
-
-    vcmp = vceqq_f16(vcmp, zero);
-
-    if (vaddvq_u16(vcmp)) {
+    uint16x8_t nan_check = vceqq_f16(vec, vec);
+    nan_check = vmvnq_u16(nan_check); // Invert: 1s where NaN, 0s where not NaN
+    if (vaddvq_u16(nan_check)) {
       return false;
     }
 
-    vcmp = vceqq_f16(vec, inf);
-
-    if (vaddvq_u16(vcmp)) {
+    uint16x8_t inf_check = vceqq_u16(vreinterpretq_u16_f16(vec), inf_v);
+    if (vaddvq_u16(inf_check)) {
+      return false;
+    }
+    inf_check = vceqq_u16(vreinterpretq_u16_f16(vec), neg_inf_v);
+    if (vaddvq_u16(inf_check)) {
       return false;
     }
   }
 
   while (i < N) {
-    if (input[i] != input[i] ||
-        input[i] == std::numeric_limits<float>::infinity()) {
+    __fp16 val = input[i];
+    if (val != val) {
+      return false;
+    }
+    uint16_t val_bits = reinterpret_cast<uint16_t &>(val);
+    if (val_bits == 0x7C00 || val_bits == 0xFC00) {
       return false;
     }
     ++i;
   }
+
   return true;
 }
 

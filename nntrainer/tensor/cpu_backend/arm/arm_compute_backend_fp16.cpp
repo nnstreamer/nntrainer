@@ -209,7 +209,7 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 }
 
 bool is_valid(const unsigned int N, const __fp16 *input) {
-  nntrainer::neon::is_valid(N, input);
+  return nntrainer::neon::is_valid(N, input);
 }
 
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
