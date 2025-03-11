@@ -230,10 +230,7 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
                                                  unsigned int from,
                                                  unsigned int to,
                                                  bool training) {
-  Tensor w;
-  Tensor &weight = w;
-  context.getWeight(weight, weight_idx[FCParams::weight]);
-
+  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
