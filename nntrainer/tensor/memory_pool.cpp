@@ -10,15 +10,14 @@
  * @brief  This is Memory Pool Class
  */
 
+#include <cstdlib>
 #include <limits>
-#include <numeric>
-#include <vector>
-
 #include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <numeric>
 #include <profiler.h>
-#include <unistd.h>
+#include <vector>
 
 namespace nntrainer {
 
@@ -116,8 +115,15 @@ void MemoryPool::allocateFSU() {
 
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
+#if defined(_WIN32)
+  SYSTEM_INFO system_info;
+  GetSystemInfo(&system_info);
+  mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
+  // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
+#else
+  mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+#endif
 
-  mem_pool = aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
   if (mem_pool == nullptr)
     throw std::runtime_error(
       "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");

@@ -23,9 +23,19 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <vector>
+#if defined(_WIN32)
+#define O_SYNC 0UL
+#include <io.h>
+#include <sysinfoapi.h>
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 namespace nntrainer {
 /**
