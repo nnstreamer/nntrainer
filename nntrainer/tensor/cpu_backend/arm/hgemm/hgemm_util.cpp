@@ -34,7 +34,6 @@ unsigned int get_next_mltpl_of_n(unsigned int x, unsigned int n) {
 
 unsigned int get_prev_mltpl_of_2p_n(unsigned int x, unsigned int n) {
   assert(x > 0);
-  assert(n % 2 == 0);
   return (x >> n) << n;
 }
 
