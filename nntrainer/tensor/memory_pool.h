@@ -23,9 +23,24 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <vector>
+#if defined(_WIN32)
+#ifdef max
+#undef max
+#undef min
+#endif
+#define NOMINMAX
+#define O_SYNC 0UL
+#include <io.h>
+#include <sysinfoapi.h>
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 #include <engine.h>
 #include <iostream>

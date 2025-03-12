@@ -26,7 +26,6 @@
 #include <manager.h>
 
 namespace nntrainer {
-
 using ExecutionMode = ml::train::ExecutionMode;
 
 class Connection;
@@ -35,7 +34,6 @@ class Connection;
  * @brief   NeuralNetwork Graph Class which manage layers
  */
 class NetworkGraph {
-
 public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
@@ -438,7 +436,6 @@ public:
    * @return TensorDim::Format NCHW or NHWC
    */
   std::array<std::string, 3> getTensorType() {
-
     return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
   };
 
@@ -525,7 +522,7 @@ public:
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string path) {
+  void setFsuWeightPath(const std::string &path) {
     tensor_manager->setFsuWeightPath(path);
   }
 
@@ -534,26 +531,26 @@ public:
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> &offsets) {
     tensor_manager->setWeightOffset(offsets);
   }
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
-                   input and output layer name of subgraph */
+                 input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  GraphCore graph;             /** core graph object */
-  bool compiled;               /**< if the model graph is compiled */
-  unsigned int batch_size;     /**< current batch_size */
-  unsigned int graph_exec_end; /**< Inclusive, last execution order of the
-                                  given graph */
-  LayerNode
-    *backward_iter_end;        /**< inclusive end node of the valid backward
-                                  execution when initialized, nodes after this node
-                                  does not required backwarding thus making it noop */
-  LayerNode *forward_iter_end; /**< inclusive end node of the forward execution
-                                  when initialize */
+  GraphCore graph;              /** core graph object */
+  bool compiled;                /**< if the model graph is compiled */
+  unsigned int batch_size;      /**< current batch_size */
+  unsigned int graph_exec_end;  /**< Inclusive, last execution order of the
+                                 given graph */
+  LayerNode *backward_iter_end; /**< inclusive end node of the valid backward
+                                         execution when initialized, nodes after
+                                   this node does not required backwarding thus
+                                   making it noop */
+  LayerNode *forward_iter_end;  /**< inclusive end node of the forward execution
+                                 when initialize */
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
@@ -565,7 +562,7 @@ private:
 
   bool optimize_memory;    /**< optimize memory */
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
-                              currently set or previously set */
+                            currently set or previously set */
 
   std::string tensor_format; /**< Model Tensor Format: NCHW or NHWC */
 
@@ -689,7 +686,6 @@ private:
    */
   LayerNode *computeBackwardEnd();
 };
-
 } // namespace nntrainer
 
 #endif /* __cplusplus */

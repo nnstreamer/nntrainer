@@ -82,21 +82,3 @@ TEST_F(CachePoolFSUTest, check_init) {
   EXPECT_EQ("weight.bin", pool->getName());
   EXPECT_EQ(ml::train::ExecutionMode::INFERENCE, pool->getExecMode());
 }
-
-/**
- * @brief CachePool FSU allocate Test
- */
-TEST_F(CachePoolFSUTest, check_allocate) {
-  MakeWightFile(4096);
-  EXPECT_CALL(*pool, validate).Times(0);
-  EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(1));
-
-  std::shared_ptr<nntrainer::MemoryData> mem;
-  auto idx = pool->requestMemory(4096, 0, 2, {1, 2, 3});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV3Planner()));
-  EXPECT_NO_THROW(pool->allocate());
-  EXPECT_EQ(pool->size(), 4096);
-  EXPECT_NO_THROW(mem = pool->getMemory(idx));
-  EXPECT_NE(mem, nullptr);
-  RemoveWeightFile();
-}

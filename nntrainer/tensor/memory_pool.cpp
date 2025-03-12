@@ -10,6 +10,7 @@
  * @brief  This is Memory Pool Class
  */
 
+#include <cstdlib>
 #include <limits>
 #include <numeric>
 #include <vector>
@@ -142,6 +143,14 @@ void MemoryPool::allocateFSU() {
 
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
+#if defined(_WIN32)
+  SYSTEM_INFO system_info;
+  GetSystemInfo(&system_info);
+  mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
+  // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
+#else
+  mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+#endif
 
   mem_pool = aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
   if (mem_pool == nullptr)
@@ -178,8 +187,9 @@ void MemoryPool::deallocate() {
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
-
+#ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
+#endif
     memory_ptrs.clear();
     int i = 0;
     for (auto &s : memory_ptrs) {
@@ -343,7 +353,7 @@ size_t MemoryPool::calcMinMemoryRequirement() {
    * as weights stay valid for max duration, ignore this value and get the real
    * max value
    */
-  if (last_interval == std::numeric_limits<unsigned int>::max()) {
+  if (last_interval == (std::numeric_limits<unsigned int>::max)()) {
     max_interval = *std::max_element(
       memory_validity.begin(), memory_validity.end(),
       [last_interval](auto const &val1, auto const &val2) {
@@ -354,7 +364,7 @@ size_t MemoryPool::calcMinMemoryRequirement() {
      * if the second largest number is also numeric_limit, implies that all the
      * elements are max values. In this case, last_interval is set to 1
      */
-    if (last_interval == std::numeric_limits<unsigned int>::max())
+    if (last_interval == (std::numeric_limits<unsigned int>::max)())
       last_interval = 1;
   }
 

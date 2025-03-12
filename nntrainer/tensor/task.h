@@ -14,6 +14,11 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#ifdef max
+#undef max
+#undef min
+#endif
+
 #include <atomic>
 #include <chrono>
 #include <functional>
