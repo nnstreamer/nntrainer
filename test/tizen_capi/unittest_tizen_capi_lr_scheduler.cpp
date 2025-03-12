@@ -115,7 +115,7 @@ TEST(nntrainer_capi_lr_scheduler, create_destruct_06_n) {
 TEST(nntrainer_capi_lr_scheduler, create_destruct_07_n) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_optimizer_h optimizer;
   ml_train_lr_scheduler_h lr_scheduler;
 

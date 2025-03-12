@@ -241,7 +241,7 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
 TEST(nntrainer_capi_nnmodel, compile_04_n) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[3];
   ml_train_layer_h get_layer;
 
@@ -579,7 +579,7 @@ TEST(nntrainer_capi_nnmodel, train_with_single_param_04_n) {
 TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layer;
 
   status = ml_train_model_construct(&model);
@@ -607,7 +607,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
 TEST(nntrainer_capi_nnmodel, addLayer_02_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layer;
 
   status = ml_train_model_construct(&model);
@@ -633,7 +633,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_02_p) {
 TEST(nntrainer_capi_nnmodel, addLayer_03_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layer;
 
   status = ml_train_model_construct(&model);
@@ -659,7 +659,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_03_p) {
 TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
 
   status = ml_train_model_construct(&model);
@@ -702,7 +702,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
 TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layer = NULL;
 
   status = ml_train_model_construct(&model);
@@ -757,7 +757,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_06_n) {
 TEST(nntrainer_capi_nnmodel, getLayer_01_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h add_layer;
   ml_train_layer_h get_layer;
 
@@ -786,7 +786,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_01_p) {
 TEST(nntrainer_capi_nnmodel, getLayer_02_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h get_layer;
 
   std::string default_name = "inputlayer", modified_name = "renamed_inputlayer";
@@ -831,7 +831,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_02_p) {
 TEST(nntrainer_capi_nnmodel, getLayer_03_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h get_layer;
 
   ScopedIni s("getLayer_03_p", {model_base, inputlayer, optimizer});
@@ -855,7 +855,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_03_p) {
 TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h add_layer;
   ml_train_layer_h get_layer;
 
@@ -884,7 +884,7 @@ TEST(nntrainer_capi_nnmodel, getLayer_04_n) {
 TEST(nntrainer_capi_nnmodel, getLayer_05_n) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h get_layer;
 
   std::string default_name = "inputlayer", modified_name = "renamed_inputlayer";
@@ -980,7 +980,7 @@ TEST(nntrainer_capi_nnmodel, getWeight_01) {
 TEST(nntrainer_capi_nnmodel, create_optimizer_01_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_optimizer_h optimizer;
 
   status = ml_train_model_construct(&model);
@@ -1007,7 +1007,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_01_p) {
 TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
 
@@ -1056,7 +1056,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
 TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
 
@@ -1108,7 +1108,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
 TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
   ml_train_dataset_h dataset;
@@ -1182,7 +1182,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
 TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
   ml_train_dataset_h dataset;
@@ -1292,7 +1292,7 @@ static int constant_generator_cb(float **outVec, float **outLabel, bool *last,
 TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
   int status = ML_ERROR_NONE;
 
-  ml_train_model_h model;
+  ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
   ml_train_dataset_h dataset;
