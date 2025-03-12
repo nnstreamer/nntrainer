@@ -91,7 +91,8 @@ void saveBin(unsigned int epochs, unsigned int batch_size) {
 }
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  std::string swap_on_off, std::string look_ahaed) {
+                  std::string swap_on_off, std::string look_ahaed,
+                  std::string file_path) {
   saveBin(epochs, batch_size);
   // setup model
   ModelHandle model = create();
@@ -121,7 +122,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  unsigned int feature_size = 1 * 1 * 2048;
+  const unsigned int feature_size = 1 * 1 * 2048;
 
   float input[1 * 2048];
 
@@ -138,9 +139,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::cout << "started computation at " << std::ctime(&start_time)
             << std::endl;
 
-  // to test asynch fsu, we do need save the model weight data in file
-  std::string filePath = "FSU_WEIGHT.bin";
-  model->load(filePath);
+  model->load(file_path);
 
   answer = model->inference(1, in);
 
@@ -162,21 +161,26 @@ int main(int argc, char *argv[]) {
 
   std::string swap_on = "true";
   std::string look_ahead = "1";
-  if (argc < 3) {
-    std::cerr << "need more argc, executable swap_on look_ahead" << std::endl;
+  std::string weight_file_path = "FSU_WEIGHT.bin";
+  if (argc < 4) {
+    std::cerr
+      << "need more argc, executable swap_on look_ahead Weight_file_path"
+      << std::endl;
   }
 
-  swap_on = argv[1];    // true or false
-  look_ahead = argv[2]; // int
+  swap_on = argv[1];          // true or false
+  look_ahead = argv[2];       // int
+  weight_file_path = argv[3]; // string
 
   std::cout << "swap_on : " << swap_on << std::endl;
   std::cout << "look_ahead : " << look_ahead << std::endl;
+  std::cout << "weight_file_path : " << weight_file_path << std::endl;
 
   unsigned int batch_size = 1;
   unsigned int epoch = 1;
 
   try {
-    createAndRun(epoch, batch_size, swap_on, look_ahead);
+    createAndRun(epoch, batch_size, swap_on, look_ahead, weight_file_path);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;
