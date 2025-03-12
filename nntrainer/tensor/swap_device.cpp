@@ -29,8 +29,7 @@ void SwapDevice::start(size_t size, bool writeable) {
     return;
 
   if (writeable) {
-    fd =
-      open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+    fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
   } else {
     fd = open(dev_path.c_str(), O_RDWR | O_CREAT, 0666UL);
     execution_mode = ml::train::ExecutionMode::INFERENCE;

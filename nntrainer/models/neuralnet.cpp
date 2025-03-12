@@ -28,7 +28,6 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 
 #include <activation_realizer.h>
@@ -1440,6 +1439,7 @@ void NeuralNetwork::addWithReferenceLayers(
   addWithReferenceLayers(casted_reference, scope, input_layers, start_layers,
                          end_layers, type, type_properties);
 }
+
 void NeuralNetwork::addWithReferenceLayers(
   const std::vector<std::shared_ptr<LayerNode>> &reference,
   const std::string &scope, const std::vector<std::string> &input_layers,

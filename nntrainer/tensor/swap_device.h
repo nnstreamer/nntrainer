@@ -14,6 +14,7 @@
 #ifndef __SWAP_DEVICE_H__
 #define __SWAP_DEVICE_H__
 
+#include <common.h>
 #include <fcntl.h>
 #include <map>
 #include <memory>
@@ -23,7 +24,6 @@
 #include <sys/types.h>
 #include <system_error>
 #include <utility>
-#include <common.h>
 #if defined(_WIN32)
 #include <io.h>
 #define O_SYNC 0UL
@@ -37,7 +37,6 @@ using ssize_t = std::make_signed_t<size_t>;
 #endif
 
 namespace nntrainer {
-
 /**
  * @class   SwapDevice
  * @brief   A device used to storing data with long access time
@@ -92,6 +91,7 @@ public:
    *
    * @param offset Requested offset of swap device file
    * @param size Requested size.
+   * @param memory_ptr memory ptr that allocate FSU data (mapping)
    * @param alloc_only only allocate buffer without reading data
    *
    * @return The pointer of the swap space
@@ -168,7 +168,6 @@ private:
     allocated; /**< <pointer, <offset, size>> */
 #endif
 };
-
 } // namespace nntrainer
 
 #endif /** __SWAP_DEVICE_H__ */
