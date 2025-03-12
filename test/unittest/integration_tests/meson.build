@@ -26,7 +26,7 @@ exe = executable(
     test_target,
     include_directories: [include_directories('.'), model_util_include_dir],
     dependencies: [
-        nntrainer_test_main_deps,
+        nntrainer_test_deps,
         nntrainer_dep,
         nntrainer_ccapi_dep,
     ],
