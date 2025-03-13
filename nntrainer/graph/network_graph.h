@@ -29,7 +29,7 @@
 #include <manager.h>
 #include <model_common_properties.h>
 #include <optimizer_wrapped.h>
-#include <subgraph.h>
+#include <subgraph_node.h>
 
 namespace nntrainer {
 
@@ -70,7 +70,7 @@ public:
      * If the default subgraph is not utilized, it will be discarded at the
      * compilation time
      */
-    auto sg = std::make_shared<SubGraphCpu>(tensor_manager);
+    auto sg = std::make_shared<SubGraphNode>(tensor_manager);
     sg->setName("default");
     graph.addNode(SGNODE(sg));
   }
@@ -127,8 +127,8 @@ public:
      * info.
      */
     if (!graph_representation.size()) {
-      auto sg = std::make_shared<SubGraphCpu>(tensor_manager, mode, lookahead,
-                                              tensor_format_, tensor_dtype_);
+      auto sg = std::make_shared<SubGraphNode>(tensor_manager, mode, lookahead,
+                                               tensor_format_, tensor_dtype_);
       sg->setName("default");
       graph.addNode(SGNODE(sg));
       graph_representation.push_back(sg);
@@ -163,7 +163,7 @@ public:
    * information within the subgraph.
    * @param[in] subgraph shared_ptr of SubGraph
    */
-  void addSubGraph(const SubGraphNode subgraph);
+  void addSubGraph(const SubGraphType subgraph);
 
   /**
    * @brief Create new LayerNode and add into Graph
@@ -320,39 +320,39 @@ public:
    * @brief     get begin iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<SubGraphBase> cbegin() const {
-    return graph.cbegin<SubGraphBase>();
+  graph_const_iterator<SubGraphNode> cbegin() const {
+    return graph.cbegin<SubGraphNode>();
   }
 
   /**
    * @brief     get end iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<SubGraphBase> cend() const {
-    return graph.cend<SubGraphBase>();
+  graph_const_iterator<SubGraphNode> cend() const {
+    return graph.cend<SubGraphNode>();
   }
 
   /**
    * @brief     get reverse begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<SubGraphBase> crbegin() const {
-    return graph.crbegin<SubGraphBase>();
+  graph_const_reverse_iterator<SubGraphNode> crbegin() const {
+    return graph.crbegin<SubGraphNode>();
   }
 
   /**
    * @brief     get reverse end iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<SubGraphBase> crend() const {
-    return graph.crend<SubGraphBase>();
+  graph_const_reverse_iterator<SubGraphNode> crend() const {
+    return graph.crend<SubGraphNode>();
   }
 
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_const_reverse_iterator<SubGraphBase> getBackwardingBeginIter() const {
+  graph_const_reverse_iterator<SubGraphNode> getBackwardingBeginIter() const {
     return crbegin();
   }
 
@@ -360,7 +360,7 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_const_reverse_iterator<SubGraphBase> getBackwardingEndIter() const {
+  graph_const_reverse_iterator<SubGraphNode> getBackwardingEndIter() const {
     return crend();
   }
 
@@ -609,7 +609,7 @@ private:
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  GraphCore graph; /** core graph object consisting with SubGraphBase nodes */
+  GraphCore graph; /** core graph object consisting with SubGraphNode nodes */
   bool compiled;   /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
   unsigned int graph_exec_end; /**< Inclusive, last execution order of the

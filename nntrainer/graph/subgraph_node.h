@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2025 Eunju Yang <ej.yang@samsung.com>
  *
- * @file    subgraph_base.h
+ * @file    subgraph_node.h
  * @date    07 Jan 2025
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Jijoong Moon <jijoong.moon@samsung.com>
@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef __SUBGRAPH_BASE_H__
-#define __SUBGRAPH_BASE_H__
+#ifndef __SUBGRAPH_NODE_H__
+#define __SUBGRAPH_NODE_H__
 #ifdef __cplusplus
 
 #include <list>
@@ -22,14 +22,19 @@
 #include <stack>
 #include <vector>
 
+#include <app_context.h>
 #include <common_properties.h>
 #include <compiler_fwd.h>
 #include <graph_core.h>
 #include <graph_node.h>
+#include <layer.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <model_common_properties.h>
 #include <optimizer_wrapped.h>
+#include <subgraph.h>
+
+#define SGNODE(x) std::static_pointer_cast<SubGraphNode>(x)
 
 namespace nntrainer {
 
@@ -44,10 +49,10 @@ using ModelPropsType =
 class Connection;
 
 /**
- * @class   NeuralNetwork SubGraph Class
- * @brief   NeuralNetwork SubGraph Class which manage layers
+ * @class   NeuralNetwork SubGraphNode Class
+ * @brief   NeuralNetwork SubGraphNode Class which manage layers
  */
-class SubGraphBase : public GraphNode {
+class SubGraphNode : public ml::train::SubGraph, public GraphNode {
 
 public:
   /**
@@ -59,7 +64,7 @@ public:
    * @param[in] tensor_type It says weight type and activation type (default
    * FP32-FP32)
    */
-  SubGraphBase(ExecutionMode mode = ExecutionMode::TRAIN,
+  SubGraphNode(ExecutionMode mode = ExecutionMode::TRAIN,
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
@@ -90,7 +95,7 @@ public:
    * @param[in] tensor_type It says weight type and activation type (default
    * FP32-FP32)
    */
-  SubGraphBase(std::shared_ptr<Manager> &tm,
+  SubGraphNode(std::shared_ptr<Manager> &tm,
                ExecutionMode mode = ExecutionMode::TRAIN,
                unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
@@ -116,7 +121,7 @@ public:
    * @brief   Destructor of the NeuralNetwork SubGraph class
    *
    */
-  virtual ~SubGraphBase() = default;
+  ~SubGraphNode() = default;
 
   /**
    * @brief setGraphInfo, which is used to update SubGraph's graph info.
@@ -221,7 +226,7 @@ public:
    * @param[in] loss_type loss for the subgraph
    * returns ML_ERROR_NONE on success, error on failure
    */
-  virtual int compile(const std::string &loss_type) = 0;
+  int compile(const std::string &loss_type);
 
   /**
    * @brief Create new LayerNode and add into SubGraph
@@ -257,7 +262,7 @@ public:
   /**
    * @brief     Swap function for the class
    */
-  friend void swap(SubGraphBase &lhs, SubGraphBase &rhs) {
+  friend void swap(SubGraphNode &lhs, SubGraphNode &rhs) {
     /// @fixme this swap function need maintenance
     using std::swap;
 
@@ -294,7 +299,7 @@ public:
    * @brief     set batch size
    * @param[in] batch size
    */
-  virtual void setBatchSize(unsigned int batch_size) = 0;
+  void setBatchSize(unsigned int batch_size);
 
   /**
    * @brief try apply gradient if possible
@@ -306,19 +311,19 @@ public:
    * @param opt shared ptr of the optimizer used for applyGradients (opt is
    * passed from neuralnetwork)
    */
-  virtual void applyGradients(LayerNode *node, int iteration,
-                              std::shared_ptr<OptimizerWrapped> opt) = 0;
+  void applyGradients(LayerNode *node, int iteration,
+                      std::shared_ptr<OptimizerWrapped> opt);
 
   /**
    * @brief     forwarding network subgraph
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  virtual sharedConstTensors forwarding(
+  sharedConstTensors forwarding(
     bool training = false,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr, bool swap_mode = false) = 0;
+    void *user_data = nullptr, bool swap_mode = false);
 
   /**
    * @brief     forwarding network subgraph
@@ -327,11 +332,11 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  virtual sharedConstTensors incremental_forwarding(
+  sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
-    void *user_data = nullptr) = 0;
+    void *user_data = nullptr);
 
   /**
    * @brief     backwarding the network subgraph
@@ -346,12 +351,12 @@ public:
    *         training. If it is, then we need to control the loss scale factor
    *         and compute again the derivatives.
    */
-  virtual bool backwarding(
+  bool backwarding(
     int iteration,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
     void *user_data = nullptr, bool is_grad_opt_mode = false,
-    std::shared_ptr<OptimizerWrapped> opt = nullptr) = 0;
+    std::shared_ptr<OptimizerWrapped> opt = nullptr);
 
   /**
    * @brief     get begin iterator for the subgraph
@@ -422,10 +427,10 @@ public:
 
   /**
    * @brief     Copy the subgraph
-   * @param[in] from SubGraphBase Object to copy
+   * @param[in] from SubGraphNode Object to copy
    * @retval    SubGraph Object copyed
    */
-  SubGraphBase &copy(SubGraphBase &from) {
+  SubGraphNode &copy(SubGraphNode &from) {
     subgraph.copy(from.subgraph);
     return *this;
   }
@@ -439,10 +444,9 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  virtual int
-  initialize(ExecutionMode mode = ExecutionMode::TRAIN,
-             const std::vector<Connection> &model_input_names = {},
-             const std::vector<Connection> &model_label_names = {}) = 0;
+  int initialize(ExecutionMode mode = ExecutionMode::TRAIN,
+                 const std::vector<Connection> &model_input_names = {},
+                 const std::vector<Connection> &model_label_names = {});
 
   /**
    * @brief reinitialize network subgraph
@@ -453,9 +457,8 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  virtual int
-  reinitialize(const std::vector<Connection> &model_input_names = {},
-               const std::vector<Connection> &model_label_names = {}) = 0;
+  int reinitialize(const std::vector<Connection> &model_input_names = {},
+                   const std::vector<Connection> &model_label_names = {});
 
   /**
    * @brief Create run layer context from the given init layer context
@@ -463,9 +466,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  virtual std::vector<Var_Grad *>
+  std::vector<Var_Grad *>
   finalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                  const std::vector<Var_Grad *> &prev_inputs) = 0;
+                  const std::vector<Var_Grad *> &prev_inputs);
 
   /**
    * @brief Recreate run layer context from the given init layer context
@@ -473,9 +476,9 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  virtual std::vector<Var_Grad *>
+  std::vector<Var_Grad *>
   refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
-                    const std::vector<Var_Grad *> &prev_inputs) = 0;
+                    const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
@@ -484,29 +487,41 @@ public:
    *
    * @param[in] training If true, initialize derivates/gradients, else, do not.
    */
-  virtual void allocateTensors(ExecutionMode exec_mode_) = 0;
+  void allocateTensors(ExecutionMode exec_mode_);
 
   /**
    * @brief Deallocate memory for all the managed tensors
    */
-  virtual void deallocateTensors(bool dealloc_weights = false) = 0;
+  void deallocateTensors(bool dealloc_weights = false) {
+    tensor_manager->deallocateTensors(dealloc_weights);
+  }
 
   /**
    * @brief Allocate memory for all the managed weights
    */
-  virtual void allocateWeights(bool init = true) = 0;
+  void allocateWeights(bool init = true) {
+    unsigned int max_exec_order =
+      std::get<3>(backward_iter_end->getExecutionOrder());
+
+    if (exec_mode == ExecutionMode::INFERENCE)
+      max_exec_order = std::get<0>(forward_iter_end->getExecutionOrder());
+    tensor_manager->allocateWeights(max_exec_order, init);
+  }
 
   /**
    * @brief Deallocate memory for all the weights
    */
-  virtual void deallocateWeights() = 0;
+  void deallocateWeights() { tensor_manager->deallocateWeights(); }
 
   /**
    * @brief     Enable the memory optimizations for the network
    *
    * @param val true to enable, else false
    */
-  virtual void setMemoryOptimizations(bool val) = 0;
+  void setMemoryOptimizations(bool val) {
+    tensor_manager->setOptimizations(val);
+    optimize_memory = val;
+  }
 
   /**
    * @brief     Create optimizer variable for every weights
@@ -514,9 +529,9 @@ public:
    * @param cb  Call back function which will return vector of dimension
    * @param request_only_trainable true when only request trainable weight
    */
-  virtual void requestOptimizerVariable(
+  void requestOptimizerVariable(
     std::function<std::vector<TensorDim>(const TensorDim &)> cb,
-    bool request_only_trainable = true) = 0;
+    bool request_only_trainable = true);
 
   /**
    * @brief Feed inputs and labels to the subgraph
@@ -569,7 +584,7 @@ public:
    * @return std::vector<Tensor> List of output tensors
    * @note this tensor list is analogous to the label list
    */
-  virtual std::vector<Tensor> getOutputTensors() const = 0;
+  std::vector<Tensor> getOutputTensors() const;
 
   /**
    * @brief return model tensor type
@@ -586,28 +601,28 @@ public:
    *
    * @param order execution order
    */
-  virtual void LoadTensors(const unsigned int order) = 0;
+  void LoadTensors(const unsigned int order);
 
   /**
    * @brief check data of order is loaded
    *
    * @param order execution order
    */
-  virtual bool checkLoadComplete(const unsigned int order) = 0;
+  bool checkLoadComplete(const unsigned int order);
 
   /**
    * @brief check data of order is Unloaded
    *
    * @param order execution order
    */
-  virtual bool checkUnloadComplete(const unsigned int order) = 0;
+  bool checkUnloadComplete(const unsigned int order);
 
   /**
    * @brief Load data of order to the device
    *
    * @param order execution order
    */
-  virtual void UnloadTensors(const unsigned int order) = 0;
+  void UnloadTensors(const unsigned int order);
 
 #ifdef ENABLE_TEST
   /**
@@ -776,7 +791,9 @@ protected:
    * @brief Create new LayerNode and add into SubGraph
    * @param[in] layer shared_ptr of Layer
    */
-  void addLayerNode(std::unique_ptr<Layer> layer);
+  void addLayer(std::shared_ptr<ml::train::Layer> layer) override {
+    return addLayer(std::static_pointer_cast<LayerNode>(layer));
+  }
 
   /**
    * @brief finalize already added loss layers
@@ -802,8 +819,8 @@ protected:
    * @param data External data
    * @param names Names of the tensor to set the data to
    */
-  virtual void setExternalTensors(const std::vector<Tensor> &data,
-                                  const std::vector<std::string> names) = 0;
+  void setExternalTensors(const std::vector<Tensor> &data,
+                          const std::vector<std::string> names);
 
   /**
    * @brief     Optimize the subgraph memory utilization for in-place operations
@@ -827,9 +844,90 @@ protected:
    * @return end of the backward iter;
    */
   LayerNode *computeBackwardEnd();
+
+private:
+  /**
+   * @brief forwarding_op function
+   */
+  void forwarding_op(std::shared_ptr<LayerNode> node, bool training,
+                     bool swap_mode = false);
+  /**
+   * @brief forwarding_op function
+   */
+  void incremental_forwarding_op(std::shared_ptr<LayerNode> node,
+                                 unsigned int from, unsigned int to,
+                                 bool training);
+  /**
+   * @brief backwarding_op
+   * @param[in] iteration current iteration number
+   * @param[in] stop_cb callback function which return stop condition
+   * @param[in] user_data user data used for backwarding
+   * @param[in] is_grad_opt_mode flag to designate grad_opt_mode (passed from
+   *            neuralnet)
+   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
+   *            passed from neuralnetwork)
+   * @retval ret it is false then the gradient has NaN valude in mixed precision
+   *         training. If it is, then we need to control the loss scale factor
+   *         and compute again the derivatives.
+   */
+  bool backwarding_op(std::shared_ptr<LayerNode> node, int iteration,
+                      std::function<bool(void *userData)> stop_cb,
+                      void *user_data, bool is_grad_opt_mode,
+                      std::shared_ptr<OptimizerWrapped> opt);
+  /**
+   * @brief backwarding_op
+   * @param[in] iteration current iteration number
+   * @param[in] opt shared ptr of the optimizer used for applyGradients (opt is
+   *            passed from neuralnetwork)
+   */
+  void lazy_apply_grad_op(Weight &w, int iteration,
+                          std::shared_ptr<OptimizerWrapped> opt);
+
+  /**
+   * @brief Flush data to the device
+   *
+   */
+  void flushCache();
+
+  /**
+   * @brief Flush data to the device except order
+   *
+   * @param order except execution order
+   */
+  void flushCacheExcept(const unsigned int order);
 };
+
+/**
+ * @brief SubGraphNode Implementation
+ * @params[in] type Type of the subgraph to be constructed
+ * @params[in] properties Properties of the subgraph
+ */
+std::unique_ptr<SubGraphNode>
+createSubGraphNode(const ml::train::SubGraphType &type,
+                   const std::vector<std::string> &properties = {});
+
+/**
+ * @brief SubGraphNode Implementation
+ * @params[in] type Type of the subgraph to be constructed
+ * @params[in] properties Properties of the subgraph
+ */
+std::unique_ptr<SubGraphNode>
+createSubGraphNode(const std::string &type,
+                   const std::vector<std::string> &properties = {});
+
+/**
+ * @brief LayerNode creator with constructor
+ *
+ * @params[in] subgraph Already constructed subgraph
+ * @params[in] properties Properties of the subgraph
+ */
+std::unique_ptr<SubGraphNode>
+createSubGraphNode(std::unique_ptr<nntrainer::SubGraphNode> &&subgraph,
+                   const std::vector<std::string> &properties);
+
+SubGraphType createSubGraph(const std::vector<std::string> &properties = {});
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __SUBGRAPH_BASE_H__ */
+#endif /* __SUBGRAPH_NODE_H__ */

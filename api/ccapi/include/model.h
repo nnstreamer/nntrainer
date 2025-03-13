@@ -27,6 +27,7 @@
 #include <dataset.h>
 #include <layer.h>
 #include <optimizer.h>
+#include <subgraph.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -214,6 +215,13 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int addLayer(std::shared_ptr<Layer> layer) = 0;
+
+  /**
+   * @brief     add layer into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int addSubGraph(std::shared_ptr<SubGraph> subgraph) = 0;
 
   /**
    * @brief add referring to reference layers.

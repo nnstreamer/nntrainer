@@ -50,7 +50,7 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
-#include <subgraph.h>
+#include <subgraph_node.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -1100,6 +1100,31 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
   }
+}
+
+int NeuralNetwork::addSubGraph(SubGraphType subgraph) {
+  int status = ML_ERROR_NONE;
+
+  if (initialized) {
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
+  // Check the subgraph exists and create a new subgraph if not
+  const auto &subgraph_name = subgraph->getName();
+  if (graph_map.find(subgraph_name) == graph_map.end()) {
+    graph_representation.push_back(subgraph);
+    graph_map[subgraph_name] = subgraph;
+
+    // Insert the layers in subgraph to the graph
+    for (auto layer : subgraph->getLayerNodes()) {
+      model_graph.addLayer(layer);
+      graph_ln_representation.push_back(layer);
+    }
+  } else {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
 }
 
 int NeuralNetwork::addLayer(NodeType layer) {
