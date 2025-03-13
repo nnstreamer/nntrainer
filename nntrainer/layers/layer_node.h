@@ -40,6 +40,7 @@ namespace nntrainer {
 class Layer;
 class Connection;
 class Exporter;
+class ContextData;
 
 namespace props {
 class Name;
@@ -863,7 +864,8 @@ public:
                            const std::vector<Var_Grad *> &inputs,
                            const std::vector<Var_Grad *> &outputs,
                            const std::vector<Var_Grad *> &tensors,
-                           float loss_scale);
+                           float loss_scale,
+                           std::shared_ptr<ContextData> ct_data = nullptr);
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -958,6 +960,17 @@ public:
    * @param nb true if the layer needs reinitialization, eles false
    */
   bool reStoreData() { return needs_restore_data; }
+
+  std::string getComputeEngineType() {
+    auto size = props::ComputeEngineTypeInfo::EnumList.size();
+    auto data = std::data(props::ComputeEngineTypeInfo::EnumList);
+    for (unsigned i = 0; i < size; ++i) {
+      if (data[i] == compute_engine) {
+        return props::ComputeEngineTypeInfo::EnumStr[i];
+      }
+    }
+    return "cpu";
+  }
 
 private:
   /**
