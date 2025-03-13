@@ -17,7 +17,7 @@ TAR_PREFIX=encoder
 
 TAR_NAME=${TAR_PREFIX}-${TARGET_VERSION}.tar.gz
 
-URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/${TAR_NAME}"
+URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/main/external/${TAR_NAME}"
 
 echo "PREPARING Encoder at ${TARGET}"
 
