@@ -36,11 +36,11 @@ endif
 subdir('ONNX/jni')
 subdir('SimpleFC/jni')
 
+subdir('LLaMA/jni')
 if host_machine.system() != 'windows'
   subdir('KNN/jni')
   subdir('YOLOv2/jni')
   subdir('YOLOv3/jni')
-  subdir('LLaMA/jni')
   subdir('ReinforcementLearning/DeepQ/jni')
   subdir('TransferLearning/CIFAR_Classification/jni')
   subdir('Custom')
