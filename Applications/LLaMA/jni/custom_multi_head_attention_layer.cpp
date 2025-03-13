@@ -1507,7 +1507,9 @@ void MultiHeadAttentionLayer::calcGradient(RunLayerContext &context) {
 
 void MultiHeadAttentionLayer::setProperty(
   const std::vector<std::string> &values) {
+
   auto remain_props = loadProperties(values, multi_head_attention_props);
+
   LayerImpl::setProperty(remain_props);
 }
 
