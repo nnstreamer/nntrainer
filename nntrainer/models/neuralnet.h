@@ -41,6 +41,7 @@
 #include <model_common_properties.h>
 #include <network_graph.h>
 #include <optimizer_wrapped.h>
+#include <subgraph_node.h>
 #include <tensor.h>
 
 #include <model.h>
@@ -442,6 +443,22 @@ s   * @retval shared_ptr<const Tensor>
                     std::shared_ptr<DataBuffer> data_buffer);
 
   /**
+   * @brief     add subgraph into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addSubGraph(std::shared_ptr<ml::train::SubGraph> subgraph) override {
+    return addSubGraph(std::static_pointer_cast<SubGraphNode>(subgraph));
+  }
+
+  /**
+   * @brief     add subgraph into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addSubGraph(SubGraphType subgraph);
+
+  /**
    * @brief     add layer into neural network model
    * @param[in] layer layer to add
    * @retval #ML_ERROR_NONE Successful.
@@ -681,7 +698,7 @@ private:
   NetworkGraph model_graph; /** Network Model Graph */
   GraphRepresentation
     graph_representation; /** Unsorted subgraph representation */
-  std::unordered_map<std::string, SubGraphNode>
+  std::unordered_map<std::string, SubGraphType>
     graph_map; /** hashmap for the graph */
   GraphLayerNodeRepresentation
     graph_ln_representation; /** Unsorted graph representation with successive

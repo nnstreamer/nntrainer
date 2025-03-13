@@ -24,11 +24,30 @@
 #include <nntrainer_error.h>
 #include <optimizer.h>
 #include <optimizer_wrapped.h>
+#include <subgraph.h>
 
 #include <cstdlib>
 
 namespace ml {
 namespace train {
+
+/**
+ * @brief Factory creator with constructor for subgraph
+ */
+std::unique_ptr<SubGraph>
+createSubGraph(const SubGraphType &type,
+               const std::vector<std::string> &properties) {
+  return nntrainer::createSubGraphNode(type, properties);
+}
+
+/**
+ * @brief Factory creator with constructor for subgraph
+ */
+std::unique_ptr<SubGraph>
+createSubGraph(const std::string &type,
+               const std::vector<std::string> &properties) {
+  return nntrainer::createSubGraphNode(type, properties);
+}
 
 std::unique_ptr<Layer> createLayer(const LayerType &type,
                                    const std::vector<std::string> &properties) {

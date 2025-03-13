@@ -49,7 +49,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   return status;
 }
 
-void NetworkGraph::addSubGraph(const std::shared_ptr<SubGraphBase> subgraph) {
+void NetworkGraph::addSubGraph(const std::shared_ptr<SubGraphNode> subgraph) {
   if (compiled)
     throw std::runtime_error("Cannot modify graph after compilation");
   subgraph->setSubGraphInfo(tensor_manager, exec_mode, lookahead, tensor_format,
@@ -155,8 +155,8 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   // create the new subgraph with subgraph_name
   if (!graph.verifyNode(subgraph_name)) {
     /// @todo choose SubGraph type based on the layer compute_engine
-    //        Based on the property, SubGraphNode type should be changed
-    auto sg = std::make_shared<SubGraphCpu>(
+    //        Based on the property, SubGraphType type should be changed
+    auto sg = std::make_shared<SubGraphNode>(
       tensor_manager, exec_mode, lookahead, tensor_format, tensor_dtype_str);
     sg->setName(subgraph_name);
     graph.addNode(SGNODE(sg));
