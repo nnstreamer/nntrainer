@@ -380,7 +380,7 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
                                             "_attention_flatten")}));
   } else {
     layers.push_back(createLayer(
-      "multi_head_attention",
+      "custom_multi_head_attention",
       {nntrainer::withKey("name", "layer" + std::to_string(layer_id) +
                                     "_attention_out"),
        nntrainer::withKey("num_heads", std::to_string(NUM_HEADS)),
@@ -655,9 +655,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   g_model = createLLaMA();
   g_model->setProperty({nntrainer::withKey("batch_size", batch_size),
                         nntrainer::withKey("epochs", epochs),
-                        // #ifdef ENABLE_FP16
+#ifdef ENABLE_FP16
                         nntrainer::withKey("model_tensor_type", "FP16-FP16"),
-                        // #endif
+#endif
                         nntrainer::withKey("save_path", "test_model.bin")});
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
@@ -721,6 +721,16 @@ int main(int argc, char *argv[]) {
 #endif
 
   auto &app_context = nntrainer::AppContext::Global();
+
+  try {
+    app_context.registerFactory(
+      nntrainer::createLayer<custom::MultiHeadAttentionLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
+
   try {
     app_context.registerFactory(nntrainer::createLayer<custom::SwiGLULayer>);
   } catch (std::invalid_argument &e) {
