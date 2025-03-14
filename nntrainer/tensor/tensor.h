@@ -15,10 +15,10 @@
 
 #define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty())                   \
-      tensor = Tensor(__VA_ARGS__);       \
+#define CREATE_IF_EMPTY_DIMS(tensor, ...)                                      \
+  do {                                                                         \
+    if (tensor.empty())                                                        \
+      tensor = Tensor(__VA_ARGS__);                                            \
   } while (0);
 
 #include <cstddef>
@@ -760,14 +760,13 @@ public:
    */
   template <typename T = float>
   Tensor &apply(std::function<T(T)> f, Tensor &output) const {
-    CREATE_IF_EMPTY_DIMS(output, {itensor->getFormat(), itensor->getDataType()},
-                         nullptr);
+    CREATE_IF_EMPTY_DIMS(output, itensor->getDim(), nullptr);
 
     if (itensor->getFormat() != output.itensor->getFormat() ||
-        itensor->getDataType() != itensor->getDataType()) {
+        itensor->getDataType() != output.itensor->getDataType()) {
       /// @todo add unittest
       throw std::invalid_argument(
-        "[Tensor::apply] output dimension does not match");
+        "[Tensor::apply] output format or data type does not match");
     }
 
     itensor->apply(f, output);
