@@ -6,14 +6,14 @@ if host_machine.system() == 'windows'
   nntrainer_test_resdir_models_win = (nntrainer_test_resdir / 'test_models/').replace('/', '\\')
   test_models_dir_win = (meson.current_source_dir() / 'test_models/').replace('/', '\\')
   if not fs.exists (nntrainer_test_resdir_win)
-    run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_win)
+    run_command(['cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_win], check: true)
   endif
   if not fs.exists (nntrainer_test_resdir_models_win)
-    run_command('cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_models_win)
+    run_command(['cmd.exe', '/C', 'mkdir', nntrainer_test_resdir_models_win], check: true)
   endif
-  run_command('cmd.exe', '/C', 'xcopy',test_models_dir_win, nntrainer_test_resdir_models_win, '/i', '/s', '/y')
+  run_command(['cmd.exe', '/C', 'xcopy',test_models_dir_win, nntrainer_test_resdir_models_win, '/i', '/s', '/y'], check: true)
 else
-  run_command('mkdir', '-p', nntrainer_test_resdir)
+  run_command(['mkdir', '-p', nntrainer_test_resdir], check: true)
 endif
 
 nntrainer_test_inc = include_directories('./include')
@@ -63,8 +63,9 @@ if get_option('enable-nnstreamer-tensor-filter').enabled() and nnstreamer_test_d
 endif
 
 if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tensor-filter').enabled()
-  run_command('cp','-lr',
+  run_command(['cp','-lr',
     meson.current_source_dir() / 'test_models/',
-    nntrainer_test_resdir
+    nntrainer_test_resdir],
+    check: true
   )
 endif

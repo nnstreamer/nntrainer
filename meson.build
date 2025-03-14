@@ -244,10 +244,10 @@ nntrainer_resdir = meson.build_root() / 'res'
 if host_machine.system() == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
   if not fs.exists (nntrainer_resdir_win)
-    run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+    run_command(['cmd.exe', '/C', 'mkdir', nntrainer_resdir_win], check: true)
   endif
 else
-  run_command('mkdir', '-p', nntrainer_resdir)
+  run_command(['mkdir', '-p', nntrainer_resdir], check: true)
 endif
 
 if get_option('install-app')
@@ -308,7 +308,7 @@ if get_option('enable-blas')
 
   if get_option('platform') == 'android'
     message('preparing blas')
-    run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
+    run_command([meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root()], check: true)
     blas_root = meson.build_root() / 'openblas'
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
@@ -478,7 +478,7 @@ endif
 
 if get_option('platform') == 'android'
   message('preparing ml api')
-  run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
+  run_command([meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference'], check: true)
   ml_api_common_root = meson.build_root() / 'ml-api-inference'
   ml_api_inc = ml_api_common_root / 'include'
   meson.add_install_script(

@@ -1,8 +1,8 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 nntr_reinforcement_resdir = nntr_app_resdir / 'ReinforcementLearning'
-run_command('mkdir', '-p', nntr_reinforcement_resdir)
+run_command(['mkdir', '-p', nntr_reinforcement_resdir], check: true)
 nntr_deepq_resdir = nntr_reinforcement_resdir / 'DeepQ'
-run_command('cp', '-lr', res_path, nntr_deepq_resdir)
+run_command(['cp', '-lr', res_path, nntr_deepq_resdir], check: true)
 
 env_dir='../../Environment'
 
