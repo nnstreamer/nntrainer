@@ -13,9 +13,9 @@
 
 #include <limits>
 #include <mem_allocator.h>
+#include <nntrainer_log.h>
 #include <numeric>
 #include <vector>
-#include <nntrainer_log.h>
 
 namespace nntrainer {
 

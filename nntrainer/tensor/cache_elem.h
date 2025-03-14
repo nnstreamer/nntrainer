@@ -62,7 +62,8 @@ public:
    */
   explicit CacheElem(std::shared_ptr<SwapDevice> dev, unsigned int mem_id,
                      size_t off, size_t len, std::shared_ptr<MemoryData> data,
-                     CachePolicy pol = CachePolicy::ALWAYS_SYNCED, void *ptr = nullptr) :
+                     CachePolicy pol = CachePolicy::ALWAYS_SYNCED,
+                     void *ptr = nullptr) :
     initial_opt(Options::FIRST_ACCESS_WRITE),
     device(dev),
     active(false),
@@ -71,7 +72,7 @@ public:
     length(len),
     policy(pol),
     mem_data(data),
-    memory_ptr(ptr){}
+    memory_ptr(ptr) {}
 
   /**
    * @brief CacheElem destructor
@@ -133,7 +134,7 @@ private:
   size_t length;                        /**< element size */
   CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
-  void* memory_ptr;
+  void *memory_ptr;
 };
 
 } // namespace nntrainer
