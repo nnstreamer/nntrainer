@@ -88,7 +88,7 @@ TEST_F(nntrainerAppContextDirectory, readFromGetPath_p) {
   path = eg.getWorkingPath(current_path_absolute);
   EXPECT_EQ(path, current_path_absolute);
 
-  path = eg.getWorkingPath("");  
+  path = eg.getWorkingPath("");
   EXPECT_EQ(path, std::filesystem::path(current_directory).append("testdir"));
 }
 
