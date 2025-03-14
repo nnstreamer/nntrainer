@@ -33,7 +33,7 @@ subdir('Layers/jni')
 if get_option('enable-tflite-backbone')
   subdir('SimpleShot')
 endif
-
+subdir('ONNX/jni')
 subdir('SimpleFC/jni')
 
 if host_machine.system() != 'windows'
