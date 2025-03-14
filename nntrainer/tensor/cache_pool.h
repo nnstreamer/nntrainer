@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <cache_elem.h>
+#include <common.h>
 #include <memory_pool.h>
 #include <swap_device.h>
 
@@ -31,8 +32,8 @@ namespace nntrainer {
 class CachePool : public MemoryPool {
 public:
   using CacheElems =
-    std::map<unsigned int,
-             std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
+    std::unordered_map<unsigned int,
+                       std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
   using ExecIds = std::vector<unsigned int>;
   using ExecIdsIter = ExecIds::iterator;
@@ -49,6 +50,14 @@ public:
    *
    */
   explicit CachePool(const std::string &path, const std::string &name);
+
+  /**
+   * @brief CachePool constructor with cache path & ExecutionMode
+   *
+   */
+  explicit CachePool(
+    const std::string &path, const std::string &name,
+    ml::train::ExecutionMode exec_mode = ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief MemoryPool destructor
@@ -134,34 +143,6 @@ public:
    *
    * @param order execution order
    */
-  virtual void initCacheElemIter(CacheElemsIter &iter);
-
-  /**
-   * @brief Check iterator is last element
-   *
-   * @param order execution order
-   */
-  virtual bool isLastCacheElemIter(const CacheElemsIter &iter);
-
-  /**
-   * @brief Load cache data by execution order
-   *
-   * @param order execution order
-   */
-  virtual void initExecIdsIter(unsigned int order, ExecIdsIter &iter);
-
-  /**
-   * @brief Check iterator is last element
-   *
-   * @param order execution order
-   */
-  virtual bool isLastExecIdsIter(unsigned int order, const ExecIdsIter &iter);
-
-  /**
-   * @brief Load cache data by execution order
-   *
-   * @param order execution order
-   */
   virtual bool loadExecOnce(unsigned int order, ExecIdsIter &iter);
 
   /**
@@ -189,11 +170,43 @@ public:
   virtual std::string getName() { return name; }
 
   /**
+   * @brief Get ExecutionMode
+   *
+   * @return ml::train::ExecutionMode
+   */
+  ml::train::ExecutionMode getExecMode() const { return execution_mode_; }
+
+  /**
    * @brief Get number of loaded tensors
    *
    * @return number of loaded tensors
    */
   virtual unsigned int getNumLoadedTensors();
+
+  /**
+   * @brief set FSU weight path
+   *
+   * @param path FSU weight file path
+   */
+  void setFsuWeightPath(std::string path) override {
+    swap_device->setFsuWeightPath(path);
+    swap_device->finish();
+    if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+      swap_device->start(size(), false);
+    } else {
+      swap_device->start(size(), true);
+    }
+  }
+
+  /**
+   * @brief set weight file offset for FSU loading
+   *
+   * @param offsets weight file offset
+   */
+  void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
+    swap_device->setWeightOffset(offsets);
+  }
 
 protected:
   /**
@@ -218,13 +231,13 @@ protected:
   std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
 private:
-  std::string name;                        /**< pool name */
-  std::shared_ptr<SwapDevice> swap_device; /**< swap device */
-  CacheElems elems;                        /**< cache elements */
-
+  std::string name;                         /**< pool name */
+  ml::train::ExecutionMode execution_mode_; /**< execution mode */
+  std::shared_ptr<SwapDevice> swap_device;  /**< swap device */
+  CacheElems elems;                         /**< cache elements */
   std::list<std::shared_ptr<CacheElem>> actives;
   std::vector<CachePolicy> policies;
-  std::map<unsigned int, ExecIds> exec_ids;
+  std::unordered_map<unsigned int, ExecIds> exec_ids;
 
   std::mutex mod_mutex;
 };

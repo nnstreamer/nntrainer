@@ -96,10 +96,12 @@ std::atomic_int pool_id = 0;
 
 CachePool::CachePool(const std::string &n) :
   name(n),
+  execution_mode_(ml::train::ExecutionMode::TRAIN),
   swap_device(std::make_shared<SwapDevice>(n + "_" + std::to_string(getpid()) +
                                            "_" + std::to_string(pool_id++))) {}
 
-CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
+CachePool::CachePool(const std::string &path, const std::string &n) :
+  name(n), execution_mode_(ml::train::ExecutionMode::TRAIN) {
   if (path.empty())
     swap_device = std::make_shared<SwapDevice>(
       n + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
@@ -107,6 +109,18 @@ CachePool::CachePool(const std::string &path, const std::string &n) : name(n) {
     swap_device =
       std::make_shared<SwapDevice>(path, n + "_" + std::to_string(getpid()) +
                                            "_" + std::to_string(pool_id++));
+}
+
+CachePool::CachePool(const std::string &path, const std::string &name_,
+                     ml::train::ExecutionMode exec_mode_) :
+  name(name_), execution_mode_(exec_mode_) {
+  if (path.empty())
+    swap_device = std::make_shared<SwapDevice>(
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
+  else
+    swap_device = std::make_shared<SwapDevice>(
+      path,
+      name_ + "_" + std::to_string(getpid()) + "_" + std::to_string(pool_id++));
 }
 
 CachePool::~CachePool() {
@@ -125,13 +139,20 @@ void CachePool::allocate() {
 
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
-
-  swap_device->start(pool_size);
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    MemoryPool::allocateFSU();
+    swap_device->start(size(), false);
+  } else {
+    swap_device->start(size(), true);
+  }
 }
 
 void CachePool::deallocate() {
   if (!swap_device->isOperating())
     return;
+
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
+    MemoryPool::deallocate();
 
   for (auto &[id, elem] : elems)
     invalidate(id);
@@ -182,8 +203,10 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
-  auto elem =
-    std::make_shared<CacheElem>(swap_device, id, offset, len, mem_data, policy);
+  auto mem_pool_address = getMemoryPoolAddress();
+  void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
+  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
+                                          mem_data, policy, memory_ptr);
   elems[id] = elem;
 
   std::string ords;
@@ -269,22 +292,6 @@ bool CachePool::isAllocated() const { return swap_device->isOperating(); }
 void CachePool::loadExec(unsigned int order) {
   for (auto &id : exec_ids[order])
     validate(id);
-}
-
-void CachePool::initCacheElemIter(CacheElemsIter &iter) {
-  iter = elems.begin();
-}
-
-bool CachePool::isLastCacheElemIter(const CacheElemsIter &iter) {
-  return iter == elems.end();
-}
-
-void CachePool::initExecIdsIter(unsigned int order, ExecIdsIter &iter) {
-  iter = exec_ids[order].begin();
-}
-
-bool CachePool::isLastExecIdsIter(unsigned int order, const ExecIdsIter &iter) {
-  return iter == exec_ids[order].end();
 }
 
 bool CachePool::loadExecOnce(unsigned int order, ExecIdsIter &iter) {

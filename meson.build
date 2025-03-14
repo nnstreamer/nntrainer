@@ -19,17 +19,18 @@ nntrainer_version_split = nntrainer_version.split('.')
 cmake = import('cmake')
 fs = import('fs')
 
+extra_defines = ['-DMIN_CPP_VERSION=201703L']
+
 if host_machine.system() == 'windows'
   windows_compile_args = ['/MT']
   add_project_arguments(windows_compile_args, language: ['c','cpp'])
+  extra_defines += '-D_AMD64_=1'
 endif
 
 add_project_arguments('-DVERSION="' + nntrainer_version + '"', language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language: ['c', 'cpp'])
-
-extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')

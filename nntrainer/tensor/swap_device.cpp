@@ -24,11 +24,16 @@
 
 namespace nntrainer {
 
-void SwapDevice::start(size_t size) {
+void SwapDevice::start(size_t size, bool writeable) {
   if (fd > 0)
     return;
 
-  fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+  if (writeable) {
+    fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
+  } else {
+    fd = open(dev_path.c_str(), O_RDWR | O_CREAT, 0666UL);
+    execution_mode = ml::train::ExecutionMode::INFERENCE;
+  }
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
 
@@ -39,40 +44,69 @@ void SwapDevice::start(size_t size) {
   NNTR_THROW_IF(off < 0, std::runtime_error)
     << "SwapDevice: seek file: " << dev_path;
 
-  ssize_t len;
-  len = write(fd, "", 1);
-  NNTR_THROW_IF(len != 1, std::runtime_error)
-    << "SwapDevice: write file: " << dev_path;
-
+  if (writeable) {
+    ssize_t len;
+    len = write(fd, "", 1);
+    NNTR_THROW_IF(len != 1, std::runtime_error)
+      << "SwapDevice: write file: " << dev_path;
+  }
   off = lseek(fd, 0, SEEK_SET);
   NNTR_THROW_IF(off < 0, std::runtime_error)
     << "SwapDevice: seek file: " << dev_path;
 }
 
-void *SwapDevice::getBuffer(off_t offset, size_t size, bool alloc_only) {
+void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
+                            bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
 #ifdef USE_MMAP
   // page aligned
-  size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-  size_t diff = offset - off;
-  size_t len = size + diff;
+  if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
+    auto len_offset = weight_offset.at(offset_index);
 
-  char *ptr = static_cast<char *>(
-    mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
-  const size_t error_buflen = 100;
-  char error_buf[error_buflen];
-  NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-    << "SwapDevice: mmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
+    // size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    // size_t diff = offset - off;
+    // size_t len = size + diff;
 
-  void *buf = static_cast<void *>(ptr + diff);
-  mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+    // if (len_offset.second % sysconf(_SC_PAGE_SIZE) != 0) {
+    // std::cerr << "weight & bias is not page aligned!" << std::endl;
+    // }
 
-  ++num_loaded_tensors;
+    void *ptr =
+      mmap(memory_ptr, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
+           MAP_SHARED | MAP_FIXED, fd, len_offset.first);
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
 
-  return buf;
+    NNTR_THROW_IF(ptr != memory_ptr, std::runtime_error)
+      << "SwapDevice: mmap: ptr!= memory_ptr";
+
+    ++offset_index;
+    ++num_loaded_tensors;
+    return ptr;
+  } else {
+    size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t diff = offset - off;
+    size_t len = size + diff;
+
+    char *ptr = static_cast<char *>(
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
+    void *buf = static_cast<void *>(ptr + diff);
+    mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+
+    ++num_loaded_tensors;
+    return buf;
+  }
 #else
   off_t off;
   ssize_t len;
@@ -104,6 +138,9 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 #ifdef USE_MMAP
+  if (mapped.size() == 0) {
+    return;
+  }
   int ret;
 
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
@@ -190,10 +227,11 @@ void SwapDevice::finish() {
 
   close(fd);
   fd = -1;
-  int status = std::remove(dev_path.c_str());
-
-  NNTR_THROW_IF(status, std::runtime_error)
-    << "SwapDevice: Couldn't remove " << dev_path.c_str();
+  if (execution_mode == ml::train::ExecutionMode::TRAIN) {
+    int status = std::remove(dev_path.c_str());
+    NNTR_THROW_IF(status, std::runtime_error)
+      << "SwapDevice: Couldn't remove " << dev_path.c_str();
+  }
 }
 
 } // namespace nntrainer

@@ -10,14 +10,14 @@
  * @brief  This is Memory Pool Class
  */
 
+#include <cstdlib>
 #include <limits>
-#include <numeric>
-#include <vector>
-
 #include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <numeric>
 #include <profiler.h>
+#include <vector>
 
 namespace nntrainer {
 
@@ -109,6 +109,26 @@ void MemoryPool::allocate() {
 #endif
 }
 
+void MemoryPool::allocateFSU() {
+  if (pool_size == 0)
+    throw std::runtime_error("Allocating memory pool with size 0");
+
+  if (mem_pool != nullptr)
+    throw std::runtime_error("Memory pool is already allocated");
+#if defined(_WIN32)
+  SYSTEM_INFO system_info;
+  GetSystemInfo(&system_info);
+  mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
+  // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
+#else
+  mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+#endif
+
+  if (mem_pool == nullptr)
+    throw std::runtime_error(
+      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+}
+
 /**
  * @brief Get the allocated memory
  *
@@ -119,7 +139,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
-
+  memory_ptrs.emplace_back(ptr);
   return mem_data;
 }
 
@@ -134,7 +154,10 @@ void MemoryPool::deallocate() {
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
+#ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
+#endif
+    memory_ptrs.clear();
   }
 
   mem_pool = nullptr;
@@ -325,6 +348,7 @@ void MemoryPool::clear() {
   memory_size.clear();
   memory_validity.clear();
   memory_offset.clear();
+  file_offset.clear();
   memory_is_wgrad.clear();
 
   pool_size = 0;
