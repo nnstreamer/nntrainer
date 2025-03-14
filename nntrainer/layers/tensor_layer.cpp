@@ -62,8 +62,7 @@ void TensorLayer::finalize(InitLayerContext &context) {
 
   auto engine = context.getComputeEngineType();
 
-  NNTR_THROW_IF(t_dims.size() != t_dtype.size(),
-                std::invalid_argument)
+  NNTR_THROW_IF(t_dims.size() != t_dtype.size(), std::invalid_argument)
     << "Size of Dimensions, Types, Formats should be matched!";
 
   tensor_idx.reserve(t_dims.size());
@@ -71,12 +70,12 @@ void TensorLayer::finalize(InitLayerContext &context) {
   for (unsigned int i = 0; i < t_dims.size(); ++i) {
     t_dims[i].setFormat(context.getFormat());
     t_dims[i].setDataType(t_dtype[i]);
-    std::string name = context.getName()+"_t" + std::to_string(i);
+    std::string name = context.getName() + "_t" + std::to_string(i);
     if (!t_name.empty())
       name = t_name[i];
 
-    tensor_idx.push_back(context.requestTensor(t_dims[i], name, Initializer::NONE,
-                                          true, t_life[i], true, engine));
+    tensor_idx.push_back(context.requestTensor(
+      t_dims[i], name, Initializer::NONE, true, t_life[i], true, engine));
   }
 
   context.setOutputDimensions(t_dims);
