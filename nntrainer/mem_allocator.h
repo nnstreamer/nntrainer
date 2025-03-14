@@ -18,6 +18,9 @@
 
 namespace nntrainer {
 
+/**
+ * @brief MemAllocator, Memory allocator class
+ */
 class MemAllocator {
 public:
   MemAllocator() = default;

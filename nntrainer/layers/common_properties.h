@@ -1645,12 +1645,18 @@ public:
   };
 };
 
+/**
+ * @brief WeightName,  WeightName property
+ */
 class WeightName : public Name {
 public:
   static constexpr const char *key = "weight_name";
   using prop_tag = str_prop_tag;
 };
 
+/**
+ * @brief TensorName,  TensorName property
+ */
 class TensorName : public Name {
 public:
   static constexpr const char *key = "tensor_name";
