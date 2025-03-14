@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef __MULTI_HEAD_ATTENTION_LAYER_H__
-#define __MULTI_HEAD_ATTENTION_LAYER_H__
+#ifndef __CUSTOM_MULTI_HEAD_ATTENTION_LAYER_H__
+#define __CUSTOM_MULTI_HEAD_ATTENTION_LAYER_H__
 #ifdef __cplusplus
 
 #include <acti_func.h>
@@ -22,7 +22,8 @@
 #include <util_simd.h>
 #include <utility>
 
-namespace nntrainer {
+namespace custom {
+using namespace nntrainer;
 
 /**
  * @class   Multi Head Attention Layer
@@ -303,7 +304,7 @@ private:
   void calcCommonDerivative(RunLayerContext &context);
 };
 
-} // namespace nntrainer
+} // namespace custom
 
 #endif /* __cplusplus */
-#endif /* __MULTI_HEAD_ATTENTION_LAYER_H__ */
+#endif /* __CUSTOM_MULTI_HEAD_ATTENTION_LAYER_H__ */

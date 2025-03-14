@@ -22,7 +22,7 @@
 #include <thread>
 #include <vector>
 
-namespace nntrainer {
+namespace custom {
 
 MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
   multi_head_attention_props(
@@ -355,7 +355,7 @@ void MultiHeadAttentionLayer::finalize(InitLayerContext &context) {
     precompute_freqs(projected_key_dim_prop, max_timestep);
 }
 
-#define _MASK_NUM(datatype) \
+#define _MASK_NUM(datatype)                                                    \
   (((datatype) == ml::train::TensorDim::DataType::FP16) ? (-1e4) : (-1e10))
 
 void MultiHeadAttentionLayer::forwarding(RunLayerContext &context,
@@ -1534,4 +1534,4 @@ void MultiHeadAttentionLayer::exportTo(
   exporter.saveResult(multi_head_attention_props, method, this);
 }
 
-} /* namespace nntrainer */
+} // namespace custom
