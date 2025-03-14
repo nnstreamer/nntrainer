@@ -23,7 +23,6 @@
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
 #include <util_func.h>
-#include <iostream>
 
 /** base and predefined structures */
 
