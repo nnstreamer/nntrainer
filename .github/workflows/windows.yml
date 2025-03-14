@@ -1,4 +1,4 @@
-name: Windows Meson build & test
+name: "Build Test - Windows Meson"
 
 on:
   pull_request:

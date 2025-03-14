@@ -1,4 +1,4 @@
-name: Build and unit test/ Tizen/GBS
+name: "Build Test - Tizen/GBS"
 
 # ${{ github.event.pull_request.commits }} : # commits in this PR
 # - changed_file_list in GITHUB_ENV: the list of files updated in this pull-request.

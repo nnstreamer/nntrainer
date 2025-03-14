@@ -1,4 +1,4 @@
-name: Ubuntu Meson build & test
+name: "Build Test - Ubuntu Meson"
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
         meson_options: [ "-Denable-fp16=false", "-Denable-fp16=true" ]
 
     steps:
@@ -60,5 +60,7 @@ jobs:
           ${{ matrix.meson_options }} \
           build
     - run: ninja -C build
-    - name: run ninja test
-      run: cd ./build && ninja test
+    - name: run App Tests
+      run: meson test -C build --no-suite unittests
+    - name: run Unittests
+      run: meson test -C build --suite unittests
