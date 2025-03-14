@@ -1,5 +1,5 @@
 transpose_src = files('transpose_layer.cpp')
-transpose_layer = shared_library('transpose',
+transpose_layer = static_library('transpose',
   transpose_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: include_directories('./'),
@@ -12,12 +12,14 @@ transpose_dep = declare_dependency(
   include_directories: include_directories('./')
 )
 
-if get_option('platform') != 'tizen'
-   run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
+if get_option('platform') == 'windows'
+  run_command('powershell', '-ExecutionPolicy', 'Bypass', '-File', join_paths(meson.source_root(), 'jni', 'prepare_encoder.ps1'), meson.build_root(), '0.2', check: true)
+elif get_option('platform') != 'tizen'
+  run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
 endif
 
 rms_norm_src = files('rms_norm.cpp')
-rms_norm_layer = shared_library('rms_norm',
+rms_norm_layer = static_library('rms_norm',
   rms_norm_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: include_directories('./'),
@@ -31,7 +33,7 @@ rms_norm_dep = declare_dependency(
 )
 
 swiglu_src = files('swiglu.cpp')
-swiglu_layer = shared_library('swiglu',
+swiglu_layer = static_library('swiglu',
   swiglu_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: include_directories('./'),
@@ -45,7 +47,7 @@ swiglu_dep = declare_dependency(
 )
 
 rotary_emb_src = files('rotary_embedding.cpp')
-rotary_emb_layer = shared_library('rotary_embedding',
+rotary_emb_layer = static_library('rotary_embedding',
   rotary_emb_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: include_directories('./'),
@@ -59,7 +61,7 @@ rotary_emb_dep = declare_dependency(
 )
 
 mha_src = files('custom_multi_head_attention_layer.cpp')
-mha_layer = shared_library('custom_multi_head_attention_layer',
+mha_layer = static_library('custom_multi_head_attention_layer',
   mha_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: include_directories('./'),

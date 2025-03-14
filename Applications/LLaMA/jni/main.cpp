@@ -8,6 +8,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include <string.h>
 
 #include <algorithm>
 #include <array>
@@ -750,8 +751,11 @@ int main(int argc, char *argv[]) {
   try {
     const std::vector<std::string> args(argv + 1, argv + argc);
 
+#ifdef _WIN32
+    bool apply_temp = _stricmp("true", args[1].c_str()) == 0;
+#else
     bool apply_temp = (strcasecmp("true", args[1].c_str()) == 0);
-
+#endif
     createAndRun(epoch, batch_size);
 
     run(text, apply_temp);
