@@ -12,15 +12,14 @@ nntrainer_inc_abs = [
 ]
 
 nntrainer_sources = []
-nntrainer_headers = [
-   meson.current_source_dir() / 'nntrainer_log.h',
-   meson.current_source_dir() / 'nntrainer_logger.h',
-   meson.current_source_dir() / 'nntrainer_error.h',
-   meson.current_source_dir() / 'app_context.h',
-   meson.current_source_dir() / 'context.h',
-   meson.current_source_dir() / 'engine.h',
-   meson.current_source_dir() / 'mem_allocator.h',
-]
+nntrainer_headers = files(
+   'nntrainer_log.h',
+   'nntrainer_logger.h',
+   'nntrainer_error.h',
+   'app_context.h',
+   'context.h',
+   'engine.h',
+   'mem_allocator.h')
 
 nntrainer_base_deps=[
   blas_dep,
