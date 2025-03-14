@@ -43,10 +43,25 @@ void InputLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void InputLayer::forwarding(RunLayerContext &context, bool training) {
+
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  std::unique_ptr<nntrainer::Quantizer> quantizer;
   if (!context.getInPlace()) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-    hidden_.copyData(input_);
+    quantizer = nullptr;
+
+    switch (hidden_.getDataType()) {
+      // This will be supported in Tensor itself. Until then, we use this.
+    case Tdatatype::UINT16: {
+      quantizer =
+        Quantization::createQuantizer(nntrainer::QScheme::PER_TENSOR_AFFINE);
+      Tensor dq_i = quantizer->quantize(input_, hidden_.getDataType());
+      hidden_.copyData(dq_i);
+    } break;
+    default:
+      hidden_.copyData(input_);
+      break;
+    }
   }
 
   if (std::get<props::Normalization>(input_props))
