@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include <common.h>
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
 #include <util_func.h>
@@ -661,10 +662,11 @@ void from_string(const std::string &value, std::vector<T> &property) {
 struct TensorDataTypeInfo {
   using Enum = nntrainer::TensorDim::DataType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::BCQ, Enum::QINT4, Enum::QINT8, Enum::QINT16, Enum::FP16, Enum::FP32};
+    Enum::BCQ,  Enum::QINT4, Enum::QINT8, Enum::QINT16,
+    Enum::FP16, Enum::FP32,  Enum::UINT16};
 
-  static constexpr const char *EnumStr[] = {"BCQ",    "QINT4", "QINT8",
-                                            "QINT16", "FP16",  "FP32"};
+  static constexpr const char *EnumStr[] = {"BCQ",  "QINT4", "QINT8", "QINT16",
+                                            "FP16", "FP32",  "UINT16"};
 };
 
 /**
@@ -718,6 +720,27 @@ public:
   TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
     set(value);
   };
+};
+
+/**
+ * @brief     Enumeration of Run Engine type
+ */
+struct ComputeEngineTypeInfo {
+  using Enum = ml::train::LayerComputeEngine;
+  static constexpr std::initializer_list<Enum> EnumList = {Enum::CPU, Enum::GPU,
+                                                           Enum::QNN};
+  static constexpr const char *EnumStr[] = {"cpu", "gpu", "qnn"};
+};
+
+/**
+ * @brief ComputeEngine Enumeration Information
+ *
+ */
+class ComputeEngine final
+  : public EnumProperty<nntrainer::props::ComputeEngineTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "engine";
 };
 
 // /**

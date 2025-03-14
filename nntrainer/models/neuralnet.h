@@ -33,10 +33,10 @@
 #include <chrono>
 #endif
 
-#include <app_context.h>
 #include <common_properties.h>
 #include <compiler_fwd.h>
 #include <dynamic_training_optimization.h>
+#include <engine.h>
 #include <layer_node.h>
 #include <model_common_properties.h>
 #include <network_graph.h>
@@ -92,7 +92,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(AppContext app_context_);
+  NeuralNetwork(Engine ct_engine_);
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -676,9 +676,10 @@ private:
 
   ExecutionMode exec_mode; /** execution mode : train : inference */
 
-  AppContext app_context; /** Configurations bound to current app */
+  Engine ct_engine; /** Configurations bound to current engine */
 
-  NetworkGraph model_graph;                 /** Network Model Graph */
+  NetworkGraph model_graph; /** Network Model Graph */
+
   GraphRepresentation graph_representation; /** Unsorted graph representation */
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
