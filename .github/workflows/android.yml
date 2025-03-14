@@ -1,4 +1,4 @@
-name: Build test/ Android NDK
+name: "Build Test - Android NDK"
 
 on:
   pull_request:

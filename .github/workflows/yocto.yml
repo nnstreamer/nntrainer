@@ -1,4 +1,4 @@
-name: Yocto devtool test
+name: "Build Test - Yocto devtool"
 
 on:
   pull_request:
