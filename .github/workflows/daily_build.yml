@@ -1,4 +1,4 @@
-name: Daily Ubuntu Build
+name: "Daily Build Test - Ubuntu"
 
 on:
   schedule:

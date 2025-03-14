@@ -1,4 +1,4 @@
-name: Ubuntu Meson build & test
+name: "Build Test - Ubuntu Meson"
 
 on:
   pull_request:
