@@ -286,7 +286,16 @@ struct PathProperty : Property<std::filesystem::path> {
 
   using prop_tag = path_prop_tag;
 
-  explicit PathProperty(const std::string &str) : base(str) {}
+  /**
+   * @brief Construct a new PathProperty object
+   *
+   * @param str default value
+   */
+  explicit PathProperty(const std::string &str) : base() { set(str); }
+
+  template <typename PathType_,
+            typename = std::enable_if_t<std::is_same_v<PathType_, std::filesystem::path>>>
+  explicit PathProperty(const PathType_& v): base() { set(v); }
 
   /**
    * @brief conversion operator to string
