@@ -60,5 +60,7 @@ jobs:
           ${{ matrix.meson_options }} \
           build
     - run: ninja -C build
-    - name: run ninja test
-      run: cd ./build && ninja test
+    - name: run App Tests
+      run: meson test -C build --no-suite unittests
+    - name: run Unittests
+      run: meson test -C build --suite unittests
