@@ -489,7 +489,8 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
   //   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
   //     if (run_context->isGradientLastAccess(i) && getTrainable()) {
   //       /// @note read optimizer variables
-  //       for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
+  //       for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j)
+  //       {
   //         run_context->getWeightOptVar(i, j).read(file);
   //       }
   //     }
