@@ -165,19 +165,11 @@ void MemoryPool::allocateFSU() {
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
-  // if (mem_pool == nullptr)
-  //   throw std::invalid_argument("Getting memory before allocation");
-
-  // char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  // void *ptr;
-  // allocators.at("qnn")->alloc(ptr, memory_size.at(idx-1), 1);
-
+  if (mem_pool == nullptr)
+    throw std::invalid_argument("Getting memory before allocation");
 #ifdef ENABLE_QNN
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
 #else
-  if (mem_pool == nullptr)
-    throw std::invalid_argument("Getting memory before allocation");
-
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
 #endif
