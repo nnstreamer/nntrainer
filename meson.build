@@ -37,6 +37,8 @@ cxx = meson.get_compiler('cpp')
 # Obtains number of cores
 nproc_prog = find_program('nproc',
                           required: (get_option('platform') == 'android') and (build_machine.system() != 'windows'))
+# Older libc++ has <filesystem> in seperate library
+opt_stdcpp_fs_dep = cxx.find_library('stdc++fs', required: false)
 
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler

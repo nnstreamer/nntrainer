@@ -624,14 +624,13 @@ void NeuralNetwork::save(const std::string &file_path,
     saveModelIni(file_path);
     break;
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
-    auto old_save_path = std::get<props::SavePath>(model_flex_props);
-    auto bin_file_name =
-      file_path.substr(0, file_path.find_last_of('.')) + ".bin";
-
-    std::get<props::SavePath>(model_flex_props).set(bin_file_name);
+    auto old_save_path_prop = std::get<props::SavePath>(model_flex_props);
+    auto bin_file_path = old_save_path_prop.get();
+    bin_file_path.replace_extension("bin");
+    std::get<props::SavePath>(model_flex_props).set(bin_file_path);
     save(file_path, ml::train::ModelFormat::MODEL_FORMAT_INI);
-    save(bin_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    std::get<props::SavePath>(model_flex_props) = old_save_path;
+    save(bin_file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    std::get<props::SavePath>(model_flex_props) = old_save_path_prop;
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {

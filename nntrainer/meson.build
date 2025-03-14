@@ -31,7 +31,8 @@ nntrainer_base_deps=[
 if host_machine.system() != 'windows'
   nntrainer_base_deps += [
     libm_dep,
-    libdl_dep
+    libdl_dep,
+    opt_stdcpp_fs_dep
   ]
 endif
 

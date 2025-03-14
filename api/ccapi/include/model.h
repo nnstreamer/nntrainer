@@ -18,6 +18,7 @@
 
 #if __cplusplus >= MIN_CPP_VERSION
 
+#include <filesystem>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -164,6 +165,18 @@ public:
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
+   * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
+   * format);
+   */
+  template <typename PathType_,
+            typename = std::enable_if_t<
+              std::is_same_v<PathType_, std::filesystem::path>, void>>
+  inline void save(const PathType_ &file_path,
+                   ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) {
+    this->save(file_path.string(), format);
+  }
+
+  /**
    * @brief  load model with regard to the format
    * @param file_path file_path to save the model, if full path is not
    * given, it should be saved inside working directory
@@ -172,6 +185,17 @@ public:
   virtual void load(const std::string &file_path,
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
+  /**
+   * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
+   * format);
+   */
+  template <typename PathType_,
+            typename = std::enable_if_t<
+              std::is_same_v<PathType_, std::filesystem::path>, void>>
+  inline void load(const PathType_ &file_path,
+                   ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) {
+    this->load(file_path.string(), format);
+  }
   /**
    * @brief     Run Model training and validation
    * @param[in] values hyper parameters
