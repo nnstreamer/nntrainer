@@ -173,7 +173,7 @@ void MemoryPool::deallocate() {
     }
   }
 #else
-  if(mem_pool != nullptr)
+  if (mem_pool != nullptr)
     free(mem_pool);
 #endif
 
