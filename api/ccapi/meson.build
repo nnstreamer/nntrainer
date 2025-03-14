@@ -13,6 +13,7 @@ ccapi_headers = []
 ccapi_headers += meson.current_source_dir() / 'include' / 'common.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'dataset.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'layer.h'
+ccapi_headers += meson.current_source_dir() / 'include' / 'subgraph.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'model.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'optimizer.h'
 ccapi_headers += meson.current_source_dir() / 'include' / 'tensor_dim.h'
