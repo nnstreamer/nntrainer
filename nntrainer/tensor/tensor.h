@@ -15,10 +15,10 @@
 
 #define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
 
-#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
-  do {                                    \
-    if (tensor.empty())                   \
-      tensor = Tensor(__VA_ARGS__);       \
+#define CREATE_IF_EMPTY_DIMS(tensor, ...)                                      \
+  do {                                                                         \
+    if (tensor.empty())                                                        \
+      tensor = Tensor(__VA_ARGS__);                                            \
   } while (0);
 
 #include <cstddef>

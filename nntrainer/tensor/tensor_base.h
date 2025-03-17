@@ -24,32 +24,32 @@
 
 #include "ruy/ruy.h"
 
-#define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                 \
-  do {                                                                \
-    unsigned int i, j, k, l;                                          \
-    int inidx = 0, outidx = 0;                                        \
-    for (cl = 0; cl < sl; cl++)                                       \
-      for (ci = 0; ci < si; ci++)                                     \
-        for (cj = 0; cj < sj; cj++)                                   \
-          for (ck = 0; ck < sk; ck++) {                               \
-            outidx = si * sj * sk * cl + sj * sk * ci + sk * cj + ck; \
-            inidx = l * SI * SJ * SK + i * SJ * SK + j * SK + k;      \
-            outptr[outidx] = inptr[inidx];                            \
-          }                                                           \
+#define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                          \
+  do {                                                                         \
+    unsigned int i, j, k, l;                                                   \
+    int inidx = 0, outidx = 0;                                                 \
+    for (cl = 0; cl < sl; cl++)                                                \
+      for (ci = 0; ci < si; ci++)                                              \
+        for (cj = 0; cj < sj; cj++)                                            \
+          for (ck = 0; ck < sk; ck++) {                                        \
+            outidx = si * sj * sk * cl + sj * sk * ci + sk * cj + ck;          \
+            inidx = l * SI * SJ * SK + i * SJ * SK + j * SK + k;               \
+            outptr[outidx] = inptr[inidx];                                     \
+          }                                                                    \
   } while (0);
 
-#define transposeloop_nhwc(cl, ci, cj, ck, sl, si, sj, sk)            \
-  do {                                                                \
-    unsigned int i, j, k, l;                                          \
-    int inidx = 0, outidx = 0;                                        \
-    for (cl = 0; cl < sl; cl++)                                       \
-      for (ci = 0; ci < si; ci++)                                     \
-        for (cj = 0; cj < sj; cj++)                                   \
-          for (ck = 0; ck < sk; ck++) {                               \
-            outidx = si * sj * sk * cl + sj * sk * ci + sk * cj + ck; \
-            inidx = l * SJ * SK * SI + j * SK * SI + k * SI + i;      \
-            outptr[outidx] = inptr[inidx];                            \
-          }                                                           \
+#define transposeloop_nhwc(cl, ci, cj, ck, sl, si, sj, sk)                     \
+  do {                                                                         \
+    unsigned int i, j, k, l;                                                   \
+    int inidx = 0, outidx = 0;                                                 \
+    for (cl = 0; cl < sl; cl++)                                                \
+      for (ci = 0; ci < si; ci++)                                              \
+        for (cj = 0; cj < sj; cj++)                                            \
+          for (ck = 0; ck < sk; ck++) {                                        \
+            outidx = si * sj * sk * cl + sj * sk * ci + sk * cj + ck;          \
+            inidx = l * SJ * SK * SI + j * SK * SI + k * SI + i;               \
+            outptr[outidx] = inptr[inidx];                                     \
+          }                                                                    \
   } while (0);
 
 namespace nntrainer {
