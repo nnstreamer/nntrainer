@@ -483,6 +483,12 @@ Tensor &TensorBase::pow(float exponent, Tensor &output) const {
     getStringDataType());
 }
 
+Tensor &TensorBase::sqrt(Tensor &output) const {
+  throw std::invalid_argument(
+    "Tensor::sqrt() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 Tensor &TensorBase::erf(Tensor &output) const {
   throw std::invalid_argument(
     "Tensor::erf() is currently not supported in tensor data type " +

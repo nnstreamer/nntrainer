@@ -356,6 +356,11 @@ public:
   Tensor &pow(float exponent, Tensor &output) const override;
 
   /**
+   * @copydoc Tensor::sqrt(Tensor &output)
+   */
+  Tensor &sqrt(Tensor &output) const override;
+
+  /**
    * @copydoc Tensor::erf(Tensor &output)
    */
   Tensor &erf(Tensor &output) const override;

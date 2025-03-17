@@ -1195,6 +1195,25 @@ public:
   Tensor &pow(float exponent, Tensor &output) const;
 
   /**
+   * @brief     Compute square-root element by element
+   * @retval    #ML_ERROR_NONE  Successful
+   */
+  int sqrt_i();
+
+  /**
+   * @brief     Compute square-root by element
+   * @retval    Calculated Tensor
+   */
+  Tensor sqrt() const;
+
+  /**
+   * @brief      Compute square-root by element
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  Tensor &sqrt(Tensor &output) const;
+
+  /**
    * @brief     Gauss error function
    * @retval    #ML_ERROR_NONE  Successful
    */

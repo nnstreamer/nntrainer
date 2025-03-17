@@ -374,6 +374,11 @@ public:
   virtual Tensor &pow(float exponent, Tensor &output) const;
 
   /**
+   * @copydoc Tensor::sqrt(Tensor &output)
+   */
+  virtual Tensor &sqrt(Tensor &output) const;
+
+  /**
    * @copydoc Tensor::erf(Tensor &output)
    */
   virtual Tensor &erf(Tensor &output) const;
