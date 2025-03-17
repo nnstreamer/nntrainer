@@ -202,6 +202,16 @@ public:
   void copy_with_stride(const Tensor &input, Tensor &output) override;
 
   /**
+   * @copydoc Tensor::save(std::ostream &file)
+   */
+  void save(std::ostream &file) override;
+
+  /**
+   * @copydoc Tensor::read(std::ifstream &file)
+   */
+  void read(std::ifstream &file) override;
+
+  /**
    * @copydoc Tensor::argmax()
    */
   std::vector<unsigned int> argmax() const override;

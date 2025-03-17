@@ -303,6 +303,40 @@ void ShortTensor::copy_with_stride(const Tensor &input, Tensor &output) {
   }
 }
 
+void ShortTensor::save(std::ostream &file) {
+  /// @note Save quantization information
+  save_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz,
+               "[ShortTensor::save] operation failed");
+  putData();
+}
+
+void ShortTensor::read(std::ifstream &file) {
+  /// @note Read quantization information
+  read_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << tensor_bytes
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz,
+              "[ShortTensor::read] operation failed");
+  putData();
+}
+
 std::vector<unsigned int> ShortTensor::argmax() const {
   std::vector<unsigned int> result;
   const int16_t *data = (int16_t *)getData();
