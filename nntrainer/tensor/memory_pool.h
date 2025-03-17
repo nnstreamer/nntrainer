@@ -47,6 +47,7 @@
 #include <unistd.h>
 #endif
 
+#include <dynamic_library_loader.h>
 #include <engine.h>
 #include <iostream>
 #include <mem_allocator.h>
@@ -97,6 +98,7 @@ public:
 #else
     allocators = Engine(Engine::Global()).getAllocators();
 #endif
+
   }
 
   /**
