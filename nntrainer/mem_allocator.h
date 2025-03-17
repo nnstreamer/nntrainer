@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 
 namespace nntrainer {
 
@@ -27,7 +28,7 @@ public:
   virtual ~MemAllocator() = default;
   virtual void alloc(void **ptr, size_t size, size_t alignment);
   virtual void free(void *ptr);
-  /* virtual std::string getName() { return "cpu"; }; */
+  virtual std::string getName() { return "cpu"; };
 };
 } // namespace nntrainer
 
