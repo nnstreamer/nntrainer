@@ -231,6 +231,11 @@ public:
   std::vector<unsigned int> argmax() const override;
 
   /**
+   * @copydoc Tensor::argmin()
+   */
+  std::vector<unsigned int> argmin() const override;
+
+  /**
    * @copydoc Tensor::max_abs()
    */
   float max_abs() const override;

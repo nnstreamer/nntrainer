@@ -1555,6 +1555,12 @@ public:
   std::vector<unsigned int> argmax() const;
 
   /**
+   * @brief     return argument index which value is min by batch
+   * @retval    unsigned int argument indices
+   */
+  std::vector<unsigned int> argmin() const;
+
+  /**
    * @brief     return max of the absolute values of the tensor
    * @retval    maximum absolute value
    */

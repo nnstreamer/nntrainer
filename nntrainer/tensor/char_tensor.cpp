@@ -452,6 +452,22 @@ std::vector<unsigned int> CharTensor::argmax() const {
   return result;
 }
 
+std::vector<unsigned int> CharTensor::argmin() const {
+  std::vector<unsigned int> result;
+  const int8_t *data = (int8_t *)getData();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
+
+  result.resize(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    auto min_iter =
+      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
+    result[b] = std::distance(data, min_iter) - (b * feature_len);
+  }
+  return result;
+}
+
 float CharTensor::max_abs() const {
   const int8_t *data = (int8_t *)getData();
   unsigned int idx;

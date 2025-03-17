@@ -387,6 +387,29 @@ std::vector<unsigned int> Int4QTensor::argmax() const {
   return result;
 }
 
+std::vector<unsigned int> Int4QTensor::argmin() const {
+  std::vector<unsigned int> result;
+  const int8_t *data = (int8_t *)getData();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
+  result.resize(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; ++b) {
+    int8_t curr_val, min_val = 7;
+    unsigned int min_element_idx = 0;
+    for (unsigned int idx = 0; idx < feature_len; ++idx) {
+      curr_val = getValue(idx + b * feature_len);
+
+      if (curr_val < min_val) {
+        min_val = curr_val;
+        min_element_idx = idx;
+      }
+    }
+    result[b] = min_element_idx;
+  }
+  return result;
+}
+
 float Int4QTensor::max_abs() const {
   int8_t abs_max_val = 0;
   int8_t curr_val;
