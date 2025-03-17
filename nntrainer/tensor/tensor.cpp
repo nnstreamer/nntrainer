@@ -797,6 +797,21 @@ Tensor &Tensor::pow(float exponent, Tensor &output) const {
   return output;
 }
 
+int Tensor::sqrt_i() {
+  sqrt(*this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::sqrt() const {
+  Tensor output("", getFormat(), getDataType());
+  return sqrt(output);
+};
+
+Tensor &Tensor::sqrt(Tensor &output) const {
+  itensor->sqrt(output);
+  return output;
+};
+
 int Tensor::erf_i() {
   erf(*this);
   return ML_ERROR_NONE;
