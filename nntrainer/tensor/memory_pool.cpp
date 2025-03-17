@@ -120,7 +120,6 @@ void MemoryPool::allocate() {
     i++;
   }
 
-  // temp change for isAllocate() true
   mem_pool = calloc(1, 1);
 #else
   mem_pool = calloc(pool_size, 1);
@@ -132,6 +131,36 @@ void MemoryPool::allocate() {
     idx++;
   }
 #endif
+
+  // if(istrequal(allocators.getName(), "qnn")){
+  //   std::map<size_t, void *> offset_ptr;
+
+  //   int i = 0;
+  //   for (auto &s : memory_offset) {
+  //     auto it = offset_ptr.find(s);
+  //     if (it == offset_ptr.end()) {
+  // 	void *ptr;
+  // 	allocators.at("qnn")->alloc(&ptr, memory_size.at(i), 1);
+  // 	memory_ptrs.push_back(ptr);
+  // 	offset_ptr.insert(std::make_pair(s, ptr));
+  //     } else {
+  // 	memory_ptrs.push_back(it->second);
+  //     }
+  //     i++;
+  //   }
+
+  //   // temp change for isAllocate() true
+  //   mem_pool = calloc(1, 1);
+  // } else if (istrequal(allocators.getName(), "cpu")){
+  //   mem_pool = calloc(pool_size, 1);
+
+  //   unsigned int idx = 1;
+  //   for (auto &s : memory_offset) {
+  //     char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  //     memory_ptrs.push_back(ptr);
+  //     idx++;
+  //   }
+  // }
 
 #ifdef PROFILE
   static long long seq = 0;
