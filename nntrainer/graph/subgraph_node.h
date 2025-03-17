@@ -684,6 +684,12 @@ public:
   void printPreset(std::ostream &out,
                    PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
+  /**
+   * @brief operator == of SubGraphNode.
+   * Check logical equivalence between SubGraphNodes.
+   */
+  bool operator==(const SubGraphNode &rhs) const noexcept;
+
   inline static const std::string type = "subgraph";
 
 protected:
@@ -926,6 +932,9 @@ createSubGraphNode(std::unique_ptr<nntrainer::SubGraphNode> &&subgraph,
                    const std::vector<std::string> &properties);
 
 SubGraphType createSubGraph(const std::vector<std::string> &properties = {});
+
+bool is_representation_equal(const GraphLayerNodeRepresentation &lhs,
+                             const GraphLayerNodeRepresentation &rhs);
 
 } // namespace nntrainer
 

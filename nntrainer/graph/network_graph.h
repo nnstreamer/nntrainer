@@ -390,6 +390,15 @@ public:
    */
   NetworkGraph &copy(NetworkGraph &from) {
     graph.copy(from.graph);
+    sub_in_out = from.sub_in_out;
+    tensor_manager = from.tensor_manager;
+    label_list = from.label_list;
+    input_list = from.input_list;
+    output_list = from.output_list;
+    label_dims = from.label_dims;
+    input_dims = from.input_dims;
+    profile_keys = from.profile_keys;
+    lazy_weights = from.lazy_weights;
     return *this;
   }
 
@@ -603,6 +612,12 @@ public:
    * @return Number of Loaded TensorPool Tensor
    */
   unsigned int getNumLoadedTensorPoolTensors();
+
+  /**
+   * @brief operator == of NetworkGraph. Check logical equivalence between graph
+   * structure
+   */
+  bool operator==(const NetworkGraph &rhs) const noexcept;
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify

@@ -640,6 +640,14 @@ s   * @retval shared_ptr<const Tensor>
   void exports(const ml::train::ExportMethods &method,
                const std::string file_path) override;
 
+  /**
+   * @brief opertor == for NeuralNetwork. Check logical equivalence of network
+   * structures.
+   * @note This does not check the address of graph instances. It only ensures
+   * the logical structure of two neural networks are equivalent.
+   */
+  bool operator==(const NeuralNetwork &rhs) const;
+
 private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,

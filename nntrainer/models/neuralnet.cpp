@@ -1518,4 +1518,19 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     throw std::runtime_error{"Unsupported export method"};
   }
 }
+
+bool NeuralNetwork::operator==(const NeuralNetwork &rhs) const {
+  bool is_equal = true;
+  is_equal &= (model_graph == rhs.model_graph);
+  is_equal &= is_representation_equal(graph_ln_representation,
+                                      rhs.graph_ln_representation);
+  for (auto [key, value] : graph_map) {
+    if (rhs.graph_map.find(key) == rhs.graph_map.end())
+      return false;
+    is_equal &=
+      (*(graph_map.find(key)->second) == *(rhs.graph_map.find(key)->second));
+  }
+  return is_equal;
+}
+
 } /* namespace nntrainer */

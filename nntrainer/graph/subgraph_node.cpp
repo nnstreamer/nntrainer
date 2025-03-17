@@ -1889,6 +1889,47 @@ void SubGraphNode::printPreset(std::ostream &out, PrintPreset preset) {
   }
 }
 
+bool is_ln_equal(const LayerNode &lhs, const LayerNode &rhs) {
+  Exporter lhs_export;
+  Exporter rhs_export;
+  lhs.exportTo(lhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
+  rhs.exportTo(rhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
+  return *lhs_export
+            .getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>() ==
+         *rhs_export.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>();
+}
+
+bool is_representation_equal(const GraphLayerNodeRepresentation &lhs,
+                             const GraphLayerNodeRepresentation &rhs) {
+
+  bool is_equal = true;
+
+  if (lhs.size() != rhs.size())
+    return false;
+  auto lhs_iter = lhs.cbegin();
+  auto rhs_iter = rhs.cbegin();
+  while (lhs_iter != lhs.cend() && rhs_iter != rhs.cend()) {
+    auto lhs = *lhs_iter;
+    auto rhs = *rhs_iter;
+    is_equal &= is_ln_equal(*lhs.get(), *rhs.get());
+    lhs_iter++;
+    rhs_iter++;
+  }
+
+  return is_equal;
+};
+
+bool SubGraphNode::operator==(const SubGraphNode &rhs) const noexcept {
+  bool is_equal = true;
+
+  is_equal &= (subgraph_name == rhs.subgraph_name);
+  is_equal &= (subgraph == rhs.subgraph);
+  is_equal &= is_representation_equal(subgraph_representation,
+                                      rhs.subgraph_representation);
+
+  return is_equal;
+}
+
 std::unique_ptr<SubGraphNode>
 createSubGraphNode(const ml::train::SubGraphType &type,
                    const std::vector<std::string> &properties) {

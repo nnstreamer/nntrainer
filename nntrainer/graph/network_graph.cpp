@@ -294,4 +294,18 @@ unsigned int NetworkGraph::getNumLoadedTensorPoolTensors() {
   return tensor_manager->getNumLoadedWeightPoolTensors();
 }
 
+bool NetworkGraph::operator==(const NetworkGraph &rhs) const noexcept {
+  bool is_equal = true;
+
+  is_equal &= (sub_in_out == rhs.sub_in_out);
+  is_equal &= (graph == rhs.graph);
+  is_equal &= (label_list == rhs.label_list);
+  is_equal &= (input_list == rhs.input_list);
+  is_equal &= (output_list == rhs.output_list);
+  is_equal &= (label_dims == rhs.label_dims);
+  is_equal &= (input_dims == rhs.input_dims);
+
+  return is_equal;
+}
+
 } /* namespace nntrainer */

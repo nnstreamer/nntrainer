@@ -53,37 +53,6 @@ static std::string withKey(const std::string &key,
   return ss.str();
 }
 
-void graphEqual(const nntrainer::GraphLayerNodeRepresentation &lhs,
-                const nntrainer::GraphLayerNodeRepresentation &rhs) {
-  EXPECT_EQ(lhs.size(), rhs.size());
-
-  auto is_node_equal = [](const nntrainer::LayerNode &l,
-                          const nntrainer::LayerNode &r) {
-    nntrainer::Exporter lhs_export;
-    nntrainer::Exporter rhs_export;
-
-    l.exportTo(lhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
-    r.exportTo(rhs_export, ml::train::ExportMethods::METHOD_STRINGVECTOR);
-
-    /*** fixme, there is one caveat that order matters in this form */
-    EXPECT_EQ(
-      *lhs_export.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>(),
-      *rhs_export.getResult<ml::train::ExportMethods::METHOD_STRINGVECTOR>());
-  };
-
-  if (lhs.size() == rhs.size()) {
-    auto lhs_iter = lhs.cbegin();
-    auto rhs_iter = rhs.cbegin();
-    while (lhs_iter != lhs.cend() && rhs_iter != rhs.cend()) {
-      auto lhs = *lhs_iter;
-      auto rhs = *rhs_iter;
-      is_node_equal(*lhs.get(), *rhs.get());
-      lhs_iter++;
-      rhs_iter++;
-    }
-  }
-}
-
 /**
  * @brief Internal API test :
  * unittest for createSubGraph with subgraph_name property
@@ -148,7 +117,7 @@ TEST(nntrainer_SubGraph, create_subgraph_03_p) {
   model2->addLayer(ml::train::createLayer(
     "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
 
-  graphEqual(NNPTR(model1)->getFlatGraph(), NNPTR(model2)->getFlatGraph());
+  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), true);
 }
 
 /**
@@ -184,7 +153,37 @@ TEST(nntrainer_SubGraph, create_subgraph_04_p) {
   model2->addLayer(ml::train::createLayer(
     "fully_connected", {withKey("name", "fc2"), withKey("unit", 2)}));
 
-  graphEqual(NNPTR(model1)->getFlatGraph(), NNPTR(model2)->getFlatGraph());
+  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), true);
+}
+
+/**
+ * @brief test subgraph creation.
+ * subgraph name is different. but layers are same.
+ */
+TEST(nntrainer_SubGraph, create_subgraph_05_n) {
+  static auto &ac = nntrainer::AppContext::Global();
+
+  // subgraph named `graph1`
+  std::shared_ptr<ml::train::Model> model1 =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  model1->addSubGraph(ml::train::createSubGraph(
+    "subgraph", {withKey("subgraph_name", "graph_1")}));
+  model1->addLayer(ml::train::createLayer(
+    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
+
+  // subgraph named `default`
+  std::shared_ptr<ml::train::Model> model2 =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  model2->addLayer(ml::train::createLayer(
+    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
+
+  // not equal model (subgraph name is different)
+  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), false);
+
+  // layer nodes are equal
+  EXPECT_EQ(is_representation_equal(NNPTR(model1)->getFlatGraph(),
+                                    NNPTR(model2)->getFlatGraph()),
+            true);
 }
 
 int main(int argc, char **argv) {

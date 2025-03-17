@@ -253,6 +253,12 @@ public:
     return true;
   }
 
+  /**
+   * @brief operator == of GraphCore. Check logical equivalence between
+   * graph_cores.
+   */
+  bool operator==(const GraphCore &rhs) const noexcept;
+
 private:
   std::vector<std::shared_ptr<GraphNode>> input_list;
   std::vector<std::shared_ptr<GraphNode>> output_list;

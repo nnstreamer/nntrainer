@@ -196,4 +196,15 @@ unsigned int GraphCore::getNodeIdx(const std::string &name) {
   return node_map.at(name);
 }
 
+bool GraphCore::operator==(const GraphCore &other) const noexcept {
+
+  bool is_equal = true;
+
+  is_equal &= (node_map == other.node_map);
+  is_equal &= (node_names == other.node_names);
+  is_equal &= (sorted_node_map == other.sorted_node_map);
+
+  return is_equal;
+}
+
 } /* namespace nntrainer */
