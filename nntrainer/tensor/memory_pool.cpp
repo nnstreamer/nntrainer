@@ -12,14 +12,15 @@
 
 #include <cstdlib>
 #include <limits>
+#include <numeric>
+#include <vector>
 
 #include <map>
 #include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <numeric>
 #include <profiler.h>
-#include <vector>
+#include <unistd.h>
 
 namespace nntrainer {
 
@@ -116,7 +117,6 @@ void MemoryPool::allocate() {
     i++;
   }
 
-  // temp change for isAllocate() true
   mem_pool = calloc(1, 1);
 #else
   mem_pool = calloc(pool_size, 1);
