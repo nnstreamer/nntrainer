@@ -329,6 +329,9 @@ if get_option('enable-blas')
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
       blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
       blas_options.add_cmake_defines({'NOFORTRAN': true})
+      blas_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+      blas_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+      blas_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
       blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
       blas_dep = host_machine.system() == 'windows'? blas_subproject.dependency('openblas_static') : blas_subproject.dependency('openblas_shared')
     endif
@@ -446,6 +449,9 @@ else
     iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
     iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
     iniparser_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+    iniparser_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+    iniparser_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+    iniparser_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
     iniparser_subproject = cmake.subproject('iniparser', options: iniparser_options, required: true)
     iniparser_dep = iniparser_subproject.dependency('iniparser-static')
   endif
@@ -461,6 +467,9 @@ else
   if host_machine.system() == 'windows'
     ruy_options.append_compile_args('c', windows_compile_args)
     ruy_options.append_compile_args('cpp', windows_compile_args)
+    ruy_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+    ruy_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+    ruy_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
   else
     ruy_flags = [
       '-Wno-error=unused-result',
