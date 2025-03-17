@@ -22,19 +22,14 @@ nntrainer_headers = [
 nntrainer_base_deps=[
   blas_dep,
   iniparser_dep,
-  ruy_dep,
+  libdl_dep,
+  libm_dep,
   ml_api_common_dep,
+  openmp_dep,
+  opt_stdcpp_fs_dep,
+  ruy_dep,
   thread_dep,
-  openmp_dep
 ]
-
-if host_machine.system() != 'windows'
-  nntrainer_base_deps += [
-    libm_dep,
-    libdl_dep,
-    opt_stdcpp_fs_dep
-  ]
-endif
 
 if get_option('platform') == 'tizen'
   nntrainer_base_deps += dependency('dlog')
