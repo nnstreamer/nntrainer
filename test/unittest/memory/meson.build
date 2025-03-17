@@ -12,7 +12,7 @@ test_target = [
   'unittest_cache_pool_fsu.cpp'
 ]
 
-if host_machine.system() == 'windows'
+if cxx.get_id() == 'msvc'
   cpp_args_str = ''
 else
   cpp_args_str = '-Wno-maybe-uninitialized'
