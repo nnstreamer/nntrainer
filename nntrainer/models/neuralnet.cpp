@@ -692,9 +692,10 @@ void NeuralNetwork::load(const std::string &file_path,
     throw_status(ret);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
-      checkedOpenStream<std::ifstream>(save_path,
+      std::filesystem::path p = save_path;
+      checkedOpenStream<std::ifstream>(p.string(),
                                        std::ios::in | std::ios::binary);
-      load_path = save_path;
+      load_path = p.string();
     }
     break;
   }
