@@ -20,9 +20,10 @@
 
 #include <regex>
 #include <sstream>
-#include <sys/stat.h>
 #include <utility>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 namespace nntrainer {
 namespace props {
@@ -56,29 +57,21 @@ void RandomTranslate::set(const float &value) {
   Property<float>::set(std::abs(value));
 }
 
-bool FilePath::isValid(const std::string &v) const {
-  std::ifstream file(v, std::ios::binary | std::ios::ate);
-  return file.good();
+bool FilePath::isValid(const fs::path &v) const {
+  const bool regular = PathProperty::isRegularFile(v);
+  const bool is_readable = PathProperty::isReadAccessible(v);
+  return regular && is_readable;
 }
 
-void FilePath::set(const std::string &v) {
-  Property<std::string>::set(v);
-  std::ifstream file(v, std::ios::binary | std::ios::ate);
-  cached_pos_size = file.tellg();
-}
-
-std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
+std::uintmax_t FilePath::file_size() const { return fs::file_size(*this); }
 
 bool LossScaleForMixed::isValid(const float &value) const {
   return (value != 0);
 }
 
-bool DirPath::isValid(const std::string &v) const {
-  struct stat dir;
-  return (stat(v.c_str(), &dir) == 0);
+bool DirPath::isValid(const fs::path &v) const {
+  return PathProperty::isDirectory(v);
 }
-
-void DirPath::set(const std::string &v) { Property<std::string>::set(v); }
 
 ReturnSequences::ReturnSequences(bool value) { set(value); }
 

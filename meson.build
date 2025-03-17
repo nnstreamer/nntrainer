@@ -37,6 +37,10 @@ cxx = meson.get_compiler('cpp')
 # Obtains number of cores
 nproc_prog = find_program('nproc',
                           required: (get_option('platform') == 'android') and (build_machine.system() != 'windows'))
+# Older libc++ has <filesystem> in seperate library
+opt_stdcpp_fs_dep = cxx.find_library('stdc++fs', required: false)
+
+prog_win_cmd = find_program('cmd.exe', required: build_machine.system() == 'windows')
 
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
@@ -190,7 +194,7 @@ if get_option('enable-biqgemm')
   endif
 endif # end of enable-biqgemm
 
-if host_machine.system() != 'windows'
+if cc.get_id() != 'msvc' and cxx.get_id() != 'msvc'
   foreach extra_arg : warning_flags
     if cc.has_argument (extra_arg)
       add_project_arguments([extra_arg], language: 'c')
@@ -241,10 +245,10 @@ endif
 # handle resources
 nntrainer_resdir = meson.build_root() / 'res'
 
-if host_machine.system() == 'windows'
+if build_machine.system() == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
   if not fs.exists (nntrainer_resdir_win)
-    run_command('cmd.exe', '/C', 'mkdir', nntrainer_resdir_win)
+    run_command(prog_win_cmd, '/C', 'mkdir', nntrainer_resdir_win)
   endif
 else
   run_command('mkdir', '-p', nntrainer_resdir)
@@ -325,6 +329,9 @@ if get_option('enable-blas')
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
       blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
       blas_options.add_cmake_defines({'NOFORTRAN': true})
+      blas_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+      blas_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+      blas_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
       blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
       blas_dep = host_machine.system() == 'windows'? blas_subproject.dependency('openblas_static') : blas_subproject.dependency('openblas_shared')
     endif
@@ -421,10 +428,8 @@ if get_option('reduce-tolerance')
   extra_defines += '-DREDUCE_TOLERANCE=1'
 endif
 
-if host_machine.system() != 'windows'
-  libm_dep = cxx.find_library('m') # cmath library
-  libdl_dep = cxx.find_library('dl') # DL library
-endif
+libm_dep = cxx.find_library('m', required: false) # cmath library
+libdl_dep = cxx.find_library('dl', required: false) # DL library
 
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
@@ -444,6 +449,9 @@ else
     iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
     iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
     iniparser_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+    iniparser_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+    iniparser_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+    iniparser_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
     iniparser_subproject = cmake.subproject('iniparser', options: iniparser_options, required: true)
     iniparser_dep = iniparser_subproject.dependency('iniparser-static')
   endif
@@ -459,6 +467,9 @@ else
   if host_machine.system() == 'windows'
     ruy_options.append_compile_args('c', windows_compile_args)
     ruy_options.append_compile_args('cpp', windows_compile_args)
+    ruy_options.add_cmake_defines({'CMAKE_CXX_COMPILER_WORKS' : true})
+    ruy_options.add_cmake_defines({'CMAKE_C_COMPILER_WORKS' : true})
+    ruy_options.add_cmake_defines({'CMAKE_MSVC_DEBUG_INFORMATION_FORMAT': 'Embedded'})
   else
     ruy_flags = [
       '-Wno-error=unused-result',
