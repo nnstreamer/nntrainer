@@ -19,10 +19,15 @@
 #ifndef __MEMORY_POOL_H__
 #define __MEMORY_POOL_H__
 
+#include <functional>
+#include <memory>
+#include <vector>
+
 #include <memory_data.h>
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
+#include <dynamic_library_loader.h>
 #include <cstdlib>
 #include <functional>
 #include <memory>
@@ -45,6 +50,17 @@
 #include <engine.h>
 #include <iostream>
 #include <mem_allocator.h>
+#include <set>
+
+static const std::string func_tag = "[MemoryPool] ";
+typedef void *(*RpcMemAllocFn_t)(int, uint32_t, int);
+typedef void (*RpcMemFreeFn_t)(void *);
+
+enum {
+  DL_NOW = 0x0001,
+  DL_LOCAL = 0x0002,
+  DL_GLOBAL = 0x0004,
+};
 
 namespace nntrainer {
 /**
@@ -60,7 +76,24 @@ public:
   explicit MemoryPool() :
     mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
 
-    allocators = Engine(Engine::Global()).getAllocators();
+    void *handle =
+      DynamicLibraryLoader::loadLibrary("libcdsprpc.so", DL_NOW | DL_LOCAL);
+    const char *error_msg = DynamicLibraryLoader::getLastError();
+
+    rpcmem_alloc =
+      (RpcMemAllocFn_t)DynamicLibraryLoader::loadSymbol(handle, "rpcmem_alloc");
+    rpcmem_free =
+      (RpcMemFreeFn_t)DynamicLibraryLoader::loadSymbol(handle, "rpcmem_free");
+
+    auto close_dl = [handle] { dlclose(handle); };
+
+    if (rpcmem_alloc == nullptr || rpcmem_free == nullptr) {
+      NNTR_THROW_IF_CLEANUP(rpcmem_alloc == nullptr || rpcmem_free == nullptr,
+                            std::invalid_argument, close_dl)
+        << func_tag << "open rpc mem failed";
+    }
+
+    // allocators = Engine(Engine::Global()).getAllocators();
   }
 
   /**
@@ -259,6 +292,9 @@ private:
 
   std::vector<size_t> memory_size; /**< various sizes memory requested */
   std::vector<void *> memory_ptrs; /**< various pointers memory requested */
+
+  std::set<void *> mem_ptr_map;
+
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
@@ -279,10 +315,11 @@ private:
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
+  RpcMemAllocFn_t rpcmem_alloc;
+  RpcMemFreeFn_t rpcmem_free;
+
 };
 
-  std::vector<void *> memory_ptrs; /**< memory ptr vector */
-};
 } // namespace nntrainer
 
 #endif /** __MEMORY_POOL_H__ */
