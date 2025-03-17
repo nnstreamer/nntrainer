@@ -275,6 +275,8 @@ public:
             ml::train::ModelFormat format =
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
+  using ml::train::Model::save;
+
   /**
    * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
    * format);
@@ -283,6 +285,7 @@ public:
             ml::train::ModelFormat format =
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
+  using ml::train::Model::load;
   /**
    * @brief     get Epochs
    * @retval    epochs
