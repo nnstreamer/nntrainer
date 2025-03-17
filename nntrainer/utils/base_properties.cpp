@@ -13,6 +13,7 @@
 
 #include <cerrno>
 #include <regex>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <system_error>
@@ -48,7 +49,7 @@ bool isFileReadAccessisble(fs::path p, std::error_code &ec) {
 #else
   ec = std::error_code{};
   // Unless it is POSIX, best bet is to try it
-  std::ifstream file(p, std::ios::binary | std::ios::ate);
+  std::ifstream file(p.string(), std::ios::binary | std::ios::ate);
   return file.good();
 #endif
 }
@@ -107,7 +108,7 @@ std::string str_converter<str_prop_tag, std::string>::from_string(
 template <>
 std::string
 str_converter<path_prop_tag, fs::path>::to_string(const fs::path &value) {
-  return value;
+  return value.string();
 }
 
 template <>
