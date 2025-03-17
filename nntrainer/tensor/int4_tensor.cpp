@@ -330,6 +330,40 @@ void Int4QTensor::copy_with_stride(const Tensor &input, Tensor &output) {
   }
 }
 
+void Int4QTensor::save(std::ostream &file) {
+  /// @note Save quantization information
+  save_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz,
+               "[Int4QTensor::save] operation failed");
+  putData();
+}
+
+void Int4QTensor::read(std::ifstream &file) {
+  /// @note Read quantization information
+  read_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << tensor_bytes
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz,
+              "[Int4QTensor::read] operation failed");
+  putData();
+}
+
 std::vector<unsigned int> Int4QTensor::argmax() const {
   std::vector<unsigned int> result;
   const int8_t *data = (int8_t *)getData();

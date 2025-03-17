@@ -49,6 +49,27 @@ void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   offset = offset;
 }
 
+void TensorBase::save(std::ostream &file) {
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
+  putData();
+}
+
+void TensorBase::read(std::ifstream &file) {
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed");
+  putData();
+}
+
 void TensorBase::putData() const {
   if (!data)
     return;

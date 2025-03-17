@@ -253,6 +253,40 @@ void BCQTensor::copy_with_stride(const Tensor &input, Tensor &output) {
   }
 }
 
+void BCQTensor::save(std::ostream &file) {
+  /// @note Save quantization information
+  save_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz,
+               "[BCQTensor::save] operation failed");
+  putData();
+}
+
+void BCQTensor::read(std::ifstream &file) {
+  /// @note Read quantization information
+  read_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << tensor_bytes
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz,
+              "[BCQTensor::read] operation failed");
+  putData();
+}
+
 std::vector<unsigned int> BCQTensor::argmax() const {
   std::vector<unsigned int> result;
   const uint32_t *data = (uint32_t *)getData();

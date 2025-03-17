@@ -1179,49 +1179,14 @@ void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
 
-  /// @note Save quantization information which only works on Quantized Tensor
-  itensor->save_quantization_info(file);
-
-  /// @note Scale factors are temporary fixed to float for now
-  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
-
-  if (getDataType() == Tdatatype::UINT8 || getDataType() == Tdatatype::UINT16 ||
-      getDataType() == Tdatatype::UINT32) {
-    tensor_bytes += scale_size() * sizeof(unsigned int);
-  }
-
-  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
-  NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "save size: " << tensor_bytes
-    << " is too big. It cannot be represented by std::streamsize";
-
-  checkedWrite(file, getData<char>(), sz, "[Tensor::save] operation failed");
-  putData();
+  itensor->save(file);
 }
 
 void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
-  /// @note Read quantization information which only works on Quantized Tensor
-  itensor->read_quantization_info(file);
-
-  /// @note Scale factors are temporary fixed to float for now
-  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
-
-  if (getDataType() == Tdatatype::UINT8 || getDataType() == Tdatatype::UINT16 ||
-      getDataType() == Tdatatype::UINT32) {
-    tensor_bytes += scale_size() * sizeof(unsigned int);
-  }
-
-  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
-
-  NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << tensor_bytes
-    << " is too big. It cannot be represented by std::streamsize";
-
-  checkedRead(file, getData<char>(), sz, "[Tensor::read] operation failed");
-  putData();
+  itensor->read(file);
 }
 
 std::vector<unsigned int> Tensor::argmax() const {

@@ -355,6 +355,42 @@ void UIntTensor<T>::copy_with_stride(const Tensor &input, Tensor &output) {
   }
 }
 
+template <typename T> void UIntTensor<T>::save(std::ostream &file) {
+  /// @note Save quantization information
+  save_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float) +
+                        scale_size() * sizeof(unsigned int);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "save size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedWrite(file, (char *)getData(), sz,
+               "[UIntTensor::save] operation failed");
+  putData();
+}
+
+template <typename T> void UIntTensor<T>::read(std::ifstream &file) {
+  /// @note Read quantization information
+  read_quantization_info(file);
+
+  size_t tensor_bytes = bytes() + scale_size() * sizeof(float) +
+                        scale_size() * sizeof(unsigned int);
+
+  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << tensor_bytes
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(file, (char *)getData(), sz,
+              "[UIntTensor::read] operation failed");
+  putData();
+}
+
 template <typename T> std::vector<unsigned int> UIntTensor<T>::argmax() const {
   std::vector<unsigned int> result;
   const T *data = (T *)getData();
