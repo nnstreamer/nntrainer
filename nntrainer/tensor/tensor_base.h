@@ -487,6 +487,11 @@ public:
   virtual std::vector<unsigned int> argmax() const = 0;
 
   /**
+   * @copydoc Tensor::argmin()
+   */
+  virtual std::vector<unsigned int> argmin() const = 0;
+
+  /**
    * @copydoc Tensor::max_abs()
    */
   virtual float max_abs() const = 0;

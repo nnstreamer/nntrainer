@@ -798,7 +798,7 @@ Tensor &Tensor::pow(float exponent, Tensor &output) const {
 }
 
 int Tensor::sqrt_i() {
-  sqrt(*this);
+  this->sqrt(*this);
   return ML_ERROR_NONE;
 }
 
@@ -808,6 +808,12 @@ Tensor Tensor::sqrt() const {
 };
 
 Tensor &Tensor::sqrt(Tensor &output) const {
+  if (size() != output.size() || getDataType() != output.getDataType() ||
+      getFormat() != output.getFormat())
+    throw std::invalid_argument(
+      "Error: Tensor::sqrt requires output tensor to be same size, data type "
+      "and format as input tensor.");
+
   itensor->sqrt(output);
   return output;
 };
@@ -1243,6 +1249,12 @@ std::vector<unsigned int> Tensor::argmax() const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot get argmax.";
   return itensor->argmax();
+}
+
+std::vector<unsigned int> Tensor::argmin() const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot get argmin.";
+  return itensor->argmin();
 }
 
 float Tensor::max_abs() const {
