@@ -170,10 +170,11 @@ public:
    */
   template <typename PathType_,
             typename = std::enable_if_t<
-              std::is_same_v<PathType_, std::filesystem::path>, void>>
+              std::is_convertible_v<PathType_, std::filesystem::path> and
+              !std::is_convertible_v<PathType_, std::string>, void>>
   inline void save(const PathType_ &file_path,
                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) {
-    this->save(file_path.string(), format);
+    this->save(static_cast<std::filesystem::path>(file_path).string(), format);
   }
 
   /**
@@ -191,10 +192,11 @@ public:
    */
   template <typename PathType_,
             typename = std::enable_if_t<
-              std::is_same_v<PathType_, std::filesystem::path>, void>>
+              std::is_convertible_v<PathType_, std::filesystem::path> and
+              !std::is_convertible_v<PathType_, std::string>, void>>
   inline void load(const PathType_ &file_path,
                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) {
-    this->load(file_path.string(), format);
+    this->load(static_cast<std::filesystem::path>(file_path).string(), format);
   }
   /**
    * @brief     Run Model training and validation
