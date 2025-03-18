@@ -1252,6 +1252,12 @@ public:
   void cos(Tensor &out, float alpha = 1.0);
 
   /**
+   * @brief tangent transform function
+   * @param[out] output out to store the result
+   */
+  void tan(Tensor &output, float alpha = 1.0);
+
+  /**
    * @brief inverse squared root function
    */
   void inv_sqrt_i();

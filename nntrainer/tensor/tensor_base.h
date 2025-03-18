@@ -401,6 +401,12 @@ public:
   virtual void cos(Tensor &out, float alpha = 1.0);
 
   /**
+   * @brief    tangent transform function
+   * @param[out] output output to store the result
+   */
+  virtual void tan(Tensor &output, float alpha = 1.0);
+
+  /**
    * @brief      inverse squared root function
    * @param[out] out out to store the result
    */

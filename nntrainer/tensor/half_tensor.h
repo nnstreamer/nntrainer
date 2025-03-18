@@ -371,6 +371,11 @@ public:
   Tensor &erf(Tensor &output) const override;
 
   /**
+   * @copydoc Tensor::tan(Tensor &output, float alpha)
+   */
+  void tan(Tensor &output, float alpha) override;
+
+  /**
    * @copydoc TensorBase::inv_sqrt(Tensor &out)
    */
   void inv_sqrt(Tensor &out) override;
