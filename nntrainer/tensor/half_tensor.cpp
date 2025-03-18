@@ -588,6 +588,14 @@ float HalfTensor::l2norm() const {
   return snrm2(size(), (_FP16 *)getData(), 1);
 }
 
+Tensor &HalfTensor::abs(Tensor &output) const {
+  auto f = [](_FP16 in) {
+    return static_cast<_FP16>(std::abs(static_cast<float>(in)));
+  };
+  apply(f, output);
+  return output;
+}
+
 Tensor &HalfTensor::pow(float exponent, Tensor &output) const {
   auto f = [exponent](float in) {
     return static_cast<_FP16>(powf(in, exponent));

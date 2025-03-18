@@ -1130,6 +1130,12 @@ public:
               float alpha = 1.0) const;
 
   /**
+   * @brief  return absolute value
+   * @retval Calculated Tensor
+   */
+  Tensor &abs(Tensor &output) const;
+
+  /**
    * @brief     Averaging the Tensor elements according to the axis
    *            0 : batch direction
    *            1 : channel direction
