@@ -346,6 +346,11 @@ public:
               float beta) const override;
 
   /**
+   * @copydoc Tensor::abs()
+   */
+  Tensor &abs(Tensor &output) const override;
+
+  /**
    * @copydoc Tensor::l2norm
    */
   float l2norm() const override;

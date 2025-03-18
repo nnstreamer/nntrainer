@@ -364,6 +364,11 @@ public:
                       float beta) const;
 
   /**
+   * @copydoc Tensor::abs()
+   */
+  virtual Tensor &abs(Tensor &output) const;
+
+  /**
    * @copydoc Tensor::l2norm
    */
   virtual float l2norm() const;
