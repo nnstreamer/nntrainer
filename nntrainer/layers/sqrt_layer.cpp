@@ -31,10 +31,10 @@ void SQRTLayer::forwarding_operation(const Tensor &input, Tensor &hidden) {
 }
 
 void SQRTLayer::calcDerivative(RunLayerContext &context) {
-  context.getOutgoingDerivative(SINGLE_INOUT_IDX)
-    .copy(context.getIncomingDerivative(SINGLE_INOUT_IDX)
-            .multiply(0.5)
-            .multiply(context.getInput(SINGLE_INOUT_IDX).pow(-0.5)));
+  context.getIncomingDerivative(SINGLE_INOUT_IDX)
+    .multiply(0.5)
+    .multiply(context.getInput(SINGLE_INOUT_IDX)
+                .inv_sqrt(context.getOutgoingDerivative(SINGLE_INOUT_IDX)));
 }
 
 void SQRTLayer::setProperty(const std::vector<std::string> &values) {

@@ -1257,9 +1257,15 @@ public:
   void tan(Tensor &output, float alpha = 1.0);
 
   /**
-   * @brief inverse squared root function
+   * @brief inverse squared root function (in-place)
    */
   void inv_sqrt_i();
+
+  /**
+   * @brief inverse squared root function
+   * @param[in] out output Tensor
+   */
+  Tensor inv_sqrt(Tensor &out) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation
