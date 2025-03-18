@@ -42,18 +42,18 @@ void TensorLayer::finalize(InitLayerContext &context) {
   auto &t_name = std::get<std::vector<props::TensorName>>(tensor_props);
   auto &t_life = std::get<std::vector<props::TensorLife>>(tensor_props);
 
-  NNTR_THROW_IF(!t_dims.size(), std::invalid_argument)
+  NNTR_THROW_IF(t_dims.empty(), std::invalid_argument)
     << "Tensor dimension is not provided";
   n_tensor = t_dims.size();
 
-  if (!t_dtype.size()) {
+  if (t_dtype.empty()) {
     ml_logi("Set Activation Tensor DataType");
     t_dtype.reserve(t_dims.size());
     for (auto t : t_dims)
       t_dtype.push_back(context.getActivationDataType());
   }
 
-  if (!t_life.size()) {
+  if (t_life.empty()) {
     ml_logi("Set max Tensor LifeSpan");
     t_life.reserve(t_dims.size());
     for (auto t : t_dims)
@@ -62,7 +62,10 @@ void TensorLayer::finalize(InitLayerContext &context) {
 
   auto engine = context.getComputeEngineType();
 
-  NNTR_THROW_IF(t_dims.size() != t_dtype.size(), std::invalid_argument)
+  NNTR_THROW_IF((t_dims.size() != t_dtype.size() ||
+                 t_dims.size() != t_life.size() ||
+                 t_dims.size() != t_name.size()),
+                std::invalid_argument)
     << "Size of Dimensions, Types, Formats should be matched!";
 
   tensor_idx.reserve(t_dims.size());
