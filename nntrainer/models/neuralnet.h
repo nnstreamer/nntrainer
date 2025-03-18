@@ -703,11 +703,21 @@ private:
 
   AppContext app_context; /** Configurations bound to current app */
 
+  /**
+   * @note model_graph - updated to reflect the changes made to the graph
+   * It will recreated when compile() is called.
+   */
   NetworkGraph model_graph; /** Network Model Graph */
+
+  /**
+   * @note _represemtation - updated to reflect the changes made to the graph
+   * It saves the node information when addSubGraph / addLayer is called.
+   * This info will be used in compilation time
+   */
   GraphRepresentation
     graph_representation; /** Unsorted subgraph representation */
   std::unordered_map<std::string, SubGraphType>
-    graph_map; /** hashmap for the graph */
+    graph_map; /** hashmap for the graph - shofrtcut for graph_representation */
   GraphLayerNodeRepresentation
     graph_ln_representation; /** Unsorted graph representation with successive
                                 layer nodes */

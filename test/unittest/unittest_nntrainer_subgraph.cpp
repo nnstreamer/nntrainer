@@ -98,26 +98,77 @@ TEST(nntrainer_SubGraph, create_subgraph_02_p) {
 }
 
 /**
- * @brief Unittest to create a subgraph with layers
- * create a graph
+ * @brief Unittest for `addSubGraph`
  */
-TEST(nntrainer_SubGraph, create_subgraph_03_p) {
+TEST(nntrainer_SubGraph, add_subgraph_01_p) {
+  static auto &ac = nntrainer::AppContext::Global();
+  std::shared_ptr<ml::train::Model> model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  std::shared_ptr<ml::train::SubGraph> sg =
+    ml::train::createSubGraph("subgraph", {"subgraph_name=graph0"});
+  EXPECT_EQ(sg->getName(), "graph0");
+  EXPECT_EQ(model->addSubGraph(sg), ML_ERROR_NONE);
+}
+
+/**
+ * @brief Test to add multiple subgraphs.
+ */
+TEST(nntrainer_SubGraph, add_subgraph_02_p) {
+  static auto &ac = nntrainer::AppContext::Global();
+  std::shared_ptr<ml::train::Model> model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+
+  std::vector<std::shared_ptr<ml::train::SubGraph>> subgraphs;
+  for (int i = 0; i < 5; ++i)
+    subgraphs.push_back(ml::train::createSubGraph(
+      ml::train::SubGraphType::SUBGRAPH_CPU,
+      {withKey("subgraph_name", "subgraph_" + std::to_string(i))}));
+
+  for (int i = 0; i < 5; ++i)
+    EXPECT_EQ(model->addSubGraph(subgraphs[i]), ML_ERROR_NONE);
+  model->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
+  subgraphs.clear();
+}
+
+/**
+ * @brief Negative unittest for `addSubGraph`
+ * @note Please note that model create `default` subgraph by default
+ */
+TEST(nntrainer_SubGraph, add_subgraph_01_n) {
   static auto &ac = nntrainer::AppContext::Global();
 
-  // subgraph named `default`
   std::shared_ptr<ml::train::Model> model1 =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  model1->addSubGraph(ml::train::createSubGraph("subgraph"));
-  model1->addLayer(ml::train::createLayer(
-    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
 
-  // subgraph named `default`
-  std::shared_ptr<ml::train::Model> model2 =
+  // subgraph named `default` <- invalid
+  // add default SubGraph returns ML_ERROR_INVALID_PARAMETER
+  EXPECT_EQ(model1->addSubGraph(ml::train::createSubGraph("subgraph")),
+            ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(model1->addSubGraph(
+              ml::train::createSubGraph(ml::train::SubGraphType::SUBGRAPH_CPU)),
+            ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Test to add multiple subgraphs with same name.
+ * error handling sohlud be done.
+ */
+TEST(nntrainer_SubGraph, add_subgraph_02_n) {
+  static auto &ac = nntrainer::AppContext::Global();
+  std::shared_ptr<ml::train::Model> model =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  model2->addLayer(ml::train::createLayer(
-    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
 
-  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), true);
+  std::vector<std::shared_ptr<ml::train::SubGraph>> subgraphs;
+  for (int i = 0; i < 5; ++i)
+    subgraphs.push_back(
+      ml::train::createSubGraph(ml::train::SubGraphType::SUBGRAPH_CPU,
+                                {withKey("subgraph_name", "subgraph")}));
+
+  EXPECT_EQ(model->addSubGraph(subgraphs[0]), ML_ERROR_NONE);
+  for (int i = 1; i < 5; ++i)
+    EXPECT_EQ(model->addSubGraph(subgraphs[i]), ML_ERROR_INVALID_PARAMETER);
+
+  subgraphs.clear();
 }
 
 /**
@@ -130,7 +181,7 @@ TEST(nntrainer_SubGraph, create_subgraph_04_p) {
   std::shared_ptr<ml::train::Model> model1 =
     ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   std::shared_ptr<ml::train::SubGraph> sg =
-    ml::train::createSubGraph("subgraph");
+    ml::train::createSubGraph("subgraph", {"subgraph_name=graph0"});
   // 2. add three layers to subgraph
   sg->addLayer(ml::train::createLayer(
     "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
@@ -140,6 +191,7 @@ TEST(nntrainer_SubGraph, create_subgraph_04_p) {
     "fully_connected", {withKey("name", "fc2"), withKey("unit", 2)}));
   // 3. add a subgraph to model
   model1->addSubGraph(sg);
+  model1->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
 
   // add three layers to model directly
   // It implies a default subgraph creation and adding layers to the defulat
@@ -152,8 +204,12 @@ TEST(nntrainer_SubGraph, create_subgraph_04_p) {
     "fully_connected", {withKey("name", "fc1"), withKey("unit", 2)}));
   model2->addLayer(ml::train::createLayer(
     "fully_connected", {withKey("name", "fc2"), withKey("unit", 2)}));
+  model2->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
 
-  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), true);
+  EXPECT_EQ(is_representation_equal(NNPTR(model1)->getFlatGraph(),
+                                    NNPTR(model2)->getFlatGraph()),
+            true);
+  EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), false);
 }
 
 /**
@@ -169,7 +225,8 @@ TEST(nntrainer_SubGraph, create_subgraph_05_n) {
   model1->addSubGraph(ml::train::createSubGraph(
     "subgraph", {withKey("subgraph_name", "graph_1")}));
   model1->addLayer(ml::train::createLayer(
-    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2)}));
+    "fully_connected", {withKey("name", "fc0"), withKey("unit", 2),
+                        withKey("subgraph_name", "graph_1")}));
 
   // subgraph named `default`
   std::shared_ptr<ml::train::Model> model2 =
@@ -179,11 +236,12 @@ TEST(nntrainer_SubGraph, create_subgraph_05_n) {
 
   // not equal model (subgraph name is different)
   EXPECT_EQ(*NNPTR(model1) == *NNPTR(model2), false);
-
-  // layer nodes are equal
   EXPECT_EQ(is_representation_equal(NNPTR(model1)->getFlatGraph(),
                                     NNPTR(model2)->getFlatGraph()),
-            true);
+            false);
+
+  model1->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
+  model2->summarize(std::cout, ml_train_summary_type_e::ML_TRAIN_SUMMARY_MODEL);
 }
 
 int main(int argc, char **argv) {

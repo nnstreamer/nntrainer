@@ -72,6 +72,8 @@ public:
      */
     auto sg = std::make_shared<SubGraphNode>(tensor_manager);
     sg->setName("default");
+    sg->setSubGraphInfo(tensor_manager, exec_mode, lookahead, tensor_format,
+                        tensor_dtype_str);
     graph.addNode(SGNODE(sg));
   }
 
@@ -143,6 +145,16 @@ public:
    *
    */
   ~NetworkGraph() = default;
+
+  /**
+   * @brief getter of SubGraphNode
+   */
+  std::shared_ptr<SubGraphNode> getSubGraph(const std::string &name) {
+    if (!graph.verifyNode(name))
+      return nullptr;
+    else
+      return SGNODE(graph.getNode(name));
+  }
 
   /**
    * @brief     Realize the network's internal layers

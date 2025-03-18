@@ -931,7 +931,8 @@ std::unique_ptr<SubGraphNode>
 createSubGraphNode(std::unique_ptr<nntrainer::SubGraphNode> &&subgraph,
                    const std::vector<std::string> &properties);
 
-SubGraphType createSubGraph(const std::vector<std::string> &properties = {});
+std::shared_ptr<SubGraphNode>
+createSubGraph(const std::vector<std::string> &properties = {});
 
 bool is_representation_equal(const GraphLayerNodeRepresentation &lhs,
                              const GraphLayerNodeRepresentation &rhs);

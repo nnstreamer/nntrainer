@@ -1112,12 +1112,23 @@ int NeuralNetwork::addSubGraph(SubGraphType subgraph) {
   // Check the subgraph exists and create a new subgraph if not
   const auto &subgraph_name = subgraph->getName();
   if (graph_map.find(subgraph_name) == graph_map.end()) {
+
+    /**
+     * @note Code to handle `default` graph
+     * This is undesirable way to handle `default` graph, but it is necessary to
+     * support legacy unittests.
+     * @todo update `NetworkGraph` not to create default subgraph in
+     * constructor. Then, this codeblock should be updated as well.
+     */
+    if (model_graph.getSubGraph(subgraph_name) != nullptr)
+      return ML_ERROR_INVALID_PARAMETER;
+
     graph_representation.push_back(subgraph);
     graph_map[subgraph_name] = subgraph;
+    model_graph.addSubGraph(subgraph);
 
     // Insert the layers in subgraph to the graph
     for (auto layer : subgraph->getLayerNodes()) {
-      model_graph.addLayer(layer);
       graph_ln_representation.push_back(layer);
     }
   } else {
@@ -1137,8 +1148,19 @@ int NeuralNetwork::addLayer(NodeType layer) {
   /** Check the subgraph exists and create a new subgraph if not */
   const auto &subgraph_name = layer->getSubGraphName();
   if (graph_map.find(subgraph_name) == graph_map.end()) {
-    const auto &sg = createSubGraph();
-    sg->setName(subgraph_name);
+
+    /**
+     * @note Code to handle `default` graph
+     * This is undesirable way to handle `default` graph, but it is necessary to
+     * support legacy unittests.
+     * @todo update `NetworkGraph` not to create default subgraph in
+     * constructor. Then, this codeblock should be updated as well.
+     */
+    auto sg = model_graph.getSubGraph(subgraph_name);
+    if (sg == nullptr) {
+      sg = createSubGraph();
+      sg->setName(subgraph_name);
+    }
     graph_representation.push_back(sg);
     graph_map[subgraph_name] = sg;
   }
@@ -1146,7 +1168,6 @@ int NeuralNetwork::addLayer(NodeType layer) {
   /** Insert the layer to the graph */
   model_graph.addLayer(layer);
   graph_ln_representation.push_back(layer);
-  graph_map[subgraph_name]->addLayer(layer);
 
   return status;
 }
@@ -1375,6 +1396,9 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
       for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
            ++sg_iter) {
+        print_graph_layer_info(
+          out, {"<" + sg_iter->getName() + ">", sg_iter->getType(), "", ""});
+        out << std::string(total_col_size, '.') << '\n';
         for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
           std::string first_dim;
           if (iter->getOutputDimensions().empty()) {
@@ -1414,6 +1438,9 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
       for (auto sg_iter = model_graph.cbegin(); sg_iter != model_graph.cend();
            ++sg_iter) {
+        print_graph_layer_info(
+          out, {"<" + sg_iter->getName() + ">", sg_iter->getType(), "", ""});
+        out << std::string(total_col_size, '.') << '\n';
         for (auto iter = sg_iter->cbegin(); iter != sg_iter->cend(); ++iter) {
           const std::vector<std::string> &input_layer_names =
             iter->getInputConnections();
