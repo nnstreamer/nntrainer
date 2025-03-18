@@ -23,8 +23,8 @@
 
 #include "testing_rotary_emb.cpp"
 
-#define EXPECT_IN_RANGE(VAL, MIN, MAX) \
-  EXPECT_GE((VAL), (MIN));             \
+#define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
+  EXPECT_GE((VAL), (MIN));                                                     \
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
@@ -150,11 +150,11 @@ TEST(attention_kernels, rotary_emb_kernel_FP16) {
   apply_rotary_emb_cl(A_fp16, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp16, dim, from, max_timestep);
 
-  float mseErrorNeon_fp16 = mse<__fp16>(
-    A_fp16.getData<__fp16>(), B_fp16.getData<__fp16>(), A_fp16.size());
+  float mseErrorNeon_fp16 =
+    mse<_FP16>(A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(), A_fp16.size());
 
-  double cosSimNeon_fp16 = cosine_similarity<__fp16>(
-    A_fp16.getData<__fp16>(), B_fp16.getData<__fp16>(), A_fp16.size());
+  double cosSimNeon_fp16 = cosine_similarity<_FP16>(
+    A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(), A_fp16.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -192,11 +192,11 @@ TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
   apply_rotary_emb_cl(A_fp16, dim, from, max_timestep);
   apply_rotary_emb_tensor(B_fp16, dim, from, max_timestep);
 
-  float mseErrorNeon_fp16 = mse<__fp16>(
-    A_fp16.getData<__fp16>(), B_fp16.getData<__fp16>(), A_fp16.size());
+  float mseErrorNeon_fp16 =
+    mse<_FP16>(A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(), A_fp16.size());
 
-  double cosSimNeon_fp16 = cosine_similarity<__fp16>(
-    A_fp16.getData<__fp16>(), B_fp16.getData<__fp16>(), A_fp16.size());
+  double cosSimNeon_fp16 = cosine_similarity<_FP16>(
+    A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(), A_fp16.size());
 
   const float epsilon = 1e-3 * width;
 

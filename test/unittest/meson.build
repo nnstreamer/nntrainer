@@ -78,6 +78,11 @@ test_target = [
 if get_option('enable-fp16')
   test_target += [['unittest_nntrainer_tensor_fp16', []]]
   test_target += [['unittest_nntrainer_tensor_pool_fp16', []]]
+
+  if get_option('enable-opencl')
+    test_target += [['unittest_blas_kernels_cl', []]]
+    test_target += [['unittest_attention_kernels_cl', []]]
+  endif
 endif
 
 if get_option('enable-profile')

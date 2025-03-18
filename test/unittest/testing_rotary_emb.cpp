@@ -99,13 +99,6 @@ void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
   }
 
   if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
-
-    unsigned int input_batch_size, input_height, input_width, input_channels;
-    input_batch_size = in.batch();
-    input_height = in.height();
-    input_width = in.width();
-    input_channels = in.channel();
-
     for (unsigned int b = 0; b < in.batch(); b++) {
       for (unsigned int c = 0; c < in.channel(); c++) {
         for (unsigned int h = 0; h < in.height(); h++) {
