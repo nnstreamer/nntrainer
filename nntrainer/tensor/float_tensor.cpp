@@ -625,6 +625,12 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
   return output;
 }
 
+Tensor &FloatTensor::abs(Tensor &output) const {
+  auto f = [](float in) { return std::abs(in); };
+  apply(f, output);
+  return output;
+}
+
 float FloatTensor::l2norm() const {
   return snrm2(size(), (float *)getData(), 1);
 }
