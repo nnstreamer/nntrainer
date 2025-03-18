@@ -94,7 +94,7 @@ endif
 foreach target: test_target
   exe = executable(
     target[0],
-    [target[0] + '.cpp'] + target[1],
+    [target[0] + '.cpp'] + [target[1]],
     # below is temporary measure, we will eventually remove unittest_nntrainer_models
     include_directories: include_directories('models'),
     dependencies: unittest_nntrainer_deps,
