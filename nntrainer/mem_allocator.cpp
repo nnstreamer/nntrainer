@@ -11,6 +11,7 @@
  *
  */
 
+#include <cstdlib>
 #include <limits>
 #include <mem_allocator.h>
 #include <nntrainer_log.h>
