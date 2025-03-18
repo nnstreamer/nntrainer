@@ -454,26 +454,7 @@ if get_option('platform') == 'android'
   ruy_root = meson.source_root() / 'subprojects' / 'ruy'
   ruy_dep = declare_dependency()
 else
-  ruy_options = cmake.subproject_options()
-  ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
-  if host_machine.system() == 'windows'
-    ruy_options.append_compile_args('c', windows_compile_args)
-    ruy_options.append_compile_args('cpp', windows_compile_args)
-  else
-    ruy_flags = [
-      '-Wno-error=unused-result',
-      '-Wno-error=comment',
-      '-Wno-error=maybe-uninitialized',
-      '-Wno-error=unknown-pragmas',
-      '-Wno-error=unused-function',
-      '-Wno-error=stringop-overread',
-      '-Wno-error=array-parameter'
-      ]
-    ruy_options.append_compile_args('c', ruy_flags)
-    ruy_options.append_compile_args('cpp', ruy_flags)
-  endif
-  ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
-  ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
+  ruy_dep = dependency('ruy')
 endif
 
 if get_option('platform') == 'android'

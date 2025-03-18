@@ -2,3 +2,7 @@
 url = https://github.com/google/ruy
 directory = ruy
 revision = HEAD
+patch_directory = ruy
+method = meson
+[provide]
+ruy = ruy_dep
