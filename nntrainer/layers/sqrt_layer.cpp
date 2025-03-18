@@ -27,13 +27,14 @@ void SQRTLayer::finalize(InitLayerContext &context) {
 }
 
 void SQRTLayer::forwarding_operation(const Tensor &input, Tensor &hidden) {
-  throw std::invalid_argument(
-    "SQRTLayer forwarding operation not supported yet");
+  input.sqrt(hidden);
 }
 
 void SQRTLayer::calcDerivative(RunLayerContext &context) {
-  throw std::invalid_argument(
-    "SQRTLayer backwarding operation not supported yet");
+  context.getOutgoingDerivative(SINGLE_INOUT_IDX)
+    .copy(context.getIncomingDerivative(SINGLE_INOUT_IDX)
+            .multiply(0.5)
+            .multiply(context.getInput(SINGLE_INOUT_IDX).pow(-0.5)));
 }
 
 void SQRTLayer::setProperty(const std::vector<std::string> &values) {
