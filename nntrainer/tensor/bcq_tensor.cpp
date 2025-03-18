@@ -16,8 +16,6 @@
 #include <tensor.h>
 #include <util_func.h>
 
-#include "BiQGEMM.h"
-
 namespace nntrainer {
 
 BCQTensor::BCQTensor(std::string name_, Tformat fm) :
@@ -32,8 +30,10 @@ BCQTensor::BCQTensor(const TensorDim &d, bool alloc_now, Initializer init,
 
 BCQTensor::BCQTensor(const TensorDim &d, const void *buf) : BCQTensor(d, true) {
   if (d.getDataLen() != 0) {
-    if (buf != nullptr)
+    if (buf != nullptr) {
       copy(buf);
+      createBCQW();
+    }
   }
 }
 
@@ -200,19 +200,6 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  size_t qbit_of_clusters[] = {quantized_bit_size};
-  size_t size_of_clusters[] = {height()};
-  const size_t number_of_cluster = 1;
-
-  /// @note hidden_tile_size should be set as a multiple of 32. This variable is
-  /// related to the speed of matrixDotMatrix. The optimal value should be found
-  /// with various values according to the usage environment.
-  size_t hidden_tile_size = 32;
-
-  BiQGEMM::BCQW bcq_weight = BiQGEMM::BCQW(
-    (uint32_t *)getData(), (float *)getScale(), height(), width(),
-    number_of_cluster, qbit_of_clusters, size_of_clusters, hidden_tile_size);
-
   BiQGEMM::matrixDotMatrix(output.getData(), bcq_weight, input.getData(),
                            input.width());
   return output;
@@ -285,6 +272,8 @@ void BCQTensor::read(std::ifstream &file) {
   checkedRead(file, (char *)getData(), sz,
               "[BCQTensor::read] operation failed");
   putData();
+
+  createBCQW();
 }
 
 std::vector<unsigned int> BCQTensor::argmax() const {
@@ -398,6 +387,21 @@ void BCQTensor::printScales(std::ostream &out) const {
     out << q_scales[i] << " ";
   }
   out << std::endl;
+}
+
+void BCQTensor::createBCQW() {
+  size_t qbit_of_clusters[] = {quantized_bit_size};
+  size_t size_of_clusters[] = {width()};
+  const size_t number_of_cluster = 1;
+
+  /// @note hidden_tile_size should be set as a multiple of 32. This variable is
+  /// related to the speed of matrixDotMatrix. The optimal value should be found
+  /// with various values according to the usage environment.
+  size_t hidden_tile_size = 32;
+
+  bcq_weight = std::make_shared<BiQGEMM::BCQW>(
+    (uint32_t *)getData(), (float *)getScale(), width(), height(),
+    number_of_cluster, qbit_of_clusters, size_of_clusters, hidden_tile_size);
 }
 
 } // namespace nntrainer
