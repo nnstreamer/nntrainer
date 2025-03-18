@@ -11,8 +11,8 @@
  * @bug    No known bugs except for NYI items
  *
  */
-#include <dirent.h>
 #include <dlfcn.h>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -21,6 +21,7 @@
 #include <app_context.h>
 #include <base_properties.h>
 #include <context.h>
+#include <dynamic_library_loader.h>
 #include <engine.h>
 
 #ifdef ENABLE_OPENCL
@@ -46,10 +47,10 @@ void Engine::add_default_object(Engine &eg) {
 
   eg.registerContext("cpu", app_context);
 
-  // #ifdef ENALBE_OPENCL
-  //   eg.registererContext("gpu",
-  //                        nntrainer::ClContext(nntrainer::ClContext::Global()));
-  // #endif
+#ifdef ENALBE_OPENCL
+  eg.registererContext("gpu",
+                       nntrainer::ClContext(nntrainer::ClContext::Global()));
+#endif
 }
 
 void Engine::registerer(Engine &eg) noexcept {
@@ -79,7 +80,8 @@ Engine::parseComputeEngine(const std::vector<std::string> &props) const {
     if (nntrainer::istrequal(key, "engine")) {
       constexpr const auto data =
         std::data(props::ComputeEngineTypeInfo::EnumList);
-      for (uint i = 0; i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
+      for (unsigned int i = 0;
+           i < props::ComputeEngineTypeInfo::EnumList.size(); ++i) {
         if (nntrainer::istrequal(value.c_str(),
                                  props::ComputeEngineTypeInfo::EnumStr[i])) {
           return props::ComputeEngineTypeInfo::EnumStr[i];
@@ -124,14 +126,13 @@ const std::string Engine::getWorkingPath(const std::string &path) {
 }
 
 void Engine::setWorkingDirectory(const std::string &base) {
-  DIR *dir = opendir(base.c_str());
+  std::filesystem::path base_path(base);
 
-  if (!dir) {
+  if (!std::filesystem::is_directory(base_path)) {
     std::stringstream ss;
     ss << func_tag << "path is not directory or has no permission: " << base;
     throw std::invalid_argument(ss.str().c_str());
   }
-  closedir(dir);
 
   char *ret = getRealpath(base.c_str(), nullptr);
 
@@ -150,8 +151,9 @@ int Engine::registerContext(const std::string &library_path,
                             const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
-  void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
-  const char *error_msg = dlerror();
+  void *handle = DynamicLibraryLoader::loadLibrary(full_path.c_str(),
+                                                   RTLD_LAZY | RTLD_LOCAL);
+  const char *error_msg = DynamicLibraryLoader::getLastError();
 
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
