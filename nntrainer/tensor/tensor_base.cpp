@@ -513,6 +513,12 @@ void TensorBase::cos(Tensor &out, float alpha) {
     getStringDataType());
 }
 
+void TensorBase::tan(Tensor &output, float alpha) {
+  throw std::invalid_argument(
+    "Tensor::tan() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 void TensorBase::inv_sqrt(Tensor &out) {
   throw std::invalid_argument(
     "Tensor::inv_sqrt() is currently not supported in tensor data type " +

@@ -886,6 +886,16 @@ void Tensor::cos(Tensor &out, float alpha) {
   itensor->cos(out, alpha);
 }
 
+void Tensor::tan(Tensor &output, float alpha) {
+  if (size() != output.size() || getDataType() != output.getDataType() ||
+      getFormat() != output.getFormat())
+    throw std::invalid_argument(
+      "Error: Tensor::abs requires output tensor to be same size, data type "
+      "and format as input tensor.");
+
+  itensor->tan(output, alpha);
+}
+
 void Tensor::inv_sqrt_i() { itensor->inv_sqrt(*this); }
 
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
