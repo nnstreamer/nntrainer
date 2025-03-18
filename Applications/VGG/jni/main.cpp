@@ -83,114 +83,121 @@ createRealDataGenerator(const std::string &directory, unsigned int batch_size,
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 3) {
-    std::cout << "./nntrainer_vgg vgg.ini resource\n";
-    exit(-1);
-  }
-  std::shared_ptr<nntrainer::profile::GenericProfileListener> listener;
+  try {
+    if (argc < 3) {
+      std::cout << "./nntrainer_vgg vgg.ini resource\n";
+      exit(-1);
+    }
+    std::shared_ptr<nntrainer::profile::GenericProfileListener> listener;
 
 #ifdef PROFILE
-  listener = std::make_shared<nntrainer::profile::GenericProfileListener>();
+    listener = std::make_shared<nntrainer::profile::GenericProfileListener>();
 #endif
-  PROFILE_BEGIN(listener);
+    PROFILE_BEGIN(listener);
 
-  seed = time(NULL);
-  srand(seed);
+    seed = time(NULL);
+    srand(seed);
 
-  const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-  resource = args[1];
+    const std::vector<std::string> args(argv + 1, argv + argc);
+    std::string config = args[0];
+    resource = args[1];
 
-  std::array<UserDataType, 2> user_datas;
+    std::array<UserDataType, 2> user_datas;
 
-  try {
-    user_datas = createRealDataGenerator(resource, batch_size, 1);
+    try {
+      user_datas = createRealDataGenerator(resource, batch_size, 1);
+    } catch (const std::exception &e) {
+      std::cerr << "uncaught error while creating data generator! details: "
+                << e.what() << std::endl;
+      return 1;
+    }
+
+    auto &[train_user_data, valid_user_data] = user_datas;
+
+    std::unique_ptr<ml::train::Dataset> dataset_train;
+    try {
+      dataset_train = ml::train::createDataset(
+        ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+    } catch (const std::exception &e) {
+      std::cerr << "Error during create train dataset: " << e.what()
+                << std::endl;
+      return 1;
+    }
+
+    std::unique_ptr<ml::train::Dataset> dataset_valid;
+    try {
+      dataset_valid = ml::train::createDataset(
+        ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
+    } catch (const std::exception &e) {
+      std::cerr << "Error during create valid dataset: " << e.what()
+                << std::endl;
+      return 1;
+    }
+
+    /**
+     * @brief     Neural Network Create & Initialization
+     */
+
+    ModelHandle model;
+    try {
+      model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during create model: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    } catch (const std::exception &e) {
+      std::cerr << "Error during loadFromConfig: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->compile();
+    } catch (const std::exception &e) {
+      std::cerr << "Error during compile: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->initialize();
+    } catch (const std::exception &e) {
+      std::cerr << "Error during ininitialize: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
+                        std::move(dataset_train));
+    } catch (const std::exception &e) {
+      std::cerr << "Error during set train dataset: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->setDataset(ml::train::DatasetModeType::MODE_VALID,
+                        std::move(dataset_valid));
+    } catch (const std::exception &e) {
+      std::cerr << "Error during set valid dataset: " << e.what() << std::endl;
+      return 1;
+    }
+
+    try {
+      model->train();
+      training_loss = model->getTrainingLoss();
+      validation_loss = model->getValidationLoss();
+      last_batch_loss = model->getLoss();
+    } catch (const std::exception &e) {
+      std::cerr << "Error during train: " << e.what() << std::endl;
+      return 1;
+    }
+
+    PROFILE_END(listener);
+
+    return 0;
   } catch (const std::exception &e) {
-    std::cerr << "uncaught error while creating data generator! details: "
-              << e.what() << std::endl;
+    std::cerr << "Uncaught exception : " << e.what() << std::endl;
     return 1;
   }
-
-  auto &[train_user_data, valid_user_data] = user_datas;
-
-  std::unique_ptr<ml::train::Dataset> dataset_train;
-  try {
-    dataset_train = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
-  } catch (const std::exception &e) {
-    std::cerr << "Error during create train dataset: " << e.what() << std::endl;
-    return 1;
-  }
-
-  std::unique_ptr<ml::train::Dataset> dataset_valid;
-  try {
-    dataset_valid = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
-  } catch (const std::exception &e) {
-    std::cerr << "Error during create valid dataset: " << e.what() << std::endl;
-    return 1;
-  }
-
-  /**
-   * @brief     Neural Network Create & Initialization
-   */
-
-  ModelHandle model;
-  try {
-    model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  } catch (const std::exception &e) {
-    std::cerr << "Error during create model: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
-  } catch (const std::exception &e) {
-    std::cerr << "Error during loadFromConfig: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->compile();
-  } catch (const std::exception &e) {
-    std::cerr << "Error during compile: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->initialize();
-  } catch (const std::exception &e) {
-    std::cerr << "Error during ininitialize: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
-                      std::move(dataset_train));
-  } catch (const std::exception &e) {
-    std::cerr << "Error during set train dataset: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->setDataset(ml::train::DatasetModeType::MODE_VALID,
-                      std::move(dataset_valid));
-  } catch (const std::exception &e) {
-    std::cerr << "Error during set valid dataset: " << e.what() << std::endl;
-    return 1;
-  }
-
-  try {
-    model->train();
-    training_loss = model->getTrainingLoss();
-    validation_loss = model->getValidationLoss();
-    last_batch_loss = model->getLoss();
-  } catch (const std::exception &e) {
-    std::cerr << "Error during train: " << e.what() << std::endl;
-    return 1;
-  }
-
-  PROFILE_END(listener);
-
-  return 0;
 }
