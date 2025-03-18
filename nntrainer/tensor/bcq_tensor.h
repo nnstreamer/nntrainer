@@ -14,6 +14,8 @@
 
 #include <tensor_base.h>
 
+#include "BiQGEMM.h"
+
 namespace nntrainer {
 
 /**
@@ -258,6 +260,12 @@ public:
 private:
   /// @note this is an arbitrary value
   uint16_t quantized_bit_size = 3;
+  std::shared_ptr<BiQGEMM::BCQW> bcq_weight;
+
+  /**
+   * @brief create BCQW structure from current tensor
+   */
+  void createBCQW();
 
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
