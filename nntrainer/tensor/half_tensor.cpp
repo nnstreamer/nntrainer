@@ -620,6 +620,13 @@ Tensor &HalfTensor::erf(Tensor &output) const {
   return output;
 }
 
+void HalfTensor::tan(Tensor &output, float alpha) {
+  auto f = [alpha](_FP16 in) -> _FP16 {
+    return static_cast<_FP16>(std::tan(static_cast<float>(alpha * in)));
+  };
+  apply(f, output);
+}
+
 void HalfTensor::inv_sqrt(Tensor &out) {
   if (!contiguous) {
     apply(
