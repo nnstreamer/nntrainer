@@ -183,8 +183,8 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
  *
  */
 void MemoryPool::deallocate() {
-  // #ifdef ENABLE_QNN
   if (mem_pool != nullptr) {
+    free(mem_pool);
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
@@ -193,28 +193,14 @@ void MemoryPool::deallocate() {
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
 #endif
-    memory_ptrs.clear();
-
 #if defined(__ANDROID__)
-    int i = 0;
     for (auto &s : memory_ptrs) {
       if (s)
-        // allocators.at("qnn")->free(s);
         rpcmem_free(s);
     }
-    memory_ptrs.clear();
-  }
-#else
-  if (mem_pool != nullptr) {
-    memory_size.clear();
-    memory_validity.clear();
-    memory_exec_order.clear();
-    memory_is_wgrad.clear();
-    free(mem_pool);
-    memory_ptrs.clear();
-  }
 #endif
-
+  }
+  memory_ptrs.clear();
   mem_pool = nullptr;
 }
 
