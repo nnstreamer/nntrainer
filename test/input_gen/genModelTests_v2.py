@@ -542,6 +542,18 @@ class SQRTOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class CosineOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.cos(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
 class SineOperation(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -551,6 +563,18 @@ class SineOperation(torch.nn.Module):
     def forward(self, inputs, labels):
         out = self.fc(inputs[0])
         out = torch.sin(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+class TangentOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.tan(out)
         loss = self.loss(out, labels[0])
         return out, loss
 
@@ -882,6 +906,7 @@ if __name__ == "__main__":
         name="pow_operation",
     )
 
+
     sqrt_operation = SQRTOperation()
     record_v2(
         sqrt_operation,
@@ -892,14 +917,34 @@ if __name__ == "__main__":
         name="sqrt_operation",
     )
 
-    sine_operation = SineOperation()
+    cosine_operation = CosineOperation()
     record_v2(
-        sine_operation,
+        cosine_operation,
         iteration=2,
         input_dims=[(1, 2)],
         input_dtype=[float],
         label_dims=[(1, 2)],
-        name="sine_operation",
+        name="cosine_operation",
+    )
+
+    sine_operation = SineOperation()
+    record_v2(
+        sine_operation,
+                iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="cosine_operation",
+    )
+
+    tangent_operation = TangentOperation()
+    record_v2(
+        tangent_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="tangent_operation",
     )
 
     # Function to check the created golden test file
