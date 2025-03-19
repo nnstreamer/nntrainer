@@ -200,7 +200,7 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  BiQGEMM::matrixDotMatrix(output.getData(), bcq_weight, input.getData(),
+  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
                            input.width());
   return output;
 }
