@@ -112,15 +112,17 @@ void MemoryPool::allocate() {
       void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
                                memory_size.at(i));
       memory_ptrs.push_back(ptr);
-      mem_ptr_map.insert(ptr);
       offset_ptr.insert(std::make_pair(s, ptr));
+      std::cout << ptr << " " <<memory_size.at(i)<<std::endl;      
     } else {
       memory_ptrs.push_back(it->second);
+      std::cout << it->second << " " <<memory_size.at(i)<<std::endl;            
     }
     i++;
   }
 
   mem_pool = calloc(1, 1);
+
 #else
   mem_pool = calloc(pool_size, 1);
 
@@ -182,9 +184,39 @@ void MemoryPool::allocateFSU() {
   GetSystemInfo(&system_info);
   mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
   // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
+#elif defined(__ANDROID__)
+  int i = 0;
+#define RPCMEM_HEAP_ID_SYSTEM 25
+#define RPCMEM_DEFAULT_FLAGS 1
+  std::map<size_t, void *> offset_ptr;
+  for (auto &s : memory_offset) {
+    auto it = offset_ptr.find(s);
+    if (it == offset_ptr.end()) {
+      void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
+                               memory_size.at(i));
+      memory_ptrs.push_back(ptr);
+      offset_ptr.insert(std::make_pair(s, ptr));
+      std::cout << ptr << " " <<memory_size.at(i)<<std::endl;
+    } else {
+      memory_ptrs.push_back(it->second);
+      std::cout << it->second << " " <<memory_size.at(i)<<std::endl;      
+    }
+    i++;
+  }
+
+  mem_pool = calloc(1, 1);
+
 #else
   mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+
 #endif
+
+  // unsigned int idx = 1;
+  // for (auto &s : memory_offset) {
+  //   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  //   memory_ptrs.push_back(ptr);
+  //   idx++;
+  // }
 
   if (mem_pool == nullptr)
     throw std::runtime_error(
@@ -199,7 +231,6 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
 #if defined(__ANDROID__)
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-  std::cout << idx << " : " << memory_ptrs.at(idx - 1) << std::endl;
 #else
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
@@ -207,6 +238,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
   memory_ptrs.emplace_back(ptr);
+#endif
   return mem_data;
 }
 
@@ -217,6 +249,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   // #ifdef ENABLE_QNN
   if (mem_pool != nullptr) {
+    free(mem_pool);
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
@@ -225,9 +258,7 @@ void MemoryPool::deallocate() {
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
 #endif
-    
     memory_ptrs.clear();
-    mem_pool.free();
 
 #if defined(__ANDROID__)
     int i = 0;
