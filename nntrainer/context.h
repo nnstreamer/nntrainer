@@ -209,6 +209,13 @@ public:
     return getContextData()->getMemAllocator();
   };
 
+  /**
+   * @brief load weight and graph for the specific context
+   *
+   * @return return 0 for success
+   */
+  virtual int load(const std::string &file_path) { return 0; };
+
 private:
   /**
    * @brief map of context
