@@ -11,7 +11,6 @@
  * @bug    No known bugs except for NYI items
  *
  */
-#include <dlfcn.h>
 #include <filesystem>
 #include <iostream>
 #include <sstream>
