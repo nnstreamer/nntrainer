@@ -297,8 +297,6 @@ private:
   std::vector<size_t> memory_size; /**< various sizes memory requested */
   std::vector<void *> memory_ptrs; /**< various pointers memory requested */
 
-  std::set<void *> mem_ptr_map;
-
   std::vector<std::pair<unsigned int, unsigned int>>
     memory_validity; /**< validity intervals for each requested memory */
   std::vector<size_t> memory_offset; /**< offsets for the memory requested */
