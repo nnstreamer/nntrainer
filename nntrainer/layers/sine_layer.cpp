@@ -27,13 +27,13 @@ void SineLayer::finalize(InitLayerContext &context) {
 }
 
 void SineLayer::forwarding_operation(const Tensor &input, Tensor &hidden) {
-  throw std::invalid_argument(
-    "SineLayer forwarding operation not supported yet");
+  input.sin(hidden);
 }
 
 void SineLayer::calcDerivative(RunLayerContext &context) {
-  throw std::invalid_argument(
-    "SineLayer backwarding operation not supported yet");
+  auto &deriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  context.getInput(SINGLE_INOUT_IDX).cos(deriv);
+  deriv.multiply(context.getIncomingDerivative(SINGLE_INOUT_IDX));
 }
 
 void SineLayer::setProperty(const std::vector<std::string> &values) {
