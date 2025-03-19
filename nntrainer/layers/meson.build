@@ -13,6 +13,7 @@ layer_sources = [
   'sqrt_layer.cpp',
   'sine_layer.cpp',
   'cosine_layer.cpp',
+  'tangent_layer.cpp',
   'addition_layer.cpp',
   'attention_layer.cpp',
   'mol_attention_layer.cpp',
