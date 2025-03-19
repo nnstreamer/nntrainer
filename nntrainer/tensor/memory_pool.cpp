@@ -204,9 +204,9 @@ void MemoryPool::deallocate() {
         // allocators.at("qnn")->free(s);
         rpcmem_free(s);
     }
-  }
-#endif
 
+#endif
+  }
   mem_pool = nullptr;
 }
 
