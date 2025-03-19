@@ -27,8 +27,8 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
-#include <dynamic_library_loader.h>
 #include <cstdlib>
+#include <dynamic_library_loader.h>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -76,6 +76,7 @@ public:
   explicit MemoryPool() :
     mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
 
+#if defined(__ANDROID__)
     void *handle =
       DynamicLibraryLoader::loadLibrary("libcdsprpc.so", DL_NOW | DL_LOCAL);
     const char *error_msg = DynamicLibraryLoader::getLastError();
@@ -92,8 +93,9 @@ public:
                             std::invalid_argument, close_dl)
         << func_tag << "open rpc mem failed";
     }
-
-    // allocators = Engine(Engine::Global()).getAllocators();
+#else
+    allocators = Engine(Engine::Global()).getAllocators();
+#endif
   }
 
   /**

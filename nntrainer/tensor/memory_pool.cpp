@@ -198,6 +198,7 @@ void MemoryPool::deallocate() {
 #endif
     
     memory_ptrs.clear();
+    mem_pool.free();
 
 #if defined(__ANDROID__)
     int i = 0;
@@ -206,12 +207,8 @@ void MemoryPool::deallocate() {
         // allocators.at("qnn")->free(s);
         rpcmem_free(s);
     }
-  }
-#else
-  if (mem_pool != nullptr)
-    free(mem_pool);
 #endif
-
+  }
   mem_pool = nullptr;
 }
 

@@ -105,6 +105,27 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
   return buf;
 #endif
 
+    ++offset_index;
+    ++num_loaded_tensors;
+    return ptr;
+  } else {
+    size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t diff = offset - off;
+    size_t len = size + diff;
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
+    char *ptr = static_cast<char *>(
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+
+    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+      << "SwapDevice: mmap: "
+      << std::string(strerror_r(errno, error_buf, error_buflen));
+    void *buf = static_cast<void *>(ptr + diff);
+    mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
+
+    ++num_loaded_tensors;
+    return buf;
+  }
 #else
   off_t off;
   ssize_t len;
