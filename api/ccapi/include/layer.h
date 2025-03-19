@@ -44,6 +44,7 @@ enum LayerType {
   LAYER_DIVIDE = ML_TRAIN_LAYER_TYPE_DIVIDE,     /**< Divide Layer type */
   LAYER_POW = ML_TRAIN_LAYER_TYPE_POW,           /**< Pow Layer type */
   LAYER_SQRT = ML_TRAIN_LAYER_TYPE_SQRT,         /**< SQRT Layer type */
+  LAYER_SINE = ML_TRAIN_LAYER_TYPE_SINE,         /**< Sine Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -355,6 +356,14 @@ SQRTLayer(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create sine layer
+ */
+inline std::unique_ptr<Layer>
+SineLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SINE, properties);
+}
+
+/**
  * @brief Helper function to create fully connected layer
  */
 inline std::unique_ptr<Layer>
@@ -375,7 +384,8 @@ Swiglu(const std::vector<std::string> &properties = {}) {
 //  */
 // inline std::unique_ptr<Layer>
 // RMSNormCl(const std::vector<std::string> &properties = {},
-//           const LayerComputeEngine &compute_engine = LayerComputeEngine::GPU)
+//           const LayerComputeEngine &compute_engine =
+//           LayerComputeEngine::GPU)
 //           {
 //   return createLayer(LayerType::LAYER_RMSNORM, properties, compute_engine);
 // }
