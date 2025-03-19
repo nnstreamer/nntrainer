@@ -872,21 +872,21 @@ Tensor &Tensor::erf(Tensor &output) const {
   return output;
 }
 
-void Tensor::sin(Tensor &out, float alpha) {
+void Tensor::sin(Tensor &out, float alpha) const {
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::sin must match");
 
   itensor->sin(out, alpha);
 }
 
-void Tensor::cos(Tensor &out, float alpha) {
+void Tensor::cos(Tensor &out, float alpha) const {
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::cos must match");
 
   itensor->cos(out, alpha);
 }
 
-void Tensor::tan(Tensor &output, float alpha) {
+void Tensor::tan(Tensor &output, float alpha) const {
   if (size() != output.size() || getDataType() != output.getDataType() ||
       getFormat() != output.getFormat())
     throw std::invalid_argument(
