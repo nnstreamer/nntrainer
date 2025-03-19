@@ -530,6 +530,29 @@ class PowOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class CosineOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.cos(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+class TangentOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.tan(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
 
 if __name__ == "__main__":
     record_v2(
@@ -857,6 +880,26 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="pow_operation",
+    )
+
+    cosine_operation = CosineOperation()
+    record_v2(
+        cosine_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="cosine_operation",
+    )
+
+    tangent_operation = TangentOperation()
+    record_v2(
+        tangent_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="tangent_operation",
     )
 
     # Function to check the created golden test file
