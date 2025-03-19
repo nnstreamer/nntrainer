@@ -162,6 +162,7 @@ void CachePool::deallocate() {
 }
 
 void CachePool::validate(unsigned int id) {
+  std::cout << ((elems[id]->isActive())?"validate":"swapIn")<<std::endl;
   if (!elems[id]->isActive()) {
     elems[id]->swapIn();
     actives.push_back(elems[id]);
@@ -203,10 +204,15 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
-  auto mem_pool_address = getMemoryPoolAddress();
-  void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
+
+  // auto mem_pool_address = getMemoryPoolAddress();
+  // void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
+
+  void *memory_ptr = getMemoryPtrs().at(id - 1);
+  
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
+
   elems[id] = elem;
 
   std::string ords;
