@@ -530,6 +530,18 @@ class PowOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class SQRTOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.sqrt(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
 
 if __name__ == "__main__":
     record_v2(
@@ -857,6 +869,16 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="pow_operation",
+    )
+
+    sqrt_operation = SQRTOperation()
+    record_v2(
+        sqrt_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="sqrt_operation",
     )
 
     # Function to check the created golden test file
