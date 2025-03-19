@@ -5,8 +5,5 @@
 /usr/include/nntrainer/dataset.h
 /usr/include/nntrainer/tensor_dim.h
 /usr/include/nntrainer/tensor_api.h
-/usr/include/nntrainer/mem_allocator.h
-/usr/include/nntrainer/tensor_layer.h
-/usr/include/nntrainer/weight_layer.h
 /usr/lib/*/pkgconfig/ccapi-ml-training.pc
 /usr/lib/*/libccapi-*.a

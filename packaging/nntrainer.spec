@@ -635,7 +635,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/memory_pool.h
 %{_includedir}/nntrainer/swap_device.h
 %{_includedir}/nntrainer/optimizer_wrapped.h
-
+%{_includedir}/nntrainer/mem_allocator.h
+%{_includedir}/nntrainer/tensor_layer.h
+%{_includedir}/nntrainer/weight_layer.h
 %files devel-static
 %{_libdir}/libnntrainer*.a
 %exclude %{_libdir}/libcapi*.a
