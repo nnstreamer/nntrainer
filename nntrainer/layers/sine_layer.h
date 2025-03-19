@@ -80,14 +80,10 @@ public:
    * @return InPlaceType
    */
   InPlaceType initializeInPlace() final {
-    is_inplace = !std::get<props::InPlaceProp>(sine_props).empty() &&
-                 std::get<props::InPlaceProp>(sine_props).get();
+    auto inplace_prop = std::get<props::InPlaceProp>(sine_props);
+    is_inplace = !inplace_prop.empty() && inplace_prop.get();
     support_backwarding = !is_inplace;
-
-    if (!supportInPlace())
-      return InPlaceType::NONE;
-    else
-      return InPlaceType::NON_RESTRICTING;
+    return supportInPlace() ? InPlaceType::NON_RESTRICTING : InPlaceType::NONE;
   }
 
   /**
