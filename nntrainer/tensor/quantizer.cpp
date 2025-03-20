@@ -34,17 +34,19 @@ void Quantizer::calculateMinMaxValue(Tdatatype qtype) {
     N = 16;
   } else if (qtype == Tdatatype::QINT8 || qtype == Tdatatype::UINT8) {
     N = 8;
-  } else if (qtype == Tdatatype::QINT4) {
+  } else if (qtype == Tdatatype::QINT4 || qtype == Tdatatype::UINT4) {
     N = 4;
   } else {
     throw std::invalid_argument("[Quantizer] Unsupported data type error.");
   }
 
   // define minimum and maximum valude representable by the type
-  quant_max = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8)
+  quant_max = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8 ||
+               qtype == Tdatatype::UINT4)
                 ? std::pow(2, N) - 1
                 : std::pow(2, N - 1) - 1;
-  quant_min = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8)
+  quant_min = (qtype == Tdatatype::UINT16 || qtype == Tdatatype::UINT8 ||
+               qtype == Tdatatype::UINT4)
                 ? 0
                 : -std::pow(2, N - 1);
 }
@@ -58,12 +60,13 @@ std::unique_ptr<Quantizer> PerTensorAffineQuantizer::create() {
 
 void PerTensorAffineQuantizer::calculateQParams(const Tensor &input,
                                                 Tdatatype qtype) {
-  /// @todo for quint8, zero point calculation should be added
   float max_val = input.max_abs();
   scale = max_val / ((quant_max - quant_min) / 2.0f);
   scale = std::max(scale, std::numeric_limits<float>::epsilon());
 
-  if (qtype == Tdatatype::UINT8) {
+  if (qtype == Tdatatype::UINT4) {
+    zero_point = std::round(scale * input.minValue()) + std::pow(2, 3);
+  } else if (qtype == Tdatatype::UINT8) {
     zero_point = std::round(scale * input.minValue()) + std::pow(2, 7);
   } else if (qtype == Tdatatype::UINT16) {
     zero_point = std::round(scale * input.minValue()) + std::pow(2, 15);
@@ -111,7 +114,8 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
   NNTR_THROW_IF(input.size() != output.size(), std::invalid_argument)
     << "[Quantizer::quantize] Tensor size does not match.";
 
-  if (output.getDataType() == Tdatatype::UINT8 ||
+  if (output.getDataType() == Tdatatype::UINT4 ||
+      output.getDataType() == Tdatatype::UINT8 ||
       output.getDataType() == Tdatatype::UINT16) {
     NNTR_THROW_IF(zero_points == nullptr, std::invalid_argument)
       << "[Quantizer::quantize] Output zero point is invalid.";
@@ -128,7 +132,8 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
         for (unsigned int w = 0; w < output.width(); ++w) {
           val = std::lround(input.getValue(b, c, h, w) / *scales);
 
-          if (output.getDataType() == Tdatatype::UINT8 ||
+          if (output.getDataType() == Tdatatype::UINT4 ||
+              output.getDataType() == Tdatatype::UINT8 ||
               output.getDataType() == Tdatatype::UINT16) {
             val += *zero_points;
           }
@@ -140,7 +145,8 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
   }
   *output.getScale<float>() = *scales;
 
-  if (output.getDataType() == Tdatatype::UINT8 ||
+  if (output.getDataType() == Tdatatype::UINT4 ||
+      output.getDataType() == Tdatatype::UINT8 ||
       output.getDataType() == Tdatatype::UINT16) {
     *output.getZeroPoint() = *zero_points;
   }
@@ -151,7 +157,8 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
 Tensor PerTensorAffineQuantizer::dequantize(const Tensor &input,
                                             Tdatatype dtype) {
   Tensor output = input.clone(dtype);
-  if (input.getDataType() == Tdatatype::UINT8 ||
+  if (output.getDataType() == Tdatatype::UINT4 ||
+      input.getDataType() == Tdatatype::UINT8 ||
       input.getDataType() == Tdatatype::UINT16) {
     output.subtract_i(*input.getZeroPoint());
   }
