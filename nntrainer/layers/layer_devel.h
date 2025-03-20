@@ -29,6 +29,7 @@
 
 #include <base_properties.h>
 #include <common.h>
+#include <layer_context.h>
 #include <tensor_dim.h>
 
 namespace ml::train {
@@ -38,7 +39,6 @@ class Layer;
 namespace nntrainer {
 
 class InitLayerContext;
-class RunLayerContext;
 class Exporter;
 
 /**
@@ -319,6 +319,41 @@ public:
    * @return true if supports backwarding, else false
    */
   virtual bool supportBackwarding() const = 0;
+
+  /**
+   * @brief     save layer Weight & Bias data from file
+   * @param file output file stream
+   * @param run_context run context for the layer
+   * @param opt_var boolean variable whether saving optimizer variables
+   * @param mode Execution mode
+   * @param trainable is there trainable weight
+   * @param definedWeightDataTey current data type of the layer
+   */
+  virtual void save(std::ofstream &file, RunLayerContext &run_context,
+                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
+                    TensorDim::DataType definedWeightDataType) const {
+
+    if (opt_var) {
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        if (run_context.isGradientFirstAccess(i) && trainable) {
+          // @note save optimizer variables
+          if (run_context.weightHasGradient(i)) {
+            for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i);
+                 ++j) {
+              run_context.getWeightOptVar(i, j).save(file);
+            }
+          }
+        }
+      }
+    } else {
+      // @note shared weights are only be saved at the first access
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        if (run_context.isGradientFirstAccess(i)) {
+          run_context.getWeight(i).save(file);
+        }
+      }
+    }
+  }
 
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */

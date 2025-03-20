@@ -124,6 +124,18 @@ public:
 
   static constexpr const char *type = "batch_normalization";
 
+  /**
+  * @copydoc Layer::save(std::ofstream &file,
+        RunLayerContext &run_context,
+        bool opt_var,
+        ml::train::ExecutionMode mode,
+        bool trainable,
+        TensorDim::DataType definedWeightDataType)
+   */
+  void save(std::ofstream &file, RunLayerContext &run_context, bool opt_var,
+            ml::train::ExecutionMode mode, bool trainable,
+            TensorDim::DataType definedWeightDataType) const override;
+
 private:
   float divider; /**< size of the axes of the reduced */
 
