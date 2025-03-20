@@ -53,8 +53,8 @@ int const NUM_HEADS = 18;
 
 int const MULTIPLE_OF = 256;
 
-float const NORM_EPS = 0.000001;
-float const EPS = 0.000001;
+float const NORM_EPS = 0.000001f;
+float const EPS = 0.000001f;
 int const NUM_VOCAB = 96000;
 int MAX_SEQ_LEN = 1024;
 int NUM_TO_GENERATE = 100;

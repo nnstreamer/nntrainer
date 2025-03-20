@@ -30,7 +30,7 @@ MultiHeadAttentionLayer::MultiHeadAttentionLayer() :
     props::OutputShape(), props::DropOutRate(), props::ReturnAttentionWeight(),
     props::AverageAttentionWeight(), props::MaxTimestep()),
   sm(ActivationType::ACT_SOFTMAX),
-  epsilon(1e-3),
+  epsilon(1e-3f),
   cache_index(0) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
   layer_progress = 0;

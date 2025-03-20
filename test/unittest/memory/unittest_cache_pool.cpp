@@ -22,9 +22,9 @@
 #include <cache_pool.h>
 #include <nntrainer_test_util.h>
 
-constexpr float TEMP_DATA1 = (12345.12345);
-constexpr float TEMP_DATA2 = (67890.67890);
-constexpr float TEMP_DATA3 = (54321.54321);
+constexpr float TEMP_DATA1 = 12345.12345f;
+constexpr float TEMP_DATA2 = 67890.67890f;
+constexpr float TEMP_DATA3 = 54321.54321f;
 
 /**
  * @brief Mock class for cache pool

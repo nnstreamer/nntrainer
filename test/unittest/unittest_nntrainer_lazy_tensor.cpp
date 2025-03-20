@@ -86,78 +86,78 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_01_p) {
 
 // Simple chain and add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_02_p) {
-  expected = original.add(2.1);
-  EXPECT_TRUE(target.chain().add_i(2.1).run() == expected);
+  expected = original.add(2.1f);
+  EXPECT_TRUE(target.chain().add_i(2.1f).run() == expected);
 }
 
 // chain and add_i(float) add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_03_p) {
-  expected = original.add(4.2);
-  EXPECT_TRUE(target.chain().add_i(2.1).add_i(2.1).run() == expected);
+  expected = original.add(4.2f);
+  EXPECT_TRUE(target.chain().add_i(2.1f).add_i(2.1f).run() == expected);
 }
 
 // chain and add_i(float) add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_04_p) {
-  expected = original.add(4.2);
-  EXPECT_TRUE(target.chain().add_i(2.1).add_i(2.1).run() == expected);
+  expected = original.add(4.2f);
+  EXPECT_TRUE(target.chain().add_i(2.1f).add_i(2.1f).run() == expected);
 }
 
 // chain and add_i(float) add_i(Tensor)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_05_p) {
-  expected = original.add(6.1);
-  EXPECT_TRUE(target.chain().add_i(2.1).add_i(constant_(2.0), 2).run() ==
+  expected = original.add(6.1f);
+  EXPECT_TRUE(target.chain().add_i(2.1f).add_i(constant_(2.0f), 2.0f).run() ==
               expected);
 }
 
 // chain and add_i(float) subtract(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_06_p) {
-  EXPECT_TRUE(target.chain().add_i(2.1).subtract_i(2.1).run() == original);
+  EXPECT_TRUE(target.chain().add_i(2.1f).subtract_i(2.1f).run() == original);
 }
 
 // other basic operations (positive)...
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_p) {
   target = constant_(1.0);
   expected = constant_(2.0);
-  EXPECT_TRUE(target.chain().multiply_i(2.0).run() == expected);
-  EXPECT_TRUE(target.chain().multiply_i(constant_(2.0)).run() == expected);
+  EXPECT_TRUE(target.chain().multiply_i(2.0f).run() == expected);
+  EXPECT_TRUE(target.chain().multiply_i(constant_(2.0f)).run() == expected);
 
-  target = constant_(1.0);
-  expected = constant_(0.5);
-  EXPECT_TRUE(target.chain().divide_i(2.0).run() == expected);
-  EXPECT_TRUE(target.chain().divide_i(constant_(2.0)).run() == expected);
+  target = constant_(1.0f);
+  expected = constant_(0.5f);
+  EXPECT_TRUE(target.chain().divide_i(2.0f).run() == expected);
+  EXPECT_TRUE(target.chain().divide_i(constant_(2.0f)).run() == expected);
 }
 
 // other basic operations (negative)...
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_n) {
-  EXPECT_THROW(target.chain().add_i(constant(2.0, 9, 9, 9, 9)).run(),
+  EXPECT_THROW(target.chain().add_i(constant(2.0f, 9, 9, 9, 9)).run(),
                std::runtime_error);
 
-  EXPECT_THROW(target.chain().subtract_i(constant(2.0, 9, 9, 9, 9)).run(),
+  EXPECT_THROW(target.chain().subtract_i(constant(2.0f, 9, 9, 9, 9)).run(),
                std::runtime_error);
 
-  EXPECT_THROW(target.chain().multiply_i(constant(2.0, 9, 9, 9, 9)).run(),
+  EXPECT_THROW(target.chain().multiply_i(constant(2.0f, 9, 9, 9, 9)).run(),
                std::runtime_error);
 
-  EXPECT_THROW(target.chain().divide_i(constant(2.0, 9, 9, 9, 9)).run(),
+  EXPECT_THROW(target.chain().divide_i(constant(2.0f, 9, 9, 9, 9)).run(),
                std::runtime_error);
 }
 
 // sum()
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_08_p) {
-  target = constant(1.0, 4, 4, 4, 4);
-  expected = constant(64.0, 4, 1, 1, 1);
+  target = constant(1.0f, 4, 4, 4, 4);
+  expected = constant(64.0f, 4, 1, 1, 1);
   EXPECT_TRUE(target.chain().sum_by_batch().run() == expected);
 
-  expected = constant(4.0, 1, 4, 4, 4);
+  expected = constant(4.0f, 1, 4, 4, 4);
   EXPECT_TRUE(target.chain().sum(0).run() == expected);
 
-  expected = constant(4.0, 4, 1, 4, 4);
+  expected = constant(4.0f, 4, 1, 4, 4);
   EXPECT_TRUE(target.chain().sum(1).run() == expected);
 
-  expected = constant(4.0, 4, 4, 1, 4);
+  expected = constant(4.0f, 4, 4, 1, 4);
   EXPECT_TRUE(target.chain().sum(2).run() == expected);
 
-  expected = constant(4.0, 4, 4, 4, 1);
+  expected = constant(4.0f, 4, 4, 4, 1);
   EXPECT_TRUE(target.chain().sum(3).run() == expected);
 }
 
