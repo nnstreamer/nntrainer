@@ -18,7 +18,7 @@
 #include <random_data_producers.h>
 
 DataProducerValidatorType random_onehot_validator(float min, float max) {
-  const float EPSILON = 1e-7;
+  const float EPSILON = 1e-7f;
   /// input validator: every value is in range of min, max
   auto input_valid = [min, max, EPSILON](const nntrainer::Tensor &t) {
     auto data = t.getData();

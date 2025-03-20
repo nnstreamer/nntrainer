@@ -87,12 +87,12 @@ unsigned int val_count = 0;
 
 const unsigned int feature_size = 784;
 
-const float tolerance = 0.1;
+const float tolerance = 0.1f;
 
 std::string data_path;
 
-float training_loss = 0.0;
-float validation_loss = 0.0;
+float training_loss = 0.0f;
+float validation_loss = 0.0f;
 
 std::string filename = "mnist_trainingSet.dat";
 
@@ -199,8 +199,8 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
 
 #if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 2.586082);
-  EXPECT_FLOAT_EQ(validation_loss, 2.5753405);
+  EXPECT_FLOAT_EQ(training_loss, 2.586082f);
+  EXPECT_FLOAT_EQ(validation_loss, 2.5753405f);
 }
 #endif
 
