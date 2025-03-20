@@ -29,7 +29,7 @@ class Tensor;
  * updated. If you would like to use a different quantization technique, please
  * select a custom quantizer scheme.
  */
-enum class QScheme : uint8_t {
+enum class QScheme : uint16_t {
   /** predefined quantizer */
   PER_TENSOR_AFFINE = 0x00,
   PER_CHANNEL_AFFINE = 0x01,
