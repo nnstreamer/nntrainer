@@ -550,49 +550,9 @@ void LayerNode::save(std::ofstream &file, bool opt_var,
                      ml::train::ExecutionMode mode) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
-
-  if (opt_var) {
-    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientFirstAccess(i) && getTrainable()) {
-        // @note save optimizer variables
-        if (run_context->weightHasGradient(i)) {
-          for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i);
-               ++j) {
-            run_context->getWeightOptVar(i, j).save(file);
-          }
-        }
-      }
-    }
-  } else {
-    // @note shared weights are only be saved at the first access
-    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientFirstAccess(i)) {
-
-        /** @note For batch normalization layer, we do need full precision for
-         * training and the data type of weight is full precision. But for
-         * inference, We do have to save them as activation data type. */
-
-        if (layer->getType() == BatchNormalizationLayer::type) {
-          if ((mode == ml::train::ExecutionMode::TRAIN) &&
-              (this->getWeightDataType() != TensorDim::DataType::FP32)) {
-            TensorDim dim = run_context->getWeight(i).getDim();
-
-            dim.setDataType(this->getWeightDataType());
-
-            Tensor T_save(dim, true);
-
-            T_save.copyData(run_context->getWeight(i));
-
-            T_save.save(file);
-          } else {
-            run_context->getWeight(i).save(file);
-          }
-        } else {
-          run_context->getWeight(i).save(file);
-        }
-      }
-    }
-  }
+  getLayer()->save(file, *run_context, opt_var, mode,
+                   (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+                   getWeightDataType());
 }
 
 void LayerNode::clearOptVar() {
