@@ -66,7 +66,7 @@ ModelHandle create() {
   return model;
 }
 
-void saveBin(unsigned int epochs, unsigned int batch_size) {
+void saveBin(unsigned int epochs, unsigned int batch_size, std::string file_path) {
   ModelHandle model = create();
   model->setProperty({nntrainer::withKey("batch_size", batch_size),
                       nntrainer::withKey("epochs", epochs),
@@ -86,14 +86,13 @@ void saveBin(unsigned int epochs, unsigned int batch_size) {
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
-  std::string filePath = "FSU_WEIGHT.bin";
-  model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  model->save(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
 }
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   std::string swap_on_off, std::string look_ahaed,
                   std::string file_path) {
-  saveBin(epochs, batch_size);
+  saveBin(epochs, batch_size, file_path);
   // setup model
   ModelHandle model = create();
   model->setProperty({nntrainer::withKey("batch_size", batch_size),
