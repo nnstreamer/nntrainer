@@ -57,6 +57,7 @@ public:
     QINT8,  /** quantized int 8*/
     QINT16, /** quantized int 16*/
     BCQ,    /** binary-code-based quantized*/
+    UINT4,  /** quantized unsigned int 4*/
     UINT8,  /** unsigned int 8 bit */
     UINT16, /** unsigned int 16 bit */
     UINT32, /** unsigned int 32 bit */

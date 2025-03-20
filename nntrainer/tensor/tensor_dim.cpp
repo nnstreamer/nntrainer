@@ -155,6 +155,8 @@ unsigned int TensorDim::getDataTypeSize() const {
 #endif
   case TensorDim::DataType::FP32:
     return sizeof(float);
+  case TensorDim::DataType::UINT4:
+    return sizeof(uint8_t);
   case TensorDim::DataType::UINT8:
     return sizeof(uint8_t);
   case TensorDim::DataType::UINT16:
@@ -386,6 +388,8 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "FP32";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::FP16) {
     type_ = "FP16";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::UINT4) {
+    type_ = "UINT4";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::UINT8) {
     type_ = "UINT8";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::UINT16) {

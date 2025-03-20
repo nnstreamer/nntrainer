@@ -17,6 +17,7 @@
 #include <lazy_tensor.h>
 #include <short_tensor.h>
 #include <tensor.h>
+#include <uint4_tensor.h>
 #include <uint_tensor.h>
 
 #ifdef ENABLE_FP16
@@ -77,9 +78,19 @@ Tensor::Tensor(
   std::vector<float> const &scales,
   std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
-  itensor = std::shared_ptr<UInt8Tensor>(
-    new UInt8Tensor(d, scales, zero_points, t_type.format, qscheme_),
-    std::default_delete<UInt8Tensor>());
+  if (t_type.data_type == Tdatatype::UINT4) {
+    itensor = std::shared_ptr<Uint4QTensor>(
+      new Uint4QTensor(d, scales, zero_points, t_type.format, qscheme_),
+      std::default_delete<Uint4QTensor>());
+  } else if (t_type.data_type == Tdatatype::UINT8) {
+    itensor = std::shared_ptr<UInt8Tensor>(
+      new UInt8Tensor(d, scales, zero_points, t_type.format, qscheme_),
+      std::default_delete<UInt8Tensor>());
+  } else {
+    throw std::invalid_argument(
+      "Error: Tensor cannot be constructed because the given data type is "
+      "incorrect. The supported d_types are: UINT4, UINT8");
+  }
 }
 
 Tensor::Tensor(
@@ -115,6 +126,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d_type == Tdatatype::UINT4) {
+    itensor = std::shared_ptr<Uint4QTensor>(
+      new Uint4QTensor(name_, fm), std::default_delete<Uint4QTensor>());
   } else if (d_type == Tdatatype::UINT8) {
     itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(name_, fm),
                                            std::default_delete<UInt8Tensor>());
@@ -165,6 +179,10 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::UINT4) {
+    itensor =
+      std::shared_ptr<Uint4QTensor>(new Uint4QTensor(d, alloc_now, init, name),
+                                    std::default_delete<Uint4QTensor>());
   } else if (d.getDataType() == Tdatatype::UINT8) {
     itensor =
       std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, alloc_now, init, name),
@@ -219,6 +237,9 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::UINT4) {
+    itensor = std::shared_ptr<Uint4QTensor>(
+      new Uint4QTensor(d, buf), std::default_delete<Uint4QTensor>());
   } else if (d.getDataType() == Tdatatype::UINT8) {
     itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, buf),
                                            std::default_delete<UInt8Tensor>());
@@ -264,6 +285,9 @@ Tensor::Tensor(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::UINT4) {
+    itensor = std::shared_ptr<Uint4QTensor>(
+      new Uint4QTensor(*rhs.itensor), std::default_delete<Uint4QTensor>());
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
     itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
                                            std::default_delete<UInt8Tensor>());
@@ -311,6 +335,9 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::UINT4) {
+    itensor = std::shared_ptr<Uint4QTensor>(
+      new Uint4QTensor(*rhs.itensor), std::default_delete<Uint4QTensor>());
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
     itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
                                            std::default_delete<UInt8Tensor>());
@@ -357,6 +384,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
         "Please check if the tensor data type is set properly.");
 #endif
+    } else if (getDataType() == Tdatatype::UINT4) {
+      return *std::dynamic_pointer_cast<Uint4QTensor>(itensor) ==
+             *std::dynamic_pointer_cast<Uint4QTensor>(rhs.itensor);
     } else if (getDataType() == Tdatatype::UINT8) {
       return *std::dynamic_pointer_cast<UInt8Tensor>(itensor) ==
              *std::dynamic_pointer_cast<UInt8Tensor>(rhs.itensor);
