@@ -200,7 +200,7 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  BiQGEMM::matrixDotMatrix(output.getData(), bcq_weight, input.getData(),
+  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight.get(), input.getData(),
                            input.width());
   return output;
 }
@@ -288,6 +288,22 @@ std::vector<unsigned int> BCQTensor::argmax() const {
     auto max_iter =
       std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
     result[b] = std::distance(data, max_iter) - (b * feature_len);
+  }
+  return result;
+}
+
+std::vector<unsigned int> BCQTensor::argmin() const {
+  std::vector<unsigned int> result;
+  const uint32_t *data = (uint32_t *)getData();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
+
+  result.resize(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    auto min_iter =
+      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
+    result[b] = std::distance(data, min_iter) - (b * feature_len);
   }
   return result;
 }
