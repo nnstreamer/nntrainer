@@ -41,6 +41,7 @@
 #include <model_common_properties.h>
 #include <network_graph.h>
 #include <optimizer_wrapped.h>
+#include <subgraph_node.h>
 #include <tensor.h>
 
 #include <model.h>
@@ -442,6 +443,22 @@ s   * @retval shared_ptr<const Tensor>
                     std::shared_ptr<DataBuffer> data_buffer);
 
   /**
+   * @brief     add subgraph into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addSubGraph(std::shared_ptr<ml::train::SubGraph> subgraph) override {
+    return addSubGraph(std::static_pointer_cast<SubGraphNode>(subgraph));
+  }
+
+  /**
+   * @brief     add subgraph into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addSubGraph(SubGraphType subgraph);
+
+  /**
    * @brief     add layer into neural network model
    * @param[in] layer layer to add
    * @retval #ML_ERROR_NONE Successful.
@@ -623,6 +640,14 @@ s   * @retval shared_ptr<const Tensor>
   void exports(const ml::train::ExportMethods &method,
                const std::string file_path) override;
 
+  /**
+   * @brief opertor == for NeuralNetwork. Check logical equivalence of network
+   * structures.
+   * @note This does not check the address of graph instances. It only ensures
+   * the logical structure of two neural networks are equivalent.
+   */
+  bool operator==(const NeuralNetwork &rhs) const;
+
 private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
@@ -678,8 +703,24 @@ private:
 
   AppContext app_context; /** Configurations bound to current app */
 
-  NetworkGraph model_graph;                 /** Network Model Graph */
-  GraphRepresentation graph_representation; /** Unsorted graph representation */
+  /**
+   * @note model_graph - updated to reflect the changes made to the graph
+   * It will recreated when compile() is called.
+   */
+  NetworkGraph model_graph; /** Network Model Graph */
+
+  /**
+   * @note _represemtation - updated to reflect the changes made to the graph
+   * It saves the node information when addSubGraph / addLayer is called.
+   * This info will be used in compilation time
+   */
+  GraphRepresentation
+    graph_representation; /** Unsorted subgraph representation */
+  std::unordered_map<std::string, SubGraphType>
+    graph_map; /** hashmap for the graph - shofrtcut for graph_representation */
+  GraphLayerNodeRepresentation
+    graph_ln_representation; /** Unsorted graph representation with successive
+                                layer nodes */
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
