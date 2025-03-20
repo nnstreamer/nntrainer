@@ -33,7 +33,8 @@ std::vector<float> fsu_answer;
 void RemoveWeightFile(std::string file_path) { remove(file_path.c_str()); }
 
 void MakeWeight(unsigned int feature_size, unsigned int layer_num,
-                unsigned int look_ahead, std::string file_path, std::string weight_type) {
+                unsigned int look_ahead, std::string file_path,
+                std::string weight_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -64,7 +65,8 @@ void MakeWeight(unsigned int feature_size, unsigned int layer_num,
 }
 
 void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
-                unsigned int look_ahead, std::string file_path, std::string weight_type) {
+                unsigned int look_ahead, std::string file_path,
+                std::string weight_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -111,7 +113,8 @@ void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
 }
 
 void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
-                     unsigned int look_ahead, std::string file_path, std::string weight_type) {
+                     unsigned int look_ahead, std::string file_path,
+                     std::string weight_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -162,7 +165,8 @@ void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
  * @brief FSU TestParm with variout LookAhead
  *
  */
-class LookAheadParm : public ::testing::TestWithParam<std::tuple<unsigned int, std::string>> {};
+class LookAheadParm
+  : public ::testing::TestWithParam<std::tuple<unsigned int, std::string>> {};
 
 TEST_P(LookAheadParm, simple_fc) {
   auto param = GetParam();
@@ -175,12 +179,12 @@ TEST_P(LookAheadParm, simple_fc) {
   ori_answer.clear();
   fsu_answer.clear();
 
-  EXPECT_NO_THROW(
-    MakeWeight(feature_size, layer_num, look_ahead_parm, file_path, weight_type));
-  EXPECT_NO_THROW(
-    MakeAnswer(feature_size, layer_num, look_ahead_parm, file_path, weight_type));
-  EXPECT_NO_THROW(
-    MakeAndRunModel(feature_size, layer_num, look_ahead_parm, file_path, weight_type));
+  EXPECT_NO_THROW(MakeWeight(feature_size, layer_num, look_ahead_parm,
+                             file_path, weight_type));
+  EXPECT_NO_THROW(MakeAnswer(feature_size, layer_num, look_ahead_parm,
+                             file_path, weight_type));
+  EXPECT_NO_THROW(MakeAndRunModel(feature_size, layer_num, look_ahead_parm,
+                                  file_path, weight_type));
   EXPECT_EQ(ori_answer, fsu_answer);
   RemoveWeightFile(file_path);
 }

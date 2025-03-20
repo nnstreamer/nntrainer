@@ -66,7 +66,8 @@ ModelHandle create() {
   return model;
 }
 
-void saveBin(unsigned int epochs, unsigned int batch_size, std::string file_path) {
+void saveBin(unsigned int epochs, unsigned int batch_size,
+             std::string file_path) {
   ModelHandle model = create();
   model->setProperty({nntrainer::withKey("batch_size", batch_size),
                       nntrainer::withKey("epochs", epochs),

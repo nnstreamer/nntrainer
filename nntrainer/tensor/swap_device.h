@@ -18,7 +18,6 @@
 #include <fcntl.h>
 #include <map>
 #include <memory>
-#include <network_graph.h>
 #include <nntrainer_error.h>
 #include <string>
 #include <sys/stat.h>

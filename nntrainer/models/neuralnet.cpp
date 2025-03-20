@@ -651,7 +651,8 @@ void NeuralNetwork::load(const std::string &file_path,
       for (auto weight : weights) {
         // auto dim = weight->getDim();
         size_t scale_factor = 0;
-        if (weight->getDim().getDataType() != TensorDim::DataType::FP16 && weight->getDim().getDataType() != TensorDim::DataType::FP32 ) {
+        if (weight->getDim().getDataType() != TensorDim::DataType::FP16 &&
+            weight->getDim().getDataType() != TensorDim::DataType::FP32) {
           scale_factor = sizeof(uint16_t);
           start_from += scale_factor;
         }
