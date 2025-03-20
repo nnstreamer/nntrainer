@@ -364,6 +364,11 @@ public:
                       float beta) const;
 
   /**
+   * @copydoc Tensor::abs()
+   */
+  virtual Tensor &abs(Tensor &output) const;
+
+  /**
    * @copydoc Tensor::l2norm
    */
   virtual float l2norm() const;
@@ -394,6 +399,12 @@ public:
    * @param[out] out out to store the result
    */
   virtual void cos(Tensor &out, float alpha = 1.0);
+
+  /**
+   * @brief    tangent transform function
+   * @param[out] output output to store the result
+   */
+  virtual void tan(Tensor &output, float alpha = 1.0);
 
   /**
    * @brief      inverse squared root function
@@ -502,6 +513,11 @@ public:
    * @copydoc Tensor::argmin()
    */
   virtual std::vector<unsigned int> argmin() const;
+
+  /**
+   * @copydoc Tensor::argmin()
+   */
+  virtual std::vector<unsigned int> argmin() const = 0;
 
   /**
    * @copydoc Tensor::max_abs()
