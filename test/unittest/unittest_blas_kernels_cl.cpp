@@ -21,8 +21,8 @@
 #include <layer_context.h>
 #include <tensor.h>
 
-#define EXPECT_IN_RANGE(VAL, MIN, MAX) \
-  EXPECT_GE((VAL), (MIN));             \
+#define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
+  EXPECT_GE((VAL), (MIN));                                                     \
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
@@ -110,10 +110,10 @@ TEST(blas_kernels, dotCL_sgemv_M_1_1_fp16) {
   nntrainer::Tensor C_fp16 = A_fp16.dot(B_fp16, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -200,10 +200,10 @@ TEST(blas_kernels, dotCL_sgemv_M_1_2_fp16) {
   nntrainer::Tensor C_fp16 = A_fp16.dot(B_fp16, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -290,10 +290,10 @@ TEST(blas_kernels, dotCL_sgemv_N_1_1_fp16) {
   nntrainer::Tensor C_fp16 = A_fp16.dot(B_fp16, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -380,10 +380,10 @@ TEST(blas_kernels, dotCL_sgemv_N_1_2_fp16) {
   nntrainer::Tensor C_fp16 = A_fp16.dot(B_fp16, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -483,7 +483,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_M_1_1) {
 
   auto gen_data = [](nntrainer::Tensor x) {
     auto ptr = x.getData();
-    for (int i = 0; i < x.size(); ++i) {
+    for (unsigned int i = 0; i < x.size(); ++i) {
       ptr[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     }
   };
@@ -582,11 +582,11 @@ TEST(nntrainer_Tensor, multiply_i) {
   // fp32
   multiplyCl(input_fp32, 0.1);
 
-  float mseErrorNeon = mse<__fp16>(input.getData<__fp16>(),
-                                   input_fp32.getData<float>(), input.size());
+  float mseErrorNeon = mse<_FP16>(input.getData<_FP16>(),
+                                  input_fp32.getData<float>(), input.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    input.getData<__fp16>(), input_fp32.getData<float>(), input.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    input.getData<_FP16>(), input_fp32.getData<float>(), input.size());
 
   EXPECT_IN_RANGE(mseErrorNeon, 0, epsilon);
   EXPECT_IN_RANGE(cosSimNeon, 0.99, 1);
@@ -703,10 +703,10 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_1024_noTrans_fp16) {
   nntrainer::Tensor C_fp16 = A.dot(B, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -825,10 +825,10 @@ TEST(nntrainer_Tensor, dot_gemm_50_768_2048_transB_fp16) {
   nntrainer::Tensor C_fp16 = A.dot(B, transA, transB);
 
   float mseErrorNeon =
-    mse<__fp16>(C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+    mse<_FP16>(C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    C.getData<__fp16>(), C_fp16.getData<__fp16>(), C.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    C.getData<_FP16>(), C_fp16.getData<_FP16>(), C.size());
 
   const float epsilon = 1e-3 * width;
 
@@ -1050,11 +1050,11 @@ TEST(blas_kernels, addition_i_fp16) {
   A_fp16.add_i(B_fp16);
   add_i_cl(C_fp16, D_fp16);
 
-  float mseErrorNeon = mse<__fp16>(A_fp16.getData<__fp16>(),
-                                   C_fp16.getData<__fp16>(), A_fp16.size());
+  float mseErrorNeon =
+    mse<_FP16>(A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
 
-  double cosSimNeon = cosine_similarity<__fp16>(
-    A_fp16.getData<__fp16>(), C_fp16.getData<__fp16>(), A_fp16.size());
+  double cosSimNeon = cosine_similarity<_FP16>(
+    A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
 
   const float epsilon = 1e-3 * width;
 
