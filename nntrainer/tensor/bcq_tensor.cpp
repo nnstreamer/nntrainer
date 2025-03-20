@@ -276,38 +276,6 @@ void BCQTensor::read(std::ifstream &file) {
   createBCQW();
 }
 
-std::vector<unsigned int> BCQTensor::argmax() const {
-  std::vector<unsigned int> result;
-  const uint32_t *data = (uint32_t *)getData();
-  size_t batch_size = batch();
-  size_t feature_len = dim.getFeatureLen();
-
-  result.resize(batch_size);
-
-  for (unsigned int b = 0; b < batch_size; b++) {
-    auto max_iter =
-      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, max_iter) - (b * feature_len);
-  }
-  return result;
-}
-
-std::vector<unsigned int> BCQTensor::argmin() const {
-  std::vector<unsigned int> result;
-  const uint32_t *data = (uint32_t *)getData();
-  size_t batch_size = batch();
-  size_t feature_len = dim.getFeatureLen();
-
-  result.resize(batch_size);
-
-  for (unsigned int b = 0; b < batch_size; b++) {
-    auto min_iter =
-      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, min_iter) - (b * feature_len);
-  }
-  return result;
-}
-
 void BCQTensor::save_quantization_info(std::ostream &file) {
   checkedWrite(file, (char *)&quantized_bit_size, sizeof(uint16_t),
                "[BCQTensor::save] failed to write quantization information");
@@ -410,9 +378,9 @@ void BCQTensor::createBCQW() {
   size_t size_of_clusters[] = {width()};
   const size_t number_of_cluster = 1;
 
-  /// @note hidden_tile_size should be set as a multiple of 32. This variable is
-  /// related to the speed of matrixDotMatrix. The optimal value should be found
-  /// with various values according to the usage environment.
+  /// @note hidden_tile_size should be set as a multiple of 32. This variable
+  /// is related to the speed of matrixDotMatrix. The optimal value should be
+  /// found with various values according to the usage environment.
   size_t hidden_tile_size = 32;
 
   bcq_weight = std::make_shared<BiQGEMM::BCQW>(

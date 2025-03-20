@@ -214,16 +214,6 @@ public:
   void read(std::ifstream &file) override;
 
   /**
-   * @copydoc Tensor::argmax()
-   */
-  std::vector<unsigned int> argmax() const override;
-
-  /**
-   * @copydoc Tensor::argmax()
-   */
-  std::vector<unsigned int> argmin() const override;
-
-  /**
    * @copydoc TensorBase::save_quantization_info(std::ostream &file)
    */
   void save_quantization_info(std::ostream &file) override;

@@ -567,6 +567,18 @@ Tensor &TensorBase::apply(std::function<_FP16(_FP16)> f, Tensor &output) const {
 }
 #endif
 
+std::vector<unsigned int> TensorBase::argmax() const {
+  throw std::invalid_argument(
+    "Tensor::argmax() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
+std::vector<unsigned int> TensorBase::argmin() const {
+  throw std::invalid_argument(
+    "Tensor::argmin() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 Tensor &TensorBase::transpose(const std::string &direction, Tensor &out) const {
   throw std::invalid_argument(
     "Tensor::transpose() is currently not supported in tensor data type " +

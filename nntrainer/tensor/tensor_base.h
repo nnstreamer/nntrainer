@@ -496,12 +496,12 @@ public:
   /**
    * @copydoc Tensor::argmax()
    */
-  virtual std::vector<unsigned int> argmax() const = 0;
+  virtual std::vector<unsigned int> argmax() const;
 
   /**
    * @copydoc Tensor::argmin()
    */
-  virtual std::vector<unsigned int> argmin() const = 0;
+  virtual std::vector<unsigned int> argmin() const;
 
   /**
    * @copydoc Tensor::max_abs()
