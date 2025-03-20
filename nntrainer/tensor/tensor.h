@@ -1720,6 +1720,15 @@ public:
   size_t bytes() const;
 
   /**
+   * @brief     Get a total size of the memory data in bytes
+   * @retval    size_t Size in bytes
+   * @note      This is the total size of the memory data, including the scale
+   * factors and the zero points. For float type, this will return the same as
+   * bytes()
+   */
+  size_t getMemoryBytes() const;
+
+  /**
    * @brief     return Tensor batch size
    * @retval    batch size
    */

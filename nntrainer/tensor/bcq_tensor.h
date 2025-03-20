@@ -232,6 +232,7 @@ public:
    * @copydoc TensorBase::size()
    */
   size_t size() const override;
+
   /**
    * @copydoc Tensor::max_abs()
    */
@@ -251,6 +252,11 @@ public:
    * @copydoc Tensor::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;
+
+  /**
+   * @copydoc Tensor::getMemoryBytes()
+   */
+  size_t getMemoryBytes() const override;
 
   /**
    * @copydoc Tensor::scale_size()
