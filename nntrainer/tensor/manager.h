@@ -569,7 +569,6 @@ public:
    * @param offsets weight file offset
    */
   void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
-    std::cout << "setFSU Weight Path in manager"<<std::endl;    
     weight_pool.setWeightOffset(offsets);
   }
 

@@ -100,7 +100,6 @@ public:
 #else
     allocators = Engine(Engine::Global()).getAllocators();
 #endif
-
   }
 
   /**

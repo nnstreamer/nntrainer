@@ -63,7 +63,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 #ifdef USE_MMAP
   // page aligned
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
-    std::cout << "in getBuffer ---"<<std::endl;
     auto len_offset = weight_offset.at(offset_index);
 
     // size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
@@ -74,7 +73,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     // std::cerr << "weight & bias is not page aligned!" << std::endl;
     // }
 
-    std::cout << "get Buffer: "<< memory_ptr<< " " <<len_offset.second << " " << len_offset.first<<std::endl;
     void *ptr =
       mmap(memory_ptr, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
            MAP_SHARED | MAP_FIXED, fd, len_offset.first);

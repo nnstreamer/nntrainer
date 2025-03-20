@@ -707,11 +707,12 @@ void NeuralNetwork::load(const std::string &file_path,
                    "iteration, proceeding with default\n";
     }
 
-    ml_logi("read modelfile: %s", (v.size() == 2)?v[0].c_str():v[1].c_str());
+    ml_logi("read modelfile: %s",
+            (v.size() == 2) ? v[0].c_str() : v[1].c_str());
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[0] : v[1]);
     throw_status(ret);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
@@ -722,7 +723,7 @@ void NeuralNetwork::load(const std::string &file_path,
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[0] : v[1]);
     throw_status(ret);
     break;
   }
@@ -731,7 +732,7 @@ void NeuralNetwork::load(const std::string &file_path,
   }
 
   case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[0] : v[1]);
     throw_status(ret);
     break;
   }

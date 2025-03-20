@@ -160,10 +160,8 @@ void MemoryPool::allocateFSU() {
                                memory_size.at(i));
       memory_ptrs.push_back(ptr);
       offset_ptr.insert(std::make_pair(s, ptr));
-      std::cout << ptr << " " <<memory_size.at(i)<<std::endl;
     } else {
       memory_ptrs.push_back(it->second);
-      std::cout << it->second << " " <<memory_size.at(i)<<std::endl;
     }
     i++;
   }
