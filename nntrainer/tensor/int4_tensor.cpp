@@ -550,12 +550,12 @@ void Int4QTensor::copy(const void *buf) {
 }
 
 void Int4QTensor::save_quantization_info(std::ostream &file) {
-  checkedWrite(file, (char *)&qscheme, sizeof(uint8_t),
+  checkedWrite(file, (char *)&qscheme, sizeof(uint16_t),
                "[Int4QTensor::save] failed to write quantization information");
 }
 
 void Int4QTensor::read_quantization_info(std::ifstream &file) {
-  checkedRead(file, (char *)&qscheme, sizeof(uint8_t),
+  checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information");
 }
 
