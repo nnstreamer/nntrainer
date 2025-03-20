@@ -1130,6 +1130,12 @@ public:
               float alpha = 1.0) const;
 
   /**
+   * @brief  return absolute value
+   * @retval Calculated Tensor
+   */
+  Tensor &abs(Tensor &output) const;
+
+  /**
    * @brief     Averaging the Tensor elements according to the axis
    *            0 : batch direction
    *            1 : channel direction
@@ -1245,9 +1251,21 @@ public:
   void cos(Tensor &out, float alpha = 1.0);
 
   /**
-   * @brief inverse squared root function
+   * @brief tangent transform function
+   * @param[out] output out to store the result
+   */
+  void tan(Tensor &output, float alpha = 1.0);
+
+  /**
+   * @brief inverse squared root function (in-place)
    */
   void inv_sqrt_i();
+
+  /**
+   * @brief inverse squared root function
+   * @param[in] out output Tensor
+   */
+  Tensor inv_sqrt(Tensor &out) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation
