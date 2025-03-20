@@ -307,12 +307,10 @@ void ShortTensor::save(std::ostream &file) {
   /// @note Save quantization information
   save_quantization_info(file);
 
-  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
-
-  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "save size: " << bytes()
+    << "save size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, (char *)getData(), sz,
@@ -324,12 +322,10 @@ void ShortTensor::read(std::ifstream &file) {
   /// @note Read quantization information
   read_quantization_info(file);
 
-  size_t tensor_bytes = bytes() + scale_size() * sizeof(float);
-
-  std::streamsize sz = static_cast<std::streamsize>(tensor_bytes);
+  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << tensor_bytes
+    << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedRead(file, (char *)getData(), sz,
@@ -437,6 +433,10 @@ void ShortTensor::print(std::ostream &out) const {
     out << q_scales[i] << " ";
   }
   out << std::endl;
+}
+
+size_t ShortTensor::getMemoryBytes() const {
+  return bytes() + scale_size() * sizeof(float);
 }
 
 size_t ShortTensor::scale_size() const {

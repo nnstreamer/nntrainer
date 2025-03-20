@@ -235,6 +235,11 @@ public:
   float minValue() const override;
 
   /**
+   * @copydoc Tensor::getMemoryBytes()
+   */
+  size_t getMemoryBytes() const override;
+
+  /**
    * @copydoc Tensor::print(std::ostream &out)
    */
   void print(std::ostream &out) const override;

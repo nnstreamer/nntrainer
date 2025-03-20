@@ -261,6 +261,11 @@ public:
   void read_quantization_info(std::ifstream &file) override;
 
   /**
+   * @copydoc Tensor::getMemoryBytes()
+   */
+  size_t getMemoryBytes() const override;
+
+  /**
    * @copydoc Tensor::scale_size()
    */
   size_t scale_size() const override;

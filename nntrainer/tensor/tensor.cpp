@@ -1308,6 +1308,8 @@ bool Tensor::empty() const { return itensor->empty(); }
 
 size_t Tensor::bytes() const { return itensor->bytes(); }
 
+size_t Tensor::getMemoryBytes() const { return itensor->getMemoryBytes(); }
+
 size_t Tensor::batch() const { return itensor->batch(); }
 
 size_t Tensor::channel() const { return itensor->channel(); }

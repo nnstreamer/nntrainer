@@ -639,6 +639,14 @@ public:
   size_t bytes() const { return size() * dim.getDataTypeSize(); }
 
   /**
+   * @brief     Get a total size of the memory data in bytes
+   * @retval    size_t Size in bytes
+   */
+  virtual size_t getMemoryBytes() const {
+    return size() * dim.getDataTypeSize();
+  }
+
+  /**
    * @brief     return Tensor batch size
    * @retval    batch size
    */

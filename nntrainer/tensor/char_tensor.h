@@ -272,6 +272,11 @@ public:
   void print(std::ostream &out) const override;
 
   /**
+   * @copydoc Tensor::getMemoryBytes()
+   */
+  size_t getMemoryBytes() const override;
+
+  /**
    * @copydoc TensorBase::save_quantization_info()
    */
   void save_quantization_info(std::ostream &file) override;
