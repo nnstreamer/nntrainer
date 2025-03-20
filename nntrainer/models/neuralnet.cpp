@@ -21,9 +21,11 @@
  *
  */
 
+#include "../../Applications/YOLOv3/jni/yolo_v3_loss.h"
 #include "layer_context.h"
 #include "model.h"
 #include "model_common_properties.h"
+
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -647,11 +649,16 @@ void NeuralNetwork::load(const std::string &file_path,
     for (auto node : model_graph.getLayerNodes()) {
       auto weights = node->getRunContext().getWeights();
       for (auto weight : weights) {
-        auto dim = weight->getDim();
-        size_t size =
-          dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+        // auto dim = weight->getDim();
+        size_t scale_factor = 0;
+        if (weight->getDim().getDataType() != TensorDim::DataType::FP16 && weight->getDim().getDataType() != TensorDim::DataType::FP32 ) {
+          scale_factor = sizeof(uint16_t);
+          start_from += scale_factor;
+        }
+        auto weight_mem_size = weight->getVariable().getMemoryBytes();
+        size_t size = weight_mem_size;
         file_offset.emplace_back(std::make_pair(start_from, size));
-        start_from += size;
+        start_from += size + scale_factor;
       }
     }
     model_graph.setWeightOffset(file_offset);
