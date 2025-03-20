@@ -495,13 +495,13 @@ template <typename T> size_t UIntTensor<T>::getMemoryBytes() const {
 
 template <typename T>
 void UIntTensor<T>::save_quantization_info(std::ostream &file) {
-  checkedWrite(file, (char *)&qscheme, sizeof(uint8_t),
+  checkedWrite(file, (char *)&qscheme, sizeof(uint16_t),
                "[CharTensor::save] failed to write quantization information");
 }
 
 template <typename T>
 void UIntTensor<T>::read_quantization_info(std::ifstream &file) {
-  checkedRead(file, (char *)&qscheme, sizeof(uint8_t),
+  checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[CharTensor::read] failed to read quantization information");
 }
 
