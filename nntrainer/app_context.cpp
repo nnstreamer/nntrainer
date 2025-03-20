@@ -42,6 +42,7 @@
 #include <conv1d_layer.h>
 #include <conv2d_layer.h>
 #include <conv2d_transpose_layer.h>
+#include <cosine_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
 #include <divide_layer.h>
@@ -80,8 +81,11 @@
 #include <reduce_mean_layer.h>
 #include <rnn.h>
 #include <rnncell.h>
+#include <sine_layer.h>
 #include <split_layer.h>
+#include <sqrt_layer.h>
 #include <subtract_layer.h>
+#include <tangent_layer.h>
 #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
@@ -271,6 +275,14 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_DIVIDE);
   ac.registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
                      LayerType::LAYER_POW);
+  ac.registerFactory(nntrainer::createLayer<SQRTLayer>, SQRTLayer::type,
+                     LayerType::LAYER_SQRT);
+  ac.registerFactory(nntrainer::createLayer<SineLayer>, SineLayer::type,
+                     LayerType::LAYER_SINE);
+  ac.registerFactory(nntrainer::createLayer<CosineLayer>, CosineLayer::type,
+                     LayerType::LAYER_COSINE);
+  ac.registerFactory(nntrainer::createLayer<TangentLayer>, TangentLayer::type,
+                     LayerType::LAYER_TANGENT);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,

@@ -471,6 +471,12 @@ Tensor &TensorBase::sum(unsigned int axis, Tensor &output, float alpha,
     getStringDataType());
 }
 
+Tensor &TensorBase::abs(Tensor &output) const {
+  throw std::invalid_argument(
+    "Tensor::abs() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 float TensorBase::l2norm() const {
   throw std::invalid_argument(
     "Tensor::l2norm() is currently not supported in tensor data type " +
@@ -504,6 +510,12 @@ void TensorBase::sin(Tensor &out, float alpha) {
 void TensorBase::cos(Tensor &out, float alpha) {
   throw std::invalid_argument(
     "Tensor::cos() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
+void TensorBase::tan(Tensor &output, float alpha) {
+  throw std::invalid_argument(
+    "Tensor::tan() is currently not supported in tensor data type " +
     getStringDataType());
 }
 
