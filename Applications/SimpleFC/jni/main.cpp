@@ -42,14 +42,14 @@ std::vector<LayerHandle> createGraph() {
 
   layers.push_back(
     createLayer("input", {nntrainer::withKey("name", "input0"),
-                          nntrainer::withKey("input_shape", "1:1:2048")}));
+                          nntrainer::withKey("input_shape", "1:1:1024:1024")}));
 
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 56; i++) {
     layers.push_back(
       createLayer("fully_connected",
-                  {nntrainer::withKey("unit", 2048),
+                  {nntrainer::withKey("unit", 1024),
                    nntrainer::withKey("weight_initializer", "xavier_uniform"),
-                   nntrainer::withKey("bias_initializer", "zeros")}));
+                   nntrainer::withKey("disable_bias", "true")}));
   }
 
   return layers;
@@ -122,9 +122,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  const unsigned int feature_size = 1 * 1 * 2048;
+  const unsigned int feature_size = 1 * 1024 * 1024;
 
-  float input[1 * 2048];
+  float input[feature_size];
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = (j / (float)feature_size);
