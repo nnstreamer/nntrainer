@@ -35,6 +35,7 @@ if get_option('enable-tflite-backbone')
 endif
 subdir('ONNX/jni')
 subdir('SimpleFC/jni')
+subdir('Save_Quant/jni')
 
 subdir('LLaMA/jni')
 if host_machine.system() != 'windows'
