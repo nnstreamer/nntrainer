@@ -336,4 +336,23 @@ unsigned int CachePool::getNumLoadedTensors() {
   return swap_device->getNumLoadedTensors();
 }
 
+void CachePool::setFsuWeightPath(std::string path) {
+  auto start_with = [](const std::string &str, const std::string &prefix) {
+    return str.size() >= prefix.size() &&
+           str.compare(0, prefix.size(), prefix) == 0;
+  };
+
+  if (!start_with(swap_device->getDevicePath(), "weight_pool")) {
+    remove(swap_device->getDevicePath().c_str());
+  }
+
+  swap_device->setFsuWeightPath(path);
+  swap_device->finish();
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    swap_device->start(size(), false);
+  } else {
+    swap_device->start(size(), true);
+  }
+}
+
 } // namespace nntrainer
