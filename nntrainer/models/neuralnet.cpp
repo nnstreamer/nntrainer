@@ -578,6 +578,26 @@ void NeuralNetwork::backwarding(int iteration,
                                   lazy_apply_grad_op, stop_cb, userdata);
   }
 }
+void NeuralNetwork::save(const std::string &file_path,
+                         TensorDim::DataType type) {
+
+  auto model_file = checkedOpenStream<std::ofstream>(
+    file_path, std::ios::out | std::ios::binary | std::ios::trunc);
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    (*iter)->save(model_file, type, false, exec_mode);
+  }
+  if (opt && istrequal(opt->getType(), "adam")) {
+    std::string adam = "adam";
+    model_file.write(adam.c_str(), 4);
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      (*iter)->save(model_file, type, true);
+    }
+  }
+
+  model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
+  model_file.write((char *)&iter, sizeof(iter));
+  model_file.close();
+}
 
 void NeuralNetwork::save(const std::string &file_path,
                          ml::train::ModelFormat format) {

@@ -289,7 +289,6 @@ public:
    */
   InitLayerContext refinalize(const std::vector<TensorDim> &input_dims = {});
 
-
   void initialize() override { layer->initialize(*run_context); }
 
   /**
@@ -765,9 +764,21 @@ public:
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
    * @param bool save optimizer variables
+   * @param mode Execution mode
    */
   void
   save(std::ofstream &file, bool opt_var = false,
+       ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
+
+  /**
+   * @brief     save layer Weight & Bias data from file
+   * @param file output file stream
+   * @param bool save optimizer variables
+   * @param mode Execution mode
+   * @param type type to be saved
+   */
+  void
+  save(std::ofstream &file, TensorDim::DataType type, bool opt_var = false,
        ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
 
   /**
