@@ -671,7 +671,6 @@ void NeuralNetwork::load(const std::string &file_path,
     }
     model_graph.setWeightOffset(file_offset);
   }
-
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -679,7 +678,8 @@ void NeuralNetwork::load(const std::string &file_path,
       << " format: " << static_cast<unsigned>(format);
 
     auto model_file = checkedOpenStream<std::ifstream>(
-      (v.size() == 2) ? v[0] : v[1], std::ios::in | std::ios::binary);
+      (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->read(model_file, false, exec_mode, swap_mode);
     }
@@ -709,11 +709,12 @@ void NeuralNetwork::load(const std::string &file_path,
                    "iteration, proceeding with default\n";
     }
 
-    ml_logi("read modelfile: %s", (v.size() == 2)?v[0].c_str():v[1].c_str());
+    ml_logi("read modelfile: %s",
+            (v.size() == 2) ? v[1].c_str() : v[0].c_str());
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
@@ -724,7 +725,7 @@ void NeuralNetwork::load(const std::string &file_path,
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
     break;
   }
@@ -733,7 +734,7 @@ void NeuralNetwork::load(const std::string &file_path,
   }
 
   case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {
-    int ret = loadFromConfig((v.size() == 2)?v[0]:v[1]);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
     break;
   }
@@ -747,14 +748,14 @@ void NeuralNetwork::load(const std::string &file_path,
 
     std::thread qnn_load([this, &v]() {
       int ret =
-        ct_engine.getRegisteredContext("qnn")->load(props::FilePath(v[1]));
+        ct_engine.getRegisteredContext("qnn")->load(props::FilePath(v[0]));
       throw_status(ret);
     });
 
     if (!swap_mode && v.size() > 1) {
       load(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     } else if (swap_mode) {
-      model_graph.setFsuWeightPath(v[0]);
+      model_graph.setFsuWeightPath(v[1]);
     }
 
     qnn_load.join();
