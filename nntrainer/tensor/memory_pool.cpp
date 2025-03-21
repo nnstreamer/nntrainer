@@ -12,6 +12,12 @@
 
 #include <cstdlib>
 #include <limits>
+
+#include <numeric>
+#include <vector>
+
+#include <map>
+
 #include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -95,10 +101,36 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
+#if defined(__ANDROID__)
+  int i = 0;
+#define RPCMEM_HEAP_ID_SYSTEM 25
+#define RPCMEM_DEFAULT_FLAGS 1
+  std::map<size_t, void *> offset_ptr;
+  for (auto &s : memory_offset) {
+    auto it = offset_ptr.find(s);
+    if (it == offset_ptr.end()) {
+      void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
+                               memory_size.at(i));
+      memory_ptrs.push_back(ptr);
+      offset_ptr.insert(std::make_pair(s, ptr));
+    } else {
+      memory_ptrs.push_back(it->second);
+    }
+    i++;
+  }
+
+  mem_pool = calloc(1, 1);
+
+#else
   mem_pool = calloc(pool_size, 1);
-  if (mem_pool == nullptr)
-    throw std::runtime_error(
-      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+
+  unsigned int idx = 1;
+  for (auto &s : memory_offset) {
+    char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+    memory_ptrs.push_back(ptr);
+    idx++;
+  }
+#endif
 
 #ifdef PROFILE
   static long long seq = 0;
@@ -120,9 +152,37 @@ void MemoryPool::allocateFSU() {
   GetSystemInfo(&system_info);
   mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
   // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
+#elif defined(__ANDROID__)
+  int i = 0;
+#define RPCMEM_HEAP_ID_SYSTEM 25
+#define RPCMEM_DEFAULT_FLAGS 1
+  std::map<size_t, void *> offset_ptr;
+  for (auto &s : memory_offset) {
+    auto it = offset_ptr.find(s);
+    if (it == offset_ptr.end()) {
+      void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
+                               memory_size.at(i));
+      memory_ptrs.push_back(ptr);
+      offset_ptr.insert(std::make_pair(s, ptr));
+    } else {
+      memory_ptrs.push_back(it->second);
+    }
+    i++;
+  }
+
+  mem_pool = calloc(1, 1);
+
 #else
   mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
+
 #endif
+
+  // unsigned int idx = 1;
+  // for (auto &s : memory_offset) {
+  //   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  //   memory_ptrs.push_back(ptr);
+  //   idx++;
+  // }
 
   if (mem_pool == nullptr)
     throw std::runtime_error(
@@ -134,12 +194,17 @@ void MemoryPool::allocateFSU() {
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
+
+#if defined(__ANDROID__)
+  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+#else
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
   auto mem_data = std::make_shared<MemoryData>((void *)ptr);
   memory_ptrs.emplace_back(ptr);
+#endif
   return mem_data;
 }
 
@@ -154,12 +219,21 @@ void MemoryPool::deallocate() {
     memory_validity.clear();
     memory_exec_order.clear();
     memory_is_wgrad.clear();
+
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
 #endif
     memory_ptrs.clear();
-  }
 
+#if defined(__ANDROID__)
+    int i = 0;
+    for (auto &s : memory_ptrs) {
+      if (s)
+        // allocators.at("qnn")->free(s);
+        rpcmem_free(s);
+    }
+#endif
+  }
   mem_pool = nullptr;
 }
 

@@ -15,9 +15,9 @@
 #include <string>
 #include <vector>
 
-#include <app_context.h>
 #include <databuffer.h>
 #include <databuffer_factory.h>
+#include <engine.h>
 #include <layer.h>
 #include <model.h>
 #include <neuralnet.h>
@@ -127,8 +127,8 @@ createDataset(DatasetType type, datagen_cb cb, void *user_data,
 std::unique_ptr<ml::train::LearningRateScheduler>
 createLearningRateScheduler(const LearningRateSchedulerType &type,
                             const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+  auto &eg = nntrainer::Engine::Global();
+  return eg.createLearningRateSchedulerObject(type, properties);
 }
 
 /**
@@ -137,8 +137,8 @@ createLearningRateScheduler(const LearningRateSchedulerType &type,
 std::unique_ptr<ml::train::LearningRateScheduler>
 createLearningRateScheduler(const std::string &type,
                             const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  return ac.createObject<ml::train::LearningRateScheduler>(type, properties);
+  auto &eg = nntrainer::Engine::Global();
+  return eg.createLearningRateSchedulerObject(type, properties);
 }
 
 std::string getVersion() {

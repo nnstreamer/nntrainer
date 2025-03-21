@@ -19,11 +19,12 @@
 #include <utility>
 
 #include <activation_layer.h>
-#include <app_context.h>
 #include <base_properties.h>
 #include <bn_layer.h>
 #include <common_properties.h>
 #include <connection.h>
+#include <context.h>
+#include <engine.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -163,19 +164,8 @@ getComputeEngine(const std::vector<std::string> &props) {
 std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -184,19 +174,8 @@ createLayerNode(const ml::train::LayerType &type,
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties) {
-
-  if (getComputeEngine(properties) == ml::train::LayerComputeEngine::GPU) {
-#ifdef ENABLE_OPENCL
-    auto &cc = nntrainer::ClContext::Global();
-    return createLayerNode(cc.createObject<nntrainer::Layer>(type), properties);
-#else
-    throw std::invalid_argument(
-      "opencl layer creation without enable-opencl option");
-#endif
-  }
-
-  auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  auto &eg = nntrainer::Engine::Global();
+  return createLayerNode(eg.createLayerObject(type, properties), properties);
 }
 
 /**
@@ -505,44 +484,11 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
 
-  if (opt_var) {
-    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      if (run_context->isGradientLastAccess(i) && getTrainable()) {
-        /// @note read optimizer variables
-        for (unsigned int j = 0; j < run_context->getNumWeightOptVar(i); ++j) {
-          run_context->getWeightOptVar(i, j).read(file);
-        }
-      }
-    }
-  } else {
-
-    for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
-      /// @note shared weights are only be read at the first acecss
-      //      if (run_context->isGradientLastAccess(i)) {
-      if (run_context->isGradientFirstAccess(i)) {
-        if (layer->getType() == BatchNormalizationLayer::type &&
-            mode == ml::train::ExecutionMode::TRAIN &&
-            (this->getWeightDataType() != TensorDim::DataType::FP32)) {
-          /** @note for batch normalization layer, we do need full precision
-           * for training. but weight can be saved with other type. for
-           * training, bn weight type is fixed with full precsion */
-
-          TensorDim dim = run_context->getWeight(i).getDim();
-          dim.setDataType(this->getWeightDataType());
-          Tensor T_read(dim, true);
-          T_read.read(file);
-          run_context->getWeight(i).copyData(T_read);
-        } else {
-          if (!swap)
-            run_context->getWeight(i).read(file);
-        }
-
-        if (run_context->isMixedPrecision(i) && getTrainable() &&
-            !run_context->getWeightFP32(i).empty()) {
-          run_context->getWeightFP32(i).copyData(run_context->getWeight(i));
-        }
-      }
-    }
+  if (!swap) {
+    getLayer()->read(
+      file, *run_context, opt_var, mode,
+      (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+      getWeightDataType());
   }
 }
 
@@ -681,7 +627,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
 
   auto context = InitLayerContext(
     actual_input_dims, out_info, getInPlaceType() != InPlaceType::NONE,
-    getName(), scope, max_norm, tensor_type, loss_scale, mode);
+    getName(), scope, max_norm, tensor_type, loss_scale, mode, compute_engine);
 
   layer->finalize(context);
 
@@ -952,10 +898,11 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
                                     const std::vector<Var_Grad *> &tensors,
-                                    float loss_scale) {
+                                    float loss_scale,
+                                    std::shared_ptr<ContextData> ct_data) {
   run_context = std::make_unique<RunLayerContext>(
     getName(), getTrainable(), 0.0f, getInPlaceType() != InPlaceType::NONE,
-    loss_scale, false, weights, inputs, outputs, tensors);
+    loss_scale, ct_data, false, weights, inputs, outputs, tensors);
 }
 
 /**

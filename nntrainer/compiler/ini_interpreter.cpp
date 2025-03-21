@@ -47,9 +47,9 @@ static constexpr const char *LRSCHED_STR = "LearningRateScheduler";
 namespace nntrainer {
 
 IniGraphInterpreter::IniGraphInterpreter(
-  const AppContext &app_context_,
+  const Engine &ct_eg_,
   std::function<const std::string(const std::string &)> pathResolver_) :
-  app_context(app_context_), pathResolver(pathResolver_) {}
+  ct_engine(ct_eg_), pathResolver(pathResolver_) {}
 
 IniGraphInterpreter::~IniGraphInterpreter() {}
 
@@ -134,15 +134,15 @@ std::vector<std::string> section2properties(
  */
 template <typename T>
 std::shared_ptr<LayerNode>
-section2layer(dictionary *ini, const std::string &sec_name,
-              const AppContext &ac, const std::string &backbone_file,
+section2layer(dictionary *ini, const std::string &sec_name, const Engine &eg,
+              const std::string &backbone_file,
               std::function<const std::string(std::string)> &pathResolver) {
   throw std::invalid_argument("supported only with a tag for now");
 }
 
 template <>
 std::shared_ptr<LayerNode> section2layer<PlainLayer>(
-  dictionary *ini, const std::string &sec_name, const AppContext &ac,
+  dictionary *ini, const std::string &sec_name, const Engine &eg,
   const std::string &backbone_file,
   std::function<const std::string(std::string)> &pathResolver) {
 
@@ -153,13 +153,14 @@ std::shared_ptr<LayerNode> section2layer<PlainLayer>(
 
   auto properties = section2properties(ini, sec_name, pathResolver);
 
-  auto layer = createLayerNode(ac.createObject<Layer>(layer_type), properties);
+  auto layer =
+    createLayerNode(eg.createLayerObject(layer_type, properties), properties);
   return layer;
 }
 
 template <>
 std::shared_ptr<LayerNode> section2layer<BackboneLayer>(
-  dictionary *ini, const std::string &sec_name, const AppContext &ac,
+  dictionary *ini, const std::string &sec_name, const Engine &eg,
   const std::string &backbone_file,
   std::function<const std::string(std::string)> &pathResolver) {
   std::string type;
@@ -351,11 +352,11 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
       }
 
       if (std::strcmp(backbone_path, UNKNOWN_STR) == 0) {
-        layer = section2layer<PlainLayer>(ini, sec_name, app_context, "",
-                                          pathResolver);
+        layer =
+          section2layer<PlainLayer>(ini, sec_name, ct_engine, "", pathResolver);
       } else {
-        layer = section2layer<BackboneLayer>(ini, sec_name, app_context,
-                                             backbone, pathResolver);
+        layer = section2layer<BackboneLayer>(ini, sec_name, ct_engine, backbone,
+                                             pathResolver);
       }
 
       graph.push_back(layer);

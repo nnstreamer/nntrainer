@@ -18,7 +18,9 @@ fsu_targets = [
 
 if get_option('enable-fp16')
     test_target += mixed_precision_targets
+    if get_option('enable-memory-swap')
     test_target += fsu_targets
+    endif
 endif
 
 exe = executable(

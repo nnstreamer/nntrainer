@@ -595,6 +595,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/operation_layer.h
 # custom layer kits
 %{_includedir}/nntrainer/app_context.h
+%{_includedir}/nntrainer/context.h
+%{_includedir}/nntrainer/engine.h
 # optimizer headers
 %{_includedir}/nntrainer/optimizer_context.h
 %{_includedir}/nntrainer/optimizer_devel.h
@@ -633,7 +635,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/memory_pool.h
 %{_includedir}/nntrainer/swap_device.h
 %{_includedir}/nntrainer/optimizer_wrapped.h
-
+%{_includedir}/nntrainer/mem_allocator.h
+%{_includedir}/nntrainer/tensor_layer.h
+%{_includedir}/nntrainer/weight_layer.h
 %files devel-static
 %{_libdir}/libnntrainer*.a
 %exclude %{_libdir}/libcapi*.a
