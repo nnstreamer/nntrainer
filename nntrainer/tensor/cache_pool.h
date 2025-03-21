@@ -188,15 +188,7 @@ public:
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string path) override {
-    swap_device->setFsuWeightPath(path);
-    swap_device->finish();
-    if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
-      swap_device->start(size(), false);
-    } else {
-      swap_device->start(size(), true);
-    }
-  }
+  void setFsuWeightPath(std::string path) override;
 
   /**
    * @brief set weight file offset for FSU loading
