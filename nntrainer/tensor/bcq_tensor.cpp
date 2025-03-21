@@ -116,7 +116,7 @@ void *BCQTensor::getScale(size_t idx) const {
 }
 
 void *BCQTensor::getAddress(unsigned int i) {
-  size_t index = getIndex(batch(), channel(), height(), width() / 32);
+  size_t index = getIndex(batch(), channel(), width(), height() / 32);
   if (i > index) {
     return nullptr;
   }
@@ -124,7 +124,7 @@ void *BCQTensor::getAddress(unsigned int i) {
 }
 
 const void *BCQTensor::getAddress(unsigned int i) const {
-  size_t index = getIndex(batch(), channel(), height(), width() / 32);
+  size_t index = getIndex(batch(), channel(), width(), height() / 32);
   if (i > index) {
     return nullptr;
   }
@@ -201,7 +201,7 @@ void BCQTensor::initialize(Initializer init) {
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
   BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
-                           input.width());
+                           trans_in ? input.width() : input.height());
   return output;
 }
 
@@ -231,9 +231,9 @@ void BCQTensor::copyData(const Tensor &from) {
 void BCQTensor::copy_with_stride(const Tensor &input, Tensor &output) {
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
-      for (unsigned int h = 0; h < output.height(); ++h) {
-        for (unsigned int w = 0; w < output.width() / 32; ++w) {
-          output.setValue(b, c, h, w, input.getValue<uint32_t>(b, c, h, w));
+      for (unsigned int h = 0; h < output.width(); ++h) {
+        for (unsigned int w = 0; w < output.height() / 32; ++w) {
+          output.setValue(b, c, w, h, input.getValue<uint32_t>(b, c, h, w));
         }
       }
     }
@@ -272,6 +272,22 @@ void BCQTensor::read(std::ifstream &file) {
   createBCQW();
 }
 
+std::vector<unsigned int> BCQTensor::argmax() const {
+  std::vector<unsigned int> result;
+  const uint32_t *data = (uint32_t *)getData();
+  size_t batch_size = batch();
+  size_t feature_len = dim.getFeatureLen();
+
+  result.resize(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    auto max_iter =
+      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
+    result[b] = std::distance(data, max_iter) - (b * feature_len);
+  }
+  return result;
+}
+
 void BCQTensor::save_quantization_info(std::ostream &file) {
   checkedWrite(file, (char *)&quantized_bit_size, sizeof(uint16_t),
                "[BCQTensor::save] failed to write quantization information");
@@ -283,7 +299,7 @@ void BCQTensor::read_quantization_info(std::ifstream &file) {
 }
 
 size_t BCQTensor::size() const {
-  return quantized_bit_size * dim.height() * ((dim.width() + 31) / 32);
+  return quantized_bit_size * dim.width() * ((dim.height() + 31) / 32);
 }
 
 float BCQTensor::max_abs() const { return maxValue(); }
@@ -319,8 +335,8 @@ void BCQTensor::print(std::ostream &out) const {
   for (unsigned int bit = 0; bit < quantized_bit_size; ++bit) {
     for (unsigned int k = 0; k < batch(); k++) {
       for (unsigned int l = 0; l < channel(); l++) {
-        for (unsigned int i = 0; i < height(); i++) {
-          for (unsigned int j = 0; j < (width() + 31) / 32; j++) {
+        for (unsigned int i = 0; i < width(); i++) {
+          for (unsigned int j = 0; j < (height() + 31) / 32; j++) {
             out << data[idx++] << " ";
           }
           out << std::endl;
@@ -336,7 +352,7 @@ size_t BCQTensor::getMemoryBytes() const {
   return bytes() + scale_size() * sizeof(float);
 }
 
-size_t BCQTensor::scale_size() const { return height() * quantized_bit_size; }
+size_t BCQTensor::scale_size() const { return width() * quantized_bit_size; }
 
 void BCQTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
