@@ -276,6 +276,12 @@ public:
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
   /**
+   * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
+   * format, const std::string type);
+   */
+  void save(const std::string &file_path, TensorDim::DataType type) override;
+
+  /**
    * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
    * format);
    */

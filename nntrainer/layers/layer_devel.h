@@ -327,7 +327,58 @@ public:
    * @param opt_var boolean variable whether saving optimizer variables
    * @param mode Execution mode
    * @param trainable is there trainable weight
-   * @param definedWeightDataTey current data type of the layer
+   * @param definedWeightDataType current data type of the layer
+   */
+  virtual void save(std::ofstream &file, RunLayerContext &run_context,
+                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
+                    TensorDim::DataType definedWeightDataType,
+                    TensorDim::DataType type) const {
+
+    if (opt_var) {
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        if (run_context.isGradientFirstAccess(i) && trainable) {
+          // @note save optimizer variables
+          if (run_context.weightHasGradient(i)) {
+            for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i);
+                 ++j) {
+              run_context.getWeightOptVar(i, j).save(file);
+            }
+          }
+        }
+      }
+    } else {
+      // @note shared weights are only be saved at the first access
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+        if (run_context.isGradientFirstAccess(i)) {
+          auto w = run_context.getWeight(i);
+
+          switch (type) {
+          case Tdatatype::QINT8:
+          case Tdatatype::QINT16:
+          case Tdatatype::UINT8:
+          case Tdatatype::UINT16: {
+            auto quantizer = Quantization::createQuantizer(
+              nntrainer::QScheme::PER_TENSOR_AFFINE);
+            auto w_q = quantizer->quantize(w, type);
+            w_q.save(file);
+            break;
+          }
+          default:
+            throw exception::not_supported("[save] unsupported type-cast save");
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief     save layer Weight & Bias data from file
+   * @param file output file stream
+   * @param run_context run context for the layer
+   * @param opt_var boolean variable whether saving optimizer variables
+   * @param mode Execution mode
+   * @param trainable is there trainable weight
+   * @param definedWeightDataType current data type of the layer
    */
   virtual void save(std::ofstream &file, RunLayerContext &run_context,
                     bool opt_var, ml::train::ExecutionMode mode, bool trainable,

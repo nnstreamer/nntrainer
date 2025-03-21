@@ -121,6 +121,7 @@ private:
                                              lora_scaling = alpha / lora_rank */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
   std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
+  std::unique_ptr<nntrainer::Quantizer> quantizer;
 };
 } // namespace nntrainer
 

@@ -164,6 +164,16 @@ public:
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
+   * @brief  save model states and training parameters from a file (with a
+   * quantized type)
+   * @param file_path file_path to save the model, if full path is not
+   * given, it should be saved inside working directory
+   * @param type type to be casted
+   * @note only MODEL_FORMAT_BIN format is supported
+   */
+  virtual void save(const std::string &file_path, TensorDim::DataType type) = 0;
+
+  /**
    * @brief  load model with regard to the format
    * @param file_path file_path to save the model, if full path is not
    * given, it should be saved inside working directory
