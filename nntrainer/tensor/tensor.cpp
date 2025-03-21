@@ -752,6 +752,15 @@ Tensor &Tensor::sum(const std::vector<unsigned int> &axes, Tensor &output,
   return output;
 }
 
+Tensor &Tensor::abs(Tensor &output) const {
+  if (size() != output.size() || getDataType() != output.getDataType() ||
+      getFormat() != output.getFormat())
+    throw std::invalid_argument(
+      "Error: Tensor::abs requires output tensor to be same size, data type "
+      "and format as input tensor.");
+  return itensor->abs(output);
+}
+
 Tensor Tensor::average(unsigned int axis) const {
   Tensor output("", this->getFormat(), this->getDataType());
   return average(axis, output);
@@ -875,6 +884,16 @@ void Tensor::cos(Tensor &out, float alpha) {
     throw std::invalid_argument("Error: Size of out of Tensor::cos must match");
 
   itensor->cos(out, alpha);
+}
+
+void Tensor::tan(Tensor &output, float alpha) {
+  if (size() != output.size() || getDataType() != output.getDataType() ||
+      getFormat() != output.getFormat())
+    throw std::invalid_argument(
+      "Error: Tensor::abs requires output tensor to be same size, data type "
+      "and format as input tensor.");
+
+  itensor->tan(output, alpha);
 }
 
 void Tensor::inv_sqrt_i() { itensor->inv_sqrt(*this); }
