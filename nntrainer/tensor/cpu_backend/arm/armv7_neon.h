@@ -92,6 +92,14 @@ static inline uint32_t vaddvq_u32(uint32x4_t a) {
   return ret;
 }
 
+static inline int32x4_t vcvtnq_s32_f32(float32x4_t a) {
+  int32x4_t ret;
+  for (unsigned int i = 0; i < 4; ++i) {
+    ret[i] = std::lround(a[i]);
+  }
+  return ret;
+}
+
 #ifdef ENABLE_FP16
 /**
  * @brief macro for vfmaq_n_f16

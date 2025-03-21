@@ -287,6 +287,21 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       unsigned int ld_dst);
 #endif
 /**
+ * @brief Elementwise multiplication with neon : Z = X ⊙ Y
+ *
+ * @param lhs int8_t * input
+ * @param rhs int8_t * input
+ * @param res int8_t * output
+ * @param data_len length of input data
+ * @param lhs_scale float scale of lhs data
+ * @param rhs_scale float scale of rhs data
+ * @param res_scale resultant scale factor
+ * @param scale_len length of scale factor
+ */
+void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
+              const float *lhs_scale, const float *rhs_scale,
+              const float *res_scale, unsigned int scale_len);
+/**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
  * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))
