@@ -496,7 +496,11 @@ public:
 
     if (t_w.getDataType() == Tdatatype::FP32 ||
         t_w.getDataType() == Tdatatype::FP16 ||
-        t_w.getDataType() == Tdatatype::BCQ) {
+        t_w.getDataType() == Tdatatype::BCQ ||
+        t_w.getDataType() == Tdatatype::QINT8 ||
+        t_w.getDataType() == Tdatatype::QINT16 ||
+        t_w.getDataType() == Tdatatype::UINT8 ||
+        t_w.getDataType() == Tdatatype::UINT16) {
       w = t_w;
       return;
     }
