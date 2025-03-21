@@ -87,7 +87,7 @@ public:
     rpcmem_free =
       (RpcMemFreeFn_t)DynamicLibraryLoader::loadSymbol(handle, "rpcmem_free");
 
-    auto close_dl = [handle] { dlclose(handle); };
+    auto close_dl = [handle] { DynamicLibraryLoader::freeLibrary(handle); };
 
     if (rpcmem_alloc == nullptr || rpcmem_free == nullptr) {
       NNTR_THROW_IF_CLEANUP(rpcmem_alloc == nullptr || rpcmem_free == nullptr,
