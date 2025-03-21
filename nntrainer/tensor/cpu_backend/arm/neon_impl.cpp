@@ -69,7 +69,7 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
       float32x4_t x8_11 = vld1q_f32(&X[i + 8]);
       float32x4_t x12_15 = vld1q_f32(&X[i + 12]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_3 = vmulq_f32(x0_3, v_alpha);
         x4_7 = vmulq_f32(x4_7, v_alpha);
         x8_11 = vmulq_f32(x8_11, v_alpha);
@@ -109,7 +109,7 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
       float32x4_t x0_3 = vld1q_f32(&X[i]);
       float32x4_t x4_7 = vld1q_f32(&X[i + 4]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_3 = vmulq_f32(x0_3, v_alpha);
         x4_7 = vmulq_f32(x4_7, v_alpha);
       }
@@ -141,7 +141,7 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
     for (unsigned i = 0; i < cols; i += 4) {
       float32x4_t x0_3 = vld1q_f32(&X[i]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_3 = vmulq_f32(x0_3, v_alpha);
       }
 
@@ -429,7 +429,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
-    if (alpha != 1.0)
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t sinx0_3 = sin_ps(x0_3);
     vst1q_f32(&Y[i], sinx0_3);
@@ -444,7 +444,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
-    if (alpha != 1.0)
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t cosx0_3 = cos_ps(x0_3);
     vst1q_f32(&Y[i], cosx0_3);
@@ -478,7 +478,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     float32x4_t y0_3 = vld1q_f32(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vmulq_f32(x0_3, y0_3);
@@ -505,7 +505,7 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     float32x4_t y0_3 = vld1q_f32(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vaddq_f32(x0_3, y0_3);
@@ -532,7 +532,7 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     float32x4_t y0_3 = vld1q_f32(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vsubq_f32(x0_3, y0_3);
@@ -559,7 +559,7 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     float32x4_t y0_3 = vld1q_f32(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_3 = vmulq_f32(y0_3, alpha_vec);
     }
     float32x4_t xy0_3 = vdivq_f32(x0_3, y0_3);
