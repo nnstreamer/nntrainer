@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <system_error>
 #include <utility>
+#include <vector>
 #if defined(_WIN32)
 #include <io.h>
 #define O_SYNC 0UL

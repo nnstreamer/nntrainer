@@ -51,7 +51,8 @@ bool is_valid(const unsigned int N, const __fp16 *input) {
     if (val != val) {
       return false;
     }
-    uint16_t val_bits = reinterpret_cast<uint16_t &>(val);
+    uint16_t val_bits;
+    std::memcpy((char *)&val_bits, (const char *)&val, sizeof(__fp16));
     if (val_bits == 0x7C00 || val_bits == 0xFC00) {
       return false;
     }
