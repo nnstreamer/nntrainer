@@ -26,8 +26,7 @@
 
 void hgemm_noTrans(const __fp16 *A, const __fp16 *B, float *C32, unsigned int M,
                    unsigned int N, unsigned int K, float alpha, float beta) {
-  const float eps = std::numeric_limits<float>::epsilon();
-  if (std::abs(alpha - 1.F) < eps) {
+  if (std::fpclassify(alpha - 1.F) == FP_ZERO) {
     hgemm_noTrans_strict(A, B, C32, M, N, K, alpha, beta);
   } else {
     hgemm_noTrans_fallback(M, N, K, A, K, B, N, C32, N, alpha, beta);
@@ -57,7 +56,7 @@ void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, float *C32,
 void hgemm_noTrans_strict(const __fp16 *A, const __fp16 *B, __fp16 *C,
                           unsigned int M, unsigned int N, unsigned int K,
                           float alpha, float beta) {
-  if (alpha == 1.F) {
+  if (std::fpclassify(alpha - 1.F) == FP_ZERO) {
     // used bitwise operator instead of modulo for performance
     // e.g (M % 8) is same as (M & 0x7) which will extract last 3 bits of M
     if ((M & 0x7) == 0 && (N & 0xF) == 0 && (K & 0x7) == 0) {

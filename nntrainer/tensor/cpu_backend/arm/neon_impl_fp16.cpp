@@ -110,7 +110,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       float16x8_t x104_111 = vld1q_f16(&X[idx + 104]);
       float16x8_t x112_120 = vld1q_f16(&X[idx + 112]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_7 = vmulq_n_f16(x0_7, alpha);
         x8_15 = vmulq_n_f16(x8_15, alpha);
         x16_23 = vmulq_n_f16(x16_23, alpha);
@@ -169,7 +169,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       float16x8_t x48_55 = vld1q_f16(&X[idx + 48]);
       float16x8_t x56_63 = vld1q_f16(&X[idx + 56]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_7 = vmulq_n_f16(x0_7, alpha);
         x8_15 = vmulq_n_f16(x8_15, alpha);
         x16_23 = vmulq_n_f16(x16_23, alpha);
@@ -206,7 +206,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       float16x8_t x16_23 = vld1q_f16(&X[idx + 16]);
       float16x8_t x24_31 = vld1q_f16(&X[idx + 24]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_7 = vmulq_n_f16(x0_7, alpha);
         x8_15 = vmulq_n_f16(x8_15, alpha);
         x16_23 = vmulq_n_f16(x16_23, alpha);
@@ -232,7 +232,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       float16x8_t x0_7 = vld1q_f16(&X[idx]);
       float16x8_t x8_15 = vld1q_f16(&X[idx + 8]);
 
-      if (alpha != 1.0) {
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
         x0_7 = vmulq_n_f16(x0_7, alpha);
         x8_15 = vmulq_n_f16(x8_15, alpha);
       }
@@ -251,7 +251,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
   for (; N - idx >= 8; idx += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[idx]);
 
-    if (alpha != 1.0) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       x0_7 = vmulq_n_f16(x0_7, alpha);
     }
 
@@ -269,7 +269,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
   for (; N - idx >= 4; idx += 4) {
     float32x4_t x0_3 = vcvt_f32_f16(vld1_f16(&X[idx]));
 
-    if (alpha != 1.0) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       x0_3 = vmulq_n_f32(x0_3, alpha);
     }
 
@@ -291,7 +291,7 @@ void hgemv(const __fp16 *A, const __fp16 *X, __fp16 *Y, uint32_t M, uint32_t N,
       x0_3[j] = 0;
     }
 
-    if (alpha != 1.0) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       x0_3 = vmulq_n_f32(x0_3, alpha);
     }
 
@@ -1099,7 +1099,7 @@ void ele_mul(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vmulq_f16(x0_7, y0_7);
@@ -1127,7 +1127,7 @@ void ele_add(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vaddq_f16(x0_7, y0_7);
@@ -1155,7 +1155,7 @@ void ele_sub(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vsubq_f16(x0_7, y0_7);
@@ -1183,7 +1183,7 @@ void ele_div(const unsigned int N, const __fp16 *X, const __fp16 *Y, __fp16 *Z,
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_7 = vld1q_f16(&X[i]);
     float16x8_t y0_7 = vld1q_f16(&Y[i]);
-    if (alpha != 1.f) {
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       y0_7 = vmulq_f16(y0_7, alpha_vec);
     }
     float16x8_t xy0_7 = vdivq_f16(x0_7, y0_7);
