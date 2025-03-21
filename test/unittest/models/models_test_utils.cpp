@@ -273,13 +273,11 @@ void NodeWatcher::read(std::ifstream &in) {
 
   for (auto &i : expected_weights) {
     if (i.hasGradient()) {
-      // std::cout << "weight-" << i.getName() << ": " << i.getDim();
       i.getGradientRef().read(in);
     }
   }
 
   for (auto &i : expected_weights) {
-    // std::cout << "grad-" << i.getName() << ": " << i.getDim();
     i.getVariableRef().read(in);
   }
 }

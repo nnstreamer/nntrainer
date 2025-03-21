@@ -97,7 +97,6 @@ public:
 #else
     allocators = Engine(Engine::Global()).getAllocators();
 #endif
-
   }
 
   /**
@@ -319,7 +318,6 @@ private:
     allocators;
   RpcMemAllocFn_t rpcmem_alloc;
   RpcMemFreeFn_t rpcmem_free;
-
 };
 
 } // namespace nntrainer

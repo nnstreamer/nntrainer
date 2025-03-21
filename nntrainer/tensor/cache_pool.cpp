@@ -163,7 +163,6 @@ void CachePool::deallocate() {
 }
 
 void CachePool::validate(unsigned int id) {
-  std::cout << ((elems[id]->isActive())?"validate":"swapIn")<<std::endl;
   if (!elems[id]->isActive()) {
     elems[id]->swapIn();
     actives.push_back(elems[id]);

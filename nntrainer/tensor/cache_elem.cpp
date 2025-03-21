@@ -54,8 +54,7 @@ void CacheElem::swapIn(Options opt) {
 
   opt = static_cast<Options>(opt | initial_opt);
   bool alloc_only = checkAllocOnly(policy, opt);
-  std::cout<< "swapIn : "<<offset <<" " <<length << " "<< memory_ptr<< std::endl;
-  
+
   void *buf = device->getBuffer(offset, length, memory_ptr, alloc_only);
 
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_ACCESS);
