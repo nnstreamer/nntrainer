@@ -81,10 +81,10 @@ NeuralNetwork::NeuralNetwork() :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN) {
-  app_context = AppContext::Global();
+  ct_engine = Engine(Engine::Global());
 }
 
-NeuralNetwork::NeuralNetwork(AppContext app_context_) :
+NeuralNetwork::NeuralNetwork(Engine ct_engine_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
   model_flex_props(
@@ -101,7 +101,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN),
-  app_context(app_context_) {}
+  ct_engine(ct_engine_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -109,7 +109,7 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  ModelLoader loader(app_context);
+  ModelLoader loader(ct_engine);
   NeuralNetwork tempNet(*this);
 
   int status = loader.loadFromContext(tempNet);
@@ -638,11 +638,18 @@ void NeuralNetwork::load(const std::string &file_path,
                          ml::train::ModelFormat format) {
   /// @todo this switch case should be delegating the function call only. It's
   /// not delegating for now as required logics are manageable for now.
+
   bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+
+  const std::regex reg_("\\s*\\:\\s*");
+  auto v = split(file_path, reg_);
+
   if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
-    model_graph.setFsuWeightPath(file_path);
+
+    model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
 
     std::vector<std::pair<size_t, size_t>> file_offset;
+    // size_t start_from = sizeof(unsigned short);
     size_t start_from = 0;
     for (auto node : model_graph.getLayerNodes()) {
       auto weights = node->getRunContext().getWeights();
@@ -650,13 +657,18 @@ void NeuralNetwork::load(const std::string &file_path,
         auto dim = weight->getDim();
         size_t size =
           dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+
+        // auto var_t = weight->getVariable();
+        // size_t size = var_t.getMemoryBytes();
+
+        // there is uint16 to save quantization bit for each tensor
         file_offset.emplace_back(std::make_pair(start_from, size));
+        // start_from += size + sizeof(unsigned short);
         start_from += size;
       }
     }
     model_graph.setWeightOffset(file_offset);
   }
-
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -664,7 +676,8 @@ void NeuralNetwork::load(const std::string &file_path,
       << " format: " << static_cast<unsigned>(format);
 
     auto model_file = checkedOpenStream<std::ifstream>(
-      file_path, std::ios::in | std::ios::binary);
+      (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->read(model_file, false, exec_mode, swap_mode);
     }
@@ -694,11 +707,12 @@ void NeuralNetwork::load(const std::string &file_path,
                    "iteration, proceeding with default\n";
     }
 
-    ml_logi("read modelfile: %s", file_path.c_str());
+    ml_logi("read modelfile: %s",
+            (v.size() == 2) ? v[1].c_str() : v[0].c_str());
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
-    int ret = loadFromConfig(file_path);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
     auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
@@ -709,16 +723,40 @@ void NeuralNetwork::load(const std::string &file_path,
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_INI: {
-    int ret = loadFromConfig(file_path);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
     break;
   }
   case ml::train::ModelFormat::MODEL_FORMAT_FLATBUFFER: {
     break;
   }
+
   case ml::train::ModelFormat::MODEL_FORMAT_ONNX: {
-    int ret = loadFromConfig(file_path);
+    int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);
+    break;
+  }
+
+  case ml::train::ModelFormat::MODEL_FORMAT_QNN: {
+    // for now, we only support to QNN binary format for Inference mode.
+    // expect to have the file path for qnn bin and nntrainer bin seperated by
+    // ":" QNN bin ( graph ) : NNTrainer bin (weight)
+    NNTR_THROW_IF(exec_mode != ExecutionMode::INFERENCE, std::invalid_argument)
+      << "Only support QNN biarny for Infernece";
+
+    std::thread qnn_load([this, &v]() {
+      int ret =
+        ct_engine.getRegisteredContext("qnn")->load(props::FilePath(v[0]));
+      throw_status(ret);
+    });
+
+    if (!swap_mode && v.size() > 1) {
+      load(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    } else if (swap_mode) {
+      model_graph.setFsuWeightPath(v[1]);
+    }
+
+    qnn_load.join();
     break;
   }
   default:

@@ -92,6 +92,8 @@ for inference and training without any configurations*/
   MODEL_FORMAT_FLATBUFFER =
     ML_TRAIN_MODEL_FORMAT_FLATBUFFER,             /**< flatbuffer file */
   MODEL_FORMAT_ONNX = ML_TRAIN_MODEL_FORMAT_ONNX, /**< ONNX file */
+
+  MODEL_FORMAT_QNN = ML_TRAIN_MODEL_FORMAT_QNN /**< qnn binary file */
 };
 
 /**

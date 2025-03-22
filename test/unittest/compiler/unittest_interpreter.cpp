@@ -30,7 +30,7 @@
 using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 
 auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
-  nntrainer::AppContext::Global(), compilerPathResolver);
+  nntrainer::Engine::Global(), compilerPathResolver);
 
 /**
  * @brief nntrainer Interpreter Test setup

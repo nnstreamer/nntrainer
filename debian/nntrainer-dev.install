@@ -37,6 +37,8 @@
 /usr/include/nntrainer/loss_layer.h
 # custom layer kits
 /usr/include/nntrainer/app_context.h
+/usr/include/nntrainer/context.h
+/usr/include/nntrainer/engine.h
 # logger
 /usr/include/nntrainer/nntrainer_log.h
 /usr/include/nntrainer/nntrainer_logger.h
@@ -76,3 +78,6 @@
 /usr/include/nntrainer/memory_pool.h
 /usr/include/nntrainer/swap_device.h
 /usr/include/nntrainer/optimizer_wrapped.h
+/usr/include/nntrainer/mem_allocator.h
+/usr/include/nntrainer/tensor_layer.h
+/usr/include/nntrainer/weight_layer.h

@@ -28,6 +28,7 @@
 namespace nntrainer {
 
 class Var_Grad;
+class ContextData;
 
 /**
  * @class   Layer Context class for all layers
@@ -62,7 +63,8 @@ public:
     const float max_norm = 0.0,
     std::array<std::string, 3> tensor_type_ = {"NCHW", "FP32", "FP32"},
     const float loss_scale = 1.0,
-    ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
+    ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
+    ml::train::LayerComputeEngine engine = ml::train::LayerComputeEngine::CPU);
   /**
    * @brief   get Tensor Format of Layer
    *
@@ -92,6 +94,13 @@ public:
     return str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
       from_string(tensor_type[2]);
   };
+
+  /**
+   * @brief   get Layer Compute Engine Type
+   *
+   * @return Engine Engine Type
+   */
+  ml::train::LayerComputeEngine getComputeEngineType() { return engine; };
 
   /**
    * @brief   get name by the layer
@@ -265,15 +274,15 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int
-  requestTensor(const TensorDim &dim, const std::string &name,
-                const Initializer init = Initializer::NONE,
-                bool trainable = false,
-                TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
-                bool private_ = true) {
+  unsigned int requestTensor(
+    const TensorDim &dim, const std::string &name,
+    const Initializer init = Initializer::NONE, bool trainable = false,
+    TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
+    bool private_ = true,
+    ml::train::LayerComputeEngine engine = ml::train::LayerComputeEngine::CPU) {
     const auto &prefix_ = private_ ? this->name : this->prefix;
     tensors_spec.emplace_back(dim, init, trainable, prefix_ + ":" + name,
-                              lifespan);
+                              lifespan, engine);
     return tensors_spec.size() - 1;
   }
 
@@ -419,6 +428,7 @@ private:
   std::array<std::string, 3> tensor_type;
   float loss_scale; /**< loss_scale value */
   ml::train::ExecutionMode mode;
+  ml::train::LayerComputeEngine engine;
 };
 
 /**
@@ -478,7 +488,8 @@ public:
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool is_inplace_, float loss_scale_, bool restoreData_,
+                  bool is_inplace_, float loss_scale_,
+                  std::shared_ptr<ContextData> ct_data, bool restoreData_,
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
@@ -856,6 +867,8 @@ public:
     return loss_;
   }
 
+  std::shared_ptr<ContextData> getContextData() { return ct_data; }
+
   /**
    * @brief   get name by the layer
    *
@@ -933,7 +946,8 @@ public:
 
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
-  float loss;                                      /**< loss of the layer */
+  std::shared_ptr<ContextData> ct_data;
+  float loss;       /**< loss of the layer */
   bool is_inplace;  /**< if the layer is expected to run in-place */
   float loss_scale; /**< loss_scale of the layer */
   bool restoreData; /**< reset output for mixed precsion */

@@ -92,12 +92,11 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
     size_t diff = offset - off;
     size_t len = size + diff;
-
+    const size_t error_buflen = 100;
+    char error_buf[error_buflen];
     char *ptr = static_cast<char *>(
       mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
 
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
