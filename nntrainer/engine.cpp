@@ -159,10 +159,10 @@ int Engine::registerContext(const std::string &library_path,
 
   nntrainer::ContextPluggable *pluggable =
     reinterpret_cast<nntrainer::ContextPluggable *>(
-      dlsym(handle, "ml_train_context_pluggable"));
+      DynamicLibraryLoader::loadSymbol(handle, "ml_train_context_pluggable"));
 
-  error_msg = dlerror();
-  auto close_dl = [handle] { dlclose(handle); };
+  error_msg = DynamicLibraryLoader::getLastError();
+  auto close_dl = [handle] { DynamicLibraryLoader::freeLibrary(handle); };
   NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
                         std::invalid_argument, close_dl)
     << func_tag << "loading symbol failed, reason: " << error_msg;

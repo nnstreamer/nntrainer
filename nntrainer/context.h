@@ -32,7 +32,6 @@
 #include <optimizer.h>
 #include <optimizer_devel.h>
 
-#include <iostream>
 #include <nntrainer_log.h>
 
 namespace nntrainer {

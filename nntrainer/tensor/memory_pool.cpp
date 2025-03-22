@@ -25,6 +25,29 @@
 #include <profiler.h>
 #include <vector>
 
+#if defined(_WIN32)
+#define GET_SYSTEM_ALIGMENT()                                                  \
+  ([]() -> size_t {                                                            \
+    SYSTEM_INFO sysInfo;                                                       \
+    GetSystemInfo(&sysInfo);                                                   \
+    return sysInfo.dwPageSize;                                                 \
+  })()
+
+#define ALIGNED_ALLOC(size) _aligned_malloc(size, GET_SYSTEM_ALIGMENT())
+#define ALIGNED_FREE(ptr) _aligned_free(ptr)
+#elif defined(__ANDROID__)
+#define RPCMEM_HEAP_ID_SYSTEM 25
+#define RPCMEM_DEFAULT_FLAGS 1
+#define ALIGNED_ALLOC(size)                                                    \
+  rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, size)
+#define ALIGNED_FREE(ptr) rpcmem_free(ptr)
+#else
+#define GET_SYSTEM_ALIGMENT()                                                  \
+  ([]() -> size_t { return sysconf(_SC_PAGE_SIZE); })()
+#define ALIGNED_ALLOC(size) std::aligned_alloc(GET_SYSTEM_ALIGMENT(), size)
+#define ALIGNED_FREE(ptr) free(ptr)
+#endif
+
 namespace nntrainer {
 
 /**
@@ -178,15 +201,8 @@ void MemoryPool::allocateFSU() {
 
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
-#if defined(_WIN32)
-  SYSTEM_INFO system_info;
-  GetSystemInfo(&system_info);
-  mem_pool = _aligned_malloc(pool_size, system_info.dwPageSize);
-  // mem_pool = std::aligned_alloc(si.dwPageSize, pool_size);
-#elif defined(__ANDROID__)
+
   int i = 0;
-#define RPCMEM_HEAP_ID_SYSTEM 25
-#define RPCMEM_DEFAULT_FLAGS 1
   std::map<size_t, void *> offset_ptr;     // offset : ptr
   std::map<size_t, size_t> allocated_size; // offset : memory size
   std::map<size_t, std::vector<int>>
@@ -196,8 +212,7 @@ void MemoryPool::allocateFSU() {
     size_t current_size = memory_size.at(i);
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
-      void *ptr =
-        rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, current_size);
+      void *ptr = ALIGNED_ALLOC(current_size);
       memory_ptrs.push_back(ptr);
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
@@ -207,13 +222,12 @@ void MemoryPool::allocateFSU() {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
       if (max_size < current_size) {
-        void *new_ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
-                                     RPCMEM_DEFAULT_FLAGS, current_size);
+        void *new_ptr = ALIGNED_ALLOC(current_size);
 
         for (int idx : offset_indices[s]) {
           memory_ptrs[idx] = new_ptr;
         }
-        rpcmem_free(existing_ptr);
+        ALIGNED_FREE(existing_ptr);
         offset_ptr[s] = new_ptr;
         allocated_size[s] = current_size;
       }
@@ -224,17 +238,6 @@ void MemoryPool::allocateFSU() {
   }
 
   mem_pool = calloc(1, 1);
-#else
-  mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
-
-#endif
-
-  // unsigned int idx = 1;
-  // for (auto &s : memory_offset) {
-  //   char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  //   memory_ptrs.push_back(ptr);
-  //   idx++;
-  // }
 
   if (mem_pool == nullptr)
     throw std::runtime_error(
@@ -253,9 +256,10 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  auto mem_data = std::make_shared<MemoryData>((void *)ptr);
-  memory_ptrs.emplace_back(ptr);
+  // char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+  // auto mem_data = std::make_shared<MemoryData>((void *)ptr);
+  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+  // memory_ptrs.emplace_back(ptr);
 #endif
   return mem_data;
 }
@@ -275,16 +279,18 @@ void MemoryPool::deallocate() {
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(mem_pool);
 #endif
+
     memory_ptrs.clear();
 
-#if defined(__ANDROID__)
-    int i = 0;
-    for (auto &s : memory_ptrs) {
-      if (s)
-        // allocators.at("qnn")->free(s);
-        rpcmem_free(s);
-    }
-#endif
+    // #if defined(__ANDROID__)
+    // int i = 0;
+    // for (auto &s : memory_ptrs) {
+    //   if (s)
+    //     // allocators.at("qnn")->free(s);
+    //     // rpcmem_free(s);
+    //     ALIGNED_FREE(s);
+    // }
+    // #endif
   }
   mem_pool = nullptr;
 }

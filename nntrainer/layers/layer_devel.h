@@ -353,7 +353,7 @@ public:
         }
       }
     }
-  }  
+  }
 
   /**
    * @brief     read layer Weight & Bias data from file

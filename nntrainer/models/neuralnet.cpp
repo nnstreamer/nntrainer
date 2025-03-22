@@ -391,7 +391,6 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(f);
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
-
     }
   };
 
@@ -647,8 +646,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
   if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
 
-    model_graph.setFsuWeightPath((v.size() == 2) ? v[0] : v[1]);
-    std::cout << v[0] << " : "<<v[1]<<std::endl;
+    model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
 
     std::vector<std::pair<size_t, size_t>> file_offset;
     // size_t start_from = sizeof(unsigned short);
@@ -656,8 +654,8 @@ void NeuralNetwork::load(const std::string &file_path,
     for (auto node : model_graph.getLayerNodes()) {
       auto weights = node->getRunContext().getWeights();
       for (auto weight : weights) {
-	auto dim = weight->getDim();
-	size_t size =
+        auto dim = weight->getDim();
+        size_t size =
           dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
 
         // auto var_t = weight->getVariable();
