@@ -333,7 +333,6 @@ public:
    */
   void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
     if (mem_pool) {
-      std::cout << "setFSU Weight Path in tensor_pool"<<std::endl;          
       mem_pool->setWeightOffset(offsets);
     }
   }

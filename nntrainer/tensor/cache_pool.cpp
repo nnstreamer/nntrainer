@@ -139,12 +139,10 @@ void CachePool::allocate() {
 
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
-  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
-    MemoryPool::allocateFSU();
-    swap_device->start(size(), false);
-  } else {
-    swap_device->start(size(), true);
-  }
+
+  MemoryPool::allocateFSU();
+  swap_device->start(size(),
+                     execution_mode_ == ml::train::ExecutionMode::TRAIN);
 }
 
 void CachePool::deallocate() {
@@ -163,7 +161,6 @@ void CachePool::deallocate() {
 }
 
 void CachePool::validate(unsigned int id) {
-  std::cout << ((elems[id]->isActive())?"validate":"swapIn")<<std::endl;
   if (!elems[id]->isActive()) {
     elems[id]->swapIn();
     actives.push_back(elems[id]);
@@ -212,7 +209,6 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   void *memory_ptr = getMemoryPtrs().at(id - 1);
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
-
   elems[id] = elem;
 
   std::string ords;

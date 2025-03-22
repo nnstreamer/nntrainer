@@ -523,7 +523,6 @@ public:
    * @param path FSU weight file path
    */
   void setFsuWeightPath(const std::string &path) {
-    std::cout << "setFSU Weight Path in graph"<<std::endl;
     tensor_manager->setFsuWeightPath(path);
   }
 

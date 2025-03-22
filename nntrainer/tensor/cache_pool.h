@@ -205,7 +205,6 @@ public:
    */
   void
   setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
-      std::cout << "setFSU Weight Path in cache_pool"<<std::endl;              
     swap_device->setWeightOffset(offsets);
   }
 
