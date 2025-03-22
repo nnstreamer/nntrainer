@@ -139,12 +139,10 @@ void CachePool::allocate() {
 
   NNTR_THROW_IF(pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
-  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
     MemoryPool::allocateFSU();
-    swap_device->start(size(), false);
-  } else {
-    swap_device->start(size(), true);
-  }
+  swap_device->start(size(),
+                     execution_mode_ == ml::train::ExecutionMode::TRAIN);
 }
 
 void CachePool::deallocate() {
@@ -206,10 +204,11 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1));
 
-  // auto mem_pool_address = getMemoryPoolAddress();
-  // void *memory_ptr = static_cast<char *>(mem_pool_address) + offset;
+  void *memory_ptr = nullptr;
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    memory_ptr = getMemoryPtrs().at(id - 1);
+  }
 
-  void *memory_ptr = getMemoryPtrs().at(id - 1);
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
 
@@ -228,8 +227,9 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
 }
 
 void CachePool::flush() {
-  for (auto &elem : actives)
+  for (auto &elem : actives) {
     elem->swapOut(CacheElem::LAST_ACCESS);
+  }
 
   for (auto &[id, elem] : elems)
     elem->reset();
@@ -296,6 +296,7 @@ void CachePool::clear() {
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }
 
 void CachePool::loadExec(unsigned int order) {
+  std::cout << "loadExec " << order << std::endl;
   for (auto &id : exec_ids[order])
     validate(id);
 }

@@ -99,7 +99,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     char error_buf[error_buflen];
     char *ptr = static_cast<char *>(
       mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
-
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
@@ -151,7 +150,6 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
 
   off_t off;
   ssize_t len;
-
   auto info = mapped[ptr];
   if (!dealloc_only) {
     off = lseek(fd, std::get<2>(info), SEEK_SET);
@@ -219,8 +217,10 @@ void SwapDevice::finish() {
     return;
 
 #ifdef USE_MMAP
-  for (auto &[ptr, info] : mapped)
-    free(ptr);
+  for (auto &[ptr, info] : mapped) {
+    if (ptr)
+      free(ptr);
+  }
   mapped.clear();
 #else
   for (auto &alloc : allocated)

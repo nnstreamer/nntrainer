@@ -75,7 +75,6 @@ void CacheElem::swapOut(Options opt) {
   opt = static_cast<Options>(opt | initial_opt);
   bool dealloc_only = checkDeallocOnly(policy, opt);
   void *buf = (void *)mem_data->getAddr();
-
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_WRITE);
   device->putBuffer(buf, dealloc_only);
   mem_data->setAddr(nullptr);
