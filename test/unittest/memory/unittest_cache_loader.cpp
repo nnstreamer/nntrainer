@@ -59,23 +59,18 @@ TEST_F(CacheLoaderTest, load_01_p) {
   loader->load(1);
   EXPECT_NE(mem->getAddr(), nullptr);
   pool->flush();
-
   loader->load(2);
   EXPECT_NE(mem->getAddr(), nullptr);
   pool->flush();
-
   loader->load(3);
   EXPECT_NE(mem->getAddr(), nullptr);
   pool->flush();
-
   loader->load(4);
   EXPECT_NE(mem->getAddr(), nullptr);
   pool->flush();
-
   loader->load(5);
   EXPECT_NE(mem->getAddr(), nullptr);
   pool->flush();
-
   loader->load(6);
   EXPECT_EQ(mem->getAddr(), nullptr);
   pool->flush();

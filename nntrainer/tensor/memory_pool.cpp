@@ -105,16 +105,47 @@ void MemoryPool::allocate() {
   int i = 0;
 #define RPCMEM_HEAP_ID_SYSTEM 25
 #define RPCMEM_DEFAULT_FLAGS 1
-  std::map<size_t, void *> offset_ptr;
+  std::map<size_t, void *> offset_ptr;     // offset : ptr
+  std::map<size_t, size_t> allocated_size; // offset : memory size
+  std::map<size_t, std::vector<int>>
+    offset_indices; // offset : list of index which has same offset
+
   for (auto &s : memory_offset) {
+    size_t current_size = memory_size.at(i);
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
-      void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
-                               memory_size.at(i));
+      void *ptr =
+        rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, current_size);
       memory_ptrs.push_back(ptr);
-      offset_ptr.insert(std::make_pair(s, ptr));
+      offset_ptr[s] = ptr;
+      allocated_size[s] = current_size;
+      offset_indices[s].push_back(i);
+      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
+      //      << " new ptr : " << ptr << std::endl;
     } else {
-      memory_ptrs.push_back(it->second);
+      void *existing_ptr = it->second;
+      size_t max_size = allocated_size[s];
+      if (max_size < current_size) {
+        void *new_ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
+                                     RPCMEM_DEFAULT_FLAGS, current_size);
+
+        for (int idx : offset_indices[s]) {
+          //	  std::cout << "                change ptr " <<idx <<" from  "<<
+          // memory_ptrs[idx]<< " to " << new_ptr << " before_size : "<<
+          // max_size
+          //<< " new max_size : "<< current_size <<std::endl;
+
+          memory_ptrs[idx] = new_ptr;
+        }
+        rpcmem_free(existing_ptr);
+        offset_ptr[s] = new_ptr;
+        allocated_size[s] = current_size;
+      }
+      memory_ptrs.push_back(offset_ptr[s]);
+      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
+      //      << " max size for the offset " << allocated_size[s]<< "  reuse ptr
+      //      : " << offset_ptr[s] << std::endl;
+      offset_indices[s].push_back(i);
     }
     i++;
   }
@@ -156,22 +187,43 @@ void MemoryPool::allocateFSU() {
   int i = 0;
 #define RPCMEM_HEAP_ID_SYSTEM 25
 #define RPCMEM_DEFAULT_FLAGS 1
-  std::map<size_t, void *> offset_ptr;
+  std::map<size_t, void *> offset_ptr;     // offset : ptr
+  std::map<size_t, size_t> allocated_size; // offset : memory size
+  std::map<size_t, std::vector<int>>
+    offset_indices; // offset : list of index which has same offset
+
   for (auto &s : memory_offset) {
+    size_t current_size = memory_size.at(i);
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
-      void *ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS,
-                               memory_size.at(i));
+      void *ptr =
+        rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, current_size);
       memory_ptrs.push_back(ptr);
-      offset_ptr.insert(std::make_pair(s, ptr));
+      offset_ptr[s] = ptr;
+      allocated_size[s] = current_size;
+      offset_indices[s].push_back(i);
+
     } else {
-      memory_ptrs.push_back(it->second);
+      void *existing_ptr = it->second;
+      size_t max_size = allocated_size[s];
+      if (max_size < current_size) {
+        void *new_ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
+                                     RPCMEM_DEFAULT_FLAGS, current_size);
+
+        for (int idx : offset_indices[s]) {
+          memory_ptrs[idx] = new_ptr;
+        }
+        rpcmem_free(existing_ptr);
+        offset_ptr[s] = new_ptr;
+        allocated_size[s] = current_size;
+      }
+      memory_ptrs.push_back(offset_ptr[s]);
+      offset_indices[s].push_back(i);
     }
     i++;
   }
 
   mem_pool = calloc(1, 1);
-
 #else
   mem_pool = std::aligned_alloc(sysconf(_SC_PAGE_SIZE), pool_size);
 
