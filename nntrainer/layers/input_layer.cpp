@@ -55,7 +55,7 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
     case Tdatatype::UINT8:
     case Tdatatype::UINT16: {
       //@todo it would be better to be replaced with
-      // hidden_.copy_with_stride(input_);
+      // hidden_.copyData(input_);
       for (size_t b = 0; b < input_.batch(); ++b)
         for (size_t c = 0; c < input_.channel(); ++c)
           for (size_t h = 0; h < input_.height(); ++h)
