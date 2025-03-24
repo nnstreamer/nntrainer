@@ -196,19 +196,22 @@ struct ModelTensorDataTypeInfo {
     WQ16AQ16,
     WU16AU16,
     W8AU16,
+    WU4AU8,
+    WU4AU16,
     WU8AU8,
-    WU8AU16,
+    WU8AU16
   };
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::W3A32,    Enum::W4A16,  Enum::W4A32,  Enum::W8A16,  Enum::W8A32,
-    Enum::W16A16,   Enum::W16A32, Enum::W32A16, Enum::W32A32, Enum::WQ16AQ16,
-    Enum::WU16AU16, Enum::W8AU16, Enum::WU8AU8, Enum::WU8AU16};
+    Enum::W3A32,  Enum::W4A16,    Enum::W4A32,    Enum::W8A16,
+    Enum::W8A32,  Enum::W16A16,   Enum::W16A32,   Enum::W32A16,
+    Enum::W32A32, Enum::WQ16AQ16, Enum::WU16AU16, Enum::W8AU16,
+    Enum::WU4AU8, Enum::WU4AU16,  Enum::WU8AU8,   Enum::WU8AU16};
 
   static constexpr const char *EnumStr[] = {
     "BCQ-FP32",    "QINT4-FP16",    "QINT4-FP32",    "QINT8-FP16",
     "QINT8-FP32",  "FP16-FP16",     "FP16-FP32",     "FP32-FP16",
     "FP32-FP32",   "QINT16-QINT16", "UINT16-UINT16", "QINT8-UINT16",
-    "UINT8-UINT8", "UINT8-UINT16"};
+    "UINT4-UINT8", "UINT4-UINT16",  "UINT8-UINT8",   "UINT8-UINT16"};
 };
 
 /**
