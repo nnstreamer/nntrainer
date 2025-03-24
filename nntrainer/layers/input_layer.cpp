@@ -51,13 +51,18 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
     quantizer = nullptr;
 
     switch (hidden_.getDataType()) {
-      // This will be supported in Tensor itself. Until then, we use this.
+    // This will be supported in Tensor itself. Until then, we use this.
+    case Tdatatype::UINT8:
     case Tdatatype::UINT16: {
-      quantizer =
-        Quantization::createQuantizer(nntrainer::QScheme::PER_TENSOR_AFFINE);
-      Tensor dq_i = quantizer->quantize(input_, hidden_.getDataType());
-      hidden_.copyData(dq_i);
-    } break;
+      //@todo it would be better to be replaced with
+      // hidden_.copy_with_stride(input_);
+      for (size_t b = 0; b < input_.batch(); ++b)
+        for (size_t c = 0; c < input_.channel(); ++c)
+          for (size_t h = 0; h < input_.height(); ++h)
+            for (size_t w = 0; w < input_.width(); ++w)
+              hidden_.setValue(b, c, h, w, input_.getValue(b, c, h, w));
+      break;
+    }
     default:
       hidden_.copyData(input_);
       break;
