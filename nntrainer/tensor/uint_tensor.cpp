@@ -372,12 +372,11 @@ template <typename T> void UIntTensor<T>::save(std::ostream &file) {
 
 template <typename T> void UIntTensor<T>::read(std::ifstream &file) {
   /// @note Read quantization information
-  read_quantization_info(file);
-
-  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
+  // read_quantization_info(file);
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
-    << "read size: " << getMemoryBytes()
+    << "read size: " << bytes()
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedRead(file, (char *)getData(), sz,

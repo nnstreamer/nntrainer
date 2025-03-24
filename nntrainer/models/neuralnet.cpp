@@ -682,25 +682,27 @@ void NeuralNetwork::load(const std::string &file_path,
       (*iter)->read(model_file, false, exec_mode, swap_mode);
     }
     try {
-      /// this is assuming that the failure is allowed at the end of the file
-      /// read. so, after this line, additional read shouldn't be called
-      if (opt && istrequal(opt->getType(), "adam")) {
-        std::string opt_type;
-        opt_type.resize(4);
-        model_file.read((char *)&opt_type[0], 4);
-        if (istrequal(opt_type, "adam")) {
-          for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-               iter++) {
-            (*iter)->read(model_file, true, exec_mode);
+      if (exec_mode == ExecutionMode::TRAIN) {
+        /// this is assuming that the failure is allowed at the end of the file
+        /// read. so, after this line, additional read shouldn't be called
+        if (opt && istrequal(opt->getType(), "adam")) {
+          std::string opt_type;
+          opt_type.resize(4);
+          model_file.read((char *)&opt_type[0], 4);
+          if (istrequal(opt_type, "adam")) {
+            for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+                 iter++) {
+              (*iter)->read(model_file, true, exec_mode);
+            }
           }
         }
-      }
 
-      if (!swap_mode) {
-        checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
-                    "[NeuralNetwork::readModel] failed to read epoch_idx");
-        checkedRead(model_file, (char *)&iter, sizeof(iter),
-                    "[NeuralNetwork::readModel] failed to read iteration");
+        if (!swap_mode) {
+          checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
+                      "[NeuralNetwork::readModel] failed to read epoch_idx");
+          checkedRead(model_file, (char *)&iter, sizeof(iter),
+                      "[NeuralNetwork::readModel] failed to read iteration");
+        }
       }
     } catch (...) {
       std::cerr << "failed to read additional data like optimizer variable, "
@@ -751,7 +753,7 @@ void NeuralNetwork::load(const std::string &file_path,
     });
 
     if (!swap_mode && v.size() > 1) {
-      load(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+      load(props::FilePath(v[1]), ml::train::ModelFormat::MODEL_FORMAT_BIN);
     } else if (swap_mode) {
       model_graph.setFsuWeightPath(v[1]);
     }
