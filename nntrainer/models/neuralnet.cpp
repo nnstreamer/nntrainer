@@ -908,7 +908,7 @@ NeuralNetwork::inference(unsigned int batch_size,
       input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
 
-  if (!label.empty()) {
+  if (!label.empty() && exec_mode == ExecutionMode::TRAIN) {
     sharedConstTensors label_tensors;
     auto label_dim = getOutputDimension();
     label_tensors.reserve(label.size());
@@ -925,10 +925,12 @@ NeuralNetwork::inference(unsigned int batch_size,
 
   std::vector<float *> output;
   output.reserve(output_tensors.size());
-
+  int out_idx = 0;
   for (auto &out : output_tensors) {
-    auto out_t = *out.get();
-    output.push_back(out_t.getData());
+    output.push_back(out->getData<float>());
+    if (!label.empty() && exec_mode == ExecutionMode::INFERENCE) {
+      std::memcpy(label[out_idx++], out->getData<float>(), out->bytes());
+    }
   }
 
   return output;
