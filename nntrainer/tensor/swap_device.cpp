@@ -73,21 +73,37 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     // std::cerr << "weight & bias is not page aligned!" << std::endl;
     // }
 
+    /**
+    // @todo  mmap version should be enabled after validating its action
+    //        mmap can replace memcpy
     void *ptr =
       mmap(memory_ptr, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
-           MAP_SHARED | MAP_FIXED, fd, len_offset.first);
+           MAP_FIXED | MAP_SHARED , fd, len_offset.first);
+    */
+
+    void *ptr =
+      mmap(nullptr, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
+           MAP_PRIVATE, fd, len_offset.first);
+
+    // check mmap ptr
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
 
-    NNTR_THROW_IF(ptr != memory_ptr, std::runtime_error)
-      << "SwapDevice: mmap: ptr!= memory_ptr";
+    /// @todo This should be removed when mmap(memory_ptr...) is enabled
+    // copy data to memory_ptr
+    std::memcpy(memory_ptr, ptr, len_offset.second);
+
+    /// @todo Please enable the following exception check when the mmap is
+    /// enabled
+    // NNTR_THROW_IF(ptr != memory_ptr, std::runtime_error)
+    // << "SwapDevice: mmap: ptr!= memory_ptr";
 
     ++offset_index;
     ++num_loaded_tensors;
-    return ptr;
+    return memory_ptr;
   } else {
     size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
     size_t diff = offset - off;
