@@ -294,7 +294,6 @@ void CachePool::clear() {
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }
 
 void CachePool::loadExec(unsigned int order) {
-  std::cout << "loadExec " << order << std::endl;
   for (auto &id : exec_ids[order])
     validate(id);
 }
