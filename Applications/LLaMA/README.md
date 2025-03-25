@@ -7,7 +7,7 @@ It has been verified to run in Ubuntu and Android environments through meson bui
 Reference:
 - [Paper: The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)
 
-## How to run LLaMA
+## Requirements
 
 Please refer to the following documents for instructions on setting up and building NNTrainer.
 
@@ -17,3 +17,9 @@ Please refer to the following documents for instructions on setting up and build
 To run your own LLaMA model, you need to prepare three additional files inside the application build directory.
 - For tokenizer usage, you will require a `vocab.json` file and a `merges.txt` file tailored to your specific model.
 - To load pre-trained weights, ensure that you have a `.bin` file compatible with NNTrainer. You can convert your PyTorch model's weight file to NNTrainer model's weights file using the `Applications/LLaMA/PyTorch/weights_converter.py` script provided within our official repository.
+
+### Example
+
+```bash
+./nntrainer_llama <weight.bin path> <vocab.json path> <merges.txt path> <temperature (0 or 1)>
+```

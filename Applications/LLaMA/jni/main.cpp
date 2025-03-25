@@ -11,8 +11,6 @@
 #include <string.h>
 
 #include <algorithm>
-#include <array>
-#include <chrono>
 #include <ctime>
 #include <iostream>
 #include <iterator>
@@ -49,10 +47,9 @@ ModelHandle g_model;
 
 // Hyper params for LLaMA
 int const DIM = 2304;
+int const INTERMEDIATE_SIZE = 2048;
 int const NUM_LAYERS = 28;
 int const NUM_HEADS = 18;
-
-int const MULTIPLE_OF = 256;
 
 float const NORM_EPS = 0.000001f;
 float const EPS = 0.000001f;
@@ -60,7 +57,7 @@ int const NUM_VOCAB = 96000;
 int MAX_SEQ_LEN = 1024;
 int NUM_TO_GENERATE = 100;
 
-constexpr unsigned int INIT_SEQ_LEN = 28;
+constexpr unsigned int INIT_SEQ_LEN = 2;
 unsigned int batch_size = 1;
 unsigned int epoch = 1;
 
@@ -399,25 +396,21 @@ std::vector<LayerHandle> createAttentionLayer(const int layer_id, int seq_len,
  * @brief Create FF Layers
  */
 std::vector<LayerHandle> createFeedForwardLayer(const int layer_id, int dim,
-                                                int hidden_dim,
-                                                std::string input_name,
-                                                int multiplier = 1) {
+                                                int intermediate_size,
+                                                std::string input_name) {
   using ml::train::createLayer;
   std::vector<LayerHandle> layers;
-
-  hidden_dim = 2 * multiplier * hidden_dim / 3;
-  hidden_dim = MULTIPLE_OF * ((hidden_dim + MULTIPLE_OF - 1) / MULTIPLE_OF);
 
   layers.push_back(createLayer(
     "fully_connected",
     {nntrainer::withKey("name", "layer" + std::to_string(layer_id) + "_ffn_1"),
-     nntrainer::withKey("unit", hidden_dim),
+     nntrainer::withKey("unit", intermediate_size),
      nntrainer::withKey("disable_bias", "true"),
      nntrainer::withKey("input_layers", input_name)}));
   layers.push_back(createLayer(
     "fully_connected",
     {nntrainer::withKey("name", "layer" + std::to_string(layer_id) + "_ffn_2"),
-     nntrainer::withKey("unit", hidden_dim),
+     nntrainer::withKey("unit", intermediate_size),
      nntrainer::withKey("disable_bias", "true"),
      nntrainer::withKey("input_layers", input_name)}));
 
@@ -479,8 +472,9 @@ std::vector<LayerHandle> createTransformerDecoder(const int layer_id,
      nntrainer::withKey("epsilon", std::to_string(NORM_EPS)),
      nntrainer::withKey("packed", "false")}));
 
-  auto ffn_layer = createFeedForwardLayer(
-    layer_id, DIM, 4 * DIM, "layer" + std::to_string(layer_id) + "_ffn_norm");
+  auto ffn_layer =
+    createFeedForwardLayer(layer_id, DIM, INTERMEDIATE_SIZE,
+                           "layer" + std::to_string(layer_id) + "_ffn_norm");
   layers.insert(layers.end(), ffn_layer.begin(), ffn_layer.end());
 
   layers.push_back(createLayer(
@@ -550,7 +544,8 @@ ModelHandle createLLaMA() {
 /**
  * @brief to run for every text sequence
  */
-void run(std::string text, bool apply_temperature) {
+void run(std::string text, std::string vocab_file_path,
+         std::string merge_file_path, bool apply_temperature = false) {
 
   std::vector<float *> input;
   std::vector<float *> label;
@@ -569,11 +564,8 @@ void run(std::string text, bool apply_temperature) {
   unsigned int init_len;
 
 #if defined(ENABLE_ENCODER)
-  std::string vocab_file_name = "../Applications/LLaMA/jni/vocab.json";
-  std::string merge_file_name = "../Applications/LLaMA/jni/merges.txt";
-
-  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_name, merge_file_name),
-                          "Error initializising GPT2 tokenizer\n");
+  auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_path, merge_file_path),
+                          "Error initializing GPT2 tokenizer\n");
 
   std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 
@@ -589,12 +581,10 @@ void run(std::string text, bool apply_temperature) {
   input.push_back(input_sample);
 
 #else
-  float init_input[INIT_SEQ_LEN] = {
-    0,  1,  2,  3,  4,  5,   6,   7,   8,   9,   10,  20,  30,  40,
-    50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900};
+  float init_input[INIT_SEQ_LEN] = {0, 21};
   memcpy(input_sample, init_input, sizeof(float) * INIT_SEQ_LEN);
   input.push_back(input_sample);
-  init_len = 18;
+  init_len = 2;
 #endif
 
   std::vector<int64_t> token_ids;
@@ -625,6 +615,7 @@ void run(std::string text, bool apply_temperature) {
   for (unsigned int i = input_len + 1; i < input_len + NUM_TO_GENERATE; ++i) {
     auto output_interval =
       g_model->incremental_inference(1, input, label, MAX_SEQ_LEN, i - 1, i);
+
     unsigned int ids = generate(output[0], NUM_VOCAB)[0];
 
     if (i < input_len) {
@@ -652,7 +643,8 @@ void run(std::string text, bool apply_temperature) {
 /**
  * @brief to creaet model
  */
-void createAndRun(unsigned int epochs, unsigned int batch_size) {
+void createAndRun(unsigned int epochs, unsigned int batch_size,
+                  std::string weight_path) {
   // setup model
   g_model = createLLaMA();
   g_model->setProperty({nntrainer::withKey("batch_size", batch_size),
@@ -677,8 +669,6 @@ void createAndRun(unsigned int epochs, unsigned int batch_size) {
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
-
-  std::string weight_path = "./llama_fp16.bin";
 
   g_model->load(weight_path);
 }
@@ -711,15 +701,15 @@ int main(int argc, char *argv[]) {
   // Setting locale
   std::locale::global(std::locale("ko_KR.UTF-8"));
 
+  std::string text = "";
+
 #if defined(ENABLE_ENCODER)
   // Getting arguments From terminal
   std::wstring input;
   std::getline(std::wcin, input);
   std::wstring test = decodeUnicodeEscape(input);
   std::wstring_convert<std::codecvt_utf16<wchar_t>> converter;
-  std::string text = converter.to_bytes(test);
-#else
-  std::string text = "This is smaple input for LLaMA.";
+  text = converter.to_bytes(test);
 #endif
   auto &ct_engine = nntrainer::Engine::Global();
   auto app_context =
@@ -752,15 +742,28 @@ int main(int argc, char *argv[]) {
 
   try {
     const std::vector<std::string> args(argv + 1, argv + argc);
+    if (args.size() != 4) {
+      std::cerr << "Error: Invalid number of arguments.\n"
 
+                   "Usage: program_name <weight.bin path> <vocab.json path> "
+                   "<merges.txt path> <temperature (0 or 1)>"
+                << std::endl;
+
+      throw std::invalid_argument("Invalid number of arguments");
+    }
+
+    std::string weight_path = args[0].c_str();
+    std::string vocab_file_name = args[1].c_str();
+    std::string merge_file_name = args[2].c_str();
 #ifdef _WIN32
-    bool apply_temp = _stricmp("true", args[1].c_str()) == 0;
+    bool apply_temp = _stricmp("true", args[3].c_str()) == 0;
 #else
-    bool apply_temp = (strcasecmp("true", args[1].c_str()) == 0);
+    bool apply_temp = (strcasecmp("true", args[3].c_str()) == 0);
 #endif
-    createAndRun(epoch, batch_size);
 
-    run(text, apply_temp);
+    createAndRun(epoch, batch_size, weight_path);
+
+    run(text, vocab_file_name, merge_file_name, apply_temp);
 
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
