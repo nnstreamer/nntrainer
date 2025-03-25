@@ -95,6 +95,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     /// @todo This should be removed when mmap(memory_ptr...) is enabled
     // copy data to memory_ptr
     std::memcpy(memory_ptr, ptr, len_offset.second);
+    munmap(ptr, len_offset.second);
 
     /// @todo Please enable the following exception check when the mmap is
     /// enabled
