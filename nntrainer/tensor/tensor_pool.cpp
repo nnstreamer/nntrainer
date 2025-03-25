@@ -241,7 +241,6 @@ void TensorPool::allocate(bool init) {
   }
 
   if (cache_loader) {
-    std::cout << "cache_loader init" << std::endl;
     cache_loader->init();
   }
 }
