@@ -13,7 +13,7 @@ test_target = [
 ]
 
 if cxx.get_id() == 'msvc'
-  cpp_args_str = ''
+  cpp_args_str = []
 else
   cpp_args_str = '-Wno-maybe-uninitialized'
 endif

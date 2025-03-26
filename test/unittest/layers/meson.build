@@ -3,7 +3,7 @@ layer_common_test_standalone_files = files('layers_standalone_common_tests.cpp')
 layer_common_test_dependent_files = files('layers_dependent_common_tests.cpp')
 
 if host_machine.system() == 'windows'
-  cpp_args_str = ''
+  cpp_args_str = []
 else
   cpp_args_str = '-Wno-maybe-uninitialized'
 endif
