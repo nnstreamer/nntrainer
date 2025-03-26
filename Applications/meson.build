@@ -37,6 +37,11 @@ subdir('ONNX/jni')
 subdir('SimpleFC/jni')
 
 subdir('LLaMA/jni')
+
+if fs.exists('FELICE')
+  subdir('FELICE')
+endif
+
 if host_machine.system() != 'windows'
   subdir('KNN/jni')
   subdir('YOLOv2/jni')
