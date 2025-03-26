@@ -22,8 +22,6 @@
 #include <tensor_dim.h>
 #include <util_func.h>
 
-#include "ruy/ruy.h"
-
 #define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                          \
   do {                                                                         \
     unsigned int i, j, k, l;                                                   \
