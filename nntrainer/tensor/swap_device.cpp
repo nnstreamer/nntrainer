@@ -24,15 +24,15 @@
 
 namespace nntrainer {
 
-void SwapDevice::start(size_t size, bool writeable) {
+void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
   if (fd > 0)
     return;
 
-  if (writeable) {
+  if (_execution_mode == ml::train::ExecutionMode::TRAIN) {
     fd = open(dev_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0666UL);
   } else {
     fd = open(dev_path.c_str(), O_RDWR | O_CREAT, 0666UL);
-    execution_mode = ml::train::ExecutionMode::INFERENCE;
+    execution_mode = _execution_mode;
   }
   NNTR_THROW_IF(fd < 0, std::runtime_error)
     << "SwapDevice: open file: " << dev_path;
@@ -44,7 +44,7 @@ void SwapDevice::start(size_t size, bool writeable) {
   NNTR_THROW_IF(off < 0, std::runtime_error)
     << "SwapDevice: seek file: " << dev_path;
 
-  if (writeable) {
+  if (_execution_mode == ml::train::ExecutionMode::TRAIN) {
     ssize_t len;
     len = write(fd, "", 1);
     NNTR_THROW_IF(len != 1, std::runtime_error)
