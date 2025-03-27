@@ -34,7 +34,7 @@ void RemoveWeightFile(std::string file_path) { remove(file_path.c_str()); }
 
 void MakeWeight(unsigned int feature_size, unsigned int layer_num,
                 unsigned int look_ahead, std::string file_path,
-                std::string weight_type) {
+                std::string weight_act_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -53,7 +53,7 @@ void MakeWeight(unsigned int feature_size, unsigned int layer_num,
 
   _model->setProperty({nntrainer::withKey("batch_size", 1),
                        nntrainer::withKey("epochs", 1),
-                       nntrainer::withKey("model_tensor_type", weight_type)});
+                       nntrainer::withKey("model_tensor_type", weight_act_type)});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = _model->setOptimizer(std::move(optimizer));
 
@@ -66,7 +66,7 @@ void MakeWeight(unsigned int feature_size, unsigned int layer_num,
 
 void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
                 unsigned int look_ahead, std::string file_path,
-                std::string weight_type) {
+                std::string weight_act_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -85,7 +85,7 @@ void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
 
   _model->setProperty({nntrainer::withKey("batch_size", 1),
                        nntrainer::withKey("epochs", 1),
-                       nntrainer::withKey("model_tensor_type", weight_type)});
+                       nntrainer::withKey("model_tensor_type", weight_act_type)});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = _model->setOptimizer(std::move(optimizer));
 
@@ -114,7 +114,7 @@ void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
 
 void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
                      unsigned int look_ahead, std::string file_path,
-                     std::string weight_type) {
+                     std::string weight_act_type) {
 
   ModelHandle _model = ml::train::createModel(
     ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
@@ -135,7 +135,7 @@ void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
     {nntrainer::withKey("batch_size", 1), nntrainer::withKey("epochs", 1),
      nntrainer::withKey("memory_swap", "true"),
      nntrainer::withKey("memory_swap_lookahead", std::to_string(look_ahead)),
-     nntrainer::withKey("model_tensor_type", weight_type)});
+     nntrainer::withKey("model_tensor_type", weight_act_type)});
 
   int status = _model->compile(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -171,7 +171,7 @@ class LookAheadParm
 TEST_P(LookAheadParm, simple_fc) {
   auto param = GetParam();
   unsigned int look_ahead_parm = std::get<0>(param);
-  std::string weight_type = std::get<1>(param);
+  std::string weight_act_type = std::get<1>(param);
   unsigned int feature_size = 2048;
   unsigned int layer_num = 28;
   std::string file_path =
@@ -180,11 +180,11 @@ TEST_P(LookAheadParm, simple_fc) {
   fsu_answer.clear();
 
   EXPECT_NO_THROW(MakeWeight(feature_size, layer_num, look_ahead_parm,
-                             file_path, weight_type));
+                             file_path, weight_act_type));
   EXPECT_NO_THROW(MakeAnswer(feature_size, layer_num, look_ahead_parm,
-                             file_path, weight_type));
+                             file_path, weight_act_type));
   EXPECT_NO_THROW(MakeAndRunModel(feature_size, layer_num, look_ahead_parm,
-                                  file_path, weight_type));
+                                  file_path, weight_act_type));
   EXPECT_EQ(ori_answer, fsu_answer);
   RemoveWeightFile(file_path);
 }

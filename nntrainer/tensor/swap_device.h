@@ -85,7 +85,8 @@ public:
    * @param writeable Writeable flag
    *
    */
-  void start(size_t size, bool writeable = true);
+  void start(size_t size, ml::train::ExecutionMode _execution_mode =
+                            ml::train::ExecutionMode::TRAIN);
 
   /**
    * @brief Allocate and get data

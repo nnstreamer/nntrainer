@@ -141,8 +141,7 @@ void CachePool::allocate() {
     << "Allocating memory pool with size 0";
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
     MemoryPool::allocateFSU();
-  swap_device->start(size(),
-                     execution_mode_ == ml::train::ExecutionMode::TRAIN);
+  swap_device->start(size(), execution_mode_);
 }
 
 void CachePool::deallocate() {
@@ -348,11 +347,7 @@ void CachePool::setFsuWeightPath(std::string path) {
 
   swap_device->setFsuWeightPath(path);
   swap_device->finish();
-  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
-    swap_device->start(size(), false);
-  } else {
-    swap_device->start(size(), true);
-  }
+  swap_device->start(size(), execution_mode_);
 }
 
 } // namespace nntrainer
