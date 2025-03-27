@@ -386,24 +386,11 @@ sharedConstTensors NetworkGraph::forwarding(
     for (unsigned int j = 0; j < output_layer_node->getNumOutputs(); ++j) {
 
       auto out_j = output_layer_node->getOutput(j);
-      switch (out_j.getDataType()) {
-      case Tdatatype::UINT16: {
-        auto out_j_float = out_j.clone(TensorDim::DataType::FP32);
-        for (size_t b = 0; b < out_j.batch(); ++b)
-          for (size_t c = 0; c < out_j.channel(); ++c)
-            for (size_t h = 0; h < out_j.height(); ++h)
-              for (size_t w = 0; w < out_j.width(); ++w) {
-                out_j_float.setValue(b, c, h, w,
-                                     out_j.getValue<uint16_t>(b, c, h, w));
-              }
-        out.push_back(MAKE_SHARED_TENSOR(out_j_float));
-        break;
-      }
-      default: {
-        out.push_back(MAKE_SHARED_TENSOR(output_layer_node->getOutput(j)));
-        break;
-      }
-      }
+      if (out_j.getDataType() == Tdatatype::FP32)
+        out.push_back(MAKE_SHARED_TENSOR(out_j));
+      else
+        out.push_back(
+          MAKE_SHARED_TENSOR(out_j.clone(TensorDim::DataType::FP32)));
     }
   }
 
