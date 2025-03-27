@@ -46,9 +46,9 @@ void Engine::add_default_object(Engine &eg) {
 
   eg.registerContext("cpu", app_context);
 
-#ifdef ENALBE_OPENCL
-  eg.registererContext("gpu",
-                       nntrainer::ClContext(nntrainer::ClContext::Global()));
+#ifdef ENABLE_OPENCL
+  eg.registerContext("gpu",
+                     nntrainer::ClContext(nntrainer::ClContext::Global()));
 #endif
 }
 
