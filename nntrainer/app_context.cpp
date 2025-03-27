@@ -63,6 +63,7 @@
 #include <lr_scheduler_step.h>
 #include <lstm.h>
 #include <lstmcell.h>
+#include <matmul_layer.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
@@ -284,6 +285,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_COSINE);
   ac.registerFactory(nntrainer::createLayer<TangentLayer>, TangentLayer::type,
                      LayerType::LAYER_TANGENT);
+  ac.registerFactory(nntrainer::createLayer<MatMulLayer>, MatMulLayer::type,
+                     LayerType::LAYER_MATMUL);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
