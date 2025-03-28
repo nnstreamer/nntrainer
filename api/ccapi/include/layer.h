@@ -43,6 +43,10 @@ enum LayerType {
   LAYER_MULTIPLY = ML_TRAIN_LAYER_TYPE_MULTIPLY, /**< Multiply Layer type */
   LAYER_DIVIDE = ML_TRAIN_LAYER_TYPE_DIVIDE,     /**< Divide Layer type */
   LAYER_POW = ML_TRAIN_LAYER_TYPE_POW,           /**< Pow Layer type */
+  LAYER_SQRT = ML_TRAIN_LAYER_TYPE_SQRT,         /**< SQRT Layer type */
+  LAYER_SINE = ML_TRAIN_LAYER_TYPE_SINE,         /**< Sine Layer type */
+  LAYER_COSINE = ML_TRAIN_LAYER_TYPE_COSINE,     /**< Cosine Layer type */
+  LAYER_TANGENT = ML_TRAIN_LAYER_TYPE_TANGENT,   /**< Tangent Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -343,6 +347,38 @@ DivideLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 PowLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_POW, properties);
+}
+
+/**
+ * @brief Helper function to create SQRT layer
+ */
+inline std::unique_ptr<Layer>
+SQRTLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SQRT, properties);
+}
+
+/**
+ * @brief Helper function to create sine layer
+ */
+inline std::unique_ptr<Layer>
+SineLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SINE, properties);
+}
+
+/**
+ * @brief Helper function to create cosine layer
+ */
+inline std::unique_ptr<Layer>
+CosineLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_COSINE, properties);
+}
+
+/**
+ * @brief Helper function to create tangent layer
+ */
+inline std::unique_ptr<Layer>
+TangentLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_TANGENT, properties);
 }
 
 /**
