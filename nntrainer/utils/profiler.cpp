@@ -59,7 +59,7 @@ void GenericProfileListener::onNotifyTimeEvent(
 void GenericProfileListener::onNotifyMemoryEvent(
   PROFILE_EVENT event, const size_t alloc_current, const size_t alloc_total,
   const std::string &str, const std::chrono::microseconds &duration,
-  const std::string &cache_policy, bool cache_swap) {
+  const std::string &cache_policy, bool cache_fsu) {
 
   if (event != EVENT_MEM_ANNOTATE) {
     mem_max = std::max(mem_max, alloc_total);
@@ -68,7 +68,7 @@ void GenericProfileListener::onNotifyMemoryEvent(
   }
 
   mem_taken.emplace_back(event, alloc_current, alloc_total, str, duration,
-                         cache_policy, cache_swap);
+                         cache_policy, cache_fsu);
 }
 
 void GenericProfileListener::notify(
@@ -85,7 +85,7 @@ void GenericProfileListener::notify(
   case EVENT_MEM_ANNOTATE:
     onNotifyMemoryEvent(event, data->alloc_current, data->alloc_total,
                         data->event_str, data->duration, data->cache_policy,
-                        data->cache_swap);
+                        data->cache_fsu);
     break;
   default:
     throw std::runtime_error("Invalid PROFILE_EVENT");
@@ -206,7 +206,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       << std::setw(column_size[3]) << "info"
       << std::setw(column_size[4]) << "dur"
       << std::setw(column_size[5]) << "policy"
-      << std::setw(column_size[6]) << "swap"
+      << std::setw(column_size[6]) << "fsu"
       << std::endl;
   // clang-format on
   out << std::string(total_col_size, '=') << std::endl;
@@ -220,7 +220,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       auto &info = std::get<3>(mem);
       auto &dur = std::get<std::chrono::microseconds>(mem);
       auto &policy = std::get<5>(mem);
-      auto &swap = std::get<bool>(mem);
+      auto &fsu = std::get<bool>(mem);
 
       out_.setf(std::ios::fixed);
       out_.setf(std::ios::right);
@@ -236,7 +236,7 @@ void GenericProfileListener::report(std::ostream &out) const {
              << std::setw(column_size[3]) << info
              << std::setw(column_size[4]) << ((event == EVENT_MEM_DEALLOC) ? std::to_string(dur.count()) : "")
              << std::setw(column_size[5]) << policy
-             << std::setw(column_size[6]) << (swap ? ((event == EVENT_MEM_ALLOC) ? "IN" :
+             << std::setw(column_size[6]) << (fsu ? ((event == EVENT_MEM_ALLOC) ? "IN" :
                                                      (event == EVENT_MEM_DEALLOC) ? "OUT" : "") : "")
              << std::endl;
       }
@@ -354,7 +354,7 @@ int Profiler::registerTimeItem(const std::string &name) {
 }
 
 void Profiler::alloc(const void *ptr, size_t size, const std::string &str,
-                     const std::string &policy, bool swap) {
+                     const std::string &policy, bool fsu) {
   std::lock_guard<std::mutex> lock(allocates_mutex);
 
 #ifdef DEBUG
@@ -370,11 +370,11 @@ void Profiler::alloc(const void *ptr, size_t size, const std::string &str,
 
   auto data = std::make_shared<ProfileEventData>(
     0, size, total_size.load(), str, std::chrono::microseconds(0), policy,
-    swap);
+    fsu);
   notifyListeners(EVENT_MEM_ALLOC, data);
 }
 
-void Profiler::dealloc(const void *ptr, const std::string &policy, bool swap) {
+void Profiler::dealloc(const void *ptr, const std::string &policy, bool fsu) {
   std::lock_guard<std::mutex> lock(allocates_mutex);
 
   auto end = std::chrono::steady_clock::now();
@@ -391,7 +391,7 @@ void Profiler::dealloc(const void *ptr, const std::string &policy, bool swap) {
 
   auto str = std::get<std::string>(found->second);
   auto data = std::make_shared<ProfileEventData>(0, size, total_size.load(),
-                                                 str, duration, policy, swap);
+                                                 str, duration, policy, fsu);
 
   notifyListeners(EVENT_MEM_DEALLOC, data);
 

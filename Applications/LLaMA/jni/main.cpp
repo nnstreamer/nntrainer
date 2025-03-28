@@ -65,7 +65,7 @@ unsigned int epoch = 1;
 /** cache loss values post training for test */
 float training_loss = 0.0;
 float validation_loss = 0.0;
-bool swap = false;
+bool fsu = false;
 
 bool optimize = false;
 

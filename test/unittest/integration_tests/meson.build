@@ -18,7 +18,7 @@ fsu_targets = [
 
 if get_option('enable-fp16')
     test_target += mixed_precision_targets
-    if get_option('enable-memory-swap')
+    if get_option('enable-fsu')
     test_target += fsu_targets
     endif
 endif

@@ -388,7 +388,7 @@ std::vector<Weight *> Manager::requestWeights(
   if (exec_mode != ExecutionMode::INFERENCE) {
     var_ls = TensorLifespan::MAX_LIFESPAN;
   } else {
-    if (enable_swap) {
+    if (enable_fsu) {
       var_ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
     } else {
       var_ls = TensorLifespan::FORWARD_INFER_LIFESPAN;
@@ -465,9 +465,9 @@ std::vector<Weight *> Manager::requestWeights(
       }
     } else {
       /** case requesting fresh weights */
-      if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
-        for (unsigned int i = 0; i < swap_lookahead; ++i) {
-          int lah_order = (forwarding_order - (swap_lookahead - i));
+      if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
+        for (unsigned int i = 0; i < fsu_lookahead; ++i) {
+          int lah_order = (forwarding_order - (fsu_lookahead - i));
           if (lah_order <= 0) {
             var_exec_order.push_back(0);
           } else {
@@ -754,7 +754,7 @@ Manager::getWeights(const std::function<bool(const Weight *)> &condition) {
 }
 
 void Manager::flushCache() {
-  if (!swap_lookahead) {
+  if (!fsu_lookahead) {
     weight_pool.flushCache();
     tensor_pool.flushCache();
   }
@@ -896,7 +896,7 @@ void Manager::flushCacheExcept(unsigned int order) {
   };
 
   // TODO: lookahead > 1 is required.
-  if (swap_lookahead == 1) {
+  if (fsu_lookahead == 1) {
     if (async_task_eos.count(order) == 1)
       waitComplete(order);
 
@@ -915,7 +915,7 @@ void Manager::flushCacheExcept(unsigned int order) {
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations) {
-    if (exec_mode == ExecutionMode::INFERENCE && enable_swap) {
+    if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
       pool.finalize(OptimizedV3Planner(), start, end);
     } else {
       pool.finalize(OptimizedV1Planner(), start, end);
