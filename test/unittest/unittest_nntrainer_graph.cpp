@@ -358,7 +358,7 @@ TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
 
   model->setProperty({nntrainer::withKey("batch_size", 1),
                       nntrainer::withKey("epochs", 1),
-                      nntrainer::withKey("memory_swap", "false"),
+                      nntrainer::withKey("fsu", "false"),
                       nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
   int status = model->compile(ml::train::ExecutionMode::INFERENCE);
