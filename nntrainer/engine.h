@@ -28,8 +28,11 @@
 
 #include <context.h>
 #include <mem_allocator.h>
-
 #include <nntrainer_error.h>
+
+#ifdef ENABLE_OPENCL
+#include <cl_context.h>
+#endif
 
 namespace nntrainer {
 
@@ -63,6 +66,32 @@ protected:
 
     allocator.insert(std::make_pair(name, alloc));
   }
+
+#ifdef ENABLE_OPENCL
+  /**
+   * @brief Register OpenCL context to the engine
+   *
+   * @param name Engine name (cpu, gpu, etc)
+   * @param context ClContext (GPU) object
+   */
+  static void registerContext(std::string name, nntrainer::ClContext *context) {
+    const std::lock_guard<std::mutex> lock(engine_mutex);
+
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    if (engines.find(name) != engines.end()) {
+      std::stringstream ss;
+      ss << "Cannot register Context with name : " << name;
+      throw std::invalid_argument(ss.str().c_str());
+    }
+    engines.insert(std::make_pair(name, context));
+
+    auto alloc = context->getMemAllocator();
+
+    allocator.insert(std::make_pair(name, alloc));
+  }
+#endif
 
 public:
   /**
