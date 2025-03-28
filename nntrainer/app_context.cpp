@@ -482,7 +482,7 @@ template <size_t I = 0, typename V, typename... Ts>
 const std::vector<std::string> AppContext::getProperties(void) {
   std::vector<std::string> properties;
 
-  auto props = std::tuple("memory_swap", "memory_swap_path");
+  auto props = std::tuple("fsu", "fsu_path");
   parse_properties(properties, props);
 
   return properties;

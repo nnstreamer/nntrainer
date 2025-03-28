@@ -38,7 +38,7 @@ unsigned int init_input_seq_len;
 // Todo: fix this
 const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
-bool swap = false;
+bool fsu = false;
 bool optimize = false;
 // bool optimize = true;
 bool optimize_attention = false;
@@ -59,7 +59,7 @@ std::shared_ptr<ml::train::Model> genModel() {
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
                       "model_tensor_type=FP16-FP16",
-                      swap ? "memory_swap=true" : "memory_swap=false"});
+                      fsu ? "fsu=true" : "fsu=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input =
     ml::train::layer::Input({"name=wte_input", "input_shape=1:1:1"});

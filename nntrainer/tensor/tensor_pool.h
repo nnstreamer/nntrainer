@@ -50,12 +50,12 @@ public:
    * @brief     Constructor of TensorPool
    */
   TensorPool(
-    bool enable_swap, const std::string &swap_path = "",
-    const std::string &swap_name = "",
+    bool enable_fsu, const std::string &fsu_path = "",
+    const std::string &fsu_name = "",
     ml::train::ExecutionMode execution_mode = ml::train::ExecutionMode::TRAIN) {
-    if (enable_swap) {
+    if (enable_fsu) {
       auto cache_pool =
-        std::make_shared<CachePool>(swap_path, swap_name, execution_mode);
+        std::make_shared<CachePool>(fsu_path, fsu_name, execution_mode);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
     } else {

@@ -135,9 +135,9 @@ public:
    * @brief     Constructor of Manager
    */
   Manager() :
-    enable_swap(false),
+    enable_fsu(false),
     enable_optimizations(true),
-    swap_lookahead(0),
+    fsu_lookahead(0),
     tensor_format("NCHW"),
     tensor_dtype(split("FP32-FP32", getRegex("\\-"))),
     exec_mode(ExecutionMode::TRAIN) {}
@@ -145,16 +145,16 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_swap_, const std::string &swap_path = "",
+  Manager(bool enable_fsu_, const std::string &fsu_path = "",
           unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
           const std::string tensor_dtype_ = "FP32-FP32",
           ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
-    weight_pool(enable_swap_, swap_path, "weight_pool", exec_mode_),
-    tensor_pool(enable_swap_ && (exec_mode_ == ExecutionMode::TRAIN), swap_path,
+    weight_pool(enable_fsu_, fsu_path, "weight_pool", exec_mode_),
+    tensor_pool(enable_fsu_ && (exec_mode_ == ExecutionMode::TRAIN), fsu_path,
                 "tensor_pool", exec_mode_),
-    enable_swap(enable_swap_),
+    enable_fsu(enable_fsu_),
     enable_optimizations(true),
-    swap_lookahead(lookahead),
+    fsu_lookahead(lookahead),
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
     exec_mode(exec_mode_) {}
@@ -622,11 +622,11 @@ private:
 
   std::mutex completed_unload_mutex; /**< mutex for async tasks completion */
 
-  bool enable_swap; /**< to enable swap */
+  bool enable_fsu; /**< to enable fsu */
 
   bool enable_optimizations; /**< to enable memory optimizations */
 
-  unsigned int swap_lookahead; /** lookahead for memory swap */
+  unsigned int fsu_lookahead; /** lookahead for memory fsu */
 
   std::string tensor_format;
 

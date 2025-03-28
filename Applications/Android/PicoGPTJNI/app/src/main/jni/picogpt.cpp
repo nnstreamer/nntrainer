@@ -33,7 +33,7 @@ const unsigned int NUM_TOKENS_TO_GENERATE = 40;
 unsigned int init_input_seq_len;
 const unsigned int MAX_TOKEN_LEN = 10 + NUM_TOKENS_TO_GENERATE;
 
-bool swap = false;
+bool fsu = false;
 bool optimize = false;
 bool optimize_attention = false;
 
@@ -64,7 +64,7 @@ ml::train::Model *createPicogpt() {
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->setProperty({"batch_size=" + std::to_string(BATCH_SIZE),
                       "memory_optimization=false",
-                      swap ? "memory_swap=true" : "memory_swap=false"});
+                      fsu ? "fsu=true" : "fsu=false"});
 
   std::shared_ptr<ml::train::Layer> wte_input = ml::train::layer::Input(
     {"name=wte_input", "input_shape=1:1:" + std::to_string(MAX_TOKEN_LEN)});

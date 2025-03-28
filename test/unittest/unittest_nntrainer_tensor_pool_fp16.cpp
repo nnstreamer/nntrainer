@@ -954,7 +954,7 @@ TEST(TensorPool, validate_memory_02_p) {
 }
 
 /**
- * @brief validate memory full overlap in swap
+ * @brief validate memory full overlap in fsu
  */
 TEST(TensorPool, validate_memory_03_p) {
   nntrainer::TensorPool pool;

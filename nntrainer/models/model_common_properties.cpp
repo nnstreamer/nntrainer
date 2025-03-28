@@ -30,13 +30,11 @@ ContinueTrain::ContinueTrain(bool value) { set(value); }
 
 MemoryOptimization::MemoryOptimization(bool value) { set(value); }
 
-MemorySwap::MemorySwap(bool value) { set(value); }
+Fsu::Fsu(bool value) { set(value); }
 
-MemorySwapPath::MemorySwapPath(const std::string &value) { set(value); }
+FsuPath::FsuPath(const std::string &value) { set(value); }
 
-MemorySwapLookahead::MemorySwapLookahead(const unsigned int &value) {
-  set(value);
-}
+FsuLookahead::FsuLookahead(const unsigned int &value) { set(value); }
 ModelTensorDataType::ModelTensorDataType(ModelTensorDataTypeInfo::Enum value) {
   set(value);
 }

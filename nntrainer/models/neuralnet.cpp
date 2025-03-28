@@ -67,11 +67,11 @@ namespace nntrainer {
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::Fsu(), props::FsuPath(), props::FsuLookahead(),
+                   props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -87,11 +87,11 @@ NeuralNetwork::NeuralNetwork() :
 NeuralNetwork::NeuralNetwork(Engine ct_engine_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
-  model_flex_props(
-    props::Epochs(), props::TrainingBatchSize(), props::SavePath(),
-    props::ContinueTrain(), props::SaveBestPath(), props::MemoryOptimization(),
-    props::MemorySwap(), props::MemorySwapPath(), props::MemorySwapLookahead(),
-    props::TensorFormat(), props::ModelTensorDataType()),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain(),
+                   props::SaveBestPath(), props::MemoryOptimization(),
+                   props::Fsu(), props::FsuPath(), props::FsuLookahead(),
+                   props::TensorFormat(), props::ModelTensorDataType()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -174,11 +174,9 @@ int NeuralNetwork::compile(ExecutionMode mode) {
     graph_representation = realizer->realize(graph_representation);
   }
 
-  bool memory_swap = std::get<props::MemorySwap>(model_flex_props);
-  const std::string memory_swap_path =
-    std::get<props::MemorySwapPath>(model_flex_props);
-  unsigned int lookahead =
-    std::get<props::MemorySwapLookahead>(model_flex_props);
+  bool fsu = std::get<props::Fsu>(model_flex_props);
+  const std::string fsu_path = std::get<props::FsuPath>(model_flex_props);
+  unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
 
   const std::string tensor_format =
     to_string(std::get<props::TensorFormat>(model_flex_props));
@@ -186,8 +184,8 @@ int NeuralNetwork::compile(ExecutionMode mode) {
   const std::string tensor_type =
     to_string(std::get<props::ModelTensorDataType>(model_flex_props));
 
-  model_graph = NetworkGraph(memory_swap, mode, memory_swap_path, lookahead,
-                             tensor_format, tensor_type);
+  model_graph =
+    NetworkGraph(fsu, mode, fsu_path, lookahead, tensor_format, tensor_type);
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
@@ -355,10 +353,10 @@ sharedConstTensors NeuralNetwork::forwarding(
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+    bool fsu_mode = std::get<props::Fsu>(model_flex_props);
     // temperally remain. when we evaluate all for asynch mode, we weill remove
     if (exec_mode == ExecutionMode::TRAIN or
-        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
+        (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
     } else {
@@ -638,12 +636,12 @@ void NeuralNetwork::load(const std::string &file_path,
   /// @todo this switch case should be delegating the function call only. It's
   /// not delegating for now as required logics are manageable for now.
 
-  bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+  bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
   const std::regex reg_("\\s*\\:\\s*");
   auto v = split(file_path, reg_);
 
-  if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
+  if (exec_mode == ExecutionMode::INFERENCE && fsu_mode) {
 
     model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
 
@@ -678,7 +676,7 @@ void NeuralNetwork::load(const std::string &file_path,
       (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
 
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->read(model_file, false, exec_mode, swap_mode);
+      (*iter)->read(model_file, false, exec_mode, fsu_mode);
     }
     try {
       /// this is assuming that the failure is allowed at the end of the file
@@ -695,7 +693,7 @@ void NeuralNetwork::load(const std::string &file_path,
         }
       }
 
-      if (!swap_mode) {
+      if (!fsu_mode) {
         checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
                     "[NeuralNetwork::readModel] failed to read epoch_idx");
         checkedRead(model_file, (char *)&iter, sizeof(iter),
@@ -751,11 +749,11 @@ void NeuralNetwork::load(const std::string &file_path,
       throw_status(ret);
     });
 
-    if (!swap_mode && v.size() > 1) {
+    if (!fsu_mode && v.size() > 1) {
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
         << "Cannot open weight bin file";
       load(props::FilePath(v[1]), ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    } else if (swap_mode) {
+    } else if (fsu_mode) {
       NNTR_THROW_IF(v.size() <= 1, std::invalid_argument)
         << "Swap mode should run with loading a weight-bin file";
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
