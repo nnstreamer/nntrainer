@@ -21,12 +21,6 @@ fs = import('fs')
 
 extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
-if host_machine.system() == 'windows'
-  windows_compile_args = ['/MT']
-  add_project_arguments(windows_compile_args, language: ['c','cpp'])
-  extra_defines += '-D_AMD64_=1'
-endif
-
 add_project_arguments('-DVERSION="' + nntrainer_version + '"', language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MAJOR=' + nntrainer_version_split[0], language: ['c', 'cpp'])
 add_project_arguments('-DVERSION_MINOR=' + nntrainer_version_split[1], language: ['c', 'cpp'])
@@ -34,6 +28,8 @@ add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language:
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
+
+powershell_prog = find_program('powershell', required: (build_machine.system() == 'windows'))
 
 # Obtains number of cores
 nproc_prog = find_program('nproc',
@@ -84,6 +80,11 @@ warning_c_flags = [
   '-Wdeclaration-after-statement',
   '-Wno-error=varargs'
 ]
+
+common_win_subproject_cmake_defines = {
+  'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
+  'CMAKE_BUILD_TYPE': 'Release',
+}
 
 arch = host_machine.cpu_family()
 
@@ -316,18 +317,27 @@ if get_option('enable-blas')
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
     blas_dep = dependency('openblas', required : false)
-  
+
     if not blas_dep.found()
       blas_options = cmake.subproject_options()
-      if host_machine.system() == 'windows'
-        blas_options.append_compile_args('c', windows_compile_args)
-        blas_options.append_compile_args('cpp', windows_compile_args)
-      endif
       blas_options.add_cmake_defines({'BUILD_TESTING': false})
       blas_options.add_cmake_defines({'BUILD_BENCHMARKS': false})
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
       blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
       blas_options.add_cmake_defines({'NOFORTRAN': true})
+      if host_machine.system() == 'windows'
+        blas_options.add_cmake_defines(common_win_subproject_cmake_defines)
+        blas_options.add_cmake_defines({'MSVC_STATIC_CRT': '1'})
+        if meson.is_cross_build() and host_machine.system() == 'windows'
+          blas_options.add_cmake_defines({
+            'TARGET': 'generic',
+            'TARGET_CORE': 'generic',
+            'BUILD_COMPLEX': false,
+            'BUILD_COMPLEX16': false,
+          })
+          warning('Disabling assembly optimizations for OpenBLAS')
+        endif
+      endif
       blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
       blas_dep = host_machine.system() == 'windows'? blas_subproject.dependency('openblas_static') : blas_subproject.dependency('openblas_shared')
     endif
@@ -379,8 +389,7 @@ if get_option('enable-benchmarks')
   if not benchmark_dep.found()
     benchmark_options = cmake.subproject_options()
     if host_machine.system() == 'windows'
-      benchmark_options.append_compile_args('c', windows_compile_args)
-      benchmark_options.append_compile_args('cpp', windows_compile_args)
+      benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
     benchmark_subproject = cmake.subproject('benchmark', options: benchmark_options, required: true)
@@ -397,8 +406,7 @@ gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
   googletest_options = cmake.subproject_options()
   if host_machine.system() == 'windows'
-    googletest_options.append_compile_args('c', windows_compile_args)
-    googletest_options.append_compile_args('cpp', windows_compile_args)
+    googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
   endif
@@ -438,8 +446,7 @@ else
   if not iniparser_dep.found()
     iniparser_options = cmake.subproject_options()
     if host_machine.system() == 'windows'
-      iniparser_options.append_compile_args('c', windows_compile_args)
-      iniparser_options.append_compile_args('cpp', windows_compile_args)
+      iniparser_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
     iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
@@ -458,8 +465,7 @@ else
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
   if host_machine.system() == 'windows'
-    ruy_options.append_compile_args('c', windows_compile_args)
-    ruy_options.append_compile_args('cpp', windows_compile_args)
+    ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     ruy_flags = [
       '-Wno-error=unused-result',
