@@ -23,10 +23,6 @@
 #include <dynamic_library_loader.h>
 #include <engine.h>
 
-#ifdef ENABLE_OPENCL
-#include <cl_context.h>
-#endif
-
 static std::string solib_suffix = ".so";
 static std::string contextlib_suffix = "context.so";
 static const std::string func_tag = "[Engine] ";
@@ -46,9 +42,11 @@ void Engine::add_default_object(Engine &eg) {
 
   eg.registerContext("cpu", app_context);
 
-#ifdef ENALBE_OPENCL
-  eg.registererContext("gpu",
-                       nntrainer::ClContext(nntrainer::ClContext::Global()));
+#ifdef ENABLE_OPENCL
+  nntrainer::ClContext *cl_context = new nntrainer::ClContext();
+  cl_context->Global();
+
+  eg.registerContext("gpu", cl_context);
 #endif
 }
 
