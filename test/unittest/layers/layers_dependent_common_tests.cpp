@@ -124,12 +124,13 @@ TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
 
 #ifdef ENABLE_OPENCL
 TEST_P(LayerSemanticsGpu, createFromClContext_pn) {
-  auto &ac = nntrainer::ClContext::Global();
+  auto &eg = nntrainer::Engine::Global();
+  auto cc = static_cast<nntrainer::ClContext *>(eg.getRegisteredContext("gpu"));
   if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
-    ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
+    cc->registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));
   }
 
-  EXPECT_EQ(ac.createObject<nntrainer::Layer>(expected_type)->getType(),
+  EXPECT_EQ(cc->createObject<nntrainer::Layer>(expected_type)->getType(),
             expected_type);
 }
 

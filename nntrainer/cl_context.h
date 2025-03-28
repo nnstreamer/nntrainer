@@ -26,6 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <context.h>
 #include <layer.h>
 #include <layer_devel.h>
 
@@ -46,39 +47,13 @@ extern std::mutex cl_factory_mutex;
  * @brief OpenCL support for app context
  */
 
-class ClContext {
+class ClContext : public Context {
 
 public:
-  using PropsType = std::vector<std::string>;
-
-  template <typename T> using PtrType = std::unique_ptr<T>;
-
   using SharedPtrClKernel = std::shared_ptr<opencl::Kernel>;
-
-  template <typename T>
-  using FactoryType = std::function<PtrType<T>(const PropsType &)>;
-
-  template <typename T>
-  using PtrFactoryType = PtrType<T> (*)(const PropsType &);
-
-  template <typename T>
-  using StrIndexType = std::unordered_map<std::string, FactoryType<T>>;
-
-  /** integer to string key */
-  using IntIndexType = std::unordered_map<int, std::string>;
 
   /** string to kernel pointer map*/
   using OclKernelMap = std::unordered_map<std::string, SharedPtrClKernel>;
-
-  /**
-   * This type contains tuple of
-   * 1) integer -> string index
-   * 2) string -> factory index
-   */
-  template <typename T>
-  using IndexType = std::tuple<StrIndexType<T>, IntIndexType>;
-
-  template <typename... Ts> using FactoryMap = std::tuple<IndexType<Ts>...>;
 
   // getting static instance of commandqueue, opencl context and buffermanager
   opencl::CommandQueueManager &command_queue_inst_ =
@@ -91,15 +66,25 @@ public:
   /**
    * @brief   Default constructor
    */
-  ClContext() = default;
+  ClContext() : Context(std::make_shared<ContextData>()) {}
 
   /**
-   *
+   * @brief destructor to release opencl commandQueue
+   */
+  ~ClContext() override {
+    if (cl_initialized) {
+      command_queue_inst_.ReleaseCommandQueue();
+      // getContext() is called by clCreateKernel
+      context_inst_.ReleaseContext();
+    }
+  };
+
+  /**
    * @brief Get Global cl context.
    *
    * @return ClContext&
    */
-  static ClContext &Global();
+  ClContext &Global() override;
 
   /**
    * @brief Factory register function, use this function to register custom
@@ -220,15 +205,9 @@ public:
   void initAttentionClKernels();
 
   /**
-   * @brief destructor to release opencl commandQueue
+   * @brief Get the name of the context
    */
-  ~ClContext() {
-    if (cl_initialized) {
-      command_queue_inst_.ReleaseCommandQueue();
-      // getContext() is called by clCreateKernel
-      context_inst_.ReleaseContext();
-    }
-  };
+  std::string getName() override { return "gpu"; }
 
 private:
   // flag to check opencl commandqueue and context inititalization

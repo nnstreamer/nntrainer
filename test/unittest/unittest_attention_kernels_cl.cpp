@@ -29,14 +29,7 @@
 
 using namespace nntrainer;
 
-static void setUpGpuContext() {
-  auto &ac = nntrainer::ClContext::Global();
-  ac.initAttentionClKernels();
-}
-
 TEST(attention_kernels, rotary_emb_kernel_FP32) {
-  setUpGpuContext();
-
   int batch = 1;
   int channel = 1;
   int height = 4;
@@ -78,8 +71,6 @@ TEST(attention_kernels, rotary_emb_kernel_FP32) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
-  setUpGpuContext();
-
   int batch = 4;
   int channel = 4;
   int height = 8;
@@ -121,8 +112,6 @@ TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP16) {
-  setUpGpuContext();
-
   int batch = 1;
   int channel = 1;
   int height = 4;
@@ -163,8 +152,6 @@ TEST(attention_kernels, rotary_emb_kernel_FP16) {
 }
 
 TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
-  setUpGpuContext();
-
   int batch = 4;
   int channel = 4;
   int height = 8;
