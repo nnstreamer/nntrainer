@@ -1014,10 +1014,19 @@ Tensor &Tensor::dotBatched(Tensor const &m, Tensor &result, bool trans,
   if (!result.isAllocated())
     throw std::invalid_argument(
       "Output tensor must be preallocated for dotBatched operation");
-  for (unsigned int b = 0; b < batch(); b++) {
+
+  size_t lcm = std::lcm(batch(), m.batch());
+  size_t group_size = lcm / batch();
+  size_t m_group_size = lcm / m.batch();
+
+  NNTR_THROW_IF(!((lcm == batch() || lcm == m.batch())), std::invalid_argument)
+    << "The batch size of the given twon tensors must be the same"
+       "or the bigger one should be a multiple of the smaller one";
+
+  for (unsigned int b = 0; b < lcm; b++) {
     /** @todo try using transpose to speedup the operation */
-    const Tensor this_b = this->getBatchSlice(b, 1);
-    Tensor m_b = m.getBatchSlice(b, 1);
+    const Tensor this_b = this->getBatchSlice(b / group_size, 1);
+    Tensor m_b = m.getBatchSlice(b / m_group_size, 1);
     Tensor result_b = result.getBatchSlice(b, 1);
 
     this_b.dot(m_b, result_b, trans, trans_m, beta);
