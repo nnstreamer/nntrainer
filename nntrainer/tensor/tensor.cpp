@@ -898,6 +898,11 @@ void Tensor::tan(Tensor &output, float alpha) {
 
 void Tensor::inv_sqrt_i() { itensor->inv_sqrt(*this); }
 
+Tensor Tensor::inv_sqrt(Tensor &out) const {
+  itensor->inv_sqrt(out);
+  return out;
+}
+
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
 float Tensor::l2norm() const { return itensor->l2norm(); }

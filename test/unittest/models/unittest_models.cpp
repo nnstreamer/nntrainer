@@ -967,6 +967,25 @@ static std::unique_ptr<NeuralNetwork> makePowOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeSQRTOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"sqrt", {"name=sqrt_layer", "input_layers=fc"}},
+               {"mse", {"name=loss", "input_layers=sqrt_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1046,6 +1065,7 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeDivideOperation, "divide_operation",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makePowOperation, "pow_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeSQRTOperation, "sqrt_operation", ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });
