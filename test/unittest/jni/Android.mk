@@ -41,7 +41,7 @@ GTEST_PATH := tests/googletest
 
 LOCAL_MODULE := googletest_main
 LOCAL_CFLAGS := -Itests/googletest/include -Itests/googletest/
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_CXXFLAGS      += -std=c++20 -frtti -fexceptions
 
 LOCAL_SRC_FILES := \
     $(GTEST_PATH)/src/gtest-all.cc
@@ -53,7 +53,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := tensor_unittest
 LOCAL_CFLAGS := -Itests/googletest/include -Itests -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -O3 -frtti
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_CXXFLAGS      += -std=c++20 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp 
 
 LOCAL_SRC_FILES := \
@@ -71,7 +71,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := tensor_unittest
 LOCAL_CFLAGS := -Itests/googletest/include -Itests -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -O3 -frtti -DENABLE_FP16=1
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
+LOCAL_CXXFLAGS      += -std=c++20 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
 
 LOCAL_SRC_FILES := \
