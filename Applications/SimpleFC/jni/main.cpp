@@ -91,7 +91,7 @@ void saveBin(unsigned int epochs, unsigned int batch_size) {
 }
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  std::string swap_on_off, std::string look_ahaed,
+                  std::string fsu_on_off, std::string look_ahaed,
                   std::string file_path) {
   saveBin(epochs, batch_size);
   // setup model
@@ -100,10 +100,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                       nntrainer::withKey("epochs", epochs),
                       nntrainer::withKey("model_tensor_type", "FP16-FP16")});
 
-  model->setProperty({nntrainer::withKey("memory_swap", swap_on_off)});
-  if (swap_on_off == "true") {
-    model->setProperty(
-      {nntrainer::withKey("memory_swap_lookahead", look_ahaed)});
+  model->setProperty({nntrainer::withKey("fsu", fsu_on_off)});
+  if (fsu_on_off == "true") {
+    model->setProperty({nntrainer::withKey("fsu_lookahead", look_ahaed)});
   }
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
@@ -172,20 +171,19 @@ int main(int argc, char *argv[]) {
   nntrainer::profile::Profiler::Global().subscribe(listener);
 #endif
 
-  std::string swap_on = "true";
+  std::string fsu_on = "true";
   std::string look_ahead = "1";
   std::string weight_file_path = "FSU_WEIGHT.bin";
   if (argc < 4) {
-    std::cerr
-      << "need more argc, executable swap_on look_ahead Weight_file_path"
-      << std::endl;
+    std::cerr << "need more argc, executable fsu_on look_ahead Weight_file_path"
+              << std::endl;
   }
 
-  swap_on = argv[1];          // true or false
+  fsu_on = argv[1];           // true or false
   look_ahead = argv[2];       // int
   weight_file_path = argv[3]; // string
 
-  std::cout << "swap_on : " << swap_on << std::endl;
+  std::cout << "fsu_on : " << fsu_on << std::endl;
   std::cout << "look_ahead : " << look_ahead << std::endl;
   std::cout << "weight_file_path : " << weight_file_path << std::endl;
 
@@ -193,7 +191,7 @@ int main(int argc, char *argv[]) {
   unsigned int epoch = 1;
 
   try {
-    createAndRun(epoch, batch_size, swap_on, look_ahead, weight_file_path);
+    createAndRun(epoch, batch_size, fsu_on, look_ahead, weight_file_path);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;

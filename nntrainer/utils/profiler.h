@@ -33,49 +33,49 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_TIME_REGISTER_EVENT(event_key, event_str)
 #define PROFILE_MEM_ALLOC(ptr, size, str)
 #define PROFILE_MEM_DEALLOC(ptr)
-#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, swap)
-#define PROFILE_CACHE_DEALLOC(ptr, policy, swap)
+#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, fsu)
+#define PROFILE_CACHE_DEALLOC(ptr, policy, fsu)
 #define PROFILE_BEGIN(listener)
 #define PROFILE_END(listener)
 #define PROFILE_MEM_ANNOTATE(str)
 
 #else /** PROFILE */
 
-#define PROFILE_TIME_START(event_key) \
+#define PROFILE_TIME_START(event_key)                                          \
   nntrainer::profile::Profiler::Global().start(event_key)
 
-#define PROFILE_TIME_END(event_key) \
+#define PROFILE_TIME_END(event_key)                                            \
   nntrainer::profile::Profiler::Global().end(event_key)
 
-#define PROFILE_TIME_REGISTER_EVENT(event_key, event_str)                 \
-  do {                                                                    \
-    event_key =                                                           \
-      nntrainer::profile::Profiler::Global().registerTimeItem(event_str); \
+#define PROFILE_TIME_REGISTER_EVENT(event_key, event_str)                      \
+  do {                                                                         \
+    event_key =                                                                \
+      nntrainer::profile::Profiler::Global().registerTimeItem(event_str);      \
   } while (0)
 
-#define PROFILE_MEM_ALLOC(ptr, size, str) \
+#define PROFILE_MEM_ALLOC(ptr, size, str)                                      \
   nntrainer::profile::Profiler::Global().alloc(ptr, size, str)
 
-#define PROFILE_MEM_DEALLOC(ptr) \
+#define PROFILE_MEM_DEALLOC(ptr)                                               \
   nntrainer::profile::Profiler::Global().dealloc(ptr)
 
-#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, swap) \
-  nntrainer::profile::Profiler::Global().alloc(ptr, size, str, policy, swap)
+#define PROFILE_CACHE_ALLOC(ptr, size, str, policy, fsu)                       \
+  nntrainer::profile::Profiler::Global().alloc(ptr, size, str, policy, fsu)
 
-#define PROFILE_CACHE_DEALLOC(ptr, policy, swap) \
-  nntrainer::profile::Profiler::Global().dealloc(ptr, policy, swap)
+#define PROFILE_CACHE_DEALLOC(ptr, policy, fsu)                                \
+  nntrainer::profile::Profiler::Global().dealloc(ptr, policy, fsu)
 
-#define PROFILE_BEGIN(listener)                                 \
-  do {                                                          \
-    nntrainer::profile::Profiler::Global().subscribe(listener); \
+#define PROFILE_BEGIN(listener)                                                \
+  do {                                                                         \
+    nntrainer::profile::Profiler::Global().subscribe(listener);                \
   } while (0)
 
-#define PROFILE_END(listener) \
-  do {                        \
-    std::cout << *listener;   \
+#define PROFILE_END(listener)                                                  \
+  do {                                                                         \
+    std::cout << *listener;                                                    \
   } while (0)
 
-#define PROFILE_MEM_ANNOTATE(str) \
+#define PROFILE_MEM_ANNOTATE(str)                                              \
   nntrainer::profile::Profiler::Global().annotate(str)
 
 #endif /** PROFILE */
@@ -107,7 +107,7 @@ public:
     time_item(item),
     alloc_current(cur),
     alloc_total(total),
-    cache_swap(false),
+    cache_fsu(false),
     event_str(str),
     duration(dur) {}
 
@@ -117,12 +117,12 @@ public:
    */
   ProfileEventData(int item, size_t cur, size_t total, std::string str,
                    std::chrono::microseconds dur, std::string policy,
-                   bool swap) :
+                   bool fsu) :
     time_item(item),
     alloc_current(cur),
     alloc_total(total),
     cache_policy(policy),
-    cache_swap(swap),
+    cache_fsu(fsu),
     event_str(str),
     duration(dur) {}
 
@@ -136,7 +136,7 @@ public:
   size_t alloc_total;
 
   std::string cache_policy;
-  bool cache_swap;
+  bool cache_fsu;
 
   /* common data */
   std::string event_str;
@@ -261,7 +261,7 @@ private:
   void onNotifyMemoryEvent(PROFILE_EVENT event, const size_t alloc_current,
                            const size_t alloc_total, const std::string &str,
                            const std::chrono::microseconds &duration,
-                           const std::string &policy, bool swap);
+                           const std::string &policy, bool fsu);
 
   std::chrono::time_point<std::chrono::steady_clock> start_time;
   unsigned int warmups;
@@ -282,7 +282,7 @@ private:
   std::list<std::tuple<PROFILE_EVENT, size_t, size_t, std::string,
                        std::chrono::microseconds, std::string, bool>>
     mem_taken; /**< taken memory information <event, current, total, str, dur,
-                  policy, swap> */
+                  policy, fsu> */
   size_t mem_max;     /**< memory max size */
   size_t mem_sum;     /**< memory sum */
   size_t mem_average; /**< memory average */
@@ -351,7 +351,7 @@ public:
    * @param str information string
    */
   void alloc(const void *ptr, size_t size, const std::string &str,
-             const std::string &policy = "", bool swap = false);
+             const std::string &policy = "", bool fsu = false);
 
   /**
    * @brief trace memory de-allocation
@@ -359,7 +359,7 @@ public:
    * @param ptr de-allocated memory pointer
    */
   void dealloc(const void *ptr, const std::string &policy = "",
-               bool swap = false);
+               bool fsu = false);
 
   /**
    * @brief add annotation on memory profile data

@@ -7,12 +7,12 @@
 # path to search for layers
 layer=@PLUGIN_INSTALL_PREFIX@/layers
 
-[swap]
-# enable memory swap feature
-memory_swap = @MEMORY_SWAP@
+[fsu]
+# enable memory fsu feature
+fsu = @FLASH_STORAGE_UTILIZATION@
 
-# path to save swap file
-memory_swap_path = @MEMORY_SWAP_PATH@
+# path to save fsu file
+fsu_path = @FLASH_STORAGE_UTILIZATION_PATH@
 
 # look ahead window size
-memory_swap_lookahead = @MEMORY_SWAP_LOOKAHEAD@
+fsu_lookahead = @FLASH_STORAGE_UTILIZATION_LOOKAHEAD@

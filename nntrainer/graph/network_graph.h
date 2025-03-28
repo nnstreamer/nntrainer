@@ -57,20 +57,20 @@ public:
 
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
-   * @param[in] enable_swap enable memory swap for tensor
+   * @param[in] enable_fsu enable memory fsu for tensor
    * @param[in] mode execution mode (default ExecutionMode::TRAIN)
-   * @param[in] swap_path memory swap file path when the swap is enabled
+   * @param[in] fsu_path memory fsu file path when the fsu is enabled
    * @param[in] tensor_format define tensor format. One of NCHW and NHWC
    * (default NCHW)
    * @param[in] tensor_type It says weight type and activation type (default
    * FP32-FP32)
    */
-  NetworkGraph(bool enable_swap, ExecutionMode mode = ExecutionMode::TRAIN,
-               const std::string &swap_path = "", unsigned int lookahead = 0,
+  NetworkGraph(bool enable_fsu, ExecutionMode mode = ExecutionMode::TRAIN,
+               const std::string &fsu_path = "", unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
                const std::string &tensor_dtype_ = "FP32-FP32") :
     tensor_manager(std::make_shared<Manager>(
-      enable_swap, swap_path, lookahead, tensor_format_, tensor_dtype_, mode)),
+      enable_fsu, fsu_path, lookahead, tensor_format_, tensor_dtype_, mode)),
     graph(),
     compiled(false),
     batch_size(0),

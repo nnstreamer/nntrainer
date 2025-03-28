@@ -219,7 +219,7 @@ if get_option('platform') != 'android'
   nntrainer_includedir = nntrainer_prefix / get_option('includedir') / 'nntrainer'
   nntrainer_confdir = get_option('sysconfdir')
   application_install_dir = nntrainer_bindir / 'applications'
-  nntrainer_swapdir = '/tmp'
+  nntrainer_fsudir = '/tmp'
 else
   nntrainer_prefix = meson.build_root() / 'android_build_result'
   # @todo arch has to be option
@@ -228,18 +228,18 @@ else
   nntrainer_bindir = nntrainer_prefix / 'bin'
   nntrainer_confdir = nntrainer_prefix / 'conf'
   application_install_dir = nntrainer_prefix / 'examples'
-  nntrainer_swapdir = '/data/local/tmp'
+  nntrainer_fsudir = '/data/local/tmp'
 endif
 
-# handle swap options
-if get_option('enable-memory-swap')
-  nntrainer_enable_swap = 'true'
+# handle fsu options
+if get_option('enable-fsu')
+  nntrainer_enable_fsu = 'true'
 else
-  nntrainer_enable_swap = 'false'
+  nntrainer_enable_fsu = 'false'
 endif
 
-if get_option('memory-swap-path') != ''
-  nntrainer_swapdir = get_option('memory-swap-path')
+if get_option('fsu-path') != ''
+  nntrainer_fsudir = get_option('fsu-path')
 endif
 
 # handle resources
@@ -269,8 +269,8 @@ nntrainer_conf.set('EXEC_PREFIX', nntrainer_bindir)
 nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
 nntrainer_conf.set('PLUGIN_INSTALL_PREFIX', nntrainer_libdir / 'nntrainer')
 nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
-nntrainer_conf.set('MEMORY_SWAP', nntrainer_enable_swap)
-nntrainer_conf.set('MEMORY_SWAP_PATH', nntrainer_swapdir)
+nntrainer_conf.set('FLASH_STORAGE_UTILIZATION', nntrainer_enable_fsu)
+nntrainer_conf.set('FLASH_STORAGE_UTILIZATION_PATH', nntrainer_fsudir)
 
 dummy_dep = dependency('', required: false)
 ml_api_common_flag = '-DML_API_COMMON=0'
