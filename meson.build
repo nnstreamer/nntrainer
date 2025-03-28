@@ -5,8 +5,8 @@ project('nntrainer', 'c', 'cpp',
   default_options: [
     'werror=true',
     'warning_level=1',
-    'c_std=gnu89',
-    'cpp_std=c++17',
+    'c_std=c17',
+    'cpp_std=c++20',
     'buildtype=release'
   ]
 )
@@ -71,7 +71,8 @@ warning_flags = [
   '-ftree-vectorize',
   '-Wno-maybe-uninitialized',
   '-Wno-unused-variable',
-  '-Wno-comment'
+  '-Wno-comment',
+  '-Wno-deprecated-enum-enum-conversion'
 ]
 
 warning_c_flags = [

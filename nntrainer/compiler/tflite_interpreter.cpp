@@ -744,25 +744,29 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
         auto mul_epsilon =
           realized_nodes.back().get()->getAdditionalProps().at(0);
 
-        Tensor new_mul_weight(mul_gamma.getDim());
-        new_mul_weight.allocate();
-        new_mul_weight.copy(mul_gamma);
+        std::unique_ptr<Tensor> new_mul_weight =
+          std::make_unique<Tensor>(mul_gamma.getDim());
+        new_mul_weight->allocate();
+        new_mul_weight->copy(mul_gamma);
 
         // new_mul_weight = (gamma / sqrt(variance + epsilon))
         mul_variance.add_i(mul_epsilon);
         mul_variance.pow_i(-0.5f);
-        new_mul_weight.multiply_i(mul_variance);
+        new_mul_weight->multiply_i(mul_variance);
 
         // beta =  (beta - mean * gamma / sqrt(variance + epsilon))
-        Tensor sub_result(new_mul_weight.getDim());
+        Tensor sub_result(new_mul_weight->getDim());
         sub_result.allocate();
-        sub_result.copyData(new_mul_weight);
+        sub_result.copyData(*new_mul_weight);
 
         mul_mean.multiply_i(sub_result);
         mul_beta.subtract_i(mul_mean);
-        new_mul_weight.setName("MUL");
+        new_mul_weight->setName("MUL");
+        for (auto weight : removed_weights) {
+          delete weight;
+        }
         removed_weights.clear();
-        removed_weights.push_back(&new_mul_weight);
+        removed_weights.push_back(new_mul_weight.release());
 
         realized_nodes.back().get()->replaceWeights(removed_weights);
         realized_nodes.back().get()->setWeights(removed_weights, true);

@@ -29,9 +29,9 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/include/nntrainer
 SIMPLESHOT_DIR = .
 
 LOCAL_ARM_NEON := true
-LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
+LOCAL_CFLAGS += -std=c++20 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
-LOCAL_CXXFLAGS += -std=c++17 -frtti -fexceptions -fopenmp -static-openmp
+LOCAL_CXXFLAGS += -std=c++20 -frtti -fexceptions -fopenmp -static-openmp
 LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
