@@ -677,11 +677,7 @@ void FloatTensor::tan(Tensor &output, float alpha) {
 }
 
 void FloatTensor::inv_sqrt(Tensor &out) {
-  if (!contiguous) {
-    apply([](float val) -> float { return 1 / std::sqrt(val); }, out);
-  } else {
-    inv_sqrt_inplace(out.size(), out.getData<float>());
-  }
+  apply([](float val) -> float { return 1 / std::sqrt(val); }, out);
 }
 
 Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,

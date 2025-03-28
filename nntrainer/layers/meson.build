@@ -11,6 +11,8 @@ layer_sources = [
   'multiply_layer.cpp',
   'divide_layer.cpp',
   'pow_layer.cpp',
+  'sqrt_layer.cpp',
+  'sine_layer.cpp',
   'addition_layer.cpp',
   'attention_layer.cpp',
   'mol_attention_layer.cpp',
