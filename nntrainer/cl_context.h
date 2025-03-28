@@ -36,8 +36,6 @@
 #include <opencl_kernel.h>
 #include <opencl_program.h>
 
-#include <nntrainer_log.h>
-
 namespace nntrainer {
 
 extern std::mutex cl_factory_mutex;
@@ -183,6 +181,32 @@ public:
 
     // entry -> object of str_map -> unordered_map<std::string, FactoryType<T>>
     return entry->second(props);
+  }
+
+  /**
+   * @brief Create a Layer object from the string key
+   *
+   * @param type string key
+   * @param properties property
+   * @return std::unique_ptr<nntrainer::Layer> unique pointer to the object
+   */
+  std::unique_ptr<nntrainer::Layer>
+  createLayerObject(const std::string &type,
+                    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Layer>(type, properties);
+  }
+
+  /**
+   * @brief Create a Layer object from the integer key
+   *
+   * @param type integer key
+   * @param properties property
+   * @return std::unique_ptr<nntrainer::Layer> unique pointer to the object
+   */
+  std::unique_ptr<nntrainer::Layer>
+  createLayerObject(const int int_key,
+                    const std::vector<std::string> &properties = {}) override {
+    return createObject<nntrainer::Layer>(int_key, properties);
   }
 
   /**
