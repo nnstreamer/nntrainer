@@ -745,6 +745,8 @@ void NeuralNetwork::load(const std::string &file_path,
     // ":" QNN bin ( graph ) : NNTrainer bin (weight)
     NNTR_THROW_IF(exec_mode != ExecutionMode::INFERENCE, std::invalid_argument)
       << "Only support QNN biarny for Infernece";
+    NNTR_THROW_IF(!isFileExist(props::FilePath(v[0])), std::invalid_argument)
+      << "Cannot open QNN context bin file";
 
     std::thread qnn_load([this, &v]() {
       int ret =
@@ -753,8 +755,14 @@ void NeuralNetwork::load(const std::string &file_path,
     });
 
     if (!swap_mode && v.size() > 1) {
+      NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
+        << "Cannot open weight bin file";
       load(props::FilePath(v[1]), ml::train::ModelFormat::MODEL_FORMAT_BIN);
     } else if (swap_mode) {
+      NNTR_THROW_IF(v.size() <= 1, std::invalid_argument)
+        << "Swap mode should run with loading a weight-bin file";
+      NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
+        << "Cannot open weight bin file";
       model_graph.setFsuWeightPath(v[1]);
     }
 
