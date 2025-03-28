@@ -29,8 +29,6 @@ namespace nntrainer {
 
 std::mutex cl_factory_mutex;
 
-std::once_flag global_cl_context_init_flag;
-
 static void add_default_object(ClContext &cc) {
 
   if (FullyConnectedLayerCl::registerClKernels()) {
@@ -86,20 +84,13 @@ static void registerer(ClContext &cc) noexcept {
 };
 
 ClContext &ClContext::Global() {
-  static ClContext instance;
-
   // initializing commandqueue and context
-  bool result = instance.clInit();
-
-  if (!result) {
+  if (!clInit()) {
     ml_loge("cl_context: opencl command queue creation failed");
   }
 
-  /// in g++ there is a bug that hangs up if caller throws,
-  /// so registerer is noexcept although it'd better not
-  /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
-  std::call_once(global_cl_context_init_flag, registerer, std::ref(instance));
-  return instance;
+  registerer(*this);
+  return *this;
 }
 
 template <typename T>

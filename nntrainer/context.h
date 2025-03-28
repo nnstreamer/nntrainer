@@ -125,6 +125,9 @@ public:
   virtual PtrType<nntrainer::Layer>
   createLayerObject(const std::string &type,
                     const std::vector<std::string> &props = {}) {
+    ml_logw(
+      "[Warning] Implement createLayerObject for the concrete context class to "
+      "properly create the layer");
     return nullptr;
   };
 
@@ -138,11 +141,14 @@ public:
   virtual PtrType<nntrainer::Layer>
   createLayerObject(const int int_key,
                     const std::vector<std::string> &props = {}) {
+    ml_logw(
+      "[Warning] Implement createLayerObject for the concrete context class to "
+      "properly create the layer");
     return nullptr;
   };
 
   /**
-   * @brief Create an Optimizer Object from the type (stirng)
+   * @brief Create an Optimizer Object from the type (string)
    *
    * @param type type of optimizer
    * @param props property

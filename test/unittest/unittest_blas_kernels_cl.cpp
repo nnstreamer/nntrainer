@@ -27,10 +27,7 @@
 
 using namespace nntrainer;
 
-static void setUpGpuContext() { auto &ac = nntrainer::ClContext::Global(); }
-
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
-  setUpGpuContext();
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -76,7 +73,6 @@ TEST(blas_kernels, dotCL_sgemv_M_1_1) {
 }
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1_fp16) {
-  setUpGpuContext();
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -460,7 +456,6 @@ TEST(blas_kernels, dotCL_sgemv_n_fp16) {
 }
 
 TEST(blas_kernels, dotCL_sgemv_N_1_M_1_1) {
-  setUpGpuContext();
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -505,7 +500,6 @@ TEST(blas_kernels, dotCL_sgemv_N_1_M_1_1) {
 }
 
 TEST(blas_kernels, dotCL_sgemv_N_1_M_1_2) {
-  setUpGpuContext();
   int batch = 1;
   int channel = 1;
   int height = 1;
