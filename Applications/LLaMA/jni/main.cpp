@@ -229,6 +229,7 @@ T unwrap(std::optional<T> &&value, const std::string &error_msg) {
   }
 }
 
+
 /**
  * @brief Create Attention Layer for the seperate impelemntation
  */
