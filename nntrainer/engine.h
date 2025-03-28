@@ -143,7 +143,6 @@ public:
   createLayerObject(const std::string &type,
                     const std::vector<std::string> &properties = {}) const {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
-    ct->getName();
     return ct->createLayerObject(type);
   }
 
