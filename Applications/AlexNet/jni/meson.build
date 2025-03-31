@@ -8,7 +8,7 @@ if build_machine.system() == 'windows'
   if not fs.exists (build_app_res_dir_win)
     run_command([prog_win_cmd, '/C', 'mkdir', build_app_res_dir_win], check: true)
   endif
-  run_command([prog_win_cmd, '/C', 'xcopy', app_res_dir_win, build_app_res_dir_win], check: true)
+  run_command(['xcopy', '/C', '/Y', app_res_dir_win, build_app_res_dir_win], check: true)
 else
   run_command(['cp', '-lr', app_res_dir, build_app_res_dir], check: true)
 endif
