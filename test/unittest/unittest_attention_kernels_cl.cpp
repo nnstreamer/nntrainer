@@ -111,6 +111,8 @@ TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
   EXPECT_IN_RANGE((float)cosSimNeon_fp32, 0.99, 1);
 }
 
+#ifdef ENABLE_FP16
+
 TEST(attention_kernels, rotary_emb_kernel_FP16) {
   int batch = 1;
   int channel = 1;
@@ -190,6 +192,8 @@ TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
   EXPECT_IN_RANGE(mseErrorNeon_fp16, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSimNeon_fp16, 0.99, 1);
 }
+
+#endif
 
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
