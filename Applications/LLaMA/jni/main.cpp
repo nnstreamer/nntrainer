@@ -27,6 +27,7 @@
 #include <app_context.h>
 #include <custom_multi_head_attention_layer.h>
 #include <engine.h>
+#include <optional>
 #include <rms_norm.h>
 #include <rotary_embedding.h>
 #include <swiglu.h>

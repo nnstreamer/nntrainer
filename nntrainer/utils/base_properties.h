@@ -662,11 +662,11 @@ void from_string(const std::string &value, std::vector<T> &property) {
 struct TensorDataTypeInfo {
   using Enum = nntrainer::TensorDim::DataType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::BCQ,  Enum::QINT4, Enum::QINT8, Enum::QINT16,
-    Enum::FP16, Enum::FP32,  Enum::UINT16};
-
-  static constexpr const char *EnumStr[] = {"BCQ",  "QINT4", "QINT8", "QINT16",
-                                            "FP16", "FP32",  "UINT16"};
+    Enum::BCQ,  Enum::QINT4, Enum::QINT8, Enum::QINT16, Enum::FP16,
+    Enum::FP32, Enum::UINT4, Enum::UINT8, Enum::UINT16};
+  static constexpr const char *EnumStr[] = {"BCQ",    "QINT4", "QINT8",
+                                            "QINT16", "FP16",  "FP32",
+                                            "UINT4",  "UINT8", "UINT16"};
 };
 
 /**
@@ -680,6 +680,29 @@ struct TensorFormatInfo {
   static constexpr const char *EnumStr[] = {"NCHW", "NHWC"};
 };
 
+/**
+ * @brief     Enumeration of Tensor Type for model & layer
+ */
+enum class TensorType_ {
+  WEIGHT,         /**< Weight Tensor */
+  IN_TENSOR,      /**< Input Tensor for FORWARD_FUNC_LIFESPAN */
+  MAX_IN_TENSOR,  /**< MAX LIFESPAN INPUT TENSOR */
+  OUT_TENSOR,     /**< OUTPUT TENSOR */
+  MAX_OUT_TENSOR, /**< MAX LIFESPAN OUTPUT TENSOR */
+};
+
+/**
+ * @brief     Enumeration of Tensor Type for model & layer
+ */
+struct TensorTypeInfo {
+  using Enum = nntrainer::TensorType_;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::WEIGHT, Enum::IN_TENSOR, Enum::MAX_IN_TENSOR, Enum::OUT_TENSOR,
+    Enum::MAX_OUT_TENSOR};
+  static constexpr const char *EnumStr[] = {
+    "WEIGHT", "IN_TENSOR", "MAX_IN_TENSOR", "OUT_TENSOR", "MAX_OUT_TENSOR"};
+};
+
 namespace props {
 
 /**
@@ -689,7 +712,7 @@ namespace props {
 class TensorDataType final : public EnumProperty<TensorDataTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
-  static constexpr const char *key = "tensor_type";
+  static constexpr const char *key = "tensor_dtype";
 
   /**
    * @brief Constructor
@@ -723,6 +746,19 @@ public:
 };
 
 /**
+ * @brief model tensor type is the clue of life span
+ *
+ */
+class TensorType final : public EnumProperty<nntrainer::TensorTypeInfo> {
+public:
+  static constexpr const char *key = "tensor_type";
+  using prop_tag = enum_class_prop_tag;
+  TensorType(TensorTypeInfo::Enum value = TensorTypeInfo::Enum::WEIGHT) {
+    set(value);
+  }
+};
+
+/**
  * @brief     Enumeration of Run Engine type
  */
 struct ComputeEngineTypeInfo {
@@ -744,8 +780,8 @@ public:
 };
 
 // /**
-//  * @brief trainable property, use this to set and check how if certain layer
-//  is
+//  * @brief trainable property, use this to set and check how if certain
+//  layer is
 //  * trainable
 //  *
 //  */
