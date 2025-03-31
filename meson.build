@@ -1,7 +1,7 @@
 project('nntrainer', 'c', 'cpp',
   version: '0.6.0',
   license: ['apache-2.0'],
-  meson_version: '>=0.55.0',
+  meson_version: '>=0.61.2',
   default_options: [
     'werror=true',
     'warning_level=1',
