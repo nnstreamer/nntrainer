@@ -34,6 +34,13 @@ ninja install
 
 tar -czvf $TARGET/nntrainer_for_android.tar.gz --directory=android_build_result .
 
+# ruy installation (this should be updated in meson script)
+# This is a workaround to handle sandbox violation issue
+mkdir android_build_result/include/nntrainer/ruy
+mkdir android_build_result/include/nntrainer/ruy/profiler
+cp ../subprojects/ruy/ruy/*.h android_build_result/include/nntrainer/ruy
+cp ../subprojects/ruy/ruy/profiler/*.h android_build_result/include/nntrainer/ruy/profiler
+
 popd
 popd
 
