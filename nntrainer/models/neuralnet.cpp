@@ -428,7 +428,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
                                         bool training) -> void {
-    (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
