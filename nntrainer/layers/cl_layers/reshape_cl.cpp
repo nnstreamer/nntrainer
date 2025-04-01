@@ -61,7 +61,7 @@ bool ReshapeLayerCl::registerClKernels() {
     ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
 
     kernel_copy_ptr =
-      cl_context_ref.registerClKernel(copy_cl_kernel_, "copy_cl");
+      global_cl_context->registerClKernel(copy_cl_kernel_, "copy_cl");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl kernel");
       break;
@@ -70,7 +70,7 @@ bool ReshapeLayerCl::registerClKernels() {
 
 #ifdef ENABLE_FP16
     kernel_copy_ptr =
-      cl_context_ref.registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
+      global_cl_context->registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
       break;
@@ -178,18 +178,18 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+    opencl::Buffer inputA(global_cl_context->context_inst_, dim_size, true,
                           nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+    opencl::Buffer inOutRes(global_cl_context->context_inst_, dim_size, true,
                             nullptr);
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
+    result = inputA.WriteData(global_cl_context->command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.WriteData(global_cl_context->command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -229,13 +229,13 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     const int work_groups_count[3] = {(int)dim_size, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.ReadData(global_cl_context->command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -258,18 +258,18 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim_size, true,
+    opencl::Buffer inputA(global_cl_context->context_inst_, dim_size, true,
                           nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim_size, true,
+    opencl::Buffer inOutRes(global_cl_context->context_inst_, dim_size, true,
                             nullptr);
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
+    result = inputA.WriteData(global_cl_context->command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.WriteData(global_cl_context->command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -309,13 +309,13 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
     const int work_groups_count[3] = {(int)dim_size, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.ReadData(global_cl_context->command_queue_inst_, res);
     if (!result) {
       break;
     }

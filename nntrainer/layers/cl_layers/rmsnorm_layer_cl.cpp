@@ -141,13 +141,14 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
     float *rdata = result.getData();
     const float *gdata = gamma.getData();
     ret = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * sizeof(float), data);
+      global_cl_context->command_queue_inst_, dim1 * sizeof(float), data);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getInBufferB()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, input.width() * sizeof(float), gdata);
+      global_cl_context->command_queue_inst_, input.width() * sizeof(float),
+      gdata);
     if (!ret) {
       break;
     }
@@ -196,14 +197,14 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
     const int work_groups_count[3] = {b * c, h, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    ret = cl_context_ref.command_queue_inst_.DispatchCommand(
+    ret = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_rmsnorm_ptr, work_groups_count, work_group_size);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * sizeof(float), rdata);
+      global_cl_context->command_queue_inst_, dim1 * sizeof(float), rdata);
     if (!ret) {
       break;
     }
@@ -232,13 +233,13 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     const _FP16 *gdata = gamma.getData<_FP16>();
 
     ret = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * sizeof(cl_half), data);
+      global_cl_context->command_queue_inst_, dim1 * sizeof(cl_half), data);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getInBufferB()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, input.width() * sizeof(cl_half),
+      global_cl_context->command_queue_inst_, input.width() * sizeof(cl_half),
       gdata);
     if (!ret) {
       break;
@@ -288,14 +289,14 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     const int work_groups_count[3] = {b * c, h, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    ret = cl_context_ref.command_queue_inst_.DispatchCommand(
+    ret = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_rmsnorm_ptr, work_groups_count, work_group_size);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * sizeof(cl_half), rdata);
+      global_cl_context->command_queue_inst_, dim1 * sizeof(cl_half), rdata);
     if (!ret) {
       break;
     }
@@ -373,7 +374,7 @@ bool RMSNormLayerCl::registerClKernels() {
     ClContext::SharedPtrClKernel kernel_rmsnorm_ptr = nullptr;
 
     kernel_rmsnorm_ptr =
-      cl_context_ref.registerClKernel(rmsnorm_cl_kernel_, "rmsnorm_cl");
+      global_cl_context->registerClKernel(rmsnorm_cl_kernel_, "rmsnorm_cl");
     if (!kernel_rmsnorm_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
       break;
@@ -381,7 +382,7 @@ bool RMSNormLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_rmsnorm_ptr = cl_context_ref.registerClKernel(
+    kernel_rmsnorm_ptr = global_cl_context->registerClKernel(
       rmsnorm_cl_kernel_fp16_, "rmsnorm_cl_fp16");
     if (!kernel_rmsnorm_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");

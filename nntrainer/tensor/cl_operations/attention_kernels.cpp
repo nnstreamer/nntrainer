@@ -28,7 +28,7 @@ void rotary_emb_cl(float *in, float *out,
 
   do {
     ClContext::SharedPtrClKernel kernel_rotaryEmb_ptr =
-      cl_context_ref.registerClKernel(rotary_emb_cl_kernel_, "rotary_emb_cl");
+      attention_cc->registerClKernel(rotary_emb_cl_kernel_, "rotary_emb_cl");
     if (!kernel_rotaryEmb_ptr) {
       break;
     }
@@ -46,22 +46,22 @@ void rotary_emb_cl(float *in, float *out,
       sizeof(float) * freqs_cos_dim * dim; // max_timestep * dim
     size_t dim6_size = sizeof(float) * freqs_sin_dim * dim;
 
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
+    opencl::Buffer inputA(attention_cc->context_inst_, dim1_size, true,
                           nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim2_size, true,
+    opencl::Buffer inOutRes(attention_cc->context_inst_, dim2_size, true,
                             nullptr);
 
-    opencl::Buffer cosBuf(cl_context_ref.context_inst_, dim3_size, true,
+    opencl::Buffer cosBuf(attention_cc->context_inst_, dim3_size, true,
                           nullptr);
 
-    opencl::Buffer sinBuf(cl_context_ref.context_inst_, dim4_size, true,
+    opencl::Buffer sinBuf(attention_cc->context_inst_, dim4_size, true,
                           nullptr);
 
-    opencl::Buffer freqs_cosBuf(cl_context_ref.context_inst_, dim5_size, true,
+    opencl::Buffer freqs_cosBuf(attention_cc->context_inst_, dim5_size, true,
                                 nullptr);
 
-    opencl::Buffer freqs_sinBuf(cl_context_ref.context_inst_, dim6_size, true,
+    opencl::Buffer freqs_sinBuf(attention_cc->context_inst_, dim6_size, true,
                                 nullptr);
 
     std::vector<float> freqs_cos_flat;
@@ -73,39 +73,39 @@ void rotary_emb_cl(float *in, float *out,
       freqs_sin_flat.insert(freqs_sin_flat.end(), row.begin(), row.end());
     }
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, in);
+    result = inputA.WriteData(attention_cc->command_queue_inst_, in);
     if (!result) {
       printf("Failed to write input data\n");
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, out);
+    result = inOutRes.WriteData(attention_cc->command_queue_inst_, out);
     if (!result) {
       printf("Failed to write output data\n");
       break;
     }
 
-    result = freqs_cosBuf.WriteData(cl_context_ref.command_queue_inst_,
+    result = freqs_cosBuf.WriteData(attention_cc->command_queue_inst_,
                                     freqs_cos_flat.data());
     if (!result) {
       printf("Failed to write freqs cos data\n");
       break;
     }
 
-    result = freqs_sinBuf.WriteData(cl_context_ref.command_queue_inst_,
+    result = freqs_sinBuf.WriteData(attention_cc->command_queue_inst_,
                                     freqs_sin_flat.data());
     if (!result) {
       printf("Failed to write freqs sin data\n");
       break;
     }
 
-    result = cosBuf.WriteData(cl_context_ref.command_queue_inst_, cos_.data());
+    result = cosBuf.WriteData(attention_cc->command_queue_inst_, cos_.data());
     if (!result) {
       printf("Failed to write cos data\n");
       break;
     }
 
-    result = sinBuf.WriteData(cl_context_ref.command_queue_inst_, sin_.data());
+    result = sinBuf.WriteData(attention_cc->command_queue_inst_, sin_.data());
     if (!result) {
       printf("Failed to write sin data\n");
       break;
@@ -204,14 +204,14 @@ void rotary_emb_cl(float *in, float *out,
 
     const int work_groups_count[3] = {(int)batch, (int)channel, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = attention_cc->command_queue_inst_.DispatchCommand(
       kernel_rotaryEmb_ptr, work_groups_count, work_group_size);
     if (!result) {
       printf("Failed to dispatch command\n");
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, out);
+    result = inOutRes.ReadData(attention_cc->command_queue_inst_, out);
     if (!result) {
       printf("Failed to read data\n");
       break;
