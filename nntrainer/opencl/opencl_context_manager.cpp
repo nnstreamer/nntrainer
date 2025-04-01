@@ -42,7 +42,13 @@ const cl_context &ContextManager::GetContext() {
 
   if (context_) {
     // increments the context reference count
-    clRetainContext(context_);
+    auto error_code = clRetainContext(context_);
+    if (error_code != CL_SUCCESS) {
+      ml_loge("Failed to specify the OpenCL context to retain. OpenCL error "
+              "code: %d",
+              error_code);
+    }
+
     return context_;
   }
 
@@ -175,6 +181,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   if (std::string(extensions.data()).find("cl_khr_fp16") == std::string::npos) {
+    throw std::runtime_error("fp16 (half) is not supported by device.");
     ml_loge("fp16 (half) is not supported by device");
     return false;
   }

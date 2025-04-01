@@ -87,7 +87,8 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
     }
 
     const int work_groups_count[3] = {(int)dim1, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {32, 1, 1}; // test-value
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sgemv_fp16_ptr, work_groups_count, work_group_size);
@@ -156,7 +157,8 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
     }
 
     const int work_groups_count[3] = {(int)dim1, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {32, 1, 1};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_dot_fp16_ptr, work_groups_count, work_group_size);
@@ -267,6 +269,7 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
     }
 
     const int work_groups_count[3] = {(int)M, (int)N, 1};
+    /// @todo: create a group size by device & input
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
@@ -337,7 +340,8 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
     }
 
     const int work_groups_count[3] = {(int)size_res, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_addition_fp16_ptr, work_groups_count, work_group_size);
     if (!result) {
@@ -384,7 +388,8 @@ void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
     }
 
     const int work_groups_count[3] = {(int)N, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sscal_fp16_ptr, work_groups_count, work_group_size);
@@ -486,7 +491,8 @@ void transpose_cl_axis(const _FP16 *in, _FP16 *res,
     if (axis == 2)
       work_groups_count[0] = (int)input_channels;
 
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_transpose_fp_16_ptr, work_groups_count, work_group_size);

@@ -203,7 +203,8 @@ void rotary_emb_cl(float *in, float *out,
     }
 
     const int work_groups_count[3] = {(int)batch, (int)channel, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
     result = attention_cc->command_queue_inst_.DispatchCommand(
       kernel_rotaryEmb_ptr, work_groups_count, work_group_size);
     if (!result) {

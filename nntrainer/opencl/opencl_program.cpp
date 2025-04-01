@@ -52,8 +52,9 @@ bool Program::BuildProgram(cl_device_id device_id,
   }
 
   // saving kernel binary
-  if (!binaryCreated)
-    return GetProgramInfo(device_id);
+  /// @note: Temporary disabled due to failing
+  // if (!binaryCreated)
+  //   return GetProgramInfo(device_id);
 
   return true;
 }

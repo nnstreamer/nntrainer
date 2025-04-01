@@ -16,6 +16,7 @@ namespace nntrainer {
 
 ClBufferManager &ClBufferManager::getInstance() {
   static ClBufferManager instance;
+  instance.initBuffers();
   return instance;
 }
 
