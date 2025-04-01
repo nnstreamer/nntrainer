@@ -2,6 +2,3 @@
 	path = subprojects/iniparser
 	url = https://github.com/ndevilla/iniparser.git
 
-[submodule "subprojects/ruy"]
-	path = subprojects/ruy
-	url = https://github.com/google/ruy
