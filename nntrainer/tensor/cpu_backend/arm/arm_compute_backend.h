@@ -15,6 +15,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
+#include <stdexcept>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -425,6 +426,125 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
  * @param[in] Y float * for Vector Y
  */
 void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint32_t * for Vector Y
+ */
+void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+void copy_fp32_u16(const unsigned int N, const float *X, uint16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y T * for Vector Y
+ */
+template <typename T>
+void copy_fp32(const unsigned int N, const float *X, T *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y T * for Vector Y
+ */
+template <typename T>
+inline void copy_fp32(const unsigned int N, const float *X, T *Y) {
+  throw std::invalid_argument("copy_fp32 for the type is not supported");
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint32_t * for Vector Y
+ */
+template <>
+inline void copy_fp32<uint32_t>(const unsigned int N, const float *X,
+                                uint32_t *Y) {
+  copy_fp32_u32(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+template <>
+inline void copy_fp32<uint16_t>(const unsigned int N, const float *X,
+                                uint16_t *Y) {
+  copy_fp32_u16(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+template <>
+inline void copy_fp32<uint8_t>(const unsigned int N, const float *X,
+                               uint8_t *Y) {
+  copy_fp32_u8(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+template <>
+inline void copy_fp32<int16_t>(const unsigned int N, const float *X,
+                               int16_t *Y) {
+  copy_fp32_s16(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+template <>
+inline void copy_fp32<int8_t>(const unsigned int N, const float *X, int8_t *Y) {
+  copy_fp32_s8(N, X, Y);
+}
 
 /**
  * @brief     copy function : Y = X
