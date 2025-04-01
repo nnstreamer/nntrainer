@@ -34,6 +34,8 @@ public:
    */
   FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
 
+
+
   /**
    * @brief Construct a new FloatTensor object
    *
