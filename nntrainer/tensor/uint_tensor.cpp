@@ -331,11 +331,18 @@ template <typename T> void UIntTensor<T>::copyData(const Tensor &from) {
   NNTR_THROW_IF(size() != from.size(), std::invalid_argument)
     << "Size of tensor to copy must match";
 
+  // copy data with the same data type T
+  if (from.getDataType() == getDataType()) {
+    copy(from.getData<T>());
+    return;
+  }
+
   /// @todo support copy from other data types
   switch (from.getDataType()) {
-  case ml::train::TensorDim::DataType::UINT16:
-    copy(from.getData());
+  case ml::train::TensorDim::DataType::FP32: {
+    copy_fp32(from.size(), from.getData<float>(), (T *)getData());
     break;
+  }
   default:
     throw std::invalid_argument("Error: Unsupported data type");
     break;
