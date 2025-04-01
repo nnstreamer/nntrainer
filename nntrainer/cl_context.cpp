@@ -74,7 +74,11 @@ static void add_default_object(ClContext &cc) {
 
 static void registerer(ClContext &cc) noexcept {
   try {
+    /// @todo: initialize kernels from the kernel strings in this function
+    /// currently does not work. registering from each kernel interface works.
+    /// Need to fix it.
     cc.initBlasClKernels();
+    cc.initAttentionClKernels();
     add_default_object(cc);
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
@@ -226,15 +230,16 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
       fs.read((char *)chunk.data(), binary_size);
 
       result = program.CreateCLProgramWithBinary(
-        context_inst_.GetContext(), context_inst_.GetDeviceId(), binary_size,
+        opencl::ContextManager::GetInstance().GetContext(),
+        opencl::ContextManager::GetInstance().GetDeviceId(), binary_size,
         chunk.data(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
         "");
     } else {
-      result =
-        program.CreateCLProgram(context_inst_.GetContext(),
-                                context_inst_.GetDeviceId(), kernel_string, "");
+      result = program.CreateCLProgram(
+        opencl::ContextManager::GetInstance().GetContext(),
+        opencl::ContextManager::GetInstance().GetDeviceId(), kernel_string, "");
     }
 
     if (!result) {
