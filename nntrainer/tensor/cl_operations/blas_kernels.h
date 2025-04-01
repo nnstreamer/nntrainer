@@ -16,6 +16,7 @@
 
 #include <cl_buffer_manager.h>
 #include <cl_context.h>
+#include <engine.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
 
@@ -24,7 +25,8 @@
 namespace nntrainer {
 
 // get global cl_context to use in kernels
-static ClContext cl_context_ref;
+static ClContext *blas_cc =
+  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**

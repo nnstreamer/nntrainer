@@ -15,14 +15,17 @@
 #define __ATTENTION_KERNELS_H__
 
 #include <cl_context.h>
+#include <engine.h>
 #include <opencl_buffer.h>
 #include <opencl_kernel.h>
+
 #include <string>
 
 namespace nntrainer {
 
 // get global cl_context to use in kernels
-static ClContext cl_context_ref;
+static ClContext *attention_cc =
+  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
 /**
  * @brief     Rotary Embedding process

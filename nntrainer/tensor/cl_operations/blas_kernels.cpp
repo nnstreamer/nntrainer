@@ -27,10 +27,10 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 
     if (TransA) {
       kernel_sgemv_ptr =
-        cl_context_ref.registerClKernel(sgemv_cl_kernel_, "sgemv_cl");
+        blas_cc->registerClKernel(sgemv_cl_kernel_, "sgemv_cl");
     } else {
-      kernel_sgemv_ptr = cl_context_ref.registerClKernel(
-        sgemv_cl_noTrans_kernel_, "sgemv_cl_noTrans");
+      kernel_sgemv_ptr =
+        blas_cc->registerClKernel(sgemv_cl_noTrans_kernel_, "sgemv_cl_noTrans");
     }
 
     if (!kernel_sgemv_ptr) {
@@ -41,20 +41,19 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     size_t dim2_size = sizeof(float) * dim2;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1 * dim2 * sizeof(float),
-      matAdata);
+      blas_cc->command_queue_inst_, dim1 * dim2 * sizeof(float), matAdata);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim2_size, vecXdata);
+      blas_cc->command_queue_inst_, dim2_size, vecXdata);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
+      blas_cc->command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;
     }
@@ -90,14 +89,14 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     const int work_groups_count[3] = {(int)dim1, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
       kernel_sgemv_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, dim1_size, vecYdata);
+      blas_cc->command_queue_inst_, dim1_size, vecYdata);
     if (!result) {
       break;
     }
@@ -113,7 +112,7 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
 
   do {
     ClContext::SharedPtrClKernel kernel_dot_ptr =
-      cl_context_ref.registerClKernel(dot_cl_kernel_, "dot_cl");
+      blas_cc->registerClKernel(dot_cl_kernel_, "dot_cl");
     if (!kernel_dot_ptr) {
       break;
     }
@@ -121,13 +120,13 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
     size_t dim1_size = sizeof(float) * dim1;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1_size, vecAdata);
+      blas_cc->command_queue_inst_, dim1_size, vecAdata);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim1_size, vecXdata);
+      blas_cc->command_queue_inst_, dim1_size, vecXdata);
     if (!result) {
       break;
     }
@@ -158,14 +157,14 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
     const int work_groups_count[3] = {(int)dim1, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_dot_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, sizeof(float), &cl_ret);
+      blas_cc->command_queue_inst_, sizeof(float), &cl_ret);
     if (!result) {
       break;
     }
@@ -200,7 +199,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 
   do {
     ClContext::SharedPtrClKernel kernel_sgemm_ptr =
-      cl_context_ref.registerClKernel(sgemm_cl_kernel_, kernel_func_);
+      blas_cc->registerClKernel(sgemm_cl_kernel_, kernel_func_);
     if (!kernel_sgemm_ptr) {
       break;
     }
@@ -211,19 +210,19 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
     size_t m_n_size = M * N * sizeof(float);
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, m_k_size, A);
+      blas_cc->command_queue_inst_, m_k_size, A);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, k_n_size, B);
+      blas_cc->command_queue_inst_, k_n_size, B);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, m_n_size, C);
+      blas_cc->command_queue_inst_, m_n_size, C);
     if (!result) {
       break;
     }
@@ -269,14 +268,14 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
     const int work_groups_count[3] = {(int)M, (int)N, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sgemm_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, m_n_size, C);
+      blas_cc->command_queue_inst_, m_n_size, C);
     if (!result) {
       break;
     }
@@ -291,7 +290,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 
   do {
     ClContext::SharedPtrClKernel kernel_addition_ptr =
-      cl_context_ref.registerClKernel(addition_cl_kernel_, "addition_cl");
+      blas_cc->registerClKernel(addition_cl_kernel_, "addition_cl");
     if (!kernel_addition_ptr) {
       break;
     }
@@ -299,18 +298,16 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
     size_t dim1_size = sizeof(float) * size_input;
     size_t dim2_size = sizeof(float) * size_res;
 
-    opencl::Buffer inputA(cl_context_ref.context_inst_, dim1_size, true,
-                          nullptr);
+    opencl::Buffer inputA(blas_cc->context_inst_, dim1_size, true, nullptr);
 
-    opencl::Buffer inOutRes(cl_context_ref.context_inst_, dim2_size, true,
-                            nullptr);
+    opencl::Buffer inOutRes(blas_cc->context_inst_, dim2_size, true, nullptr);
 
-    result = inputA.WriteData(cl_context_ref.command_queue_inst_, input);
+    result = inputA.WriteData(blas_cc->command_queue_inst_, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.WriteData(blas_cc->command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -340,13 +337,14 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 
     const int work_groups_count[3] = {(int)size_res, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_addition_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
-    result = inOutRes.ReadData(cl_context_ref.command_queue_inst_, res);
+    result = inOutRes.ReadData(blas_cc->command_queue_inst_, res);
     if (!result) {
       break;
     }
@@ -359,7 +357,7 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
 
   do {
     ClContext::SharedPtrClKernel kernel_ptr =
-      cl_context_ref.registerClKernel(sscal_cl_kernel_, "sscal_cl");
+      blas_cc->registerClKernel(sscal_cl_kernel_, "sscal_cl");
 
     if (!kernel_ptr) {
       break;
@@ -368,7 +366,7 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
     size_t x_size = N * sizeof(float);
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, x_size, X);
+      blas_cc->command_queue_inst_, x_size, X);
     if (!result) {
       break;
     }
@@ -387,14 +385,14 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
     const int work_groups_count[3] = {(int)N, 1, 1};
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, x_size, X);
+      blas_cc->command_queue_inst_, x_size, X);
     if (!result) {
       break;
     }
@@ -413,15 +411,15 @@ void transpose_cl_axis(const float *in, float *res,
     ClContext::SharedPtrClKernel kernel_transpose_ptr;
     switch (axis) {
     case 0:
-      kernel_transpose_ptr = cl_context_ref.registerClKernel(
+      kernel_transpose_ptr = blas_cc->registerClKernel(
         transpose_cl_kernel_axis0, "transpose_cl_axis0");
       break;
     case 1:
-      kernel_transpose_ptr = cl_context_ref.registerClKernel(
+      kernel_transpose_ptr = blas_cc->registerClKernel(
         transpose_cl_kernel_axis1, "transpose_cl_axis1");
       break;
     case 2:
-      kernel_transpose_ptr = cl_context_ref.registerClKernel(
+      kernel_transpose_ptr = blas_cc->registerClKernel(
         transpose_cl_kernel_axis2, "transpose_cl_axis2");
       break;
     default:
@@ -436,13 +434,13 @@ void transpose_cl_axis(const float *in, float *res,
                       input_width * input_channels;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim_size, in);
+      blas_cc->command_queue_inst_, dim_size, in);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      cl_context_ref.command_queue_inst_, dim_size, res);
+      blas_cc->command_queue_inst_, dim_size, res);
     if (!result) {
       break;
     }
@@ -489,14 +487,14 @@ void transpose_cl_axis(const float *in, float *res,
 
     const int work_group_size[3] = {32, 32, 1}; // test-value
 
-    result = cl_context_ref.command_queue_inst_.DispatchCommand(
+    result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_transpose_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      cl_context_ref.command_queue_inst_, dim_size, res);
+      blas_cc->command_queue_inst_, dim_size, res);
     if (!result) {
       break;
     }

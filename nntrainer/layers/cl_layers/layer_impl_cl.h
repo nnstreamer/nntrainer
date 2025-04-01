@@ -20,6 +20,7 @@
 #ifdef __cplusplus
 
 #include <cl_context.h>
+#include <engine.h>
 #include <layer_impl.h>
 
 namespace nntrainer {
@@ -60,7 +61,8 @@ public:
   static bool registerClKernels();
 
 protected:
-  inline static ClContext cl_context_ref;
+  inline static ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   inline static ClBufferManager &clbuffInstance =
     ClBufferManager::getInstance();
 };
