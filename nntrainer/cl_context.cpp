@@ -74,9 +74,6 @@ static void add_default_object(ClContext &cc) {
 
 static void registerer(ClContext &cc) noexcept {
   try {
-    /// @todo: initialize kernels from the kernel strings in this function
-    /// currently does not work. registering from each kernel interface works.
-    /// Need to fix it.
     cc.initBlasClKernels();
     cc.initAttentionClKernels();
     add_default_object(cc);
@@ -145,26 +142,26 @@ void ClContext::initBlasClKernels() {
     return;
   }
 
-  registerClKernel(sgemv_cl_kernel_, "sgemv_cl");
-  registerClKernel(sgemv_cl_noTrans_kernel_, "sgemv_cl_noTrans");
-  registerClKernel(dot_cl_kernel_, "dot_cl");
-  registerClKernel(sgemm_cl_noTrans_kernel_, "sgemm_cl_noTrans");
-  registerClKernel(sgemm_cl_transA_kernel_, "sgemm_cl_transA");
-  registerClKernel(sgemm_cl_transB_kernel_, "sgemm_cl_transB");
-  registerClKernel(sgemm_cl_transAB_kernel_, "sgemm_cl_transAB");
-  registerClKernel(addition_cl_kernel_, "addition_cl");
-  registerClKernel(sscal_cl_kernel_, "sscal_cl");
+  registerClKernel(getSgemvClKernel(), "sgemv_cl");
+  registerClKernel(getSgemvClNoTransKernel(), "sgemv_cl_noTrans");
+  registerClKernel(getDotClKernel(), "dot_cl");
+  registerClKernel(getSgemmClNoTransKernel(), "sgemm_cl_noTrans");
+  registerClKernel(getSgemmClTransAKernel(), "sgemm_cl_transA");
+  registerClKernel(getSgemmClTransBKernel(), "sgemm_cl_transB");
+  registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
+  registerClKernel(getAdditionClKernel(), "addition_cl");
+  registerClKernel(getSscalClKernel(), "sscal_cl");
 
 #ifdef ENABLE_FP16
-  registerClKernel(sgemv_cl_kernel_fp16_, "sgemv_cl_fp16");
-  registerClKernel(sgemv_cl_noTrans_kernel_fp16_, "sgemv_cl_noTrans_fp16");
-  registerClKernel(dot_cl_kernel_fp16_, "dot_cl_fp16");
-  registerClKernel(sgemm_cl_noTrans_kernel_fp16_, "sgemm_cl_noTrans_fp16");
-  registerClKernel(sgemm_cl_transA_kernel_fp16_, "sgemm_cl_transA_fp16");
-  registerClKernel(sgemm_cl_transB_kernel_fp16_, "sgemm_cl_transB_fp16");
-  registerClKernel(sgemm_cl_transAB_kernel_fp16_, "sgemm_cl_transAB_fp16");
-  registerClKernel(addition_cl_kernel_fp16_, "addition_cl_fp16");
-  registerClKernel(sscal_cl_kernel_fp16_, "sscal_cl_fp16");
+  registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
+  registerClKernel(getHgemvClNoTransKernel(), "sgemv_cl_noTrans_fp16");
+  registerClKernel(getDotClKernelFP16(), "dot_cl_fp16");
+  registerClKernel(getHgemmClNoTransKernel(), "sgemm_cl_noTrans_fp16");
+  registerClKernel(getHgemmClTransAKernel(), "sgemm_cl_transA_fp16");
+  registerClKernel(getHgemmClTransBKernel(), "sgemm_cl_transB_fp16");
+  registerClKernel(getHgemmClTransABKernel(), "sgemm_cl_transAB_fp16");
+  registerClKernel(getAdditionClKernelFP16(), "addition_cl_fp16");
+  registerClKernel(getHscalClKernel(), "sscal_cl_fp16");
 #endif
   blas_kernels_initialized = true;
 }
@@ -176,10 +173,10 @@ void ClContext::initAttentionClKernels() {
     return;
   }
 
-  registerClKernel(rotary_emb_cl_kernel_, "rotary_emb_cl");
+  registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
 
 #ifdef ENABLE_FP16
-  registerClKernel(rotary_emb_cl_kernel_fp16_, "rotary_emb_cl_fp16");
+  registerClKernel(getRotaryEmbClKernelFP16(), "rotary_emb_cl_fp16");
 #endif
   attention_kernels_initialized = true;
 }

@@ -1,7 +1,9 @@
 cl_op_sources = [
   'blas_kernels.cpp',
   'blas_kernel_interface.cpp',
+  'blas_kernel_strings.cpp',
   'attention_kernel_interface.cpp',
+  'attention_kernel_strings.cpp',
   'attention_kernels.cpp',
 ]
 

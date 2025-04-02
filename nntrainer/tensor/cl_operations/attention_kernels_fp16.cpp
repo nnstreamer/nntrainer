@@ -28,7 +28,7 @@ void rotary_emb_cl(_FP16 *in, _FP16 *out,
   bool result = false;
   do {
     ClContext::SharedPtrClKernel kernel_rotaryEmb_fp16_ptr =
-      attention_cc->registerClKernel(rotary_emb_cl_kernel_fp16_,
+      attention_cc->registerClKernel(getRotaryEmbClKernelFP16(),
                                      "rotary_emb_cl_fp16");
     if (!kernel_rotaryEmb_fp16_ptr) {
       break;
