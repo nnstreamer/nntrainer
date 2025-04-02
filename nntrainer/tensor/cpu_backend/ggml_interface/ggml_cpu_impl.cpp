@@ -2,7 +2,6 @@
 #define GGML_COMMON_DECL_CPP
 #define GGML_COMMON_DECL_C
 
-#include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <cmath>
@@ -1435,127 +1434,127 @@ GEMM GEMV KERNEL
  */
 
 
-/*
-GEMM PREPROCESSING : WEIGHT BLOCKING FUNCTION
- */
-static block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleave) {
-    block_q4_Kx8 out;
-    //Delta(scale) and dmin values of the eight Q4_K structures are copied onto the output interleaved structure
-    for (int i = 0; i < 8; i++) {
-        out.d[i] = in[i].GGML_COMMON_AGGR_U.GGML_COMMON_AGGR_S.d;
-    }
+// /*
+// GEMM PREPROCESSING : WEIGHT BLOCKING FUNCTION
+//  */
+// static block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleave) {
+//     block_q4_Kx8 out;
+//     //Delta(scale) and dmin values of the eight Q4_K structures are copied onto the output interleaved structure
+//     for (int i = 0; i < 8; i++) {
+//         out.d[i] = in[i].GGML_COMMON_AGGR_U.GGML_COMMON_AGGR_S.d;
+//     }
 
-    for (int i = 0; i < 8; i++) {
-        out.dmin[i] = in[i].GGML_COMMON_AGGR_U.GGML_COMMON_AGGR_S.dmin;
-    }
+//     for (int i = 0; i < 8; i++) {
+//         out.dmin[i] = in[i].GGML_COMMON_AGGR_U.GGML_COMMON_AGGR_S.dmin;
+//     }
 
-    const int end = QK_K * 4 / blck_size_interleave;
+//     const int end = QK_K * 4 / blck_size_interleave;
 
-    // Interleave Q4_K quants by taking 8 bytes at a time
-    for (int i = 0; i < end; ++i) {
-        int src_id = i % 8;
-        int src_offset = (i / 8) * blck_size_interleave;
-        int dst_offset = i * blck_size_interleave;
+//     // Interleave Q4_K quants by taking 8 bytes at a time
+//     for (int i = 0; i < end; ++i) {
+//         int src_id = i % 8;
+//         int src_offset = (i / 8) * blck_size_interleave;
+//         int dst_offset = i * blck_size_interleave;
 
-        uint64_t elems;
-        memcpy(&elems, &in[src_id].qs[src_offset], sizeof(uint64_t));
-        memcpy(&out.qs[dst_offset], &elems, sizeof(uint64_t));
-    }
+//         uint64_t elems;
+//         memcpy(&elems, &in[src_id].qs[src_offset], sizeof(uint64_t));
+//         memcpy(&out.qs[dst_offset], &elems, sizeof(uint64_t));
+//     }
 
-    // The below logic is designed so as to unpack and rearrange scales and mins values in Q4_K
-    // Currently the Q4_K structure has 8 scales and 8 mins packed in 12 bytes ( 6 bits for each value)
-    // The output Q4_Kx8 structure has 96 bytes
-    // Every 12 byte is packed such that it contains scales and mins for corresponding sub blocks from Q4_K structure
-    // For eg - First 12 bytes contains 8 scales and 8 mins - each of first sub block from different Q4_K structures
-    uint8_t s[8], m[8];
+//     // The below logic is designed so as to unpack and rearrange scales and mins values in Q4_K
+//     // Currently the Q4_K structure has 8 scales and 8 mins packed in 12 bytes ( 6 bits for each value)
+//     // The output Q4_Kx8 structure has 96 bytes
+//     // Every 12 byte is packed such that it contains scales and mins for corresponding sub blocks from Q4_K structure
+//     // For eg - First 12 bytes contains 8 scales and 8 mins - each of first sub block from different Q4_K structures
+//     uint8_t s[8], m[8];
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            s[j] = in[j].scales[i] & 63;
-            m[j] = in[j].scales[i + 4] & 63;
-        }
+//     for (int i = 0; i < 4; i++) {
+//         for (int j = 0; j < 8; j++) {
+//             s[j] = in[j].scales[i] & 63;
+//             m[j] = in[j].scales[i + 4] & 63;
+//         }
 
-        out.scales[i * 12]      = (s[0] & 63) + ((s[4] & 48) << 2);
-        out.scales[i * 12 + 1]  = (s[1] & 63) + ((s[5] & 48) << 2);
-        out.scales[i * 12 + 2]  = (s[2] & 63) + ((s[6] & 48) << 2);
-        out.scales[i * 12 + 3]  = (s[3] & 63) + ((s[7] & 48) << 2);
-        out.scales[i * 12 + 4]  = (m[0] & 63) + ((m[4] & 48) << 2);
-        out.scales[i * 12 + 5]  = (m[1] & 63) + ((m[5] & 48) << 2);
-        out.scales[i * 12 + 6]  = (m[2] & 63) + ((m[6] & 48) << 2);
-        out.scales[i * 12 + 7]  = (m[3] & 63) + ((m[7] & 48) << 2);
-        out.scales[i * 12 + 8]  = (s[4] & 15) + ((m[4] & 15) << 4);
-        out.scales[i * 12 + 9]  = (s[5] & 15) + ((m[5] & 15) << 4);
-        out.scales[i * 12 + 10] = (s[6] & 15) + ((m[6] & 15) << 4);
-        out.scales[i * 12 + 11] = (s[7] & 15) + ((m[7] & 15) << 4);
+//         out.scales[i * 12]      = (s[0] & 63) + ((s[4] & 48) << 2);
+//         out.scales[i * 12 + 1]  = (s[1] & 63) + ((s[5] & 48) << 2);
+//         out.scales[i * 12 + 2]  = (s[2] & 63) + ((s[6] & 48) << 2);
+//         out.scales[i * 12 + 3]  = (s[3] & 63) + ((s[7] & 48) << 2);
+//         out.scales[i * 12 + 4]  = (m[0] & 63) + ((m[4] & 48) << 2);
+//         out.scales[i * 12 + 5]  = (m[1] & 63) + ((m[5] & 48) << 2);
+//         out.scales[i * 12 + 6]  = (m[2] & 63) + ((m[6] & 48) << 2);
+//         out.scales[i * 12 + 7]  = (m[3] & 63) + ((m[7] & 48) << 2);
+//         out.scales[i * 12 + 8]  = (s[4] & 15) + ((m[4] & 15) << 4);
+//         out.scales[i * 12 + 9]  = (s[5] & 15) + ((m[5] & 15) << 4);
+//         out.scales[i * 12 + 10] = (s[6] & 15) + ((m[6] & 15) << 4);
+//         out.scales[i * 12 + 11] = (s[7] & 15) + ((m[7] & 15) << 4);
 
-    }
+//     }
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++) {
-            s[j] = ((in[j].scales[i] & 192) >> 2) | (in[j].scales[i+8] & 15);
-            m[j] = ((in[j].scales[i + 4] & 192) >> 2) | ((in[j].scales[i+8] & 240) >> 4);
-        }
+//     for (int i = 0; i < 4; i++) {
+//         for (int j = 0; j < 8; j++) {
+//             s[j] = ((in[j].scales[i] & 192) >> 2) | (in[j].scales[i+8] & 15);
+//             m[j] = ((in[j].scales[i + 4] & 192) >> 2) | ((in[j].scales[i+8] & 240) >> 4);
+//         }
 
-        out.scales[i * 12 + 48] = (s[0] & 63) + ((s[4] & 48) << 2);
-        out.scales[i * 12 + 49] = (s[1] & 63) + ((s[5] & 48) << 2);
-        out.scales[i * 12 + 50] = (s[2] & 63) + ((s[6] & 48) << 2);
-        out.scales[i * 12 + 51] = (s[3] & 63) + ((s[7] & 48) << 2);
-        out.scales[i * 12 + 52] = (m[0] & 63) + ((m[4] & 48) << 2);
-        out.scales[i * 12 + 53] = (m[1] & 63) + ((m[5] & 48) << 2);
-        out.scales[i * 12 + 54] = (m[2] & 63) + ((m[6] & 48) << 2);
-        out.scales[i * 12 + 55] = (m[3] & 63) + ((m[7] & 48) << 2);
-        out.scales[i * 12 + 56] = (s[4] & 15) + ((m[4] & 15) << 4);
-        out.scales[i * 12 + 57] = (s[5] & 15) + ((m[5] & 15) << 4);
-        out.scales[i * 12 + 58] = (s[6] & 15) + ((m[6] & 15) << 4);
-        out.scales[i * 12 + 59] = (s[7] & 15) + ((m[7] & 15) << 4);
+//         out.scales[i * 12 + 48] = (s[0] & 63) + ((s[4] & 48) << 2);
+//         out.scales[i * 12 + 49] = (s[1] & 63) + ((s[5] & 48) << 2);
+//         out.scales[i * 12 + 50] = (s[2] & 63) + ((s[6] & 48) << 2);
+//         out.scales[i * 12 + 51] = (s[3] & 63) + ((s[7] & 48) << 2);
+//         out.scales[i * 12 + 52] = (m[0] & 63) + ((m[4] & 48) << 2);
+//         out.scales[i * 12 + 53] = (m[1] & 63) + ((m[5] & 48) << 2);
+//         out.scales[i * 12 + 54] = (m[2] & 63) + ((m[6] & 48) << 2);
+//         out.scales[i * 12 + 55] = (m[3] & 63) + ((m[7] & 48) << 2);
+//         out.scales[i * 12 + 56] = (s[4] & 15) + ((m[4] & 15) << 4);
+//         out.scales[i * 12 + 57] = (s[5] & 15) + ((m[5] & 15) << 4);
+//         out.scales[i * 12 + 58] = (s[6] & 15) + ((m[6] & 15) << 4);
+//         out.scales[i * 12 + 59] = (s[7] & 15) + ((m[7] & 15) << 4);
 
-    }
+//     }
 
-    return out;
-}
+//     return out;
+// }
 
-static int repack_q4_K_to_q4_K_8_bl(struct ggml_tensor * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size) {
-    // GGML_ASSERT(t->type == GGML_TYPE_Q4_K);
-    assert(interleave_block == 8);
-    constexpr int nrows_interleaved = 8;
+// static int repack_q4_K_to_q4_K_8_bl(struct ggml_tensor * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size) {
+//     // GGML_ASSERT(t->type == GGML_TYPE_Q4_K);
+//     assert(interleave_block == 8);
+//     constexpr int nrows_interleaved = 8;
 
-    block_q4_Kx8 * dst = (block_q4_Kx8*)t->data;
-    const block_q4_K * src = (const block_q4_K*) data;
-    block_q4_K dst_tmp[8];
-    /// @todo ggml_nrow raw implemenation
-    int nrow = ggml_nrows(t);
-    int nblocks = t->ne[0] / QK_K;
+//     block_q4_Kx8 * dst = (block_q4_Kx8*)t->data;
+//     const block_q4_K * src = (const block_q4_K*) data;
+//     block_q4_K dst_tmp[8];
+//     /// @todo ggml_nrow raw implemenation
+//     int nrow = ggml_nrows(t);
+//     int nblocks = t->ne[0] / QK_K;
 
-    assert(data_size == nrow * nblocks * sizeof(block_q4_K));
+//     assert(data_size == nrow * nblocks * sizeof(block_q4_K));
 
-    if (t->ne[1] % nrows_interleaved != 0 || t->ne[0] % 8 != 0) {
-        return -1;
-    }
+//     if (t->ne[1] % nrows_interleaved != 0 || t->ne[0] % 8 != 0) {
+//         return -1;
+//     }
 
-    for (int b = 0; b < nrow; b += nrows_interleaved) {
-        for (int64_t x = 0; x < nblocks; x++) {
-            for (int i  = 0; i < nrows_interleaved; i++ ) {
-                dst_tmp[i] = src[x + i * nblocks];
-            }
-            *dst++ = make_block_q4_Kx8(dst_tmp, interleave_block);
-        }
-        src += nrows_interleaved * nblocks;
-    }
-    return 0;
+//     for (int b = 0; b < nrow; b += nrows_interleaved) {
+//         for (int64_t x = 0; x < nblocks; x++) {
+//             for (int i  = 0; i < nrows_interleaved; i++ ) {
+//                 dst_tmp[i] = src[x + i * nblocks];
+//             }
+//             *dst++ = make_block_q4_Kx8(dst_tmp, interleave_block);
+//         }
+//         src += nrows_interleaved * nblocks;
+//     }
+//     return 0;
 
-    GGML_UNUSED(data_size);
-}
+//     GGML_UNUSED(data_size);
+// }
 
-// repack
-template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS>
-int repack(struct ggml_tensor *, const void *, size_t);
+// // repack
+// template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS>
+// int repack(struct ggml_tensor *, const void *, size_t);
 
-template <> int repack<block_q4_K, 8, 8>(struct ggml_tensor * t, const void * data, size_t data_size) {
-    return repack_q4_K_to_q4_K_8_bl(t, 8, data, data_size);
-}
-/*
-GEMM PREPROCESSING : BLOCKING FUNCTION
- */
+// template <> int repack<block_q4_K, 8, 8>(struct ggml_tensor * t, const void * data, size_t data_size) {
+//     return repack_q4_K_to_q4_K_8_bl(t, 8, data, data_size);
+// }
+// /*
+// GEMM PREPROCESSING : BLOCKING FUNCTION
+//  */
 
 
 /*
@@ -1684,7 +1683,7 @@ public:
             work_size += CACHE_LINE_SIZE*(n_threads);
         }
         // char *       wdata = static_cast<char *>(params->wdata);
-        char* wdata = static_cast<char *>(new uint8_t[work_size]);
+        char ** wdata = (new char *[work_size]);
 
         const size_t nbw1  = ggml_row_size(PARAM_TYPE, ne10);
         assert(work_size >= nbw1 * ne11);
@@ -1707,7 +1706,7 @@ public:
         /// @todo Enable multithreading
         // ggml_barrier(params->threadpool);
 
-        const void * src1_wdata      = params->wdata;
+        const void * src1_wdata      = (void*) wdata;
         const size_t src1_col_stride = ggml_row_size(PARAM_TYPE, ne10);
         int64_t      src0_start      = (ith * ne01) / nth;
         int64_t      src0_end        = ((ith + 1) * ne01) / nth;
@@ -1735,9 +1734,9 @@ public:
         delete[] wdata;
     }
     ///@note repack is not called during GEMM runtime. It should be called weight is being loaded.
-    int repack(struct ggml_tensor * t, const void * data, size_t data_size) {
-        return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size);
-    }
+    // int repack(void * t, void * data, size_t data_size) {
+    //     return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size);
+    // }
 };
 
 // instance for Q4
@@ -1751,7 +1750,7 @@ static nntr_gemm_ggml_traits<block_q4_K, 8, 8, GGML_TYPE_Q8_K> * ggml_get_optima
     return nullptr;
 }
 
-void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const unsigned int K,
+void ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
     auto gemm_fn = ggml_get_optimal_repack_type(M);
@@ -1760,4 +1759,439 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const u
     }
 }
 
+void ggml_q4_K_8x8_q8_K_repack(const unsigned int M, const unsigned int N, void* W, void* repacked_W, size_t data_size) {
+    auto gemm_fn = ggml_get_optimal_repack_type(M);
+    ///@todo Remove ggml_tensor dependency from repack function.
+    // if (gemm_fn){
+    //     gemm_fn->repack(W, repacked_W, data_size);
+    // }
+}
+
+static float make_qkx3_quants(int n, int nmax, const float *x,
+                              const float *weights, uint8_t *L, float *the_min,
+                              uint8_t *Laux, float rmin, float rdelta,
+                              int nstep, bool use_mad) {
+  float min = x[0];
+  float max = x[0];
+  float sum_w = weights ? weights[0] : x[0] * x[0];
+  float sum_x = sum_w * x[0];
+  for (int i = 1; i < n; ++i) {
+    if (x[i] < min)
+      min = x[i];
+    if (x[i] > max)
+      max = x[i];
+    float w = weights ? weights[i] : x[i] * x[i];
+    sum_w += w;
+    sum_x += w * x[i];
+  }
+  if (min > 0) {
+    min = 0;
+  }
+  if (max <= min) {
+    memset(L, 0, n);
+    *the_min = -min;
+    return 0.f;
+  }
+  float iscale = nmax / (max - min);
+  float scale = 1 / iscale;
+  float best_mad = 0;
+  for (int i = 0; i < n; ++i) {
+    int l = nearest_int(iscale * (x[i] - min));
+    L[i] = MAX(0, MIN(nmax, l));
+    float diff = scale * L[i] + min - x[i];
+    diff = use_mad ? fabsf(diff) : diff * diff;
+    float w = weights ? weights[i] : x[i] * x[i];
+    best_mad += w * diff;
+  }
+  if (nstep < 1) {
+    *the_min = -min;
+    return scale;
+  }
+  for (int is = 0; is <= nstep; ++is) {
+    iscale = (rmin + rdelta * is + nmax) / (max - min);
+    float sum_l = 0, sum_l2 = 0, sum_xl = 0;
+    for (int i = 0; i < n; ++i) {
+      int l = nearest_int(iscale * (x[i] - min));
+      l = MAX(0, MIN(nmax, l));
+      Laux[i] = l;
+      float w = weights ? weights[i] : x[i] * x[i];
+      sum_l += w * l;
+      sum_l2 += w * l * l;
+      sum_xl += w * l * x[i];
+    }
+    float D = sum_w * sum_l2 - sum_l * sum_l;
+    if (D > 0) {
+      float this_scale = (sum_w * sum_xl - sum_x * sum_l) / D;
+      float this_min = (sum_l2 * sum_x - sum_l * sum_xl) / D;
+      if (this_min > 0) {
+        this_min = 0;
+        this_scale = sum_xl / sum_l2;
+      }
+      float mad = 0;
+      for (int i = 0; i < n; ++i) {
+        float diff = this_scale * Laux[i] + this_min - x[i];
+        diff = use_mad ? fabsf(diff) : diff * diff;
+        float w = weights ? weights[i] : x[i] * x[i];
+        mad += w * diff;
+      }
+      if (mad < best_mad) {
+        for (int i = 0; i < n; ++i) {
+          L[i] = Laux[i];
+        }
+        best_mad = mad;
+        scale = this_scale;
+        min = this_min;
+      }
+    }
+  }
+  *the_min = -min;
+  return scale;
+}
+
+static float make_qkx2_quants(int n, int nmax, const float *x,
+                              const float *weights, uint8_t *L, float *the_min,
+                              uint8_t *Laux, float rmin, float rdelta,
+                              int nstep, bool use_mad) {
+  float min = x[0];
+  float max = x[0];
+  float sum_w = weights[0];
+  float sum_x = sum_w * x[0];
+  for (int i = 1; i < n; ++i) {
+    if (x[i] < min)
+      min = x[i];
+    if (x[i] > max)
+      max = x[i];
+    float w = weights[i];
+    sum_w += w;
+    sum_x += w * x[i];
+  }
+  if (min > 0)
+    min = 0;
+  if (max == min) {
+    for (int i = 0; i < n; ++i)
+      L[i] = 0;
+    *the_min = -min;
+    return 0.f;
+  }
+  float iscale = nmax / (max - min);
+  float scale = 1 / iscale;
+  float best_mad = 0;
+  for (int i = 0; i < n; ++i) {
+    int l = nearest_int(iscale * (x[i] - min));
+    L[i] = MAX(0, MIN(nmax, l));
+    float diff = scale * L[i] + min - x[i];
+    diff = use_mad ? fabsf(diff) : diff * diff;
+    float w = weights[i];
+    best_mad += w * diff;
+  }
+  if (nstep < 1) {
+    *the_min = -min;
+    return scale;
+  }
+  for (int is = 0; is <= nstep; ++is) {
+    iscale = (rmin + rdelta * is + nmax) / (max - min);
+    float sum_l = 0, sum_l2 = 0, sum_xl = 0;
+    for (int i = 0; i < n; ++i) {
+      int l = nearest_int(iscale * (x[i] - min));
+      l = MAX(0, MIN(nmax, l));
+      Laux[i] = l;
+      float w = weights[i];
+      sum_l += w * l;
+      sum_l2 += w * l * l;
+      sum_xl += w * l * x[i];
+    }
+    float D = sum_w * sum_l2 - sum_l * sum_l;
+    if (D > 0) {
+      float this_scale = (sum_w * sum_xl - sum_x * sum_l) / D;
+      float this_min = (sum_l2 * sum_x - sum_l * sum_xl) / D;
+      if (this_min > 0) {
+        this_min = 0;
+        this_scale = sum_xl / sum_l2;
+      }
+      float mad = 0;
+      for (int i = 0; i < n; ++i) {
+        float diff = this_scale * Laux[i] + this_min - x[i];
+        diff = use_mad ? fabsf(diff) : diff * diff;
+        float w = weights[i];
+        mad += w * diff;
+      }
+      if (mad < best_mad) {
+        for (int i = 0; i < n; ++i) {
+          L[i] = Laux[i];
+        }
+        best_mad = mad;
+        scale = this_scale;
+        min = this_min;
+      }
+    }
+  }
+  *the_min = -min;
+  return scale;
+}
+
+static inline void get_scale_min_k4(int j, const uint8_t *q, uint8_t *d,
+                                    uint8_t *m) {
+  if (j < 4) {
+    *d = q[j] & 63;
+    *m = q[j + 4] & 63;
+  } else {
+    *d = (q[j + 4] & 0xF) | ((q[j - 4] >> 6) << 4);
+    *m = (q[j + 4] >> 4) | ((q[j - 0] >> 6) << 4);
+  }
+}
+
+static float make_qp_quants(int n, int nmax, const float *x, uint8_t *L,
+                            const float *quant_weights) {
+  float max = 0;
+  for (int i = 0; i < n; ++i) {
+    max = MAX(max, x[i]);
+  }
+  if (!max) { // all zero
+    for (int i = 0; i < n; ++i) {
+      L[i] = 0;
+    }
+    return 0.f;
+  }
+  float iscale = nmax / max;
+  for (int i = 0; i < n; ++i) {
+    L[i] = nearest_int(iscale * x[i]);
+  }
+  float scale = 1 / iscale;
+  float best_mse = 0;
+  for (int i = 0; i < n; ++i) {
+    float diff = x[i] - scale * L[i];
+    float w = quant_weights[i];
+    best_mse += w * diff * diff;
+  }
+  for (int is = -4; is <= 4; ++is) {
+    if (is == 0)
+      continue;
+    float iscale_is = (0.1f * is + nmax) / max;
+    float scale_is = 1 / iscale_is;
+    float mse = 0;
+    for (int i = 0; i < n; ++i) {
+      int l = nearest_int(iscale_is * x[i]);
+      l = MIN(nmax, l);
+      float diff = x[i] - scale_is * l;
+      float w = quant_weights[i];
+      mse += w * diff * diff;
+    }
+    if (mse < best_mse) {
+      best_mse = mse;
+      iscale = iscale_is;
+    }
+  }
+  float sumlx = 0;
+  float suml2 = 0;
+  for (int i = 0; i < n; ++i) {
+    int l = nearest_int(iscale * x[i]);
+    l = MIN(nmax, l);
+    L[i] = l;
+    float w = quant_weights[i];
+    sumlx += w * x[i] * l;
+    suml2 += w * l * l;
+  }
+  for (int itry = 0; itry < 5; ++itry) {
+    int n_changed = 0;
+    for (int i = 0; i < n; ++i) {
+      float w = quant_weights[i];
+      float slx = sumlx - w * x[i] * L[i];
+      float sl2 = suml2 - w * L[i] * L[i];
+      if (slx > 0 && sl2 > 0) {
+        int new_l = nearest_int(x[i] * sl2 / slx);
+        new_l = MIN(nmax, new_l);
+        if (new_l != L[i]) {
+          slx += w * x[i] * new_l;
+          sl2 += w * new_l * new_l;
+          if (slx * slx * suml2 > sumlx * sumlx * sl2) {
+            L[i] = new_l;
+            sumlx = slx;
+            suml2 = sl2;
+            ++n_changed;
+          }
+        }
+      }
+    }
+    if (!n_changed) {
+      break;
+    }
+  }
+  return sumlx / suml2;
+}
+
+static void quantize_row_q4_K_impl(const float *x, block_q4_K *y,
+                                   int64_t n_per_row,
+                                   const float *quant_weights) {
+  assert(n_per_row % QK_K == 0);
+  const int64_t nb = n_per_row / QK_K;
+
+  uint8_t L[QK_K];
+  uint8_t Laux[32];
+  uint8_t Ls[QK_K / 32];
+  uint8_t Lm[QK_K / 32];
+  float weights[32];
+  float sw[QK_K / 32];
+  float mins[QK_K / 32];
+  float scales[QK_K / 32];
+
+  for (int i = 0; i < nb; i++) {
+
+    float sum_x2 = 0;
+    for (int l = 0; l < QK_K; ++l)
+      sum_x2 += x[l] * x[l];
+    float sigma2 = 2 * sum_x2 / QK_K;
+    float av_x = sqrtf(sigma2);
+
+    for (int j = 0; j < QK_K / 32; ++j) {
+      if (quant_weights) {
+        const float *qw = quant_weights + QK_K * i + 32 * j;
+        for (int l = 0; l < 32; ++l)
+          weights[l] = qw[l] * sqrtf(sigma2 + x[32 * j + l] * x[32 * j + l]);
+      } else {
+        for (int l = 0; l < 32; ++l)
+          weights[l] = av_x + fabsf(x[32 * j + l]);
+      }
+      float sumw = 0;
+      for (int l = 0; l < 32; ++l)
+        sumw += weights[l];
+      sw[j] = sumw;
+      scales[j] = make_qkx3_quants(32, 15, x + 32 * j, weights, L + 32 * j,
+                                   &mins[j], Laux, -0.9f, 0.05f, 36, false);
+    }
+
+    float d_block = make_qp_quants(QK_K / 32, 63, scales, Ls, sw);
+    float m_block = make_qp_quants(QK_K / 32, 63, mins, Lm, sw);
+    for (int j = 0; j < QK_K / 32; ++j) {
+      uint8_t ls = Ls[j];
+      uint8_t lm = Lm[j];
+      if (j < 4) {
+        y[i].scales[j] = ls;
+        y[i].scales[j + 4] = lm;
+      } else {
+        y[i].scales[j + 4] = (ls & 0xF) | ((lm & 0xF) << 4);
+        y[i].scales[j - 4] |= ((ls >> 4) << 6);
+        y[i].scales[j - 0] |= ((lm >> 4) << 6);
+      }
+    }
+    y[i].d = nntr_fp32_to_fp16(d_block);
+    y[i].dmin = nntr_fp32_to_fp16(m_block);
+
+    uint8_t sc, m;
+    for (int j = 0; j < QK_K / 32; ++j) {
+      get_scale_min_k4(j, y[i].scales, &sc, &m);
+      const float d = nntr_fp16_to_fp32(y[i].d) * sc;
+      if (!d)
+        continue;
+      const float dm = nntr_fp16_to_fp32(y[i].dmin) * m;
+      for (int ii = 0; ii < 32; ++ii) {
+        int l = nearest_int((x[32 * j + ii] + dm) / d);
+        l = MAX(0, MIN(15, l));
+        L[32 * j + ii] = l;
+      }
+    }
+    uint8_t *q = y[i].qs;
+    for (int j = 0; j < QK_K; j += 64) {
+      for (int l = 0; l < 32; ++l)
+        q[l] = L[j + l] | (L[j + l + 32] << 4);
+      q += 32;
+    }
+
+    x += QK_K;
+  }
+}
+
+static void quantize_row_q4_K_ref(const float *x, block_q4_K *y, int64_t k) {
+  assert(k % QK_K == 0);
+  const int nb = k / QK_K;
+
+  uint8_t L[QK_K];
+  uint8_t Laux[32];
+  float weights[32];
+  float mins[QK_K / 32];
+  float scales[QK_K / 32];
+
+  for (int i = 0; i < nb; i++) {
+    float max_scale =
+      0; // as we are deducting the min, scales are always positive
+    float max_min = 0;
+    for (int j = 0; j < QK_K / 32; ++j) {
+      // scales[j] = make_qkx1_quants(32, 15, x + 32*j, L + 32*j, &mins[j], 9,
+      // 0.5f);
+      float sum_x2 = 0;
+      for (int l = 0; l < 32; ++l)
+        sum_x2 += x[32 * j + l] * x[32 * j + l];
+      float av_x = sqrtf(sum_x2 / 32);
+      for (int l = 0; l < 32; ++l)
+        weights[l] = av_x + fabsf(x[32 * j + l]);
+      scales[j] = make_qkx2_quants(32, 15, x + 32 * j, weights, L + 32 * j,
+                                   &mins[j], Laux, -1.f, 0.1f, 20, false);
+      float scale = scales[j];
+      if (scale > max_scale) {
+        max_scale = scale;
+      }
+      float min = mins[j];
+      if (min > max_min) {
+        max_min = min;
+      }
+    }
+
+    float inv_scale = max_scale > 0 ? 63.f / max_scale : 0.f;
+    float inv_min = max_min > 0 ? 63.f / max_min : 0.f;
+    for (int j = 0; j < QK_K / 32; ++j) {
+      uint8_t ls = nearest_int(inv_scale * scales[j]);
+      uint8_t lm = nearest_int(inv_min * mins[j]);
+      ls = MIN(63, ls);
+      lm = MIN(63, lm);
+      if (j < 4) {
+        y[i].scales[j] = ls;
+        y[i].scales[j + 4] = lm;
+      } else {
+        y[i].scales[j + 4] = (ls & 0xF) | ((lm & 0xF) << 4);
+        y[i].scales[j - 4] |= ((ls >> 4) << 6);
+        y[i].scales[j - 0] |= ((lm >> 4) << 6);
+      }
+    }
+    y[i].d = nntr_fp32_to_fp16(max_scale / 63.f);
+    y[i].dmin = nntr_fp32_to_fp16(max_min / 63.f);
+
+    uint8_t sc, m;
+    for (int j = 0; j < QK_K / 32; ++j) {
+      get_scale_min_k4(j, y[i].scales, &sc, &m);
+      const float d = nntr_fp16_to_fp32(y[i].d) * sc;
+      if (!d)
+        continue;
+      const float dm = nntr_fp16_to_fp32(y[i].dmin) * m;
+      for (int ii = 0; ii < 32; ++ii) {
+        int l = nearest_int((x[32 * j + ii] + dm) / d);
+        l = MAX(0, MIN(15, l));
+        L[32 * j + ii] = l;
+      }
+    }
+
+    uint8_t *q = y[i].qs;
+    for (int j = 0; j < QK_K; j += 64) {
+      for (int l = 0; l < 32; ++l)
+        q[l] = L[j + l] | (L[j + l + 32] << 4);
+      q += 32;
+    }
+
+    x += QK_K;
+  }
+}
+
+size_t ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+  size_t row_size = ggml_row_size(GGML_TYPE_Q4_K, n_per_row);
+  if (!quant_weights) {
+    quantize_row_q4_K_ref(src, (block_q4_K *)dst, (int64_t)nrow * n_per_row);
+  } else {
+    char *qrow = (char *)dst;
+    for (int64_t row = 0; row < nrow; ++row) {
+      quantize_row_q4_K_impl(src, (block_q4_K *)qrow, n_per_row, quant_weights);
+      src += n_per_row;
+      qrow += row_size;
+    }
+  }
+  return nrow * row_size;
+}
 
