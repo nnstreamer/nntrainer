@@ -55,6 +55,7 @@ else
 endif
 
 test_target = [
+  ['unittest_cpu_backend', []],
   ['unittest_nntrainer_activations', []],
   ['unittest_nntrainer_exe_order', []],
   ['unittest_nntrainer_internal', []],

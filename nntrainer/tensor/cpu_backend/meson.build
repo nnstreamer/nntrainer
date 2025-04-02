@@ -22,9 +22,9 @@ elif arch == 'x86_64' or arch == 'x86'
     nntrainer_inc += include_directories('x86')
     nntrainer_inc_abs += meson.current_source_dir() / 'x86'
     # todo : Should support arm as well later.
-    subdir('ggml_gemm')
-    nntrainer_inc += include_directories('ggml_gemm')
-    nntrainer_inc_abs += meson.current_source_dir() / 'ggml_gemm'
+    subdir('ggml_interface')
+    nntrainer_inc += include_directories('ggml_interface')
+    nntrainer_inc_abs += meson.current_source_dir() / 'ggml_interface'
 endif
 
 foreach h : cpu_backend_headers

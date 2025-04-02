@@ -215,4 +215,8 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const unsigned int ldb, float *C, const unsigned int ldc) {
   return __gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
 }
+
+size_t quantize_q4_K(const float * src, void * dst, int64_t nrow, int64_t n_per_row, const float * quant_weights){
+  return __quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
+}
 } /* namespace nntrainer */

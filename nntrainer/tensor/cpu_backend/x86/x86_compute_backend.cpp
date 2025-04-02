@@ -18,6 +18,7 @@
 #include <fallback_internal.h>
 #include <nntrainer_error.h>
 #include <x86_compute_backend.h>
+#include <ggml_interface.h>
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
@@ -181,6 +182,10 @@ void softmax(const unsigned int N, float *X, float *Y) {
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-  return __gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
+  return nntr_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+}
+
+size_t quantize_q4_K(const float * src, void * dst, int64_t nrow, int64_t n_per_row, const float * quant_weights){
+  return nntr_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
 }
 } /* namespace nntrainer */
