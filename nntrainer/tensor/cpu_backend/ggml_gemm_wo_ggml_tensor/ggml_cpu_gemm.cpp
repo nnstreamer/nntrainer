@@ -1582,6 +1582,7 @@ GEMM/GEMV KERNEL FUNCTION INTERFACE
 
 
 template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS, ggml_type PARAM_TYPE> class nntr_gemm_ggml_traits {
+public:
     bool compute_forward(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -1733,7 +1734,7 @@ template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS, ggml_type PAR
 
         delete[] wdata;
     }
-
+    ///@note repack is not called during GEMM runtime. It should be called weight is being loaded.
     int repack(struct ggml_tensor * t, const void * data, size_t data_size) {
         return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size);
     }
@@ -1754,8 +1755,9 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const u
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
     auto gemm_fn = ggml_get_optimal_repack_type(M);
-    // gemm_fn->repack();
-    gemm_fn->compute_forward(M, N, K, A, lda, B ,ldb, C, ldc);
+    if (gemm_fn){
+        gemm_fn->compute_forward(M, N, K, A, lda, B ,ldb, C, ldc);
+    }
 }
 
 
