@@ -12,23 +12,8 @@
  */
 
 #include "swiglu_cl.h"
+#include <blas_kernel_strings.h>
 #include <iostream>
-
-std::string swiglu_cl_kernel_fp16_ =
-  R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void swiglu_cl_fp16(__global const half *in1, __global const half *in2, __global half *out) {
-    int i = get_global_id(0);
-    half swish = in1[i] * exp(in1[i]) / (1 + exp(in1[i]));
-    out[i] = swish * in2[i];
-})";
-
-std::string swiglu_cl_kernel_ =
-  R"(__kernel void swiglu_cl(__global const float *in1, __global const float *in2, __global float *out) {
-    int i = get_global_id(0);
-    float swish = in1[i] * exp(in1[i]) / (1 + exp(in1[i]));
-    out[i] = swish * in2[i];
-})";
 
 namespace nntrainer {
 
@@ -89,7 +74,6 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
 }
 
 bool SwiGLULayerCl::registerClKernels() {
-
   // check if the kernels are already registered.
   if (!layer_kernel_ptrs.empty()) {
     ml_loge("kernels for swiglu_cl are already registered.");
@@ -97,20 +81,21 @@ bool SwiGLULayerCl::registerClKernels() {
   }
 
   do {
-
     ClContext::SharedPtrClKernel kernel_swiglu_ptr = nullptr;
 
     kernel_swiglu_ptr =
-      global_cl_context->registerClKernel(swiglu_cl_kernel_, "swiglu_cl");
+      global_cl_context->registerClKernel(getSwiGluClKernel(), "swiglu_cl");
+
     if (!kernel_swiglu_ptr) {
       ml_loge("OpenCL Error: Fail to register swiglu_cl kernel");
       break;
     }
-    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
-    kernel_swiglu_ptr = global_cl_context->registerClKernel(
-      swiglu_cl_kernel_fp16_, "swiglu_cl_fp16");
 
 #ifdef ENABLE_FP16
+    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
+    kernel_swiglu_ptr = global_cl_context->registerClKernel(
+      getSwiGluClKernelFP16(), "swiglu_cl_fp16");
+
     if (!kernel_swiglu_ptr) {
       ml_loge("OpenCL Error: Fail to register swiglu_cl_fp16 kernel");
       break;

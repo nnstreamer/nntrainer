@@ -105,7 +105,8 @@ public:
                    [](unsigned char c) { return std::tolower(c); });
 
     if (engines.find(name) == engines.end()) {
-      throw std::invalid_argument("not registered");
+      throw std::invalid_argument("[Engine] " + name +
+                                  " Context is not registered");
     }
     return engines.at(name);
   }
