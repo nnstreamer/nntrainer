@@ -467,6 +467,7 @@ else
   if host_machine.system() == 'windows'
     ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
+    ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
     ruy_flags = [
       '-Wno-error=unused-result',
       '-Wno-error=comment',
