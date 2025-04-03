@@ -179,6 +179,7 @@ void MemoryPool::allocate() {
   mem_pool = calloc(pool_size, 1);
   std::cout << " mem_pool : "<< mem_pool << std::endl;
   unsigned int idx = 1;
+
   for (auto &s : memory_offset) {
     
     char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
@@ -196,9 +197,14 @@ void MemoryPool::allocate() {
   msg.append(std::to_string(seq++));
   PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
 #endif
-}
+  // std::cout << "-------------------------- mem pool_size : " << pool_size << std::endl;
 
+}
+size_t aligned_size (size_t size) {
+  return (((size + 4096 - 1) / 4096) * 4096);
+}
 void MemoryPool::allocateFSU() {
+  std::cout << "Allocate in FSU" << std::endl;
   if (pool_size == 0)
     throw std::runtime_error("Allocating memory pool with size 0");
 
@@ -213,10 +219,13 @@ void MemoryPool::allocateFSU() {
 
   for (auto &s : memory_offset) {
     size_t current_size = memory_size.at(i);
+    current_size = current_size;
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
+      // if there are
       void *ptr = ALIGNED_ALLOC(current_size);
       memory_ptrs.push_back(ptr);
+
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
@@ -228,7 +237,6 @@ void MemoryPool::allocateFSU() {
       size_t max_size = allocated_size[s];
       if (max_size < current_size) {
         void *new_ptr = ALIGNED_ALLOC(current_size);
-
         for (int idx : offset_indices[s]) {
           std::cout << "                change ptr " << idx << " from  "
                     << memory_ptrs[idx] << " to " << new_ptr
@@ -255,6 +263,8 @@ void MemoryPool::allocateFSU() {
   if (mem_pool == nullptr)
     throw std::runtime_error(
       "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+  // std::cout << "-------------------------- FSU mem pool_size : " << pool_size << std::endl;
+
 }
 
 /**

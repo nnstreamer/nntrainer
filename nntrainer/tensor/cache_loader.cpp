@@ -100,8 +100,9 @@ int CacheLoader::flushAsync(unsigned int order,
     unsigned int exe_order = (unsigned int)(std::uintptr_t)data;
 
     // pool->flushExcept({exe_order - 1, exe_order});
-    pool->flushExcept(exe_order);
-
+    // pool->flushExcept(exe_order);
+    std::cout << "unLoadExec ===> " << exe_order << std::endl;
+    pool->unloadExec(exe_order);
     return ML_ERROR_NONE;
   };
 
@@ -127,5 +128,8 @@ int CacheLoader::cancelAsync(int id) {
 unsigned int CacheLoader::getNumLoadedTensors() {
   return pool->getNumLoadedTensors();
 }
-
+unsigned int CacheLoader::Inactive(unsigned int order) {
+  pool->Inactive(order);
+  return 0;
+}
 } // namespace nntrainer

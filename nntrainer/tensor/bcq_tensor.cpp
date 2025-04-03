@@ -200,8 +200,13 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
-                           trans_in ? input.width() : input.height());
+  if (trans_in ? input.width() : input.height() == 1) {
+    BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
+                             trans_in ? input.width() : input.height());
+  } else {
+    BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
+                             trans_in ? input.width() : input.height());
+  }
   return output;
 }
 
@@ -296,8 +301,9 @@ void BCQTensor::save_quantization_info(std::ostream &file) {
 }
 
 void BCQTensor::read_quantization_info(std::ifstream &file) {
-  checkedRead(file, (char *)&quantized_bit_size, sizeof(uint16_t),
-              "[BCQTensor::read] failed to read quantization information");
+  // checkedRead(file, (char *)&quantized_bit_size, sizeof(uint16_t),
+  //             "[BCQTensor::read] failed to read quantization information");
+  createBCQW();
 }
 
 size_t BCQTensor::size() const {
@@ -376,7 +382,7 @@ void BCQTensor::printScales(std::ostream &out) const {
   const float *q_scales = (float *)getScale();
   unsigned int len = scale_size();
 
-  if (len > 50) {
+  if (len > 5000) {
     out << "Scale factors: [" << (int)q_scales[0] << ' ' << (int)q_scales[1]
         << ' ' << (int)q_scales[2] << " ... " << (int)q_scales[len - 3] << ' '
         << (int)q_scales[len - 2] << ' ' << (int)q_scales[len - 1] << ']'
@@ -400,6 +406,11 @@ void BCQTensor::createBCQW() {
   /// is related to the speed of matrixDotMatrix. The optimal value should be
   /// found with various values according to the usage environment.
   size_t hidden_tile_size = 32;
+
+  // bcq_weight = std::make_shared<BiQGEMM::BCQW>(
+  // (uint32_t *)getData(), (float *)getScale(), width(), height(),
+  // number_of_cluster, qbit_of_clusters, size_of_clusters, hidden_tile_size);
+  // std::cout << "binary_weight ptr : " << data->getAddr<uint32_t>() << " scale ptr : " << data->getAddr<float>() + size() << std::endl;
 
   bcq_weight = std::make_shared<BiQGEMM::BCQW>(
     (uint32_t *)(data->getAddr<uint32_t>()),

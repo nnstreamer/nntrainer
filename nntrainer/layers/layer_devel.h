@@ -356,6 +356,26 @@ public:
   }
 
   /**
+     * @brief     save layer Weight & Bias data from file
+     * @param file output file stream
+     * @param run_context run context for the layer
+     * @param opt_var boolean variable whether saving optimizer variables
+     * @param mode Execution mode
+     * @param trainable is there trainable weight
+     * @param definedWeightDataTey current data type of the layer
+     */
+  virtual void save_quantization_info(std::ofstream &file, RunLayerContext &run_context,
+                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
+                    TensorDim::DataType definedWeightDataType) const {
+    // @note shared weights are only be saved at the first access
+    for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+      if (run_context.isGradientFirstAccess(i)) {
+        run_context.getWeight(i).save_quantization_info(file);
+      }
+    }
+  }
+
+  /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
    * @param run context for layer
@@ -403,6 +423,13 @@ public:
     }
   }
 
+  virtual void read_quantization_info(std::ifstream &file, RunLayerContext &run_context,
+                  bool opt_var, ml::train::ExecutionMode mode, bool trainable,
+                  TensorDim::DataType defineWeightDataType) {
+      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+          run_context.getWeight(i).read_quantization_info(file);
+      }
+  }
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */
 };

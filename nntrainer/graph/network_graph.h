@@ -466,6 +466,7 @@ public:
    * @param order execution order
    */
   bool checkLoadComplete(const unsigned int order);
+  bool Inactive(unsigned int order);
 
   /**
    * @brief check data of order is Unloaded
