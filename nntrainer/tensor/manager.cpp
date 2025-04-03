@@ -175,6 +175,7 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 
   std::vector<unsigned> order = spec.additional_exec_order;
   if (expose) {
+    std::cout << "expoed ------------"<<std::endl;
     order.push_back(TensorPool::PERSIST_END_ORDER);
   }
 
@@ -456,6 +457,7 @@ std::vector<Weight *> Manager::requestWeights(
           TensorDim var32_dim(dim_v);
           var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
           std::vector<unsigned int> var32_exec_order;
+	  std::cout <<" PERSIS_END_ORDER :VAR32 "<<std::endl;
           var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
 
           var32 = weight_pool.requestOrExtend(shared_name + ":var32", var32_dim,
@@ -596,9 +598,15 @@ Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
                        const std::vector<std::string> &outputs_name) {
   using RT = TensorSpecV2::RequestType;
-
+  
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
+  
   TensorSpecV2 var_common_spec, grad_common_spec;
-  var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+
+  if(is_train_mode)
+    var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  else
+    var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
   grad_common_spec.ls = TensorLifespan::CALC_DERIV_LIFESPAN;
 
   /// @todo handle this inside layer
@@ -619,7 +627,7 @@ Manager::requestInputs(const GraphNode &node,
 
   std::vector<Var_Grad *> ret;
   size_t current_size = inputs_v2.size();
-  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
+
 
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
     TensorSpecV2 var_spec = var_common_spec, grad_spec = grad_common_spec;
@@ -728,6 +736,7 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   std::vector<unsigned int> exec;
   exec.reserve(1);
   if (is_grad_clip || is_mixed_precision) {
+    std::cout << "is_grad_clip || is_mixed"<<std::endl;
     exec.emplace_back(TensorPool::PERSIST_END_ORDER);
   } else {
     exec.emplace_back(getMinMaxTensorExecutionOrder(name, true).second);
