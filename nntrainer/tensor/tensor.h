@@ -1478,7 +1478,7 @@ public:
 
   /**
    * @brief     put data of Tensor
-   * @note      It is only effective when memory_swap is used
+   * @note      It is only effective when fsu is used
    */
   void putData() const;
 

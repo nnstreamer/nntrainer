@@ -133,9 +133,9 @@ void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
 
   _model->setProperty(
     {nntrainer::withKey("batch_size", 1), nntrainer::withKey("epochs", 1),
-     nntrainer::withKey("memory_swap", "true"),
-     nntrainer::withKey("memory_swap_lookahead", std::to_string(look_ahead)),
-     nntrainer::withKey("model_tensor_type", weight_act_type)});
+     nntrainer::withKey("fsu", "true"),
+     nntrainer::withKey("fsu_lookahead", std::to_string(look_ahead)),
+     nntrainer::withKey("model_tensor_type", "weight_act_type")});
 
   int status = _model->compile(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);

@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [ ubuntu-22.04, ubuntu-24.04 ]
         meson_options: [ "-Denable-fp16=false", "-Denable-fp16=true" ]
-        meson_swap_options: ["-Denable-memory-swap=true", "-Denable-memory-swap=false"]
+        meson_fsu_options: ["-Denable-fsu=true", "-Denable-fsu=false"]
 
     steps:
       - uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
             -Dcapi-ml-inference-actual=capi-ml-inference \
             -Denable-capi=enabled \
             ${{ matrix.meson_options }} \
-            ${{ matrix.meson_swap_options }} \
+            ${{ matrix.meson_fsu_options }} \
             build
       - run: ninja -C build
       - name: run App Tests
