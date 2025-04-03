@@ -1252,6 +1252,21 @@ void Tensor::save(std::ostream &file) {
   itensor->save(file);
 }
 
+void Tensor::save_quantization_info(std::ostream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot save.";
+
+  itensor->save_quantization_info(file);
+}
+
+void Tensor::read_quantization_info(std::ifstream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot read.";
+
+  itensor->read_quantization_info(file);
+}
+
+
 void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";

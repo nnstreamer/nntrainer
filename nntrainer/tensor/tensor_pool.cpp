@@ -501,5 +501,7 @@ void TensorPool::loadCacheCancel(int id) {
 unsigned int TensorPool::getNumLoadedTensors() {
   return cache_loader->getNumLoadedTensors();
 }
-
+unsigned int TensorPool::Inactive(unsigned int order) {
+  return cache_loader->Inactive(order);
+}
 } // namespace nntrainer

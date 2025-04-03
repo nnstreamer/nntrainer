@@ -1554,12 +1554,15 @@ public:
    */
   void save(std::ostream &file);
 
+  void save_quantization_info(std::ostream &file);
+
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
   void read(std::ifstream &file);
 
+  void read_quantization_info(std::ifstream &file);
   /**
    * @brief     return argument index which value is max by batch
    * @retval    unsigned int argument indices

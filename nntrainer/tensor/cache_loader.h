@@ -121,6 +121,7 @@ public:
    * @return number of loaded tensors
    */
   virtual unsigned int getNumLoadedTensors();
+  unsigned int Inactive(unsigned int order);
 
 private:
   std::shared_ptr<CachePool> pool; /**< cache pool */

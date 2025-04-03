@@ -314,6 +314,7 @@ public:
    * @return number of loaded tensors
    */
   unsigned int getNumLoadedTensors();
+  unsigned int Inactive(unsigned int order);
 
   /**
    * @brief set FSU weight path
