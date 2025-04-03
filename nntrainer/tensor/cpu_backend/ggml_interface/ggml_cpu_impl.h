@@ -1,3 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * @file	ggml_cpu_impl.h
+ * @date	03 April 2025
+ * @brief	This is ggml cpu implemenation
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Sungsik Kong <ss.kong@samsung.com>
+ * @bug		No known bugs except for NYI items
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 

@@ -1,3 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * @file	ggml_avx_macro.h
+ * @date	03 April 2025
+ * @brief	This is avx macros for ggml usage
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Sungsik Kong <ss.kong@samsung.com>
+ * @bug		No known bugs except for NYI items
+ */
 #include <immintrin.h>
 
 #if defined(__AVX__)

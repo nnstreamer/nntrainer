@@ -1,3 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * @file	nntr_ggml_essential.h
+ * @date	03 April 2025
+ * @brief	This is essential ggml codes to use ggml_cpu_impl
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Sungsik Kong <ss.kong@samsung.com>
+ * @bug		No known bugs except for NYI items
+ */
+
 #include <cstdint>
 #include <cstring>
 #include "ggml-common.h"
