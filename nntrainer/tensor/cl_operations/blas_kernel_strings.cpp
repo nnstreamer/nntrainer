@@ -264,113 +264,200 @@ output[i] = input[i];
 
 const std::string &getConcatClAxis3Kernel() {
   static const std::string concat_cl_axis3_kernel_ =
-    R"(__kernel void concat_cl_axis3(__global const float* in1, 
-                                           __global const float* in2, 
-                                           __global float* out,
-                                           const int batch_size, 
-                                           const int channels, 
-                                           const int height, 
-                                           const int width1, 
-                                           const int width2) {
-    int global_id = get_global_id(0);
-    
-    int total_width = width1 + width2;
-    
-    int width = total_width;
+    R"(
+    __kernel void concat_cl_axis3(__global const float *input1,
+                                  __global const float *input2, __global float *output,
+                                  const int batch_size, const int channel_size,
+                                  const int height_size, const int width1,
+                                  const int width2) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-    // 4D space coordinates
-    int w = global_id % total_width;
-    int h = (global_id / total_width) % height;
-    int c = (global_id / (total_width * height)) % channels;
-    int b = global_id / (total_width * height * channels);
+      // Calculate total elements in one width concatenation
+      const int total_elements = batch_size * channel_size * height_size;
 
-    int output_index = ((b * channels + c) * height + h) * total_width + w;
-    
-    // Determining if the index is in in1 or in2
-    if (w < width1) {
-        // in1 index calculation
-        int input1_index = ((b * channels + c) * height + h) * width1 + w;
-        out[output_index] = in1[input1_index];
-  
-    } else {
-        // in2 index calculation
-        int input2_index = ((b * channels + c) * height + h) * width2 + (w - width1);
-        out[output_index] = in2[input2_index];
-    }
-})";
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
+
+      // Calculate indices for batch, channel, and height
+      const int batch_idx = global_idx / (channel_size * height_size);
+      const int temp = global_idx % (channel_size * height_size);
+      const int channel_idx = temp / height_size;
+      const int height_idx = temp % height_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel_size * height_size * width1;
+      const int stride_channel1 = height_size * width1;
+      const int stride_height1 = width1;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel_size * height_size * width2;
+      const int stride_channel2 = height_size * width2;
+      const int stride_height2 = width2;
+
+      // Calculate strides for output
+      const int total_width = width1 + width2;
+      const int stride_batch_out = channel_size * height_size * total_width;
+      const int stride_channel_out = height_size * total_width;
+      const int stride_height_out = total_width;
+
+      // Calculate base indices
+      const int base_idx1 = batch_idx * stride_batch1 +
+                            channel_idx * stride_channel1 +
+                            height_idx * stride_height1;
+
+      const int base_idx2 = batch_idx * stride_batch2 +
+                            channel_idx * stride_channel2 +
+                            height_idx * stride_height2;
+
+      const int base_idx_out = batch_idx * stride_batch_out +
+                              channel_idx * stride_channel_out +
+                              height_idx * stride_height_out;
+
+      // Copy data from input1
+      for (int w = 0; w < width1; w++) {
+        output[base_idx_out + w] = input1[base_idx1 + w];
+      }
+
+      // Copy data from input2
+      for (int w = 0; w < width2; w++) {
+        output[base_idx_out + width1 + w] = input2[base_idx2 + w];
+      }
+    })";
   return concat_cl_axis3_kernel_;
 }
 
 const std::string &getConcatClAxis2Kernel() {
   static const std::string concat_cl_axis2_kernel_ =
-    R"(__kernel void concat_cl_axis2(__global const float* in1,
-                             __global const float* in2,
-                             __global float* out,
-                             const int batch_size,
-                             const int channels,
-                             const int height1,
-                             const int height2,
-                             const int width) {
-    
-    int total_height = height1 + height2;
-    int global_id = get_global_id(0);
-    
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % total_height;
-    int c = (global_id / (width * total_height)) % channels;
-    int b = global_id / (width * total_height * channels);
+    R"(
+    __kernel void concat_cl_axis2(__global const float *input1,
+                                  __global const float *input2,
+                                  __global float *output, const int batch_size,
+                                  const int channel_size, const int height1,
+                                  const int height2, const int width_size) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-    // Calculate the offset for the current batch, channel, and width in the output tensor
-    int output_index = ((b * channels + c) * total_height + h) * width + w;
+      // Calculate total elements in one height concatenation
+      const int total_elements = batch_size * channel_size * width_size;
 
-    if (h < height1) {
-        // Index within input1
-        int input1_index = ((b * channels + c) * height1 + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels + c) * height2 + (h - height1)) * width + w;
-        out[output_index] = in2[input2_index];
-    }
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
 
+      // Calculate indices for batch, channel, and width
+      const int batch_idx = global_idx / (channel_size * width_size);
+      const int temp = global_idx % (channel_size * width_size);
+      const int channel_idx = temp / width_size;
+      const int width_idx = temp % width_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel_size * height1 * width_size;
+      const int stride_channel1 = height1 * width_size;
+      const int stride_height1 = width_size;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel_size * height2 * width_size;
+      const int stride_channel2 = height2 * width_size;
+      const int stride_height2 = width_size;
+
+      // Calculate strides for output
+      const int total_height = height1 + height2;
+      const int stride_batch_out = channel_size * total_height * width_size;
+      const int stride_channel_out = total_height * width_size;
+      const int stride_height_out = width_size;
+
+      // Calculate base indices
+      const int base_idx1 =
+        batch_idx * stride_batch1 + channel_idx * stride_channel1;
+
+      const int base_idx2 =
+        batch_idx * stride_batch2 + channel_idx * stride_channel2;
+
+      const int base_idx_out =
+        batch_idx * stride_batch_out + channel_idx * stride_channel_out;
+
+      // Copy data from input1
+      for (int h = 0; h < height1; h++) {
+        output[base_idx_out + h * stride_height_out + width_idx] =
+          input1[base_idx1 + h * stride_height1 + width_idx];
+      }
+
+      // Copy data from input2
+      for (int h = 0; h < height2; h++) {
+        output[base_idx_out + (height1 + h) * stride_height_out + width_idx] =
+          input2[base_idx2 + h * stride_height2 + width_idx];
+      }
 })";
   return concat_cl_axis2_kernel_;
 }
 
 const std::string &getConcatClAxis1Kernel() {
   static const std::string concat_cl_axis1_kernel_ =
-    R"(__kernel void concat_cl_axis1(__global const float* in1, 
-                                           __global const float* in2, 
-                                           __global float* out,
-                                           const int batch_size, 
-                                           const int channels1, 
-                                           const int channels2, 
-                                           const int height, 
-                                           const int width) {
-    int global_id = get_global_id(0);
-    
-    int total_channels = channels1 + channels2;
+    R"(
+    __kernel void concat_cl_axis1(__global const float *input1,
+                                  __global const float *input2,
+                                  __global float *output, const int batch_size,
+                                  const int channel1, const int channel2,
+                                  const int height_size, const int width_size) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % height;
-    int c = (global_id / (width * height)) % total_channels;
-    int b = global_id / (width * height * total_channels);
+      // Calculate total elements in one channel concatenation
+      const int total_elements = batch_size * height_size * width_size;
 
-    // Calculate the offset for the current batch, height, and width in the output tensor
-    int output_index = ((b * total_channels + c) * height + h) * width + w;
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
 
-    if (c < channels1) {
-        // Index within input1
-        int input1_index = ((b * channels1 + c) * height + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels2 + (c - channels1)) * height + h) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-})";
+      // Calculate indices for batch, height, and width
+      const int batch_idx = global_idx / (height_size * width_size);
+      const int temp = global_idx % (height_size * width_size);
+      const int height_idx = temp / width_size;
+      const int width_idx = temp % width_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel1 * height_size * width_size;
+      const int stride_channel1 = height_size * width_size;
+      const int stride_height1 = width_size;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel2 * height_size * width_size;
+      const int stride_channel2 = height_size * width_size;
+      const int stride_height2 = width_size;
+
+      // Calculate strides for output
+      const int total_channels = channel1 + channel2;
+      const int stride_batch_out = total_channels * height_size * width_size;
+      const int stride_channel_out = height_size * width_size;
+      const int stride_height_out = width_size;
+
+      // Calculate base indices
+      const int base_idx1 = batch_idx * stride_batch1;
+      const int base_idx2 = batch_idx * stride_batch2;
+      const int base_idx_out = batch_idx * stride_batch_out;
+
+      // Calculate spatial offset
+      const int spatial_offset = height_idx * stride_height_out + width_idx;
+
+      // Copy data from input1
+      for (int c = 0; c < channel1; c++) {
+        output[base_idx_out + c * stride_channel_out + spatial_offset] =
+          input1[base_idx1 + c * stride_channel1 + height_idx * stride_height1 +
+                width_idx];
+      }
+
+      // Copy data from input2
+      for (int c = 0; c < channel2; c++) {
+        output[base_idx_out + (channel1 + c) * stride_channel_out +
+              spatial_offset] = input2[base_idx2 + c * stride_channel2 +
+                                        height_idx * stride_height2 + width_idx];
+      }
+    })";
   return concat_cl_axis1_kernel_;
 }
 
@@ -664,7 +751,7 @@ const std::string &getSwiGluClKernelFP16() {
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
     __kernel void swiglu_cl_fp16(__global const half *in1, __global const half *in2, __global half *out) {
     int i = get_global_id(0);
-    half swish = in1[i] * exp(in1[i]) / (1 + exp(in1[i]));
+    half swish = in1[i] * exp((float)in1[i]) / (1 + exp((float)in1[i]));
     out[i] = swish * in2[i];
 })";
   return swiglu_cl_kernel_fp16_;
@@ -692,113 +779,202 @@ const std::string &getConcatClAxis3KernelFP16() {
   static const std::string concat_cl_axis3_kernel_fp16_ =
     R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void concat_cl_axis3_fp16(__global const half* in1, 
-                                           __global const half* in2, 
-                                           __global half* out,
-                                           const int batch_size, 
-                                           const int channels, 
-                                           const int height, 
-                                           const int width1, 
-                                           const int width2) {
-    int global_id = get_global_id(0);
-    
-    int total_width = width1 + width2;
-    
-    int width = total_width;
+    __kernel void concat_cl_axis3_fp16(__global const half *input1,
+                              __global const half *input2, __global half *output,
+                              const int batch_size, const int channel_size,
+                              const int height_size, const int width1,
+                              const int width2) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-    // 4D space coordinates
-    int w = global_id % total_width;
-    int h = (global_id / total_width) % height;
-    int c = (global_id / (total_width * height)) % channels;
-    int b = global_id / (total_width * height * channels);
+      // Calculate total elements in one width concatenation
+      const int total_elements = batch_size * channel_size * height_size;
 
-    int output_index = ((b * channels + c) * height + h) * total_width + w;
-    
-    // Determining if the index is in in1 or in2
-    if (w < width1) {
-        // in1 index calculation
-        int input1_index = ((b * channels + c) * height + h) * width1 + w;
-        out[output_index] = in1[input1_index];
-  
-    } else {
-        // in2 index calculation
-        int input2_index = ((b * channels + c) * height + h) * width2 + (w - width1);
-        out[output_index] = in2[input2_index];
-    }
-})";
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
+
+      // Calculate indices for batch, channel, and height
+      const int batch_idx = global_idx / (channel_size * height_size);
+      const int temp = global_idx % (channel_size * height_size);
+      const int channel_idx = temp / height_size;
+      const int height_idx = temp % height_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel_size * height_size * width1;
+      const int stride_channel1 = height_size * width1;
+      const int stride_height1 = width1;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel_size * height_size * width2;
+      const int stride_channel2 = height_size * width2;
+      const int stride_height2 = width2;
+
+      // Calculate strides for output
+      const int total_width = width1 + width2;
+      const int stride_batch_out = channel_size * height_size * total_width;
+      const int stride_channel_out = height_size * total_width;
+      const int stride_height_out = total_width;
+
+      // Calculate base indices
+      const int base_idx1 = batch_idx * stride_batch1 +
+                            channel_idx * stride_channel1 +
+                            height_idx * stride_height1;
+
+      const int base_idx2 = batch_idx * stride_batch2 +
+                            channel_idx * stride_channel2 +
+                            height_idx * stride_height2;
+
+      const int base_idx_out = batch_idx * stride_batch_out +
+                              channel_idx * stride_channel_out +
+                              height_idx * stride_height_out;
+
+      // Copy data from input1
+      for (int w = 0; w < width1; w++) {
+        output[base_idx_out + w] = input1[base_idx1 + w];
+      }
+
+      // Copy data from input2
+      for (int w = 0; w < width2; w++) {
+        output[base_idx_out + width1 + w] = input2[base_idx2 + w];
+      }
+    })";
   return concat_cl_axis3_kernel_fp16_;
 }
 
 const std::string &getConcatClAxis2KernelFP16() {
   static const std::string concat_cl_axis2_kernel_fp16_ =
-    R"(__kernel void concat_cl_axis2_fp16(__global const half* in1,
-                           __global const half* in2,
-                           __global half* out,
-                           const int batch_size,
-                           const int channels,
-                           const int height1,
-                           const int height2,
-                           const int width) {
-  
-  int total_height = height1 + height2;
-  int global_id = get_global_id(0);
-  
-  // Calculate the coordinates in the 4D space
-  int w = global_id % width;
-  int h = (global_id / width) % total_height;
-  int c = (global_id / (width * total_height)) % channels;
-  int b = global_id / (width * total_height * channels);
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    __kernel void concat_cl_axis2_fp16(__global const half *input1,
+                                __global const half *input2, __global half *output,
+                                const int batch_size, const int channel_size,
+                                const int height1, const int height2,
+                                const int width_size) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-  // Calculate the offset for the current batch, channel, and width in the output tensor
-  int output_index = ((b * channels + c) * total_height + h) * width + w;
+      // Calculate total elements in one height concatenation
+      const int total_elements = batch_size * channel_size * width_size;
 
-  if (h < height1) {
-      // Index within input1
-      int input1_index = ((b * channels + c) * height1 + h) * width + w;
-      out[output_index] = in1[input1_index];
-  } else {
-      // Index within input2
-      int input2_index = ((b * channels + c) * height2 + (h - height1)) * width + w;
-      out[output_index] = in2[input2_index];
-  }
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
 
-})";
+      // Calculate indices for batch, channel, and width
+      const int batch_idx = global_idx / (channel_size * width_size);
+      const int temp = global_idx % (channel_size * width_size);
+      const int channel_idx = temp / width_size;
+      const int width_idx = temp % width_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel_size * height1 * width_size;
+      const int stride_channel1 = height1 * width_size;
+      const int stride_height1 = width_size;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel_size * height2 * width_size;
+      const int stride_channel2 = height2 * width_size;
+      const int stride_height2 = width_size;
+
+      // Calculate strides for output
+      const int total_height = height1 + height2;
+      const int stride_batch_out = channel_size * total_height * width_size;
+      const int stride_channel_out = total_height * width_size;
+      const int stride_height_out = width_size;
+
+      // Calculate base indices
+      const int base_idx1 =
+        batch_idx * stride_batch1 + channel_idx * stride_channel1;
+
+      const int base_idx2 =
+        batch_idx * stride_batch2 + channel_idx * stride_channel2;
+
+      const int base_idx_out =
+        batch_idx * stride_batch_out + channel_idx * stride_channel_out;
+
+      // Copy data from input1
+      for (int h = 0; h < height1; h++) {
+        output[base_idx_out + h * stride_height_out + width_idx] =
+          input1[base_idx1 + h * stride_height1 + width_idx];
+      }
+
+      // Copy data from input2
+      for (int h = 0; h < height2; h++) {
+        output[base_idx_out + (height1 + h) * stride_height_out + width_idx] =
+          input2[base_idx2 + h * stride_height2 + width_idx];
+      }
+  })";
   return concat_cl_axis2_kernel_fp16_;
 }
 
 const std::string &getConcatClAxis1KernelFP16() {
   static const std::string concat_cl_axis1_kernel_fp16_ =
-    R"(__kernel void concat_cl_axis1_fp16(__global const half* in1, 
-                                           __global const half* in2, 
-                                           __global half* out,
-                                           const int batch_size, 
-                                           const int channels1, 
-                                           const int channels2, 
-                                           const int height, 
-                                           const int width) {
-    int global_id = get_global_id(0);
-    
-    int total_channels = channels1 + channels2;
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    __kernel void concat_cl_axis1_fp16(__global const half *input1,
+                                      __global const half *input2,
+                                      __global half *output, const int batch_size,
+                                      const int channel1, const int channel2,
+                                      const int height_size,
+                                      const int width_size) {
+      // Get single global index
+      const int global_idx = get_global_id(0);
 
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % height;
-    int c = (global_id / (width * height)) % total_channels;
-    int b = global_id / (width * height * total_channels);
+      // Calculate total elements in one channel concatenation
+      const int total_elements = batch_size * height_size * width_size;
 
-    // Calculate the offset for the current batch, height, and width in the output tensor
-    int output_index = ((b * total_channels + c) * height + h) * width + w;
+      // Check if index is within bounds
+      if (global_idx >= total_elements) {
+        return;
+      }
 
-    if (c < channels1) {
-        // Index within input1
-        int input1_index = ((b * channels1 + c) * height + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels2 + (c - channels1)) * height + h) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-})";
+      // Calculate indices for batch, height, and width
+      const int batch_idx = global_idx / (height_size * width_size);
+      const int temp = global_idx % (height_size * width_size);
+      const int height_idx = temp / width_size;
+      const int width_idx = temp % width_size;
+
+      // Calculate strides for input1
+      const int stride_batch1 = channel1 * height_size * width_size;
+      const int stride_channel1 = height_size * width_size;
+      const int stride_height1 = width_size;
+
+      // Calculate strides for input2
+      const int stride_batch2 = channel2 * height_size * width_size;
+      const int stride_channel2 = height_size * width_size;
+      const int stride_height2 = width_size;
+
+      // Calculate strides for output
+      const int total_channels = channel1 + channel2;
+      const int stride_batch_out = total_channels * height_size * width_size;
+      const int stride_channel_out = height_size * width_size;
+      const int stride_height_out = width_size;
+
+      // Calculate base indices
+      const int base_idx1 = batch_idx * stride_batch1;
+      const int base_idx2 = batch_idx * stride_batch2;
+      const int base_idx_out = batch_idx * stride_batch_out;
+
+      // Calculate spatial offset
+      const int spatial_offset = height_idx * stride_height_out + width_idx;
+
+      // Copy data from input1
+      for (int c = 0; c < channel1; c++) {
+        output[base_idx_out + c * stride_channel_out + spatial_offset] =
+          input1[base_idx1 + c * stride_channel1 + height_idx * stride_height1 +
+                width_idx];
+      }
+
+      // Copy data from input2
+      for (int c = 0; c < channel2; c++) {
+        output[base_idx_out + (channel1 + c) * stride_channel_out +
+              spatial_offset] = input2[base_idx2 + c * stride_channel2 +
+                                        height_idx * stride_height2 + width_idx];
+      }
+    })";
   return concat_cl_axis1_kernel_fp16_;
 }
 
@@ -830,7 +1006,7 @@ const std::string &getRMSNormClKernelFP16() {
         sum_squares += input[index+j] * input[index+j];
     }
     sum_squares /= W;
-    half rms_norm = sqrt(sum_squares + epsilon);
+    half rms_norm = sqrt((float)(sum_squares + epsilon));
     // Each work item processes all width elements for its specific n, h, c
     for (int w = 0; w < W; ++w) {
         output[index+w] = (input[index+w] / rms_norm) * alpha[w];
