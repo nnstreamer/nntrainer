@@ -59,7 +59,6 @@ static inline double find_max_diff(T* src, T* src2, int M, int N){
     // std::cout << "err_sum : " << err_sum << std::endl;
     return max_diff;
 }
-
 typedef struct {
      union {
         struct {
@@ -137,7 +136,6 @@ TEST(nntrainer_cpu_backend_standalone, q4_k_quantization) {
     EXPECT_NEAR(max_differ, 0., eps * K * N);
 }
 
-
 TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     const unsigned int M = 8;
     const unsigned int K = 16;
@@ -172,37 +170,27 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     int64_t num_blocks = (K * N) / q4_k_block_size;
     size_t data_size = q4_k_type_size * ne0 / q4_k_block_size;
     data_size *= K;
-    ///@todo this is an invalid weight data. Needs fix.
+    ///@todo this is might be an invalid(too huge?) size for weight data. Needs double checking.
     std::vector<char> offline_qWeight = std::vector<char>(data_size); 
     char* offline_qWeight_ptr = (char*) offline_qWeight.data();
 
     // Step1. Supposed to be an offline Weight quantization from float to q4_K (Zero latency overhead for the model runtime)
-    nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) offline_qWeight_ptr, K, N, nullptr);
-    // nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) offline_qWeight, N, K, nullptr);
-    ///@todo HOW BIG IS THE WEIGHT BUFFER? (N * K / len(q4_K) * sizeof(q4_K) bytes)?
-
-    /// CHECK : is Step1 valid?
-        // print_matrix<float>(weight.data(), N, K);
-        nntrainer::dequantize_row_q4_K(offline_qWeight_ptr, rhs_ptr_tmp, K * N);
-        // print_matrix<float>(rhs_ptr_tmp, N, K);
-        auto mean_squared_error = mse<float, float>( weight.data(), rhs_ptr_tmp, N * K);
-        auto cos_sim = cosine_similarity( weight.data(), rhs_ptr_tmp, N * K);
-        auto max_differ = find_max_diff(weight.data(), rhs_ptr_tmp, N, K);
-        // std::cout << "mean_squared_error : " << mean_squared_error << std::endl;
-        // std::cout << "cos_sim : " << cos_sim << std::endl;
-        // std::cout << "max_differ : " << max_differ << std::endl;
-    /// END CHECK : is Step1 valid?
+    nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) offline_qWeight_ptr, K, N, /*imatrix*/nullptr);
+    ///@note Step1 is validated with unittest TC : q4_k_quantization
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
     ///@note do something like : nntrainer::repack_q4_K_to_q4_K_8x8(offline_qWeight_ptr, N, K, q4_K_8x8_weight);
+    ///@note Needs validation!
 
     // Step3. Run GEMM! (Online activation quantization + kernel routine + return float)
     ///@note do something like : nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) offline_qWeight_ptr, N, dst_ptr, N);
+    ///@note Needs validation!
 
     // Step4. Compare quantization error
     // 1. Ground Truth VS Q4_K GEMM
     // 2. Q4_K GEMM on the nntrainer VS Q4_K GEMM on the llama.cpp
-    ///@note It is quite obvious to have error, but the error is expected to be similar to something we can obtain from llama.cpp benchmark-matmult.cpp
+    ///@note It is quite obvious to have a huge quantization error(32bit to 4.12bit), but the error is expected to be similar to something we can obtain from llama.cpp benchmark-matmult.cpp
+    ///@note Needs validation!
 
     /* 
         Room for optimization
