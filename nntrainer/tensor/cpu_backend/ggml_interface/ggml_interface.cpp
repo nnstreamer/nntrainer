@@ -13,3 +13,10 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                              const unsigned int ldc) {
   ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
 }
+
+void nntr_dequantize_row_q4_K(const void * x_raw, float * y, int64_t k){
+  ggml_dequantize_row_q4_K(x_raw, y, k);
+}
+void nntr_dequantize_row_q8_K(const void * x, float * y, int64_t k){
+  ggml_dequantize_row_q8_K(x, y, k);
+}

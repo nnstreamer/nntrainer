@@ -2195,3 +2195,36 @@ size_t ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
   return nrow * row_size;
 }
 
+void ggml_dequantize_row_q4_K(const void * x_raw, float * y, int64_t k) {
+    block_q4_K* x = (block_q4_K *) x_raw;
+    const int nb = k / 256;
+    for (int i = 0; i < nb; i++) {
+        const uint8_t * q = x[i].qs;
+
+        const float d   = nntr_fp16_to_fp32(x[i].d);
+        const float min = nntr_fp16_to_fp32(x[i].dmin);
+
+        int is = 0;
+        uint8_t sc, m;
+        for (int j = 0; j < 256; j += 64) {
+            get_scale_min_k4(is + 0, x[i].scales, &sc, &m);
+            const float d1 = d * sc; const float m1 = min * m;
+            get_scale_min_k4(is + 1, x[i].scales, &sc, &m);
+            const float d2 = d * sc; const float m2 = min * m;
+            for (int l = 0; l < 32; ++l) *y++ = d1 * (q[l] & 0xF) - m1;
+            for (int l = 0; l < 32; ++l) *y++ = d2 * (q[l]  >> 4) - m2;
+            q += 32; is += 2;
+        }
+    }
+}
+
+void ggml_dequantize_row_q8_K(const void * x, float * y, int64_t k) {
+    // block_q8_K
+    block_q8_K* x_casted = (block_q8_K * ) x;
+    const int64_t nb = k / 256;
+    for (int i = 0; i < nb; i++) {
+        for (int j = 0; j < 256; ++j) {
+            *y++ = x_casted[i].d * x_casted[i].qs[j];
+        }
+    }
+}
