@@ -43,6 +43,7 @@ enum LayerType {
   LAYER_MULTIPLY = ML_TRAIN_LAYER_TYPE_MULTIPLY, /**< Multiply Layer type */
   LAYER_DIVIDE = ML_TRAIN_LAYER_TYPE_DIVIDE,     /**< Divide Layer type */
   LAYER_POW = ML_TRAIN_LAYER_TYPE_POW,           /**< Pow Layer type */
+  LAYER_GATHER = ML_TRAIN_LAYER_TYPE_GATHER,     /**< Gather Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -343,6 +344,14 @@ DivideLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 PowLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_POW, properties);
+}
+
+/**
+ * @brief Helper function to create gather layer
+ */
+inline std::unique_ptr<Layer>
+GatherLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_GATHER, properties);
 }
 
 /**
