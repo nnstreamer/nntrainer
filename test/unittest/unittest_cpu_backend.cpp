@@ -25,6 +25,19 @@ static inline std::vector<T> generate_homogeneous_vector(size_t size, T value){
     return vec;
 }
 
+typedef struct {
+     union {
+        struct {
+            int16_t d;    // super-block scale for quantized scales
+            int16_t dmin; // super-block scale for quantized mins
+        };
+        uint32_t dm;
+    };
+    uint8_t scales[12]; // scales and mins, quantized with 6 bits
+    uint8_t qs[256/2];           // 4--bit quants
+} block_q4_K_static;
+
+
 TEST(nntrainer_cpu_backend_standalone, ele_add) {
     const unsigned int TEST_SIZE = 100;
     float alpha = 1.F;
@@ -64,14 +77,22 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     float* ref_dst_ptr = (float*) ref_dst.data();
     float* dst_ptr = (float*) dst.data();
 
-    ///@todo this is an invalid weight data. Needs fix.
-    char* tmp_qWeight = std::vector<char>(N * K).data(); 
-
     // GROUND TRUTH TRANSB SGEMM for reference
     nntrainer::sgemm(0/*ROW MAJOR*/, false, true, M, N, K, 1.F, lhs_ptr, K, rhs_ptr, N, 0.F, ref_dst_ptr, N);
 
+    // Step0. Allocate a temporary buffer for quantized weight
+    int64_t ne0 = N; // row length of the weight matrix
+    int64_t q4_k_block_size = 256;
+    int64_t q4_k_type_size = sizeof(block_q4_K_static);
+    size_t data_size = q4_k_type_size * ne0 / q4_k_block_size;
+    data_size *= K;
+    ///@todo this is an invalid weight data. Needs fix.
+    std::vector<char> tmp_qWeight = std::vector<char>(data_size); 
+    char* tmp_qWeight_ptr = (char*) tmp_qWeight.data();
+
     // Step1. Supposed to be an offline Weight quantization from float to q4_K (Zero latency overhead for the model runtime)
-    nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) tmp_qWeight, N, K, nullptr);
+    nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) tmp_qWeight_ptr, K, N, nullptr);
+    // nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) tmp_qWeight, N, K, nullptr);
     ///@todo HOW BIG IS THE WEIGHT BUFFER? (N * K / len(q4_K) * sizeof(q4_K) bytes)?
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
