@@ -24,6 +24,7 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 bool ReshapeLayerCl::registerClKernels() {
+  auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
   if (!layer_kernel_ptrs.empty()) {
@@ -147,7 +148,7 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
   bool result = false;
 
   do {
-    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -227,7 +228,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
   bool result = false;
 
   do {
-    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -281,7 +282,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
     }
 
     const int work_groups_count[3] = {(int)dim_size, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
@@ -316,6 +317,13 @@ void ReshapeLayerCl::setProperty(const std::vector<std::string> &values) {
 void ReshapeLayerCl::exportTo(Exporter &exporter,
                               const ml::train::ExportMethods &method) const {
   exporter.saveResult(reshape_props, method, this);
+}
+
+std::vector<ClContext::SharedPtrClKernel> &
+ReshapeLayerCl::getLayerKernelPtrs() {
+  /**< kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+  return layer_kernel_ptrs;
 }
 
 } /* namespace nntrainer */
