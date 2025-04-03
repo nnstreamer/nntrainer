@@ -145,6 +145,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
        * */
       if (details->exec_order[idx] > old_end_order &&
           details->exec_order[idx] != PERSIST_END_ORDER) {
+	std::cout<< spec.tensor->getName() <<" : end order : " << end_order << " details->exec_order " << idx << " -- "<< details->exec_order[idx]<<std::endl;
         details->exec_order[idx] = PERSIST_END_ORDER - 1;
       }
     }
@@ -236,6 +237,12 @@ void TensorPool::allocate(bool init) {
       continue;
     }
     spec.tensor->setData(mem_pool->getMemory(details->token), 0, init);
+    std::cout << spec.tensor->getName() << " : " << mem_pool->getMemory(details->token) << " : ls "<< details->exec_order.size() << std::endl;
+    for (auto i : details->exec_order)
+      std::cout << i << " " ;
+    std::cout<<std::endl;
+    
+
     syncDependents(spec);
     i++;
   }

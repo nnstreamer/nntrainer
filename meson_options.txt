@@ -30,7 +30,7 @@ option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
 option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
 #This is for the multi-threading in nntrainer
 option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
-option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
+option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
 option('hgemm-experimental-kernel', type: 'boolean', value: false)
 
 # test related option
@@ -43,8 +43,8 @@ option('enable-fp16', type: 'boolean', value: false)
 option('enable-cublas', type: 'boolean', value: false)
 option('enable-openmp', type: 'boolean', value: true)
 option('enable-opencl', type: 'boolean', value: false)
-option('enable-biqgemm', type: 'boolean', value: false)
-option('biqgemm-path', type: 'string', value: '../BiQGEMM')
+option('enable-biqgemm', type: 'boolean', value: true)
+option('biqgemm-path', type: 'string', value: '/home/jijoongmoon/WorkSpace1/nntrainer-i/BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
 
 # ml-api dependency (to enable, install capi-inference from github.com/nnstreamer/api )

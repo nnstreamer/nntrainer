@@ -109,6 +109,7 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
                                  memory_is_wgrad, n_wgrad);
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
+  std::cout <<"POOL Size : "<< pool_size << std::endl;
 
   return double(min_pool_size) / double(pool_size);
 }
@@ -143,8 +144,8 @@ void MemoryPool::allocate() {
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " new ptr : " << ptr << std::endl;
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " new ptr : " << ptr << std::endl;
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
@@ -153,10 +154,10 @@ void MemoryPool::allocate() {
                                      RPCMEM_DEFAULT_FLAGS, current_size);
 
         for (int idx : offset_indices[s]) {
-          //	  std::cout << "                change ptr " <<idx <<" from  "<<
-          // memory_ptrs[idx]<< " to " << new_ptr << " before_size : "<<
-          // max_size
-          //<< " new max_size : "<< current_size <<std::endl;
+          std::cout << "                change ptr " << idx << " from  "
+                    << memory_ptrs[idx] << " to " << new_ptr
+                    << " before_size : " << max_size
+                    << " new max_size : " << current_size << std::endl;
 
           memory_ptrs[idx] = new_ptr;
         }
@@ -165,9 +166,8 @@ void MemoryPool::allocate() {
         allocated_size[s] = current_size;
       }
       memory_ptrs.push_back(offset_ptr[s]);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " max size for the offset " << allocated_size[s]<< "  reuse ptr
-      //      : " << offset_ptr[s] << std::endl;
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " max size for the offset " << allocated_size[s]<< "  reuse ptr : " << offset_ptr[s] << std::endl;
       offset_indices[s].push_back(i);
     }
     i++;
@@ -177,11 +177,14 @@ void MemoryPool::allocate() {
 
 #else
   mem_pool = calloc(pool_size, 1);
-
+  std::cout << " mem_pool : "<< mem_pool << std::endl;
   unsigned int idx = 1;
   for (auto &s : memory_offset) {
+    
     char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+    std::cout << idx << " : ptr "<< (void*)(ptr )<< " : offset "<< memory_offset.at(idx-1)<< std::endl;
     memory_ptrs.push_back(ptr);
+    
     idx++;
   }
 #endif
@@ -217,6 +220,8 @@ void MemoryPool::allocateFSU() {
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " new ptr : " << ptr << std::endl;
 
     } else {
       void *existing_ptr = it->second;
@@ -225,6 +230,11 @@ void MemoryPool::allocateFSU() {
         void *new_ptr = ALIGNED_ALLOC(current_size);
 
         for (int idx : offset_indices[s]) {
+          std::cout << "                change ptr " << idx << " from  "
+                    << memory_ptrs[idx] << " to " << new_ptr
+                    << " before_size : " << max_size
+                    << " new max_size : " << current_size << std::endl;
+	  
           memory_ptrs[idx] = new_ptr;
         }
         ALIGNED_FREE(existing_ptr);
@@ -232,6 +242,9 @@ void MemoryPool::allocateFSU() {
         allocated_size[s] = current_size;
       }
       memory_ptrs.push_back(offset_ptr[s]);
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " max size for the offset " << allocated_size[s]<< "  reuse ptr : " << offset_ptr[s] << std::endl;
+      
       offset_indices[s].push_back(i);
     }
     i++;

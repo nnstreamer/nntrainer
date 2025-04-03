@@ -24,19 +24,20 @@ echo "PREPARING OPENBLAS at ${TARGET}"
 pushd ${TARGET}
 
 function _download_cblas {
-  [ -f $TAR_NAME ] && echo "${TAR_NAME} exists, skip downloading" && return 0
-  echo "[OPENBLAS] downloading ${TAR_NAME}\n"
-  if ! wget -q ${URL} ; then
-    echo "[OPENBLAS] Download failed, please check url\n"
-    exit $?
-  fi
+  # [ -f $TAR_NAME ] && echo "${TAR_NAME} exists, skip downloading" && return 0
+  # echo "[OPENBLAS] downloading ${TAR_NAME}\n"
+  # if ! wget -q ${URL} ; then
+  #   echo "[OPENBLAS] Download failed, please check url\n"
+  #   exit $?
+  # fi
   echo "[OPENBLAS] Finish downloading openblas\n"
 }
 
 function _untar_cblas {
-  echo "[OPENBLAS] untar openblas\n"
-  tar -zxvf ${TAR_NAME} -C ${TARGET}
-  rm -f ${TAR_NAME}
+  # echo "[OPENBLAS] untar openblas\n"
+  # tar -zxvf ${TAR_NAME} -C ${TARGET}
+    # rm -f ${TAR_NAME}
+    cp -r ../openblas ${TARGET}
 }
 
 [ ! -d "${TAR_PREFIX}" ] && _download_cblas && _untar_cblas
