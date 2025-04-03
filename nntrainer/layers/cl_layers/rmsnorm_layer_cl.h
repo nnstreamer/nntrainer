@@ -138,8 +138,7 @@ private:
   std::tuple<props::GammaInitializer, props::Epsilon>
     rmsnorm_props; /**< rmsnorm layer properties */
 
-  inline static std::vector<ClContext::SharedPtrClKernel>
-    layer_kernel_ptrs; /**< kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
 
   enum Kernels {
     RMSNORM_CL,

@@ -12,6 +12,7 @@
  *
  */
 
+#include <blas_kernel_strings.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -20,71 +21,6 @@
 #include <rmsnorm_layer_cl.h>
 #include <util_func.h>
 
-std::string rmsnorm_cl_kernel_fp16_ =
-  R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void rmsnorm_cl_fp16(
-    __global const half *input,  // Input tensor
-    __global half *output,    // Output tensor
-    __global const half *alpha,  // Alpha values (one for each width)
-    half epsilon,
-    int B,                  // Number of batches
-    int C,                  // Number of channels
-    int H,                  // Height of feature map
-    int W                   // Width of feature map
-) {
-    int global_id = get_global_id(0);  // Get the global work item index
-
-    // Compute the corresponding batch, height, and channel indices
-    int n = global_id / C;       // Batch index
-    int c = global_id % C;                    // Height index
-    int h = get_global_id(1);                    // Channel index
-    int index = ((n * C + c) * H + h) * W;
-
-    // Calculate RMS norm for the current channel, height, and batch
-    half sum_squares = 0.0f;
-    for (int j = 0; j < W; ++j) {
-        sum_squares += input[index+j] * input[index+j];
-    }
-    sum_squares /= W;
-    half rms_norm = sqrt(sum_squares + epsilon);
-    // Each work item processes all width elements for its specific n, h, c
-    for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
-    } 
-}
-)";
-
-std::string rmsnorm_cl_kernel_ =
-  R"(__kernel void rmsnorm_cl(
-    __global const float *input,  // Input tensor
-    __global float *output,    // Output tensor
-    __global const float *alpha,  // Alpha values (one for each width)
-    float epsilon,
-    int B,                  // Number of batches
-    int C,                  // Number of channels
-    int H,                  // Height of feature map
-    int W                   // Width of feature map
-) {
-    // Compute the corresponding batch, height, and channel indices
-    int n = get_global_id(0) / C;
-    int c = get_global_id(0) % C;
-    int h = get_global_id(1);
-    int index = ((n * C + c) * H + h) * W;
-    // Calculate RMS norm for the current channel, height, and batch
-    float sum_squares = 0.0f;
-    for (int j = 0; j < W; ++j) {
-        sum_squares += input[index+j] * input[index+j];
-    }
-    sum_squares /= W;
-    float rms_norm = sqrt(sum_squares + epsilon);
-    // Each work item processes all width elements for its specific n, h, c
-    for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
-    }
-}
-)";
-
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -92,6 +28,46 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 enum RMSParams { gamma };
 
 RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
+
+bool RMSNormLayerCl::registerClKernels() {
+  auto &layer_kernel_ptrs = getLayerKernelPtrs();
+
+  // check if already registered
+  if (!layer_kernel_ptrs.empty()) {
+    ml_loge("kernels for reshape layer are already registered");
+    return false;
+  }
+
+  do {
+
+    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
+      global_cl_context->registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
+    if (!kernel_rmsnorm_ptr) {
+      ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
+
+#ifdef ENABLE_FP16
+    ClContext::SharedPtrClKernel kernel_rmsnorm_fp16_ptr =
+      global_cl_context->registerClKernel(getRMSNormClKernelFP16(),
+                                          "rmsnorm_cl_fp16");
+    if (!kernel_rmsnorm_fp16_ptr) {
+      ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
+      break;
+    }
+    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
+#endif
+
+    return true;
+
+  } while (false);
+
+  // clear all registered kernels if any error occurs during registration
+  // layer_kernel_ptrs.clear();
+
+  return false;
+}
 
 void RMSNormLayerCl::finalize(InitLayerContext &context) {
   std::vector<TensorDim> dim = context.getInputDimensions();
@@ -134,8 +110,7 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
   int w = input.width();
 
   do {
-
-    auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL];
+    const auto &kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL];
 
     const float *data = input.getData();
     float *rdata = result.getData();
@@ -226,7 +201,7 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   int h = input.height();
   int w = input.width();
   do {
-    auto kernel_rmsnorm_ptr = layer_kernel_ptrs[Kernels::RMSNORM_CL_FP16];
+    auto kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL_FP16];
 
     const _FP16 *data = input.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
@@ -361,44 +336,11 @@ void RMSNormLayerCl::setProperty(const std::vector<std::string> &values) {
   LayerImpl::setProperty(remain_props);
 }
 
-bool RMSNormLayerCl::registerClKernels() {
-
-  // check if already registered
-  if (!layer_kernel_ptrs.empty()) {
-    ml_loge("kernels for concat layer are already registered.");
-    return false;
-  }
-
-  do {
-
-    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr = nullptr;
-
-    kernel_rmsnorm_ptr =
-      global_cl_context->registerClKernel(rmsnorm_cl_kernel_, "rmsnorm_cl");
-    if (!kernel_rmsnorm_ptr) {
-      ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
-
-#ifdef ENABLE_FP16
-    kernel_rmsnorm_ptr = global_cl_context->registerClKernel(
-      rmsnorm_cl_kernel_fp16_, "rmsnorm_cl_fp16");
-    if (!kernel_rmsnorm_ptr) {
-      ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
-#endif
-
-    return true;
-
-  } while (false);
-
-  // clear all registered kernels if any error occurs during registration
-  layer_kernel_ptrs.clear();
-
-  return false;
+std::vector<ClContext::SharedPtrClKernel> &
+RMSNormLayerCl::getLayerKernelPtrs() {
+  /**< kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+  return layer_kernel_ptrs;
 }
 
 } // namespace nntrainer

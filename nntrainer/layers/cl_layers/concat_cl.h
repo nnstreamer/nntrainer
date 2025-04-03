@@ -230,8 +230,7 @@ public:
 private:
   std::tuple<props::ConcatDimension> concat_props;
 
-  inline static std::vector<ClContext::SharedPtrClKernel>
-    layer_kernel_ptrs; /** kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
 
   enum Kernels {
     CONCAT_CL_AXIS1,

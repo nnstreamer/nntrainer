@@ -33,7 +33,7 @@ public:
   /**
    * @brief     Constructor of Reshape Layer
    */
-  ReshapeLayerCl() : Layer() {}
+  ReshapeLayerCl() : LayerImplCl() {}
 
   /**
    * @brief     Destructor of Reshape Layer
@@ -153,7 +153,7 @@ private:
   std::tuple<props::TargetShape>
     reshape_props; /**< reshape properties : target_shape after reshape */
 
-  inline static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
 
   enum Kernels { COPY_CL, COPY_CL_FP16 };
 };
