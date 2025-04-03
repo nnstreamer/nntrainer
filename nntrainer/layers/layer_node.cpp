@@ -492,6 +492,16 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
   }
 }
 
+void LayerNode::read_quantization_info(std::ifstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode, bool swap) {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+    getLayer()->read_quantization_info(
+      file, *run_context, opt_var, mode,
+      (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+      getWeightDataType());
+  }
+
 void LayerNode::save(std::ofstream &file, bool opt_var,
                      ml::train::ExecutionMode mode) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
@@ -501,6 +511,14 @@ void LayerNode::save(std::ofstream &file, bool opt_var,
                    getWeightDataType());
 }
 
+void LayerNode::save_quantization_info(std::ofstream &file, bool opt_var,
+                     ml::train::ExecutionMode mode)  const {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+  << __func__ << " layer needs to be finalized first!";
+  getLayer()->save_quantization_info(file, *run_context, opt_var, mode,
+                   (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+                   getWeightDataType());
+}
 void LayerNode::clearOptVar() {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";

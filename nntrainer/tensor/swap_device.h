@@ -162,6 +162,7 @@ private:
   unsigned int num_loaded_tensors;
   int offset_index;
   ml::train::ExecutionMode execution_mode;
+  std::mutex getbuffer_lock;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
     mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */

@@ -159,6 +159,7 @@ protected:
   std::condition_variable task_cv;
   std::condition_variable comp_cv;
   std::thread task_thread;
+  std::vector<std::thread> thread_vector;
   std::mutex task_mutex;
 };
 

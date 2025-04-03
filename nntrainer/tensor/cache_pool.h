@@ -183,6 +183,8 @@ public:
    */
   virtual unsigned int getNumLoadedTensors();
 
+  unsigned int Inactive(unsigned int order);
+
   /**
    * @brief set FSU weight path
    *

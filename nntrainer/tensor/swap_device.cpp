@@ -17,11 +17,24 @@
 #include <profiler.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <swap_device.h>
 
+size_t getMemoryUsage() {
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+    return usage.ru_maxrss;
+  }
+  return 0;
+}
+
+void print_rss() {
+  sleep(1);
+  std::cout << "Memory Usage : " << getMemoryUsage() << " KB" << std::endl;
+}
 namespace nntrainer {
 
 void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
@@ -57,48 +70,62 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
 
 void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
                             bool alloc_only) {
+  // std::lock_guard<std::mutex> lock(getbuffer_lock);
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
 #ifdef USE_MMAP
   // page aligned
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
+    // std::cout << "*************** offset_index" << offset_index << std::endl;
     auto len_offset = weight_offset.at(offset_index);
 
-    // size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
-    // size_t diff = offset - off;
-    // size_t len = size + diff;
+    size_t off = (len_offset.first / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t diff = len_offset.first  - off;
+    size_t len = len_offset.second + diff;
 
-    // if (len_offset.second % sysconf(_SC_PAGE_SIZE) != 0) {
-    // std::cerr << "weight & bias is not page aligned!" << std::endl;
-    // }
+    // print_rss();
 
-    void *ptr =
-      mmap(memory_ptr, len_offset.second, PROT_READ | PROT_WRITE | PROT_EXEC,
-           MAP_SHARED | MAP_FIXED, fd, len_offset.first);
+    // std::cout << "In SwapDevice :: getBuffer || len : "<< len<< " fd offset : " << off << std::endl;
+    char *ptr = static_cast<char *>(mmap(nullptr, len, PROT_READ | PROT_WRITE | PROT_EXEC,
+           MAP_SHARED, fd, off));
+    madvise(ptr, len, MADV_SEQUENTIAL);
+    void *buf = static_cast<void *>(ptr + diff);
+    // print_rss();
+    // std::cout << "/ mem ptr : " << memory_ptr << " / buf : " << buf << std::endl;
+    memcpy(memory_ptr, buf, len_offset.second);
+    int ret = munmap(ptr, len);
+    if (ret == -1) {
+      std::cout << "MUNMAP FAILED" << std::endl;
+    }
+
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
 
-    NNTR_THROW_IF(ptr != memory_ptr, std::runtime_error)
-      << "SwapDevice: mmap: ptr!= memory_ptr";
-
     ++offset_index;
+    if (offset_index >= (int)weight_offset.size()) {
+      offset_index = 0;
+    }
     ++num_loaded_tensors;
-    return ptr;
+    return memory_ptr;
   } else {
     size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
     size_t diff = offset - off;
     size_t len = size + diff;
+
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
+
     char *ptr = static_cast<char *>(
-      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
+
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
+
     void *buf = static_cast<void *>(ptr + diff);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 

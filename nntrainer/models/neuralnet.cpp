@@ -24,19 +24,19 @@
 #include "layer_context.h"
 #include "model.h"
 #include "model_common_properties.h"
-#include <cmath>
-#include <cstring>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
-
 #include <activation_realizer.h>
+#include <bits/fs_fwd.h>
+#include <bits/fs_path.h>
+#include <cmath>
 #include <common_properties.h>
+#include <cstring>
 #include <databuffer.h>
 #include <flatten_realizer.h>
+#include <fstream>
 #include <ini_interpreter.h>
 #include <ini_wrapper.h>
 #include <input_realizer.h>
+#include <iomanip>
 #include <model_loader.h>
 #include <multiout_realizer.h>
 #include <neuralnet.h>
@@ -49,6 +49,9 @@
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
 #include <slice_realizer.h>
+#include <sstream>
+#include <sys/resource.h>
+#include <sys/wait.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -391,6 +394,7 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(f);
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
+      model_graph.Inactive(f);
     }
   };
 
@@ -422,17 +426,56 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
+void NeuralNetwork::InvalidAllFSU() { model_graph.Inactive(0); }
+
+size_t getMemoryUsage() {
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+
+    return usage.ru_maxrss;
+  }
+  return 0;
+}
+
+void print_rss() {
+  sleep(1);
+  std::cout << "Memory Usage : " << getMemoryUsage() << " KB   | ";
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+    std::cout << usage.ru_ixrss << " KB" << std::endl;
+  }
+}
+
 sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  auto look_ahead = std::get<props::MemorySwapLookahead>(model_flex_props);
+
+  for (unsigned int i = 0; i < look_ahead; i++) {
+    model_graph.LoadTensors(i, look_ahead);
+  }
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
                                         bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
-    node->incremental_forwarding(from, to, training);
+    bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+    auto look_ahead = std::get<props::MemorySwapLookahead>(model_flex_props);
+    if (exec_mode == ExecutionMode::TRAIN or
+        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
+      model_graph.flushCacheExcept(f);
+      node->incremental_forwarding(from, to, training);
+    } else {
+      model_graph.checkFsuLoadComplete(f);
+      // printf("INFERENCE_START %d %ld \n", f,
+      // std::chrono::high_resolution_clock::now().time_since_epoch().count());
+      node->incremental_forwarding(from, to, training);
+      // printf("INFERENCE_END %d %ld \n", f,
+      // std::chrono::high_resolution_clock::now().time_since_epoch().count());
+      model_graph.LoadTensors(f + look_ahead, look_ahead);
+    }
   };
 
   return model_graph.incremental_forwarding(from, to, training, forwarding_op,
@@ -578,6 +621,10 @@ void NeuralNetwork::backwarding(int iteration,
   }
 }
 
+long long alignToPageSize(long long size) {
+  return (((size + 4096 - 1) / 4096) * 4096) - size;
+}
+
 void NeuralNetwork::save(const std::string &file_path,
                          ml::train::ModelFormat format) {
   NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -590,9 +637,16 @@ void NeuralNetwork::save(const std::string &file_path,
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     auto model_file = checkedOpenStream<std::ofstream>(
       file_path, std::ios::out | std::ios::binary | std::ios::trunc);
+
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->save(model_file, false, exec_mode);
     }
+
+    std::streampos after_info = model_file.tellp();
+    auto calc_diff = alignToPageSize(after_info);
+    std::vector<char> buffer2(calc_diff, '1');
+    model_file.write(buffer2.data(), calc_diff);
+
     if (opt && istrequal(opt->getType(), "adam")) {
       std::string adam = "adam";
       model_file.write(adam.c_str(), 4);
@@ -602,8 +656,10 @@ void NeuralNetwork::save(const std::string &file_path,
       }
     }
 
-    model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
-    model_file.write((char *)&iter, sizeof(iter));
+    if (exec_mode == ml::train::ExecutionMode::TRAIN) {
+      model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
+      model_file.write((char *)&iter, sizeof(iter));
+    }
 
     model_file.close();
     break;
@@ -644,30 +700,27 @@ void NeuralNetwork::load(const std::string &file_path,
   auto v = split(file_path, reg_);
 
   if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
-
+    std::cout << "At NeuralNetwork load" << std::endl;
     model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
 
     std::vector<std::pair<size_t, size_t>> file_offset;
-    // size_t start_from = sizeof(unsigned short);
     size_t start_from = 0;
-    for (auto node : model_graph.getLayerNodes()) {
-      auto weights = node->getRunContext().getWeights();
+
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      auto weights = (*iter)->getRunContext().getWeights();
       for (auto weight : weights) {
-        auto dim = weight->getDim();
+        auto dim = weight->getVariable();
+
         size_t size =
-          dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+          dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
 
-        // auto var_t = weight->getVariable();
-        // size_t size = var_t.getMemoryBytes();
-
-        // there is uint16 to save quantization bit for each tensor
         file_offset.emplace_back(std::make_pair(start_from, size));
-        // start_from += size + sizeof(unsigned short);
         start_from += size;
       }
     }
     model_graph.setWeightOffset(file_offset);
   }
+
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
     NNTR_THROW_IF(!initialized, std::runtime_error)
@@ -678,8 +731,17 @@ void NeuralNetwork::load(const std::string &file_path,
       (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
 
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      (*iter)->read(model_file, false, exec_mode, swap_mode);
+      if ((*iter)->getWeightDataType() == TensorDim::DataType::BCQ) {
+        (*iter)->read_quantization_info(model_file, false, exec_mode,
+                                        swap_mode);
+      }
     }
+
+    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+    // iter++) {
+    //   (*iter)->read(model_file, false, exec_mode, swap_mode);
+    // }
+
     try {
       /// this is assuming that the failure is allowed at the end of the file
       /// read. so, after this line, additional read shouldn't be called
@@ -695,12 +757,13 @@ void NeuralNetwork::load(const std::string &file_path,
         }
       }
 
-      if (!swap_mode) {
-        checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
-                    "[NeuralNetwork::readModel] failed to read epoch_idx");
-        checkedRead(model_file, (char *)&iter, sizeof(iter),
-                    "[NeuralNetwork::readModel] failed to read iteration");
-      }
+      // if (!swap_mode) {
+      //   checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
+      //               "[NeuralNetwork::readModel] failed to read epoch_idx");
+      //   checkedRead(model_file, (char *)&iter, sizeof(iter),
+      //               "[NeuralNetwork::readModel] failed to read iteration");
+      // }
+
     } catch (...) {
       std::cerr << "failed to read additional data like optimizer variable, "
                    "iteration, proceeding with default\n";
@@ -972,6 +1035,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
   unsigned int batch_size, const std::vector<float *> &input,
   const std::vector<float *> &label, unsigned int init_seq_len,
   unsigned int from, unsigned int to, bool output_hidden_state) {
+
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
@@ -1036,7 +1100,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
     output.push_back(last_out_buf_data);
   }
-
+  InvalidAllFSU();
   return output;
 }
 

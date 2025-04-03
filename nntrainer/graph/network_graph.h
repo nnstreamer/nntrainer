@@ -459,6 +459,7 @@ public:
    */
   void LoadTensors(const unsigned int order,
                    unsigned int remainder_lookahead = 0);
+  bool checkFsuLoadComplete(unsigned int order);
 
   /**
    * @brief check data of order is loaded
@@ -466,6 +467,7 @@ public:
    * @param order execution order
    */
   bool checkLoadComplete(const unsigned int order);
+  bool Inactive(unsigned int order);
 
   /**
    * @brief check data of order is Unloaded

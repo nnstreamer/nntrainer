@@ -314,7 +314,9 @@ public:
    * @return number of loaded tensors
    */
   unsigned int getNumLoadedTensors();
-
+  unsigned int Inactive(unsigned int order);
+  bool checkFsuLoadComplete(unsigned int order);
+  int loadFsuWeight(unsigned int order, unsigned int look_ahead);
   /**
    * @brief set FSU weight path
    *

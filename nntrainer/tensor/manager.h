@@ -506,6 +506,7 @@ public:
    * @note preloading tensors for execution order.
    */
   bool checkLoadComplete(unsigned int order);
+  bool checkFsuLoadComplete(unsigned int order);
 
   /**
    * @brief check completion of unload data for the execution order
@@ -546,6 +547,7 @@ public:
    * @return Number of Loaded WeightPool Tensor
    */
   unsigned int getNumLoadedWeightPoolTensors();
+  unsigned int Inactive(unsigned int order);
 
   /**
    * @brief Get Number of Loaded TensorPool Tensor
@@ -604,16 +606,13 @@ private:
    * completed id>>
    */
   std::map<unsigned int, std::tuple<int, int>> async_load_tensor;
-
-  std::map<unsigned int, bool> complete_load_tensor;
-
   std::map<unsigned int, std::tuple<int, int>> async_unload_tensor;
 
   std::map<int, std::promise<bool>> completed;
 
-  std::map<int, std::promise<bool>> completed_load_tensor;
-
-  std::map<int, std::promise<bool>> completed_unload_tensor;
+  std::unordered_map<int, std::promise<bool>> completed_load_tensor;
+  std::unordered_map<int, std::promise<bool>> completed_unload_tensor;
+  std::map<int, TaskExecutor::CompleteStatus> future_load_tensor;
 
   /**< async tasks completion <task id, promise> */
   std::mutex completed_mutex; /**< mutex for async tasks completion */

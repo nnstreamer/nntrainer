@@ -762,6 +762,9 @@ public:
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
             bool swap = false);
 
+  void read_quantization_info(std::ifstream &file, bool opt_var = false,
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
+            bool swap = false);
   /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
@@ -770,6 +773,14 @@ public:
   void
   save(std::ofstream &file, bool opt_var = false,
        ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
+
+  /**
+     * @brief     save layer quantization_info
+     * @param file output file stream
+     * @param bool save optimizer variables
+     */
+  void save_quantization_info(std::ofstream &file, bool opt_var,
+                              ml::train::ExecutionMode mode) const;
 
   /**
    * @brief clear optimizer variable to initial state
