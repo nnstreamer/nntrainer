@@ -176,7 +176,7 @@ unsigned int isamax(const unsigned int N, const float *X,
 void transpose_matrix(const unsigned int M, const unsigned int N,
                       const float *src, unsigned int ld_src, float *dst,
                       unsigned int ld_dst) {
-  __fallback_transpose_matrix(M, N, src, ld_src, dst, ld_dst);
+  nntrainer::avx2::transpose_matrix(M, N, src, ld_src, dst, ld_dst);
 }
 
 bool is_valid(const unsigned int N, const float *input) {
