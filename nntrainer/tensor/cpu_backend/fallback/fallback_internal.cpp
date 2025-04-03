@@ -365,4 +365,12 @@ size_t __quantize_q4_K(const float * src, void * dst, int64_t nrow, int64_t n_pe
   return 1;
 }
 
+void __dequantize_row_q4_K(const void * x_raw, float * y, int64_t k){
+  throw std::runtime_error("NYI : __dequantize_row_q4_K");
+
+}
+void __dequantize_row_q8_K(const void * x, float * y, int64_t k){
+  throw std::runtime_error("NYI : __dequantize_row_q8_K");
+}
+
 } // namespace nntrainer

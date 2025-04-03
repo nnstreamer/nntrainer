@@ -40,5 +40,6 @@ void ggml_q4_K_8x8_q8_K_repack(const unsigned int M, const unsigned int N, void*
  */
 size_t ggml_quantize_q4_K(const float * src, void * dst, int64_t nrow, int64_t n_per_row, const float * quant_weights);
 
-///@todo Add more quantization functions
+void ggml_dequantize_row_q4_K(const void * x_raw, float * y, int64_t k);
+void ggml_dequantize_row_q8_K(const void * x, float * y, int64_t k);
 
