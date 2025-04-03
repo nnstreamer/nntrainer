@@ -759,7 +759,7 @@ TEST(nntrainer_Tensor, copy_07_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST(nntrainer_Tensor, copy_08_n) {
+TEST(nntrainer_Tensor, copy_08_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
@@ -773,11 +773,17 @@ TEST(nntrainer_Tensor, copy_08_n) {
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  // Currently, CharTensor does not support copyData of a different data type
-  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+  EXPECT_NO_THROW(input.copyData(output));
+
+  for (unsigned int b = 0; b < output.batch(); ++b)
+    for (unsigned int c = 0; c < output.channel(); ++c)
+      for (unsigned int h = 0; h < output.height(); ++h)
+        for (unsigned int w = 0; w < output.height(); ++w)
+          EXPECT_EQ(input.getValue<int8_t>(b, c, h, w),
+                    output.getValue<float>(b, c, h, w));
 }
 
-TEST(nntrainer_Tensor, copy_09_n) {
+TEST(nntrainer_Tensor, copy_09_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
@@ -791,8 +797,14 @@ TEST(nntrainer_Tensor, copy_09_n) {
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  // Currently, UINT Tensor does not support copyData of a different data type
-  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+  EXPECT_NO_THROW(input.copyData(output));
+
+  for (unsigned int b = 0; b < output.batch(); ++b)
+    for (unsigned int c = 0; c < output.channel(); ++c)
+      for (unsigned int h = 0; h < output.height(); ++h)
+        for (unsigned int w = 0; w < output.height(); ++w)
+          EXPECT_EQ(input.getValue<uint16_t>(b, c, h, w),
+                    output.getValue<float>(b, c, h, w));
 }
 
 TEST(nntrainer_Tensor, copy_10_p) {
@@ -928,6 +940,46 @@ TEST(nntrainer_Tensor, copy_14_p) {
   output.copy(input);
 
   ASSERT_EQ(input, output);
+}
+
+TEST(nntrainer_Tensor, copy_15_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8});
+
+  // Currently, UINT16 does not support copyData of UINT8 data type
+  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, copy_16_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  // Currently, CharTensor does not support copyData of a UINT16 data type
+  EXPECT_THROW(input.copyData(output), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, multiply_i_01_p) {

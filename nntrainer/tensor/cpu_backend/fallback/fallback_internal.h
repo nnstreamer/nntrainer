@@ -411,6 +411,44 @@ void __fallback_copy_u16_fp32(const unsigned int N, const uint16_t *X,
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
+ * @param[in] Y uint32_t * for Vector Y
+ */
+void __fallback_copy_fp32_u32(const unsigned int N, const float *X,
+                              uint32_t *Y);
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+void __fallback_copy_fp32_u16(const unsigned int N, const float *X,
+                              uint16_t *Y);
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+void __fallback_copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+void __fallback_copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+void __fallback_copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  */
 void __fallback_scopy(const unsigned int N, const float *X,
