@@ -100,10 +100,9 @@ public:
    * @return active status
    */
   bool isActive() const {
-    std::scoped_lock lg(device_mutex);
     return active;
   }
-
+  void inActive() {active = false;}
   /**
    * @brief get length of cache element
    *
