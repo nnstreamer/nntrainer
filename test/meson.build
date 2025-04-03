@@ -11,7 +11,7 @@ if build_machine.system() == 'windows'
   if not fs.exists (nntrainer_test_resdir_models_win)
     run_command([prog_win_cmd, '/C', 'mkdir', nntrainer_test_resdir_models_win], check: true)
   endif
-  run_command([prog_win_cmd, '/C', 'xcopy',test_models_dir_win, nntrainer_test_resdir_models_win, '/i', '/s', '/y'], check: true)
+  run_command(['xcopy', '/Y', test_models_dir_win, nntrainer_test_resdir_models_win, '/i', '/s'], check: true)
 else
   run_command(['mkdir', '-p', nntrainer_test_resdir], check: true)
 endif
