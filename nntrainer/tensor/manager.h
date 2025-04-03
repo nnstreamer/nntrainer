@@ -546,6 +546,7 @@ public:
    * @return Number of Loaded WeightPool Tensor
    */
   unsigned int getNumLoadedWeightPoolTensors();
+  unsigned int Inactive(unsigned int order);
 
   /**
    * @brief Get Number of Loaded TensorPool Tensor
