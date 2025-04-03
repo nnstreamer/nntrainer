@@ -74,6 +74,8 @@ static void add_default_object(ClContext &cc) {
 
 static void registerer(ClContext &cc) noexcept {
   try {
+    cc.setMemAllocator(std::make_shared<MemAllocator>());
+
     cc.initBlasClKernels();
     cc.initAttentionClKernels();
     add_default_object(cc);
