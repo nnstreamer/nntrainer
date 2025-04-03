@@ -319,4 +319,11 @@ void __fallback_softmax(const unsigned int N, float *X, float *Y) {
     ++i;
   }
 }
+
+void __gemm_q4_K(const unsigned int M, const unsigned int N,
+                 const unsigned int K, const float *A, const unsigned int lda,
+                 const void *B, const unsigned int ldb, float *C,
+                 const unsigned int ldc) {
+  throw std::runtime_error("NYI : __gemm_q4_K");
+}
 } // namespace nntrainer

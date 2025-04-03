@@ -591,6 +591,23 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
  * @param[out] bool false if not valid else true
  */
 bool is_valid(const unsigned int N, const float *X);
+
+/**
+ * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ *
+ * @param M Original row size of output
+ * @param N Original col size of output
+ * @param K Hidden size
+ * @param A Input activation to be online-runtime quantized to q8_K_MxN format
+ * @param lda Leading dimension of A
+ * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
+ * @param ldb Leading dimenstion of B
+ * @param C float* output
+ * @param ldc Leading dimension of C
+ */
+void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __FALLBACK_H__ */

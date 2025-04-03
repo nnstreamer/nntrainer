@@ -178,4 +178,9 @@ void softmax(const unsigned int N, float *X, float *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc) {
+  return __gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
+}
 } /* namespace nntrainer */
