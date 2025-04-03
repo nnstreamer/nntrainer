@@ -12,10 +12,11 @@
  */
 
 #include <cstring>
+#include <iostream>
 #include <vector>
 
+#include <blas_kernel_strings.h>
 #include <concat_cl.h>
-#include <iostream>
 #include <layer_context.h>
 #include <nntr_threads.h>
 #include <nntrainer_error.h>
@@ -23,214 +24,6 @@
 #include <node_exporter.h>
 #include <tensor_dim.h>
 #include <util_func.h>
-
-std::string concat_cl_axis3_kernel_fp16_ =
-  R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void concat_cl_axis3_fp16(__global const half* in1, 
-                                           __global const half* in2, 
-                                           __global half* out,
-                                           const int batch_size, 
-                                           const int channels, 
-                                           const int height, 
-                                           const int width1, 
-                                           const int width2) {
-    int global_id = get_global_id(0);
-    
-    int total_width = width1 + width2;
-    
-    int width = total_width;
-
-    // 4D space coordinates
-    int w = global_id % total_width;
-    int h = (global_id / total_width) % height;
-    int c = (global_id / (total_width * height)) % channels;
-    int b = global_id / (total_width * height * channels);
-
-    int output_index = ((b * channels + c) * height + h) * total_width + w;
-    
-    // Determining if the index is in in1 or in2
-    if (w < width1) {
-        // in1 index calculation
-        int input1_index = ((b * channels + c) * height + h) * width1 + w;
-        out[output_index] = in1[input1_index];
-  
-    } else {
-        // in2 index calculation
-        int input2_index = ((b * channels + c) * height + h) * width2 + (w - width1);
-        out[output_index] = in2[input2_index];
-    }
-})";
-
-std::string concat_cl_axis3_kernel_ =
-  R"(__kernel void concat_cl_axis3(__global const float* in1, 
-                                           __global const float* in2, 
-                                           __global float* out,
-                                           const int batch_size, 
-                                           const int channels, 
-                                           const int height, 
-                                           const int width1, 
-                                           const int width2) {
-    int global_id = get_global_id(0);
-    
-    int total_width = width1 + width2;
-    
-    int width = total_width;
-
-    // 4D space coordinates
-    int w = global_id % total_width;
-    int h = (global_id / total_width) % height;
-    int c = (global_id / (total_width * height)) % channels;
-    int b = global_id / (total_width * height * channels);
-
-    int output_index = ((b * channels + c) * height + h) * total_width + w;
-    
-    // Determining if the index is in in1 or in2
-    if (w < width1) {
-        // in1 index calculation
-        int input1_index = ((b * channels + c) * height + h) * width1 + w;
-        out[output_index] = in1[input1_index];
-  
-    } else {
-        // in2 index calculation
-        int input2_index = ((b * channels + c) * height + h) * width2 + (w - width1);
-        out[output_index] = in2[input2_index];
-    }
-})";
-
-std::string concat_cl_axis2_kernel_fp16_ =
-  R"(__kernel void concat_cl_axis2_fp16(__global const half* in1,
-                             __global const half* in2,
-                             __global half* out,
-                             const int batch_size,
-                             const int channels,
-                             const int height1,
-                             const int height2,
-                             const int width) {
-    
-    int total_height = height1 + height2;
-    int global_id = get_global_id(0);
-    
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % total_height;
-    int c = (global_id / (width * total_height)) % channels;
-    int b = global_id / (width * total_height * channels);
-
-    // Calculate the offset for the current batch, channel, and width in the output tensor
-    int output_index = ((b * channels + c) * total_height + h) * width + w;
-
-    if (h < height1) {
-        // Index within input1
-        int input1_index = ((b * channels + c) * height1 + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels + c) * height2 + (h - height1)) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-
-})";
-
-std::string concat_cl_axis2_kernel_ =
-  R"(__kernel void concat_cl_axis2(__global const float* in1,
-                             __global const float* in2,
-                             __global float* out,
-                             const int batch_size,
-                             const int channels,
-                             const int height1,
-                             const int height2,
-                             const int width) {
-    
-    int total_height = height1 + height2;
-    int global_id = get_global_id(0);
-    
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % total_height;
-    int c = (global_id / (width * total_height)) % channels;
-    int b = global_id / (width * total_height * channels);
-
-    // Calculate the offset for the current batch, channel, and width in the output tensor
-    int output_index = ((b * channels + c) * total_height + h) * width + w;
-
-    if (h < height1) {
-        // Index within input1
-        int input1_index = ((b * channels + c) * height1 + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels + c) * height2 + (h - height1)) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-
-})";
-
-std::string concat_cl_axis1_kernel_fp16_ =
-  R"(__kernel void concat_cl_axis1_fp16(__global const half* in1, 
-                                           __global const half* in2, 
-                                           __global half* out,
-                                           const int batch_size, 
-                                           const int channels1, 
-                                           const int channels2, 
-                                           const int height, 
-                                           const int width) {
-    int global_id = get_global_id(0);
-    
-    int total_channels = channels1 + channels2;
-
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % height;
-    int c = (global_id / (width * height)) % total_channels;
-    int b = global_id / (width * height * total_channels);
-
-    // Calculate the offset for the current batch, height, and width in the output tensor
-    int output_index = ((b * total_channels + c) * height + h) * width + w;
-
-    if (c < channels1) {
-        // Index within input1
-        int input1_index = ((b * channels1 + c) * height + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels2 + (c - channels1)) * height + h) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-})";
-
-std::string concat_cl_axis1_kernel_ =
-  R"(__kernel void concat_cl_axis1(__global const float* in1, 
-                                           __global const float* in2, 
-                                           __global float* out,
-                                           const int batch_size, 
-                                           const int channels1, 
-                                           const int channels2, 
-                                           const int height, 
-                                           const int width) {
-    int global_id = get_global_id(0);
-    
-    int total_channels = channels1 + channels2;
-
-    // Calculate the coordinates in the 4D space
-    int w = global_id % width;
-    int h = (global_id / width) % height;
-    int c = (global_id / (width * height)) % total_channels;
-    int b = global_id / (width * height * total_channels);
-
-    // Calculate the offset for the current batch, height, and width in the output tensor
-    int output_index = ((b * total_channels + c) * height + h) * width + w;
-
-    if (c < channels1) {
-        // Index within input1
-        int input1_index = ((b * channels1 + c) * height + h) * width + w;
-        out[output_index] = in1[input1_index];
-    } else {
-        // Index within input2
-        int input2_index = ((b * channels2 + (c - channels1)) * height + h) * width + w;
-        out[output_index] = in2[input2_index];
-    }
-})";
 
 namespace nntrainer {
 ConcatLayerCl::ConcatLayerCl() : LayerImplCl() {}
@@ -252,7 +45,7 @@ bool ConcatLayerCl::registerClKernels() {
     ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
 
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis1_kernel_, "concat_cl_axis1");
+      getConcatClAxis1Kernel(), "concat_cl_axis1");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1 kernel");
       break;
@@ -260,7 +53,7 @@ bool ConcatLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis2_kernel_, "concat_cl_axis2");
+      getConcatClAxis2Kernel(), "concat_cl_axis2");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2 kernel");
       break;
@@ -268,7 +61,7 @@ bool ConcatLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis3_kernel_, "concat_cl_axis3");
+      getConcatClAxis3Kernel(), "concat_cl_axis3");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3 kernel");
       break;
@@ -277,7 +70,7 @@ bool ConcatLayerCl::registerClKernels() {
 
 #ifdef ENABLE_FP16
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis1_kernel_fp16_, "concat_cl_axis1_fp16");
+      getConcatClAxis1KernelFP16(), "concat_cl_axis1_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel");
       break;
@@ -285,7 +78,7 @@ bool ConcatLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis2_kernel_fp16_, "concat_cl_axis2_fp16");
+      getConcatClAxis2KernelFP16(), "concat_cl_axis2_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel");
       break;
@@ -293,7 +86,7 @@ bool ConcatLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr = global_cl_context->registerClKernel(
-      concat_cl_axis3_kernel_fp16_, "concat_cl_axis3_fp16");
+      getConcatClAxis3KernelFP16(), "concat_cl_axis3_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel");
       break;

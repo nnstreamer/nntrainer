@@ -11,39 +11,13 @@
  */
 
 #include <iostream>
+
+#include <blas_kernel_strings.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <reshape_cl.h>
-
-std::string copy_cl_kernel_fp16_ =
-  R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void copy_cl_fp16(__global const half* input, 
-                               __global half* output,
-                               const int batchsize, 
-                               const int channels, 
-                               const int height, 
-                               const int width) {
-
-    int i= get_global_id(0);
-    output[i] = input[i];
-    
-})";
-
-std::string copy_cl_kernel_ =
-  R"(__kernel void copy_cl(__global const float* input, 
-                               __global float* output,
-                               const int batchsize, 
-                               const int channels, 
-                               const int height, 
-                               const int width) {
-    
-    int i= get_global_id(0);
-    output[i] = input[i];
-
-})";
 
 namespace nntrainer {
 
@@ -61,7 +35,7 @@ bool ReshapeLayerCl::registerClKernels() {
     ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
 
     kernel_copy_ptr =
-      global_cl_context->registerClKernel(copy_cl_kernel_, "copy_cl");
+      global_cl_context->registerClKernel(getCopyClKernel(), "copy_cl");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl kernel");
       break;
@@ -69,8 +43,8 @@ bool ReshapeLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_copy_ptr =
-      global_cl_context->registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
+    kernel_copy_ptr = global_cl_context->registerClKernel(getCopyClKernelFP16(),
+                                                          "copy_cl_fp16");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
       break;

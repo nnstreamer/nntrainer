@@ -28,7 +28,7 @@ void rotary_emb_cl(float *in, float *out,
 
   do {
     ClContext::SharedPtrClKernel kernel_rotaryEmb_ptr =
-      attention_cc->registerClKernel(rotary_emb_cl_kernel_, "rotary_emb_cl");
+      attention_cc->registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
     if (!kernel_rotaryEmb_ptr) {
       break;
     }
