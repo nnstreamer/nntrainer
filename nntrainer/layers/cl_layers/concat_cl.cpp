@@ -33,6 +33,7 @@ static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
 bool ConcatLayerCl::registerClKernels() {
+  auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
   if (!layer_kernel_ptrs.empty()) {
@@ -231,7 +232,8 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
 
   do {
 
-    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3];
+    const auto &kernel_concat_ptr =
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS3];
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -344,7 +346,8 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
 
   do {
 
-    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2];
+    const auto &kernel_concat_ptr =
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2];
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -455,7 +458,8 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
   bool result = false;
 
   do {
-    const auto &kernel_concat_ptr = layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS1];
+    const auto &kernel_concat_ptr =
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS1];
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
@@ -570,7 +574,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
   do {
 
     const auto &kernel_concat_ptr =
-      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS3_FP16];
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS3_FP16];
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -683,7 +687,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
 
   do {
     const auto &kernel_concat_ptr =
-      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS2_FP16];
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2_FP16];
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -796,7 +800,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
   do {
 
     const auto &kernel_concat_ptr =
-      layer_kernel_ptrs[Kernels::CONCAT_CL_AXIS1_FP16];
+      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS1_FP16];
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
@@ -915,6 +919,12 @@ void ConcatLayerCl::exportTo(Exporter &exporter,
                              const ml::train::ExportMethods &method) const {
   Layer::exportTo(exporter, method);
   exporter.saveResult(concat_props, method, this);
+}
+
+std::vector<ClContext::SharedPtrClKernel> &ConcatLayerCl::getLayerKernelPtrs() {
+  /**< kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+  return layer_kernel_ptrs;
 }
 
 } /* namespace nntrainer */
