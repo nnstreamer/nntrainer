@@ -118,4 +118,53 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
   }
 }
 
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const float *src, unsigned int ld_src, float *dst,
+                      unsigned int ld_dst) {
+  unsigned int vindexm[8] = {0,          ld_src,     ld_src * 2, ld_src * 3,
+                             ld_src * 4, ld_src * 5, ld_src * 6, ld_src * 7};
+  __m256i vindex = _mm256_loadu_si256((__m256i *)&vindexm[0]);
+  __m256 vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8;
+
+  unsigned int M8 = (M & ~(7));
+  unsigned int N8 = (N & ~(7));
+  for (unsigned int i = 0; i < M8; i += 8) {
+    for (unsigned int j = 0; j < N8; j += 8) {
+      // loading from columns
+      vec1 = _mm256_i32gather_ps(&src[ld_src * i + j + 0], vindex, 4);
+      vec2 = _mm256_i32gather_ps(&src[ld_src * i + j + 1], vindex, 4);
+      vec3 = _mm256_i32gather_ps(&src[ld_src * i + j + 2], vindex, 4);
+      vec4 = _mm256_i32gather_ps(&src[ld_src * i + j + 3], vindex, 4);
+      vec5 = _mm256_i32gather_ps(&src[ld_src * i + j + 4], vindex, 4);
+      vec6 = _mm256_i32gather_ps(&src[ld_src * i + j + 5], vindex, 4);
+      vec7 = _mm256_i32gather_ps(&src[ld_src * i + j + 6], vindex, 4);
+      vec8 = _mm256_i32gather_ps(&src[ld_src * i + j + 7], vindex, 4);
+
+      // storing to the rows
+      _mm256_storeu_ps(&dst[(j + 0) * ld_dst + i], vec1);
+      _mm256_storeu_ps(&dst[(j + 1) * ld_dst + i], vec2);
+      _mm256_storeu_ps(&dst[(j + 2) * ld_dst + i], vec3);
+      _mm256_storeu_ps(&dst[(j + 3) * ld_dst + i], vec4);
+      _mm256_storeu_ps(&dst[(j + 4) * ld_dst + i], vec5);
+      _mm256_storeu_ps(&dst[(j + 5) * ld_dst + i], vec6);
+      _mm256_storeu_ps(&dst[(j + 6) * ld_dst + i], vec7);
+      _mm256_storeu_ps(&dst[(j + 7) * ld_dst + i], vec8);
+    }
+  }
+
+  // tailing right
+  for (unsigned int i = 0; i < M; i++) {
+    for (unsigned int j = N8; j < N; j++) {
+      dst[i + j * ld_dst] = src[i * ld_src + j];
+    }
+  }
+
+  // tailing bottom
+  for (unsigned int i = M8; i < M; i++) {
+    for (unsigned int j = 0; j < N; j++) {
+      dst[i + j * ld_dst] = src[i * ld_src + j];
+    }
+  }
+}
+
 } // namespace nntrainer::avx2
