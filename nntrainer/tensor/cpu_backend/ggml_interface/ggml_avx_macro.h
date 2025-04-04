@@ -9,6 +9,8 @@
  */
 #include <immintrin.h>
 
+typedef uint16_t ggml_fp16_t;
+
 #if defined(__AVX__)
 #if defined(__F16C__)
 #if defined(__AVX512F__)
