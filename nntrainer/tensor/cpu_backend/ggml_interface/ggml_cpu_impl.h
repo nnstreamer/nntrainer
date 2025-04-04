@@ -36,7 +36,7 @@ void ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const u
  * @param repacked_W 
  * @param data_size 
  */
-void ggml_q4_K_8x8_q8_K_repack(const unsigned int M, const unsigned int N, void* W, void* repacked_W, size_t data_size);
+void ggml_q4_K_8x8_q8_K_repack(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N);
 
 /**
  * @brief Quantize float to q4_K Quantization format
