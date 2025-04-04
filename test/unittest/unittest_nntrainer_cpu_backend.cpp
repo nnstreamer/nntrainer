@@ -137,12 +137,12 @@ TEST(nntrainer_cpu_backend_standalone, q4_k_quantization) {
 }
 
 TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
-    const unsigned int M = 8;
-    const unsigned int K = 16;
-    const unsigned int N = 32;
-    // const unsigned int M = 1024;
-    // const unsigned int K = 768;
-    // const unsigned int N = 512;
+    // const unsigned int M = 8;
+    // const unsigned int K = 16;
+    // const unsigned int N = 32;
+    const unsigned int M = 1024;
+    const unsigned int K = 768;
+    const unsigned int N = 512;
     
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
@@ -179,8 +179,12 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     ///@note Step1 is validated with unittest TC : q4_k_quantization
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
-    ///@note do something like : nntrainer::repack_q4_K_to_q4_K_8x8(offline_qWeight_ptr, N, K, q4_K_8x8_weight);
+    std::vector<char> repacked_qWeight = std::vector<char>(data_size); 
+    nntrainer::repack_q4_K_to_q4_K_8(offline_qWeight_ptr, repacked_qWeight.data(), data_size, N, K);
     ///@note Needs validation!
+    ///@note double-check for : row / col order (since is this function consider a transpoed weight? Or is it just generalized for all matrices?)
+    ///@note double-check for data_size (temporally allocated the same size with offline_qWeight, but itself is not validated, yet.)
+    ///@note super-quick check with gemm op! (but this might make unclear diagnosis : repacking problem? or gemm kernel problem? ...)
 
     // Step3. Run GEMM! (Online activation quantization + kernel routine + return float)
     ///@note do something like : nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) offline_qWeight_ptr, N, dst_ptr, N);

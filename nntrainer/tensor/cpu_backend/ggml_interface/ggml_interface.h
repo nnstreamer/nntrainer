@@ -42,3 +42,5 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const u
 
 void nntr_dequantize_row_q4_K(const void * x_raw, float * y, int64_t k);
 void nntr_dequantize_row_q8_K(const void * x, float * y, int64_t k);
+
+void nntr_repack_q4_K_to_q8_K(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N);
