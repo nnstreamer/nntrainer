@@ -67,6 +67,20 @@ bool is_valid(const unsigned int N, const float *X);
 void custom_scopy(const unsigned int N, const float *X, const int incX,
                   float *Y, const int incY);
 
+/**
+ * @brief Matrix transpose / 2D Tensor transpose
+ *
+ * @param M row length of input matrix
+ * @param N col length of input matrix
+ * @param src src data of input matrix
+ * @param ld_src data offset of input matrix
+ * @param dst destination of output matrix
+ * @param ld_dst data offset of output matrix
+ */
+void transpose_matrix(const unsigned int M, const unsigned int N,
+                      const float *src, unsigned int ld_src, float *dst,
+                      unsigned int ld_dst);
+
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
