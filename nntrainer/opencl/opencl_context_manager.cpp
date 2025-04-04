@@ -13,6 +13,7 @@
 
 #include "opencl_context_manager.h"
 
+#include <iostream>
 #include <vector>
 
 #include "opencl_loader.h"
@@ -162,29 +163,33 @@ bool ContextManager::CreateDefaultGPUDevice() {
   this->platform_id_ = platform_id_;
 
 #ifdef ENABLE_FP16
+  /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
+  /// listed, but compilation with half-precision works.
+
   // check for fp16 (half) support available on device
   // getting extensions
-  size_t extension_size;
-  status =
-    clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, 0, NULL, &extension_size);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceInfo returned %d", status);
-    return false;
-  }
+  // size_t extension_size;
+  // status =
+  //   clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, 0, NULL,
+  //   &extension_size);
+  // if (status != CL_SUCCESS) {
+  //   ml_loge("clGetDeviceInfo returned %d", status);
+  //   return false;
+  // }
 
-  std::vector<char> extensions(extension_size);
-  status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
-                           extensions.data(), NULL);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceInfo returned %d", status);
-    return false;
-  }
+  // std::vector<char> extensions(extension_size);
+  // status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
+  //                          extensions.data(), NULL);
+  // if (status != CL_SUCCESS) {
+  //   ml_loge("clGetDeviceInfo returned %d", status);
+  //   return false;
+  // }
 
-  if (std::string(extensions.data()).find("cl_khr_fp16") == std::string::npos) {
-    throw std::runtime_error("fp16 (half) is not supported by device.");
-    ml_loge("fp16 (half) is not supported by device");
-    return false;
-  }
+  // if (std::string(extensions.data()).find("cl_khr_fp16") ==
+  // std::string::npos) {
+  //   ml_loge("fp16 (half) is not supported by device");
+  //   return false;
+  // }
 #endif
 
   return true;

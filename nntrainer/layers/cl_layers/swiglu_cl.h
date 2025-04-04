@@ -132,8 +132,7 @@ private:
   std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
                                             number of output neurons */
 
-  inline static std::vector<ClContext::SharedPtrClKernel>
-    layer_kernel_ptrs; /** kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
 
   enum Kernels { SWIGLU_CL, SWIGLU_CL_FP16 }; /** kernels enum */
 };

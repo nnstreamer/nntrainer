@@ -29,6 +29,7 @@
 #include <context.h>
 #include <layer.h>
 #include <layer_devel.h>
+#include <mem_allocator.h>
 
 #include <cl_buffer_manager.h>
 #include <opencl_command_queue_manager.h>
@@ -46,7 +47,6 @@ extern std::mutex cl_factory_mutex;
  */
 
 class ClContext : public Context {
-
 public:
   using SharedPtrClKernel = std::shared_ptr<opencl::Kernel>;
 
@@ -232,6 +232,15 @@ public:
    * @brief Get the name of the context
    */
   std::string getName() override { return "gpu"; }
+
+  /**
+   * @brief Set the Mem Allocator object
+   *
+   * @param mem Memory allocator object
+   */
+  void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
+    getContextData()->setMemAllocator(mem);
+  }
 
 private:
   // flag to check opencl commandqueue and context inititalization

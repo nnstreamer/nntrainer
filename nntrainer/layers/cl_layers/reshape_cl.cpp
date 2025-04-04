@@ -11,45 +11,20 @@
  */
 
 #include <iostream>
+
+#include <blas_kernel_strings.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <reshape_cl.h>
 
-std::string copy_cl_kernel_fp16_ =
-  R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void copy_cl_fp16(__global const half* input, 
-                               __global half* output,
-                               const int batchsize, 
-                               const int channels, 
-                               const int height, 
-                               const int width) {
-
-    int i= get_global_id(0);
-    output[i] = input[i];
-    
-})";
-
-std::string copy_cl_kernel_ =
-  R"(__kernel void copy_cl(__global const float* input, 
-                               __global float* output,
-                               const int batchsize, 
-                               const int channels, 
-                               const int height, 
-                               const int width) {
-    
-    int i= get_global_id(0);
-    output[i] = input[i];
-
-})";
-
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 bool ReshapeLayerCl::registerClKernels() {
+  auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
   if (!layer_kernel_ptrs.empty()) {
@@ -61,7 +36,7 @@ bool ReshapeLayerCl::registerClKernels() {
     ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
 
     kernel_copy_ptr =
-      global_cl_context->registerClKernel(copy_cl_kernel_, "copy_cl");
+      global_cl_context->registerClKernel(getCopyClKernel(), "copy_cl");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl kernel");
       break;
@@ -69,8 +44,8 @@ bool ReshapeLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_copy_ptr =
-      global_cl_context->registerClKernel(copy_cl_kernel_fp16_, "copy_cl_fp16");
+    kernel_copy_ptr = global_cl_context->registerClKernel(getCopyClKernelFP16(),
+                                                          "copy_cl_fp16");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
       break;
@@ -173,7 +148,7 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
   bool result = false;
 
   do {
-    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -226,8 +201,11 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim_size, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    const int work_groups_count[3] = {
+      (int)(input_batch_size * input_height * input_width * input_channels), 1,
+      1};
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
@@ -253,7 +231,7 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
   bool result = false;
 
   do {
-    const auto &kernel_copy_ptr = layer_kernel_ptrs[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -306,8 +284,11 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim_size, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    const int work_groups_count[3] = {
+      (int)(input_batch_size * input_height * input_width * input_channels), 1,
+      1};
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
@@ -342,6 +323,13 @@ void ReshapeLayerCl::setProperty(const std::vector<std::string> &values) {
 void ReshapeLayerCl::exportTo(Exporter &exporter,
                               const ml::train::ExportMethods &method) const {
   exporter.saveResult(reshape_props, method, this);
+}
+
+std::vector<ClContext::SharedPtrClKernel> &
+ReshapeLayerCl::getLayerKernelPtrs() {
+  /**< kernel list relevant with this layer */
+  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
+  return layer_kernel_ptrs;
 }
 
 } /* namespace nntrainer */
