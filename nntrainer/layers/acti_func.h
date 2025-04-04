@@ -186,29 +186,25 @@ public:
 
     // prevent overflow
     Tensor tmp(width, input.getTensorType());
+    T max_val, sum_exp, max_prev;
     for (unsigned int i = 0; i < bch_size; i++) {
       T *ptr = output_data + i * width;
-
-      // find max value and subtract it
-      T max_value = *std::max_element(ptr, ptr + width);
-
-      tmp.setValue(max_value);
+      max_val = ptr[0];
+      sum_exp = 1;
+      for (unsigned int j = 1; j < width; ++j) {
+        max_prev = max_val;
+        max_val = std::max(max_prev, ptr[j]);
+        sum_exp = sum_exp * exp_util<T>(max_prev - max_val) +
+                  exp_util<T>(ptr[j] - max_val);
+      }
+      tmp.setValue(max_val);
+      // x-max
       saxpy(width, -1, tmp.getData<T>(), 1, ptr, 1);
+      // take exp : exp(x-max)
+      std::transform(ptr, ptr + width, ptr, [](T x) { return exp_util<T>(x); });
+      // normalize : exp(x-max)/sum_exp
+      sscal(width, 1.0 / sum_exp, ptr, 1);
     }
-
-    // take exp
-    output.apply<T>(exp_util<T>, output);
-
-    // take sum over the last dimension
-    Tensor sum = output.sum(3);
-
-    for (unsigned int i = 0; i < bch_size; i++) {
-      T *ptr = output_data + i * width;
-      std::transform(ptr, ptr + width, ptr,
-                     std::bind(std::divides<T>(), std::placeholders::_1,
-                               sum.getValue<T>(i)));
-    }
-
     return output;
   }
 
