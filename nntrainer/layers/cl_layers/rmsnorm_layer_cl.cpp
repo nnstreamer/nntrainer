@@ -170,7 +170,8 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
       break;
     }
     const int work_groups_count[3] = {b * c, h, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {w, 1, 1}; // test-value
 
     ret = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_rmsnorm_ptr, work_groups_count, work_group_size);
@@ -262,7 +263,8 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
       break;
     }
     const int work_groups_count[3] = {b * c, h, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {w, 1, 1}; // test-value
 
     ret = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_rmsnorm_ptr, work_groups_count, work_group_size);
