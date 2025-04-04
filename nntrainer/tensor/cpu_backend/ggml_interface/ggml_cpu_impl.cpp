@@ -1446,7 +1446,7 @@ GEMM GEMV KERNEL
 // /*
 // GEMM PREPROCESSING : WEIGHT BLOCKING FUNCTION
 //  */
-block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleave) {
+static block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleave) {
 // static block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleave) {
     block_q4_Kx8 out;
     //Delta(scale) and dmin values of the eight Q4_K structures are copied onto the output interleaved structure
@@ -1523,7 +1523,7 @@ block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleav
     return out;
 }
 
-int repack_q4_K_to_q4_K_8_bl(void * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, int64_t M, int64_t N) {
+static int repack_q4_K_to_q4_K_8_bl(void * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, int64_t M, int64_t N) {
     assert(interleave_block == 8);
     constexpr int nrows_interleaved = 8;
 
@@ -1558,9 +1558,9 @@ int repack_q4_K_to_q4_K_8_bl(void * t, int interleave_block, const void * GGML_R
 
 // // repack
 template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS>
-int repack(void *, const void *, size_t, int64_t, int64_t);
+int _repack(void *, const void *, size_t, int64_t, int64_t);
 
-template <> int repack<block_q4_K, 8, 8>(void * t, const void * data, size_t data_size, int64_t M, int64_t N) {
+template <> int _repack<block_q4_K, 8, 8>(void * t, const void * data, size_t data_size, int64_t M, int64_t N) {
     return repack_q4_K_to_q4_K_8_bl(t, 8, data, data_size, M, N);
 }
 // /*
@@ -1747,7 +1747,7 @@ public:
     
     ///@note repack is not called during GEMM runtime. It should be called weight is being loaded.
     int repack(void * t, const void * data, size_t data_size, int64_t M, int64_t N) {
-        return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size, M, N);
+        return _repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size, M, N);
     }
 };
 
@@ -1771,12 +1771,11 @@ void ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N, const u
     }
 }
 
-void ggml_q4_K_8x8_q8_K_repack(const unsigned int M, const unsigned int N, void* W, void* repacked_W, size_t data_size) {
+void ggml_repack_q4_K_to_q8_K(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N) {
     auto gemm_fn = ggml_get_optimal_repack_type(M);
-    ///@todo Remove ggml_tensor dependency from repack function.
-    // if (gemm_fn){
-    //     gemm_fn->repack(W, repacked_W, data_size);
-    // }
+    if (gemm_fn){
+        gemm_fn->repack(W, repacked_W, data_size, M, N);
+    }
 }
 
 static float make_qkx3_quants(int n, int nmax, const float *x,
