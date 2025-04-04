@@ -1523,45 +1523,46 @@ block_q4_Kx8 make_block_q4_Kx8(block_q4_K * in, unsigned int blck_size_interleav
     return out;
 }
 
-// static int repack_q4_K_to_q4_K_8_bl(struct ggml_tensor * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size) {
-//     // GGML_ASSERT(t->type == GGML_TYPE_Q4_K);
-//     assert(interleave_block == 8);
-//     constexpr int nrows_interleaved = 8;
+int repack_q4_K_to_q4_K_8_bl(void * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, int64_t M, int64_t N) {
+    assert(interleave_block == 8);
+    constexpr int nrows_interleaved = 8;
 
-//     block_q4_Kx8 * dst = (block_q4_Kx8*)t->data;
-//     const block_q4_K * src = (const block_q4_K*) data;
-//     block_q4_K dst_tmp[8];
-//     /// @todo ggml_nrow raw implemenation
-//     int nrow = ggml_nrows(t);
-//     int nblocks = t->ne[0] / QK_K;
+    block_q4_Kx8 * dst = (block_q4_Kx8*) t;
+    const block_q4_K * src = (const block_q4_K*) data;
+    block_q4_K dst_tmp[8];
+    /// @todo ggml_nrow raw implemenation
+    // int nrow = ggml_nrows(t);
+    int nrow = M * 1 * 1;
+    // int nblocks = t->ne[0] / QK_K;
+    int nblocks = N / QK_K;
 
-//     assert(data_size == nrow * nblocks * sizeof(block_q4_K));
+    assert(data_size == nrow * nblocks * sizeof(block_q4_K));
 
-//     if (t->ne[1] % nrows_interleaved != 0 || t->ne[0] % 8 != 0) {
-//         return -1;
-//     }
+    if (M % nrows_interleaved != 0 || N % 8 != 0) {
+        return -1;
+    }
 
-//     for (int b = 0; b < nrow; b += nrows_interleaved) {
-//         for (int64_t x = 0; x < nblocks; x++) {
-//             for (int i  = 0; i < nrows_interleaved; i++ ) {
-//                 dst_tmp[i] = src[x + i * nblocks];
-//             }
-//             *dst++ = make_block_q4_Kx8(dst_tmp, interleave_block);
-//         }
-//         src += nrows_interleaved * nblocks;
-//     }
-//     return 0;
+    for (int b = 0; b < nrow; b += nrows_interleaved) {
+        for (int64_t x = 0; x < nblocks; x++) {
+            for (int i  = 0; i < nrows_interleaved; i++ ) {
+                dst_tmp[i] = src[x + i * nblocks];
+            }
+            *dst++ = make_block_q4_Kx8(dst_tmp, interleave_block);
+        }
+        src += nrows_interleaved * nblocks;
+    }
+    return 0;
 
-//     GGML_UNUSED(data_size);
-// }
+    GGML_UNUSED(data_size);
+}
 
 // // repack
-// template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS>
-// int repack(struct ggml_tensor *, const void *, size_t);
+template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS>
+int repack(void *, const void *, size_t, int64_t, int64_t);
 
-// template <> int repack<block_q4_K, 8, 8>(struct ggml_tensor * t, const void * data, size_t data_size) {
-//     return repack_q4_K_to_q4_K_8_bl(t, 8, data, data_size);
-// }
+template <> int repack<block_q4_K, 8, 8>(void * t, const void * data, size_t data_size, int64_t M, int64_t N) {
+    return repack_q4_K_to_q4_K_8_bl(t, 8, data, data_size, M, N);
+}
 // /*
 // GEMM PREPROCESSING : BLOCKING FUNCTION
 //  */
@@ -1743,10 +1744,11 @@ public:
 
         delete[] wdata;
     }
+    
     ///@note repack is not called during GEMM runtime. It should be called weight is being loaded.
-    // int repack(void * t, void * data, size_t data_size) {
-    //     return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size);
-    // }
+    int repack(void * t, const void * data, size_t data_size, int64_t M, int64_t N) {
+        return repack<BLOC_TYPE, INTER_SIZE, NB_COLS>(t, data, data_size, M, N);
+    }
 };
 
 // instance for Q4
