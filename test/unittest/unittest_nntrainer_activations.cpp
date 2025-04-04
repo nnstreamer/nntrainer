@@ -97,6 +97,54 @@ TEST(nntrainer_activation, softmax_prime_01_p) {
   }
 }
 
+TEST(nntrainer_activation, softmax_big_test_1) {
+  int batch = 3;
+  int channel = 1;
+  int height = 2048;
+  int width = 2048;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor softmax_result;
+  GEN_TEST_INPUT(input, (i * (width) + k + l));
+
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_NO_THROW(
+      input.apply(nntrainer::ActiFunc::softmax<float>, softmax_result));
+  }
+}
+
+TEST(nntrainer_activation, softmax_big_test_2) {
+  int batch = 1;
+  int channel = 1;
+  int height = 4096;
+  int width = 1024;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor softmax_result;
+  GEN_TEST_INPUT(input, (i * (width) + k + l));
+
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_NO_THROW(
+      input.apply(nntrainer::ActiFunc::softmax<float>, softmax_result));
+  }
+}
+
+TEST(nntrainer_activation, softmax_big_test_3) {
+  int batch = 1;
+  int channel = 1;
+  int height = 1024;
+  int width = 4096;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor softmax_result;
+  GEN_TEST_INPUT(input, (i * (width) + k + l));
+
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_NO_THROW(
+      input.apply(nntrainer::ActiFunc::softmax<float>, softmax_result));
+  }
+}
+
 TEST(nntrainer_activation, softmax_prime_02_n) {
   int batch = 3;
   int channel = 1;
