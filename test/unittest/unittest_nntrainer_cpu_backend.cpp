@@ -161,7 +161,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     float* dst_ptr = (float*) dst.data();
 
     // GROUND TRUTH TRANSB SGEMM for reference
-    nntrainer::sgemm(0/*ROW MAJOR*/, false, true, M, N, K, 1.F, lhs_ptr, K, rhs_ptr, K, 0.F, ref_dst_ptr, N);
+    nntrainer::sgemm(/*ROW MAJOR*/0, false, true, M, N, K, 1.F, lhs_ptr, K, rhs_ptr, K, 0.F, ref_dst_ptr, N);
 
     // Step0. Allocate a temporary buffer for quantized weight
     int64_t ne0 = N; // row length of the weight matrix
@@ -180,14 +180,14 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
     std::vector<char> repacked_qWeight = std::vector<char>(data_size); 
-    nntrainer::repack_q4_K_to_q4_K_8(offline_qWeight_ptr, repacked_qWeight.data(), data_size, N, K);
+    nntrainer::repack_q4_K_to_q4_K_8(offline_qWeight_ptr, repacked_qWeight.data(), data_size, /*row*/K, /*col*/N); // W is transposed, so it is N*K ?
     ///@note Needs validation!
     ///@note double-check for : row / col order (since is this function consider a transpoed weight? Or is it just generalized for all matrices?)
     ///@note double-check for data_size (temporally allocated the same size with offline_qWeight, but itself is not validated, yet.)
     ///@note super-quick check with gemm op! (but this might make unclear diagnosis : repacking problem? or gemm kernel problem? ...)
 
     // Step3. Run GEMM! (Online activation quantization + kernel routine + return float)
-    ///@note do something like : nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) offline_qWeight_ptr, N, dst_ptr, N);
+    nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) repacked_qWeight.data(), N, dst_ptr, N);
     ///@note Needs validation!
 
     // Step4. Compare quantization error
@@ -195,6 +195,10 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     // 2. Q4_K GEMM on the nntrainer VS Q4_K GEMM on the llama.cpp
     ///@note It is quite obvious to have a huge quantization error(32bit to 4.12bit), but the error is expected to be similar to something we can obtain from llama.cpp benchmark-matmult.cpp
     ///@note Needs validation!
+    auto mean_squared_error = mse<float, float>( ref_dst_ptr, dst_ptr, M*N);
+    auto cos_sim = cosine_similarity( ref_dst_ptr, dst_ptr, M*N);
+    auto max_differ = find_max_diff(ref_dst_ptr, dst_ptr, M, N);
+    std::cout << "MSE : " << mean_squared_error << ", COS_SIM : " << cos_sim << ", MAX_DIFFER : " << max_differ << std::endl;
 
     /* 
         Room for optimization
