@@ -626,6 +626,8 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
 size_t quantize_q4_K(const float * src, void * dst, int64_t nrow, int64_t n_per_row, const float * quant_weights);
 void dequantize_row_q4_K(const void * x_raw, float * y, int64_t k);
 void dequantize_row_q8_K(const void * x, float * y, int64_t k);
+void repack_q4_K_to_q4_K_8(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N);
+
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */

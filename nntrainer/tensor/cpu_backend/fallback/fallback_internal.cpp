@@ -340,4 +340,9 @@ void __dequantize_row_q8_K(const void * x, float * y, int64_t k){
   throw std::runtime_error("NYI : __dequantize_row_q8_K");
 }
 
+void __repack_q4_K_to_q4_K_8(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N){
+  throw std::runtime_error("NYI : __repack_q4_K_to_q4_K_8");
+}
+
+
 } // namespace nntrainer

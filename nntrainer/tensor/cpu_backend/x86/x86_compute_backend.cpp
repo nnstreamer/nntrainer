@@ -195,4 +195,8 @@ void dequantize_row_q4_K(const void * x_raw, float * y, int64_t k){
 void dequantize_row_q8_K(const void * x, float * y, int64_t k){
   nntr_dequantize_row_q8_K(x, y, k);
 }
+
+void repack_q4_K_to_q4_K_8(void* W, void* repacked_W, size_t data_size, const unsigned int M, const unsigned int N){
+  nntr_repack_q4_K_to_q8_K(W, repacked_W, data_size, M, N);
+}
 } /* namespace nntrainer */
