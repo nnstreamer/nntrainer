@@ -164,7 +164,8 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
     }
 
     const int work_groups_count[3] = {dim, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_swiglu_ptr, work_groups_count, work_group_size);
@@ -232,7 +233,8 @@ void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
     }
 
     const int work_groups_count[3] = {dim, 1, 1};
-    const int work_group_size[3] = {32, 32, 1}; // test-value
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {1, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_swiglu_ptr, work_groups_count, work_group_size);
