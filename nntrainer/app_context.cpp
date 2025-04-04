@@ -50,6 +50,7 @@
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
+#include <gather_layer.h>
 #include <gru.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -272,6 +273,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_DIVIDE);
   ac.registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
                      LayerType::LAYER_POW);
+  ac.registerFactory(nntrainer::createLayer<GatherLayer>, GatherLayer::type,
+                     LayerType::LAYER_GATHER);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
