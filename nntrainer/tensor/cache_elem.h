@@ -72,7 +72,9 @@ public:
     length(len),
     policy(pol),
     mem_data(data),
-    memory_ptr(ptr) {}
+    memory_ptr(ptr),
+    load_task_id(-1),
+    unload_task_id(-1) {}
 
   /**
    * @brief CacheElem destructor
@@ -99,10 +101,13 @@ public:
    *
    * @return active status
    */
-  bool isActive() const {
-    return active;
-  }
-  void inActive() {active = false;}
+  bool isActive() const { return active; }
+
+  /**
+   * @brief inactive the elem
+   *
+   */
+  void inActive() { active = false; }
   /**
    * @brief get length of cache element
    *
@@ -123,6 +128,32 @@ public:
    */
   void reset() { initial_opt = Options::FIRST_ACCESS_WRITE; }
 
+  /**
+   * @brief set Load Task ID for Unload
+   *
+   */
+  void setLoadTaskID(int id) { load_task_id = id; }
+
+  /**
+   * @brief getter of Load Task ID
+   *
+   * @return load Task id
+   */
+  int getLoadTaskID() { return load_task_id; }
+
+  /**
+   * @brief set Unload Task ID for Load
+   *
+   */
+  void setUnloadTaskID(int id) { unload_task_id = id; }
+
+  /**
+   * @brief getter of Unload Task ID
+   *
+   * @return unload Task id
+   */
+  int getUnloadTaskID() { return unload_task_id; }
+
 private:
   Options initial_opt;                  /**< accessed */
   mutable std::mutex device_mutex;      /**< protect device */
@@ -134,6 +165,8 @@ private:
   CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
   void *memory_ptr;
+  int load_task_id;
+  int unload_task_id;
 };
 
 } // namespace nntrainer

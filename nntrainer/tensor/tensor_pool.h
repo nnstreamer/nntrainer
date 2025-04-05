@@ -292,6 +292,8 @@ public:
   int loadCacheExecAsync(unsigned int order,
                          TaskExecutor::CompleteCallback complete_callback);
 
+  bool checkLoadComplete(unsigned int order);
+
   /**
    * @brief load cache data by execution order
    *

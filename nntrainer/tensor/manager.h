@@ -612,6 +612,8 @@ private:
 
   std::map<int, std::promise<bool>> completed_load_tensor;
 
+  std::map<int, std::future<TaskExecutor::CompleteStatus>> completed_load_fut;
+
   std::map<int, std::promise<bool>> completed_unload_tensor;
 
   /**< async tasks completion <task id, promise> */

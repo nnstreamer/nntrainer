@@ -45,6 +45,8 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
 
   off_t off;
 
+  // std::cout << "path: "<<dev_path.c_str() << std::endl;
+
   /* make sparse file */
   off = lseek(fd, size - 1, SEEK_SET);
   NNTR_THROW_IF(off < 0, std::runtime_error)
@@ -62,7 +64,7 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
 }
 
 void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
-                            bool alloc_only) {
+                            unsigned int id, bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
@@ -78,18 +80,18 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
     // FSU Load Weights
-    auto len_offset = weight_offset.at(offset_index);
+    auto len_offset = weight_offset.at(id);
     size_t off = (len_offset.first / page_size) * page_size;
+
+    // auto len_offset = weight_offset.at(id);
+    // size_t off =
+    //   (len_offset.first / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+
     size_t diff = len_offset.first - off;
     size_t len = len_offset.second + diff;
 
     char *ptr = static_cast<char *>(
       mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
-
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
-    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-      << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
     // MADVISE can be used to improve performance.
     // madvise(ptr, len, MADV_SEQUENTIAL);
@@ -103,6 +105,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     if (offset_index >= (int)weight_offset.size()) {
       offset_index = 0;
     }
+
     ++num_loaded_tensors;
 
     // @todo : need to check at cache_loader & check multi thread execution
@@ -238,9 +241,9 @@ void SwapDevice::finish() {
 
 #ifdef USE_MMAP
   for (auto &[ptr, info] : mapped) {
-    if (ptr)
+/*     if (ptr)
       free(ptr);
-  }
+ */  }
   mapped.clear();
 #else
   for (auto &alloc : allocated)

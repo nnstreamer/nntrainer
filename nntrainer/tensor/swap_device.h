@@ -101,7 +101,7 @@ public:
    * @return The pointer of the swap space
    *
    */
-  void *getBuffer(off_t offset, size_t size, void *memory_ptr,
+  void *getBuffer(off_t offset, size_t size, void *memory_ptr, unsigned int id,
                   bool alloc_only = false);
 
   /**

@@ -35,9 +35,11 @@ public:
     std::unordered_map<unsigned int,
                        std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
-  using ExecIds = std::vector<unsigned int>;
-  using ExecIdsIter = ExecIds::iterator;
 
+  // using ExecIds = std::vector<unsigned int>;
+
+  using ExecIds = std::set<unsigned int>;
+  using ExecIdsIter = ExecIds::iterator;
   /**
    * @brief CachePool default constructor
    *
@@ -138,6 +140,8 @@ public:
    */
   virtual void loadExec(unsigned int order);
 
+  virtual void loadTensor(unsigned int order);
+
   /**
    * @brief Load cache data by execution order
    *
@@ -151,6 +155,8 @@ public:
    * @param order execution order
    */
   virtual void unloadExec(unsigned int order);
+
+  virtual void unloadTensor(unsigned int order);
 
   /**
    * @brief Load active cache data
@@ -201,6 +207,37 @@ public:
   setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
     swap_device->setWeightOffset(offsets);
   }
+
+  /**
+   * @brief get Tensor ID set in order
+   *
+   * @param order Execution order
+   * @return Tensor id set
+   */
+  std::set<unsigned int> getExecIDs(unsigned int order) {
+    return exec_ids[order];
+  }
+
+  /**
+   * @brief get Active Cache Elem lists
+   *
+   * @return Active Cache Elem list
+   */
+  std::list<std::shared_ptr<CacheElem>> getActiveElems() { return actives; }
+
+  /**
+   * @brief get Cache Elem with id
+   * @param id Tensor ID
+   * @return Cache Elem
+   */
+  std::shared_ptr<CacheElem> getCacheElem(unsigned int id) { return elems[id]; }
+
+  /**
+   * @brief check Cache Elem with id is loaded (Active)
+   * @param id Tensor ID
+   * @return true if it is loaded
+   */
+  bool isLoaded(unsigned int id) { return elems[id]->isActive(); }
 
 protected:
   /**

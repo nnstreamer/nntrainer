@@ -109,7 +109,6 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
                                  memory_is_wgrad, n_wgrad);
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
-  std::cout <<"POOL Size : "<< pool_size << std::endl;
 
   return double(min_pool_size) / double(pool_size);
 }
@@ -222,7 +221,6 @@ void MemoryPool::allocateFSU() {
     current_size = current_size;
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
-      // if there are
       void *ptr = ALIGNED_ALLOC(current_size);
       memory_ptrs.push_back(ptr);
 
