@@ -31,8 +31,8 @@
 #include <sstream>
 #include <sys/resource.h>
 #include <activation_realizer.h>
-#include <bits/fs_fwd.h>
-#include <bits/fs_path.h>
+// #include <bits/fs_fwd.h>
+// #include <bits/fs_path.h>
 #include <common_properties.h>
 #include <databuffer.h>
 #include <flatten_realizer.h>
@@ -349,8 +349,15 @@ NeuralNetwork::~NeuralNetwork() {
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
+  unsigned int lookahead =
+    std::get<props::FsuLookahead>(model_flex_props);
+  
+  for(unsigned int i =0 ;i<lookahead;++i){
+    model_graph.LoadTensors(i);
+  }
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
+    [this, stop_cb, userdata, lookahead](std::shared_ptr<LayerNode> node,
                               bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
@@ -389,9 +396,20 @@ sharedConstTensors NeuralNetwork::forwarding(
                the forwarding, ask load tensors for next n layers.
       **/
 
-      model_graph.LoadTensors(f);
+      model_graph.LoadTensors(f+lookahead);
+      
       model_graph.checkLoadComplete(f);
+      
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;
+      // std::cout << "Layer : " << node->getName() << std::endl;
       node->forwarding(training);
+      // print_rss();
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
+      // model_graph.UnloadTensors(f);      
+
+      // model_graph.LoadTensors(f);
+      // model_graph.checkLoadComplete(f);
+      // node->forwarding(training);
       model_graph.Inactive(f);
     }
   };
@@ -449,27 +467,32 @@ void print_rss() {
 sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  
+  unsigned int lookahead =
+    std::get<props::FsuLookahead>(model_flex_props);
+  
+  for(unsigned int i =0 ;i<lookahead;++i){
+    model_graph.LoadTensors(i);
+  }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                                        bool training) -> void {
+    [this, from, to, stop_cb, userdata,
+     lookahead](std::shared_ptr<LayerNode> node, bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    bool swap_mode = std::get<props::MemorySwap>(model_flex_props);
+    bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
     if (exec_mode == ExecutionMode::TRAIN or
-        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
+        (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
       node->incremental_forwarding(from, to, training);
     } else {
-      model_graph.LoadTensors(f);
+      
+      model_graph.LoadTensors(f+lookahead);
+      
       model_graph.checkLoadComplete(f);
-      // std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << std::endl;
-      // std::cout << "Layer : " << node->getName() << std::endl;
+      
       node->incremental_forwarding(from, to, training);
-      // print_rss();
-      // std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << std::endl;
-      // model_graph.UnloadTensors(f);
     }
   };
 
@@ -694,23 +717,38 @@ void NeuralNetwork::load(const std::string &file_path,
   const std::regex reg_("\\s*\\:\\s*");
   auto v = split(file_path, reg_);
 
-  if (exec_mode == ExecutionMode::INFERENCE && swap_mode) {
+  if (exec_mode == ExecutionMode::INFERENCE && fsu_mode) {
     model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
 
     std::vector<std::pair<size_t, size_t>> file_offset;
     size_t start_from = 0;
 
-    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-      auto weights = (*iter)->getRunContext().getWeights();
-      for (auto weight : weights) {
-        auto dim = weight->getVariable();
+    for(auto node : model_graph.getLayerNodes()){
+      auto weights = node->getRunContext().getWeights();
+      for(auto weight:weights){
+	auto dim = weight->getDim();
+	size_t size = dim.getDataTypeSize()*dim.getDataLen();
 
-        size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
-
-        file_offset.emplace_back(std::make_pair(start_from, size));
-        start_from += size;
+	file_offset.emplace_back(std::make_pair(start_from,size));
+	start_from+= size;
       }
     }
+
+    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    //   auto weights = (*iter)->getRunContext().getWeights();
+    //   for (auto weight : weights) {
+    //     // auto dim = weight->getVariable();
+    // 	auto dim = weight->getDim();
+    // 	// std::cout << dim.getDataTypeSize() << " : " << dim.getDataLen()<<std::endl;
+    //     size_t size = dim.getDataTypeSize() * dim.getDataLen();
+    //     // size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
+    // 	std::cout << size << " ------------------------"<<std::endl;
+
+    //     file_offset.emplace_back(std::make_pair(start_from, size));
+    //     start_from += size;
+    //   }
+    // }
+    
     model_graph.setWeightOffset(file_offset);
   }
 
@@ -808,6 +846,7 @@ void NeuralNetwork::load(const std::string &file_path,
         ct_engine.getRegisteredContext("qnn")->load(props::FilePath(v[0]));
       throw_status(ret);
     });
+    
 
     if (!fsu_mode && v.size() > 1) {
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
@@ -818,7 +857,7 @@ void NeuralNetwork::load(const std::string &file_path,
         << "Swap mode should run with loading a weight-bin file";
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
         << "Cannot open weight bin file";
-      model_graph.setFsuWeightPath(v[1]);
+      // model_graph.setFsuWeightPath(v[1]);
     }
 
     qnn_load.join();
@@ -1103,7 +1142,9 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
     output.push_back(last_out_buf_data);
   }
-  InvalidAllFSU();
+  if(std::get<props::Fsu>(model_flex_props) && exec_mode == ExecutionMode::INFERENCE){
+    InvalidAllFSU();
+  }
   return output;
 }
 

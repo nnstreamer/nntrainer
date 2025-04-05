@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2022 Jiho Chu <jiho.chu@samsung.com>
+ * Copyright (C) 2025 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   task_executor.h
- * @date   04 Nov 2022
+ * @date   04 April 2025
+ * @brief  This file contains a task executor
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Jiho Chu <jiho.chu@samsung.com>
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  Task executor class
  *
@@ -15,26 +16,36 @@
 #define __TASK_EXECUTOR_H__
 
 #include <atomic>
-#include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <future>
-#include <list>
-#include <memory>
+#include <iostream>
+#include <map>
 #include <mutex>
-#include <thread>
-
+#include <queue>
 #include <task.h>
+#include <thread>
+#include <unordered_set>
+#include <vector>
 
 namespace nntrainer {
 
 /**
- * @class   TaskExecutor
- * @brief   task executor class
+ * @brief This is call back for load/unload Task
+ *
+ */
+using TaskCallback = std::function<void(void *)>;
+
+/**
+ * @class TaskExecutor Class
+ * @brief This is load / unload Task Executor with thread pool
+ *
  */
 class TaskExecutor {
 public:
   /**
-   * @brief Complete error types
+   * @enum  Temperal Enum for CompeleteStatus
+   *
    */
   enum CompleteStatus {
     SUCCESS,
@@ -44,10 +55,22 @@ public:
   };
 
   /**
-   * @brief Complete callback type which will be called when task is completed
+   * @struct To describe Task
+   *
+   */
+  struct TaskDesc {
+    int id;
+    TaskCallback callback;
+    void *data;
+  };
+
+  /**
+   * @enum  Temperal definition for callback
+   *
    */
   using CompleteCallback =
-    std::function<void(int, CompleteStatus)>; /**< (task id, status) */
+    std::function<void(int, CompleteStatus,
+                       std::future<CompleteStatus>)>; /**< (task id, status) */
 
   template <typename T = std::chrono::milliseconds>
   using TaskInfo =
@@ -56,110 +79,110 @@ public:
   /**< (task id, task, complete callback, running, complete promise) */
 
   /**
-   * @brief TaskExecutor constructor
+   * @brief Constructor of TaskExecutor
    *
    */
-  explicit TaskExecutor(const std::string &name = "");
+  TaskExecutor(std::string name = "",
+               size_t thread_count = std::thread::hardware_concurrency());
 
   /**
-   * @brief TaskExecutor destructor
+   * @brief Destructor of TaskExecutor
    *
    */
-  virtual ~TaskExecutor();
+  ~TaskExecutor();
 
   /**
-   * @brief Run task
+   * @brief submit Task
    *
-   * @param task task to be run
-   * @return 0 on Success, else negative error
    */
-  virtual int run(std::shared_ptr<Task> task);
+  int submit(TaskCallback cb, void *data = nullptr);
 
   /**
-   * @brief Run task asynchronously
+   * @brief Cancel Task
    *
-   * @param task async task to be run
-   * @param callback complete callback
-   * @return id of requested task.
-   *         negative on fail
    */
-  template <typename T>
-  int run(std::shared_ptr<TaskAsync<T>> task, CompleteCallback callback) {
-    int id = ids.load();
-    {
-      std::scoped_lock lock(task_mutex);
-      task_queue.emplace_back(id, task, callback, true,
-                              std::promise<CompleteStatus>());
+  bool cancel(int id);
+
+  /**
+   * @brief Wait to complete
+   *
+   */
+  void wait(int id);
+
+  /**
+   * @brief Wait to complete Tasks in vectors
+   *
+   */
+  void waitAll(const std::vector<int> &ids);
+
+  /**
+   * @brief check done of task id
+   *
+   */
+  bool isDone(int id);
+
+  /**
+   * @brief check done all the tasks in vector
+   *
+   */
+  bool isAllDone(const std::vector<int> &ids);
+
+  /**
+   * @brief Submit mutiple tasks
+   *
+   */
+  void submitTasks(const std::vector<TaskDesc> &tasks);
+
+  /**
+   * @brief release Task
+   *
+   */
+  void releaseTask(int id);
+
+private:
+  /**
+   * @brief Definition of  Task
+   *
+   */
+  struct Task {
+    int id;
+    std::promise<void> promise;
+    TaskCallback callback;
+    void *data = nullptr;
+  };
+
+  /**
+   * @brief Create Worker Thread
+   *
+   */
+  void worker_thread();
+
+  /**
+   * @brief Get Next Task Id for protect the overflow
+   *
+   */
+  int getNextTaskId() {
+    if (!reusable_ids.empty()) {
+      int id = reusable_ids.front();
+      reusable_ids.pop();
+      return id;
     }
-    task_cv.notify_one();
-    ids++;
-
-    return id;
+    return next_task_id.fetch_add(1);
   }
 
-  /**
-   * @brief Cancel task
-   *
-   * @param id task id returned from @ref TaskExecutorAsync::run
-   */
-  virtual void cancel(int id);
-
-  /**
-   * @brief Cancel all task
-   */
-  virtual void cancelAll(void);
-
-  /**
-   * @brief Clean all non-running tasks from managed list
-   *
-   * @note Do not use this inside of the complete or worker callback
-   */
-  virtual void clean(void);
-
-protected:
-  /**
-   * @brief task worker for asynchronous task
-   *
-   * @param id task id
-   * @param task asynchronous task
-   */
-  template <typename T> CompleteStatus worker(TaskInfo<T> &info) {
-    auto &running = std::get<std::atomic_bool>(info);
-    auto task = std::get<std::shared_ptr<TaskAsync<T>>>(info);
-    if (task->started())
-      return CompleteStatus::FAIL;
-
-    auto work = task->getWork();
-    auto data = task->getData();
-
-    task->setState(Task::State::PROCESSING);
-
-    return handleWork(running, work, data);
-  }
-
-  /**
-   * @brief handle work for asynchronous task
-   *
-   * @param running running flag
-   * @param work work function
-   * @param data data to be passed to work function
-   * @return CompleteStatus
-   */
-  virtual CompleteStatus handleWork(std::atomic_bool &running, Task::Work &work,
-                                    void *data);
-
-  static std::atomic_int32_t ids;
   std::string name;
-  bool run_thread;
-  bool wait_complete;
-  bool stop_all;
-
-  std::list<TaskInfo<>> task_queue;
-
-  std::condition_variable task_cv;
-  std::condition_variable comp_cv;
-  std::thread task_thread;
-  std::mutex task_mutex;
+  std::vector<std::thread> workers;
+  std::queue<Task> task_queue;
+  std::map<int, std::shared_ptr<std::atomic_bool>> cancel_map;
+  std::map<int, std::shared_future<void>> future_map;
+  std::map<int, bool> task_started;
+  std::mutex queue_mutex;
+  std::condition_variable cond_var;
+  std::condition_variable task_started_cv;
+  std::atomic<bool> stop;
+  std::unordered_set<int> queued_ids;
+  std::queue<int> reusable_ids;
+  std::atomic<int> next_task_id{0};
 };
 
 } // namespace nntrainer
