@@ -72,6 +72,12 @@ private:
 };
 
 /**
+ * @enum   LoadState
+ * @brief  enum to describe Load State
+ */
+enum class LoadState { Idle, Loading, Loaded, Unloading };
+
+/**
  * @class   CacheLoader
  * @brief   Cache loader from swap device
  */
@@ -108,30 +114,37 @@ public:
   virtual void load(unsigned int order);
 
   /**
-   * @brief Load cache data asynchronously with execution order
+   * @brief Load cache data asynchronously in Tensor
    *
-   * @param order execution order
-   * @param complete complete callback
+   * @param id Tensor id
    * @return async task id
    */
-  virtual int loadAsync(unsigned int order,
-                        TaskExecutor::CompleteCallback callback);
+  virtual int loadTensor(unsigned int id);
+
+  /**
+   * @brief unLoad cache data asynchronously in Tensor
+   *
+   * @param id Tensor id
+   * @return async task id
+   */
+  virtual int unloadTensor(unsigned int id);
 
   /**
    * @brief Load cache data asynchronously with execution order
    *
    * @param order execution order
-   * @param complete complete callback
-   * @param timeout timeout time in ms
-   * @return async task id
-   * @note timeout_ms does not work now.
+   * @return true if enqueue loads successfully
    */
-  virtual int loadAsync(unsigned int order,
-                        TaskExecutor::CompleteCallback callback,
-                        long timeout_ms);
+  virtual bool loadAllinOrder(unsigned int order);
 
   /**
-   * @brief Load cache data asynchronously with execution order
+   * @brief unLoad cache data asynchronously with execution order
+   *
+   * @param order execution order
+   * @return true if enqueue unloads successfully
+   */
+  virtual bool unloadAllinOrder(unsigned int order);
+  /**
    *
    * @param order execution order
    * @param complete complete callback
@@ -169,6 +182,13 @@ public:
   virtual unsigned int getNumLoadedTensors();
 
   /**
+   * @brief set Inactive elems in order
+   *
+   */
+
+  unsigned int Inactive(unsigned int order);
+
+  /**
    * @brief setup FSU for the given execution order.
    * This function will reset Actives at the given order.
    *
@@ -189,6 +209,53 @@ public:
    */
   virtual int loadFsuAsync(unsigned int order, unsigned int look_ahead);
 
+  /**
+   * @brief wait for the load tasks in order are complete
+   * @param order execution order
+   * @return true if all load tasks complete
+   *
+   */
+  bool checkAllLoadComplete(unsigned int order);
+
+  /**
+   * @brief wait for the load task with id is complete
+   * @param id tensor id
+   * @return true if load tas complete
+   *
+   */
+  bool checkLoadComplete(unsigned int id);
+
+  /**
+   * @brief wait for the unload tasks in order are complete
+   * @param order execution order
+   * @return true if all unload tasks complete
+   *
+   */
+  bool checkAllUnloadComplete(unsigned int order);
+
+  /**
+   * @brief wait for the unload task with id is complete
+   * @param id tensor id
+   * @return true if unload tas complete
+   *
+   */
+  bool checkUnloadComplete(unsigned int id);
+
+  /**
+   * @brief get Loading / Unloading Status of tensor with id
+   * @param id tensor id
+   * @return LoadState
+   *
+   */
+  LoadState getState(int id) const;
+
+  /**
+   * @brief unload all the tensors and clear cache elem
+   * @return true if unload tas complete
+   *
+   */
+  void flush();
+
 private:
   std::shared_ptr<CachePool> pool;    /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
@@ -200,6 +267,8 @@ private:
 
   std::mutex load_lock;
   std::mutex thread_lock;
+  mutable std::mutex state_mutex;
+  std::unordered_map<int, LoadState> states;
 };
 
 } // namespace nntrainer

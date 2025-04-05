@@ -61,7 +61,7 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
 }
 
 void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
-                            bool alloc_only) {
+                            unsigned int id, bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
@@ -77,7 +77,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
     // FSU Load Weights
-    auto len_offset = weight_offset.at(offset_index);
+    auto len_offset = weight_offset.at(id);
     size_t off = (len_offset.first / page_size) * page_size;
     size_t diff = len_offset.first - off;
     size_t len = len_offset.second + diff;
@@ -234,9 +234,9 @@ void SwapDevice::finish() {
 
 #ifdef USE_MMAP
   for (auto &[ptr, info] : mapped) {
-    if (ptr)
+/*     if (ptr)
       free(ptr);
-  }
+ */  }
   mapped.clear();
 #else
   for (auto &alloc : allocated)

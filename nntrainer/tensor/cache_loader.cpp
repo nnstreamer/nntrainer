@@ -26,10 +26,7 @@
 namespace nntrainer {
 
 CacheLoader::CacheLoader(std::shared_ptr<CachePool> cache_pool) :
-  pool(cache_pool),
-  load_task_executor(nullptr),
-  unload_task_executor(nullptr),
-  thread_pool_(nullptr) {}
+  pool(cache_pool), load_task_executor(), unload_task_executor() {}
 
 CacheLoader::~CacheLoader() {
   if (load_task_executor)
@@ -41,11 +38,10 @@ CacheLoader::~CacheLoader() {
 }
 
 void CacheLoader::init() {
-
   if (load_task_executor == nullptr)
-    load_task_executor = new TaskExecutor(pool->getName());
+    load_task_executor = new TaskExecutor("loadPool", 2);
   if (unload_task_executor == nullptr)
-    unload_task_executor = new TaskExecutor(pool->getName());
+    unload_task_executor = new TaskExecutor("UnloadPool", 2);
   if (thread_pool_ == nullptr)
     thread_pool_ = new ThreadPool(1);
 }
@@ -59,35 +55,98 @@ void CacheLoader::finish() {
   thread_pool_ = nullptr;
 }
 
-void CacheLoader::load(unsigned int order) { pool->loadExec(order); }
+void CacheLoader::load(unsigned int order) { loadAllinOrder(order); }
 
-int CacheLoader::loadAsync(unsigned int order,
-                           TaskExecutor::CompleteCallback complete) {
-  return loadAsync(order, complete, LONG_MAX);
+bool CacheLoader::loadAllinOrder(unsigned int order) {
+  if (!load_task_executor) {
+    ml_loge("init is needed");
+    return false;
+  }
+
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    loadTensor(id);
+  }
+
+  return true;
 }
 
-int CacheLoader::loadAsync(unsigned int order,
-                           TaskExecutor::CompleteCallback complete,
-                           long timeout_ms) {
+int CacheLoader::loadTensor(unsigned int id) {
+  if (!load_task_executor) {
+    ml_loge("init is needed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  checkUnloadComplete(id);
+
+  std::lock_guard<std::mutex> lock(state_mutex);
+
+  if (states[id] == LoadState::Loading || states[id] == LoadState::Loaded)
+    return -1;
+
+  states[id] = LoadState::Loading;
+
+  int load_task_id = load_task_executor->submit(
+    [this, id](void *data) {
+      pool->loadTensor(id);
+      std::lock_guard<std::mutex> lock(this->state_mutex);
+      this->states[id] = LoadState::Loaded;
+    },
+    (void *)(std::uintptr_t)id);
+
+  pool->getCacheElem(id)->setLoadTaskID(load_task_id);
+
+  return load_task_id;
+}
+
+bool CacheLoader::unloadAllinOrder(unsigned int order) {
+  if (!load_task_executor) {
+    ml_loge("init is needed");
+    return false;
+  }
+
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    unloadTensor(id);
+  }
+
+  return true;
+}
+
+int CacheLoader::unloadTensor(unsigned int id) {
   if (!load_task_executor) {
     ml_loge("init is needed");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  Task::Work work = [&](std::atomic_bool &running, void *data) {
-    unsigned int exe_order = (unsigned int)(std::uintptr_t)data;
+  checkLoadComplete(id);
 
-    // pool->flushExcept({exe_order - 1, exe_order});
-    pool->loadExec(exe_order);
+  std::lock_guard<std::mutex> lock(state_mutex);
 
-    return ML_ERROR_NONE;
-  };
+  if (states[id] != LoadState::Loaded)
+    return -1;
 
-  auto task =
-    std::make_shared<TaskAsync<>>(work, (void *)(std::uintptr_t)order);
-  task->setTimeout(timeout_ms);
+  states[id] = LoadState::Unloading;
 
-  return load_task_executor->run(task, complete);
+  int unload_task_id = load_task_executor->submit(
+    [this, id](void *data) {
+      pool->unloadTensor(id);
+      std::lock_guard<std::mutex> lock(this->state_mutex);
+      this->states[id] = LoadState::Idle;
+    },
+    (void *)(std::uintptr_t)id);
+
+  pool->getCacheElem(id)->setUnloadTaskID(unload_task_id);
+  return unload_task_id;
+}
+
+LoadState CacheLoader::getState(int id) const {
+  std::lock_guard<std::mutex> lock(state_mutex);
+  auto it = states.find(id);
+  if (it == states.end())
+    return LoadState::Idle;
+  return it->second;
 }
 
 int CacheLoader::flushAsync(unsigned int order,
@@ -103,20 +162,28 @@ int CacheLoader::flushAsync(unsigned int order,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  Task::Work work = [&](std::atomic_bool &running, void *data) {
-    unsigned int exe_order = (unsigned int)(std::uintptr_t)data;
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
 
-    // pool->flushExcept({exe_order - 1, exe_order});
-    pool->flushExcept(exe_order);
+  for (auto &id : exec_id) {
+    unloadTensor(id);
+  }
 
-    return ML_ERROR_NONE;
-  };
+  return 0;
+}
+void CacheLoader::flush() {
+  std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
 
-  auto task =
-    std::make_shared<TaskAsync<>>(work, (void *)(std::uintptr_t)order);
-  task->setTimeout(timeout_ms);
+  for (auto &elem : actives) {
+    auto id = elem->getId();
+    unloadTensor(id);
+  }
 
-  return unload_task_executor->run(task, complete);
+  for (auto &elem : actives) {
+    auto id = elem->getId();
+    checkUnloadComplete(id);
+  }
+
+  pool->flush();
 }
 
 int CacheLoader::cancelAsync(int id) {
@@ -134,6 +201,20 @@ int CacheLoader::cancelAsync(int id) {
 unsigned int CacheLoader::getNumLoadedTensors() {
   return pool->getNumLoadedTensors();
 }
+
+unsigned int CacheLoader::Inactive(unsigned int order) {
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+    int load_task_id = elem->getLoadTaskID();
+    if (load_task_id >= 0) {
+      load_task_executor->releaseTask(load_task_id);
+      elem->setLoadTaskID(-1);
+    }
+    elem->inActive();
+  }
+  // pool->Inactive(order);
 
 bool CacheLoader::checkFsuLoadComplete(unsigned int order) {
   std::lock_guard<std::mutex> lock(load_lock);
@@ -155,6 +236,57 @@ int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
 
   return 0;
 }
+
+bool CacheLoader::checkAllLoadComplete(unsigned int order) {
+
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    checkLoadComplete(id);
+  }
+  return true;
+}
+
+bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
+
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    checkUnloadComplete(id);
+  }
+  return true;
+}
+
+bool CacheLoader::checkLoadComplete(unsigned int id) {
+  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+  int unload_task_id = elem->getUnloadTaskID();
+  int load_task_id = elem->getLoadTaskID();
+  if (unload_task_id >= 0) {
+    load_task_executor->releaseTask(unload_task_id);
+    elem->setUnloadTaskID(-1);
+  }
+
+  if (load_task_id >= 0) {
+    load_task_executor->wait(load_task_id);
+  }
+
+  return true;
+}
+
+bool CacheLoader::checkUnloadComplete(unsigned int id) {
+  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+  int unload_task_id = elem->getUnloadTaskID();
+  int load_task_id = elem->getLoadTaskID();
+  if (load_task_id >= 0) {
+    load_task_executor->releaseTask(load_task_id);
+    elem->setLoadTaskID(-1);
+  }
+  if (unload_task_id >= 0) {
+    load_task_executor->wait(unload_task_id);
+  }
+  return true;
+}
+
 
 void CacheLoader::setupFSU() {
   pool->setupFSU();
