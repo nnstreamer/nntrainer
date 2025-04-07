@@ -165,9 +165,9 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM_latencyonly) {
     // const unsigned int M = 8;
     // const unsigned int K = 16;
     // const unsigned int N = 32;
-    const unsigned int M = 1024;
-    const unsigned int K = 768;
-    const unsigned int N = 512;
+    const unsigned int M = 512; // = sizez
+    const unsigned int K = 768; // = sizex
+    const unsigned int N = 1024; // = sizey
     
     std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 1.0f);
     std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 2.0f);
@@ -190,7 +190,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM_latencyonly) {
             << " ns " << std::endl;
     
     const unsigned int num_blocks = K*N / (2*1024); 
-    std::vector<block_q4_Kx8_testonly> repacked_qWeight(K*N / (2*1024));
+    std::vector<block_q4_Kx8_testonly> repacked_qWeight(num_blocks);
     for (unsigned int i = 0; i < num_blocks; ++i) {
         for (unsigned int j = 0; j < 8; ++j) {
             repacked_qWeight[i].d[j] = 1;
@@ -207,6 +207,37 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM_latencyonly) {
     }
 
     // Step3. Run GEMM! (Online activation quantization + kernel routine + return float)
+    // block-params
+    // ref)
+    //     .blck_size                = QK_K,
+    // .type_size                = sizeof(block_q4_K),
+    int64_t ne00 = K, ne01 = N, ne02 = 1, ne03 = 1; // weight block params
+    int64_t nb00, nb01, nb02, nb03; // weight block params
+    int64_t ne10 = K, ne11 = M, ne12 = 1, ne13 = 1; // activation block params
+    int64_t nb10, nb11, nb12, nb13; // activation block params
+    int64_t ne0 = N, ne1 = M, ne2 = 1, ne3 = 1; // output block params
+    int64_t nb0, nb1, nb2, nb3; // output block params
+    
+    nb00 = sizeof(block_q4_K_testonly); // ggml_type_size(type);
+    nb01 = nb00 * (ne00 / /*QK_K*/ 256 );
+    nb02 = nb01 * ne01;
+    nb03 = nb02 * ne02;
+    
+    nb10 = sizeof(float);
+    nb11 = nb10 * (ne10 / 1);
+    nb12 = nb11 * ne11;
+    nb13 = nb12 * ne12;
+
+    nb0 = sizeof(float);
+    nb1 = nb0 * (ne0 / 1);
+    nb2 = nb1 * ne1;
+    nb3 = nb2 * ne2;
+
+    printf("nb02 : %ld, nb03 : %ld\n", nb02, nb03);
+    printf("nb12 : %ld, nb13 : %ld\n", nb12, nb13);
+    printf("nb2 : %ld, nb3 : %ld\n", nb2, nb3);
+
+
     t1 = high_resolution_clock::now();
     nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) repacked_qWeight.data(), N, dst_ptr, N);
     t2 = high_resolution_clock::now();
@@ -273,13 +304,14 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_latencyonly) {
 
 TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     ///@note A(M, K) * W.T(N, K) = (M, N)
+    ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
 
     // const unsigned int M = 8;
     // const unsigned int K = 16;
     // const unsigned int N = 32;
-    const unsigned int M = 1024;
-    const unsigned int K = 768;
-    const unsigned int N = 512;
+    const unsigned int M = 512; // = sizez
+    const unsigned int K = 768; // = sizex
+    const unsigned int N = 1024; // = sizey
     
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp

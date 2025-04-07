@@ -2721,8 +2721,10 @@ public:
     const int ith = 0;
     const int nth = 1;
 
-    int64_t ne0 = M;
-    int64_t ne1 = N;
+    // int64_t ne0 = M;
+    // int64_t ne1 = N;
+    int64_t ne0 = N;
+    int64_t ne1 = M;
     int64_t ne2 = 1;
     int64_t ne3 = 1;
 
@@ -2732,8 +2734,8 @@ public:
     int64_t ne13 = ne3;
 
     ///@todo Check if this is correct
-    int64_t ne10 = M; // ne0
-    int64_t ne00 = N; // ne1
+    int64_t ne10 = K; // ne0
+    int64_t ne00 = K; // ne1
 
     assert(ne0 == ne01);
     assert(ne1 == ne11);
@@ -2745,9 +2747,11 @@ public:
     size_t nb2 = nb1 * ne1;
     size_t nb3 = nb2 * ne2;
 
+    int64_t weight_block_size =sizeof(block_q4_K);
+
     ///@todo Check if this is correct
     size_t nb11 = nb1;
-    size_t nb01 = nb1;
+    size_t nb01 = weight_block_size;
 
     // dst cannot be transposed or permuted
     assert(nb0 == sizeof(float));
@@ -2763,6 +2767,23 @@ public:
     // Allocate wdata : note that there is no re-allocation per Op during
     // original llama.cpp. wdata is repeatedly reused. This should be optimized
     // afterwards.
+
+    /*MY DEFINITION*/
+    int64_t nb00, nb10;
+    ne00 = K, ne01 = N; // weight block params
+    ne10 = K, ne11 = M, ne12 = 1, ne13 = 1; // activation block params
+    ne0 = N, ne1 = M, ne2 = 1, ne3 = 1; // output block params
+    
+    nb00 = weight_block_size; // ggml_type_size(type);
+    nb01 = nb00 * (ne00 / /*QK_K*/ 256 );
+    
+    nb10 = sizeof(float);
+    nb11 = nb10 * (ne10 / 1);
+
+    nb0 = sizeof(float);
+    nb1 = nb0 * (ne0 / 1);
+    nb2 = nb1 * ne1;
+    /*MY DEFINITION ENDS*/
     size_t work_size = 0;
 
     size_t cur = 0;
@@ -2773,8 +2794,12 @@ public:
     // For Q4_K quantization Weight, it is essential for activation to be
     // quantized online.
     if (GGML_TYPE_F32 != vec_dot_type) {
+      ///@todo Generalize ggml_row_size
       // Refer to ggml-cpu.c
-      cur = ggml_row_size(vec_dot_type, (ne10 * ne11 * ne12 * ne13));
+      // cur = ggml_row_size(vec_dot_type, (ne10 * ne11 * ne12 * ne13));
+      // QK_K, sizeof(block_q8_K) = blocksize, typesize
+      size_t nnee = (ne10 * ne11 * ne12 * ne13);
+      cur =  (sizeof(block_q8_K)  * nnee) / QK_K;
     }
     work_size = MAX(work_size, cur);
     if (work_size > 0) {
@@ -2783,7 +2808,10 @@ public:
     // char *       wdata = static_cast<char *>(params->wdata);
     char **wdata = (new char *[work_size]);
 
-    const size_t nbw1 = ggml_row_size(PARAM_TYPE, ne10);
+    ///@todo Generalize ggml_row_size
+    // const size_t nbw1 = ggml_row_size(PARAM_TYPE, ne10);
+    const size_t nbw1 = (sizeof(block_q8_K) * ne10) / QK_K;
+
     assert(work_size >= nbw1 * ne11);
 
     /// @todo Generailize to get type traits considering template parameter
@@ -2822,9 +2850,10 @@ public:
     // ggml_barrier(params->threadpool);
 
     const void *src1_wdata = (void *)wdata;
-    const size_t src1_col_stride = ggml_row_size(PARAM_TYPE, ne10);
-    int64_t src0_start = (ith * ne01) / nth;
-    int64_t src0_end = ((ith + 1) * ne01) / nth;
+    ///@todo Generalize ggml_row_size
+    const size_t src1_col_stride = (sizeof(block_q8_K) * ne10) / QK_K;
+    int64_t src0_start = (ith * ne01) / nth; // = 0
+    int64_t src0_end = ((ith + 1) * ne01) / nth; // ne01 = N
     src0_start = (src0_start % NB_COLS)
                    ? src0_start + NB_COLS - (src0_start % NB_COLS)
                    : src0_start;
@@ -2855,6 +2884,21 @@ public:
             << " ns " << std::endl;
 
     delete[] wdata;
+        printf("forward_mul_mat INFORMATION\n");
+        printf("ne00: %ld, ne01: %ld, ne02: %d, ne03: %d\n", ne00, ne01, 1, 1);
+        printf("nb00: %ld, nb01: %ld\n", nb00, nb01);
+        // printf("nb00: %ld, nb01: %ld, nb02: %ld, nb03: %ld\n", nb00, nb01, nb02, nb03);
+
+        printf("ne10: %ld, ne11: %ld, ne12: %ld, ne13: %ld\n", ne10, ne11, ne12, ne13);
+        printf("nb10: %ld, nb11: %ld\n", nb10, nb11);
+        // printf("nb10: %ld, nb11: %ld, nb12: %ld, nb13: %ld\n", nb10, nb11, nb12, nb13);
+        
+        printf("ne0: %ld, ne1: %ld, ne2: %ld, ne3: %ld\n", ne0, ne1, ne2, ne3);
+        printf("nb0: %ld, nb1: %ld, nb2: %ld, nb3: %ld\n", nb0, nb1, nb2, nb3);
+
+        printf("ith: %d, nth: %d\n", ith, nth);
+        printf("nbw1: %ld, nb11: %ld\n", nbw1, nb11);
+        // printf("nbw2: %d, nbw3: %d\n", nbw2, nbw3);
   }
 
   ///@note repack is not called during GEMM runtime. It should be called weight
