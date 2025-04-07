@@ -320,6 +320,7 @@ if get_option('enable-blas')
 
     if not blas_dep.found()
       blas_options = cmake.subproject_options()
+      blas_options.add_cmake_defines({'NUM_THREADS': get_option('openblas-num-threads').to_string()})
       blas_options.add_cmake_defines({'BUILD_TESTING': false})
       blas_options.add_cmake_defines({'BUILD_BENCHMARKS': false})
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
