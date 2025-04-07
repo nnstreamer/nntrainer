@@ -36,6 +36,7 @@
 #include <addition_layer.h>
 #include <attention_layer.h>
 #include <bn_layer.h>
+#include <cast_layer.h>
 #include <centroid_knn.h>
 #include <concat_layer.h>
 #include <constant_derivative_loss_layer.h>
@@ -272,6 +273,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_DIVIDE);
   ac.registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
                      LayerType::LAYER_POW);
+  ac.registerFactory(nntrainer::createLayer<CastLayer>, CastLayer::type,
+                     LayerType::LAYER_CAST);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
