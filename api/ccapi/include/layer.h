@@ -50,6 +50,7 @@ enum LayerType {
   LAYER_MATMUL =
     ML_TRAIN_LAYER_TYPE_MATMUL, /**< Matrix multiplication Layer type */
   LAYER_GATHER = ML_TRAIN_LAYER_TYPE_GATHER, /**< Gather Layer type */
+  LAYER_CAST = ML_TRAIN_LAYER_TYPE_CAST,     /**< Cast Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -398,6 +399,14 @@ MatMulLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 GatherLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_GATHER, properties);
+}
+
+/**
+ * @brief Helper function to create cast layer
+ */
+inline std::unique_ptr<Layer>
+CastLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CAST, properties);
 }
 
 /**
