@@ -36,6 +36,7 @@
 #include <addition_layer.h>
 #include <attention_layer.h>
 #include <bn_layer.h>
+#include <cast_layer.h>
 #include <centroid_knn.h>
 #include <channel_shuffle.h>
 #include <concat_layer.h>
