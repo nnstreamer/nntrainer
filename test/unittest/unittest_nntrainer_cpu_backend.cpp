@@ -102,6 +102,27 @@ struct block_q4_Kx8_testonly {
   uint8_t qs[1024];   // 4--bit quants
 };
 
+static inline void print_q4_k_block_partially(void* block){
+    block_q4_K_testonly* b = (block_q4_K_testonly*) block;
+    std::cout << "d : " << b->d << std::endl;
+    std::cout << "dmin : " << b->dmin << std::endl;
+    // std::cout << "qs : ";
+    // for (int i = 0; i < 256/2; ++i){
+    //     uint8_t packed_val = b->qs[i];
+    //     uint8_t val1 = packed_val & 0x0F;
+    //     uint8_t val2 = (packed_val >> 4) & 0x0F;
+    //     std::cout << (int)val1 << " " << (int)val2 << " ";
+    // }
+    std::cout << "qs 5~8 : ";
+    for (int i = 5; i < 8; ++i){
+        uint8_t packed_val = b->qs[i];
+        uint8_t val1 = packed_val & 0x0F;
+        uint8_t val2 = (packed_val >> 4) & 0x0F;
+        std::cout << (int)val1 << " " << (int)val2 << " ";
+    }
+    std::cout << std::endl;
+}
+
 TEST(nntrainer_cpu_backend_standalone, ele_add) {
     const unsigned int TEST_SIZE = 100;
     float alpha = 1.F;
@@ -165,12 +186,17 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM_latencyonly) {
     // const unsigned int M = 8;
     // const unsigned int K = 16;
     // const unsigned int N = 32;
-    const unsigned int M = 1024;
-    const unsigned int K = 768;
-    const unsigned int N = 512;
-    
-    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 1.0f);
-    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 2.0f);
+    // const unsigned int M = 512; // = sizez
+    // const unsigned int K = 768; // = sizex
+    // const unsigned int N = 1024; // = sizey
+    const unsigned int M = 256; // = sizez
+    const unsigned int K = 1024; // = sizex
+    const unsigned int N = 512; // = sizey
+
+    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 2.0f);
+    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 1.0F);
+    // std::vector<float> activation = generate_random_vector<float>(M * K);
+    // std::vector<float> weight = generate_random_vector<float>(N * K);
     std::vector<float> weight_tmp(N * K);
     std::vector<float> ref_dst(M * N);
     std::vector<float> dst(M * N);
@@ -190,29 +216,86 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM_latencyonly) {
             << " ns " << std::endl;
     
     const unsigned int num_blocks = K*N / (2*1024); 
-    std::vector<block_q4_Kx8_testonly> repacked_qWeight(K*N / (2*1024));
+    std::vector<block_q4_Kx8_testonly> repacked_qWeight(num_blocks);
     for (unsigned int i = 0; i < num_blocks; ++i) {
+        // for (unsigned int j = 0; j < 8; ++j) {
+        //     repacked_qWeight[i].d[j] = i;
+        // }
+        // for (unsigned int j = 0; j < 8; ++j) {
+        //     repacked_qWeight[i].dmin[j] = i;
+        // }
+        // for (unsigned int j = 0; j < 96; ++j) {
+        //     repacked_qWeight[i].scales[j] = i;
+        // }
+        // for (unsigned int j = 0; j < 1024; ++j) {
+        //     // uint8_t packed_val = static_cast<uint8_t>(i + 1 + j % 2) << 4;
+        //     // packed_val |= static_cast<uint8_t>(i + 2 + j % 3);
+        //     uint8_t packed_val = static_cast<uint8_t>(i + 1) << 4;
+        //     packed_val |= static_cast<uint8_t>(i + 2);
+        //     repacked_qWeight[i].qs[j] = packed_val;
+        // }
         for (unsigned int j = 0; j < 8; ++j) {
-            repacked_qWeight[i].d[j] = 1;
+            repacked_qWeight[i].d[j] = 2;
         }
         for (unsigned int j = 0; j < 8; ++j) {
-            repacked_qWeight[i].dmin[j] = 1;
+            repacked_qWeight[i].dmin[j] = 2;
         }
-        for (unsigned int j = 0; j < 12; ++j) {
-            repacked_qWeight[i].scales[j] = 1;
+        for (unsigned int j = 0; j < 96; ++j) {
+            repacked_qWeight[i].scales[j] = 2;
         }
         for (unsigned int j = 0; j < 1024; ++j) {
-            repacked_qWeight[i].qs[j] = 1;
+            // uint8_t packed_val = static_cast<uint8_t>(i + 1 + j % 2) << 4;
+            // packed_val |= static_cast<uint8_t>(i + 2 + j % 3);
+            uint8_t packed_val = static_cast<uint8_t>(2 + 1) << 4;
+            packed_val |= static_cast<uint8_t>(2 + 2);
+            repacked_qWeight[i].qs[j] = packed_val;
         }
     }
 
     // Step3. Run GEMM! (Online activation quantization + kernel routine + return float)
+    // block-params
+    // ref)
+    //     .blck_size                = QK_K,
+    // .type_size                = sizeof(block_q4_K),
+    int64_t ne00 = K, ne01 = N, ne02 = 1, ne03 = 1; // weight block params
+    int64_t nb00, nb01, nb02, nb03; // weight block params
+    int64_t ne10 = K, ne11 = M, ne12 = 1, ne13 = 1; // activation block params
+    int64_t nb10, nb11, nb12, nb13; // activation block params
+    int64_t ne0 = N, ne1 = M, ne2 = 1, ne3 = 1; // output block params
+    int64_t nb0, nb1, nb2, nb3; // output block params
+    
+    nb00 = sizeof(block_q4_K_testonly); // ggml_type_size(type);
+    nb01 = nb00 * (ne00 / /*QK_K*/ 256 );
+    nb02 = nb01 * ne01;
+    nb03 = nb02 * ne02;
+    
+    nb10 = sizeof(float);
+    nb11 = nb10 * (ne10 / 1);
+    nb12 = nb11 * ne11;
+    nb13 = nb12 * ne12;
+
+    nb0 = sizeof(float);
+    nb1 = nb0 * (ne0 / 1);
+    nb2 = nb1 * ne1;
+    nb3 = nb2 * ne2;
+
+    printf("nb02 : %ld, nb03 : %ld\n", nb02, nb03);
+    printf("nb12 : %ld, nb13 : %ld\n", nb12, nb13);
+    printf("nb2 : %ld, nb3 : %ld\n", nb2, nb3);
+
+
     t1 = high_resolution_clock::now();
     nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) repacked_qWeight.data(), N, dst_ptr, N);
     t2 = high_resolution_clock::now();
     dt = duration_cast<nanoseconds>(t2 - t1);
     std::cout << "gemm_q4_K : " << dt.count()
             << " ns " << std::endl;
+
+    // print_matrix(dst_ptr, M, N);
+
+    auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
+    std::cout << "sum : "<< sum << std::endl;
+
 }
 
 TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_latencyonly) {
@@ -225,7 +308,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_latencyonly) {
     const unsigned int K = 768;
     const unsigned int N = 512;
     
-    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 1.0f);
+    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 2.0f);
     std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 1.5F);
     std::vector<float> weight_tmp(N * K);
     std::vector<float> ref_dst(M * N);
@@ -273,18 +356,19 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_latencyonly) {
 
 TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     ///@note A(M, K) * W.T(N, K) = (M, N)
+    ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
 
     // const unsigned int M = 8;
     // const unsigned int K = 16;
     // const unsigned int N = 32;
-    const unsigned int M = 1024;
-    const unsigned int K = 768;
-    const unsigned int N = 512;
+    const unsigned int M = 512; // = sizez
+    const unsigned int K = 768; // = sizex
+    const unsigned int N = 1024; // = sizey
     
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
-    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 1.0f);
-    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 2.0F);
+    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 2.0f);
+    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 1.0F);
     // std::vector<float> activation = generate_random_vector<float>(M * K);
     // std::vector<float> weight = generate_random_vector<float>(N * K);
     std::vector<float> weight_tmp(N * K);
@@ -319,6 +403,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     // Step1. Supposed to be an offline Weight quantization from float to q4_K (Zero latency overhead for the model runtime)
     nntrainer::quantize_q4_K(rhs_ptr, /*dst quantized vector*/(void*) offline_qWeight_ptr, K, N, /*imatrix*/nullptr);
     ///@note Step1 is validated with unittest TC : q4_k_quantization
+    // print_q4_k_block_partially(offline_qWeight_ptr);
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
     std::vector<char> repacked_qWeight = std::vector<char>(data_size); 
@@ -374,8 +459,8 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV) {
     
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
-    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 1.0f);
-    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 2.0F);
+    std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 2.0f);
+    std::vector<float> weight = generate_homogeneous_vector<float>(N * K, 1.0F);
     // std::vector<float> activation = generate_random_vector<float>(M * K);
     // std::vector<float> weight = generate_random_vector<float>(N * K);
     std::vector<float> weight_tmp(N * K);
