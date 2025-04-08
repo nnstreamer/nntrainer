@@ -407,7 +407,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
     std::vector<char> repacked_qWeight = std::vector<char>(data_size); 
-    nntrainer::repack_q4_K_to_q4_K_8(offline_qWeight_ptr, repacked_qWeight.data(), data_size, /*row*/K, /*col*/N); // W is transposed, so it is N*K ?
+    nntrainer::repack_q4_K_to_q4_K_8(repacked_qWeight.data(), offline_qWeight_ptr,  data_size, /*row*/K, /*col*/N); // W is transposed, so it is N*K ?
     ///@note Needs validation!
     ///@note double-check for : row / col order (since is this function consider a transpoed weight? Or is it just generalized for all matrices?)
     ///@note double-check for data_size (temporally allocated the same size with offline_qWeight, but itself is not validated, yet.)
@@ -498,7 +498,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV) {
 
     // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the model weights. It's a one-time operation)
     std::vector<char> repacked_qWeight = std::vector<char>(data_size); 
-    nntrainer::repack_q4_K_to_q4_K_8(offline_qWeight_ptr, repacked_qWeight.data(), data_size, /*row*/K, /*col*/N); // W is transposed, so it is N*K ?
+    nntrainer::repack_q4_K_to_q4_K_8(repacked_qWeight.data(), offline_qWeight_ptr,  data_size, /*row*/K, /*col*/N); // W is transposed, so it is N*K ?
     ///@note Needs validation!
     ///@note double-check for : row / col order (since is this function consider a transpoed weight? Or is it just generalized for all matrices?)
     ///@note double-check for data_size (temporally allocated the same size with offline_qWeight, but itself is not validated, yet.)
