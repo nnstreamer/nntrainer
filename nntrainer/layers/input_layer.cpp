@@ -48,25 +48,10 @@ void InputLayer::forwarding(RunLayerContext &context, bool training) {
   std::unique_ptr<nntrainer::Quantizer> quantizer;
   if (!context.getInPlace()) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-    quantizer = nullptr;
-
-    switch (hidden_.getDataType()) {
-    // This will be supported in Tensor itself. Until then, we use this.
-    case Tdatatype::UINT8:
-    case Tdatatype::UINT16: {
-      //@todo it would be better to be replaced with
-      // hidden_.copyData(input_);
-      for (size_t b = 0; b < input_.batch(); ++b)
-        for (size_t c = 0; c < input_.channel(); ++c)
-          for (size_t h = 0; h < input_.height(); ++h)
-            for (size_t w = 0; w < input_.width(); ++w)
-              hidden_.setValue(b, c, h, w, input_.getValue(b, c, h, w));
-      break;
-    }
-    default:
-      hidden_.copyData(input_);
-      break;
-    }
+    ///@note: The following code simply copies incoming values (fp32) to the
+    // input tensor. Supported types include QINT4, QINT8, UINT8, UINT16,
+    // UINT32, FP16, and FP32.
+    hidden_.copyData(input_);
   }
 
   if (std::get<props::Normalization>(input_props))
