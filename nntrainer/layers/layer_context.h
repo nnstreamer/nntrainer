@@ -139,6 +139,15 @@ public:
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
 
   /**
+   * @brief Retrieves the data type of input tensor at the given index
+   *
+   * @return The data type of the input tensor
+   */
+  const TensorDim::DataType getInputDataType(int idx) const {
+    return input_dim[idx].getDataType();
+  }
+
+  /**
    * @brief Get the Mutable Input Dimensions object
    *
    * @return std::vector<TensorDim>& Input dimensions
