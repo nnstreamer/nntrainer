@@ -169,6 +169,9 @@ typedef cl_int(CL_API_CALL *PFN_clReleaseCommandQueue)(
 
 typedef cl_int(CL_API_CALL *PFN_clReleaseMemObject)(cl_mem /**< memobj */);
 
+typedef cl_int(CL_API_CALL *PFN_clFinish)(
+  cl_command_queue /**< command_queue */);
+
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
 extern PFN_clGetDeviceInfo clGetDeviceInfo;
@@ -196,6 +199,7 @@ extern PFN_clReleaseContext clReleaseContext;
 extern PFN_clRetainCommandQueue clRetainCommandQueue;
 extern PFN_clReleaseCommandQueue clReleaseCommandQueue;
 extern PFN_clReleaseMemObject clReleaseMemObject;
+extern PFN_clFinish clFinish;
 
 } // namespace nntrainer::opencl
 

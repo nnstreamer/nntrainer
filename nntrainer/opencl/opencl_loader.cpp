@@ -19,8 +19,8 @@
 
 namespace nntrainer::opencl {
 
-#define LoadFunction(function)                 \
-  function = reinterpret_cast<PFN_##function>( \
+#define LoadFunction(function)                                                 \
+  function = reinterpret_cast<PFN_##function>(                                 \
     DynamicLibraryLoader::loadSymbol(libopencl, #function));
 
 /**
@@ -93,6 +93,7 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clRetainCommandQueue);
   LoadFunction(clReleaseCommandQueue);
   LoadFunction(clReleaseMemObject);
+  LoadFunction(clFinish);
 }
 
 PFN_clGetPlatformIDs clGetPlatformIDs;
@@ -122,5 +123,6 @@ PFN_clReleaseContext clReleaseContext;
 PFN_clRetainCommandQueue clRetainCommandQueue;
 PFN_clReleaseCommandQueue clReleaseCommandQueue;
 PFN_clReleaseMemObject clReleaseMemObject;
+PFN_clFinish clFinish;
 
 } // namespace nntrainer::opencl
