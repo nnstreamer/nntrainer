@@ -184,6 +184,14 @@ public:
   virtual unsigned int getNumLoadedTensors();
 
   /**
+   * @brief setup FSU for the given execution order.
+   * This function will reset Actives at the given order.
+   *
+   * @param order execution order
+   */
+  void setupFSU(unsigned int order);
+
+  /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
