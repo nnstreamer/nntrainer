@@ -379,6 +379,16 @@ public:
 };
 
 /**
+ * @brief StartDimensions property, start dimensions to be slicing
+ *
+ */
+class StartDimensions : public TensorDimProperty {
+public:
+  static constexpr const char *key = "starts"; /**< unique key to access */
+  using prop_tag = dimension_prop_tag;         /**< property type */
+};
+
+/**
  * @brief EndDimension property, end dimension to be flatten
  *
  */
@@ -398,6 +408,16 @@ public:
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
+};
+
+/**
+ * @brief EndDimensions property, end dimensions to be slicing
+ *
+ */
+class EndDimensions : public TensorDimProperty {
+public:
+  static constexpr const char *key = "ends"; /**< unique key to access */
+  using prop_tag = dimension_prop_tag;       /**< property type */
 };
 
 /**
