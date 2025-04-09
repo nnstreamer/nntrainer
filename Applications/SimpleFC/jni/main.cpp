@@ -123,7 +123,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   const unsigned int feature_size = 1 * 1024 * 1024;
 
-  float input[feature_size];
+  std::vector<float> input(feature_size);
 
   for (unsigned int j = 0; j < feature_size; ++j)
     input[j] = (j / (float)feature_size);
@@ -131,7 +131,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   std::vector<float *> in;
   std::vector<float *> answer;
 
-  in.push_back(input);
+  in.push_back(input.data());
 
   auto start = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(start);
