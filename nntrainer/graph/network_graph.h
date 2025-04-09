@@ -459,6 +459,10 @@ public:
    */
   void LoadTensors(const unsigned int order,
                    unsigned int remainder_lookahead = 0);
+  /**
+  * @brief Setup FSU, InActive FSU Element
+  */
+  bool setupFSU();
 
   /**
    * @brief check data of order is loaded

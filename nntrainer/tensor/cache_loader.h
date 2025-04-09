@@ -122,6 +122,14 @@ public:
    */
   virtual unsigned int getNumLoadedTensors();
 
+  /**
+   * @brief setup FSU for the given execution order.
+   * This function will reset Actives at the given order.
+   *
+   * @param order execution order
+   */
+  virtual void setupFSU(unsigned int order);
+
 private:
   std::shared_ptr<CachePool> pool; /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
