@@ -26,6 +26,7 @@ namespace nntrainer {
 // get global cl_context to use in kernels
 static ClContext *attention_cc =
   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
  * @brief     Rotary Embedding process
