@@ -301,28 +301,25 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
     size_t dim1_size = sizeof(float) * size_input;
     size_t dim2_size = sizeof(float) * size_res;
 
-    opencl::Buffer inputA(blas_cc->context_inst_, dim1_size, true, nullptr);
-
-    opencl::Buffer inOutRes(blas_cc->context_inst_, dim2_size, true, nullptr);
-
-    result = inputA.WriteData(blas_cc->command_queue_inst_, input);
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, dim1_size, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(blas_cc->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, dim2_size, res);
     if (!result) {
       break;
     }
 
-    result =
-      kernel_addition_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_addition_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
-
-    result =
-      kernel_addition_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    result = kernel_addition_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -347,7 +344,9 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
       break;
     }
 
-    result = inOutRes.ReadData(blas_cc->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      blas_cc->command_queue_inst_, dim2_size, res);
+
     if (!result) {
       break;
     }

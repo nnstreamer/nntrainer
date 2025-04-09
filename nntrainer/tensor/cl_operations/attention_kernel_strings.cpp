@@ -31,7 +31,9 @@ const std::string &getRotaryEmbClKernel() {
                                         unsigned int dim,
                                         unsigned int half_,
                                         unsigned int max_timestep,
-                                        unsigned int from) {
+                                        unsigned int from,
+                                        unsigned int offsetFreqsSin,
+                                        unsigned int offsetSin) {
       __global float *cos_ptr = cos_;
       __global float *sin_ptr = sin_;
   
@@ -47,7 +49,7 @@ const std::string &getRotaryEmbClKernel() {
             unsigned idx = (from + h)*dim;
             for(unsigned int i = idx; i < idx + dim; i++){
               cos_ptr[i - idx] = freqs_cos[i];
-              sin_ptr[i - idx] = freqs_sin[i];
+              sin_ptr[i - idx + offsetSin] = freqs_sin[i + offsetFreqsSin];
             }
           }
   
@@ -60,7 +62,7 @@ const std::string &getRotaryEmbClKernel() {
               } else {
                 transformed_value = input[b * channel * height * width + c * height * width + h * width + span - half_];
               }
-              value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
+              value = value * cos_ptr[k] + transformed_value * sin_ptr[k + offsetSin];
               output[b * channel * height * width + c * height * width + h * width + span] = value;
             }
           }
@@ -91,7 +93,9 @@ const std::string &getRotaryEmbClKernelFP16() {
                                         unsigned int dim,
                                         unsigned int half_,
                                         unsigned int max_timestep,
-                                        unsigned int from) {
+                                        unsigned int from,
+                                        unsigned int offsetFreqsSin,
+                                        unsigned int offsetSin) {
       __global float *cos_ptr = cos_;
       __global float *sin_ptr = sin_;
   
@@ -107,7 +111,7 @@ const std::string &getRotaryEmbClKernelFP16() {
             unsigned idx = (from + h)*dim;
             for(int i = idx; i < idx + dim; i++ ){
               cos_ptr[i - idx] = freqs_cos[i];
-              sin_ptr[i - idx] = freqs_sin[i];
+              sin_ptr[i - idx + offsetSin] = freqs_sin[i + offsetFreqsSin];
             }
           }
   
@@ -120,7 +124,7 @@ const std::string &getRotaryEmbClKernelFP16() {
               } else {
                 transformed_value = (float)input[b * channel * height * width + c * height * width + h * width + span - half_];
               }
-              value = value * cos_ptr[k] + transformed_value * sin_ptr[k];
+              value = value * cos_ptr[k] + transformed_value * sin_ptr[k + offsetSin];
               output[b * channel * height * width + c * height * width + h * width + span] = (half)value;
             }
           }
