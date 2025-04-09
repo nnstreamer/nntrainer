@@ -2674,26 +2674,22 @@ void gemm<block_q4_K, 8, 8, GGML_TYPE_Q8_K>(int n, float *s, size_t bs,
 /*
 GEMM/GEMV KERNEL FUNCTION INTERFACE
  */
-// static void print_q8_k_block(void* block){
-//     block_q8_K* b = (block_q8_K*) block;
-//     printf("d : %f\n", b->d);
-//     printf("qs 0-3 : ");
-//     for (int i = 0; i < 4; i++) {
-//         printf("%d ", b->qs[i]);
-//     }
-//     printf("\n");
-//     printf("bsums 0-3 : ");
-//     for (int i = 0; i < 4; i++) {
-//         printf("%d ", b->bsums[i]);
-//     }
-//     printf("\n");
-// }
-// struct block_q8_Kx4 {
-//   float d[4];              // delta
-//   int8_t qs[QK_K * 4];     // quants
-//   int16_t bsums[QK_K / 4]; // sum of quants in groups of 16
-// };
-static void print_q8_kx4_block_1(void* block){
+void print_q8_k_block(void* block){
+    block_q8_K* b = (block_q8_K*) block;
+    printf("d : %f\n", b->d);
+    printf("qs 0-3 : ");
+    for (int i = 0; i < 4; i++) {
+        printf("%d ", b->qs[i]);
+    }
+    printf("\n");
+    printf("bsums 0-3 : ");
+    for (int i = 0; i < 4; i++) {
+        printf("%d ", b->bsums[i]);
+    }
+    printf("\n");
+}
+
+void print_q8_kx4_block_1(void* block){
     block_q8_Kx4* b = (block_q8_Kx4*) block;
     printf("d : %f\n", b->d[0]);
     printf("qs 0-3 : ");
@@ -2707,7 +2703,7 @@ static void print_q8_kx4_block_1(void* block){
     }
     printf("\n");
 }
-static void print_5_floats(float* src){
+void print_5_floats(float* src){
     for (int i = 0; i < 5; ++i){
         printf("%f ", src[i]);
     }
@@ -2767,14 +2763,12 @@ public:
     const int ith = 0;
     const int nth = 1;
 
-    // int64_t ne0 = M;
-    // int64_t ne1 = N;
     int64_t ne0 = N;
     int64_t ne1 = M;
     int64_t ne2 = 1;
     int64_t ne3 = 1;
 
-    int64_t ne01 = ne0; // ?
+    int64_t ne01 = ne0;
     int64_t ne11 = ne1;
     int64_t ne12 = ne2;
     int64_t ne13 = ne3;
@@ -2864,21 +2858,22 @@ public:
     /// PARAM_TYPE
     // const ggml_from_float_t from_float =
     // ggml_get_type_traits_cpu(PARAM_TYPE)->from_float;
+
     print_5_floats((float *)A);
-    auto t1 = high_resolution_clock::now();
+    // auto t1 = high_resolution_clock::now();
     int64_t i11_processed = 0;
     for (int64_t i11 = ith * 4; i11 < ne11 - ne11 % 4; i11 += nth * 4) {
       ggml_quantize_mat_t<INTER_SIZE, PARAM_TYPE>(
         (float *)((char *)A + i11 * nb11), (void *)(wdata + i11 * nbw1), 4,
         ne10);
     }
-    auto t2 = high_resolution_clock::now();
-    auto dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "ggml_quantize_mat_t : " << dt.count()
-            << " ns " << std::endl;
+    // auto t2 = high_resolution_clock::now();
+    // auto dt = duration_cast<nanoseconds>(t2 - t1);
+    // std::cout << "ggml_quantize_mat_t : " << dt.count()
+    //         << " ns " << std::endl;
 
     i11_processed = ne11 - ne11 % 4;
-    t1 = high_resolution_clock::now();
+    // t1 = high_resolution_clock::now();
     for (int64_t i11 = i11_processed + ith; i11 < ne11; i11 += nth) {
       ///@todo Generailize to get type traits considering template parameter
       ///PARAM_TYPE
@@ -2887,10 +2882,10 @@ public:
       quantize_row_q8_K((float *)((char *)A + i11 * nb11),
                         (void *)(wdata + i11 * nbw1), ne10);
     }
-    t2 = high_resolution_clock::now();
-    dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "quantize_row_q8_K : " << dt.count()
-            << " ns " << std::endl;
+    // t2 = high_resolution_clock::now();
+    // dt = duration_cast<nanoseconds>(t2 - t1);
+    // std::cout << "quantize_row_q8_K : " << dt.count()
+    //         << " ns " << std::endl;
 
     print_q8_kx4_block_1(wdata);
 
@@ -2912,7 +2907,7 @@ public:
     }
 
     // If there are more than three rows in src1, use gemm; otherwise, use gemv.
-    t1 = high_resolution_clock::now();
+    // t1 = high_resolution_clock::now();
     if (ne11 > 3) {
       gemm<BLOC_TYPE, INTER_SIZE, NB_COLS, PARAM_TYPE>(
         ne00, (float *)((char *)C) + src0_start, ne01,
@@ -2926,10 +2921,10 @@ public:
         (const char *)src1_wdata + (src1_col_stride * iter), 1,
         src0_end - src0_start);
     }
-    t2 = high_resolution_clock::now();
-    dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "compute kernel : " << dt.count()
-            << " ns " << std::endl;
+    // t2 = high_resolution_clock::now();
+    // dt = duration_cast<nanoseconds>(t2 - t1);
+    // std::cout << "compute kernel : " << dt.count()
+    //         << " ns " << std::endl;
 
     delete[] wdata;
         printf("forward_mul_mat INFORMATION\n");
@@ -2946,7 +2941,6 @@ public:
 
         printf("ith: %d, nth: %d\n", ith, nth);
         printf("nbw1: %ld, nb11: %ld\n", nbw1, nb11);
-        // printf("nbw2: %d, nbw3: %d\n", nbw2, nbw3);
   }
 
   ///@note repack is not called during GEMM runtime. It should be called weight
@@ -2976,7 +2970,7 @@ void ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                              const unsigned int lda, const void *B,
                              const unsigned int ldb, float *C,
                              const unsigned int ldc) {
-  auto gemm_fn = ggml_get_optimal_repack_type(M);
+  auto gemm_fn = ggml_get_optimal_repack_type(N);
   if (gemm_fn) {
     gemm_fn->compute_forward(M, N, K, A, lda, B, ldb, C, ldc);
   }
@@ -2984,7 +2978,7 @@ void ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
 void ggml_repack_q4_K_to_q8_K(void *W, void *repacked_W, size_t data_size,
                               const unsigned int M, const unsigned int N) {
-  auto gemm_fn = ggml_get_optimal_repack_type(M);
+  auto gemm_fn = ggml_get_optimal_repack_type(N);
   if (gemm_fn) {
     gemm_fn->repack(W, repacked_W, data_size, M, N);
   }
