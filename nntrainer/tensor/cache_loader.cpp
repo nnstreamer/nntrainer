@@ -128,4 +128,8 @@ unsigned int CacheLoader::getNumLoadedTensors() {
   return pool->getNumLoadedTensors();
 }
 
+void CacheLoader::setupFSU(unsigned int order) {
+  pool->setupFSU(order);
+}
+
 } // namespace nntrainer
