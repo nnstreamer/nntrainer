@@ -205,8 +205,8 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   }
 
   auto mem_data = std::make_shared<MemoryData>(
-  id, std::bind(&CachePool::validate, this, std::placeholders::_1),
-  std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
+    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
+    std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
 
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
