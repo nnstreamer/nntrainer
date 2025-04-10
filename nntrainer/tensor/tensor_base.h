@@ -503,6 +503,11 @@ public:
   virtual void read(std::ifstream &file);
 
   /**
+   * @copydoc Tensor::readFSU()
+   */
+  virtual void readFSU();
+
+  /**
    * @copydoc Tensor::argmax()
    */
   virtual std::vector<unsigned int> argmax() const;
