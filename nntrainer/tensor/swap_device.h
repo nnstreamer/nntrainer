@@ -16,6 +16,7 @@
 
 #include <common.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <nntrainer_error.h>
@@ -26,6 +27,7 @@
 #include <utility>
 #include <vector>
 #if defined(_WIN32)
+#include "utils/mman_windows.h"
 #include <io.h>
 #define O_SYNC 0UL
 #else
@@ -66,7 +68,7 @@ public:
    *
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
-    dev_path(path + "/" + name),
+    dev_path(std::filesystem::path(path).append(name).string()),
     fd(-1),
     num_loaded_tensors(0),
     offset_index(0),
