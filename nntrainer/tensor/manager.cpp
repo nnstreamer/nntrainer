@@ -816,11 +816,12 @@ bool Manager::checkUnloadComplete(unsigned int order) {
 void Manager::LoadFsuTensors(unsigned int order, unsigned int lookahead) {
 
   auto enqueFsuTasks = [&](unsigned int execution_order,
-                           unsigned int look_ahead) {
-    weight_pool.loadFsuWeight(order, look_ahead);
+                           unsigned int lookahead) {
+    weight_pool.loadFsuWeight(execution_order, lookahead);
   };
+
   if (order <= max_exec_order) {
-    enqueFsuTasks(order, look_ahead);
+    enqueFsuTasks(order, lookahead);
   }
 }
 
@@ -950,7 +951,7 @@ unsigned int Manager::getNumLoadedTensorPoolTensors() {
 }
 
 bool Manager::checkFsuLoadComplete(unsigned int order) {
-  return weight_pool->checkFsuLoadComplete(order);
+  return weight_pool.checkFsuLoadComplete(order);
 }
 
 void Manager::setupFsu() { return weight_pool.setupFSU(); }
