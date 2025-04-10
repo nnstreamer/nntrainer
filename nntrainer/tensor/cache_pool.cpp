@@ -198,14 +198,15 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
-  auto mem_data = std::make_shared<MemoryData>(
-    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
-    std::bind(&CachePool::invalidate, this, std::placeholders::_1));
 
   void *memory_ptr = nullptr;
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
     memory_ptr = getMemoryPtrs().at(id - 1);
   }
+
+  auto mem_data = std::make_shared<MemoryData>(
+  id, std::bind(&CachePool::validate, this, std::placeholders::_1),
+  std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
 
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
