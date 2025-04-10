@@ -85,8 +85,9 @@ static inline int nearest_int(float fval) {
 static void ggml_quantize_mat_q8_K_4x8(const float *GGML_RESTRICT x,
                                        void *GGML_RESTRICT vy, int64_t k) {
   assert(QK_K == 256);
-  assert(k % QK_K == 0);
-  const int nb = k / QK_K;
+  // assert(k % QK_K == 0);
+  // const int nb = k / QK_K;
+  const int nb = (k + QK_K - 1) / QK_K;
 
   block_q8_Kx4 *GGML_RESTRICT y = (block_q8_Kx4 *)vy;
 
@@ -1671,15 +1672,6 @@ static void ggml_gemm_q4_K_8x8_q8_K(int n, float *GGML_RESTRICT s, size_t bs,
           }
         }
       }
-      // for (int z = 0; z < 1; z++) {
-      //   auto tmp = _mm256_sub_ps(acc_rows[z], acc_min_rows[z]);
-      //   float val[8];
-      //   _mm256_storeu_ps(val, tmp);
-      //   for (int zz = 0; zz < 3; ++zz) {
-      //     printf("%f\n", val[zz]);
-      //   }
-      // }
-      // Store the accumulated values
       for (int i = 0; i < 16; i++) {
         _mm256_storeu_ps((float *)(s + ((y * 4 + i) * bs + x * 8)),
                          _mm256_sub_ps(acc_rows[i], acc_min_rows[i]));
@@ -2610,7 +2602,9 @@ static int repack_q4_K_to_q4_K_8_bl(void *t, int interleave_block,
   // int nrow = ggml_nrows(t);
   int nrow = M * 1 * 1;
   // int nblocks = t->ne[0] / QK_K;
-  int nblocks = N / QK_K;
+  ///@todo check if this is valid way
+  int nblocks = (N + QK_K - 1) / QK_K;
+  // int nblocks = N / QK_K;
 
   assert(data_size == nrow * nblocks * sizeof(block_q4_K));
 
@@ -2689,7 +2683,9 @@ void print_q8_k_block(void* block){
     printf("\n");
 }
 
-void print_q8_kx4_block_1(void* block){
+void print_q8_kx4_block_1(void* block, int64_t processed){
+  if (processed == 0) return print_q8_k_block(block);
+  
     block_q8_Kx4* b = (block_q8_Kx4*) block;
     printf("d : %f\n", b->d[0]);
     printf("qs 0-3 : ");
@@ -2887,7 +2883,7 @@ public:
     // std::cout << "quantize_row_q8_K : " << dt.count()
     //         << " ns " << std::endl;
 
-    print_q8_kx4_block_1(wdata);
+    print_q8_kx4_block_1(wdata, i11_processed);
 
     /// @todo Enable multithreading
     // ggml_barrier(params->threadpool);
