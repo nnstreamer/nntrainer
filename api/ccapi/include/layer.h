@@ -44,6 +44,7 @@ enum LayerType {
   LAYER_DIVIDE = ML_TRAIN_LAYER_TYPE_DIVIDE,     /**< Divide Layer type */
   LAYER_POW = ML_TRAIN_LAYER_TYPE_POW,           /**< Pow Layer type */
   LAYER_SQRT = ML_TRAIN_LAYER_TYPE_SQRT,         /**< SQRT Layer type */
+  LAYER_SLICE = ML_TRAIN_LAYER_TYPE_SLICE,       /**< Slice Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -352,6 +353,14 @@ PowLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 SQRTLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_SQRT, properties);
+}
+
+/**
+ * @brief Helper function to create Slice layer
+ */
+inline std::unique_ptr<Layer>
+SliceLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_SLICE, properties);
 }
 
 /**
