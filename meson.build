@@ -458,6 +458,14 @@ else
   endif
 endif
 
+if get_option('enable-ggml')
+  ggml_options = cmake.subproject_options()
+
+  ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
+
+  message('Configuring with GGML interface enabled')
+endif
+
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
   ruy_root = meson.source_root() / 'subprojects' / 'ruy'
