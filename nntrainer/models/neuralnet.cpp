@@ -340,12 +340,6 @@ NeuralNetwork::~NeuralNetwork() {
   }
 }
 
-void NeuralNetwork::setupFSU() {
-  auto fsu_enable = std::get<props::Fsu>(model_flex_props);
-  if (fsu_enable)
-    model_graph.setupFSU();
-}
-
 /**
  * @brief     forward propagation using layers object which has layer
  */
