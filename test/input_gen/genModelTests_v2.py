@@ -542,6 +542,17 @@ class SQRTOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class SineOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.sin(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
 
 if __name__ == "__main__":
     record_v2(
@@ -879,6 +890,16 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="sqrt_operation",
+    )
+
+    sine_operation = SineOperation()
+    record_v2(
+        sine_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="sine_operation",
     )
 
     # Function to check the created golden test file

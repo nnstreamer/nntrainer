@@ -75,6 +75,7 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_POW = 38,    /**< Pow Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_TENSOR = 39, /**< Tensor Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_SQRT = 40,   /**< SQRT Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SINE = 41,   /**< Sine Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
