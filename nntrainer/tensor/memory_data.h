@@ -43,10 +43,10 @@ public:
    * @param[in] i_cb invalidate callback.
    */
   explicit MemoryData(unsigned int mem_id, MemoryDataValidateCallback v_cb,
-                      MemoryDataValidateCallback i_cb) :
+                      MemoryDataValidateCallback i_cb, void* memory_ptr = nullptr) :
     valid(false),
     id(mem_id),
-    address(nullptr),
+    address(memory_ptr),
     validate_cb(v_cb),
     invalidate_cb(i_cb) {}
 
