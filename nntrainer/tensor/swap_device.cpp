@@ -22,6 +22,11 @@
 #include <nntrainer_log.h>
 #include <swap_device.h>
 
+#if defined(_WIN32)
+#include <Memoryapi.h>
+#include <Sysinfoapi.h>
+#endif
+
 namespace nntrainer {
 
 void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
@@ -61,22 +66,29 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     << "SwapDevice: Device is not started";
 
 #ifdef USE_MMAP
+
+#if defined(_WIN32)
+  SYSTEM_INFO sysInfo;
+  GetSystemInfo(&sysInfo);
+  auto page_size = sysInfo.dwPageSize;
+#else
+  auto page_size = sysconf(_SC_PAGE_SIZE);
+#endif
+
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
     // FSU Load Weights
     auto len_offset = weight_offset.at(offset_index);
-    size_t off =
-      (len_offset.first / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t off = (len_offset.first / page_size) * page_size;
     size_t diff = len_offset.first - off;
     size_t len = len_offset.second + diff;
 
-    char *ptr = static_cast<char *>(mmap(
-      nullptr, len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED, fd, off));
+    char *ptr = static_cast<char *>(
+      mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
 
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-      << "SwapDevice: mmap: "
-      << std::string(strerror_r(errno, error_buf, error_buflen));
+      << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
     // MADVISE can be used to improve performance.
     // madvise(ptr, len, MADV_SEQUENTIAL);
@@ -96,7 +108,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
     return memory_ptr;
   } else {
-    size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
+    size_t off = (offset / page_size) * page_size;
     size_t diff = offset - off;
     size_t len = size + diff;
     const size_t error_buflen = 100;
@@ -104,8 +116,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     char *ptr = static_cast<char *>(
       mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-      << "SwapDevice: mmap: "
-      << std::string(strerror_r(errno, error_buf, error_buflen));
+      << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
     void *buf = static_cast<void *>(ptr + diff);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
@@ -170,12 +181,11 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   const size_t error_buflen = 100;
   char error_buf[error_buflen];
   NNTR_THROW_IF(ret == -1, std::runtime_error)
-    << "SwapDevice: munmap: "
-    << std::string(strerror_r(errno, error_buf, error_buflen));
+    << "SwapDevice: munmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
   mapped.erase(ptr);
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(_WIN32)
   madvise(std::get<void *>(info), std::get<size_t>(info), MADV_FREE);
 #endif
 
