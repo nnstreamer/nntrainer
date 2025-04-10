@@ -7,6 +7,7 @@ util_sources = [
   'nntr_threads.cpp',
   'fp16.cpp',
   'util_simd.cpp',
+  'mman_windows.cpp',
 ]
 
 util_headers = [
@@ -18,6 +19,7 @@ util_headers = [
   'fp16.h',
   'util_simd.h',
   'dynamic_library_loader.h',
+  'mman_windows.h',
 ]
 
 if get_option('enable-trace')

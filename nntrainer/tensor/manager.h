@@ -39,7 +39,6 @@
 namespace nntrainer {
 using ExecutionMode = ml::train::ExecutionMode;
 
-#if !defined(_WIN32)
 /**
  * @class MMappedMemory
  * @brief Memory Handler, that has mmaped memory with a file descriptor
@@ -106,7 +105,6 @@ private:
   size_t buf_size;  /**< buffer size */
   bool allocate_fd; /**< option to choose to allocate an fd */
 };
-#endif
 
 /**
  * @class   Manager
