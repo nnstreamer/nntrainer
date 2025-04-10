@@ -213,15 +213,19 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   elems[id] = elem;
 
   std::string ords;
-  // for (auto &o : exe_order) {
-  //   exec_ids[o].push_back(id);
-  //   ords.append(std::to_string(o));
-  //   ords.append(" ");
-  // }
-  exec_ids[exe_order[0]].push_back(id);
-  ords.append(std::to_string(exe_order[0]));
-  ords.append(" ");
 
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    exec_ids[exe_order[0]].push_back(id);
+    std::cout << exec_ids.size() << std::endl;
+    ords.append(std::to_string(exe_order[0]));
+    ords.append(" ");
+  } else {
+    for (auto &o : exe_order) {
+      exec_ids[o].push_back(id);
+      ords.append(std::to_string(o));
+      ords.append(" ");
+    }
+  }
   ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
           (long long unsigned int)offset, len);
 
