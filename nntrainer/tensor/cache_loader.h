@@ -26,11 +26,32 @@
 
 namespace nntrainer {
 
+/**
+ * @class ThreadPool
+ * @brief ThreadPool class to manage multiple threads
+ */
 class ThreadPool {
 public:
+  /**
+   * @brief constructor of ThreadPool
+   *
+   * @param num_threads number of threads
+   */
   ThreadPool(size_t num_threads);
+
+  /**
+   * @brief destructor of ThreadPool
+   */
   ~ThreadPool();
 
+  /**
+   *
+   * @tparam F Function that work
+   * @tparam Args args for the function
+   * @param f functions
+   * @param args arguments for the function
+   * @return
+   */
   template <class F, class... Args>
   std::future<typename std::invoke_result<F, Args...>::type>
   EnqueueJob(F &&f, Args &&...args);
@@ -44,6 +65,9 @@ private:
 
   bool stop_all;
 
+  /**
+   * Thread Worker
+   */
   void WorkerThread();
 };
 
