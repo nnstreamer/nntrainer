@@ -340,11 +340,21 @@ NeuralNetwork::~NeuralNetwork() {
   }
 }
 
+void NeuralNetwork::setupFSU() { model_graph.setupFSU(); }
+
 /**
  * @brief     forward propagation using layers object which has layer
  */
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
+  auto fsu_enable = std::get<props::Fsu>(model_flex_props);
+  if (fsu_enable) {
+    auto look_ahead = std::get<props::FsuLookahead>(model_flex_props);
+    for (unsigned int order = 0; order < look_ahead; order++) {
+      model_graph.LoadTensors(order, look_ahead);
+    }
+  }
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
@@ -385,10 +395,10 @@ sharedConstTensors NeuralNetwork::forwarding(
                and if it is loaded, then run forwarding. Every time it finishes
                the forwarding, ask load tensors for next n layers.
       **/
-
-      model_graph.LoadTensors(f);
-      model_graph.checkLoadComplete(f);
+      auto look_ahead = std::get<props::FsuLookahead>(model_flex_props);
+      model_graph.checkFsuLoadComplete(f);
       node->forwarding(training);
+      model_graph.LoadTensors(f + look_ahead, look_ahead);
     }
   };
 
@@ -423,14 +433,32 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
+  auto fsu_enable = std::get<props::Fsu>(model_flex_props);
+  if (fsu_enable) {
+    auto look_ahead = std::get<props::FsuLookahead>(model_flex_props);
+    for (unsigned int order = 0; order < look_ahead; order++) {
+      model_graph.LoadTensors(order);
+    }
+  }
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, from, to, stop_cb, userdata](std::shared_ptr<LayerNode> node,
                                         bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    model_graph.flushCacheExcept(f);
-    node->incremental_forwarding(from, to, training);
+    bool swap_mode = std::get<props::Fsu>(model_flex_props);
+    auto look_ahead = std::get<props::FsuLookahead>(model_flex_props);
+    if (exec_mode == ExecutionMode::TRAIN or
+        (exec_mode == ExecutionMode::INFERENCE and !swap_mode)) {
+      model_graph.flushCacheExcept(f);
+      node->incremental_forwarding(from, to, training);
+    } else {
+      model_graph.checkFsuLoadComplete(f);
+      node->incremental_forwarding(from, to, training);
+      model_graph.LoadTensors(f + look_ahead, look_ahead);
+    }
   };
 
   return model_graph.incremental_forwarding(from, to, training, forwarding_op,
@@ -929,7 +957,7 @@ NeuralNetwork::inference(unsigned int batch_size,
     auto out_t = *out.get();
     output.push_back(out_t.getData());
   }
-
+  setupFSU();
   return output;
 }
 
@@ -1038,7 +1066,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
     output.push_back(last_out_buf_data);
   }
-
+  setupFSU();
   return output;
 }
 
