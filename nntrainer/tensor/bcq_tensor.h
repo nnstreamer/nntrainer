@@ -209,6 +209,11 @@ public:
   void save(std::ostream &file) override;
 
   /**
+   * @copydoc Tensor::readFSU()
+   */
+  void readFSU();
+
+  /**
    * @copydoc Tensor::read(std::ifstream &file)
    */
   void read(std::ifstream &file) override;
