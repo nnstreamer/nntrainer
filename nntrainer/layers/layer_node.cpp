@@ -483,13 +483,9 @@ void LayerNode::read(std::ifstream &file, bool opt_var,
                      ml::train::ExecutionMode mode, bool fsu) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
-
-  if (!fsu) {
-    getLayer()->read(
-      file, *run_context, opt_var, mode,
-      (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
-      getWeightDataType());
-  }
+  getLayer()->read(file, *run_context, opt_var, mode,
+                   (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
+                   getWeightDataType(), fsu);
 }
 
 void LayerNode::save(std::ofstream &file, bool opt_var,

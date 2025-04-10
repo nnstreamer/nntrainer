@@ -1250,6 +1250,8 @@ Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
   return output;
 }
 
+void Tensor::readFSU() { itensor->readFSU(); }
+
 void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
