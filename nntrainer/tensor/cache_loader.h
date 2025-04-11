@@ -21,9 +21,31 @@
 #include <map>
 
 #include <cache_pool.h>
+#include <queue>
 #include <task_executor.h>
 
 namespace nntrainer {
+
+class ThreadPool {
+public:
+  ThreadPool(size_t num_threads);
+  ~ThreadPool();
+
+  template <class F, class... Args>
+  std::future<typename std::invoke_result<F, Args...>::type>
+  EnqueueJob(F &&f, Args &&...args);
+
+private:
+  size_t num_threads_;
+  std::vector<std::thread> worker_threads_;
+  std::queue<std::function<void()>> jobs_;
+  std::condition_variable cv_job_q_;
+  std::mutex m_job_q_;
+
+  bool stop_all;
+
+  void WorkerThread();
+};
 
 /**
  * @class   CacheLoader
@@ -130,10 +152,21 @@ public:
    */
   virtual void setupFSU(unsigned int order);
 
+  bool checkFsuLoadComplete(unsigned int order);
+
+  int loadFsuAsync(unsigned int order, unsigned int look_ahead);
+
 private:
-  std::shared_ptr<CachePool> pool; /**< cache pool */
+  std::shared_ptr<CachePool> pool;    /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
   TaskExecutor *unload_task_executor; /**< task executor */
+
+  ThreadPool *thread_pool_;
+  std::map<int, std::future<bool>> order_to_future;
+  std::map<int, std::promise<bool>> order_to_promise;
+
+  std::mutex load_lock;
+  std::mutex thread_lock;
 };
 
 } // namespace nntrainer
