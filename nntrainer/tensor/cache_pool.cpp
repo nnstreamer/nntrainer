@@ -213,11 +213,15 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   elems[id] = elem;
 
   std::string ords;
-  for (auto &o : exe_order) {
-    exec_ids[o].push_back(id);
-    ords.append(std::to_string(o));
-    ords.append(" ");
-  }
+  // for (auto &o : exe_order) {
+  //   exec_ids[o].push_back(id);
+  //   ords.append(std::to_string(o));
+  //   ords.append(" ");
+  // }
+  exec_ids[exe_order[0]].push_back(id);
+  ords.append(std::to_string(exe_order[0]));
+  ords.append(" ");
+
   ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
           (long long unsigned int)offset, len);
 
@@ -336,7 +340,7 @@ unsigned int CachePool::getNumLoadedTensors() {
   return swap_device->getNumLoadedTensors();
 }
 
-void CachePool::setupFSU(unsigned int order) {
+void CachePool::setupFSU() {
   for (auto active : actives) {
       active->resetActive();
   }
