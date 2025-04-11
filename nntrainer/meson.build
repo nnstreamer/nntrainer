@@ -24,6 +24,7 @@ nntrainer_headers = [
 
 nntrainer_base_deps=[
   blas_dep,
+  ggml_dep,
   iniparser_dep,
   libdl_dep,
   libm_dep,
