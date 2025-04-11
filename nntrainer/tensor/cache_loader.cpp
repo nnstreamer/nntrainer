@@ -156,8 +156,8 @@ int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
   return 0;
 }
 
-void CacheLoader::setupFSU(unsigned int order) {
-  pool->setupFSU(order);
+void CacheLoader::setupFSU() {
+  pool->setupFSU();
   order_to_future.clear();
   order_to_future.clear();
 }
