@@ -284,10 +284,10 @@ public:
   void loadCacheExec(unsigned int order);
 
   /**
- * @brief load cache data by execution order
- *
- * @param order execution order
- */
+   * @brief load cache data by execution order
+   *
+   * @param order execution order
+   */
   int loadFsuWeight(unsigned int order, unsigned int look_ahead);
 
   /**

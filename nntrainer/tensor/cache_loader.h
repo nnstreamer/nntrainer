@@ -151,9 +151,19 @@ public:
    */
   virtual void setupFSU();
 
-  bool checkFsuLoadComplete(unsigned int order);
+  /**
+   * @brief check data of order is loaded
+   *
+   * @param order execution order
+   */
+  virtual bool checkFsuLoadComplete(unsigned int order);
 
-  int loadFsuAsync(unsigned int order, unsigned int look_ahead);
+  /**
+   * @brief Load cache data with execution order for FSU
+   *
+   * @param order execution order
+   */
+  virtual int loadFsuAsync(unsigned int order, unsigned int look_ahead);
 
 private:
   std::shared_ptr<CachePool> pool;    /**< cache pool */
