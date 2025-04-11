@@ -513,8 +513,6 @@ unsigned int TensorPool::getNumLoadedTensors() {
   return cache_loader->getNumLoadedTensors();
 }
 
-void TensorPool::setupFSU() {
-  return cache_loader->setupFSU();
-}
+void TensorPool::setupFSU() { return cache_loader->setupFSU(); }
 
 } // namespace nntrainer
