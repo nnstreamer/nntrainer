@@ -109,16 +109,7 @@ public:
    * destroying this
    *
    */
-  ~ErrorNotification() noexcept(false) {
-    if (cleanup_func) {
-      try {
-        cleanup_func();
-      } catch (const std::exception &e) {
-        std::cerr << "Exception during cleanup: " << e.what() << '\n';
-      }
-    }
-    throw Err(ss.str().c_str());
-  }
+  ~ErrorNotification() {}
 
   /**
    * @brief Error notification stream wrapper
@@ -132,7 +123,16 @@ public:
   friend ErrorNotification<Err> &&operator<<(ErrorNotification<Err> &&out,
                                              T &&e) {
     out.ss << std::forward<T>(e);
-    return std::move(out);
+    
+    if (out.cleanup_func) {
+      try {
+        out.cleanup_func();
+      } catch (const std::exception &ex) {
+        std::cerr << "Exception during cleanup: " << ex.what() << '\n';
+      }
+    }
+    out.ss << std::forward<T>(e);
+    throw Err(out.ss.str().c_str());
   }
 
 private:
