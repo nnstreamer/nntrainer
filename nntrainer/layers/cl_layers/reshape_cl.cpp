@@ -153,28 +153,27 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(global_cl_context->context_inst_, dim_size, true,
-                          nullptr);
-
-    opencl::Buffer inOutRes(global_cl_context->context_inst_, dim_size, true,
-                            nullptr);
-
-    result = inputA.WriteData(global_cl_context->command_queue_inst_, input);
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(global_cl_context->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, res);
+
     if (!result) {
       break;
     }
 
-    result = kernel_copy_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_copy_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -213,7 +212,8 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
       break;
     }
 
-    result = inOutRes.ReadData(global_cl_context->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, res);
     if (!result) {
       break;
     }
@@ -236,28 +236,26 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
 
-    opencl::Buffer inputA(global_cl_context->context_inst_, dim_size, true,
-                          nullptr);
-
-    opencl::Buffer inOutRes(global_cl_context->context_inst_, dim_size, true,
-                            nullptr);
-
-    result = inputA.WriteData(global_cl_context->command_queue_inst_, input);
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, input);
     if (!result) {
       break;
     }
 
-    result = inOutRes.WriteData(global_cl_context->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, res);
     if (!result) {
       break;
     }
 
-    result = kernel_copy_ptr->SetKernelArguments(0, &inputA, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_copy_ptr->SetKernelArguments(1, &inOutRes, sizeof(cl_mem));
+    result = kernel_copy_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -296,7 +294,8 @@ void ReshapeLayerCl::copy_cl(const float *input, float *res,
       break;
     }
 
-    result = inOutRes.ReadData(global_cl_context->command_queue_inst_, res);
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      global_cl_context->command_queue_inst_, dim_size, res);
     if (!result) {
       break;
     }
