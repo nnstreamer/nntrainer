@@ -1014,10 +1014,15 @@ Tensor &Tensor::dotBatched(Tensor const &m, Tensor &result, bool trans,
   if (!result.isAllocated())
     throw std::invalid_argument(
       "Output tensor must be preallocated for dotBatched operation");
+
+  size_t lcm = std::lcm(batch(), m.batch());
+  size_t multiple_this = lcm / batch();
+  size_t multiple_m = lcm / m.batch();
+
   for (unsigned int b = 0; b < batch(); b++) {
     /** @todo try using transpose to speedup the operation */
-    const Tensor this_b = this->getBatchSlice(b, 1);
-    Tensor m_b = m.getBatchSlice(b, 1);
+    const Tensor this_b = this->getBatchSlice(b / multiple_this, 1);
+    Tensor m_b = m.getBatchSlice(b / multiple_m, 1);
     Tensor result_b = result.getBatchSlice(b, 1);
 
     this_b.dot(m_b, result_b, trans, trans_m, beta);
