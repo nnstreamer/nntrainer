@@ -1555,6 +1555,12 @@ public:
   Tensor clone(ml::train::TensorDim::DataType type) const;
 
   /**
+   * @brief     Read the Tensor For FSU
+   *
+   */
+  void readFSU();
+
+  /**
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */

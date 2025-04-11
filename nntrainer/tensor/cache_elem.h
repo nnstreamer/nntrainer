@@ -105,6 +105,14 @@ public:
   }
 
   /**
+   * @brief set active status as false
+   */
+  void resetActive() {
+    std::scoped_lock lg(device_mutex);
+    active = false;
+  };
+
+  /**
    * @brief get length of cache element
    *
    * @return length of cache element in byte

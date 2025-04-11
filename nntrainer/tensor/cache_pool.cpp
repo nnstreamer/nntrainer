@@ -198,24 +198,33 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
-  auto mem_data = std::make_shared<MemoryData>(
-    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
-    std::bind(&CachePool::invalidate, this, std::placeholders::_1));
 
   void *memory_ptr = nullptr;
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
     memory_ptr = getMemoryPtrs().at(id - 1);
   }
 
+  auto mem_data = std::make_shared<MemoryData>(
+    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
+    std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
+
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
   elems[id] = elem;
 
   std::string ords;
-  for (auto &o : exe_order) {
+
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    exec_ids[exe_order[0]].push_back(id);
+    std::cout << exec_ids.size() << std::endl;
+    ords.append(std::to_string(exe_order[0]));
+    ords.append(" ");
+  } else {
+    for (auto &o : exe_order) {
     exec_ids[o].push_back(id);
     ords.append(std::to_string(o));
     ords.append(" ");
+    }
   }
   ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
           (long long unsigned int)offset, len);
@@ -333,6 +342,12 @@ void CachePool::unloadActives() {
 
 unsigned int CachePool::getNumLoadedTensors() {
   return swap_device->getNumLoadedTensors();
+}
+
+void CachePool::setupFSU() {
+  for (auto active : actives) {
+    active->resetActive();
+  }
 }
 
 void CachePool::setFsuWeightPath(std::string path) {

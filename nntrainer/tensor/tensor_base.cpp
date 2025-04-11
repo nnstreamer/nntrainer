@@ -70,6 +70,8 @@ void TensorBase::read(std::ifstream &file) {
   putData();
 }
 
+void TensorBase::readFSU() {}
+
 void TensorBase::putData() const {
   if (!data)
     return;

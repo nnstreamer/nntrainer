@@ -139,11 +139,12 @@ public:
   /**
    * @copydoc Layer::read(std::ifstream &file, RunLayerContext &context, bool
    * opt_var, ml::train::ExecutionMode mode, bool trainable, TensorDim::DataType
-   * definedWeightDataType)
+   * definedWeightDataType, bool fsu)
    */
   void read(std::ifstream &file, RunLayerContext &context, bool opt_var,
             ml::train::ExecutionMode mode, bool trainable,
-            TensorDim::DataType definedWeightDataType) override;
+            TensorDim::DataType definedWeightDataType,
+            bool fsu = false) override;
 
 private:
   float divider; /**< size of the axes of the reduced */

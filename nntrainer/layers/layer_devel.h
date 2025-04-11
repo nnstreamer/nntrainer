@@ -363,29 +363,40 @@ public:
    * @param mode execution mode
    * @param bool trainable
    * @param type Required Weight Tensor Type from Network
+   * @param bool fsu flag
    *
    */
   virtual void read(std::ifstream &file, RunLayerContext &run_context,
                     bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-                    TensorDim::DataType defineWeightDataType) {
-    if (opt_var) {
+                    TensorDim::DataType defineWeightDataType, bool fsu) {
+    if (fsu) {
       for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
-        if (run_context.isGradientLastAccess(i) && trainable) {
-          /// @note read optimizer variables
-          for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i); ++j) {
-            run_context.getWeightOptVar(i, j).read(file);
-          }
+        if (run_context.getWeight(i).getDataType() ==
+            TensorDim::DataType::BCQ) {
+          run_context.getWeight(i).readFSU();
         }
       }
     } else {
-      for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
-        /// @note shared weights are only be read at the first acecss
-        if (run_context.isGradientFirstAccess(i)) {
-          run_context.getWeight(i).read(file);
+      if (opt_var) {
+        for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+          if (run_context.isGradientLastAccess(i) && trainable) {
+            /// @note read optimizer variables
+            for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i);
+                 ++j) {
+              run_context.getWeightOptVar(i, j).read(file);
+            }
+          }
+        }
+      } else {
+        for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+          /// @note shared weights are only be read at the first acecss
+          if (run_context.isGradientFirstAccess(i)) {
+            run_context.getWeight(i).read(file);
 
-          if (run_context.isMixedPrecision(i) && trainable &&
-              !run_context.getWeightFP32(i).empty()) {
-            run_context.getWeightFP32(i).copyData(run_context.getWeight(i));
+            if (run_context.isMixedPrecision(i) && trainable &&
+                !run_context.getWeightFP32(i).empty()) {
+              run_context.getWeightFP32(i).copyData(run_context.getWeight(i));
+            }
           }
         }
       }
