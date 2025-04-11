@@ -815,7 +815,8 @@ bool Manager::checkUnloadComplete(unsigned int order) {
 
 void Manager::LoadFsuTensors(unsigned int order, unsigned int lookahead) {
 
-  auto enqueFsuTasks = [&](unsigned int execution_order, unsigned int look_ahead) {
+  auto enqueFsuTasks = [&](unsigned int execution_order,
+                           unsigned int look_ahead) {
     weight_pool.loadFsuWeight(order, look_ahead);
   };
   if (order <= max_exec_order) {
@@ -952,8 +953,6 @@ bool Manager::checkFsuLoadComplete(unsigned int order) {
   return weight_pool->checkFsuLoadComplete(order);
 }
 
-void Manager::setupFsu() {
-  return weight_pool.setupFSU();
-}
+void Manager::setupFsu() { return weight_pool.setupFSU(); }
 
 } // namespace nntrainer

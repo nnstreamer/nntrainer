@@ -341,7 +341,7 @@ unsigned int CachePool::getNumLoadedTensors() {
 
 void CachePool::setupFSU() {
   for (auto active : actives) {
-      active->resetActive();
+    active->resetActive();
   }
 }
 
