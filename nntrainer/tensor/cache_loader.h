@@ -148,9 +148,8 @@ public:
    * @brief setup FSU for the given execution order.
    * This function will reset Actives at the given order.
    *
-   * @param order execution order
    */
-  virtual void setupFSU(unsigned int order);
+  virtual void setupFSU();
 
   bool checkFsuLoadComplete(unsigned int order);
 
