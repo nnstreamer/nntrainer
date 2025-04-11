@@ -187,9 +187,8 @@ public:
    * @brief setup FSU for the given execution order.
    * This function will reset Actives at the given order.
    *
-   * @param order execution order
    */
-  void setupFSU(unsigned int order);
+  void setupFSU();
 
   /**
    * @brief set FSU weight path

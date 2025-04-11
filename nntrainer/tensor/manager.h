@@ -492,6 +492,7 @@ public:
    * @brief load cache data for the execution order
    *
    * @param order execution order
+   * @param remainder_lookahead remain look_ahead
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size.
    */
@@ -512,6 +513,16 @@ public:
    * @note preloading tensors for execution order.
    */
   bool checkUnloadComplete(unsigned int order);
+
+  /**
+ * @brief load cache data for the execution order
+ *
+ * @param order execution order
+ * @param lookahead look ahead value to load from execution order
+ * @note preloading loads execution order data asynchronously,
+ *       for lookahead size.
+ */
+  void LoadFsuTensors(unsigned int order, unsigned int lookahead);
 
   /**
    * @brief flush load data for the execution order
@@ -551,6 +562,19 @@ public:
    * @return Number of Loaded TensorPool Tensor
    */
   unsigned int getNumLoadedTensorPoolTensors();
+
+  /**
+   * @brief check completion of load data for the execution order
+   *
+   * @param order execution order
+   * @note preloading tensors for execution order.
+   */
+  bool checkFsuLoadComplete(unsigned int order);
+
+  /**
+   * @brief Setup FSU, InActive FSU Element
+   */
+  void setupFsu();
 
   /**
    * @brief set FSU weight path
@@ -602,8 +626,6 @@ private:
    * completed id>>
    */
   std::map<unsigned int, std::tuple<int, int>> async_load_tensor;
-
-  std::map<unsigned int, bool> complete_load_tensor;
 
   std::map<unsigned int, std::tuple<int, int>> async_unload_tensor;
 

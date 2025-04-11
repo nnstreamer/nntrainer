@@ -284,6 +284,21 @@ public:
   void loadCacheExec(unsigned int order);
 
   /**
+ * @brief load cache data by execution order
+ *
+ * @param order execution order
+ */
+  int loadFsuWeight(unsigned int order, unsigned int look_ahead);
+
+  /**
+   * @brief check if tensors are loaded for the given execution order.
+   *
+   * @param order target execution order
+   * @return bool true if tensors are loaded, false otherwise.
+   */
+  bool checkFsuLoadComplete(unsigned int order);
+
+  /**
    * @brief load cache data by execution order
    *
    * @param order execution order
@@ -319,9 +334,8 @@ public:
    * @brief setup FSU for the given execution order.
    * This function will reset Actives at the given order.
    *
-   * @param order execution order
    */
-  void setupFSU(unsigned int order);
+  void setupFSU();
 
   /**
    * @brief set FSU weight path
