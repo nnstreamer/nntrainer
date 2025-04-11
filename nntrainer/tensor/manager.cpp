@@ -468,7 +468,7 @@ std::vector<Weight *> Manager::requestWeights(
       if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
         for (unsigned int i = 0; i < fsu_lookahead; ++i) {
           int lah_order = (forwarding_order - (fsu_lookahead - i));
-          if (lah_order <= 0) {
+          if (lah_order < 0) {
             var_exec_order.push_back(0);
           } else {
             var_exec_order.push_back(lah_order);
@@ -598,7 +598,12 @@ Manager::requestInputs(const GraphNode &node,
   using RT = TensorSpecV2::RequestType;
 
   TensorSpecV2 var_common_spec, grad_common_spec;
-  var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
+  if (is_train_mode) {
+    var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  } else {
+    var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
+  }
   grad_common_spec.ls = TensorLifespan::CALC_DERIV_LIFESPAN;
 
   /// @todo handle this inside layer
@@ -619,7 +624,6 @@ Manager::requestInputs(const GraphNode &node,
 
   std::vector<Var_Grad *> ret;
   size_t current_size = inputs_v2.size();
-  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
 
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
     TensorSpecV2 var_spec = var_common_spec, grad_spec = grad_common_spec;
@@ -809,6 +813,16 @@ bool Manager::checkUnloadComplete(unsigned int order) {
   return true;
 }
 
+void Manager::LoadFsuTensors(unsigned int order, unsigned int lookahead) {
+
+  auto enqueFsuTasks = [&](unsigned int execution_order, unsigned int look_ahead) {
+    weight_pool.loadFsuWeight(order, look_ahead);
+  };
+  if (order <= max_exec_order) {
+    enqueFsuTasks(order, look_ahead);
+  }
+}
+
 void Manager::LoadTensors(unsigned int order,
                           unsigned int remainder_lookahead) {
   auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
@@ -916,7 +930,8 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations) {
     if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
-      pool.finalize(OptimizedV3Planner(), start, end);
+      //@todo change V3 and validate
+      pool.finalize(OptimizedV1Planner(), start, end);
     } else {
       pool.finalize(OptimizedV1Planner(), start, end);
     }
@@ -931,6 +946,14 @@ unsigned int Manager::getNumLoadedWeightPoolTensors() {
 
 unsigned int Manager::getNumLoadedTensorPoolTensors() {
   return tensor_pool.getNumLoadedTensors();
+}
+
+bool Manager::checkFsuLoadComplete(unsigned int order) {
+  return weight_pool->checkFsuLoadComplete(order);
+}
+
+void Manager::setupFsu() {
+  return weight_pool.setupFSU();
 }
 
 } // namespace nntrainer
