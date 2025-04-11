@@ -29,7 +29,7 @@ CacheLoader::CacheLoader(std::shared_ptr<CachePool> cache_pool) :
   pool(cache_pool),
   load_task_executor(nullptr),
   unload_task_executor(nullptr),
-  thread_pool_(nullptr){}
+  thread_pool_(nullptr) {}
 
 CacheLoader::~CacheLoader() {
   if (load_task_executor)

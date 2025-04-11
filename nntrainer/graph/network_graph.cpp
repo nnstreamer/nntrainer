@@ -117,7 +117,7 @@ void NetworkGraph::setExecutionOrder() {
 
     node->setExecutionOrder({forward_order, calc_gradient_order,
                              calc_derivative_order, apply_gradient_order});
-       }
+  }
 
   /**
    * This sets max execution order temporarily till model is initialized.
@@ -203,7 +203,7 @@ void NetworkGraph::setOutputConnections() {
 
       auto node_setting_output = getLayerNode(name);
       node_setting_output->setOutputConnection(idx, node->getName(), i);
-         }
+    }
   }
 }
 
@@ -274,8 +274,8 @@ void NetworkGraph::markNodesForBackwarding() {
         }
 
         must_support_backwarding.insert(conn->getName());
-           }
-          }
+      }
+    }
   }
 
   /** mark all the required nodes support backwarding */
@@ -562,7 +562,7 @@ LayerNode *NetworkGraph::computeBackwardEnd() {
       max_exec_order = cur_order;
       node = ln.get();
     }
-       }
+  }
 
   return node;
 }
@@ -578,8 +578,8 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * layer and pass that as the max_exec_order ensuring that all tensors
      * with usage less than the max_exec_order are allocated.
      */
-      tensor_manager->allocateTensors(
-        std::get<0>((*(cend() - 1))->getExecutionOrder()));
+    tensor_manager->allocateTensors(
+      std::get<0>((*(cend() - 1))->getExecutionOrder()));
   else {
     /**
      * get the order of execution/usage order for the backwarding of the first
@@ -640,7 +640,7 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
         num_layers_remove_start++;
       else
         break;
-         }
+    }
   }
 
   /** copy the graph and return */
@@ -675,7 +675,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
   if (lnode->getType() == InputLayer::type &&
       !istrequal(getTensorType()[2], "FP32")) {
     return InPlaceType::NONE;
-      }
+  }
 
   if (lnode->getType() == MultiOutLayer::type) {
     return InPlaceType::RESTRICTING;
@@ -690,7 +690,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       if (getLayerNode(input_name)->getInPlaceType() ==
           InPlaceType::RESTRICTING)
         return inplace_type;
-         }
+    }
     return InPlaceType::NON_RESTRICTING;
   }
   /** A case where it cannot operate in-place if there is a multi-out type
@@ -703,7 +703,7 @@ NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
       if (getLayerNode(input_name)->getInPlaceType() ==
           InPlaceType::RESTRICTING)
         return InPlaceType::NONE;
-         }
+    }
     return inplace_type;
   }
 }
@@ -864,7 +864,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
       out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
         spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
       });
-      }
+  }
 
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
     out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
@@ -1033,7 +1033,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
       out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
         spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
       });
-      }
+  }
 
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
     out_specs, Manager::TensorGroupType::OUTPUT, lnode->getExecutionOrder(),
@@ -1225,7 +1225,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
       auto &sink_tensors = it->second;
       sink_tensors.resize(sink_node->getNumInputConnections());
       sink_tensors[conn->getIndex()] = outputs[i];
-         }
+    }
   }
 
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
@@ -1241,16 +1241,16 @@ int NetworkGraph::initialize(ExecutionMode mode,
               rc.getWeight(i).getName(),
               std::get<0>(lnode->getExecutionOrder()), true)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
-              }
+        }
         if (tensor_manager->isLastAccess(rc.getWeight(i).getName(),
                                          last_grad_access, true)) {
           rc.getWeightObject(i).setAsGradientLastAccess();
-                                         }
+        }
       } else {
         if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
                                           first_grad_access)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
-                                          }
+        }
         /**
          * if the gradient is to be clipped by global norm, then the last
          * access is by clipping itself. However, as clipping is not a layer
@@ -1267,7 +1267,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
              tensor_manager->isSecondLastAccess(rc.getWeightGrad(i).getName(),
                                                 last_grad_access))) {
           rc.getWeightObject(i).setAsGradientLastAccess();
-                                                }
+        }
       }
     }
   }
@@ -1438,7 +1438,7 @@ int NetworkGraph::reinitialize(
       auto &sink_tensors = it->second;
       sink_tensors.resize(sink_node->getNumInputConnections());
       sink_tensors[conn->getIndex()] = outputs[i];
-         }
+    }
   }
 
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
@@ -1454,16 +1454,16 @@ int NetworkGraph::reinitialize(
               rc.getWeight(i).getName(),
               std::get<0>(lnode->getExecutionOrder()), true)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
-              }
+        }
         if (tensor_manager->isLastAccess(rc.getWeight(i).getName(),
                                          last_grad_access, true)) {
           rc.getWeightObject(i).setAsGradientLastAccess();
-                                         }
+        }
       } else {
         if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
                                           first_grad_access)) {
           rc.getWeightObject(i).setAsGradientFirstAccess();
-                                          }
+        }
         /**
          * if the gradient is to be clipped by global norm, then the last
          * access is by clipping itself. However, as clipping is not a layer
@@ -1480,7 +1480,7 @@ int NetworkGraph::reinitialize(
              tensor_manager->isSecondLastAccess(rc.getWeightGrad(i).getName(),
                                                 last_grad_access))) {
           rc.getWeightObject(i).setAsGradientLastAccess();
-                                                }
+        }
       }
     }
   }
@@ -1618,13 +1618,11 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
   tensor_manager->flushCacheExcept(order);
 }
 
-void NetworkGraph::LoadTensors(unsigned int order,
-                               unsigned int lookahead) {
+void NetworkGraph::LoadTensors(unsigned int order, unsigned int lookahead) {
   tensor_manager->LoadTensors(order, lookahead);
 }
 
-void NetworkGraph::LoadFsuTensors(unsigned int order,
-                               unsigned int lookahead) {
+void NetworkGraph::LoadFsuTensors(unsigned int order, unsigned int lookahead) {
   tensor_manager->LoadFsuTensors(order, lookahead);
 }
 
@@ -1632,9 +1630,7 @@ bool NetworkGraph::checkFsuLoadComplete(unsigned int order) {
   return tensor_manager->checkFsuLoadComplete(order);
 }
 
-void NetworkGraph::setupFSU() {
-  return tensor_manager->setupFsu();
-}
+void NetworkGraph::setupFSU() { return tensor_manager->setupFsu(); }
 
 bool NetworkGraph::checkLoadComplete(unsigned int order) {
   return tensor_manager->checkLoadComplete(order);

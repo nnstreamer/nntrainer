@@ -460,10 +460,10 @@ public:
   void LoadTensors(const unsigned int order,
                    unsigned int remainder_lookahead = 0);
   /**
- * @brief Load data of order to the device
- *
- * @param order execution order
- */
+   * @brief Load data of order to the device
+   *
+   * @param order execution order
+   */
   void LoadFsuTensors(unsigned int order, unsigned int lookahead);
 
   /**
