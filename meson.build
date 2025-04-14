@@ -458,6 +458,20 @@ else
   endif
 endif
 
+ggml_dep = dummy_dep
+
+if get_option('enable-ggml')
+  ggml_options = cmake.subproject_options()
+  if host_machine.system() == 'windows'
+    ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
+  endif
+  ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
+  ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
+  ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+  ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
+  ggml_dep = ggml_proj.dependency('ggml-cpu')
+endif
+
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
   ruy_root = meson.source_root() / 'subprojects' / 'ruy'
