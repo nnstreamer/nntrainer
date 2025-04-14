@@ -350,7 +350,8 @@ sharedConstTensors NeuralNetwork::forwarding(
     [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
                               bool training) -> void {
     (void)this;
-    PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
+    PROFILE_MEM_ANNOTATE_START("Forwarding for layer: " + node->getName(),
+                               std::get<0>(node->getExecutionOrder()));
 
     auto f = std::get<0>(node->getExecutionOrder());
     bool fsu_mode = std::get<props::Fsu>(model_flex_props);
@@ -390,6 +391,8 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
     }
+    PROFILE_MEM_ANNOTATE_END("Forwarding end for layer: " + node->getName(),
+                             std::get<0>(node->getExecutionOrder()));
   };
 
   return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
