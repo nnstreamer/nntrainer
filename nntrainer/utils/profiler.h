@@ -35,9 +35,13 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_MEM_DEALLOC(ptr)
 #define PROFILE_CACHE_ALLOC(ptr, size, str, policy, fsu)
 #define PROFILE_CACHE_DEALLOC(ptr, policy, fsu)
+#define PROFILE_MMAP(ptr, size, str, policy, fsu, execution_order)
+#define PROFILE_MUNMAP(ptr, policy, fsu, order)
 #define PROFILE_BEGIN(listener)
 #define PROFILE_END(listener)
 #define PROFILE_MEM_ANNOTATE(str)
+#define PROFILE_MEM_ANNOTATE_START(str, execution_order)
+#define PROFILE_MEM_ANNOTATE_END(str, execution_order)
 
 #else /** PROFILE */
 
@@ -65,6 +69,14 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_CACHE_DEALLOC(ptr, policy, fsu)                                \
   nntrainer::profile::Profiler::Global().dealloc(ptr, policy, fsu)
 
+#define PROFILE_MMAP(ptr, size, str, policy, fsu, execution_order)             \
+  nntrainer::profile::Profiler::Global().mmap(ptr, size, str, policy, fsu,     \
+                                              execution_order)
+
+#define PROFILE_MUNMAP(ptr, policy, fsu, execution_order)                      \
+  nntrainer::profile::Profiler::Global().munmap(ptr, policy, fsu,              \
+                                                execution_order)
+
 #define PROFILE_BEGIN(listener)                                                \
   do {                                                                         \
     nntrainer::profile::Profiler::Global().subscribe(listener);                \
@@ -78,6 +90,14 @@ using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 #define PROFILE_MEM_ANNOTATE(str)                                              \
   nntrainer::profile::Profiler::Global().annotate(str)
 
+#define PROFILE_MEM_ANNOTATE_START(str, execution_order)                       \
+  nntrainer::profile::Profiler::Global().annotate_order(str, execution_order,  \
+                                                        true)
+
+#define PROFILE_MEM_ANNOTATE_END(str, execution_order)                         \
+  nntrainer::profile::Profiler::Global().annotate_order(str, execution_order,  \
+                                                        false)
+
 #endif /** PROFILE */
 
 namespace nntrainer {
@@ -90,6 +110,10 @@ enum PROFILE_EVENT {
   EVENT_MEM_ALLOC = 2,
   EVENT_MEM_DEALLOC = 3,
   EVENT_MEM_ANNOTATE = 4,
+  EVENT_MMAP = 5,
+  EVENT_MUNMAP = 6,
+  EVENT_MEM_ANNOTATE_START = 7,
+  EVENT_MEM_ANNOTATE_END = 8,
 };
 
 /**
@@ -109,7 +133,8 @@ public:
     alloc_total(total),
     cache_fsu(false),
     event_str(str),
-    duration(dur) {}
+    duration(dur),
+    index(-1) {}
 
   /**
    * @brief Construct a new ProfileEventData struct
@@ -124,7 +149,28 @@ public:
     cache_policy(policy),
     cache_fsu(fsu),
     event_str(str),
-    duration(dur) {}
+    duration(dur),
+    index(-1) {}
+
+  /**
+   * @brief Construct a new ProfileEventData struct include index of fsu memory
+   * pool
+   *
+   */
+  ProfileEventData(int item, size_t cur, size_t total, std::string str,
+                   std::chrono::microseconds dur,
+                   std::chrono::microseconds called_time, std::string policy,
+                   bool fsu, int index, long unsigned int execution_order = 0) :
+    time_item(item),
+    alloc_current(cur),
+    alloc_total(total),
+    cache_policy(policy),
+    cache_fsu(fsu),
+    event_str(str),
+    duration(dur),
+    called_time(called_time),
+    index(index),
+    execution_order(execution_order) {}
 
   /* for time profile */
   int time_item;
@@ -141,6 +187,10 @@ public:
   /* common data */
   std::string event_str;
   std::chrono::microseconds duration;
+  std::chrono::microseconds called_time;
+
+  int index;
+  long unsigned int execution_order;
 };
 
 class Profiler;
@@ -261,7 +311,9 @@ private:
   void onNotifyMemoryEvent(PROFILE_EVENT event, const size_t alloc_current,
                            const size_t alloc_total, const std::string &str,
                            const std::chrono::microseconds &duration,
-                           const std::string &policy, bool fsu);
+                           const std::chrono::microseconds &called_time,
+                           const std::string &policy, bool fsu, int index,
+                           long unsigned int execution_order);
 
   std::chrono::time_point<std::chrono::steady_clock> start_time;
   unsigned int warmups;
@@ -280,9 +332,10 @@ private:
     time_taken;
 
   std::list<std::tuple<PROFILE_EVENT, size_t, size_t, std::string,
-                       std::chrono::microseconds, std::string, bool>>
-    mem_taken; /**< taken memory information <event, current, total, str, dur,
-                  policy, fsu> */
+                       std::chrono::microseconds, std::chrono::microseconds,
+                       std::string, bool, int, long unsigned int>>
+    mem_taken; /**< taken memory information <event, current, total, info, dur,
+                  called_time policy, fsu, index, order> */
   size_t mem_max;     /**< memory max size */
   size_t mem_sum;     /**< memory sum */
   size_t mem_average; /**< memory average */
@@ -361,12 +414,22 @@ public:
   void dealloc(const void *ptr, const std::string &policy = "",
                bool fsu = false);
 
+  void mmap(const void *ptr, size_t size, const std::string &str,
+            const std::string &policy = "", bool fsu = false,
+            long unsigned int execution_order = 0);
+
+  void munmap(const void *ptr, const std::string &policy = "", bool fsu = false,
+              long unsigned int execution_order = 0);
+
   /**
    * @brief add annotation on memory profile data
    *
    * @param str annotate message
    */
   void annotate(const std::string &str);
+
+  void annotate_order(const std::string &str, long unsigned int execution_order,
+                      bool is_start);
 
   /**
    * @brief subscribe a listener to the profiler
@@ -418,6 +481,8 @@ private:
 
   std::unordered_map<const void *, std::tuple<size_t, timepoint, std::string>>
     allocates; /**< allocated memory information (ptr, (size, time, info) */
+
+  std::unordered_map<const void *, int> fsu_pool_index;
 
   std::atomic<std::size_t> total_size; /**< total allocated memory size */
 
