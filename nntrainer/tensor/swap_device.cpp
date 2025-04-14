@@ -17,11 +17,24 @@
 #include <profiler.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <swap_device.h>
 
+size_t getMemoryUsage() {
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+    return usage.ru_maxrss;
+  }
+  return 0;
+}
+
+void print_rss() {
+  sleep(1);
+  std::cout << "Memory Usage : " << getMemoryUsage() << " KB" << std::endl;
+}
 namespace nntrainer {
 
 void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
@@ -38,6 +51,8 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
     << "SwapDevice: open file: " << dev_path;
 
   off_t off;
+
+  // std::cout << "path: "<<dev_path.c_str() << std::endl;
 
   /* make sparse file */
   off = lseek(fd, size - 1, SEEK_SET);
@@ -56,14 +71,14 @@ void SwapDevice::start(size_t size, ml::train::ExecutionMode _execution_mode) {
 }
 
 void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
-                            bool alloc_only) {
+                            unsigned int id, bool alloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 
 #ifdef USE_MMAP
   if (execution_mode == ml::train::ExecutionMode::INFERENCE) {
     // FSU Load Weights
-    auto len_offset = weight_offset.at(offset_index);
+    auto len_offset = weight_offset.at(id);
     size_t off =
       (len_offset.first / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
     size_t diff = len_offset.first - off;
@@ -71,12 +86,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
     char *ptr = static_cast<char *>(mmap(
       nullptr, len, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED, fd, off));
-
-    const size_t error_buflen = 100;
-    char error_buf[error_buflen];
-    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
-      << "SwapDevice: mmap: "
-      << std::string(strerror_r(errno, error_buf, error_buflen));
 
     // MADVISE can be used to improve performance.
     // madvise(ptr, len, MADV_SEQUENTIAL);
@@ -87,6 +96,10 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     munmap(ptr, len);
 
     ++offset_index;
+    if (offset_index >= (int)weight_offset.size()) {
+      offset_index = 0;
+    }
+
     ++num_loaded_tensors;
 
     // @todo : need to check at cache_loader & check multi thread execution
@@ -99,13 +112,17 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     size_t off = (offset / sysconf(_SC_PAGE_SIZE)) * sysconf(_SC_PAGE_SIZE);
     size_t diff = offset - off;
     size_t len = size + diff;
+
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
+
     char *ptr = static_cast<char *>(
-      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
+
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: "
       << std::string(strerror_r(errno, error_buf, error_buflen));
+
     void *buf = static_cast<void *>(ptr + diff);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
@@ -221,9 +238,9 @@ void SwapDevice::finish() {
 
 #ifdef USE_MMAP
   for (auto &[ptr, info] : mapped) {
-    if (ptr)
+/*     if (ptr)
       free(ptr);
-  }
+ */  }
   mapped.clear();
 #else
   for (auto &alloc : allocated)

@@ -219,6 +219,10 @@ public:
    */
   virtual void setFsuWeightPath(std::string path){};
 
+
+
+  size_t getNumTensors(){ return memory_offset.size();}
+
   /**
    * @brief set weight file offset for FSU loading
    *

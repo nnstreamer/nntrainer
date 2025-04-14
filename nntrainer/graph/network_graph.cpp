@@ -1626,7 +1626,9 @@ void NetworkGraph::LoadTensors(unsigned int order,
 bool NetworkGraph::checkLoadComplete(unsigned int order) {
   return tensor_manager->checkLoadComplete(order);
 }
-
+bool NetworkGraph::Inactive(unsigned int order) {
+  return tensor_manager->Inactive(order);
+}
 bool NetworkGraph::checkUnloadComplete(unsigned int order) {
   return tensor_manager->checkUnloadComplete(order);
 }

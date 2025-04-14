@@ -143,8 +143,8 @@ void MemoryPool::allocate() {
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " new ptr : " << ptr << std::endl;
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " new ptr : " << ptr << std::endl;
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
@@ -153,10 +153,10 @@ void MemoryPool::allocate() {
                                      RPCMEM_DEFAULT_FLAGS, current_size);
 
         for (int idx : offset_indices[s]) {
-          //	  std::cout << "                change ptr " <<idx <<" from  "<<
-          // memory_ptrs[idx]<< " to " << new_ptr << " before_size : "<<
-          // max_size
-          //<< " new max_size : "<< current_size <<std::endl;
+          std::cout << "                change ptr " << idx << " from  "
+                    << memory_ptrs[idx] << " to " << new_ptr
+                    << " before_size : " << max_size
+                    << " new max_size : " << current_size << std::endl;
 
           memory_ptrs[idx] = new_ptr;
         }
@@ -165,9 +165,8 @@ void MemoryPool::allocate() {
         allocated_size[s] = current_size;
       }
       memory_ptrs.push_back(offset_ptr[s]);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " max size for the offset " << allocated_size[s]<< "  reuse ptr
-      //      : " << offset_ptr[s] << std::endl;
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " max size for the offset " << allocated_size[s]<< "  reuse ptr : " << offset_ptr[s] << std::endl;
       offset_indices[s].push_back(i);
     }
     i++;
@@ -177,11 +176,15 @@ void MemoryPool::allocate() {
 
 #else
   mem_pool = calloc(pool_size, 1);
-
+  std::cout << " mem_pool : "<< mem_pool << std::endl;
   unsigned int idx = 1;
+
   for (auto &s : memory_offset) {
+    
     char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
+    std::cout << idx << " : ptr "<< (void*)(ptr )<< " : offset "<< memory_offset.at(idx-1)<< std::endl;
     memory_ptrs.push_back(ptr);
+    
     idx++;
   }
 #endif
@@ -193,9 +196,14 @@ void MemoryPool::allocate() {
   msg.append(std::to_string(seq++));
   PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
 #endif
-}
+  // std::cout << "-------------------------- mem pool_size : " << pool_size << std::endl;
 
+}
+size_t aligned_size (size_t size) {
+  return (((size + 4096 - 1) / 4096) * 4096);
+}
 void MemoryPool::allocateFSU() {
+  std::cout << "Allocate in FSU" << std::endl;
   if (pool_size == 0)
     throw std::runtime_error("Allocating memory pool with size 0");
 
@@ -210,21 +218,29 @@ void MemoryPool::allocateFSU() {
 
   for (auto &s : memory_offset) {
     size_t current_size = memory_size.at(i);
+    current_size = current_size;
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
       void *ptr = ALIGNED_ALLOC(current_size);
       memory_ptrs.push_back(ptr);
+
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " new ptr : " << ptr << std::endl;
 
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
       if (max_size < current_size) {
         void *new_ptr = ALIGNED_ALLOC(current_size);
-
         for (int idx : offset_indices[s]) {
+          std::cout << "                change ptr " << idx << " from  "
+                    << memory_ptrs[idx] << " to " << new_ptr
+                    << " before_size : " << max_size
+                    << " new max_size : " << current_size << std::endl;
+	  
           memory_ptrs[idx] = new_ptr;
         }
         ALIGNED_FREE(existing_ptr);
@@ -232,6 +248,9 @@ void MemoryPool::allocateFSU() {
         allocated_size[s] = current_size;
       }
       memory_ptrs.push_back(offset_ptr[s]);
+           std::cout << i <<" offset : size - "<< s<< " : " << current_size
+           << " max size for the offset " << allocated_size[s]<< "  reuse ptr : " << offset_ptr[s] << std::endl;
+      
       offset_indices[s].push_back(i);
     }
     i++;
@@ -242,6 +261,8 @@ void MemoryPool::allocateFSU() {
   if (mem_pool == nullptr)
     throw std::runtime_error(
       "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
+  // std::cout << "-------------------------- FSU mem pool_size : " << pool_size << std::endl;
+
 }
 
 /**

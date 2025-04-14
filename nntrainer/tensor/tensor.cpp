@@ -19,6 +19,7 @@
 #include <tensor.h>
 #include <uint4_tensor.h>
 #include <uint_tensor.h>
+#include <nntr_threads.h>
 
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
@@ -1014,14 +1015,34 @@ Tensor &Tensor::dotBatched(Tensor const &m, Tensor &result, bool trans,
   if (!result.isAllocated())
     throw std::invalid_argument(
       "Output tensor must be preallocated for dotBatched operation");
-  for (unsigned int b = 0; b < batch(); b++) {
-    /** @todo try using transpose to speedup the operation */
-    const Tensor this_b = this->getBatchSlice(b, 1);
-    Tensor m_b = m.getBatchSlice(b, 1);
-    Tensor result_b = result.getBatchSlice(b, 1);
 
-    this_b.dot(m_b, result_b, trans, trans_m, beta);
+  auto dot_batch_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                           void *user_data) {
+    for(unsigned int b= s;b<e;++b){
+      const Tensor this_b = this->getBatchSlice(b, 1);
+      Tensor m_b = m.getBatchSlice(b, 1);
+      Tensor result_b = result.getBatchSlice(b, 1);
+
+      this_b.dot(m_b, result_b, trans, trans_m, beta);
+    }
+  };
+
+  auto workers = ParallelBatch(dot_batch_job, batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    dot_batch_job(0, batch(), 0, nullptr);
   }
+
+  // for (unsigned int b = 0; b < batch(); b++) {
+  //   /** @todo try using transpose to speedup the operation */
+  //   const Tensor this_b = this->getBatchSlice(b, 1);
+  //   Tensor m_b = m.getBatchSlice(b, 1);
+  //   Tensor result_b = result.getBatchSlice(b, 1);
+
+  //   this_b.dot(m_b, result_b, trans, trans_m, beta);
+  // }
 
   return result;
 }
@@ -1256,6 +1277,21 @@ void Tensor::save(std::ostream &file) {
 
   itensor->save(file);
 }
+
+void Tensor::save_quantization_info(std::ostream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot save.";
+
+  itensor->save_quantization_info(file);
+}
+
+void Tensor::read_quantization_info(std::ifstream &file) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot read.";
+
+  itensor->read_quantization_info(file);
+}
+
 
 void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)

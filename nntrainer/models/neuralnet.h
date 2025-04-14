@@ -236,6 +236,7 @@ public:
   sharedConstTensors forwarding(sharedConstTensors input,
                                 sharedConstTensors label = {},
                                 bool training = true);
+  void InvalidAllFSU();
 
   /**
    * @brief     Incremental forward Propagation of the neural network

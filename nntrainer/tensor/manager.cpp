@@ -175,6 +175,7 @@ static Tensor *requestTensor_(const TensorSpecV2 &spec,
 
   std::vector<unsigned> order = spec.additional_exec_order;
   if (expose) {
+    std::cout << "expoed ------------"<<std::endl;
     order.push_back(TensorPool::PERSIST_END_ORDER);
   }
 
@@ -456,6 +457,7 @@ std::vector<Weight *> Manager::requestWeights(
           TensorDim var32_dim(dim_v);
           var32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
           std::vector<unsigned int> var32_exec_order;
+	  std::cout <<" PERSIS_END_ORDER :VAR32 "<<std::endl;
           var32_exec_order.push_back(TensorPool::PERSIST_END_ORDER);
 
           var32 = weight_pool.requestOrExtend(shared_name + ":var32", var32_dim,
@@ -596,11 +598,18 @@ Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
                        const std::vector<std::string> &outputs_name) {
   using RT = TensorSpecV2::RequestType;
-
+  
+  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
+  
   TensorSpecV2 var_common_spec, grad_common_spec;
-  var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  if (is_train_mode)
+  {
+    var_common_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+  } else {
+    var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
+  }
+  
   grad_common_spec.ls = TensorLifespan::CALC_DERIV_LIFESPAN;
-
   /// @todo handle this inside layer
   if (node.getType() == ActivationLayer::type or
       node.getType() == MultiOutLayer::type or
@@ -619,7 +628,6 @@ Manager::requestInputs(const GraphNode &node,
 
   std::vector<Var_Grad *> ret;
   size_t current_size = inputs_v2.size();
-  bool is_train_mode = (exec_mode == ExecutionMode::TRAIN) ? true : false;
 
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
     TensorSpecV2 var_spec = var_common_spec, grad_spec = grad_common_spec;
@@ -728,6 +736,7 @@ std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
   std::vector<unsigned int> exec;
   exec.reserve(1);
   if (is_grad_clip || is_mixed_precision) {
+    std::cout << "is_grad_clip || is_mixed"<<std::endl;
     exec.emplace_back(TensorPool::PERSIST_END_ORDER);
   } else {
     exec.emplace_back(getMinMaxTensorExecutionOrder(name, true).second);
@@ -761,29 +770,46 @@ void Manager::flushCache() {
 }
 
 bool Manager::checkLoadComplete(unsigned int order) {
-  if (async_load_tensor.count(order) == 1) {
-    auto &tasks = async_load_tensor[order];
-    std::unique_lock<std::mutex> lock(completed_load_mutex);
-    if (exec_mode == ExecutionMode::TRAIN) {
-      auto w_fut = completed_load_tensor[std::get<0>(tasks)].get_future();
-      auto t_fut = completed_load_tensor[std::get<1>(tasks)].get_future();
-      lock.unlock();
-      if (std::get<0>(tasks) != 0)
-        w_fut.wait();
-      if (std::get<1>(tasks) != 0)
-        t_fut.wait();
-    } else {
-      auto w_fut = completed_load_tensor[std::get<0>(tasks)].get_future();
-      lock.unlock();
-      if (std::get<0>(tasks) != 0)
-        w_fut.wait();
-    }
-    async_load_tensor.erase(order);
-    ml_logd("wait and completed %d", order);
+
+  auto checkLoadCompleteAtPool = [&](TensorPool &pool, unsigned int order) {
+    return pool.checkLoadComplete(order);
+  };
+
+  if (exec_mode == ExecutionMode::TRAIN) {
+    return checkLoadCompleteAtPool(weight_pool, order) &&
+           checkLoadCompleteAtPool(tensor_pool, order);
   } else {
-    ml_logd("without wait completed %d", order);
+    return checkLoadCompleteAtPool(weight_pool, order);
   }
-  return true;
+
+  // if (async_load_tensor.count(order) == 1) {
+  //   auto &tasks = async_load_tensor[order];
+  //   std::unique_lock<std::mutex> lock(completed_load_mutex);
+  //   if (exec_mode == ExecutionMode::TRAIN) {
+  //     // auto w_fut = completed_load_tensor[std::get<0>(tasks)].wait();// .get_future();
+  //     // auto t_fut = completed_load_tensor[std::get<1>(tasks)].wait();//.get_future();
+  //     lock.unlock();
+  //     if (std::get<0>(tasks) != 0)
+  // 	completed_load_fut[std::get<0>(tasks)].wait();
+  //       // w_fut.wait();
+  //     if (std::get<1>(tasks) != 0)
+  // 	completed_load_fut[std::get<1>(tasks)].wait();
+  //       // t_fut.wait();
+  //   } else {
+  //     // auto w_fut = completed_load_tensor[std::get<0>(tasks)].get();//.get_future();
+  //     lock.unlock();
+  //     if (std::get<0>(tasks) != 0) {
+  //       std::cout << "waiting for : "<< order << " : " << std::get<0>(tasks)<<std::endl;
+  // 	completed_load_fut[std::get<0>(tasks)].wait();	
+  //        // w_fut.wait();
+  //     }
+  //   }
+  //   async_load_tensor.erase(order);
+  //   ml_logd("wait and completed %d", order);
+  // } else {
+  //   ml_logd("without wait completed %d", order);
+  // }
+  // return true;
 }
 
 bool Manager::checkUnloadComplete(unsigned int order) {
@@ -811,42 +837,49 @@ bool Manager::checkUnloadComplete(unsigned int order) {
 
 void Manager::LoadTensors(unsigned int order,
                           unsigned int remainder_lookahead) {
+  
   auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
     return pool.loadCacheExecAsync(
-      order, [&](int id, TaskExecutor::CompleteStatus status) {
+      order, [&](int id, TaskExecutor::CompleteStatus status,
+                 std::future<TaskExecutor::CompleteStatus> fut) {
         std::scoped_lock<std::mutex> lock(completed_load_mutex);
-        completed_load_tensor[id].set_value(true);
+        completed_load_fut[id]=std::move(fut);
       });
   };
 
   auto enqueTasks = [&](unsigned int o) {
-    if (async_load_tensor.count(o)) {
-      ml_logd("Task loadTensors (%d) is in progress", o);
-      return;
-    }
+    // if (async_load_tensor.count(o)) {
+    //   printf("Task loadTensors ((%d) is in progress", o);
+    //   ml_logd("Task loadTensors (%d) is in progress", o);
+    //   return;
+    // }
     auto load_weight = loadTensorsAsync(weight_pool, o);
     ml_logd("load weigth is requested in LoadTensors with order - %d", o);
     int load_tensor = 0;
+    
     if (exec_mode != ml::train::ExecutionMode::INFERENCE) {
       load_tensor = loadTensorsAsync(tensor_pool, o);
       ml_logd("load tensor is requested in LoadTensors with order - %d", o);
     }
     NNTR_THROW_IF(load_weight < 0 || load_tensor < 0, std::runtime_error)
       << "Fail to launch task";
-    async_load_tensor[o] = std::make_tuple(load_weight, load_tensor);
+    // async_load_tensor[o] = std::make_tuple(load_weight, load_tensor);
   };
 
-  for (unsigned int i = order; i < order + remainder_lookahead + 1; ++i) {
-    if (i <= max_exec_order) {
-      enqueTasks(i);
-    }
-  }
+  // for (unsigned int i = order; i < order + remainder_lookahead + 1; ++i) {
+  //   if (i <= max_exec_order) {
+      // enqueTasks(i);
+  enqueTasks(order);
+  //   }
+  // }
 }
 
 void Manager::UnloadTensors(unsigned int order) {
+
   auto unloadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
     return pool.flushCacheExecAsync(
-      order, [&](int id, TaskExecutor::CompleteStatus status) {
+				    order, [&](int id, TaskExecutor::CompleteStatus status,
+                 std::future<TaskExecutor::CompleteStatus> fut) {
         std::scoped_lock<std::mutex> lock(completed_unload_mutex);
         completed_unload_tensor[id].set_value(true);
       });
@@ -875,10 +908,13 @@ void Manager::UnloadTensors(unsigned int order) {
 void Manager::flushCacheExcept(unsigned int order) {
   auto loadAsync = [&](TensorPool &pool, unsigned int order) {
     return pool.loadCacheExecAsync(
-      order, [&](int id, TaskExecutor::CompleteStatus status) {
+				   
+				   order, [&](int id, TaskExecutor::CompleteStatus status,
+                 std::future<TaskExecutor::CompleteStatus> fu) {
         std::scoped_lock<std::mutex> lock(completed_mutex);
         completed[id].set_value(true);
       });
+    
   };
 
   auto waitComplete = [&](unsigned int o) {
@@ -916,7 +952,7 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations) {
     if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
-      pool.finalize(OptimizedV3Planner(), start, end);
+      pool.finalize(OptimizedV1Planner(), start, end);
     } else {
       pool.finalize(OptimizedV1Planner(), start, end);
     }
@@ -927,6 +963,10 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
 
 unsigned int Manager::getNumLoadedWeightPoolTensors() {
   return weight_pool.getNumLoadedTensors();
+}
+
+unsigned int Manager::Inactive(unsigned int order) {
+  return weight_pool.Inactive(order);
 }
 
 unsigned int Manager::getNumLoadedTensorPoolTensors() {

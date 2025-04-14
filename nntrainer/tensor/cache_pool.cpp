@@ -167,9 +167,10 @@ void CachePool::validate(unsigned int id) {
 }
 
 void CachePool::invalidate(unsigned int id) {
+
   if (elems[id]->isActive()) {
-    actives.remove(elems[id]);
     elems[id]->swapOut();
+    actives.remove(elems[id]);
   }
 }
 
@@ -198,28 +199,38 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
   size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
   auto policy = getCachePolicy().at(id - 1);
-  auto mem_data = std::make_shared<MemoryData>(
-    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
-    std::bind(&CachePool::invalidate, this, std::placeholders::_1));
 
   void *memory_ptr = nullptr;
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
     memory_ptr = getMemoryPtrs().at(id - 1);
   }
 
+  auto mem_data = std::make_shared<MemoryData>(
+    id, std::bind(&CachePool::validate, this, std::placeholders::_1),
+    std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
+
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
   elems[id] = elem;
 
   std::string ords;
-  for (auto &o : exe_order) {
-    exec_ids[o].push_back(id);
+
+  if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
+    auto &o = exe_order[0];
+
+    exec_ids[o].insert(id);
     ords.append(std::to_string(o));
-    ords.append(" ");
+
+  } else {
+    for (auto &o : exe_order) {
+
+      exec_ids[o].insert(id);
+      ords.append(std::to_string(o));
+    }
   }
+
   ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
           (long long unsigned int)offset, len);
-
   return mem_data;
 }
 
@@ -293,9 +304,12 @@ void CachePool::clear() {
 bool CachePool::isAllocated() const { return swap_device->isOperating(); }
 
 void CachePool::loadExec(unsigned int order) {
-  for (auto &id : exec_ids[order])
+  for (auto &id : exec_ids[order]) {
     validate(id);
+  }
 }
+
+void CachePool::loadTensor(unsigned int id) { validate(id); }
 
 bool CachePool::loadExecOnce(unsigned int order, ExecIdsIter &iter) {
   if (iter == exec_ids[order].end())
@@ -308,13 +322,15 @@ bool CachePool::loadExecOnce(unsigned int order, ExecIdsIter &iter) {
 }
 
 void CachePool::unloadExec(unsigned int order) {
-  auto exe_orders = getMemoryExecOrder();
-  for (auto &[id, elem] : elems) {
-    auto exe_order = exe_orders.at(id - 1);
-    auto found = std::find(exe_order.begin(), exe_order.end(), order);
-    if (found != exe_order.end())
-      invalidate(id);
+  for (auto &id : exec_ids[order]) {
+    invalidate(id);
   }
+  actives.clear();
+}
+
+void CachePool::unloadTensor(unsigned int order) {
+  invalidate(order);
+  actives.remove(elems[order]);
 }
 
 void CachePool::loadActives() {
@@ -326,12 +342,12 @@ void CachePool::loadActives() {
 
 void CachePool::unloadActives() {
   ml_logd("unload active caches");
-
   for (auto &elem : actives)
     elem->swapOut();
 }
 
 unsigned int CachePool::getNumLoadedTensors() {
+
   return swap_device->getNumLoadedTensors();
 }
 

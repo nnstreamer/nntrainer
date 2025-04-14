@@ -236,6 +236,7 @@ void TensorPool::allocate(bool init) {
       continue;
     }
     spec.tensor->setData(mem_pool->getMemory(details->token), 0, init);
+
     syncDependents(spec);
     i++;
   }
@@ -472,21 +473,29 @@ void TensorPool::flushCacheExcept(unsigned int order) {
 
 void TensorPool::loadCacheExec(unsigned int order) {
   if (dynamic_cast<CachePool *>(mem_pool.get()))
-    cache_loader->load(order);
+    cache_loader->loadAllinOrder(order);
 }
 
 int TensorPool::loadCacheExecAsync(
   unsigned int order, TaskExecutor::CompleteCallback complete_callback) {
+
   if (dynamic_cast<CachePool *>(mem_pool.get()))
-    return cache_loader->loadAsync(order, complete_callback);
+    return cache_loader->loadAllinOrder(order);
   else
     return 0;
+}
+
+bool TensorPool::checkLoadComplete(unsigned int order) {
+  if (dynamic_cast<CachePool *>(mem_pool.get()))
+    return cache_loader->checkAllLoadComplete(order);
+  else
+    return true;
 }
 
 int TensorPool::flushCacheExecAsync(
   unsigned int order, TaskExecutor::CompleteCallback complete_callback) {
   if (dynamic_cast<CachePool *>(mem_pool.get()))
-    return cache_loader->flushAsync(order, complete_callback);
+    return cache_loader->unloadAllinOrder(order);
   else
     return 0;
 }
@@ -498,8 +507,12 @@ void TensorPool::loadCacheCancel(int id) {
   cache_loader->cancelAsync(id);
 }
 
+
 unsigned int TensorPool::getNumLoadedTensors() {
   return cache_loader->getNumLoadedTensors();
+}
+unsigned int TensorPool::Inactive(unsigned int order) {
+  return cache_loader->Inactive(order);
 }
 
 } // namespace nntrainer
