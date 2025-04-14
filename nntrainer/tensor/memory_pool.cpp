@@ -228,6 +228,13 @@ void MemoryPool::allocateFSU() {
   }
 
   mem_pool = calloc(1, 1);
+#ifdef PROFILE
+  static long long seq = 0;
+
+  std::string msg("FSU MemoryPool #");
+  msg.append(std::to_string(seq++));
+  PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
+#endif
 
   if (mem_pool == nullptr)
     throw std::runtime_error(

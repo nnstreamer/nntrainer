@@ -83,6 +83,12 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
     char *ptr = static_cast<char *>(
       mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
+#ifdef PROFILE
+    std::string msg("mmap(");
+    msg += dev_path + ") #" + std::to_string(offset_index);
+    PROFILE_MMAP(memory_ptr, size, msg, "TEMPORAL", alloc_only,
+                 (long unsigned int)offset_index);
+#endif
 
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
@@ -104,6 +110,11 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     NNTR_THROW_IF(ret == -1, std::runtime_error)
       << "SwapDevice: munmap: "
       << SAFE_STRERROR(errno, error_buf, error_buflen);
+
+#ifdef PROFILE
+    PROFILE_MUNMAP(memory_ptr, "TEMPORAL", alloc_only,
+                   (long unsigned int)offset_index);
+#endif
 
     return memory_ptr;
   } else {
