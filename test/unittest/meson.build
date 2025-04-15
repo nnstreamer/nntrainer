@@ -56,6 +56,7 @@ endif
 
 test_target = [
   ['unittest_nntrainer_activations', []],
+  ['unittest_nntrainer_cpu_backend', []],
   ['unittest_nntrainer_exe_order', []],
   ['unittest_nntrainer_internal', []],
   ['unittest_nntrainer_lazy_tensor', []],

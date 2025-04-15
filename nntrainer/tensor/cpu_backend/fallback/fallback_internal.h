@@ -651,6 +651,25 @@ void __fallback_ele_sub(const unsigned N, const float *X, const float *Y,
 void __fallback_ele_div(const unsigned N, const float *X, const float *Y,
                         float *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride);
+
+/**
+ * @brief q4_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ *
+ * @param M Original row size of output
+ * @param N Original col size of output
+ * @param K Hidden size
+ * @param A Input activation to be online-runtime quantized to q8_K_MxN format
+ * @param lda Leading dimension of A
+ * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
+ * @param ldb Leading dimenstion of B
+ * @param C float* output
+ * @param ldc Leading dimension of C
+ */
+void __gemm_q4_0(const unsigned int M, const unsigned int N,
+                 const unsigned int K, const float *A, const unsigned int lda,
+                 const void *B, const unsigned int ldb, float *C,
+                 const unsigned int ldc);
+
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -668,6 +687,75 @@ void __gemm_q4_K(const unsigned int M, const unsigned int N,
                  const unsigned int K, const float *A, const unsigned int lda,
                  const void *B, const unsigned int ldb, float *C,
                  const unsigned int ldc);
+
+/**
+ * @brief
+ *
+ * @param src
+ * @param dst
+ * @param nrow
+ * @param n_per_row
+ * @param quant_weights
+ * @return size_t
+ */
+size_t __quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                       int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief
+ *
+ * @param src
+ * @param dst
+ * @param nrow
+ * @param n_per_row
+ * @param quant_weights
+ * @return size_t
+ */
+size_t __quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                       int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief
+ *
+ * @param x_raw
+ * @param y
+ * @param k
+ */
+void __dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief
+ *
+ * @param x
+ * @param y
+ * @param k
+ */
+void __dequantize_row_q8_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief
+ *
+ * @param W
+ * @param repacked_W
+ * @param data_size
+ * @param M
+ * @param N
+ */
+void __repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
+                             const unsigned int M, const unsigned int N);
+
+/**
+ * @brief
+ *
+ * @param W
+ * @param repacked_W
+ * @param data_size
+ * @param M
+ * @param N
+ */
+void __repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+                             const unsigned int M, const unsigned int N);
+
 } // namespace nntrainer
 #endif
 #endif

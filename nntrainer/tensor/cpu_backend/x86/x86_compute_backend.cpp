@@ -16,6 +16,7 @@
 #include <avx2_impl.h>
 #include <cblas_interface.h>
 #include <fallback_internal.h>
+#include <ggml_interface.h>
 #include <nntrainer_error.h>
 #include <x86_compute_backend.h>
 
@@ -23,6 +24,8 @@
 #define COL_MAJOR 1
 
 namespace nntrainer {
+
+void init_backend() { __ggml_init(); }
 
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
@@ -198,9 +201,44 @@ void softmax(const unsigned int N, float *X, float *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc) {
+  return __ggml_q4_0_8x8_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+}
+
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-  return __gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
 }
+
+size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+  return __ggml_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
+}
+
+size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+  return __ggml_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
+}
+
+void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
+  __ggml_dequantize_row_q4_K(x_raw, y, k);
+}
+
+void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+  __ggml_dequantize_row_q8_K(x, y, k);
+}
+
+void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N) {
+  __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+}
+
+void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N) {
+  __ggml_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
+}
+
 } /* namespace nntrainer */
