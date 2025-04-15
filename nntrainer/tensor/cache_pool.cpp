@@ -216,7 +216,6 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
 
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
     exec_ids[exe_order[0]].push_back(id);
-    std::cout << exec_ids.size() << std::endl;
     ords.append(std::to_string(exe_order[0]));
     ords.append(" ");
   } else {

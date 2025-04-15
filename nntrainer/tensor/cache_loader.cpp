@@ -159,7 +159,6 @@ int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
 void CacheLoader::setupFSU() {
   pool->setupFSU();
   order_to_future.clear();
-  order_to_future.clear();
 }
 
 ThreadPool::ThreadPool(size_t num_threads) :

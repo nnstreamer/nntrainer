@@ -400,12 +400,14 @@ void BCQTensor::createBCQW() {
   /// is related to the speed of matrixDotMatrix. The optimal value should be
   /// found with various values according to the usage environment.
   size_t hidden_tile_size = 32;
-
+  // bcq_weight = std::make_shared<BiQGEMM::BCQW>(
+  //   (uint32_t *)(data->getAddr<uint32_t>()),
+  //   (float *)((uint32_t *)(data->getAddr<uint32_t>()) + size()), width(),
+  //   height(), number_of_cluster, qbit_of_clusters, size_of_clusters,
+  //   hidden_tile_size);
   bcq_weight = std::make_shared<BiQGEMM::BCQW>(
-    (uint32_t *)(data->getAddr<uint32_t>()),
-    (float *)((uint32_t *)(data->getAddr<uint32_t>()) + size()), width(),
-    height(), number_of_cluster, qbit_of_clusters, size_of_clusters,
-    hidden_tile_size);
+  (uint32_t *)(data->getAddr<uint32_t>()), (float *)((uint32_t *)(data->getAddr<uint32_t>()) + size()) , width(), height(),
+  number_of_cluster, qbit_of_clusters, size_of_clusters, hidden_tile_size, true);
 }
 
 } // namespace nntrainer

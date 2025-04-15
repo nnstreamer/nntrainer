@@ -210,6 +210,7 @@ void MemoryPool::allocateFSU() {
 
   for (auto &s : memory_offset) {
     size_t current_size = memory_size.at(i);
+    current_size = current_size;
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
       void *ptr = ALIGNED_ALLOC(current_size);
@@ -217,7 +218,6 @@ void MemoryPool::allocateFSU() {
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
-
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
