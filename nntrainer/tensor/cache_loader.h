@@ -196,7 +196,6 @@ private:
 
   ThreadPool *thread_pool_;
   std::map<int, std::future<bool>> order_to_future;
-  std::map<int, std::promise<bool>> order_to_promise;
 
   std::mutex load_lock;
   std::mutex thread_lock;
