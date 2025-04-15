@@ -353,10 +353,52 @@ void __fallback_softmax(const unsigned int N, float *X, float *Y) {
   }
 }
 
-void __gemm_q4_K(const unsigned int M, const unsigned int N,
-                 const unsigned int K, const float *A, const unsigned int lda,
-                 const void *B, const unsigned int ldb, float *C,
-                 const unsigned int ldc) {
-  throw std::runtime_error("NYI : __gemm_q4_K");
+void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const float *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, float *C,
+                          const unsigned int ldc) {
+  throw std::runtime_error("NYI : __fallback_gemm_q4_0");
 }
+
+void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const float *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, float *C,
+                          const unsigned int ldc) {
+  throw std::runtime_error("NYI : __fallback_gemm_q4_K");
+}
+
+size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                                int64_t n_per_row, const float *quant_weights) {
+  throw std::runtime_error("NYI : __fallback_quantize_q4_0");
+  return 1;
+}
+
+size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                                int64_t n_per_row, const float *quant_weights) {
+  throw std::runtime_error("NYI : __fallback_quantize_q4_K");
+  return 1;
+}
+
+void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
+  throw std::runtime_error("NYI : __fallback_dequantize_row_q4_K");
+}
+
+void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+  throw std::runtime_error("NYI : __fallback_dequantize_row_q8_K");
+}
+
+void __fallback_repack_q4_0_to_q4_0_8(void *W, void *repacked_W,
+                                      size_t data_size, const unsigned int M,
+                                      const unsigned int N) {
+  throw std::runtime_error("NYI : __fallback_repack_q4_0_to_q4_0_8");
+}
+
+void __fallback_repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
+                                      size_t data_size, const unsigned int M,
+                                      const unsigned int N) {
+  throw std::runtime_error("NYI : __fallback_repack_q4_K_to_q4_K_8");
+}
+
 } // namespace nntrainer
