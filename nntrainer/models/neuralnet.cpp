@@ -648,19 +648,15 @@ void NeuralNetwork::load(const std::string &file_path,
     std::vector<std::pair<size_t, size_t>> file_offset;
     // size_t start_from = sizeof(unsigned short);
     size_t start_from = 0;
-    for (auto node : model_graph.getLayerNodes()) {
-      auto weights = node->getRunContext().getWeights();
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      auto weights = (*iter)->getRunContext().getWeights();
       for (auto weight : weights) {
-        auto dim = weight->getDim();
+        auto dim = weight->getVariable();
+
         size_t size =
-          dim.getDataTypeSize() * dim.getDataLen(); // + scale_size * float
+          dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
 
-        // auto var_t = weight->getVariable();
-        // size_t size = var_t.getMemoryBytes();
-
-        // there is uint16 to save quantization bit for each tensor
         file_offset.emplace_back(std::make_pair(start_from, size));
-        // start_from += size + sizeof(unsigned short);
         start_from += size;
       }
     }
