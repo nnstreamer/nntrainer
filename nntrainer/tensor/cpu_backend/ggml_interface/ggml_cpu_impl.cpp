@@ -82,7 +82,7 @@ static inline int nearest_int(float fval) {
 /*
  RUNTIME ACTIVATION QUANTIZATION
  */
-static void ggml_quantize_mat_q8_K_4x8(const float *GGML_RESTRICT x,
+static void ggml_quantize_mat_q8_K_4x8_(const float *GGML_RESTRICT x,
                                        void *GGML_RESTRICT vy, int64_t k) {
   assert(QK_K == 256);
   // assert(k % QK_K == 0);
@@ -385,7 +385,7 @@ void ggml_quantize_mat_t<8, GGML_TYPE_Q8_K>(const float *GGML_RESTRICT x,
                                             int64_t nrow, int64_t n_per_row) {
   assert(nrow == 4);
   UNUSED(nrow);
-  ggml_quantize_mat_q8_K_4x8(x, vy, n_per_row);
+  ggml_quantize_mat_q8_K_4x8_(x, vy, n_per_row);
 }
 
 static inline void quantize_row_q8_K_ref(const float *GGML_RESTRICT x,
@@ -869,7 +869,7 @@ static void ggml_gemv_q4_K_8x8_q8_K(int n, float *GGML_RESTRICT s, size_t bs,
 #endif
 }
 
-static void ggml_gemm_q4_K_8x8_q8_K(int n, float *GGML_RESTRICT s, size_t bs,
+static void ggml_gemm_q4_K_8x8_q8_K_(int n, float *GGML_RESTRICT s, size_t bs,
                                     const void *GGML_RESTRICT vx,
                                     const void *GGML_RESTRICT vy, int nr,
                                     int nc) {
@@ -2663,7 +2663,7 @@ template <>
 void gemm<block_q4_K, 8, 8, GGML_TYPE_Q8_K>(int n, float *s, size_t bs,
                                             const void *vx, const void *vy,
                                             int nr, int nc) {
-  ggml_gemm_q4_K_8x8_q8_K(n, s, bs, vx, vy, nr, nc);
+  ggml_gemm_q4_K_8x8_q8_K_(n, s, bs, vx, vy, nr, nc);
 }
 /*
 GEMM/GEMV KERNEL FUNCTION INTERFACE

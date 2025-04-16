@@ -901,9 +901,13 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     // const unsigned int M = 8;
     // const unsigned int K = 16;
     // const unsigned int N = 32;
+    // const unsigned int M = 512; // = sizez
+    // const unsigned int K = 512; // = sizex
+    // const unsigned int N = 512; // = sizey
     const unsigned int M = 512; // = sizez
-    const unsigned int K = 512; // = sizex
-    const unsigned int N = 512; // = sizey
+    const unsigned int K = 1024; // = sizex
+    const unsigned int N = 1536; // = sizey
+
     
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
@@ -961,8 +965,8 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     t1 = high_resolution_clock::now();
     
     //####################
-    nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) rhs_ptr, N, dst_ptr, N); // It can be used to multiply float wieghts
-    //nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) repacked_qWeight.data(), N, dst_ptr, N); // It can be used to multiply quantized wieghts
+    //nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) rhs_ptr, N, dst_ptr, N); // It can be used to multiply float wieghts
+    nntrainer::gemm_q4_K(M, N, K, lhs_ptr, K, (void*) repacked_qWeight.data(), N, dst_ptr, N); // It can be used to multiply quantized wieghts
     //####################
 
     t2 = high_resolution_clock::now();
