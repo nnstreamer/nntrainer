@@ -1005,7 +1005,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
         3. ???
     */
 }
-TEST(nntrainer_cpu_backend_standalone, DISABLED_q4_K_GEMV_512) {
+TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_512) {
     ///@note A(M, K) * W.T(N, K) = (M, N)
     ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
 

@@ -388,7 +388,7 @@ void ggml_quantize_mat_t<8, GGML_TYPE_Q8_K>(const float *GGML_RESTRICT x,
   ggml_quantize_mat_q8_K_4x8_(x, vy, n_per_row);
 }
 
-static inline void quantize_row_q8_K_ref(const float *GGML_RESTRICT x,
+static inline void quantize_row_q8_K_ref_(const float *GGML_RESTRICT x,
                                          block_q8_K *GGML_RESTRICT y,
                                          int64_t k) {
   assert(k % QK_K == 0);
@@ -431,9 +431,9 @@ static inline void quantize_row_q8_K_ref(const float *GGML_RESTRICT x,
   }
 }
 
-void quantize_row_q8_K(const float *GGML_RESTRICT x, void *GGML_RESTRICT y,
+void quantize_row_q8_K_(const float *GGML_RESTRICT x, void *GGML_RESTRICT y,
                        int64_t k) {
-  quantize_row_q8_K_ref(x, (block_q8_K *)y, k);
+  quantize_row_q8_K_ref_(x, (block_q8_K *)y, k);
 }
 /*
  RUNTIME ACTIVATION QUANTIZATION
@@ -442,7 +442,7 @@ void quantize_row_q8_K(const float *GGML_RESTRICT x, void *GGML_RESTRICT y,
 /*
 GEMM GEMV KERNEL
  */
-static void ggml_gemv_q4_K_8x8_q8_K(int n, float *GGML_RESTRICT s, size_t bs,
+static void ggml_gemv_q4_K_8x8_q8_K_(int n, float *GGML_RESTRICT s, size_t bs,
                                     const void *GGML_RESTRICT vx,
                                     const void *GGML_RESTRICT vy, int nr,
                                     int nc) {
@@ -2651,7 +2651,7 @@ template <>
 void gemv<block_q4_K, 8, 8, GGML_TYPE_Q8_K>(int n, float *s, size_t bs,
                                             const void *vx, const void *vy,
                                             int nr, int nc) {
-  ggml_gemv_q4_K_8x8_q8_K(n, s, bs, vx, vy, nr, nc);
+  ggml_gemv_q4_K_8x8_q8_K_(n, s, bs, vx, vy, nr, nc);
 }
 
 // gemm
@@ -2875,12 +2875,12 @@ public:
       ///PARAM_TYPE
       // from_float((float *) ((char *) src1->data + i11 * nb11), (void *)
       // (wdata + i11 * nbw1), ne10);
-      quantize_row_q8_K((float *)((char *)A + i11 * nb11),
+      quantize_row_q8_K_((float *)((char *)A + i11 * nb11),
                         (void *)(wdata + i11 * nbw1), ne10);
     }
     // t2 = high_resolution_clock::now();
     // dt = duration_cast<nanoseconds>(t2 - t1);
-    // std::cout << "quantize_row_q8_K : " << dt.count()
+    // std::cout << "quantize_row_q8_K_ : " << dt.count()
     //         << " ns " << std::endl;
 
     print_q8_kx4_block_1(wdata, i11_processed);
