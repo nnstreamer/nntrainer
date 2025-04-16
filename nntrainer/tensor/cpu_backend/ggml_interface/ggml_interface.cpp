@@ -12,6 +12,7 @@
 
 #include <ggml.h>
 #include <ggml_interface.h>
+#include "ggml-cpu-quants.h"
 
 #include "ggml_cpu_impl.h"
 #include <stdint.h>
@@ -71,7 +72,17 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                              const unsigned int ldc) {
   printf("++++++++++++++++++ nntr_q4_K_8x8_q8_K_GEMM(M:%u, N:%u, K:%u, A:%p, lda:%u, B:%p, ldb:%u, C:%p, ldc:%u)\n", M, N, K, A, lda, B, ldb, C, ldc);
 
+  if (M == 1) {
+    // GEMV implementation
+    int blocks_per_row = (K + QK_K - 1) / QK_K;
+    int qa_size = sizeof(block_q8_K) * blocks_per_row;
+    std::vector<char> QA = std::vector<char>(qa_size);
 
+    quantize_row_q8_K(A, QA.data(), K);
+
+    ggml_gemv_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
+  } else {
+    // GEMM implementation
 #if 0
     // Test2: multiopication on floats
     static size_t buf_size = 100000000;
@@ -143,41 +154,41 @@ void nntr_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
 #elif 1
   
-  printf("sizeof(block_q8_Kx4):%li\n", sizeof(block_q8_Kx4));
+    printf("sizeof(block_q8_Kx4):%li\n", sizeof(block_q8_Kx4));
 
-  int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-  int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-  int M4 = ((M + 3) / 4);
+    int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
+    int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
+    int M4 = ((M + 3) / 4);
 
-  int qa_size = qa_4_rows_size * M4;
-  std::vector<char> QA = std::vector<char>(qa_size); 
+    int qa_size = qa_4_rows_size * M4;
+    std::vector<char> QA = std::vector<char>(qa_size);
 
-  // Quantization of activations
-  for (int i = 0; i < M4; i++) {
-    ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size, K);
-  }
+    // Quantization of activations
+    for (int i = 0; i < M4; i++) {
+      ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size, K);
+    }
 
 #if 1
-  // single thread
-  ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
+    // single thread
+    ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
 
 #else
-  // TODO beter multithreading
-  int delta = 384 / 4;
-  int step_N = N / delta;
-  int step_C = delta;
-  int step_B = blocks_per_4_rows * 144 * delta;
-  #pragma omp parallel for num_threads(16)
-  for (int i = 0; i < step_N; i++) {
-    ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, B + i * step_B, QA.data(), M, delta);
-  }
+    // TODO beter multithreading
+    int delta = 384 / 4;
+    int step_N = N / delta;
+    int step_C = delta;
+    int step_B = blocks_per_4_rows * 144 * delta;
+    #pragma omp parallel for num_threads(16)
+    for (int i = 0; i < step_N; i++) {
+      ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, B + i * step_B, QA.data(), M, delta);
+    }
 #endif
 
 #else
     // Old solution - it works but slow
     ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
-
+  }
   printf("------------------ nntr_q4_K_8x8_q8_K_GEMM()\n");
 }
  
