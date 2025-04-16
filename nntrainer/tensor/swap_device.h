@@ -47,32 +47,28 @@ namespace nntrainer {
 class SwapDevice {
 public:
   /**
-   * @brief swap device default path
-   *
-   */
-  const std::string swap_device_default_path = ".";
-
-  /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &name) :
-    dev_path(swap_device_default_path + name),
-    fd(-1),
-    num_loaded_tensors(0),
-    offset_index(0),
-    execution_mode(ml::train::ExecutionMode::TRAIN) {}
+    dev_path_(std::filesystem::path(std::filesystem::current_path())
+                .append(name)
+                .string()),
+    fd_(-1),
+    num_loaded_tensors_(0),
+    offset_index_(0),
+    execution_mode_(ml::train::ExecutionMode::TRAIN) {}
 
   /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &path, const std::string &name) :
-    dev_path(std::filesystem::path(path).append(name).string()),
-    fd(-1),
-    num_loaded_tensors(0),
-    offset_index(0),
-    execution_mode(ml::train::ExecutionMode::TRAIN) {}
+    dev_path_(std::filesystem::path(path).append(name).string()),
+    fd_(-1),
+    num_loaded_tensors_(0),
+    offset_index_(0),
+    execution_mode_(ml::train::ExecutionMode::TRAIN) {}
 
   /**
    * @brief SwapDevice destructor
@@ -87,7 +83,7 @@ public:
    * @param writeable Writeable flag
    *
    */
-  void start(size_t size, ml::train::ExecutionMode _execution_mode =
+  void start(size_t size, ml::train::ExecutionMode execution_mode =
                             ml::train::ExecutionMode::TRAIN);
 
   /**
@@ -124,7 +120,7 @@ public:
    * @return Device operating status
    *
    */
-  bool isOperating() const { return (fd >= 0); }
+  bool isOperating() const { return (fd_ >= 0); }
 
   /**
    * @brief Get device path
@@ -132,44 +128,48 @@ public:
    * @return Device path
    *
    */
-  const std::string getDevicePath() const { return dev_path; }
+  const std::string &getDevicePath() const { return dev_path_; }
 
   /**
    * @brief Get number of loaded tensors
    *
    * @return number of loaded tensors
    */
-  unsigned int getNumLoadedTensors();
+  unsigned int getNumLoadedTensors() const { return num_loaded_tensors_; }
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string file_path) { dev_path = file_path; }
+  void setFsuWeightPath(const std::string &file_path) { dev_path_ = file_path; }
 
   /**
    * @brief set weight file offset for FSU loading
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
-    weight_offset = offsets;
-  }
+  void
+  setWeightOffset(const std::vector<std::pair<size_t, size_t>> &weight_offset);
+
+  size_t alignTo(const size_t value, const size_t alignment) const;
+
+  void getAlignments(size_t &off_alignment, size_t &len_alignment) const;
 
 private:
-  std::string dev_path; /**< device path */
-  int fd;               /**< device file description */
-  std::vector<std::pair<size_t, size_t>> weight_offset;
-  unsigned int num_loaded_tensors;
-  int offset_index;
-  ml::train::ExecutionMode execution_mode;
+  std::string dev_path_; /**< device path */
+  int fd_;               /**< device file description */
+  std::vector<std::pair<size_t, size_t>> weight_offset_;
+  std::vector<std::pair<size_t, size_t>> weight_offset_aligned_;
+  unsigned int num_loaded_tensors_ = 0;
+  int offset_index_ = 0;
+  ml::train::ExecutionMode execution_mode_ = ml::train::ExecutionMode::TRAIN;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>
-    mapped; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
+    mapped_; /**< <pointer, <orig_pointer, size, offset, origianl size>> */
 #else
   std::map<void *, std::pair<off_t, ssize_t>>
-    allocated; /**< <pointer, <offset, size>> */
+    allocated_; /**< <pointer, <offset, size>> */
 #endif
 };
 } // namespace nntrainer
