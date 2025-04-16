@@ -2,3 +2,6 @@
 url = https://github.com/ggml-org/ggml.git
 directory=ggml
 revision = HEAD
+patch_directory = ggml
+diff_files = ggml/ggml_export_some_internal_methods.patch
+method = cmake
