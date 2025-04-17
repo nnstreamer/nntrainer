@@ -200,7 +200,7 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
 }
 
 void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
-  __fallback_swiglu(N, X, Y, Z);
+  nntrainer::avx2::swiglu(N, X, Y, Z);
 }
 
 float max_val(const unsigned int N, float *X) { return __fallback_max(N, X); }
