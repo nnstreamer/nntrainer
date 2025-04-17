@@ -80,7 +80,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
 
   if (len == 0 || prot == PROT_EXEC) {
     errno = EINVAL;
-    return nullptr;
+    return MAP_FAILED;
   }
 
   HANDLE file_handle =
@@ -88,7 +88,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
 
   if ((flags & MAP_ANONYMOUS) && (file_handle == INVALID_HANDLE_VALUE)) {
     errno = EBADF;
-    return nullptr;
+    return MAP_FAILED;
   }
 
   HANDLE file_mapping =
@@ -96,7 +96,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
 
   if (!file_mapping) {
     errno = GetLastError();
-    return nullptr;
+    return MAP_FAILED;
   }
 
   void *map_view = nullptr;
@@ -111,7 +111,7 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off) {
 
   if (!map_view) {
     errno = GetLastError();
-    return nullptr;
+    return MAP_FAILED;
   }
 
   CloseHandle(file_mapping);
