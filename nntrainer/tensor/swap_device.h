@@ -47,17 +47,13 @@ namespace nntrainer {
 class SwapDevice {
 public:
   /**
-   * @brief swap device default path
-   *
-   */
-  const std::string swap_device_default_path = ".";
-
-  /**
    * @brief SwapDevice default constructor
    *
    */
   explicit SwapDevice(const std::string &name) :
-    dev_path(swap_device_default_path + name),
+    dev_path(std::filesystem::path(std::filesystem::current_path())
+               .append(name)
+               .string()),
     fd(-1),
     num_loaded_tensors(0),
     offset_index(0),
