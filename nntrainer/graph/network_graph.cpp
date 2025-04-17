@@ -384,10 +384,12 @@ sharedConstTensors NetworkGraph::forwarding(
   for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
     auto const &output_layer_node = LNODE(graph.getOutputNode(i));
     for (unsigned int j = 0; j < output_layer_node->getNumOutputs(); ++j) {
-      // @todo we should determine what type to return
-      // out.push_back(MAKE_SHARED_TENSOR(
-      //   output_layer_node->getOutput(j).clone(TensorDim::DataType::FP32)));
-      out.push_back(MAKE_SHARED_TENSOR(output_layer_node->getOutput(j)));
+      auto out_j = output_layer_node->getOutput(j);
+      if (out_j.getDataType() == Tdatatype::FP32)
+        out.push_back(MAKE_SHARED_TENSOR(out_j));
+      else
+        out.push_back(
+          MAKE_SHARED_TENSOR(out_j.clone(TensorDim::DataType::FP32)));
     }
   }
 
