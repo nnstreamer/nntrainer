@@ -1618,10 +1618,19 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
   tensor_manager->flushCacheExcept(order);
 }
 
-void NetworkGraph::LoadTensors(unsigned int order,
-                               unsigned int remainder_lookahead) {
-  tensor_manager->LoadTensors(order, remainder_lookahead);
+void NetworkGraph::LoadTensors(unsigned int order, unsigned int lookahead) {
+  tensor_manager->LoadTensors(order, lookahead);
 }
+
+void NetworkGraph::LoadFsuTensors(unsigned int order, unsigned int lookahead) {
+  tensor_manager->LoadFsuTensors(order, lookahead);
+}
+
+bool NetworkGraph::checkFsuLoadComplete(unsigned int order) {
+  return tensor_manager->checkFsuLoadComplete(order);
+}
+
+void NetworkGraph::setupFSU() { return tensor_manager->setupFsu(); }
 
 bool NetworkGraph::checkLoadComplete(unsigned int order) {
   return tensor_manager->checkLoadComplete(order);
