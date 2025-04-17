@@ -361,7 +361,7 @@ void swiglu(const unsigned int N, float *X, const float *Y, const float *Z) {
        0,  0,  0,  0,  0,  0,  0,  0
     };
 
-    auto vmask = _mm256_loadu_si256((__m256i*)(mask+i));
+    auto vmask = _mm256_loadu_si256((__m256i*)(mask+(i&7)));
     auto ym = _mm256_maskload_ps(Y+i, vmask);
     auto zm = _mm256_maskload_ps(Z+i, vmask);
     _mm256_maskstore_ps(X+i, vmask, avx2_approx_swiglu(ym, zm));
