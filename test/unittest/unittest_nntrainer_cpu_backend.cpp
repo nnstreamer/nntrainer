@@ -909,7 +909,6 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     const unsigned int K = 3072; // = sizex
     const unsigned int N = 3072; // = sizey
 
-    
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
     // std::vector<float> activation = generate_homogeneous_vector<float>(M * K, 2.0f);
@@ -972,7 +971,8 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
 
     t2 = high_resolution_clock::now();
     dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "gemm_q4_K : " << dt.count() << " ns " << std::endl << std::endl;
+    std::cout << "gemm_q4_K : " << dt.count() << " ns " << std::endl
+              << std::endl;
     ///@note Needs validation!
 
     // Step4. Compare quantization error
@@ -1016,8 +1016,6 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMV_512) {
     // const unsigned int M = 1; // = sizez
     // const unsigned int K = 3072; // = sizex
     // const unsigned int N = 3072; // = sizey
-
-    
 
     ///@note q4_K GEMM is a Row-Major, transB GEMM
     ///@todo Temporally use homogenous matrices. Need to replace with random data after accuracy debugging. Reason why it is set 1.0 and 1.5 is to compare with benchmark-matmult.cpp from llama.cpp
