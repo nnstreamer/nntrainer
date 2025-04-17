@@ -81,6 +81,16 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       const float *src, unsigned int ld_src, float *dst,
                       unsigned int ld_dst);
 
+/**
+ * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
+ *
+ * @param N number of elements in X
+ * @param X float * for Vector X
+ * @param Y float * for Vector Y
+ * @param Z float * for Vector Z
+ */
+void swiglu(const unsigned int N, float *X, const float *Y, const float *Z);
+
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
