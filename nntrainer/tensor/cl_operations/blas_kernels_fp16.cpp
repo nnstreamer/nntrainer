@@ -248,29 +248,27 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
       break;
     }
 
-    result = kernel_sgemm_fp16_ptr->SetKernelArguments(3, &K, sizeof(int));
+    result = kernel_sgemm_fp16_ptr->SetKernelArguments(3, &M, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16_ptr->SetKernelArguments(4, &lda, sizeof(int));
+    result = kernel_sgemm_fp16_ptr->SetKernelArguments(4, &N, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16_ptr->SetKernelArguments(5, &ldb, sizeof(int));
+    result = kernel_sgemm_fp16_ptr->SetKernelArguments(5, &K, sizeof(int));
     if (!result) {
       break;
     }
 
-    result = kernel_sgemm_fp16_ptr->SetKernelArguments(6, &ldc, sizeof(int));
-    if (!result) {
-      break;
-    }
+    const int tiled_size = 16;
+    const int work_groups_count[3] = {
+      (int)((N + tiled_size - 1) / tiled_size) * tiled_size,
+      (int)((M + tiled_size - 1) / tiled_size) * tiled_size, 1}; // test-value
 
-    const int work_groups_count[3] = {(int)M, (int)N, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    const int work_group_size[3] = {tiled_size, tiled_size, 1}; // test-value
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sgemm_fp16_ptr, work_groups_count, work_group_size);
