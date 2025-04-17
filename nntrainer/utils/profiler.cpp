@@ -12,6 +12,7 @@
  */
 #include <algorithm>
 #include <atomic>
+#include <fstream>
 #include <iomanip>
 #include <map>
 #include <numeric>
@@ -59,7 +60,8 @@ void GenericProfileListener::onNotifyTimeEvent(
 void GenericProfileListener::onNotifyMemoryEvent(
   PROFILE_EVENT event, const size_t alloc_current, const size_t alloc_total,
   const std::string &str, const std::chrono::microseconds &duration,
-  const std::string &cache_policy, bool cache_fsu) {
+  const std::chrono::microseconds &called_time, const std::string &cache_policy,
+  bool cache_fsu, int index, long unsigned int execution_order) {
 
   if (event != EVENT_MEM_ANNOTATE) {
     mem_max = std::max(mem_max, alloc_total);
@@ -68,7 +70,8 @@ void GenericProfileListener::onNotifyMemoryEvent(
   }
 
   mem_taken.emplace_back(event, alloc_current, alloc_total, str, duration,
-                         cache_policy, cache_fsu);
+                         called_time, cache_policy, cache_fsu, index,
+                         execution_order);
 }
 
 void GenericProfileListener::notify(
@@ -83,9 +86,14 @@ void GenericProfileListener::notify(
   case EVENT_MEM_ALLOC:
   case EVENT_MEM_DEALLOC:
   case EVENT_MEM_ANNOTATE:
+  case EVENT_MMAP:
+  case EVENT_MUNMAP:
+  case EVENT_MEM_ANNOTATE_START:
+  case EVENT_MEM_ANNOTATE_END:
     onNotifyMemoryEvent(event, data->alloc_current, data->alloc_total,
-                        data->event_str, data->duration, data->cache_policy,
-                        data->cache_fsu);
+                        data->event_str, data->duration, data->called_time,
+                        data->cache_policy, data->cache_fsu, data->index,
+                        data->execution_order);
     break;
   default:
     throw std::runtime_error("Invalid PROFILE_EVENT");
@@ -116,6 +124,25 @@ GenericProfileListener::result(const int time_item) {
 }
 
 void GenericProfileListener::report(std::ostream &out) const {
+  bool visualization = true;
+  char filename[256];
+
+  std::ofstream log_file;
+
+  if (visualization) {
+    std::time_t now = std::time(nullptr);
+    struct tm *t = std::localtime(&now);
+    sprintf(filename, "visualization_log_%d-%02d-%02d_%02d-%02d.log",
+            t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
+            t->tm_min);
+
+    log_file.open(filename);
+    if (!log_file.is_open()) {
+      throw std::runtime_error("Couldn't open log file");
+      visualization = false;
+    }
+  }
+
   std::vector<unsigned int> column_size = {20, 23, 23, 23, 23, 23, 23, 23};
 
   for (auto &[item, time] : time_taken) {
@@ -194,7 +221,7 @@ void GenericProfileListener::report(std::ostream &out) const {
   ordered_report.clear();
 
   column_size.clear();
-  column_size = {30, 20, 20, 60, 10, 20, 10};
+  column_size = {30, 20, 20, 60, 10, 20, 10, 20};
 
   out << std::string(total_col_size, '=') << '\n';
   out << "\n\n";
@@ -207,6 +234,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       << std::setw(column_size[4]) << "dur"
       << std::setw(column_size[5]) << "policy"
       << std::setw(column_size[6]) << "fsu"
+      << std::setw(column_size[7]) << "pool index"
       << std::endl;
   // clang-format on
   out << std::string(total_col_size, '=') << std::endl;
@@ -218,27 +246,42 @@ void GenericProfileListener::report(std::ostream &out) const {
       auto &cur = std::get<1>(mem);
       auto &total = std::get<2>(mem);
       auto &info = std::get<3>(mem);
-      auto &dur = std::get<std::chrono::microseconds>(mem);
-      auto &policy = std::get<5>(mem);
-      auto &fsu = std::get<bool>(mem);
+      auto &dur = std::get<4>(mem);
+      auto &called_time = std::get<5>(mem);
+      auto &policy = std::get<6>(mem);
+      auto &fsu = std::get<7>(mem);
+      auto &index = std::get<8>(mem);
+      auto &order = std::get<9>(mem);
 
       out_.setf(std::ios::fixed);
       out_.setf(std::ios::right);
       std::streamsize default_precision = out_.precision(2);
       // clang-format off
-      if (event == EVENT_MEM_ANNOTATE) {
-        out_ << info << std::endl;
+      if (event == EVENT_MEM_ANNOTATE || event == EVENT_MEM_ANNOTATE_START || event == EVENT_MEM_ANNOTATE_END) {
+        out_ << info << " order = " << order << std::endl;
+        if (visualization && event != EVENT_MEM_ANNOTATE) {
+          log_file << (event == EVENT_MEM_ANNOTATE_START ? "INFERENCE_START " : "INFERENCE_END ")
+          << order << " " << called_time.count() << std::endl;
+        }
       } else { 
         out_ << std::setw(column_size[0]) << ((event == EVENT_MEM_ALLOC) ? "ALLOC" :
-                                              (event == EVENT_MEM_DEALLOC) ? "DEALLOC" : "")
+                                              (event == EVENT_MEM_DEALLOC) ? "DEALLOC" :
+                                              (event == EVENT_MMAP) ? "MMAP" :
+                                              (event == EVENT_MUNMAP) ? "UNMAP" : "")
              << std::setw(column_size[1]) << std::to_string(cur)
              << std::setw(column_size[2]) << std::to_string(total)
              << std::setw(column_size[3]) << info
-             << std::setw(column_size[4]) << ((event == EVENT_MEM_DEALLOC) ? std::to_string(dur.count()) : "")
+             << std::setw(column_size[4]) << ((event == EVENT_MEM_DEALLOC || event == EVENT_MUNMAP) ? std::to_string(dur.count()) : "")
              << std::setw(column_size[5]) << policy
-             << std::setw(column_size[6]) << (fsu ? ((event == EVENT_MEM_ALLOC) ? "IN" :
-                                                     (event == EVENT_MEM_DEALLOC) ? "OUT" : "") : "")
+             << std::setw(column_size[6]) << (fsu ? ((event == EVENT_MEM_ALLOC || event == EVENT_MMAP) ? "IN" :
+                                                     (event == EVENT_MEM_DEALLOC || event == EVENT_MUNMAP) ? "OUT" : "") : "")
+             << std::setw(column_size[7]) << (index >= 0 ? "pool[" + std::to_string(index) + "]" : "")
+             << std::setw(column_size[7]) << order
              << std::endl;
+        if (visualization && (event == EVENT_MMAP || event == EVENT_MUNMAP)) {
+          log_file << (event == EVENT_MMAP ? "LOAD_START " : "LOAD_END ")
+          << order << " " << called_time.count() << std::endl;
+        }
       }
       // clang-format on
       out_.precision(default_precision);
@@ -252,6 +295,10 @@ void GenericProfileListener::report(std::ostream &out) const {
 
   out << "Max Memory Size = " << mem_max << std::endl;
   out << "Average Memory Size = " << mem_average << std::endl;
+
+  if (log_file.is_open()) {
+    log_file.close();
+  }
 }
 
 Profiler &Profiler::Global() {
@@ -369,8 +416,7 @@ void Profiler::alloc(const void *ptr, size_t size, const std::string &str,
   total_size += size;
 
   auto data = std::make_shared<ProfileEventData>(
-    0, size, total_size.load(), str, std::chrono::microseconds(0), policy,
-    fsu);
+    0, size, total_size.load(), str, std::chrono::microseconds(0), policy, fsu);
   notifyListeners(EVENT_MEM_ALLOC, data);
 }
 
@@ -398,6 +444,64 @@ void Profiler::dealloc(const void *ptr, const std::string &policy, bool fsu) {
   allocates.erase(found);
 }
 
+void Profiler::mmap(const void *ptr, size_t size, const std::string &str,
+                    const std::string &policy, bool fsu,
+                    long unsigned int execution_order) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
+
+#ifdef DEBUG
+  auto found = allocates.find(ptr);
+  if (found != allocates.end())
+    throw std::invalid_argument("memory profiler is already allocated");
+#endif
+  if (fsu_pool_index.find(ptr) == fsu_pool_index.end())
+    fsu_pool_index[ptr] = fsu_pool_index.size();
+
+  std::chrono::microseconds called_time =
+    std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch());
+
+  allocates[ptr] = std::tuple<size_t, timepoint, std::string>(
+    size, std::chrono::steady_clock::now(), str);
+
+  total_size += size;
+
+  auto data = std::make_shared<ProfileEventData>(
+    0, size, total_size.load(), str, std::chrono::microseconds(0), called_time,
+    policy, fsu, fsu_pool_index[ptr], execution_order);
+  notifyListeners(EVENT_MMAP, data);
+}
+
+void Profiler::munmap(const void *ptr, const std::string &policy, bool fsu,
+                      long unsigned int execution_order) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
+
+  auto end = std::chrono::steady_clock::now();
+  auto found = allocates.find(ptr);
+
+  std::chrono::microseconds called_time =
+    std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch());
+
+  if (found == allocates.end())
+    throw std::invalid_argument("memory profiler didn't allocated");
+
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+    end - std::get<timepoint>(found->second));
+
+  auto size = std::get<size_t>(found->second);
+  total_size -= size;
+
+  auto str = std::get<std::string>(found->second);
+  auto data = std::make_shared<ProfileEventData>(
+    0, size, total_size.load(), str, duration, called_time, policy, fsu,
+    fsu_pool_index[ptr], execution_order);
+
+  notifyListeners(EVENT_MUNMAP, data);
+
+  allocates.erase(found);
+}
+
 void Profiler::annotate(const std::string &str) {
   std::lock_guard<std::mutex> lock(allocates_mutex);
 
@@ -405,6 +509,23 @@ void Profiler::annotate(const std::string &str) {
                                                  std::chrono::microseconds(0));
 
   notifyListeners(EVENT_MEM_ANNOTATE, data);
+}
+
+void Profiler::annotate_order(const std::string &str,
+                              long unsigned int execution_order,
+                              bool is_start) {
+  std::lock_guard<std::mutex> lock(allocates_mutex);
+
+  std::chrono::microseconds called_time =
+    std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now().time_since_epoch());
+
+  auto data = std::make_shared<ProfileEventData>(
+    0, 0, 0, str, std::chrono::microseconds(0), called_time, "TEMPORAL", false,
+    -1, execution_order);
+
+  notifyListeners(
+    (is_start ? EVENT_MEM_ANNOTATE_START : EVENT_MEM_ANNOTATE_END), data);
 }
 
 } // namespace profile
