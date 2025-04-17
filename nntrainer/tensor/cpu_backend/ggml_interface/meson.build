@@ -1,13 +1,8 @@
 ggml_gemm_wo_ggml_tensor_headers = [
-  'ggml_avx_macro.h',
-  'ggml_cpu_impl.h',
-  'ggml-common.h',
-  'nntr_ggml_essential.h',
   'ggml_interface.h',
 ]
 
 ggml_gemm_wo_ggml_tensor_sources = [
-  'ggml_cpu_impl.cpp',
   'ggml_interface.cpp',
 ]
 
