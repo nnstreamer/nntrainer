@@ -749,6 +749,11 @@ private:
    * @retval true if matches, false is error
    */
   bool validateInput(sharedConstTensors X);
+
+  /**
+   * @brief Setup FSU, InActive FSU Element
+   */
+  void setupFSU();
 };
 
 } /* namespace nntrainer */
