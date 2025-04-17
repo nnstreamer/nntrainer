@@ -87,7 +87,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
-    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+    NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
     // MADVISE can be used to improve performance.
@@ -96,7 +96,11 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     void *buf = static_cast<void *>(ptr + diff);
 
     memcpy(memory_ptr, buf, len_offset.second);
-    munmap(ptr, len);
+    const auto ret = munmap(ptr, len);
+
+    NNTR_THROW_IF(ret == -1, std::runtime_error)
+      << "SwapDevice: munmap: "
+      << SAFE_STRERROR(errno, error_buf, error_buflen);
 
     ++offset_index;
     ++num_loaded_tensors;
@@ -115,7 +119,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     char error_buf[error_buflen];
     char *ptr = static_cast<char *>(
       mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
-    NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
+    NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
     void *buf = static_cast<void *>(ptr + diff);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
@@ -157,7 +161,6 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   if (mapped.size() == 0) {
     return;
   }
-  int ret;
 
   NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
     << "Couldn't find buffer";
@@ -177,7 +180,7 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
       << dev_path;
   }
 
-  ret = munmap(std::get<void *>(info), std::get<size_t>(info));
+  const auto ret = munmap(std::get<void *>(info), std::get<size_t>(info));
   const size_t error_buflen = 100;
   char error_buf[error_buflen];
   NNTR_THROW_IF(ret == -1, std::runtime_error)
