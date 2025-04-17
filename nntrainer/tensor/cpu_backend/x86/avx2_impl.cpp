@@ -176,7 +176,7 @@ inline auto avx2_approx_exp_malossi_p7(__m256 xs) noexcept -> __m256
 auto avx2_approx_swiglu(__m256 x, __m256 s) noexcept -> __m256
 {
   auto neg_x = _mm256_xor_ps(x, _mm256_set1_ps(-1.0f));
-  auto inv_sigmoid = avx2_approx_exp_malossi_p7(neg_x);
+  auto inv_sigmoid = _mm256_add_ps(avx2_approx_exp_malossi_p7(neg_x), _mm256_set1_ps(1.0f));
   auto swiglu_nonscaled = _mm256_div_ps(x, inv_sigmoid);
   return _mm256_mul_ps(swiglu_nonscaled, s);
 }
