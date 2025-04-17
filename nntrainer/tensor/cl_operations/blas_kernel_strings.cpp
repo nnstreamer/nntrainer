@@ -500,12 +500,11 @@ const std::string &getHgemvClKernel() {
   static const std::string hgemv_cl_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-        
         __kernel void sgemv_cl_fp16(const __global half* A, const __global half* X,
                           __global half* Y, unsigned int N, unsigned int lda) {                                            
             unsigned int i;
             i = get_global_id(0);                         
-            half y0 = 0.0f;
+            float y0 = 0.0f;
             for (unsigned int j = 0; j < N; j++)                         
                 y0 += A[i + j * lda] * X[j]; 
             Y[i] = y0;                            
@@ -518,12 +517,11 @@ const std::string &getHgemvClNoTransKernel() {
   static const std::string hgemv_cl_noTrans_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sgemv_cl_noTrans_fp16(const __global half* A, const __global half* X,
                           __global half* Y, unsigned int N, unsigned int lda) {                                            
             unsigned int i;
             i = get_global_id(0);                         
-            half y0 = 0.0f;
+            float y0 = 0.0f;
             for (unsigned int j = 0; j < N; j++)                         
                 y0 += A[j + i * lda] * X[j]; 
             Y[i] = y0;                            
@@ -536,12 +534,12 @@ const std::string &getDotClKernelFP16() {
   static const std::string dot_cl_kernel_fp16_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void dot_cl_fp16(const __global half* A, const __global half* X, unsigned int K, __global half* res) {
-            *res = 0;
+            float y = 0.0f;
             for (unsigned int i = 0; i < K; i++){
-                *res += A[i] * X[i];
+                y += A[i] * X[i];
             }
+            *res = y;
         })";
   return dot_cl_kernel_fp16_;
 }
@@ -550,15 +548,14 @@ const std::string &getHgemmClNoTransKernel() {
   static const std::string hgemm_cl_noTrans_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sgemm_cl_noTrans_fp16(const __global half* A, const __global half* B,
                           __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
             
             unsigned int m = get_global_id(0);
             unsigned int n = get_global_id(1);
-            half c = 0.0f;
+            float c = 0.0f;
             for (unsigned int k = 0; k < K; ++k) {
-              half a, b;
+              float a, b;
               a = A[m * lda + k];
               b = B[k * ldb + n];
               c += a * b;
@@ -572,15 +569,14 @@ const std::string &getHgemmClTransAKernel() {
   static const std::string hgemm_cl_transA_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sgemm_cl_transA_fp16(const __global half* A, const __global half* B,
                           __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
             
             unsigned int m = get_global_id(0);
             unsigned int n = get_global_id(1);
-            half c = 0.0f;
+            float c = 0.0f;
             for (unsigned int k = 0; k < K; ++k) {
-              half a, b;
+              float a, b;
               a = A[k * lda + m];
               b = B[k * ldb + n];
               c += a * b;
@@ -594,15 +590,14 @@ const std::string &getHgemmClTransBKernel() {
   static const std::string hgemm_cl_transB_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sgemm_cl_transB_fp16(const __global half* A, const __global half* B,
                           __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
             
             unsigned int m = get_global_id(0);
             unsigned int n = get_global_id(1);
-            half c = 0.0f;
+            float c = 0.0f;
             for (unsigned int k = 0; k < K; ++k) {
-              half a, b;
+              float a, b;
               a = A[m * lda + k];
               b = B[n * ldb + k];
               c += a * b;
@@ -616,15 +611,14 @@ const std::string &getHgemmClTransABKernel() {
   static const std::string hgemm_cl_transAB_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sgemm_cl_transAB_fp16(const __global half* A, const __global half* B,
                           __global half* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
             
             unsigned int m = get_global_id(0);
             unsigned int n = get_global_id(1);
-            half c = 0.0f;
+            float c = 0.0f;
             for (unsigned int k = 0; k < K; ++k) {
-              half a, b;
+              float a, b;
               a = A[k * lda + m];
               b = B[n * ldb + k];
               c += a * b;
@@ -638,7 +632,6 @@ const std::string &getAdditionClKernelFP16() {
   static const std::string addition_cl_kernel_fp16_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void addition_cl_fp16(const __global half* input, __global half* output, unsigned int size_input, unsigned int size_res) {
         size_t idx = get_global_id(0);
         if (idx < size_res) {
@@ -652,7 +645,6 @@ const std::string &getHscalClKernel() {
   static const std::string hscal_cl_kernel_ =
     R"(
         #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    
         __kernel void sscal_cl_fp16(__global half* X, const float alpha) {
             
             unsigned int i = get_global_id(0);
