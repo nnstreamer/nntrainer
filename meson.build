@@ -6,7 +6,7 @@ project('nntrainer', 'c', 'cpp',
     'werror=true',
     'warning_level=1',
     'c_std=gnu89',
-    'cpp_std=c++17',
+    'cpp_std=c++20,c++17',
     'buildtype=release'
   ]
 )
@@ -102,7 +102,7 @@ elif arch == 'x86' or arch == 'x86_64'
     add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
   else
     add_project_arguments(['-march=native'], language: ['c','cpp'])
-    add_project_arguments(['-mavx2'], language: ['c','cpp'])
+    add_project_arguments(['-mavx2', '-mfma', '-mbmi2'], language: ['c','cpp'])
     message('-march=native added for AVX hardware acceleration.')
   endif
 endif
@@ -175,11 +175,12 @@ if get_option('enable-biqgemm')
   # This meson tries to find its installation.
   #   1. Checking 'prefix'/'includedir'/BiQGEMM
   #   2. Checking path meson-option specifies
-  biqgemm_path = join_paths(get_option('prefix'), get_option('includedir'), 'BiQGEMM')
+#  biqgemm_path = join_paths(get_option('prefix'), get_option('includedir'), 'BiQGEMM')
+  biqgemm_path = meson.project_source_root()/'Applications/FELICE_/BiQGEMM/'
   if cxx.has_header('BiQGEMM.h', args: '-I'+biqgemm_path)
       message('[lib:biqgemm] biqgemm header is found successfully')
       extra_defines += '-DENABLE_BIQGEMM=1'
-      biqgemm_inc = include_directories(biqgemm_path)
+      biqgemm_inc = include_directories('Applications/FELICE_/BiQGEMM/')
   else
       # relative path from biqgemm is assumed
       biqgemm_path = get_option('biqgemm-path')

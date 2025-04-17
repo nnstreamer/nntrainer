@@ -22,6 +22,7 @@ endif
 subdir('VGG/jni')
 subdir('Resnet/jni')
 subdir('Multi_input/jni')
+subdir('FELICE')
 
 # if enable_capi
 #   subdir('TransferLearning/Draw_Classification/jni')
