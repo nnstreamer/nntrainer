@@ -1361,7 +1361,9 @@ public:
   /**
    * @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool trans,
               bool trans_in, float beta) const
-   * @details performs dot operation over a batch of inputs
+   * @details performs dot operation over a batch of inputs. If the batch sizes
+   of the given two tensors are different, the bigger one should be a multiple
+   of the smaller one.
    */
   Tensor &dotBatched(Tensor const &input, Tensor &result, bool trans = false,
                      bool trans_in = false, float beta = 0.0f) const;
