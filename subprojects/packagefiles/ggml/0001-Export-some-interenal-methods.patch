@@ -1,14 +1,25 @@
+From 230a90be5308f3fb47876871ca90e71642d0b6d1 Mon Sep 17 00:00:00 2001
+From: Maciej Nalewaj <m.nalewaj@samsung.com>
+Date: Thu, 17 Apr 2025 10:42:50 +0200
+Subject: [PATCH] Export some interenal methods
+
+Signed-off-by: Maciej Nalewaj <m.nalewaj@samsung.com>
+---
+ include/ggml.h                    | 4 ++++
+ src/ggml-cpu/ggml-cpu-aarch64.cpp | 6 +++---
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
 diff --git a/include/ggml.h b/include/ggml.h
-index 8fcc16d..97fd480 100644
+index 8fcc16d..4dbd618 100644
 --- a/include/ggml.h
 +++ b/include/ggml.h
 @@ -2163,6 +2163,10 @@ extern "C" {
      GGML_API void                          ggml_threadpool_params_init   (struct ggml_threadpool_params * p, int n_threads);
      GGML_API bool                          ggml_threadpool_params_match  (const struct ggml_threadpool_params * p0, const struct ggml_threadpool_params * p1);
  
-+    void ggml_gemm_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
-+    void ggml_gemv_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
-+    void ggml_quantize_mat_q8_K_4x8(const float *GGML_RESTRICT x, void *GGML_RESTRICT vy, int64_t k);
++    GGML_API void ggml_gemm_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
++    GGML_API void ggml_gemv_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
++    GGML_API void ggml_quantize_mat_q8_K_4x8(const float *GGML_RESTRICT x, void *GGML_RESTRICT vy, int64_t k);
 +
  #ifdef  __cplusplus
  }
@@ -44,3 +55,6 @@ index ced09c0..155540c 100644
      const int qk = QK_K;
      const int nb = n / qk;
      const int ncols_interleaved = 8;
+-- 
+2.34.1
+
