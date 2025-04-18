@@ -1,8 +1,8 @@
 ggml_interface_headers = [
-  'ggml_interface.h',
+    'ggml_interface.h',
 ]
 ggml_interface_sources = [
-  'ggml_interface.cpp',
+    'ggml_interface.cpp',
 ]
 
 foreach s : ggml_interface_sources
