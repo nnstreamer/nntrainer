@@ -473,6 +473,8 @@ if get_option('enable-ggml')
     ggml_proj.dependency('ggml-base'),
     ggml_proj.dependency('ggml-cpu'),
     ggml_proj.dependency('ggml')]
+
+  extra_defines += '-DENABLE_GGML=1'
 endif
 
 # Configure the Ruy project (CMake)

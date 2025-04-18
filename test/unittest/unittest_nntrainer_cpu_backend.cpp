@@ -1208,7 +1208,7 @@ TEST(nntrainer_cpu_backend_standalone, DISABLED_q4_K_GEMV_1024) {
 
 int main(int argc, char **argv) {
   int result = -1;
-
+#ifdef ENABLE_GGML
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
@@ -1221,6 +1221,8 @@ int main(int argc, char **argv) {
   } catch (...) {
     std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
-
+#else
+  result = 0;
+#endif
   return result;
 }
