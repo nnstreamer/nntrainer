@@ -470,7 +470,10 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   
   unsigned int lookahead =
     std::get<props::FsuLookahead>(model_flex_props);
+
+  bool fsu_mode_ = std::get<props::Fsu>(model_flex_props);
   
+  std::cout <<fsu_mode_ << std::endl;
   for(unsigned int i =0 ;i<lookahead;++i){
     model_graph.LoadTensors(i);
   }
@@ -491,8 +494,9 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       model_graph.LoadTensors(f+lookahead);
       
       model_graph.checkLoadComplete(f);
-      
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;      
       node->incremental_forwarding(from, to, training);
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;      
     }
   };
 
