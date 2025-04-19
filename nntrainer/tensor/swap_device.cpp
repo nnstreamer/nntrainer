@@ -101,17 +101,17 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     memcpy(memory_ptr, buf, len_offset.second);
     munmap(ptr, len);
 
-    ++offset_index;
-    if (offset_index >= (int)weight_offset.size()) {
-      offset_index = 0;
-    }
+    // ++offset_index;
+    // if (offset_index >= (int)weight_offset.size()) {
+    //   offset_index = 0;
+    // }
 
     ++num_loaded_tensors;
 
     // @todo : need to check at cache_loader & check multi thread execution
-    if (offset_index >= (int)weight_offset.size()) {
-      offset_index = 0;
-    }
+    // if (offset_index >= (int)weight_offset.size()) {
+    //   offset_index = 0;
+    // }
 
     return memory_ptr;
   } else {
@@ -123,7 +123,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     char error_buf[error_buflen];
 
     char *ptr = static_cast<char *>(
-      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
+      mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
 
     NNTR_THROW_IF(ptr == (void *)-1, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);

@@ -200,13 +200,13 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  if (trans_in ? input.width() : input.height() == 1) {
-    BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
-                             trans_in ? input.width() : input.height());
-  } else {
-    BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
-                             trans_in ? input.width() : input.height());
-  }
+  // if (trans_in ? input.width() : input.height() == 1) {
+  //   BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
+  //                            trans_in ? input.width() : input.height());
+  // } else {
+  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
+                           trans_in ? input.width() : input.height());
+  // }
   return output;
 }
 
@@ -303,7 +303,7 @@ void BCQTensor::save_quantization_info(std::ostream &file) {
 void BCQTensor::read_quantization_info(std::ifstream &file) {
   // checkedRead(file, (char *)&quantized_bit_size, sizeof(uint16_t),
   //             "[BCQTensor::read] failed to read quantization information");
-  createBCQW();
+  // createBCQW();
 }
 
 size_t BCQTensor::size() const {
@@ -416,7 +416,7 @@ void BCQTensor::createBCQW() {
     (uint32_t *)(data->getAddr<uint32_t>()),
     (float *)((uint32_t *)(data->getAddr<uint32_t>()) + size()), width(),
     height(), number_of_cluster, qbit_of_clusters, size_of_clusters,
-    hidden_tile_size);
+    hidden_tile_size, true);
 }
 
 } // namespace nntrainer

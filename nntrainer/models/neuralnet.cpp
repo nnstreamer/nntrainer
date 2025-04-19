@@ -396,13 +396,16 @@ sharedConstTensors NeuralNetwork::forwarding(
                the forwarding, ask load tensors for next n layers.
       **/
 
-      model_graph.LoadTensors(f+lookahead);
+
       
       model_graph.checkLoadComplete(f);
       
       std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;
       // std::cout << "Layer : " << node->getName() << std::endl;
       node->forwarding(training);
+
+      model_graph.LoadTensors(f+lookahead);
+      
       // print_rss();
       std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
       // model_graph.UnloadTensors(f);      
@@ -491,12 +494,16 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       node->incremental_forwarding(from, to, training);
     } else {
       
-      model_graph.LoadTensors(f+lookahead);
+
       
       model_graph.checkLoadComplete(f);
       std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;      
       node->incremental_forwarding(from, to, training);
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;      
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
+
+      model_graph.LoadTensors(f+lookahead);
+
+      model_graph.Inactive(f);      
     }
   };
 
@@ -727,31 +734,31 @@ void NeuralNetwork::load(const std::string &file_path,
     std::vector<std::pair<size_t, size_t>> file_offset;
     size_t start_from = 0;
 
-    for(auto node : model_graph.getLayerNodes()){
-      auto weights = node->getRunContext().getWeights();
-      for(auto weight:weights){
-	auto dim = weight->getDim();
-	size_t size = dim.getDataTypeSize()*dim.getDataLen();
-
-	file_offset.emplace_back(std::make_pair(start_from,size));
-	start_from+= size;
-      }
-    }
-
-    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    //   auto weights = (*iter)->getRunContext().getWeights();
-    //   for (auto weight : weights) {
-    //     // auto dim = weight->getVariable();
+    // for(auto node : model_graph.getLayerNodes()){
+    //   auto weights = node->getRunContext().getWeights();
+    //   for(auto weight:weights){
     // 	auto dim = weight->getDim();
-    // 	// std::cout << dim.getDataTypeSize() << " : " << dim.getDataLen()<<std::endl;
-    //     size_t size = dim.getDataTypeSize() * dim.getDataLen();
-    //     // size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
-    // 	std::cout << size << " ------------------------"<<std::endl;
+    // 	size_t size = dim.getDataTypeSize()*dim.getDataLen();
 
-    //     file_offset.emplace_back(std::make_pair(start_from, size));
-    //     start_from += size;
+    // 	file_offset.emplace_back(std::make_pair(start_from,size));
+    // 	start_from+= size;
     //   }
     // }
+
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      auto weights = (*iter)->getRunContext().getWeights();
+      for (auto weight : weights) {
+        auto dim = weight->getVariable();
+    // 	auto dim = weight->getDim();
+    // 	// std::cout << dim.getDataTypeSize() << " : " << dim.getDataLen()<<std::endl;
+        // size_t size = dim.getDataTypeSize() * dim.getDataLen();
+        size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
+    // 	std::cout << size << " ------------------------"<<std::endl;
+
+        file_offset.emplace_back(std::make_pair(start_from, size));
+        start_from += size;
+      }
+    }
     
     model_graph.setWeightOffset(file_offset);
   }
@@ -767,12 +774,12 @@ void NeuralNetwork::load(const std::string &file_path,
 
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
 
-      if ((*iter)->getWeightDataType() == TensorDim::DataType::BCQ) {
-        (*iter)->read_quantization_info(model_file, false, exec_mode,
-                                        fsu_mode);
-      } else {
-        (*iter)->read(model_file, false, exec_mode, fsu_mode);
-      }
+      // if ((*iter)->getWeightDataType() == TensorDim::DataType::BCQ) {
+      //   (*iter)->read_quantization_info(model_file, false, exec_mode,
+      //                                   fsu_mode);
+      // } else {
+      (*iter)->read(model_file, false, exec_mode, fsu_mode);
+      // }
     }
 
     // for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
