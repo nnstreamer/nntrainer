@@ -73,7 +73,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
 #if defined(_WIN32)
   SYSTEM_INFO sysInfo;
   GetSystemInfo(&sysInfo);
-  auto page_size = sysInfo.dwPageSize;
+  auto page_size = sysInfo.dwAllocattionGranularity
 #else
   auto page_size = sysconf(_SC_PAGE_SIZE);
 #endif

@@ -400,14 +400,14 @@ sharedConstTensors NeuralNetwork::forwarding(
       
       model_graph.checkLoadComplete(f);
       
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;
+      //      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;
       // std::cout << "Layer : " << node->getName() << std::endl;
       node->forwarding(training);
 
       model_graph.LoadTensors(f+lookahead);
       
       // print_rss();
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
+      //      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
       // model_graph.UnloadTensors(f);      
 
       // model_graph.LoadTensors(f);
@@ -476,7 +476,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
 
   bool fsu_mode_ = std::get<props::Fsu>(model_flex_props);
   
-  std::cout <<fsu_mode_ << std::endl;
   for(unsigned int i =0 ;i<lookahead;++i){
     model_graph.LoadTensors(i);
   }
@@ -493,13 +492,11 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       model_graph.flushCacheExcept(f);
       node->incremental_forwarding(from, to, training);
     } else {
-      
 
-      
       model_graph.checkLoadComplete(f);
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;      
+      //      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;      
       node->incremental_forwarding(from, to, training);
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
+      //      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
 
       model_graph.LoadTensors(f+lookahead);
 
@@ -749,12 +746,7 @@ void NeuralNetwork::load(const std::string &file_path,
       auto weights = (*iter)->getRunContext().getWeights();
       for (auto weight : weights) {
         auto dim = weight->getVariable();
-    // 	auto dim = weight->getDim();
-    // 	// std::cout << dim.getDataTypeSize() << " : " << dim.getDataLen()<<std::endl;
-        // size_t size = dim.getDataTypeSize() * dim.getDataLen();
         size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
-    // 	std::cout << size << " ------------------------"<<std::endl;
-
         file_offset.emplace_back(std::make_pair(start_from, size));
         start_from += size;
       }
