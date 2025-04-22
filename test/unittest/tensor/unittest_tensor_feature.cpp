@@ -13,36 +13,36 @@
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
+#include <algorithm>
 #include <float_tensor.h>
 #include <fstream>
 #include <immintrin.h>
 #include <nntrainer_error.h>
 #include <tensor.h>
 #include <tensor_dim.h>
-#include <algorithm>
 
-
-void repack_B_tile( const float *B, float* B_tile, int row_tile_start, int tile_rows, int n, int chunk_size, int N){
-  for(int row=0;row<tile_rows; ++row){
-    const float* src = B+(row_tile_start +row) *N*chunk_size + n*chunk_size;
-    float* dst = B_tile+row*chunk_size;
-    std::memcpy(dst,src,sizeof(float)*chunk_size);
+void repack_B_tile(const float *B, float *B_tile, int row_tile_start,
+                   int tile_rows, int n, int chunk_size, int N) {
+  for (int row = 0; row < tile_rows; ++row) {
+    const float *src =
+      B + (row_tile_start + row) * N * chunk_size + n * chunk_size;
+    float *dst = B_tile + row * chunk_size;
+    std::memcpy(dst, src, sizeof(float) * chunk_size);
   }
 }
-
 
 // N is size of B and size of A is N*group_size
 
 void multiply_and_reduce_chunks(const float *A, const float *B, float *output,
-                                int num_rows, int N, int chunk_size, int group_size,
-                                int tile_size = 64) {
-  
+                                int num_rows, int N, int chunk_size,
+                                int group_size, int tile_size = 64) {
+
   // const bool use_repacked = group_size >=4;
-  const bool use_repacked =true;
-  float *B_tile = use_repacked ? new float[tile_size*chunk_size] : nullptr;
-    
+  const bool use_repacked = false;
+  float *B_tile = use_repacked ? new float[tile_size * chunk_size] : nullptr;
+
   const int group_stride = group_size * chunk_size;
-  const int row_stride = N* chunk_size;
+  const int row_stride = N * chunk_size;
 
   for (int n = 0; n < N; ++n) {
     for (int g = 0; g < group_size; ++g) {
@@ -63,20 +63,20 @@ void multiply_and_reduce_chunks(const float *A, const float *B, float *output,
             use_repacked
               ? b_ptr + row * chunk_size
               : B + (row_tile_start + row) * row_stride + n * chunk_size;
-	  
+
           __m256 sum = _mm256_setzero_ps();
           int k = 0;
-	  
+
           for (; k + 7 < chunk_size; k += 8) {
             __m256 va = _mm256_loadu_ps(a_ptr + k);
             __m256 vb = _mm256_loadu_ps(b_row + k);
             sum = _mm256_add_ps(sum, _mm256_mul_ps(va, vb));
-	  }
+          }
 
           float tail_sum = 0.0f;
           for (; k < chunk_size; ++k) {
             tail_sum += a_ptr[k] * b_row[k];
-	  }
+          }
 
           __m128 low = _mm256_castps256_ps128(sum);
           __m128 high = _mm256_extractf128_ps(sum, 1);
@@ -92,17 +92,13 @@ void multiply_and_reduce_chunks(const float *A, const float *B, float *output,
     }
   }
 
-
   if (B_tile)
     delete[] B_tile;
 };
 
-
-
-
-struct RepackTask{
-  float* dst;
-  const float* src_B;
+struct RepackTask {
+  float *dst;
+  const float *src_B;
   int row_tile_start;
   int tile_rows;
   int n;
@@ -110,12 +106,13 @@ struct RepackTask{
   int N;
 };
 
-
-void repack_B_tile_task(const RepackTask & task){
-  for (int row=0; row<task.tile_rows; ++row){
-    const float* src = task.src_B + (task.row_tile_start+row)* task.N *task.chunk_size + task.n*task.chunk_size;
-    float* dst = task.dst + row*task.chunk_size;
-    std::memcpy(dst,src,sizeof(float) *task.chunk_size);
+void repack_B_tile_task(const RepackTask &task) {
+  for (int row = 0; row < task.tile_rows; ++row) {
+    const float *src = task.src_B +
+                       (task.row_tile_start + row) * task.N * task.chunk_size +
+                       task.n * task.chunk_size;
+    float *dst = task.dst + row * task.chunk_size;
+    std::memcpy(dst, src, sizeof(float) * task.chunk_size);
   }
 }
 
@@ -124,10 +121,10 @@ void compute_grouped_dot_with_pool(const float *A, const float *B,
                                    int chunk_size, int group_size,
                                    int tile_size = 64) {
   // const bool use_repacked = group_size >= 4;
-  const bool use_repacked = true;  
+  const bool use_repacked = false;
   const int group_stride = group_size * chunk_size;
   const int row_stride = N * chunk_size;
-  const int tile_count = (num_rows + tile_size -1)/tile_size;
+  const int tile_count = (num_rows + tile_size - 1) / tile_size;
 
   std::vector<std::vector<float>> B_tile_buffers;
   if (use_repacked) {
@@ -139,26 +136,25 @@ void compute_grouped_dot_with_pool(const float *A, const float *B,
 
   for (int n = 0; n < N; ++n) {
     std::vector<std::future<void>> futures;
-    if(use_repacked){
-      for(int t=0;t<tile_count;++t){
-	int row_tile_start = t*tile_size;
-	int tile_rows = std::min(tile_size, num_rows - row_tile_start);
-	float* dst = B_tile_buffers[t].data();
-	RepackTask task = {
-	  dst, B, row_tile_start, tile_rows, n, chunk_size, N};
-	futures.emplace_back(nntrainer::Tensor::getThreadPool().submit_task([task](){
-	  repack_B_tile_task(task);
-	}));
+    if (use_repacked) {
+      for (int t = 0; t < tile_count; ++t) {
+        int row_tile_start = t * tile_size;
+        int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+        float *dst = B_tile_buffers[t].data();
+        RepackTask task = {dst, B, row_tile_start, tile_rows, n, chunk_size, N};
+        futures.emplace_back(nntrainer::Tensor::getThreadPool().submit_task(
+          [task]() { repack_B_tile_task(task); }));
       }
-      for(auto& fut:futures) fut.get();
+      for (auto &fut : futures)
+        fut.get();
     }
-    
+
     for (int g = 0; g < group_size; ++g) {
       const float *a_ptr = A + n * group_stride + g * chunk_size;
       for (int t = 0; t < tile_count; ++t) {
         int row_tile_start = t * tile_size;
         int tile_rows = std::min(tile_size, num_rows - row_tile_start);
-	
+
         const float *b_ptr =
           use_repacked ? B_tile_buffers[t].data()
                        : B + row_tile_start * row_stride + n * chunk_size;
@@ -206,45 +202,85 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
   unsigned int seq = tg ? 1 : sequence_len;
 
-  unsigned int num_key_value_head = 1;
+  unsigned int num_key_value_head = 2;
   unsigned int num_gqa_head = num_head / num_key_value_head;
 
   // nntrainer::Tensor input(1, 1, sequence_len, num_head * head_dim, t_type);
+  nntrainer::Tensor input_org(1, 1, seq, num_head * head_dim, t_type);
+  nntrainer::Tensor kcache_org(1, 1, sequence_len, head_dim * num_gqa_head,
+                               t_type);
+
   nntrainer::Tensor input(1, 1, seq, num_head * head_dim, t_type);
   nntrainer::Tensor kcache(1, 1, sequence_len, head_dim * num_gqa_head, t_type);
 
-  nntrainer::Tensor input_(1, 1, seq, num_head * head_dim, t_type);
-  nntrainer::Tensor kcache_(1, 1, sequence_len, head_dim * num_gqa_head,
-                            t_type);
-
-  nntrainer::Tensor output_(1, 1, seq, head_dim * num_gqa_head, t_type);
-
-  kcache.setRandUniform(-0.5, 0.0);
-  input.setRandUniform(-0.5, 0.0);
+  kcache_org.setRandUniform(-0.5, 0.0);
+  input_org.setRandUniform(-0.5, 0.0);
 
   nntrainer::Tensor output(num_head, 1, seq, sequence_len, t_type);
   output.setZero();
+  input.copy(input_org);
+  kcache.copy(kcache_org);
 
   auto start_time = std::chrono::high_resolution_clock::now();
+
+  input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
+  kcache.reshape(
+    ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
+
+  input.transpose("1:0:2", input);
+  kcache.transpose("1:0:2", kcache);
+
   input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
 
   kcache.reshape(
     ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
 
-  input.transpose("1:0:2", input);
-  kcache.transpose("1:0:2", kcache);
+  std::cout << "input: " << std::endl;
+  std::cout << input << std::endl;
+
+  std::cout << "kcache: " << std::endl;
+  std::cout << kcache << std::endl;
 
   EXPECT_NO_THROW(input.dotBatched(kcache, output, false, true));
 
   auto end_time = std::chrono::high_resolution_clock::now();
 
   std::cout << output << std::endl;
-  output.setZero();
+
+  float *dd = output.getData<float>();
+  std::cout << " transposed direction out of dotbatched -------------- "
+            << std::endl;
+  std::cout << dd[0] << " " << dd[10240] << " " << dd[10240 * 2] << std::endl;
+
   auto dotbatch_duration =
     std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                           start_time);
 
+  std::cout << "***** Dot Bacthed Time: " << dotbatch_duration.count()
+            << " ms\n";
+  std::cout << "***** Throughput: "
+            << (double)sequence_len * num_head * num_key_value_head * head_dim /
+                 (dotbatch_duration.count() * 1e6)
+            << " GFLOPs\n";
+  std::cout << "--------------------------" << std::endl;
+
+  input.copy(input_org);
+  kcache.copy(kcache_org);
+  output.setZero();
+
   start_time = std::chrono::high_resolution_clock::now();
+
+  input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
+  kcache.reshape(
+    ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
+
+  input.transpose("1:0:2", input);
+  kcache.transpose("1:0:2", kcache);
+
+  input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
+
+  kcache.reshape(
+    ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
 
   (void)nntrainer::Tensor::getThreadPool().submit_blocks(
     0, num_head, [&](const std::size_t start, const std::size_t end) {
@@ -260,22 +296,26 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
   end_time = std::chrono::high_resolution_clock::now();
 
+  std::cout << output << std::endl;
+
   auto thread_pool_duration =
     std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                           start_time);
 
-  std::cout << "dotbatch : " << dotbatch_duration.count() << " ms, "
-            << "thread_pool : " << thread_pool_duration.count() << " ms"
-            << std::endl;
-
-  std::cout << output << std::endl;
+  std::cout << "***** Dot Bacthed Thread Time: " << thread_pool_duration.count()
+            << " ms\n";
+  std::cout << "***** Throughput: "
+            << (double)sequence_len * num_head * num_key_value_head * head_dim /
+                 (thread_pool_duration.count() * 1e6)
+            << " GFLOPs\n";
 
   std::cout << "--------------------------" << std::endl;
-  output.setZero();    
+  output.setZero();
   start_time = std::chrono::high_resolution_clock::now();
-  multiply_and_reduce_chunks(input.getData<float>(), kcache.getData<float>(),
-                             output.getData<float>(), sequence_len, num_head/num_key_value_head,
-                             head_dim, num_key_value_head, tile_size);
+  multiply_and_reduce_chunks(
+    input_org.getData<float>(), kcache_org.getData<float>(),
+    output.getData<float>(), sequence_len, num_head / num_key_value_head,
+    head_dim, num_key_value_head, tile_size);
 
   end_time = std::chrono::high_resolution_clock::now();
   // double ms = std::chrono::duration<double,
@@ -283,20 +323,21 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
   auto ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
       .count();
-  std::cout << "Time: " << ms << " ms\n";
-  std::cout << "Throughput: "
+  std::cout << "***** Time: " << ms << " ms\n";
+  std::cout << "***** Throughput: "
             << (double)sequence_len * num_head * num_key_value_head * head_dim /
                  (ms * 1e6)
             << " GFLOPs\n";
 
   std::cout << output << std::endl;
 
-  std::cout << "--------------------------" << std::endl;  
+  std::cout << "--------------------------" << std::endl;
   output.setZero();
   start_time = std::chrono::high_resolution_clock::now();
-  compute_grouped_dot_with_pool(input.getData<float>(), kcache.getData<float>(),
-                                output.getData<float>(), sequence_len, num_head/num_key_value_head,
-                                head_dim, num_key_value_head, tile_size);
+  compute_grouped_dot_with_pool(
+    input_org.getData<float>(), kcache_org.getData<float>(),
+    output.getData<float>(), sequence_len, num_head / num_key_value_head,
+    head_dim, num_key_value_head, tile_size);
 
   end_time = std::chrono::high_resolution_clock::now();
   // double ms = std::chrono::duration<double,
@@ -304,12 +345,10 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
   ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
       .count();
-  std::cout << "Time: " << ms << " ms\n";
-  std::cout << "Throughput: "
+  std::cout << "***** Time: " << ms << " ms\n";
+  std::cout << "***** Throughput: "
             << (double)sequence_len * num_head * num_key_value_head * head_dim /
                  (ms * 1e6)
             << " GFLOPs\n";
-  std::cout <<output<<std::endl;  
-  
-
+  std::cout << output << std::endl;
 }
