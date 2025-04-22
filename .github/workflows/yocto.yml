@@ -1,4 +1,4 @@
-name: Build test / Yocto-5.0.3 (scarthgap-5.0.3)
+name: "Build Test - Yocto devtool"
 
 on:
   pull_request:
