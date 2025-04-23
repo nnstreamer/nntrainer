@@ -249,7 +249,13 @@ void BCQTensor::save(std::ostream &file) {
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "save size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
-
+  /** This is Save for old weight -> new BCQ Weight
+  std::streamsize sz1 = static_cast<std::streamsize>(bytes());
+  std::streamsize sz2 = static_cast<std::streamsize>(scale_size() *
+  sizeof(float)); checkedWrite(file, (char *)bcq_weight->binary_weights.data(),
+  sz1, "Faile"); checkedWrite(file, (char *)bcq_weight->weight_scales.data(),
+  sz2, "Faile");
+  */
   checkedWrite(file, (char *)getData(), sz,
                "[BCQTensor::save] operation failed");
   putData();

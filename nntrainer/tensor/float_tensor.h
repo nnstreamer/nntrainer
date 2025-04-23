@@ -348,7 +348,7 @@ public:
   /**
    * @copydoc Tensor::abs()
    */
-  // Tensor &abs(Tensor &output) const override;
+  Tensor &abs(Tensor &output) const override;
 
   /**
    * @copydoc Tensor::l2norm
@@ -383,7 +383,7 @@ public:
   /**
    * @copydoc Tensor::tan(Tensor &output, float alpha)
    */
-  // void tan(Tensor &output, float alpha) override;
+  void tan(Tensor &output, float alpha) override;
 
   /**
    * @copydoc TensorBase::inv_sqrt(Tensor &out)

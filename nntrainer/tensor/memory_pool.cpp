@@ -143,8 +143,6 @@ void MemoryPool::allocate() {
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " new ptr : " << ptr << std::endl;
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
@@ -153,11 +151,6 @@ void MemoryPool::allocate() {
                                      RPCMEM_DEFAULT_FLAGS, current_size);
 
         for (int idx : offset_indices[s]) {
-          //	  std::cout << "                change ptr " <<idx <<" from  "<<
-          // memory_ptrs[idx]<< " to " << new_ptr << " before_size : "<<
-          // max_size
-          //<< " new max_size : "<< current_size <<std::endl;
-
           memory_ptrs[idx] = new_ptr;
         }
         rpcmem_free(existing_ptr);
@@ -165,9 +158,6 @@ void MemoryPool::allocate() {
         allocated_size[s] = current_size;
       }
       memory_ptrs.push_back(offset_ptr[s]);
-      //      std::cout << i <<" offset : size - "<< s<< " : " << current_size
-      //      << " max size for the offset " << allocated_size[s]<< "  reuse ptr
-      //      : " << offset_ptr[s] << std::endl;
       offset_indices[s].push_back(i);
     }
     i++;
@@ -256,10 +246,7 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  // char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-  // auto mem_data = std::make_shared<MemoryData>((void *)ptr);
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-  // memory_ptrs.emplace_back(ptr);
 #endif
   return mem_data;
 }
@@ -281,16 +268,6 @@ void MemoryPool::deallocate() {
 #endif
 
     memory_ptrs.clear();
-
-    // #if defined(__ANDROID__)
-    // int i = 0;
-    // for (auto &s : memory_ptrs) {
-    //   if (s)
-    //     // allocators.at("qnn")->free(s);
-    //     // rpcmem_free(s);
-    //     ALIGNED_FREE(s);
-    // }
-    // #endif
   }
   mem_pool = nullptr;
 }

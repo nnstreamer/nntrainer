@@ -366,41 +366,10 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
     } else {
-      /**
-       currently, it supports FSU asynch mode for inference. The prcedure of
-       FSU is below,
-
-       Prerequests : This function is called node by node at the forwarding
-       function in network graph.
-
-       Step 1. If the execution order is the first (f==0) then, it will try to
-               load tensors which used at layer 0.
-
-       Step 2. It check whether these tensors from Step 1, then do the
-               forwarding of the first node.
-
-       Step 3. Then check the look a head which says how many layer weights need
-               to be loaded before running to hide overehad due to FSU,
-
-       Step 4. Try to get the tesors by asking tensors for layers which is done
-               by thread pool
-
-       Step 5. Try to release the weights which has execution order less then f.
-
-       Step n. repeat next layer starting with checking the tenosrs are loaded,
-               and if it is loaded, then run forwarding. Every time it finishes
-               the forwarding, ask load tensors for next n layers.
-      **/
-
-      model_graph.LoadTensors(f + lookahead);
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
-      // model_graph.UnloadTensors(f);
-
-      // model_graph.LoadTensors(f);
-      // model_graph.checkLoadComplete(f);
-      // node->forwarding(training);
-      model_graph.Inactive(f);
+      model_graph.inActive(f);
+      model_graph.LoadTensors(f + lookahead);
     }
   };
 
@@ -432,33 +401,13 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
-void NeuralNetwork::InvalidAllFSU() { model_graph.Inactive(0); }
-
-size_t getMemoryUsage() {
-  struct rusage usage;
-  if (getrusage(RUSAGE_SELF, &usage) == 0) {
-
-    return usage.ru_maxrss;
-  }
-  return 0;
-}
-
-void print_rss() {
-  sleep(1);
-  std::cout << "Memory Usage : " << getMemoryUsage() << " KB   | ";
-  struct rusage usage;
-  if (getrusage(RUSAGE_SELF, &usage) == 0) {
-    std::cout << usage.ru_ixrss << " KB" << std::endl;
-  }
-}
-
 sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
 
-  for (unsigned int i = 0; i < lookahead;++i){
+  for (unsigned int i = 0; i < lookahead; ++i) {
     model_graph.LoadTensors(i);
   }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
@@ -474,12 +423,10 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       model_graph.flushCacheExcept(f);
       node->incremental_forwarding(from, to, training);
     } else {
-
-      model_graph.LoadTensors(f + lookahead);
-
       model_graph.checkLoadComplete(f);
-
       node->incremental_forwarding(from, to, training);
+      model_graph.inActive(f);
+      model_graph.LoadTensors(f + lookahead);
     }
   };
 
@@ -643,11 +590,6 @@ void NeuralNetwork::save(const std::string &file_path,
       (*iter)->save(model_file, false, exec_mode);
     }
 
-    std::streampos after_info = model_file.tellp();
-    auto calc_diff = alignToPageSize(after_info);
-    std::vector<char> buffer2(calc_diff, '1');
-    model_file.write(buffer2.data(), calc_diff);
-
     if (opt && istrequal(opt->getType(), "adam")) {
       std::string adam = "adam";
       model_file.write(adam.c_str(), 4);
@@ -706,34 +648,16 @@ void NeuralNetwork::load(const std::string &file_path,
     std::vector<std::pair<size_t, size_t>> file_offset;
     size_t start_from = 0;
 
-    for (auto node : model_graph.getLayerNodes()) {
-      auto weights = node->getRunContext().getWeights();
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      auto weights = (*iter)->getRunContext().getWeights();
       for (auto weight : weights) {
-        auto dim = weight->getDim();
-        size_t size = dim.getDataTypeSize() * dim.getDataLen();
-
+        auto dim = weight->getVariable();
+        size_t size =
+          dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
         file_offset.emplace_back(std::make_pair(start_from, size));
         start_from += size;
       }
     }
-
-    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-    // iter++) {
-    //   auto weights = (*iter)->getRunContext().getWeights();
-    //   for (auto weight : weights) {
-    //     // auto dim = weight->getVariable();
-    // 	auto dim = weight->getDim();
-    // 	// std::cout << dim.getDataTypeSize() << " : " <<
-    // dim.getDataLen()<<std::endl;
-    //     size_t size = dim.getDataTypeSize() * dim.getDataLen();
-    //     // size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() *
-    //     dim.getDataLen();
-    // 	std::cout << size << " ------------------------"<<std::endl;
-
-    //     file_offset.emplace_back(std::make_pair(start_from, size));
-    //     start_from += size;
-    //   }
-    // }
 
     model_graph.setWeightOffset(file_offset);
   }
@@ -748,18 +672,8 @@ void NeuralNetwork::load(const std::string &file_path,
       (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
 
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-
-      if ((*iter)->getWeightDataType() == TensorDim::DataType::BCQ) {
-        (*iter)->read_quantization_info(model_file, false, exec_mode, fsu_mode);
-      } else {
-        (*iter)->read(model_file, false, exec_mode, fsu_mode);
-      }
+      (*iter)->read(model_file, false, exec_mode, fsu_mode);
     }
-
-    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-    // iter++) {
-    //   (*iter)->read(model_file, false, exec_mode, swap_mode);
-    // }
 
     try {
       /// this is assuming that the failure is allowed at the end of the file
@@ -832,7 +746,6 @@ void NeuralNetwork::load(const std::string &file_path,
       throw_status(ret);
     });
 
-
     if (!fsu_mode && v.size() > 1) {
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
         << "Cannot open weight bin file";
@@ -842,7 +755,7 @@ void NeuralNetwork::load(const std::string &file_path,
         << "Swap mode should run with loading a weight-bin file";
       NNTR_THROW_IF(!isFileExist(props::FilePath(v[1])), std::invalid_argument)
         << "Cannot open weight bin file";
-      model_graph.setFsuWeightPath(v[1]);
+      // model_graph.setFsuWeightPath(v[1]);
     }
 
     qnn_load.join();
@@ -1127,7 +1040,6 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
     output.push_back(last_out_buf_data);
   }
-  InvalidAllFSU();
   return output;
 }
 

@@ -564,17 +564,10 @@ public:
   unsigned int getNumLoadedTensorPoolTensors();
 
   /**
-   * @brief check completion of load data for the execution order
+   * @brief set Inactive elems in order
    *
-   * @param order execution order
-   * @note preloading tensors for execution order.
    */
-  bool checkFsuLoadComplete(unsigned int order);
-
-  /**
-   * @brief Setup FSU, InActive FSU Element
-   */
-  void setupFsu();
+  unsigned int inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path

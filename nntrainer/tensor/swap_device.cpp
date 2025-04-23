@@ -16,7 +16,6 @@
 #include <malloc.h>
 #include <profiler.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -102,7 +101,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
       << "SwapDevice: munmap: "
       << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-    ++offset_index;
     ++num_loaded_tensors;
 
     // @todo : need to check at cache_loader & check multi thread execution
@@ -233,10 +231,12 @@ void SwapDevice::finish() {
     return;
 
 #ifdef USE_MMAP
-  for (auto &[ptr, info] : mapped) {
-/*     if (ptr)
-      free(ptr);
- */  }
+  if (execution_mode == ml::train::ExecutionMode::TRAIN) {
+    for (auto &[ptr, info] : mapped) {
+      if (ptr)
+        free(ptr);
+    }
+  }
   mapped.clear();
 #else
   for (auto &alloc : allocated)
