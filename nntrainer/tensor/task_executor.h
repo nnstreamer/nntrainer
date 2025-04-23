@@ -56,7 +56,7 @@ public:
 
   /**
    * @struct To describe Task
-   *
+   * @brief THis is Task Describe struct
    */
   struct TaskDesc {
     int id;

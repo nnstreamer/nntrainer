@@ -459,24 +459,6 @@ public:
    */
   void LoadTensors(const unsigned int order,
                    unsigned int remainder_lookahead = 0);
-  /**
-   * @brief Load data of order to the device
-   *
-   * @param order execution order
-   */
-  void LoadFsuTensors(unsigned int order, unsigned int lookahead);
-
-  /**
-   * @brief check data of order is loaded
-   *
-   * @param order execution order
-   */
-  bool checkFsuLoadComplete(unsigned int order);
-
-  /**
-   * @brief Setup FSU, InActive FSU Element
-   */
-  void setupFSU();
 
   /**
    * @brief check data of order is loaded
@@ -484,6 +466,12 @@ public:
    * @param order execution order
    */
   bool checkLoadComplete(const unsigned int order);
+
+  /**
+   * @brief inactive the elem
+   *
+   */
+  bool inActive(unsigned int order);
 
   /**
    * @brief check data of order is Unloaded
