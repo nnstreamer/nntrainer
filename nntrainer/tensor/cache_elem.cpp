@@ -54,7 +54,7 @@ void CacheElem::swapIn(Options opt) {
 
   opt = static_cast<Options>(opt | initial_opt);
   bool alloc_only = checkAllocOnly(policy, opt);
-  void *buf = device->getBuffer(offset, length, memory_ptr, id-1, alloc_only);
+  void *buf = device->getBuffer(offset, length, memory_ptr, id - 1, alloc_only);
 
   initial_opt = static_cast<Options>(initial_opt & ~Options::FIRST_ACCESS);
   mem_data->setAddr((void *)buf);
@@ -77,7 +77,6 @@ void CacheElem::swapOut(Options opt) {
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);
   active = false;
-
 
 #ifdef PROFILE
   PROFILE_CACHE_DEALLOC(buf, policyToStr[policy], !dealloc_only);

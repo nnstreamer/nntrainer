@@ -101,19 +101,13 @@ public:
    *
    * @return active status
    */
-  bool isActive() const {
-    std::scoped_lock lg(device_mutex);
-    return active;
-  }
+  bool isActive() const { return active; }
 
   /**
-   * @brief set active status as false
+   * @brief inactive the elem
+   *
    */
-  void resetActive() {
-    std::scoped_lock lg(device_mutex);
-    active = false;
-  };
-
+  void inActive() { active = false; }
   /**
    * @brief get length of cache element
    *
@@ -170,9 +164,9 @@ private:
   size_t length;                        /**< element size */
   CachePolicy policy;                   /**< cache policy */
   std::shared_ptr<MemoryData> mem_data; /**< allocated memory data */
-  void *memory_ptr;
-  int load_task_id;
-  int unload_task_id;
+  void *memory_ptr;                     /** memory ptr*/
+  int load_task_id;                     /** load task id*/
+  int unload_task_id;                   /** unload task id*/
 };
 
 } // namespace nntrainer

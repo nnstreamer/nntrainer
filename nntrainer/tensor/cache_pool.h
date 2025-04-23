@@ -35,11 +35,9 @@ public:
     std::unordered_map<unsigned int,
                        std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
-
-  // using ExecIds = std::vector<unsigned int>;
-
   using ExecIds = std::set<unsigned int>;
   using ExecIdsIter = ExecIds::iterator;
+
   /**
    * @brief CachePool default constructor
    *
@@ -66,6 +64,13 @@ public:
    *
    */
   virtual ~CachePool();
+
+  /**
+   * @brief inactive elements
+   *
+   * @param order order to inactive
+   */
+  void inActive(unsigned int order);
 
   /**
    * @brief Do the allocation of cache
@@ -140,6 +145,11 @@ public:
    */
   virtual void loadExec(unsigned int order);
 
+  /**
+   * @brief Load Tensor
+   *
+   * @param order order of Tensor to load
+   */
   virtual void loadTensor(unsigned int order);
 
   /**
@@ -156,6 +166,11 @@ public:
    */
   virtual void unloadExec(unsigned int order);
 
+  /**
+   * @brief Unload Tensor
+   *
+   * @param order order of Tensor to unload
+   */
   virtual void unloadTensor(unsigned int order);
 
   /**
@@ -188,13 +203,6 @@ public:
    * @return number of loaded tensors
    */
   virtual unsigned int getNumLoadedTensors();
-
-  /**
-   * @brief setup FSU for the given execution order.
-   * This function will reset Actives at the given order.
-   *
-   */
-  void setupFSU();
 
   /**
    * @brief set FSU weight path
