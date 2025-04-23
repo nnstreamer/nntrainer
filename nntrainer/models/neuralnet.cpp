@@ -393,16 +393,8 @@ sharedConstTensors NeuralNetwork::forwarding(
       **/
 
       model_graph.LoadTensors(f + lookahead);
-
       model_graph.checkLoadComplete(f);
-
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()
-                << std::endl;
-      // std::cout << "Layer : " << node->getName() << std::endl;
       node->forwarding(training);
-      // print_rss();
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()
-                << std::endl;
       // model_graph.UnloadTensors(f);
 
       // model_graph.LoadTensors(f);

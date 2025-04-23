@@ -131,6 +131,15 @@ CachePool::~CachePool() {
   }
 }
 
+void CachePool::inActive(unsigned int order) {
+
+  auto exec_id = exec_ids[order];
+  for (auto &id : exec_id) {
+    actives.remove(elems[id]);
+    elems[id]->inActive();
+  }
+}
+
 void CachePool::allocate() {
   NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
     << "Cache pool is already allocated";
@@ -169,7 +178,6 @@ void CachePool::validate(unsigned int id) {
 void CachePool::invalidate(unsigned int id) {
 
   if (elems[id]->isActive()) {
-    actives.remove(elems[id]);
     elems[id]->swapOut();
     actives.remove(elems[id]);
   }
@@ -218,18 +226,14 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
 
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE) {
     auto &o = exe_order[0];
-
     exec_ids[o].insert(id);
     ords.append(std::to_string(o));
-
   } else {
     for (auto &o : exe_order) {
-
       exec_ids[o].insert(id);
       ords.append(std::to_string(o));
     }
   }
-
   ml_logd("[%d] exe_order(%s), offset: %llu, len: %zu", id, ords.c_str(),
           (long long unsigned int)offset, len);
 
@@ -246,12 +250,7 @@ void CachePool::flush() {
 
   actives.clear();
 }
-unsigned int CachePool::Inactive(unsigned int order) {
-  for (auto act : actives) {
-    act->inActive();
-  }
-  return 0;
-}
+
 void CachePool::flushExcept(unsigned int order) {
   auto exe_orders = getMemoryExecOrder();
 
@@ -355,12 +354,6 @@ void CachePool::unloadActives() {
 
 unsigned int CachePool::getNumLoadedTensors() {
   return swap_device->getNumLoadedTensors();
-}
-
-void CachePool::setupFSU() {
-  for (auto active : actives) {
-    active->resetActive();
-  }
 }
 
 void CachePool::setFsuWeightPath(std::string path) {
