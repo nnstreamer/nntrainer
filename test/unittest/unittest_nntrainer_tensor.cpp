@@ -621,6 +621,38 @@ TEST(nntrainer_Tensor, QTensor_10_n) {
     std::out_of_range);
 }
 
+/**
+ * @brief Construct a Q4_Kx8 Tensor with invalid size
+ */
+TEST(nntrainer_Tensor, QTensor_11_n) {
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_k_tensor(
+    {1, 1, 4, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4}, true,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8));
+
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_k_tensor(
+    {1, 1, 8, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4}, true,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8));
+}
+
+/**
+ * @brief Construct a Q4_K Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_12_p) {
+  // This will create a single q4_kx8 block
+  nntrainer::Tensor q4_k_tensor(
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
+    false, nntrainer::Initializer::NONE, "q4_k_tensor",
+    nntrainer::QScheme::Q4_Kx8);
+
+  EXPECT_EQ(q4_k_tensor.getData<uint8_t>(), nullptr);
+  EXPECT_EQ(q4_k_tensor.q_scheme(), nntrainer::QScheme::Q4_Kx8);
+  EXPECT_EQ(q4_k_tensor.size(), 1152);
+
+  q4_k_tensor.allocate();
+
+  EXPECT_NE(q4_k_tensor.getData<uint8_t>(), nullptr);
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
@@ -4142,6 +4174,32 @@ TEST(nntrainer_Tensor, save_read_03_p) {
   EXPECT_EQ(target, readed);
 
   int status = std::remove("save_quint16.bin");
+
+  ASSERT_EQ(status, 0);
+}
+
+TEST(nntrainer_Tensor, save_read_04_p) {
+  nntrainer::Tensor target(
+    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
+    true, nntrainer::Initializer::NONE, "q4_k_tensor",
+    nntrainer::QScheme::Q4_Kx8);
+
+  nntrainer::Tensor readed(
+    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
+    true, nntrainer::Initializer::NONE, "q4_k_tensor",
+    nntrainer::QScheme::Q4_Kx8);
+
+  std::ofstream save_file("save_q4kx8.bin", std::ios::out | std::ios::binary);
+  target.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save_q4kx8.bin", std::ios::in | std::ios::binary);
+  readed.read(read_file);
+  read_file.close();
+
+  EXPECT_EQ(target, readed);
+
+  int status = std::remove("save_q4kx8.bin");
 
   ASSERT_EQ(status, 0);
 }
