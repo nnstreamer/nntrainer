@@ -210,7 +210,6 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
 
-
   auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
   elems[id] = elem;
@@ -248,7 +247,7 @@ void CachePool::flush() {
   actives.clear();
 }
 unsigned int CachePool::Inactive(unsigned int order) {
-  for ( auto act : actives) {
+  for (auto act : actives) {
     act->inActive();
   }
   return 0;

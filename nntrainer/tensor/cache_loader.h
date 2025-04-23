@@ -27,51 +27,6 @@
 namespace nntrainer {
 
 /**
- * @class ThreadPool
- * @brief ThreadPool class to manage multiple threads
- */
-class ThreadPool {
-public:
-  /**
-   * @brief constructor of ThreadPool
-   *
-   * @param num_threads number of threads
-   */
-  ThreadPool(size_t num_threads);
-
-  /**
-   * @brief destructor of ThreadPool
-   */
-  ~ThreadPool();
-
-  /**
-   *
-   * @tparam F Function that work
-   * @tparam Args args for the function
-   * @param f functions
-   * @param args arguments for the function
-   * @return
-   */
-  template <class F, class... Args>
-  std::future<typename std::invoke_result<F, Args...>::type>
-  EnqueueJob(F &&f, Args &&...args);
-
-private:
-  size_t num_threads_;
-  std::vector<std::thread> worker_threads_;
-  std::queue<std::function<void()>> jobs_;
-  std::condition_variable cv_job_q_;
-  std::mutex m_job_q_;
-
-  bool stop_all;
-
-  /**
-   * Thread Worker
-   */
-  void WorkerThread();
-};
-
-/**
  * @enum   LoadState
  * @brief  enum to describe Load State
  */
@@ -260,10 +215,6 @@ private:
   std::shared_ptr<CachePool> pool;    /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
   TaskExecutor *unload_task_executor; /**< task executor */
-
-  ThreadPool *thread_pool_;
-  std::map<int, std::future<bool>> order_to_future;
-  std::map<int, std::promise<bool>> order_to_promise;
 
   std::mutex load_lock;
   std::mutex thread_lock;

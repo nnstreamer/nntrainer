@@ -33,8 +33,6 @@ CacheLoader::~CacheLoader() {
     delete load_task_executor;
   if (unload_task_executor)
     delete unload_task_executor;
-  if (thread_pool_)
-    delete thread_pool_;
 }
 
 void CacheLoader::init() {
@@ -42,8 +40,6 @@ void CacheLoader::init() {
     load_task_executor = new TaskExecutor("loadPool", 2);
   if (unload_task_executor == nullptr)
     unload_task_executor = new TaskExecutor("UnloadPool", 2);
-  if (thread_pool_ == nullptr)
-    thread_pool_ = new ThreadPool(1);
 }
 
 void CacheLoader::finish() {
@@ -51,8 +47,6 @@ void CacheLoader::finish() {
   load_task_executor = nullptr;
   delete unload_task_executor;
   unload_task_executor = nullptr;
-  delete thread_pool_;
-  thread_pool_ = nullptr;
 }
 
 void CacheLoader::load(unsigned int order) { loadAllinOrder(order); }
@@ -215,136 +209,82 @@ unsigned int CacheLoader::Inactive(unsigned int order) {
     elem->inActive();
   }
   // pool->Inactive(order);
+}
+  bool CacheLoader::checkFsuLoadComplete(unsigned int order) {
+    std::lock_guard<std::mutex> lock(load_lock);
+    order_to_future[order].wait();
+    if (order_to_future[order].get() == true) {
+      return true;
+    }
+    return false;
+  }
 
-bool CacheLoader::checkFsuLoadComplete(unsigned int order) {
-  std::lock_guard<std::mutex> lock(load_lock);
-  order_to_future[order].wait();
-  if (order_to_future[order].get() == true) {
+  int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
+
+    auto load_work = [&](unsigned int exe_order) {
+      pool->loadExec(exe_order);
+      return true;
+    };
+
+    order_to_future[order] = thread_pool_->EnqueueJob(load_work, order);
+
+    return 0;
+  }
+
+  bool CacheLoader::checkAllLoadComplete(unsigned int order) {
+
+    std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+    for (auto &id : exec_id) {
+      checkLoadComplete(id);
+    }
     return true;
   }
-  return false;
-}
 
-int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
+  bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
 
-  auto load_work = [&](unsigned int exe_order) {
-    pool->loadExec(exe_order);
+    std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+    for (auto &id : exec_id) {
+      checkUnloadComplete(id);
+    }
     return true;
-  };
-
-  order_to_future[order] = thread_pool_->EnqueueJob(load_work, order);
-
-  return 0;
-}
-
-bool CacheLoader::checkAllLoadComplete(unsigned int order) {
-
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
-
-  for (auto &id : exec_id) {
-    checkLoadComplete(id);
-  }
-  return true;
-}
-
-bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
-
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
-
-  for (auto &id : exec_id) {
-    checkUnloadComplete(id);
-  }
-  return true;
-}
-
-bool CacheLoader::checkLoadComplete(unsigned int id) {
-  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-  int unload_task_id = elem->getUnloadTaskID();
-  int load_task_id = elem->getLoadTaskID();
-  if (unload_task_id >= 0) {
-    load_task_executor->releaseTask(unload_task_id);
-    elem->setUnloadTaskID(-1);
   }
 
-  if (load_task_id >= 0) {
-    load_task_executor->wait(load_task_id);
-  }
-
-  return true;
-}
-
-bool CacheLoader::checkUnloadComplete(unsigned int id) {
-  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-  int unload_task_id = elem->getUnloadTaskID();
-  int load_task_id = elem->getLoadTaskID();
-  if (load_task_id >= 0) {
-    load_task_executor->releaseTask(load_task_id);
-    elem->setLoadTaskID(-1);
-  }
-  if (unload_task_id >= 0) {
-    load_task_executor->wait(unload_task_id);
-  }
-  return true;
-}
-
-
-void CacheLoader::setupFSU() {
-  pool->setupFSU();
-  order_to_future.clear();
-  order_to_future.clear();
-}
-
-ThreadPool::ThreadPool(size_t num_threads) :
-  num_threads_(num_threads), stop_all(false) {
-  worker_threads_.reserve(num_threads_);
-  for (size_t i = 0; i < num_threads_; ++i) {
-    worker_threads_.emplace_back([this]() { this->WorkerThread(); });
-  }
-}
-
-void ThreadPool::WorkerThread() {
-  while (true) {
-    std::unique_lock<std::mutex> lock(m_job_q_);
-    cv_job_q_.wait(lock, [this]() { return !this->jobs_.empty() || stop_all; });
-    if (stop_all && this->jobs_.empty()) {
-      return;
+  bool CacheLoader::checkLoadComplete(unsigned int id) {
+    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+    int unload_task_id = elem->getUnloadTaskID();
+    int load_task_id = elem->getLoadTaskID();
+    if (unload_task_id >= 0) {
+      load_task_executor->releaseTask(unload_task_id);
+      elem->setUnloadTaskID(-1);
     }
 
-    std::function<void()> job = std::move(jobs_.front());
-    jobs_.pop();
-    lock.unlock();
+    if (load_task_id >= 0) {
+      load_task_executor->wait(load_task_id);
+    }
 
-    job();
-  }
-}
-
-ThreadPool::~ThreadPool() {
-  stop_all = true;
-  cv_job_q_.notify_all();
-
-  for (auto &t : worker_threads_) {
-    t.join();
-  }
-}
-
-template <class F, class... Args>
-std::future<typename std::invoke_result<F, Args...>::type>
-ThreadPool::EnqueueJob(F &&f, Args &&...args) {
-  if (stop_all) {
-    throw std::runtime_error("ThreadPool Stop all");
+    return true;
   }
 
-  using return_type = typename std::invoke_result<F, Args...>::type;
-  auto job = std::make_shared<std::packaged_task<return_type()>>(
-    std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-  std::future<return_type> job_result_future = job->get_future();
-  {
-    std::lock_guard<std::mutex> lock(m_job_q_);
-    jobs_.push([job]() { (*job)(); });
+  bool CacheLoader::checkUnloadComplete(unsigned int id) {
+    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+    int unload_task_id = elem->getUnloadTaskID();
+    int load_task_id = elem->getLoadTaskID();
+    if (load_task_id >= 0) {
+      load_task_executor->releaseTask(load_task_id);
+      elem->setLoadTaskID(-1);
+    }
+    if (unload_task_id >= 0) {
+      load_task_executor->wait(unload_task_id);
+    }
+    return true;
   }
-  cv_job_q_.notify_one();
 
-  return job_result_future;
-}
+  void CacheLoader::setupFSU() {
+    pool->setupFSU();
+    order_to_future.clear();
+    order_to_future.clear();
+  }
 
 } // namespace nntrainer
