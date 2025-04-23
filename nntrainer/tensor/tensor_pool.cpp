@@ -518,14 +518,12 @@ void TensorPool::loadCacheCancel(int id) {
   cache_loader->cancelAsync(id);
 }
 
-
 unsigned int TensorPool::getNumLoadedTensors() {
   return cache_loader->getNumLoadedTensors();
 }
 unsigned int TensorPool::Inactive(unsigned int order) {
   return cache_loader->Inactive(order);
 }
-
 
 void TensorPool::setupFSU() { return cache_loader->setupFSU(); }
 

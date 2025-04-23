@@ -346,16 +346,15 @@ NeuralNetwork::~NeuralNetwork() {
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
-  unsigned int lookahead =
-    std::get<props::FsuLookahead>(model_flex_props);
+  unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
 
-  for(unsigned int i =0 ;i<lookahead;++i){
+  for (unsigned int i = 0; i < lookahead; ++i) {
     model_graph.LoadTensors(i);
   }
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, userdata, lookahead](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
+                                         bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -393,15 +392,17 @@ sharedConstTensors NeuralNetwork::forwarding(
                the forwarding, ask load tensors for next n layers.
       **/
 
-      model_graph.LoadTensors(f+lookahead);
+      model_graph.LoadTensors(f + lookahead);
 
       model_graph.checkLoadComplete(f);
 
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()<<std::endl;
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding Start " << node->getName()
+                << std::endl;
       // std::cout << "Layer : " << node->getName() << std::endl;
       node->forwarding(training);
       // print_rss();
-      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()<<std::endl;
+      std::cout << ">>>>>>>>>>>>>>>>>>> Forwarding END " << node->getName()
+                << std::endl;
       // model_graph.UnloadTensors(f);
 
       // model_graph.LoadTensors(f);
@@ -439,9 +440,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
-void NeuralNetwork::InvalidAllFSU() {
-    model_graph.Inactive(0);
-}
+void NeuralNetwork::InvalidAllFSU() { model_graph.Inactive(0); }
 
 size_t getMemoryUsage() {
   struct rusage usage;
@@ -465,10 +464,9 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
-  unsigned int lookahead =
-    std::get<props::FsuLookahead>(model_flex_props);
+  unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
 
-  for(unsigned int i =0 ;i<lookahead;++i){
+  for (unsigned int i = 0; i < lookahead;++i){
     model_graph.LoadTensors(i);
   }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
@@ -485,7 +483,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       node->incremental_forwarding(from, to, training);
     } else {
 
-      model_graph.LoadTensors(f+lookahead);
+      model_graph.LoadTensors(f + lookahead);
 
       model_graph.checkLoadComplete(f);
 
@@ -716,25 +714,28 @@ void NeuralNetwork::load(const std::string &file_path,
     std::vector<std::pair<size_t, size_t>> file_offset;
     size_t start_from = 0;
 
-    for(auto node : model_graph.getLayerNodes()){
+    for (auto node : model_graph.getLayerNodes()) {
       auto weights = node->getRunContext().getWeights();
-      for(auto weight:weights){
-	auto dim = weight->getDim();
-	size_t size = dim.getDataTypeSize()*dim.getDataLen();
+      for (auto weight : weights) {
+        auto dim = weight->getDim();
+        size_t size = dim.getDataTypeSize() * dim.getDataLen();
 
-	file_offset.emplace_back(std::make_pair(start_from,size));
-	start_from+= size;
+        file_offset.emplace_back(std::make_pair(start_from, size));
+        start_from += size;
       }
     }
 
-    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    // for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+    // iter++) {
     //   auto weights = (*iter)->getRunContext().getWeights();
     //   for (auto weight : weights) {
     //     // auto dim = weight->getVariable();
     // 	auto dim = weight->getDim();
-    // 	// std::cout << dim.getDataTypeSize() << " : " << dim.getDataLen()<<std::endl;
+    // 	// std::cout << dim.getDataTypeSize() << " : " <<
+    // dim.getDataLen()<<std::endl;
     //     size_t size = dim.getDataTypeSize() * dim.getDataLen();
-    //     // size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() * dim.getDataLen();
+    //     // size_t size = dim.getMemoryBytes(); // dim.getDataTypeSize() *
+    //     dim.getDataLen();
     // 	std::cout << size << " ------------------------"<<std::endl;
 
     //     file_offset.emplace_back(std::make_pair(start_from, size));
@@ -757,8 +758,7 @@ void NeuralNetwork::load(const std::string &file_path,
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
 
       if ((*iter)->getWeightDataType() == TensorDim::DataType::BCQ) {
-        (*iter)->read_quantization_info(model_file, false, exec_mode,
-                                        fsu_mode);
+        (*iter)->read_quantization_info(model_file, false, exec_mode, fsu_mode);
       } else {
         (*iter)->read(model_file, false, exec_mode, fsu_mode);
       }
