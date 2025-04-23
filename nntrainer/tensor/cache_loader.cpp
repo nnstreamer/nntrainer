@@ -26,7 +26,9 @@
 namespace nntrainer {
 
 CacheLoader::CacheLoader(std::shared_ptr<CachePool> cache_pool) :
-  pool(cache_pool), load_task_executor(), unload_task_executor() {}
+  pool(cache_pool),
+  load_task_executor(nullptr),
+  unload_task_executor(nullptr) {}
 
 CacheLoader::~CacheLoader() {
   if (load_task_executor)
@@ -196,95 +198,71 @@ unsigned int CacheLoader::getNumLoadedTensors() {
   return pool->getNumLoadedTensors();
 }
 
-unsigned int CacheLoader::Inactive(unsigned int order) {
+unsigned int CacheLoader::inActive(unsigned int order) {
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  for (auto &id : exec_id) {
+    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+    std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
+    int load_task_id = elem->getLoadTaskID();
+    if (load_task_id >= 0) {
+      load_task_executor->releaseTask(load_task_id);
+      elem->setLoadTaskID(-1);
+      states[id] = LoadState::Unloading;
+    }
+    actives.remove(elem);
+    elem->inActive();
+  }
+  return 0;
+}
+
+bool CacheLoader::checkAllLoadComplete(unsigned int order) {
+
   std::set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
-    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-    int load_task_id = elem->getLoadTaskID();
-    if (load_task_id >= 0) {
-      load_task_executor->releaseTask(load_task_id);
-      elem->setLoadTaskID(-1);
-    }
-    elem->inActive();
+    checkLoadComplete(id);
   }
-  // pool->Inactive(order);
+  return true;
 }
-  bool CacheLoader::checkFsuLoadComplete(unsigned int order) {
-    std::lock_guard<std::mutex> lock(load_lock);
-    order_to_future[order].wait();
-    if (order_to_future[order].get() == true) {
-      return true;
-    }
-    return false;
+
+bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
+
+  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+
+  for (auto &id : exec_id) {
+    checkUnloadComplete(id);
+  }
+  return true;
+}
+
+bool CacheLoader::checkLoadComplete(unsigned int id) {
+  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+  int unload_task_id = elem->getUnloadTaskID();
+  int load_task_id = elem->getLoadTaskID();
+  if (unload_task_id >= 0) {
+    load_task_executor->releaseTask(unload_task_id);
+    elem->setUnloadTaskID(-1);
   }
 
-  int CacheLoader::loadFsuAsync(unsigned int order, unsigned int look_ahead) {
-
-    auto load_work = [&](unsigned int exe_order) {
-      pool->loadExec(exe_order);
-      return true;
-    };
-
-    order_to_future[order] = thread_pool_->EnqueueJob(load_work, order);
-
-    return 0;
+  if (load_task_id >= 0) {
+    load_task_executor->wait(load_task_id);
   }
 
-  bool CacheLoader::checkAllLoadComplete(unsigned int order) {
+  return true;
+}
 
-    std::set<unsigned int> exec_id = pool->getExecIDs(order);
-
-    for (auto &id : exec_id) {
-      checkLoadComplete(id);
-    }
-    return true;
+bool CacheLoader::checkUnloadComplete(unsigned int id) {
+  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+  int unload_task_id = elem->getUnloadTaskID();
+  int load_task_id = elem->getLoadTaskID();
+  if (load_task_id >= 0) {
+    load_task_executor->releaseTask(load_task_id);
+    elem->setLoadTaskID(-1);
   }
-
-  bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
-
-    std::set<unsigned int> exec_id = pool->getExecIDs(order);
-
-    for (auto &id : exec_id) {
-      checkUnloadComplete(id);
-    }
-    return true;
+  if (unload_task_id >= 0) {
+    load_task_executor->wait(unload_task_id);
   }
-
-  bool CacheLoader::checkLoadComplete(unsigned int id) {
-    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-    int unload_task_id = elem->getUnloadTaskID();
-    int load_task_id = elem->getLoadTaskID();
-    if (unload_task_id >= 0) {
-      load_task_executor->releaseTask(unload_task_id);
-      elem->setUnloadTaskID(-1);
-    }
-
-    if (load_task_id >= 0) {
-      load_task_executor->wait(load_task_id);
-    }
-
-    return true;
-  }
-
-  bool CacheLoader::checkUnloadComplete(unsigned int id) {
-    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-    int unload_task_id = elem->getUnloadTaskID();
-    int load_task_id = elem->getLoadTaskID();
-    if (load_task_id >= 0) {
-      load_task_executor->releaseTask(load_task_id);
-      elem->setLoadTaskID(-1);
-    }
-    if (unload_task_id >= 0) {
-      load_task_executor->wait(unload_task_id);
-    }
-    return true;
-  }
-
-  void CacheLoader::setupFSU() {
-    pool->setupFSU();
-    order_to_future.clear();
-    order_to_future.clear();
-  }
+  return true;
+}
 
 } // namespace nntrainer
