@@ -15,6 +15,7 @@
 #include <float_tensor.h>
 #include <int4_tensor.h>
 #include <lazy_tensor.h>
+#include <q4_k_tensor.h>
 #include <short_tensor.h>
 #include <tensor.h>
 #include <uint4_tensor.h>
@@ -156,7 +157,13 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (d.getDataType() == Tdatatype::UINT4) {
-    itensor_ = std::make_unique<Uint4QTensor>(d, alloc_now, init, name);
+    if (qscheme != QScheme::Q4_Kx8) {
+      itensor_ =
+        std::make_unique<Uint4QTensor>(d, alloc_now, init, name, qscheme);
+    } else {
+      itensor_ =
+        std::make_unique<Q4_K_Tensor>(d, alloc_now, init, name, qscheme);
+    }
   } else if (d.getDataType() == Tdatatype::UINT8) {
     itensor_ = std::make_unique<UInt8Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT16) {
@@ -196,7 +203,10 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (d.getDataType() == Tdatatype::UINT4) {
-    itensor_ = std::make_unique<Uint4QTensor>(d, buf);
+    if (qscheme != QScheme::Q4_Kx8)
+      itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
+    else
+      itensor_ = std::make_unique<Q4_K_Tensor>(d, buf, qscheme);
   } else if (d.getDataType() == Tdatatype::UINT8) {
     itensor_ = std::make_unique<UInt8Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT16) {
