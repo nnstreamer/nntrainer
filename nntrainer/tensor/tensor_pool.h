@@ -287,8 +287,10 @@ public:
    * @brief load cache data by execution order
    *
    * @param order execution order
+   * @return async task id
    */
-  int loadFsuWeight(unsigned int order, unsigned int look_ahead);
+  int loadCacheExecAsync(unsigned int order,
+                         TaskExecutor::CompleteCallback complete_callback);
 
   /**
    * @brief check if tensors are loaded for the given execution order.
@@ -296,17 +298,6 @@ public:
    * @param order target execution order
    * @return bool true if tensors are loaded, false otherwise.
    */
-  bool checkFsuLoadComplete(unsigned int order);
-
-  /**
-   * @brief load cache data by execution order
-   *
-   * @param order execution order
-   * @return async task id
-   */
-  int loadCacheExecAsync(unsigned int order,
-                         TaskExecutor::CompleteCallback complete_callback);
-
   bool checkLoadComplete(unsigned int order);
 
   /**
@@ -333,11 +324,10 @@ public:
   unsigned int getNumLoadedTensors();
 
   /**
-   * @brief setup FSU for the given execution order.
-   * This function will reset Actives at the given order.
+   * @brief This function will reset Actives at the given order.
    *
    */
-  void setupFSU();
+  unsigned int inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path

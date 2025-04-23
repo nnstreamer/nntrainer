@@ -141,28 +141,7 @@ public:
    *
    */
 
-  unsigned int Inactive(unsigned int order);
-
-  /**
-   * @brief setup FSU for the given execution order.
-   * This function will reset Actives at the given order.
-   *
-   */
-  virtual void setupFSU();
-
-  /**
-   * @brief check data of order is loaded
-   *
-   * @param order execution order
-   */
-  virtual bool checkFsuLoadComplete(unsigned int order);
-
-  /**
-   * @brief Load cache data with execution order for FSU
-   *
-   * @param order execution order
-   */
-  virtual int loadFsuAsync(unsigned int order, unsigned int look_ahead);
+  unsigned int inActive(unsigned int order);
 
   /**
    * @brief wait for the load tasks in order are complete
@@ -215,9 +194,6 @@ private:
   std::shared_ptr<CachePool> pool;    /**< cache pool */
   TaskExecutor *load_task_executor;   /**< task executor */
   TaskExecutor *unload_task_executor; /**< task executor */
-
-  std::mutex load_lock;
-  std::mutex thread_lock;
   mutable std::mutex state_mutex;
   std::unordered_map<int, LoadState> states;
 };
