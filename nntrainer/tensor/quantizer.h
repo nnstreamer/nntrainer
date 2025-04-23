@@ -34,6 +34,7 @@ enum class QScheme : uint16_t {
   PER_TENSOR_AFFINE = 0x00,
   PER_CHANNEL_AFFINE = 0x01,
   BINARY_CODE_BASED = 0x02,
+  Q4_Kx8 = 0x03,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,
