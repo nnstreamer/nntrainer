@@ -89,8 +89,12 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
+
+#if !defined(__ANDROID__) && !defined(_WIN32)
     // MADVISE can be used to improve performance.
-    // madvise(ptr, len, MADV_SEQUENTIAL);
+    mlock(ptr, len);
+    madvise(ptr, len, MADV_SEQUENTIAL);
+#endif
 
     void *buf = static_cast<void *>(ptr + diff);
 
