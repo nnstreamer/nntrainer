@@ -115,6 +115,8 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d_type == Tdatatype::Q4_K) {
+    itensor_ = std::make_unique<Q4_K_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
@@ -156,6 +158,8 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::Q4_K) {
+    itensor_ = std::make_unique<Q4_K_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8) {
       itensor_ =
@@ -202,6 +206,8 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (d.getDataType() == Tdatatype::Q4_K) {
+    itensor_ = std::make_unique<Q4_K_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8)
       itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
@@ -243,6 +249,8 @@ Tensor::Tensor(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::Q4_K) {
+    itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -312,6 +320,8 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+  } else if (rhs.getDataType() == Tdatatype::Q4_K) {
+    itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -351,6 +361,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
         "Please check if the tensor data type is set properly.");
 #endif
+    } else if (getDataType() == Tdatatype::Q4_K) {
+      return itensorCompare<Q4_K_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT4) {
       return itensorCompare<Uint4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT8) {

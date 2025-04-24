@@ -66,6 +66,12 @@ public:
               QScheme qscheme_ = QScheme::Q4_Kx8);
 
   /**
+   * @brief Construct a new Q4_K_Tensor object
+   * @param rhs TensorBase object to copy
+   */
+  Q4_K_Tensor(TensorBase &rhs) : Uint4QTensor(rhs, QScheme::Q4_Kx8) {}
+
+  /**
    * @copydoc Tensor::allocate()
    */
   void allocate() override;
