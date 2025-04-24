@@ -915,14 +915,6 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
   }
 }
 
-unsigned int Manager::getNumLoadedWeightPoolTensors() {
-  return weight_pool.getNumLoadedTensors();
-}
-
-unsigned int Manager::getNumLoadedTensorPoolTensors() {
-  return tensor_pool.getNumLoadedTensors();
-}
-
 unsigned int Manager::inActive(unsigned int order) {
   return weight_pool.inActive(order);
 }

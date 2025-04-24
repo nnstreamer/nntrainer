@@ -130,13 +130,6 @@ public:
   virtual int cancelAsync(int id);
 
   /**
-   * @brief Get number of loaded tensors
-   *
-   * @return number of loaded tensors
-   */
-  virtual unsigned int getNumLoadedTensors();
-
-  /**
    * @brief set Inactive elems in order
    *
    */

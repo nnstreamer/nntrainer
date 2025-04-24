@@ -55,7 +55,6 @@ public:
                .append(name)
                .string()),
     fd(-1),
-    num_loaded_tensors(0),
     offset_index(0),
     execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
@@ -66,7 +65,6 @@ public:
   explicit SwapDevice(const std::string &path, const std::string &name) :
     dev_path(std::filesystem::path(path).append(name).string()),
     fd(-1),
-    num_loaded_tensors(0),
     offset_index(0),
     execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
@@ -131,13 +129,6 @@ public:
   const std::string getDevicePath() const { return dev_path; }
 
   /**
-   * @brief Get number of loaded tensors
-   *
-   * @return number of loaded tensors
-   */
-  unsigned int getNumLoadedTensors();
-
-  /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
@@ -157,7 +148,6 @@ private:
   std::string dev_path; /**< device path */
   int fd;               /**< device file description */
   std::vector<std::pair<size_t, size_t>> weight_offset;
-  unsigned int num_loaded_tensors;
   int offset_index;
   ml::train::ExecutionMode execution_mode;
 #ifdef USE_MMAP

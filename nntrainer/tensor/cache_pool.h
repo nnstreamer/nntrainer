@@ -198,13 +198,6 @@ public:
   ml::train::ExecutionMode getExecMode() const { return execution_mode_; }
 
   /**
-   * @brief Get number of loaded tensors
-   *
-   * @return number of loaded tensors
-   */
-  virtual unsigned int getNumLoadedTensors();
-
-  /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path

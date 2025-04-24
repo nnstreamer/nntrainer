@@ -82,7 +82,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     size_t len = len_offset.second + diff;
 
     char *ptr = static_cast<char *>(
-      mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, off));
+      mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
 
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
@@ -105,13 +105,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
       << "SwapDevice: munmap: "
       << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-    ++num_loaded_tensors;
-
-    // @todo : need to check at cache_loader & check multi thread execution
-    if (offset_index >= (int)weight_offset.size()) {
-      offset_index = 0;
-    }
-
     return memory_ptr;
   } else {
     size_t off = (offset / page_size) * page_size;
@@ -126,7 +119,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     void *buf = static_cast<void *>(ptr + diff);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
-    ++num_loaded_tensors;
     return buf;
   }
 #else
@@ -149,8 +141,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
   }
 
   allocated[ptr] = std::make_pair(offset, (ssize_t)size);
-
-  ++num_loaded_tensors;
 
   return ptr;
 #endif
@@ -221,10 +211,7 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
 #endif
 
 #endif
-  --num_loaded_tensors;
 }
-
-unsigned int SwapDevice::getNumLoadedTensors() { return num_loaded_tensors; }
 
 /**
  * @brief Close device

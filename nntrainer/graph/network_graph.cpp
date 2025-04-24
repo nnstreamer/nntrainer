@@ -1661,12 +1661,4 @@ void NetworkGraph::resetLossScale(float scale) {
   }
 }
 
-unsigned int NetworkGraph::getNumLoadedWeightPoolTensors() {
-  return tensor_manager->getNumLoadedWeightPoolTensors();
-}
-
-unsigned int NetworkGraph::getNumLoadedTensorPoolTensors() {
-  return tensor_manager->getNumLoadedWeightPoolTensors();
-}
-
 } /* namespace nntrainer */

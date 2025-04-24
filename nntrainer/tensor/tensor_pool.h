@@ -317,13 +317,6 @@ public:
   void loadCacheCancel(int id);
 
   /**
-   * @brief Get number of loaded tensors
-   *
-   * @return number of loaded tensors
-   */
-  unsigned int getNumLoadedTensors();
-
-  /**
    * @brief This function will reset Actives at the given order.
    *
    */

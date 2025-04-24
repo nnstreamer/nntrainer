@@ -352,10 +352,6 @@ void CachePool::unloadActives() {
     elem->swapOut();
 }
 
-unsigned int CachePool::getNumLoadedTensors() {
-  return swap_device->getNumLoadedTensors();
-}
-
 void CachePool::setFsuWeightPath(std::string path) {
   auto start_with = [](const std::string &str, const std::string &prefix) {
     return str.size() >= prefix.size() &&
