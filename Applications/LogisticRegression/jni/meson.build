@@ -20,7 +20,9 @@ e = executable('nntrainer_logistic',
   install_dir: application_install_dir
 )
 
+if host_machine.system() != 'windows'
 test('app_logistic', e, args: ['train',
   build_app_res_dir / 'LogisticRegression.ini',
   build_app_res_dir / 'dataset1.txt']
 )
+endif

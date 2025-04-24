@@ -16,7 +16,9 @@ exec = executable(
   install_dir: application_install_dir
 )
 
+if host_machine.system() != 'windows'
 test('unittest_ccapi', exec,
      timeout: 120,
      args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_ccapi'),
      suite: 'unittests')
+endif

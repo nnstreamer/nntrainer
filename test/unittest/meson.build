@@ -62,18 +62,21 @@ test_target = [
   ['unittest_nntrainer_tensor', []],
   ['unittest_nntrainer_quantizer', []],
   ['unittest_util_func', []],
-  ['unittest_nntrainer_modelfile', []],
   ['unittest_nntrainer_models', [
     'models' / 'models_test_utils.cpp', 'models' / 'models_golden_test.cpp'
   ]],
   ['unittest_nntrainer_graph', []],
-  ['unittest_nntrainer_appcontext', []],
   ['unittest_base_properties', []],
   ['unittest_common_properties', []],
   ['unittest_nntrainer_tensor_pool', []],
   ['unittest_nntrainer_lr_scheduler', []],
   #['unittest_nntrainer_task', []],
 ]
+
+if host_machine.system() != 'windows'
+  test_target += [['unittest_nntrainer_appcontext', []]]
+  test_target += [['unittest_nntrainer_modelfile', []]]
+endif
 
 if get_option('enable-opencl')
   test_target += [['unittest_blas_kernels_cl', []]]

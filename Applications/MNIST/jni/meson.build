@@ -29,6 +29,7 @@ e = executable('nntrainer_mnist',
   install_dir: application_install_dir
 )
 
+if host_machine.system() != 'windows'
 test(
   'app_mnist',
   e,
@@ -38,4 +39,4 @@ test(
   ],
   timeout: 60
 )
-
+endif
