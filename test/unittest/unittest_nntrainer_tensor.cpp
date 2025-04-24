@@ -13,11 +13,26 @@
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
+#include <cpu_backend.h>
 #include <float_tensor.h>
 #include <fstream>
 #include <nntrainer_error.h>
 #include <tensor.h>
 #include <tensor_dim.h>
+
+template <typename T>
+static inline std::vector<T>
+generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
+  std::random_device rd;
+  std::mt19937 gen(42);
+  // std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(min_val, max_val);
+  std::vector<T> vec(size);
+  for (auto &val : vec) {
+    val = static_cast<T>(dist(gen));
+  }
+  return vec;
+}
 
 TEST(nntrainer_TensorDim, ctor_initializer_p) {
   unsigned int b = 3;
@@ -650,6 +665,167 @@ TEST(nntrainer_Tensor, QTensor_12_p) {
   q4_k_tensor.allocate();
 
   EXPECT_NE(q4_k_tensor.getData<uint8_t>(), nullptr);
+}
+
+/**
+ * @brief Construct a Q4_K Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_13_p) {
+
+  ///@note
+  // Q4K_GEMM: A(M, K) * W.T(N, K) = (M, N)
+  // FP_DOT: A(M, K) * W(K, N) = (M, N)
+  // Tensor dimension should be same as K, N (not N, K!)
+
+  // create Weight Tensor
+  const unsigned int M = 1;
+  uint32_t K = 768;
+  uint32_t N = 512;
+  size_t data_size = 221184;
+
+  // Float tensor
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> activation = generate_random_vector<float>(M * K);
+
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor A_fp32(
+    1, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+
+  for (uint32_t k = 0; k < K; ++k)
+    for (uint32_t n = 0; n < N; ++n)
+      W_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+
+  for (uint32_t m = 0; m < M; ++m)
+    for (uint32_t k = 0; k < K; ++k)
+      A_fp32.setValue(0, 0, m, k, activation[m * K + k]);
+
+  nntrainer::Tensor out_t = A_fp32.dot(W_fp32, false, false);
+
+  // Now create a quantized tensor, which dimension is same with W_fp32
+  // but its data should be transposed
+  nntrainer::Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+  const float *src_ptr = W_fp32_t.getData<float>();
+  std::vector<char> dst_vector = std::vector<char>(data_size);
+  char *dst_ptr = (char *)dst_vector.data();
+  EXPECT_NO_THROW(nntrainer::quantize_q4_K(
+    src_ptr, /*dst quantized vector*/ (void *)dst_ptr, N, K,
+    /*imatrix*/ nullptr));
+
+  // repacked qweight memory with memcpy (Q4Kx8)
+  nntrainer::Tensor W_q4k(
+    {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
+
+  EXPECT_NO_THROW(nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
+                                                   dst_ptr, data_size, N, K));
+
+  std::vector<float> ref_dst(M * N);
+  nntrainer::gemm_q4_K(M, N, K, A_fp32.getData<float>(), K,
+                       (void *)W_q4k.getData<uint8_t>(), N, ref_dst.data(), N);
+
+  nntrainer::Tensor out_q4k_t(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q4k, out_q4k_t);
+  std::cout << out_q4k_t << std::endl;
+  std::cout << out_t << std::endl;
+  const float eps = 1e-5;
+  auto mean_squared_error =
+    mse<float, float>(out_t.getData<float>(), ref_dst.data(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
+  auto mean_squared_error_tensor = mse<float, float>(
+    out_t.getData<float>(), out_q4k_t.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error_tensor, 0., eps * K * N);
+}
+
+TEST(nntrainer_Tensor, QTensor_14_p) {
+
+  const unsigned int M = 1;
+  uint32_t K = 1024;
+  uint32_t N = 1024;
+
+  // Float tensor
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> activation = generate_random_vector<float>(M * K);
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor W_q4k(
+    {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
+  nntrainer::Tensor A_fp32(
+    1, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+
+  for (uint32_t k = 0; k < K; ++k)
+    for (uint32_t n = 0; n < N; ++n)
+      W_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+
+  for (uint32_t m = 0; m < M; ++m)
+    for (uint32_t k = 0; k < K; ++k)
+      A_fp32.setValue(0, 0, m, k, activation[m * K + k]);
+
+  nntrainer::Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+  const float *src_ptr = W_fp32_t.getData<float>();
+  auto data_size = W_q4k.size();
+  std::vector<char> dst_vector = std::vector<char>(data_size);
+  char *dst_ptr = (char *)dst_vector.data();
+  EXPECT_NO_THROW(nntrainer::quantize_q4_K(
+    src_ptr, /*dst quantized vector*/ (void *)dst_ptr, N, K,
+    /*imatrix*/ nullptr));
+
+  EXPECT_NO_THROW(nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
+                                                   dst_ptr, data_size, N, K));
+
+  /** save q4kx8 */
+  std::ofstream save_file("fc_q4kx8.bin", std::ios::out | std::ios::binary);
+  for (int i = 0; i < 10; ++i)
+    W_q4k.save(save_file);
+  save_file.close();
+
+  /** save float bin (transposed) */
+  std::ofstream save_file_fp("fc_float.bin", std::ios::out | std::ios::binary);
+  for (int i = 0; i < 10; ++i)
+    W_fp32.save(save_file_fp);
+  save_file_fp.close();
+
+  /** read q4kx8 */
+  nntrainer::Tensor W_q4k_readed(
+    {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
+  std::ifstream read_file("fc_q4kx8.bin", std::ios::in | std::ios::binary);
+  W_q4k_readed.read(read_file);
+  read_file.close();
+
+  /** read fp32 */
+  nntrainer::Tensor W_fp32_readed(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  std::ifstream read_file_float("fc_float.bin",
+                                std::ios::in | std::ios::binary);
+  W_fp32_readed.read(read_file_float);
+  read_file_float.close();
+
+  /** dot test */
+  nntrainer::Tensor out_q4k(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q4k, out_q4k);
+  nntrainer::Tensor out_readed_q4k(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q4k_readed, out_readed_q4k);
+  nntrainer::Tensor out_readed_fp32(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_fp32_readed, out_readed_fp32);
+
+  const float eps = 1e-5;
+  auto mean_squared_error = mse<float, float>(
+    out_q4k.getData<float>(), out_readed_q4k.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
+  auto mean_squared_error_readed = mse<float, float>(
+    out_readed_fp32.getData<float>(), out_readed_q4k.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
 }
 
 TEST(nntrainer_Tensor, copy_01_n) {

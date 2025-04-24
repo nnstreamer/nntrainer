@@ -30,6 +30,20 @@ typedef enum {
 } IniFailAt;
 };
 
+template <typename T>
+static inline std::vector<T>
+generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
+  std::random_device rd;
+  std::mt19937 gen(42);
+  // std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(min_val, max_val);
+  std::vector<T> vec(size);
+  for (auto &val : vec) {
+    val = static_cast<T>(dist(gen));
+  }
+  return vec;
+}
+
 /**
  * @brief Graph Tester
  *
@@ -383,6 +397,88 @@ TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
   in.clear();
   ans.clear();
 }
+
+#ifdef ENABLE_GGML
+TEST(nntrainerGraphUnitTest, Q4_K_FP32_Model) {
+  std::unique_ptr<ml::train::Model> model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+
+  model->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape", "1:1:1024")}));
+
+  for (int i = 0; i < 10; ++i) {
+    model->addLayer(ml::train::createLayer(
+      "fully_connected", {nntrainer::withKey("unit", 1024),
+                          nntrainer::withKey("disable_bias", "true")}));
+  }
+
+  model->setProperty({nntrainer::withKey("batch_size", 1),
+                      nntrainer::withKey("epochs", 1),
+                      nntrainer::withKey("fsu", "false"),
+                      nntrainer::withKey("model_tensor_type", "Q4_K-FP32")});
+
+  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = model->initialize(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  model->load("fc_q4kx8.bin");
+
+  std::unique_ptr<ml::train::Model> model_fp =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+
+  model_fp->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape", "1:1:1024")}));
+
+  for (int i = 0; i < 10; ++i) {
+    model_fp->addLayer(ml::train::createLayer(
+      "fully_connected", {nntrainer::withKey("unit", 1024),
+                          nntrainer::withKey("disable_bias", "true")}));
+  }
+
+  model_fp->setProperty({nntrainer::withKey("batch_size", 1),
+                         nntrainer::withKey("epochs", 1),
+                         nntrainer::withKey("fsu", "false"),
+                         nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+
+  status = model_fp->compile(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = model_fp->initialize(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  model_fp->load("fc_float.bin");
+
+  float input[1024];
+  std::vector<float> input_data = generate_random_vector<float>(1024);
+
+  for (unsigned int i = 0; i < 1024; ++i) {
+    input[i] = input_data[i];
+  }
+
+  std::vector<float *> in;
+  std::vector<float *> ans;
+  std::vector<float *> ans2;
+
+  in.push_back(input);
+
+  ans = model->inference(1, in);
+  ans2 = model_fp->inference(1, in);
+
+  const float eps = 1e-5;
+  auto mean_squared_error = mse<float, float>(ans[0], ans2[0], 1024);
+  for (unsigned int i = 0; i < 1024; ++i) {
+    std::cout << ans[0][i] << " " << ans2[0][i] << std::endl;
+  }
+
+  in.clear();
+  ans.clear();
+  ans2.clear();
+}
+#endif
 
 int main(int argc, char **argv) {
   int result = -1;
