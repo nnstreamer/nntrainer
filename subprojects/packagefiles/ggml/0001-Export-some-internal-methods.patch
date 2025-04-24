@@ -1,35 +1,51 @@
-From 86e3938c347d2b3727a473ef407172a98aedc52e Mon Sep 17 00:00:00 2001
+From bb49e6aa2fc580e02fa2126054c6de93c987e7a1 Mon Sep 17 00:00:00 2001
 From: Maciej Nalewaj <m.nalewaj@samsung.com>
-Date: Thu, 17 Apr 2025 22:39:01 +0200
+Date: Thu, 24 Apr 2025 10:52:48 +0200
 Subject: [PATCH] Export some internal methods
 
 Signed-off-by: Maciej Nalewaj <m.nalewaj@samsung.com>
 ---
- include/ggml.h                    |  6 ++++++
- src/ggml-cpu/ggml-cpu-aarch64.cpp | 36 ++++++++++++++++++++++++++++---
- 2 files changed, 39 insertions(+), 3 deletions(-)
+ include/ggml.h                    | 13 ++++++
+ src/ggml-cpu/ggml-cpu-aarch64.cpp | 74 ++++++++++++++++++++++++++++---
+ 2 files changed, 80 insertions(+), 7 deletions(-)
 
 diff --git a/include/ggml.h b/include/ggml.h
-index 8fcc16d..be8e564 100644
+index 51aa5b3..02f4126 100644
 --- a/include/ggml.h
 +++ b/include/ggml.h
-@@ -2163,6 +2163,12 @@ extern "C" {
+@@ -2183,6 +2183,19 @@ extern "C" {
      GGML_API void                          ggml_threadpool_params_init   (struct ggml_threadpool_params * p, int n_threads);
      GGML_API bool                          ggml_threadpool_params_match  (const struct ggml_threadpool_params * p0, const struct ggml_threadpool_params * p1);
  
 +    // Internal methods exported to be used by nntrainer
++    GGML_API void ggml_gemm_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
 +    GGML_API void ggml_gemm_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
++
++    GGML_API void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
 +    GGML_API void ggml_gemv_q4_K_8x8_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc);
++
++    GGML_API void ggml_quantize_mat_q8_0_4x8(const float *GGML_RESTRICT x, void *GGML_RESTRICT vy, int64_t k);
 +    GGML_API void ggml_quantize_mat_q8_K_4x8(const float *GGML_RESTRICT x, void *GGML_RESTRICT vy, int64_t k);
++
++    GGML_API int  ggml_repack_q4_0_to_q4_0_8_bl(void * GGML_RESTRICT dst, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, size_t nrow, size_t k);
 +    GGML_API int  ggml_repack_q4_K_to_q4_K_8_bl(void * GGML_RESTRICT dst, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, size_t nrow, size_t k);
 +
  #ifdef  __cplusplus
  }
  #endif
 diff --git a/src/ggml-cpu/ggml-cpu-aarch64.cpp b/src/ggml-cpu/ggml-cpu-aarch64.cpp
-index ced09c0..81d98f2 100644
+index ced09c0..3ff6ca6 100644
 --- a/src/ggml-cpu/ggml-cpu-aarch64.cpp
 +++ b/src/ggml-cpu/ggml-cpu-aarch64.cpp
+@@ -340,7 +340,7 @@ static void ggml_quantize_mat_q8_0_4x4(const float * GGML_RESTRICT x, void * GGM
+ #endif
+ }
+ 
+-static void ggml_quantize_mat_q8_0_4x8(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, int64_t k) {
++void ggml_quantize_mat_q8_0_4x8(const float * GGML_RESTRICT x, void * GGML_RESTRICT vy, int64_t k) {
+     assert(QK8_0 == 32);
+     assert(k % QK8_0 == 0);
+     const int nb = k / QK8_0;
 @@ -555,7 +555,7 @@ static void ggml_quantize_mat_q8_0_4x8(const float * GGML_RESTRICT x, void * GGM
  #endif
  }
@@ -39,7 +55,24 @@ index ced09c0..81d98f2 100644
      assert(QK_K == 256);
      assert(k % QK_K == 0);
      const int nb = k / QK_K;
-@@ -1288,7 +1288,7 @@ static void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
+@@ -1015,7 +1015,7 @@ static void ggml_gemv_q4_0_4x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
+     }
+ }
+ 
+-static void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc) {
++void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc) {
+     const int qk = QK8_0;
+     const int nb = n / qk;
+     const int ncols_interleaved = 8;
+@@ -1264,7 +1264,6 @@ static void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
+     {
+         float sumf[8];
+         int sumi;
+-
+         const block_q8_0 * a_ptr = (const block_q8_0 *) vy;
+         for (int x = 0; x < nc / ncols_interleaved; x++) {
+             const block_q4_0x8 * b_ptr = (const block_q4_0x8 *) vx + (x * nb);
+@@ -1288,7 +1287,7 @@ static void ggml_gemv_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
      }
  }
  
@@ -48,7 +81,16 @@ index ced09c0..81d98f2 100644
      const int qk = QK_K;
      const int nb = n / qk;
      const int ncols_interleaved = 8;
-@@ -4021,7 +4021,7 @@ static void ggml_gemm_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
+@@ -2629,7 +2628,7 @@ static void ggml_gemm_q4_0_4x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
+     }
+ }
+ 
+-static void ggml_gemm_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc) {
++void ggml_gemm_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, const void * GGML_RESTRICT vy, int nr, int nc) {
+     const int qk = QK8_0;
+     const int nb = n / qk;
+     const int ncols_interleaved = 8;
+@@ -4021,7 +4020,7 @@ static void ggml_gemm_q4_0_8x8_q8_0(int n, float * GGML_RESTRICT s, size_t bs, c
      }
  }
  
@@ -57,11 +99,12 @@ index ced09c0..81d98f2 100644
      const int qk = QK_K;
      const int nb = n / qk;
      const int ncols_interleaved = 8;
-@@ -5082,6 +5082,36 @@ static int repack_q4_0_to_q4_0_4_bl(struct ggml_tensor * t, int interleave_block
+@@ -5082,6 +5081,37 @@ static int repack_q4_0_to_q4_0_4_bl(struct ggml_tensor * t, int interleave_block
  
      GGML_UNUSED(data_size);
  }
 +
++// The method was modified (from repack_q4_K_to_q4_K_8_bl) to be used by nntrainer
 +int ggml_repack_q4_K_to_q4_K_8_bl(void * GGML_RESTRICT dst, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, size_t nrow, size_t k) {
 +    GGML_ASSERT(interleave_block == 8);
 +    constexpr size_t nrows_interleaved = 8;
@@ -93,6 +136,43 @@ index ced09c0..81d98f2 100644
 +
  static int repack_q4_K_to_q4_K_8_bl(struct ggml_tensor * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size) {
      GGML_ASSERT(t->type == GGML_TYPE_Q4_K);
+     GGML_ASSERT(interleave_block == 8);
+@@ -5113,6 +5143,36 @@ static int repack_q4_K_to_q4_K_8_bl(struct ggml_tensor * t, int interleave_block
+     GGML_UNUSED(data_size);
+ }
+ 
++// The method was modified (from repack_q4_0_to_q4_0_8_bl) to be used by nntrainer
++int ggml_repack_q4_0_to_q4_0_8_bl(void * GGML_RESTRICT dst, int interleave_block, const void * GGML_RESTRICT data, size_t data_size, size_t nrow, size_t k) {
++    GGML_ASSERT(interleave_block == 8);
++    constexpr size_t nrows_interleaved = 8;
++
++    block_q4_0x8 * dst_ = (block_q4_0x8*)dst;
++    const block_q4_0 * src = (const block_q4_0*) data;
++    block_q4_0 dst_tmp[8];
++    int nblocks = k / QK4_0;
++
++    GGML_ASSERT(data_size == nrow * nblocks * sizeof(block_q4_0));
++
++    if (nrow % nrows_interleaved != 0 || k % 8 != 0) {
++        return -1;
++    }
++
++    for (size_t b = 0; b < nrow; b += nrows_interleaved) {
++        for (int64_t x = 0; x < nblocks; x++) {
++            for (size_t i  = 0; i < nrows_interleaved; i++ ) {
++                dst_tmp[i] = src[x + i * nblocks];
++            }
++            *dst_++ = make_block_q4_0x8(dst_tmp, interleave_block);
++        }
++        src += nrows_interleaved * nblocks;
++    }
++    return 0;
++
++    GGML_UNUSED(data_size);
++}
++
+ static int repack_q4_0_to_q4_0_8_bl(struct ggml_tensor * t, int interleave_block, const void * GGML_RESTRICT data, size_t data_size) {
+     GGML_ASSERT(t->type == GGML_TYPE_Q4_0);
      GGML_ASSERT(interleave_block == 8);
 -- 
 2.34.1
