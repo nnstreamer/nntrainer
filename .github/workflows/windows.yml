@@ -6,7 +6,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-2022, windows-2025 ]
+
     name: Windows Meson build & test 
     steps:
       - name: Check out
@@ -26,5 +30,5 @@ jobs:
         run: meson setup --native-file windows-native.ini builddir
       - name: Run Build
         run: meson compile -C builddir
-      # - name: Run Test Suite
-      #   run: meson test -C builddir
+      - name: Run Test Suite
+        run: meson test -C builddir
