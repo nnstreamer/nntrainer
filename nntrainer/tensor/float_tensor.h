@@ -528,6 +528,18 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override;
+
+  /**
+   * @brief Float.dot(Float)
+   */
+  Tensor &dotFloat(Tensor const &input, Tensor &output, bool trans,
+                   bool trans_in, float beta) const;
+
+  /**
+   * @brief Float.dot(Q4K)
+   */
+  Tensor &dotQ4K(Tensor const &input, Tensor &output, bool trans, bool trans_in,
+                 float beta) const;
 };
 
 } // namespace nntrainer
