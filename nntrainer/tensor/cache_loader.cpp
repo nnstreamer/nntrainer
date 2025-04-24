@@ -194,10 +194,6 @@ int CacheLoader::cancelAsync(int id) {
   return ML_ERROR_NONE;
 }
 
-unsigned int CacheLoader::getNumLoadedTensors() {
-  return pool->getNumLoadedTensors();
-}
-
 unsigned int CacheLoader::inActive(unsigned int order) {
   std::set<unsigned int> exec_id = pool->getExecIDs(order);
   for (auto &id : exec_id) {

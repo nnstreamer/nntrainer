@@ -507,10 +507,6 @@ void TensorPool::loadCacheCancel(int id) {
   cache_loader->cancelAsync(id);
 }
 
-unsigned int TensorPool::getNumLoadedTensors() {
-  return cache_loader->getNumLoadedTensors();
-}
-
 unsigned int TensorPool::inActive(unsigned int order) {
   return cache_loader->inActive(order);
 }
