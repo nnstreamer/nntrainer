@@ -366,6 +366,33 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
     } else {
+      /**
+         currently, it supports FSU asynch mode for inference. The prcedure of
+         FSU is below,
+
+         Prerequests : This function is called node by node at the forwarding
+         function in network graph.
+
+         Step 1. If the execution order is the first (f==0) then, it will try
+       to load tensors which used at layer 0.
+
+         Step 2. It check whether these tensors from Step 1, then do the
+                 forwarding of the first node.
+
+         Step 3. Then check the look a head which says how many layer weights
+       need to be loaded before running to hide overehad due to FSU,
+
+         Step 4. Try to get the tesors by asking tensors for layers which is
+       done by thread pool
+
+         Step 5. Try to release the weights which has execution order less
+       then f.
+
+         Step n. repeat next layer starting with checking the tenosrs are
+       loaded, and if it is loaded, then run forwarding. Every time it
+       finishes the forwarding, ask load tensors for next n layers.
+
+      **/
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
       model_graph.inActive(f);

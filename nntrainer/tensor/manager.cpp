@@ -468,11 +468,7 @@ std::vector<Weight *> Manager::requestWeights(
       if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
         for (unsigned int i = 0; i < fsu_lookahead; ++i) {
           int lah_order = (forwarding_order - (fsu_lookahead - i));
-          if (lah_order <= 0) {
-            var_exec_order.push_back(0);
-          } else {
-            var_exec_order.push_back(lah_order);
-          }
+          var_exec_order.push_back(std::max(lah_order, 0));
         }
       }
       var =
@@ -767,7 +763,7 @@ void Manager::flushCache() {
 
 bool Manager::checkLoadComplete(unsigned int order) {
 
-  auto checkLoadCompleteAtPool = [&](TensorPool &pool, unsigned int order) {
+  auto checkLoadCompleteAtPool = [](TensorPool &pool, unsigned int order) {
     return pool.checkLoadComplete(order);
   };
 
