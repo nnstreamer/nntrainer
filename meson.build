@@ -470,16 +470,13 @@ if get_option('enable-ggml')
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-  ggml_dep = ggml_proj.dependency('ggml-cpu')
+  ggml_dep = [
+    ggml_proj.dependency('ggml-base'),
+    ggml_proj.dependency('ggml-cpu'),
+    ggml_proj.dependency('ggml')]
+
+  extra_defines += '-DENABLE_GGML=1'
 endif
-ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
-ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
-ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-ggml_dep = [
-  ggml_proj.dependency('ggml-base'),
-  ggml_proj.dependency('ggml-cpu'),
-  ggml_proj.dependency('ggml')]
 
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
