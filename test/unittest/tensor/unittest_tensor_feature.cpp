@@ -11,90 +11,181 @@
  */
 #include <gtest/gtest.h>
 
+#include "attention_block.h"
 #include "nntrainer_test_util.h"
 #include "util_func.h"
 #include <algorithm>
 #include <float_tensor.h>
 #include <fstream>
 #include <immintrin.h>
+#include <layers/acti_func.h>
 #include <nntrainer_error.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 
-void repack_B_tile(const float *B, float *B_tile, int row_tile_start,
-                   int tile_rows, int n, int chunk_size, int N) {
-  for (int row = 0; row < tile_rows; ++row) {
-    const float *src =
-      B + (row_tile_start + row) * N * chunk_size + n * chunk_size;
-    float *dst = B_tile + row * chunk_size;
-    std::memcpy(dst, src, sizeof(float) * chunk_size);
+using namespace nntrainer;
+using namespace std;
+
+struct AttnBlockTestData {
+  Tensor input;
+  Tensor kcache;
+  Tensor vcache;
+  Tensor attn_weight;
+  Tensor output;
+
+  AttnBlockTestData(size_t q_head, size_t h_dim, int tile_size, bool tok_gen,
+                    size_t from, size_t to, int qhead_per_kvhead) {
+    TensorDim::TensorType t_type;
+    t_type.format = Tformat::NCHW;
+    t_type.data_type = Tdatatype::FP32;
+
+    auto seq_len = to - from;
+    auto kv_head_factor = qhead_per_kvhead;
+    auto kv_head = q_head / kv_head_factor;
+
+    input = Tensor(1, 1, seq_len, q_head * h_dim, t_type);
+    kcache = Tensor(1, 1, to, h_dim * kv_head, t_type);
+    vcache = Tensor(1, 1, to, h_dim * kv_head, t_type);
+
+    attn_weight = Tensor(q_head, 1, seq_len, to, t_type);
+    output = Tensor(q_head, 1, seq_len, h_dim, t_type);
+
+    input.setRandUniform(-0.5, 0.0);
+    kcache.setRandUniform(-0.5, 0.0);
+    vcache.setRandUniform(-0.5, 0.0);
   }
+};
+
+template<typename Func>
+double check_time(Func&& func)
+{
+  auto start = chrono::high_resolution_clock::now();
+  func();
+  auto end = chrono::high_resolution_clock::now();
+  chrono::duration<double, milli> dur = end - start;
+  return dur.count();
 }
 
-// N is size of B and size of A is N*group_size
+/**
+ * @brief
+ * @param query
+ * @param kcache
+ * @param vcache
+ * @param attn_weight
+ * @param attn_output
+ * @param q_head
+ * @param h_dim
+ * @param tile_size
+ * @param tok_gen
+ * @param from
+ * @param to
+ * @param qhead_per_kvhead
+ * @return
+ */
+int _mha(Tensor query, Tensor kcache, Tensor vcache, Tensor attn_weight,
+         Tensor attn_output, size_t q_head, size_t h_dim, int tile_size,
+         bool tok_gen, size_t from, size_t to, int qhead_per_kvhead, vector<pair<string, double>> *exec_time) {
+  unsigned int kv_head_factor = qhead_per_kvhead;
+  unsigned int kv_head = q_head / kv_head_factor;
 
-void multiply_and_reduce_chunks(const float *A, const float *B, float *output,
-                                int num_rows, int N, int chunk_size,
-                                int group_size, int tile_size = 64) {
+  ActiFunc sm(nntrainer::ActivationType::ACT_SOFTMAX);
 
-  // const bool use_repacked = group_size >=4;
-  const bool use_repacked = false;
-  float *B_tile = use_repacked ? new float[tile_size * chunk_size] : nullptr;
+  auto preproc = [&]()
+  {
+    query.reshape(ml::train::TensorDim({1, to - from, q_head, h_dim}));
+    kcache.reshape(ml::train::TensorDim({1, to, kv_head, h_dim}));
+    vcache.reshape(ml::train::TensorDim({1, to, kv_head, h_dim}));
 
-  const int group_stride = group_size * chunk_size;
-  const int row_stride = N * chunk_size;
+    if (to - from != 1)
+      query.transpose("1:0:2", query);
+    kcache.transpose("1:0:2", kcache);
+    vcache.transpose("1:0:2", vcache);
 
-  for (int n = 0; n < N; ++n) {
-    for (int g = 0; g < group_size; ++g) {
-      const float *a_ptr = A + n * group_stride + g * chunk_size;
+    query.reshape(ml::train::TensorDim({q_head, 1, to - from, h_dim}));
+    kcache.reshape(ml::train::TensorDim({kv_head, 1, to, h_dim}));
+    vcache.reshape(ml::train::TensorDim({kv_head, 1, to, h_dim}));
 
-      for (int row_tile_start = 0; row_tile_start < num_rows;
-           row_tile_start += tile_size) {
-        int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+    attn_weight.reshape({q_head, 1, to - from, to});
+    attn_output.reshape({q_head, 1, to - from, h_dim});
+  };
 
-        const float *b_ptr = nullptr;
-        if (use_repacked) {
-          repack_B_tile(B, B_tile, row_tile_start, tile_rows, n, chunk_size, N);
-          b_ptr = B_tile;
-        }
+  auto qk_mul = [&]()
+  {
+    cout << query << endl;
+    attn_weight.setZero();
+    EXPECT_NO_THROW(query.dotBatched(kcache, attn_weight, false, true));
+  };
 
-        for (int row = 0; row < tile_rows; ++row) {
-          const float *b_row =
-            use_repacked
-              ? b_ptr + row * chunk_size
-              : B + (row_tile_start + row) * row_stride + n * chunk_size;
+  auto norm_weight = [&]() { attn_weight.multiply_i(1 / sqrt((float)h_dim)); };
 
-          __m256 sum = _mm256_setzero_ps();
-          int k = 0;
+  auto calc_mask = [&]()
+  {
+    if (!from) {
+      unsigned int mask_size = attn_weight.getDim().width();
+      unsigned int mask_dim_height = mask_size;
+      unsigned int mask_dim_width = mask_size;
 
-          for (; k + 7 < chunk_size; k += 8) {
-            __m256 va = _mm256_loadu_ps(a_ptr + k);
-            __m256 vb = _mm256_loadu_ps(b_row + k);
-            sum = _mm256_add_ps(sum, _mm256_mul_ps(va, vb));
-          }
+      nntrainer::Tensor causal_mask(ml::train::TensorDim{
+        1, 1, mask_size, mask_size, attn_weight.getTensorType()});
 
-          float tail_sum = 0.0f;
-          for (; k < chunk_size; ++k) {
-            tail_sum += a_ptr[k] * b_row[k];
-          }
+      causal_mask.setZero();
 
-          __m128 low = _mm256_castps256_ps128(sum);
-          __m128 high = _mm256_extractf128_ps(sum, 1);
-          __m128 sum128 = _mm_add_ps(low, high);
-          sum128 = _mm_hadd_ps(sum128, sum128);
-          sum128 = _mm_hadd_ps(sum128, sum128);
-          float vec_sum = _mm_cvtss_f32(sum128);
+  #ifdef ENABLE_FP16
+  #define _MASK_NUM -1e4
+  #else
+  #define _MASK_NUM -1e10
+  #endif
 
-          output[((row_tile_start + row) * group_size + g) * N + n] =
-            vec_sum + tail_sum;
+      for (unsigned int i = 0; i < mask_dim_height; ++i) {
+        for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
+          causal_mask.setValue(0, 0, i, j, _MASK_NUM);
         }
       }
+      attn_weight.add_i(causal_mask);
+    };
+  };
+
+  auto softmax = [&]()
+  {
+    sm.run_fn(attn_weight, attn_weight);
+  };
+
+  auto attn_v_mul = [&]()
+  {
+    EXPECT_NO_THROW(attn_weight.dotBatched(vcache, attn_output));
+  };
+
+  auto postproc = [&]() {
+    if (to - from != 1) {
+      attn_output.reshape(ml::train::TensorDim({1, q_head, to - from, h_dim}));
+      attn_output.transpose("1:0:2", attn_output);
     }
+    attn_output.reshape({to - from, 1, 1, h_dim * q_head});
+  };
+
+  if (exec_time)
+  {
+    exec_time->push_back({"preproc", check_time(preproc)});
+    exec_time->push_back({"q * k", check_time(qk_mul)});
+    exec_time->push_back({"norm_weight", check_time(norm_weight)});
+    exec_time->push_back({"calc_mask", check_time(calc_mask)});
+    exec_time->push_back({"softmax", check_time(softmax)});
+    exec_time->push_back({"attn * v", check_time(attn_v_mul)});
+    exec_time->push_back({"postproc", check_time(postproc)});
+  }
+  else
+  {
+    preproc();
+    qk_mul();
+    norm_weight();
+    calc_mask();
+    softmax();
+    attn_v_mul();
+    postproc();
   }
 
-  if (B_tile)
-    delete[] B_tile;
-};
+  return 0;
+}
 
 struct RepackTask {
   float *dst;
@@ -116,6 +207,7 @@ void repack_B_tile_task(const RepackTask &task) {
   }
 }
 
+/*
 void compute_grouped_dot_with_pool(const float *A, const float *B,
                                    float *output, int num_rows, int N,
                                    int chunk_size, int group_size,
@@ -188,6 +280,116 @@ void compute_grouped_dot_with_pool(const float *A, const float *B,
   }
 }
 
+*/
+
+TEST(nntrainer_TensorDim, mha_01_p) {
+  int q_head = 24;
+  int h_dim = 128;
+  int tile_size = 64;
+  bool tok_gen = false;
+  int to = 1024;
+  int from = tok_gen ? to - 1 : 0;
+  int qhead_per_kv = 1;
+  vector<pair<string, double>> exec_time;
+
+  auto t = AttnBlockTestData(q_head, h_dim, tile_size, tok_gen, from, to,
+                             qhead_per_kv);
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  auto res = _mha(t.input, t.kcache, t.vcache, t.attn_weight, t.output, q_head,
+                  h_dim, tile_size, tok_gen, from, to, 1, &exec_time);
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto attn_block_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    end_time - start_time);
+
+  for (int i = 0; i < exec_time.size(); ++i)
+  {
+    printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(), exec_time[i].second);
+  }
+
+  std::cout << "attn_output" << std::endl;
+  std::cout << t.output << std::endl;
+
+  std::cout << "***** Dot Batched Time: " << attn_block_time.count() << " ms\n";
+  std::cout << "--------------------------" << std::endl;
+
+  EXPECT_EQ(res, 0);
+}
+
+TEST(nntrainer_TensorDim, mha_02_p) {
+  int q_head = 24;
+  int h_dim = 128;
+  int tile_size = 64;
+  bool tok_gen = true;
+  int to = 1024;
+  int from = tok_gen ? to - 1 : 0;
+  int qhead_per_kv = 1;
+  vector<pair<string, double>> exec_time;
+
+  auto t = AttnBlockTestData(q_head, h_dim, tile_size, tok_gen, from, to,
+                             qhead_per_kv);
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  auto res = _mha(t.input, t.kcache, t.vcache, t.attn_weight, t.output, q_head,
+                  h_dim, tile_size, tok_gen, from, to, 1, &exec_time);
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto attn_block_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    end_time - start_time);
+
+  for (int i = 0; i < exec_time.size(); ++i) {
+    printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(),
+           exec_time[i].second);
+  }
+
+  std::cout << "attn_output" << std::endl;
+  std::cout << t.output << std::endl;
+
+  std::cout << "***** Dot Batched Time: " << attn_block_time.count() << " ms\n";
+  std::cout << "--------------------------" << std::endl;
+
+  EXPECT_EQ(res, 0);
+}
+
+TEST(nntrainer_TensorDim, mha_03_p) {
+  int q_head = 24;
+  int h_dim = 128;
+  int tile_size = 64;
+  bool tok_gen = true;
+  int to = 10240;
+  int from = tok_gen ? to - 1 : 0;
+  int qhead_per_kv = 1;
+  vector<pair<string, double>> exec_time;
+
+  auto t = AttnBlockTestData(q_head, h_dim, tile_size, tok_gen, from, to,
+                             qhead_per_kv);
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  auto res = _mha(t.input, t.kcache, t.vcache, t.attn_weight, t.output, q_head,
+                  h_dim, tile_size, tok_gen, from, to, 1, &exec_time);
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto attn_block_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    end_time - start_time);
+
+  for (int i = 0; i < exec_time.size(); ++i) {
+    printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(),
+           exec_time[i].second);
+  }
+
+  std::cout << "attn_output" << std::endl;
+  std::cout << t.output << std::endl;
+
+  std::cout << "***** Dot Batched Time: " << attn_block_time.count() << " ms\n";
+  std::cout << "--------------------------" << std::endl;
+
+  EXPECT_EQ(res, 0);
+}
+
 TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
   nntrainer::TensorDim::TensorType t_type;
@@ -202,7 +404,7 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
   unsigned int seq = tg ? 1 : sequence_len;
 
-  unsigned int num_key_value_head = 2;
+  unsigned int num_key_value_head = 1;
   unsigned int num_gqa_head = num_head / num_key_value_head;
 
   // nntrainer::Tensor input(1, 1, sequence_len, num_head * head_dim, t_type);
@@ -215,140 +417,163 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
   kcache_org.setRandUniform(-0.5, 0.0);
   input_org.setRandUniform(-0.5, 0.0);
-
+  // kcache_org.setValue(0.01f);
+  // input_org.setValue(1.0f);
   nntrainer::Tensor output(num_head, 1, seq, sequence_len, t_type);
-  output.setZero();
-  input.copy(input_org);
-  kcache.copy(kcache_org);
+  nntrainer::Tensor output2(num_head, 1, seq, sequence_len, t_type);
+  float *out = nullptr, *out2 = nullptr;
 
-  auto start_time = std::chrono::high_resolution_clock::now();
+  {
+    output.setZero();
+    input.copy(input_org);
+    kcache.copy(kcache_org);
 
-  input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
-  kcache.reshape(
-    ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
+    auto start_time = std::chrono::high_resolution_clock::now();
 
-  input.transpose("1:0:2", input);
-  kcache.transpose("1:0:2", kcache);
+    input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
+    kcache.reshape(
+      ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
 
-  input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
+    // input.transpose("1:0:2", input);
+    kcache.transpose("1:0:2", kcache);
 
-  kcache.reshape(
-    ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
+    input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
 
-  std::cout << "input: " << std::endl;
-  std::cout << input << std::endl;
+    kcache.reshape(
+      ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
 
-  std::cout << "kcache: " << std::endl;
-  std::cout << kcache << std::endl;
+    std::cout << "input: " << std::endl;
+    std::cout << input << std::endl;
 
-  EXPECT_NO_THROW(input.dotBatched(kcache, output, false, true));
+    std::cout << "kcache: " << std::endl;
+    std::cout << kcache << std::endl;
 
-  auto end_time = std::chrono::high_resolution_clock::now();
+    EXPECT_NO_THROW(input.dotBatched(kcache, output, false, true));
 
-  std::cout << output << std::endl;
+    auto end_time = std::chrono::high_resolution_clock::now();
 
-  float *dd = output.getData<float>();
-  std::cout << " transposed direction out of dotbatched -------------- "
-            << std::endl;
-  std::cout << dd[0] << " " << dd[10240] << " " << dd[10240 * 2] << std::endl;
+    std::cout << output << std::endl;
 
-  auto dotbatch_duration =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
-                                                          start_time);
+    out = output.getData<float>();
+    std::cout << " transposed direction out of dotbatched -------------- "
+              << std::endl;
 
-  std::cout << "***** Dot Bacthed Time: " << dotbatch_duration.count()
-            << " ms\n";
-  std::cout << "***** Throughput: "
-            << (double)sequence_len * num_head * num_key_value_head * head_dim /
-                 (dotbatch_duration.count() * 1e6)
-            << " GFLOPs\n";
-  std::cout << "--------------------------" << std::endl;
+    auto dotbatch_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                            start_time);
+    std::cout << "***** Dot Bacthed Time: " << dotbatch_duration.count()
+              << " ms\n";
+    std::cout << "***** Throughput: "
+              << (double)sequence_len * num_head * num_key_value_head *
+                   head_dim / (dotbatch_duration.count() * 1e6)
+              << " GFLOPs\n";
+    std::cout << "--------------------------" << std::endl;
+  }
 
-  input.copy(input_org);
-  kcache.copy(kcache_org);
-  output.setZero();
+  /*
+  {
+    input.copy(input_org);
+    kcache.copy(kcache_org);
+    output.setZero();
 
-  start_time = std::chrono::high_resolution_clock::now();
+    start_time = std::chrono::high_resolution_clock::now();
 
-  input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
-  kcache.reshape(
-    ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
+    input.reshape(ml::train::TensorDim({1, seq, num_head, head_dim}));
+    kcache.reshape(
+      ml::train::TensorDim({1, sequence_len, num_gqa_head, head_dim}));
 
-  input.transpose("1:0:2", input);
-  kcache.transpose("1:0:2", kcache);
+    input.transpose("1:0:2", input);
+    kcache.transpose("1:0:2", kcache);
 
-  input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
+    input.reshape(ml::train::TensorDim({num_head, 1, seq, head_dim}));
 
-  kcache.reshape(
-    ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
+    kcache.reshape(
+      ml::train::TensorDim({num_gqa_head, 1, sequence_len, head_dim}));
 
-  (void)nntrainer::Tensor::getThreadPool().submit_blocks(
-    0, num_head, [&](const std::size_t start, const std::size_t end) {
-      for (std::size_t i = start; i < end; ++i) {
-        const nntrainer::Tensor this_b = input.getBatchSlice(i, 1);
-        nntrainer::Tensor m_b = kcache.getBatchSlice(i, 1);
-        nntrainer::Tensor result_b = output.getBatchSlice(i, 1);
-        this_b.dot(m_b, result_b, false, true, 1.0);
-      }
-    });
+    (void)nntrainer::Tensor::getThreadPool().submit_blocks(
+      0, num_head, [&](const std::size_t start, const std::size_t end) {
+        for (std::size_t i = start; i < end; ++i) {
+          const nntrainer::Tensor this_b = input.getBatchSlice(i, 1);
+          nntrainer::Tensor m_b = kcache.getBatchSlice(i, 1);
+          nntrainer::Tensor result_b = output.getBatchSlice(i, 1);
+          this_b.dot(m_b, result_b, false, true, 1.0);
+        }
+      });
 
-  nntrainer::Tensor::getThreadPool().wait();
+    nntrainer::Tensor::getThreadPool().wait();
 
-  end_time = std::chrono::high_resolution_clock::now();
+    end_time = std::chrono::high_resolution_clock::now();
 
-  std::cout << output << std::endl;
+    std::cout << output << std::endl;
 
-  auto thread_pool_duration =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
-                                                          start_time);
+    auto thread_pool_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                            start_time);
 
-  std::cout << "***** Dot Bacthed Thread Time: " << thread_pool_duration.count()
-            << " ms\n";
-  std::cout << "***** Throughput: "
-            << (double)sequence_len * num_head * num_key_value_head * head_dim /
-                 (thread_pool_duration.count() * 1e6)
-            << " GFLOPs\n";
+    std::cout << "***** Dot Bacthed Thread Time: "
+              << thread_pool_duration.count() << " ms\n";
+    std::cout << "***** Throughput: "
+              << (double)sequence_len * num_head * num_key_value_head *
+                   head_dim / (thread_pool_duration.count() * 1e6)
+              << " GFLOPs\n";
 
-  std::cout << "--------------------------" << std::endl;
-  output.setZero();
-  start_time = std::chrono::high_resolution_clock::now();
-  multiply_and_reduce_chunks(
-    input_org.getData<float>(), kcache_org.getData<float>(),
-    output.getData<float>(), sequence_len, num_head / num_key_value_head,
-    head_dim, num_key_value_head, tile_size);
+    std::cout << "--------------------------" << std::endl;
+  }
 
-  end_time = std::chrono::high_resolution_clock::now();
-  // double ms = std::chrono::duration<double,
-  // std::milli>(end_time-start_time).count();
-  auto ms =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
-  std::cout << "***** Time: " << ms << " ms\n";
-  std::cout << "***** Throughput: "
-            << (double)sequence_len * num_head * num_key_value_head * head_dim /
-                 (ms * 1e6)
-            << " GFLOPs\n";
+  */
 
-  std::cout << output << std::endl;
+  {
+    output2.setZero();
+    auto start_time = std::chrono::high_resolution_clock::now();
+    multiply_and_reduce_chunks(
+      input_org.getData<float>(), kcache_org.getData<float>(),
+      output2.getData<float>(), sequence_len, num_head / num_key_value_head,
+      head_dim, num_key_value_head, tile_size);
 
-  std::cout << "--------------------------" << std::endl;
-  output.setZero();
-  start_time = std::chrono::high_resolution_clock::now();
-  compute_grouped_dot_with_pool(
-    input_org.getData<float>(), kcache_org.getData<float>(),
-    output.getData<float>(), sequence_len, num_head / num_key_value_head,
-    head_dim, num_key_value_head, tile_size);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    // double ms = std::chrono::duration<double,
+    // std::milli>(end_time-start_time).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                    start_time)
+                .count();
 
-  end_time = std::chrono::high_resolution_clock::now();
-  // double ms = std::chrono::duration<double,
-  // std::milli>(end_time-start_time).count();
-  ms =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
-  std::cout << "***** Time: " << ms << " ms\n";
-  std::cout << "***** Throughput: "
-            << (double)sequence_len * num_head * num_key_value_head * head_dim /
-                 (ms * 1e6)
-            << " GFLOPs\n";
-  std::cout << output << std::endl;
+    // output2 = output2.transpose("0:2:1", output2);
+    // output2.reshape({num_head, 1, seq, sequence_len});
+    out2 = output2.getData<float>();
+    std::cout << "***** Time: " << ms << " ms\n";
+    std::cout << "***** Throughput: "
+              << (double)sequence_len * num_head * num_key_value_head *
+                   head_dim / (ms * 1e6)
+              << " GFLOPs\n";
+
+    std::cout << output2 << std::endl;
+  }
+
+  for (int i = 0; i < num_head * 1 * seq * sequence_len; ++i) {
+    EXPECT_NEAR(out[i], out2[i], 1e-5);
+  }
+
+  /*
+  {
+    std::cout << "--------------------------" << std::endl;
+    output.setZero();
+    start_time = std::chrono::high_resolution_clock::now();
+    compute_grouped_dot_with_pool(
+      input_org.getData<float>(), kcache_org.getData<float>(),
+      output.getData<float>(), sequence_len, num_head / num_key_value_head,
+      head_dim, num_key_value_head, tile_size);
+
+    end_time = std::chrono::high_resolution_clock::now();
+    // double ms = std::chrono::duration<double,
+    // std::milli>(end_time-start_time).count();
+    ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+  start_time) .count(); std::cout << "***** Time: " << ms << " ms\n"; std::cout
+  << "***** Throughput: "
+              << (double)sequence_len * num_head * num_key_value_head * head_dim
+  / (ms * 1e6)
+              << " GFLOPs\n";
+    std::cout << output << std::endl;
+  }
+  */
 }

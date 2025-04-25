@@ -5,7 +5,8 @@ nntrainer_tensor_tests_dep = declare_dependency(
   )
 
 test_target = [
-  'unittest_tensor_feature.cpp'
+  'unittest_tensor_feature.cpp',
+  'attention_block.cpp'
 ]
 
 if cxx.get_id() == 'msvc'
