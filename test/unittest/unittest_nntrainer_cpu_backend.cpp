@@ -196,6 +196,8 @@ TEST(nntrainer_cpu_backend_standalone, DISABLED_ele_add) {
   }
 }
 
+#ifdef ENABLE_GGML
+
 TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
   const unsigned int K = 768;
   const unsigned int N = 512;
@@ -460,6 +462,8 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x1536x5760) {
   ASSERT_LE(q4_k_mse, 1.0f);
 }
 
+#endif
+
 /**
  * Room for optimization
  *
@@ -473,6 +477,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x1536x5760) {
 
 int main(int argc, char **argv) {
   int result = -1;
+#ifdef ENABLE_GGML
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
@@ -485,5 +490,8 @@ int main(int argc, char **argv) {
   } catch (...) {
     std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
+#else
+  result = 0;
+#endif
   return result;
 }
