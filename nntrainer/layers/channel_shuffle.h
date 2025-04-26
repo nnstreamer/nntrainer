@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2024 Donghoon Kang <dhkang01@snu.ac.kr>
+ * Copyright (C) 2025 Donghoon Kang <dhkang01@snu.ac.kr>
  *
  * @file   channel_shuffle.h
  * @date   23 April 2025
@@ -19,6 +19,8 @@
 
 #include <common_properties.h>
 #include <layer_impl.h>
+#include <layer_devel.h>
+#include <tensor_dim.h>
 
 namespace nntrainer {
 
@@ -26,7 +28,7 @@ namespace nntrainer {
  * @class   ChannelShuffle
  * @brief   Channel Shuffle Layer
  */
-class ChannelShuffle : public virtual Layer {
+class ChannelShuffle : public LayerImpl {
 public:
     /**
      * @brief     Constructor of Channel Shuffle Layer
@@ -66,6 +68,11 @@ public:
     void calcDerivative(RunLayerContext &context) override;
 
     /**
+     * @copydoc Layer::calcGradient(RunLayerContext &context)
+     */
+    void calcGradient(RunLayerContext &context) override;
+
+    /**
      * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods method)
      */
     void exportTo(Exporter &exporter,
@@ -89,7 +96,7 @@ public:
     static constexpr const char *type = "channelshuffle";
 
 private:
-    int num_groups; /**< number of groups for channel shuffling */
+    std::tuple<props::SplitNumber> channel_shuffle_props;
 };
 }
 
