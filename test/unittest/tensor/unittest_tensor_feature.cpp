@@ -16,12 +16,12 @@
 #include "util_func.h"
 #include <algorithm>
 #include <float_tensor.h>
-#include <fstream>
-#include <immintrin.h>
-#include <layers/acti_func.h>
 #include <nntrainer_error.h>
 #include <tensor.h>
 #include <tensor_dim.h>
+
+#include <fstream>
+#include <immintrin.h>
 
 using namespace nntrainer;
 using namespace std;
@@ -55,137 +55,6 @@ struct AttnBlockTestData {
     vcache.setRandUniform(-0.5, 0.0);
   }
 };
-
-template<typename Func>
-double check_time(Func&& func)
-{
-  auto start = chrono::high_resolution_clock::now();
-  func();
-  auto end = chrono::high_resolution_clock::now();
-  chrono::duration<double, milli> dur = end - start;
-  return dur.count();
-}
-
-/**
- * @brief
- * @param query
- * @param kcache
- * @param vcache
- * @param attn_weight
- * @param attn_output
- * @param q_head
- * @param h_dim
- * @param tile_size
- * @param tok_gen
- * @param from
- * @param to
- * @param qhead_per_kvhead
- * @return
- */
-int _mha(Tensor query, Tensor kcache, Tensor vcache, Tensor attn_weight,
-         Tensor attn_output, size_t q_head, size_t h_dim, int tile_size,
-         bool tok_gen, size_t from, size_t to, int qhead_per_kvhead, vector<pair<string, double>> *exec_time) {
-  unsigned int kv_head_factor = qhead_per_kvhead;
-  unsigned int kv_head = q_head / kv_head_factor;
-
-  ActiFunc sm(nntrainer::ActivationType::ACT_SOFTMAX);
-
-  auto preproc = [&]()
-  {
-    query.reshape(ml::train::TensorDim({1, to - from, q_head, h_dim}));
-    kcache.reshape(ml::train::TensorDim({1, to, kv_head, h_dim}));
-    vcache.reshape(ml::train::TensorDim({1, to, kv_head, h_dim}));
-
-    if (to - from != 1)
-      query.transpose("1:0:2", query);
-    kcache.transpose("1:0:2", kcache);
-    vcache.transpose("1:0:2", vcache);
-
-    query.reshape(ml::train::TensorDim({q_head, 1, to - from, h_dim}));
-    kcache.reshape(ml::train::TensorDim({kv_head, 1, to, h_dim}));
-    vcache.reshape(ml::train::TensorDim({kv_head, 1, to, h_dim}));
-
-    attn_weight.reshape({q_head, 1, to - from, to});
-    attn_output.reshape({q_head, 1, to - from, h_dim});
-  };
-
-  auto qk_mul = [&]()
-  {
-    cout << query << endl;
-    attn_weight.setZero();
-    EXPECT_NO_THROW(query.dotBatched(kcache, attn_weight, false, true));
-  };
-
-  auto norm_weight = [&]() { attn_weight.multiply_i(1 / sqrt((float)h_dim)); };
-
-  auto calc_mask = [&]()
-  {
-    if (!from) {
-      unsigned int mask_size = attn_weight.getDim().width();
-      unsigned int mask_dim_height = mask_size;
-      unsigned int mask_dim_width = mask_size;
-
-      nntrainer::Tensor causal_mask(ml::train::TensorDim{
-        1, 1, mask_size, mask_size, attn_weight.getTensorType()});
-
-      causal_mask.setZero();
-
-  #ifdef ENABLE_FP16
-  #define _MASK_NUM -1e4
-  #else
-  #define _MASK_NUM -1e10
-  #endif
-
-      for (unsigned int i = 0; i < mask_dim_height; ++i) {
-        for (unsigned int j = i + 1; j < mask_dim_width; ++j) {
-          causal_mask.setValue(0, 0, i, j, _MASK_NUM);
-        }
-      }
-      attn_weight.add_i(causal_mask);
-    };
-  };
-
-  auto softmax = [&]()
-  {
-    sm.run_fn(attn_weight, attn_weight);
-  };
-
-  auto attn_v_mul = [&]()
-  {
-    EXPECT_NO_THROW(attn_weight.dotBatched(vcache, attn_output));
-  };
-
-  auto postproc = [&]() {
-    if (to - from != 1) {
-      attn_output.reshape(ml::train::TensorDim({1, q_head, to - from, h_dim}));
-      attn_output.transpose("1:0:2", attn_output);
-    }
-    attn_output.reshape({to - from, 1, 1, h_dim * q_head});
-  };
-
-  if (exec_time)
-  {
-    exec_time->push_back({"preproc", check_time(preproc)});
-    exec_time->push_back({"q * k", check_time(qk_mul)});
-    exec_time->push_back({"norm_weight", check_time(norm_weight)});
-    exec_time->push_back({"calc_mask", check_time(calc_mask)});
-    exec_time->push_back({"softmax", check_time(softmax)});
-    exec_time->push_back({"attn * v", check_time(attn_v_mul)});
-    exec_time->push_back({"postproc", check_time(postproc)});
-  }
-  else
-  {
-    preproc();
-    qk_mul();
-    norm_weight();
-    calc_mask();
-    softmax();
-    attn_v_mul();
-    postproc();
-  }
-
-  return 0;
-}
 
 struct RepackTask {
   float *dst;
@@ -304,9 +173,9 @@ TEST(nntrainer_TensorDim, mha_01_p) {
   auto attn_block_time = std::chrono::duration_cast<std::chrono::milliseconds>(
     end_time - start_time);
 
-  for (int i = 0; i < exec_time.size(); ++i)
-  {
-    printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(), exec_time[i].second);
+  for (int i = 0; i < exec_time.size(); ++i) {
+    printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(),
+           exec_time[i].second);
   }
 
   std::cout << "attn_output" << std::endl;
@@ -358,8 +227,8 @@ TEST(nntrainer_TensorDim, mha_03_p) {
   int q_head = 24;
   int h_dim = 128;
   int tile_size = 64;
-  bool tok_gen = true;
-  int to = 10240;
+  bool tok_gen = false;
+  int to = 1024;
   int from = tok_gen ? to - 1 : 0;
   int qhead_per_kv = 1;
   vector<pair<string, double>> exec_time;
@@ -369,8 +238,8 @@ TEST(nntrainer_TensorDim, mha_03_p) {
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  auto res = _mha(t.input, t.kcache, t.vcache, t.attn_weight, t.output, q_head,
-                  h_dim, tile_size, tok_gen, from, to, 1, &exec_time);
+  auto res = _mha2(t.input, t.kcache, t.vcache, t.attn_weight, t.output, q_head,
+                   h_dim, tile_size, tok_gen, from, to, 1, &exec_time);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto attn_block_time = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -452,6 +321,7 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
 
     auto end_time = std::chrono::high_resolution_clock::now();
 
+    std::cout << "output: " << std::endl;
     std::cout << output << std::endl;
 
     out = output.getData<float>();
@@ -537,6 +407,8 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
                                                                     start_time)
                 .count();
 
+    std::cout << "output2: " << std::endl;
+    std::cout << output2 << std::endl;
     // output2 = output2.transpose("0:2:1", output2);
     // output2.reshape({num_head, 1, seq, sequence_len});
     out2 = output2.getData<float>();
@@ -546,6 +418,7 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
                    head_dim / (ms * 1e6)
               << " GFLOPs\n";
 
+    std::cout << "output2: " << std::endl;
     std::cout << output2 << std::endl;
   }
 
@@ -576,4 +449,58 @@ TEST(nntrainer_TensorDim, dotBatched_01_p) {
     std::cout << output << std::endl;
   }
   */
+}
+
+TEST(nntrainer_TensorDim, qk_softmax_01_p) {
+  unsigned int q_head = 24;
+  int h_dim = 128;
+  int tile_size = 64;
+  bool tok_gen = false;
+  unsigned int to = 2048;
+  int from = tok_gen ? to - 1 : 0;
+  int qhead_per_kv = 1;
+  vector<pair<string, double>> exec_time, exec_time2;
+
+  auto t = AttnBlockTestData(q_head, h_dim, tile_size, tok_gen, from, to,
+                             qhead_per_kv);
+  auto t2 = AttnBlockTestData(q_head, h_dim, tile_size, tok_gen, from, to,
+                              qhead_per_kv);
+
+  t2.input.copy(t.input);
+  t2.kcache.copy(t.kcache);
+
+  auto res = _get_attn_weight(t.input, t.kcache, t.vcache, t.attn_weight,
+                              t.output, q_head, h_dim, tile_size, tok_gen, from,
+                              to, 1, &exec_time);
+  cout << "t.attn_weight" << endl;
+  cout << t.attn_weight << endl;
+
+  {
+    float exec_time_sum = 0.0f;
+    for (int i = 0; i < exec_time.size(); ++i) {
+      printf("%15s: %04.2f ms\n", exec_time[i].first.c_str(),
+             exec_time[i].second);
+      exec_time_sum += exec_time[i].second;
+    }
+    printf("%15s: %04.2f ms\n", "total", exec_time_sum);
+  }
+
+  EXPECT_EQ(res, 0);
+
+  auto res2 = _get_attn_weight2(t2.input, t2.kcache, t2.vcache, t2.attn_weight,
+                                t2.output, q_head, h_dim, tile_size, tok_gen,
+                                from, to, 1, &exec_time2);
+  cout << "t2.attn_weight" << endl;
+  cout << t2.attn_weight << endl;
+
+  for (int i = 0; i < exec_time2.size(); ++i) {
+    printf("%15s: %04.2f ms\n", exec_time2[i].first.c_str(),
+           exec_time2[i].second);
+  }
+
+  EXPECT_EQ(res2, 0);
+
+  for (int i = 0; i < q_head * (to - from) * to; ++i) {
+    EXPECT_NEAR(t.attn_weight.getData()[i], t2.attn_weight.getData()[i], 1e-4);
+  }
 }
