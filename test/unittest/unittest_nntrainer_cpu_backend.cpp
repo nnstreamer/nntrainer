@@ -933,7 +933,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
     auto t2 = high_resolution_clock::now();
     auto dt = duration_cast<nanoseconds>(t2 - t1);
     std::cout << "sgemm : " << dt.count()
-            << " ns " << std::endl;
+            << " ns "  << dt.count() / (1000 * 1000) << " ms " << std::endl;
 
     // Step0. Allocate a temporary buffer for quantized weight
     int64_t ne0 = N; // row length of the weight matrix
@@ -971,8 +971,7 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_GEMM) {
 
     t2 = high_resolution_clock::now();
     dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "gemm_q4_K : " << dt.count() << " ns " << std::endl
-              << std::endl;
+    std::cout << "gemm_q4_K : " << dt.count() << " ns " << dt.count() / (1000 * 1000) << " ms " << std::endl;
     ///@note Needs validation!
 
     // Step4. Compare quantization error

@@ -12,17 +12,31 @@
 
 #include "ggml-cpu-quants.h"
 #include "ggml-quants.h"
+#include <cstdint>
 #include <ggml.h>
 #include <ggml_interface.h>
 
-#include <stdint.h>
-#include "ggml.h"
-#include "ggml-cpu.h"
 #include "ggml-common.h"
-#include <stdio.h>
-#include <vector>
-#include <string>
+#include "ggml-cpu.h"
+#include "ggml.h"
 #include <iostream>
+#include <stdint.h>
+#include <stdio.h>
+#include <string>
+#include <vector>
+
+#include <bs_thread_pool.hpp>
+
+#define NUM_THREADS_TOTAL static_cast<int32_t>(std::thread::hardware_concurrency())
+#define NUM_THREADS_TOTAL_MINUS_ONE static_cast<int32_t>(NUM_THREADS_TOTAL - 1)
+
+#define DEFAULT 1
+#define OMP 2
+#define BS_DETATCH_TASK 3
+
+#define METHOD BS_DETATCH_TASK
+
+static BS::thread_pool g_thread_pool(NUM_THREADS_TOTAL_MINUS_ONE);
 
 namespace nntrainer {
 
@@ -38,52 +52,129 @@ size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
   return ::quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
+void __ggml_q4_K_8x8_q8_K_GEMM_perform_GEMV(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
+  float *C, const unsigned int ldc) {
+  const int32_t blocks_per_row = (K + QK_K - 1) / QK_K;
+  const int32_t qa_size = sizeof(block_q8_K) * blocks_per_row;
+  std::vector<char> QA = std::vector<char>(qa_size);
+
+  const auto qa_data = QA.data();
+
+  ::quantize_row_q8_K(A, qa_data, K);
+  ::ggml_gemv_q4_K_8x8_q8_K(K, C, ldc, B, qa_data, M, N);
+}
+
+void __ggml_q4_K_8x8_q8_K_GEMM_perform_GEMM(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
+  float *C, const unsigned int ldc) {
+
+  const int32_t blocks_per_4_rows = (K + QK_K - 1) / QK_K;
+  const int32_t qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
+  const int32_t M4 = ((M + 3) / 4);
+  const int32_t qa_size = qa_4_rows_size * M4;
+
+  std::vector<char> QA = std::vector<char>(qa_size);
+
+  char *const qa_data = QA.data();
+
+  const int32_t delta = 8;
+  const int32_t step_N = N / delta;
+  const int32_t step_C = delta;
+  const int32_t step_B = blocks_per_4_rows * sizeof(block_q4_K) * delta;
+
+#if METHOD == DEFAULT
+#pragma omp parallel for collapse(1) num_threads(NUM_THREADS_TOTAL)
+  for (int i = 0; i < M4; i++) {
+    ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, qa_data + i * qa_4_rows_size,
+                                 K);
+  }
+
+  ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, qa_data, M, N);
+#endif
+
+#if METHOD == OMP
+#pragma omp parallel for collapse(1) num_threads(NUM_THREADS_TOTAL)
+  for (int i = 0; i < M4; i++) {
+    ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, qa_data + i * qa_4_rows_size,
+                                 K);
+  }
+
+#pragma omp parallel for collapse(1) num_threads(NUM_THREADS_TOTAL)
+  for (int i = 0; i < step_N; i++) {
+    ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+                              qa_data, M, delta);
+  }
+#endif
+
+#if METHOD == BS_DETATCH_TASK
+  auto quantize_task_size = M4 / NUM_THREADS_TOTAL;
+  auto gemm_task_size = step_N / NUM_THREADS_TOTAL;
+
+  // printf("step_N = %d / %d = %d\n", step_N, NUM_THREADS_TOTAL,
+  // gemm_task_size);
+
+  for (auto n = 0; n < NUM_THREADS_TOTAL_MINUS_ONE; n++) {
+    g_thread_pool.detach_task([=] {
+      auto start = (n)*quantize_task_size;
+      auto end = (n + 1) * quantize_task_size;
+
+      for (auto i = start; i < end; ++i) {
+        ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
+                                     qa_data + i * qa_4_rows_size, K);
+      }
+    });
+  }
+
+  for (auto n = NUM_THREADS_TOTAL_MINUS_ONE; n < NUM_THREADS_TOTAL; n++) {
+    auto start = (n)*quantize_task_size;
+    auto end = (n + 1) * quantize_task_size;
+
+    for (auto i = start; i < end; ++i) {
+      ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, qa_data + i * qa_4_rows_size,
+                                   K);
+    }
+  }
+
+  g_thread_pool.wait();
+
+  for (auto n = 0; n < NUM_THREADS_TOTAL_MINUS_ONE; n++) {
+    g_thread_pool.detach_task([=] {
+      auto start = (n)*gemm_task_size;
+      auto end = (n + 1) * gemm_task_size;
+
+      for (auto i = start; i < end; ++i) {
+        ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc,
+                                  (char *)B + i * step_B, qa_data, M, delta);
+      }
+    });
+  }
+
+  for (auto n = NUM_THREADS_TOTAL_MINUS_ONE; n < NUM_THREADS_TOTAL; n++) {
+    auto start = (n)*gemm_task_size;
+    auto end = (n + 1) * gemm_task_size;
+
+    for (auto i = start; i < end; ++i) {
+      ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+                                qa_data, M, delta);
+    }
+  }
+
+  g_thread_pool.wait();
+#endif
+}
+
 void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc) {
-  if (M == 1) { // GEMV
-    int blocks_per_row = (K + QK_K - 1) / QK_K;
-    int qa_size = sizeof(block_q8_K) * blocks_per_row;
-    std::vector<char> QA = std::vector<char>(qa_size);
-
-    ::quantize_row_q8_K(A, QA.data(), K);
-
-    ::ggml_gemv_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
-  } else { // GEMM
-    printf("sizeof(block_q8_Kx4):%li\n", sizeof(block_q8_Kx4));
-
-    int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-    int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-    int M4 = ((M + 3) / 4);
-
-    int qa_size = qa_4_rows_size * M4;
-    std::vector<char> QA = std::vector<char>(qa_size);
-
-    // Quantization of activations
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < M4; i++) {
-      ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
-                                   QA.data() + i * qa_4_rows_size, K);
-    }
-
-#if 0
-    // single thread
-    ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
-#else
-    // TODO check beter multithreading
-    int delta = 8;
-    // int delta = 384 / 4;
-    int step_N = N / delta;
-    int step_C = delta;
-    int step_B = blocks_per_4_rows * sizeof(block_q4_K) * delta;
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < step_N; i++) {
-      ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-                                QA.data(), M, delta);
-    }
-#endif
+  if (M == 1) {
+    __ggml_q4_K_8x8_q8_K_GEMM_perform_GEMV(M, N, K, A, lda, B, ldb, C, ldc);
+  } else {
+    __ggml_q4_K_8x8_q8_K_GEMM_perform_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
   }
 }
 
