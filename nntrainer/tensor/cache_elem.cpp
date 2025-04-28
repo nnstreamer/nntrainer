@@ -77,7 +77,6 @@ void CacheElem::swapOut(Options opt) {
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);
   active = false;
-
 #ifdef PROFILE
   PROFILE_CACHE_DEALLOC(buf, policyToStr[policy], !dealloc_only);
 #endif
