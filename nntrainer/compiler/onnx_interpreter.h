@@ -44,6 +44,8 @@ public:
    */
   ~ONNXInterpreter(){};
 
+  std::string getDataType(int onnx_type);
+
   /**
    * @copydoc GraphInterpreter::serialize(const GraphRepresentation
    * representation, const std::string &out)
