@@ -76,6 +76,14 @@ GraphRepresentation ONNXInterpreter::deserialize(const std::string &in) {
     }
   }
 
+  // Keep the constant tensor
+  std::unordered_map<std::string, onnx::NodeProto> constantTensors;
+  for (const auto &node : onnx_model.graph().node()) {
+    if (node.op_type() == "Constant") {
+      constantTensors.insert({node.name(), node});
+    }
+  }
+
   // Create graph
   for (const auto &node : onnx_model.graph().node()) {
     /**
