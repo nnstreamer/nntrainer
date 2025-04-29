@@ -87,6 +87,12 @@ private:
     layerOutputMap; // key: name of output, value: name of layer
   std::unordered_map<std::string, onnx::TensorProto>
     initializers; // initializers are used to identify weights
+
+  std::unordered_map<std::string, std::string> layerKeyMap = {
+    {"Add", "add"},           {"Sub", "subtract"},  {"Mul", "multiply"},
+    {"Div", "divide"},        {"MatMul", "matmul"}, {"Reshape", "reshape"},
+    {"Transpose", "permute"}, {"Cast", "cast"},     {"Concat", "concat"},
+    {"Softmax", "activation"}};
 };
 
 } // namespace nntrainer

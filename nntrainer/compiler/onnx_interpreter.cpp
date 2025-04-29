@@ -78,14 +78,14 @@ GraphRepresentation ONNXInterpreter::deserialize(const std::string &in) {
 
   // Keep the constant tensor
   std::unordered_map<std::string, onnx::NodeProto> constantTensors;
-  for (const auto &node : onnx_model.graph().node()) {
-    if (node.op_type() == "Constant") {
-      constantTensors.insert({node.name(), node});
-    }
-  }
 
   // Create graph
   for (const auto &node : onnx_model.graph().node()) {
+    if (node.op_type() == "Constant") {
+      constantTensors.insert({node.name(), node});
+      continue;
+    }
+
     /**
      * @brief While NNTrainer represents graphs as connections between
      * operations, ONNX represents graphs as connections between
@@ -106,16 +106,48 @@ GraphRepresentation ONNXInterpreter::deserialize(const std::string &in) {
       inputNames.push_back(inputName);
     }
 
-    if (node.op_type() == "Add") {
-      layerOutputMap.insert(
-        {cleanName(node.output()[0]), cleanName(node.name())});
+    layerOutputMap.insert(
+      {cleanName(node.output()[0]), cleanName(node.name())});
 
-      graph.push_back(createLayerNode(
-        "add", {"name=" + cleanName(node.name()),
-                withKey("input_layers", inputNames[0] + "," + inputNames[1])}));
-    } else {
+    std::vector<std::string> layer_props;
+    layer_props.push_back("name=" + cleanName(node.name()));
+
+    switch (inputNames.size()) {
+    case 0: // Operation without inputs
+      throw std::runtime_error(
+        "Operation without inputs is not supported for this layer: " +
+        node.name());
+    case 1: // Unary operation
+      std::cout << "Unary operation: " << node.op_type() << ": ";
+      if (node.op_type() == "Transpose") {
+        if (cleanName(node.name()) == "transpose_2") {
+          layer_props.push_back("direction=2,3,1");
+        } else {
+          layer_props.push_back("direction=2,1,3");
+        }
+      } else if (node.op_type() == "Softmax") {
+        layer_props.push_back("activation=softmax");
+      } else if (node.op_type() == "Cast") {
+        layer_props.push_back("tensor_dtype=FP32");
+      }
+      layer_props.push_back("input_layers=" + inputNames[0]);
+      break;
+    case 2: // Binary operation
+      std::cout << "Binary operation: " << node.op_type() << ": "
+                << cleanName(node.name()) << std::endl;
+      if (node.op_type() == "Reshape") {
+        layer_props.push_back("target_shape=1:1:8");
+        layer_props.push_back("input_layers=" + inputNames[0]);
+      } else {
+        layer_props.push_back("input_layers=" + inputNames[0] + "," +
+                              inputNames[1]);
+      }
+      break;
+    default: // Operation with more than two inputs
       throw std::runtime_error("Unsupported operation type: " + node.op_type());
     }
+    graph.push_back(createLayerNode(layerKeyMap[node.op_type()],
+                                    {layer_props.begin(), layer_props.end()}));
   }
 
   return graph;
@@ -127,6 +159,7 @@ std::string ONNXInterpreter::cleanName(std::string name) {
   }
   std::replace(name.begin(), name.end(), '/', '_');
   std::replace(name.begin(), name.end(), '.', '_');
+  std::replace(name.begin(), name.end(), ':', '_');
   std::transform(name.begin(), name.end(), name.begin(),
                  [](unsigned char c) { return std::tolower(c); });
   return name;
