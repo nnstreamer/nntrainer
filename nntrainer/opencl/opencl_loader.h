@@ -14,7 +14,7 @@
 #ifndef __OPENCL_LOADER_H__
 #define __OPENCL_LOADER_H__
 
-#include "third_party/cl.h"
+#include "CL/cl.h"
 
 #define CL_API_ENTRY
 #define CL_API_CALL
